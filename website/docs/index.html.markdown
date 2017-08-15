@@ -35,4 +35,25 @@ provider "grafana" {
 resource "grafana_dashboard" "metrics" {
   config_json = "${file("grafana-dashboard.json")}"
 }
+
+resource "grafana_data_source" "influxdb" {
+  type          = "influxdb"
+  name          = "test_influxdb"
+  url           = "http://influxdb.example.net:8086/"
+  username      = "foo"
+  password      = "bar"
+  database_name = "mydb"
+}
+
+resource "grafana_alert_notification" "slack" {
+  name = "My Slack"
+  type = "slack"
+
+  settings {
+    "slack" = "https://myteam.slack.com/hoook"
+    "recipient" = "@someguy"
+    "uploadImage" = "false"
+  }
+}
+
 ```

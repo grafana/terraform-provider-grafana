@@ -1,14 +1,14 @@
 ---
 layout: "grafana"
 page_title: "Grafana: grafana_data_source"
-sidebar_current: "docs-influxdb-resource-data-source"
+sidebar_current: "docs-grafana-resource-data-source"
 description: |-
   The grafana_data_source resource allows a Grafana data source to be created.
 ---
 
 # grafana\_data\_source
 
-The data source resource allows a data source to created on a Grafana server.
+The data source resource allows a data source to be created on a Grafana server.
 
 ## Example Usage
 
