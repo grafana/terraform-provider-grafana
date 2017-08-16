@@ -1,14 +1,14 @@
 ---
 layout: "grafana"
 page_title: "Grafana: grafana_dashboard"
-sidebar_current: "docs-influxdb-resource-dashboard"
+sidebar_current: "docs-grafana-resource-dashboard"
 description: |-
   The grafana_dashboard resource allows a Grafana dashboard to be created.
 ---
 
 # grafana\_dashboard
 
-The dashboard resource allows a dashboard to created on a Grafana server.
+The dashboard resource allows a dashboard to be created on a Grafana server.
 
 ## Example Usage
 
