@@ -61,6 +61,14 @@ The following arguments are supported:
 * `password` - (Required by some data source types) The password to use to
   authenticate to the data source.
 
+* `json_data` - (Required by some data source types) The default region
+  and authentication type to access the data source. `json_data` is documented
+  in more detail below.
+
+* `secure_json_data` - (Required by some data source types) The access and
+  secret keys required to access the data source. `secure_json_data` is
+  documented in more detail below.
+
 * `database_name` - (Required by some data source types) The name of the
   database to use on the selected data source server.
 
@@ -68,6 +76,22 @@ The following arguments are supported:
   application will access the data source. The default is "proxy", which means
   that the application will make requests via a proxy endpoint on the Grafana
   server.
+
+JSON Data (`json_data`) supports the following:
+
+* `auth_type` - (Required by some data source types) The authentication type
+  type used to access the data source.
+
+* `default` - (Required by some data source types) The default region for
+  the data source.
+
+Secure JSON Data (`secure_json_data`) supports the following:
+
+* `access_key` - (Required by some data source types) The access key required
+  to access the data source.
+
+* `secret_key` - (Required by some data source types) The secret key required
+  to access the data source.
 
 ## Attributes Reference
 
