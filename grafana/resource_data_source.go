@@ -122,6 +122,7 @@ func ResourceDataSource() *schema.Resource {
 	}
 }
 
+// CreateDataSource creates a Grafana datasource
 func CreateDataSource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
@@ -140,6 +141,7 @@ func CreateDataSource(d *schema.ResourceData, meta interface{}) error {
 	return ReadDataSource(d, meta)
 }
 
+// UpdateDataSource updates a Grafana datasource
 func UpdateDataSource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
@@ -151,6 +153,7 @@ func UpdateDataSource(d *schema.ResourceData, meta interface{}) error {
 	return client.UpdateDataSource(dataSource)
 }
 
+// ReadDataSource reads a Grafana datasource
 func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
@@ -181,6 +184,7 @@ func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
+// DeleteDataSource deletes a Grafana datasource
 func DeleteDataSource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
