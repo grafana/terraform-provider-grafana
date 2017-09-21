@@ -73,6 +73,40 @@ func ResourceDataSource() *schema.Resource {
 				Default:  "",
 			},
 
+			"json_data": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"auth_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"default_region": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+
+			"secure_json_data": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"access_key": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"secret_key": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+
 			"database_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
