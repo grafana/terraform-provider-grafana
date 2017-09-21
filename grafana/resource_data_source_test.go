@@ -23,12 +23,19 @@ func TestAccDataSource_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccDataSourceConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccDataSourceCheckExists("grafana_data_source.test", &dataSource),
+					testAccDataSourceCheckExists("grafana_data_source.test_influxdb", &dataSource),
 					resource.TestCheckResourceAttr(
-						"grafana_data_source.test", "type", "influxdb",
+						"grafana_data_source.test_influxdb", "type", "influxdb",
 					),
 					resource.TestMatchResourceAttr(
-						"grafana_data_source.test", "id", regexp.MustCompile(`\d+`),
+						"grafana_data_source.test_influxdb", "id", regexp.MustCompile(`\d+`),
+					),
+					testAccDataSourceCheckExists("grafana_data_source.test_cloudwatch", &dataSource),
+					resource.TestCheckResourceAttr(
+						"grafana_data_source.test_cloudwatch", "type", "cloudwatch",
+					),
+					resource.TestMatchResourceAttr(
+						"grafana_data_source.test_cloudwatch", "id", regexp.MustCompile(`\d+`),
 					),
 				),
 			},
@@ -76,12 +83,26 @@ func testAccDataSourceCheckDestroy(dataSource *gapi.DataSource) resource.TestChe
 }
 
 const testAccDataSourceConfig_basic = `
-resource "grafana_data_source" "test" {
+resource "grafana_data_source" "test_influxdb" {
     type = "influxdb"
-    name = "terraform-acc-test"
-    database_name = "terraform-acc-test"
+    name = "terraform-acc-test-influxdb"
+    database_name = "terraform-acc-test-influxdb"
     url = "http://terraform-acc-test.invalid/"
     username = "terraform_user"
     password = "terraform_password"
+}
+
+resource "grafana_data_source" "test_cloudwatch" {
+    type = "cloudwatch"
+    name = "terraform-acc-test-cloudwatch"
+    url = "http://terraform-acc-test.invalid/"
+    json_data {
+			default_region = "us-east-1"
+			auth_type      = "keys"
+		}
+    secure_json_data {
+			access_key = "123"
+			secret_key = "456"
+		}
 }
 `

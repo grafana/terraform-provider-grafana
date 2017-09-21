@@ -218,5 +218,25 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 		BasicAuth:         d.Get("basic_auth_enabled").(bool),
 		BasicAuthUser:     d.Get("basic_auth_username").(string),
 		BasicAuthPassword: d.Get("basic_auth_password").(string),
+		JSONData:          makeJSONData(d),
+		SecureJSONData:    makeSecureJSONData(d),
 	}, err
+}
+
+func makeJSONData(d *schema.ResourceData) (gapi.JSONData, error) {
+	return gapi.JSONData{
+		AuthType:      d.Get("json_data.0.auth_type").(string),
+		DefaultRegion: d.Get("json_data.0.default_region").(string),
+	}
+
+	return gapi.JSONData{}
+}
+
+func makeSecureJSONData(d *schema.ResourceData) (gapi.SecureJSONData, error) {
+	return gapi.SecureJSONData{
+		AccessKey: d.Get("secure_json_data.0.access_key").(string),
+		SecretKey: d.Get("secure_json_data.0.secret_key").(string),
+	}
+
+	return gapi.SecureJSONData{}
 }
