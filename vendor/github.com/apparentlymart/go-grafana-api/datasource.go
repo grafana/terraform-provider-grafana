@@ -25,6 +25,21 @@ type DataSource struct {
 	BasicAuth         bool   `json:"basicAuth"`
 	BasicAuthUser     string `json:"basicAuthUser,omitempty"`
 	BasicAuthPassword string `json:"basicAuthPassword,omitempty"`
+
+	JSONData       JSONData       `json:"jsonData,omitempty"`
+	SecureJSONData SecureJSONData `json:"secureJsonData,omitempty"`
+}
+
+// JSONData is a representation of the datasource `jsonData` property
+type JSONData struct {
+	AuthType      string `json:"authType,omitempty"`
+	DefaultRegion string `json:"defaultRegion,omitempty"`
+}
+
+// SecureJSONData is a representation of the datasource `secureJsonData` property
+type SecureJSONData struct {
+	AccessKey string `json:"accessKey,omitempty"`
+	SecretKey string `json:"secretKey,omitempty"`
 }
 
 func (c *Client) NewDataSource(s *DataSource) (int64, error) {

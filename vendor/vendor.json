@@ -26,10 +26,10 @@
 			"revisionTime": "2017-04-18T07:21:50Z"
 		},
 		{
-			"checksumSHA1": "7pePgJHRok7HkNUzZqY9/wY72QQ=",
+			"checksumSHA1": "FIqC5wr3HVGaKdil+/xx3mnwL1Y=",
 			"path": "github.com/apparentlymart/go-grafana-api",
-			"revision": "086eb9b364680893a53f41fe6173a909ebd22e1d",
-			"revisionTime": "2017-08-15T16:18:14Z"
+			"revision": "35245a0ae5ef935eebb75de9bd8dfd94499f9b38",
+			"revisionTime": "2017-09-27T00:50:11Z"
 		},
 		{
 			"checksumSHA1": "+2yCNqbcf7VcavAptooQReTGiHY=",
