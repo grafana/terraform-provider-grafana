@@ -223,7 +223,7 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 	}, err
 }
 
-func makeJSONData(d *schema.ResourceData) (gapi.JSONData, error) {
+func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 	return gapi.JSONData{
 		AuthType:      d.Get("json_data.0.auth_type").(string),
 		DefaultRegion: d.Get("json_data.0.default_region").(string),
@@ -232,7 +232,7 @@ func makeJSONData(d *schema.ResourceData) (gapi.JSONData, error) {
 	return gapi.JSONData{}
 }
 
-func makeSecureJSONData(d *schema.ResourceData) (gapi.SecureJSONData, error) {
+func makeSecureJSONData(d *schema.ResourceData) gapi.SecureJSONData {
 	return gapi.SecureJSONData{
 		AccessKey: d.Get("secure_json_data.0.access_key").(string),
 		SecretKey: d.Get("secure_json_data.0.secret_key").(string),
