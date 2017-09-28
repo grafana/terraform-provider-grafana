@@ -228,8 +228,6 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		AuthType:      d.Get("json_data.0.auth_type").(string),
 		DefaultRegion: d.Get("json_data.0.default_region").(string),
 	}
-
-	return gapi.JSONData{}
 }
 
 func makeSecureJSONData(d *schema.ResourceData) gapi.SecureJSONData {
@@ -237,6 +235,4 @@ func makeSecureJSONData(d *schema.ResourceData) gapi.SecureJSONData {
 		AccessKey: d.Get("secure_json_data.0.access_key").(string),
 		SecretKey: d.Get("secure_json_data.0.secret_key").(string),
 	}
-
-	return gapi.SecureJSONData{}
 }
