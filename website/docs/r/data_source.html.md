@@ -42,8 +42,8 @@ The following arguments are supported:
 * `url` - (Required) The URL for the data source. The type of URL required
   varies depending on the chosen data source type.
 
-* `is_default` - (Optional) If true, the dashboard will be shown as the
-  root page on the Grafana server. Only one dashboard on a server can be
+* `is_default` - (Optional) If true, the data source will be the default
+  source used by the Grafana server. Only one data source on a server can be
   the default.
 
 * `basic_auth_enabled` - (Optional) - If true, HTTP basic authentication will
