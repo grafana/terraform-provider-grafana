@@ -32,6 +32,26 @@ func TestAccDashboard_basic(t *testing.T) {
 	})
 }
 
+func TestAccDashboard_disappear(t *testing.T) {
+	var dashboard gapi.Dashboard
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccDashboardCheckDestroy(&dashboard),
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDashboardConfig_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
+					testAccDashboardDisappear(&dashboard),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
@@ -51,6 +71,16 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 
 		*dashboard = *gotDashboard
 
+		return nil
+	}
+}
+
+func testAccDashboardDisappear(dashboard *gapi.Dashboard) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// At this point testAccDashboardCheckExists should have been called and
+		// dashboard should have been populated
+		client := testAccProvider.Meta().(*gapi.Client)
+		client.DeleteDashboard((*dashboard).Meta.Slug)
 		return nil
 	}
 }
