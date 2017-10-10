@@ -4,6 +4,10 @@ FEATURES:
 
 **New Resource:** `alert_notification` [GH-3]
 
+IMPROVEMENTS:
+
+* resource/grafana_dashboard: Be nicer when a dashboard is deleted [GH-7]
+
 ## 0.1.0 (June 20, 2017)
 
 NOTES:
