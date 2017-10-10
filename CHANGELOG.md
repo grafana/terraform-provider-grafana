@@ -2,7 +2,7 @@
 
 FEATURES:
 
-**New Resource:** `alert_notification` [GH-3]
+* **New Resource:** `alert_notification` [GH-3]
 
 IMPROVEMENTS:
 
