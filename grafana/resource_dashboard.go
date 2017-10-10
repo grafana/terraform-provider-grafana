@@ -3,6 +3,7 @@ package grafana
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -54,6 +55,12 @@ func ReadDashboard(d *schema.ResourceData, meta interface{}) error {
 
 	dashboard, err := client.Dashboard(slug)
 	if err != nil {
+		if err.Error() == "404 Not Found" {
+			log.Printf("[WARN] removing dashboard %s from state because it no longer exists in grafana", slug)
+			d.SetId("")
+			return nil
+		}
+
 		return err
 	}
 
