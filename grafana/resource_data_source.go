@@ -73,6 +73,40 @@ func ResourceDataSource() *schema.Resource {
 				Default:  "",
 			},
 
+			"json_data": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"auth_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"default_region": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+
+			"secure_json_data": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"access_key": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"secret_key": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+
 			"database_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -88,6 +122,7 @@ func ResourceDataSource() *schema.Resource {
 	}
 }
 
+// CreateDataSource creates a Grafana datasource
 func CreateDataSource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
@@ -106,6 +141,7 @@ func CreateDataSource(d *schema.ResourceData, meta interface{}) error {
 	return ReadDataSource(d, meta)
 }
 
+// UpdateDataSource updates a Grafana datasource
 func UpdateDataSource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
@@ -117,6 +153,7 @@ func UpdateDataSource(d *schema.ResourceData, meta interface{}) error {
 	return client.UpdateDataSource(dataSource)
 }
 
+// ReadDataSource reads a Grafana datasource
 func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
@@ -147,6 +184,7 @@ func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
+// DeleteDataSource deletes a Grafana datasource
 func DeleteDataSource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
@@ -180,5 +218,21 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 		BasicAuth:         d.Get("basic_auth_enabled").(bool),
 		BasicAuthUser:     d.Get("basic_auth_username").(string),
 		BasicAuthPassword: d.Get("basic_auth_password").(string),
+		JSONData:          makeJSONData(d),
+		SecureJSONData:    makeSecureJSONData(d),
 	}, err
+}
+
+func makeJSONData(d *schema.ResourceData) gapi.JSONData {
+	return gapi.JSONData{
+		AuthType:      d.Get("json_data.0.auth_type").(string),
+		DefaultRegion: d.Get("json_data.0.default_region").(string),
+	}
+}
+
+func makeSecureJSONData(d *schema.ResourceData) gapi.SecureJSONData {
+	return gapi.SecureJSONData{
+		AccessKey: d.Get("secure_json_data.0.access_key").(string),
+		SecretKey: d.Get("secure_json_data.0.secret_key").(string),
+	}
 }
