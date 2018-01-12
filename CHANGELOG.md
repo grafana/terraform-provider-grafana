@@ -1,4 +1,10 @@
 ## 1.0.1 (Unreleased)
+
+IMPROVEMENTS:
+
+* `grafana_alert_notification` - handle resources deleted out of band [GH-12]
+* `grafana_data_source` - handle resources deleted out of band [GH-12]
+
 ## 1.0.0 (October 23, 2017)
 
 FEATURES:
