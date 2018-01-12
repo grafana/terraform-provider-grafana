@@ -1,9 +1,9 @@
-## 1.0.1 (Unreleased)
+## 1.0.1 (January 12, 2018)
 
 IMPROVEMENTS:
 
-* `grafana_alert_notification` - handle resources deleted out of band [GH-12]
-* `grafana_data_source` - handle resources deleted out of band [GH-12]
+* `grafana_alert_notification` - handle resources deleted out of band ([#12](https://github.com/terraform-providers/terraform-provider-grafana/issues/12))
+* `grafana_data_source` - handle resources deleted out of band ([#12](https://github.com/terraform-providers/terraform-provider-grafana/issues/12))
 
 ## 1.0.0 (October 23, 2017)
 
