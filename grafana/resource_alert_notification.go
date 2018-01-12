@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 
 	gapi "github.com/apparentlymart/go-grafana-api"
@@ -85,6 +86,11 @@ func ReadAlertNotification(d *schema.ResourceData, meta interface{}) error {
 
 	alertNotification, err := client.AlertNotification(id)
 	if err != nil {
+		if err.Error() == "404 Not Found" {
+			log.Printf("[WARN] removing datasource %s from state because it no longer exists in grafana", d.Get("name").(string))
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
