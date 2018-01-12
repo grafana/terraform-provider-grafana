@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -160,11 +161,17 @@ func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
+		if err.Error() == "404 Not Found" {
+			log.Printf("[WARN] removing datasource %s from state because it no longer exists in grafana", d.Get("name").(string))
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Invalid id: %#v", idStr)
 	}
 
 	dataSource, err := client.DataSource(id)
 	if err != nil {
+
 		return err
 	}
 
