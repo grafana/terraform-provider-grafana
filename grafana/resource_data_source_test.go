@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	gapi "github.com/apparentlymart/go-grafana-api"
+	gapi "github.com/teemupo/go-grafana-api"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"

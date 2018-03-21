@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	gapi "github.com/apparentlymart/go-grafana-api"
+	gapi "github.com/teemupo/go-grafana-api"
 )
 
 func ResourceDataSource() *schema.Resource {
@@ -86,6 +86,14 @@ func ResourceDataSource() *schema.Resource {
 						"default_region": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
+						},
+						"custom_metrics_namespaces": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"assume_role_arn": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 					},
 				},
@@ -232,8 +240,10 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 
 func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 	return gapi.JSONData{
-		AuthType:      d.Get("json_data.0.auth_type").(string),
-		DefaultRegion: d.Get("json_data.0.default_region").(string),
+		AuthType:                d.Get("json_data.0.auth_type").(string),
+		DefaultRegion:           d.Get("json_data.0.default_region").(string),
+		CustomMetricsNamespaces: d.Get("json_data.0.custom_metrics_namespaces").(string),
+		AssumeRoleArn:           d.Get("json_data.0.assume_role_arn").(string),
 	}
 }
 
