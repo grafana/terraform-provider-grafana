@@ -26,12 +26,6 @@
 			"revisionTime": "2017-04-18T07:21:50Z"
 		},
 		{
-			"checksumSHA1": "ddOvRyJCJrcV3H6t1/hfxB8Vx/k=",
-			"path": "github.com/apparentlymart/go-grafana-api",
-			"revision": "8003b0c560418e48c3da6edd6619accc0bcf648a",
-			"revisionTime": "2017-11-17T00:33:27Z"
-		},
-		{
 			"checksumSHA1": "+2yCNqbcf7VcavAptooQReTGiHY=",
 			"path": "github.com/apparentlymart/go-rundeck-api",
 			"revision": "f6af74d34d1ef69a511c59173876fc1174c11f0d",
@@ -625,6 +619,14 @@
 			"path": "github.com/satori/go.uuid",
 			"revision": "b061729afc07e77a8aa4fad0a2fd840958f1942a",
 			"revisionTime": "2016-09-27T10:08:44Z"
+		},
+		{
+			"checksumSHA1": "2OAzyUvaUKVZkRx9f8NlbHT9cc0=",
+			"path": "github.com/teemupo/go-grafana-api",
+			"revision": "2967b3af48a0bba901cf724fad7c8e0b261e7ad9",
+			"revisionTime": "2018-02-22T10:24:21Z",
+			"version": "custom_metrics_namespaces",
+			"versionExact": "custom_metrics_namespaces"
 		},
 		{
 			"checksumSHA1": "vE43s37+4CJ2CDU6TlOUOYE0K9c=",
