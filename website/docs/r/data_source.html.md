@@ -85,6 +85,13 @@ JSON Data (`json_data`) supports the following:
 * `default` - (Required by some data source types) The default region for
   the data source.
 
+* `custom_metrics_namespaces` - (Optional, for the CloudWatch data source type)
+  A comma-separated list of custom namespaces to be queried by the CloudWatch
+  data source.
+
+* `assume_role_arn` - (Optional, for the CloudWatch data source type) The role
+  ARN to be assumed by Grafana when using the CloudWatch data source.
+
 Secure JSON Data (`secure_json_data`) supports the following:
 
 * `access_key` - (Required by some data source types) The access key required
