@@ -39,7 +39,7 @@ The following arguments are supported:
 * `name` - (Required) A unique name for the data source within the Grafana
   server.
 
-* `url` - (Required) The URL for the data source. The type of URL required
+* `url` - (Optional) The URL for the data source. The type of URL required
   varies depending on the chosen data source type.
 
 * `is_default` - (Optional) If true, the data source will be the default
