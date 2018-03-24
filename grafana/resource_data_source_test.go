@@ -95,7 +95,6 @@ resource "grafana_data_source" "test_influxdb" {
 resource "grafana_data_source" "test_cloudwatch" {
     type = "cloudwatch"
     name = "terraform-acc-test-cloudwatch"
-    url = "http://terraform-acc-test.invalid/"
     json_data {
 			default_region = "us-east-1"
 			auth_type      = "keys"
