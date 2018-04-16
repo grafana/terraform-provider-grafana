@@ -35,7 +35,7 @@ func ResourceDataSource() *schema.Resource {
 
 			"url": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 
 			"is_default": &schema.Schema{

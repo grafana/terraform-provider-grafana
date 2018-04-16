@@ -18,6 +18,8 @@ InfluxDB. See
 [Grafana's *Data Sources Guides*](http://docs.grafana.org/#data-sources-guides)
 for more details on the supported data source types and the arguments they use.
 
+For an InfluxDB datasource:
+
 ```hcl
 resource "grafana_data_source" "metrics" {
   type          = "influxdb"
@@ -26,6 +28,25 @@ resource "grafana_data_source" "metrics" {
   username      = "myapp"
   password      = "foobarbaz"
   database_name = "${influxdb_database.metrics.name}"
+}
+```
+
+For a CloudWatch datasource:
+
+```hcl
+resource "grafana_data_source" "test_cloudwatch" {
+  type = "cloudwatch"
+  name = "cw-example"
+
+  json_data {
+    default_region = "us-east-1"
+    auth_type      = "keys"
+  }
+
+  secure_json_data {
+    access_key = "123"
+    secret_key = "456"
+  }
 }
 ```
 
@@ -39,7 +60,7 @@ The following arguments are supported:
 * `name` - (Required) A unique name for the data source within the Grafana
   server.
 
-* `url` - (Required) The URL for the data source. The type of URL required
+* `url` - (Optional) The URL for the data source. The type of URL required
   varies depending on the chosen data source type.
 
 * `is_default` - (Optional) If true, the data source will be the default
