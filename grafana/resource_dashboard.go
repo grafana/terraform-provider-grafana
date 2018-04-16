@@ -94,6 +94,8 @@ func prepareDashboardModel(configJSON string) map[string]interface{} {
 	}
 
 	delete(configMap, "id")
+	// Only exists in 5.0+
+	delete(configMap, "uid")
 	configMap["version"] = 0
 
 	return configMap
@@ -123,6 +125,8 @@ func NormalizeDashboardConfigJSON(configI interface{}) string {
 	// significant when included in the JSON.
 	delete(configMap, "id")
 	delete(configMap, "version")
+	// Only exists in 5.0+
+	delete(configMap, "uid")
 
 	ret, err := json.Marshal(configMap)
 	if err != nil {
