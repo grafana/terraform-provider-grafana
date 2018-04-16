@@ -1,4 +1,11 @@
-## 1.0.2 (Unreleased)
+## 1.0.2 (April 16, 2018)
+
+IMPROVEMENTS:
+
+* `grafana_data_source` - make the url field optional to support resources like cloudwatch ([#18](https://github.com/terraform-providers/terraform-provider-grafana/pull/18))
+* `alert_notification` - handle null response in grafana 5.0 for non-existent dashboards ([#17](https://github.com/terraform-providers/terraform-provider-grafana/pull/17))
+* `grafana_data_source` - additional support for cloudwatch options (`custom_metrics_namespaces`, `assume_role_arn`) ([#16](https://github.com/terraform-providers/terraform-provider-grafana/pull/16))
+
 ## 1.0.1 (January 12, 2018)
 
 IMPROVEMENTS:
