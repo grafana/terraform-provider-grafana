@@ -30,12 +30,38 @@ func TestAccDataSource_basic(t *testing.T) {
 					resource.TestMatchResourceAttr(
 						"grafana_data_source.test_influxdb", "id", regexp.MustCompile(`\d+`),
 					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDataSource_basicCloudwatch(t *testing.T) {
+	var dataSource gapi.DataSource
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccDataSourceCheckDestroy(&dataSource),
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDataSourceConfig_basicCloudwatch,
+				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourceCheckExists("grafana_data_source.test_cloudwatch", &dataSource),
 					resource.TestCheckResourceAttr(
 						"grafana_data_source.test_cloudwatch", "type", "cloudwatch",
 					),
-					resource.TestMatchResourceAttr(
-						"grafana_data_source.test_cloudwatch", "id", regexp.MustCompile(`\d+`),
+					resource.TestCheckResourceAttr(
+						"grafana_data_source.test_cloudwatch", "json_data.0.custom_metrics_namespaces", "foo",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_data_source.test_cloudwatch", "json_data.0.assume_role_arn", "arn:aws:sts::*:assumed-role/*/*",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_data_source.test_cloudwatch", "json_data.0.auth_type", "keys",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_data_source.test_cloudwatch", "json_data.0.default_region", "us-east-1",
 					),
 				),
 			},
@@ -84,24 +110,29 @@ func testAccDataSourceCheckDestroy(dataSource *gapi.DataSource) resource.TestChe
 
 const testAccDataSourceConfig_basic = `
 resource "grafana_data_source" "test_influxdb" {
-    type = "influxdb"
-    name = "terraform-acc-test-influxdb"
-    database_name = "terraform-acc-test-influxdb"
-    url = "http://terraform-acc-test.invalid/"
-    username = "terraform_user"
-    password = "terraform_password"
+  type          = "influxdb"
+  name          = "terraform-acc-test-influxdb"
+  database_name = "terraform-acc-test-influxdb"
+  url           = "http://terraform-acc-test.invalid/"
+  username      = "terraform_user"
+  password      = "terraform_password"
 }
-
+`
+const testAccDataSourceConfig_basicCloudwatch = `
 resource "grafana_data_source" "test_cloudwatch" {
-    type = "cloudwatch"
-    name = "terraform-acc-test-cloudwatch"
-    json_data {
-			default_region = "us-east-1"
-			auth_type      = "keys"
-		}
-    secure_json_data {
-			access_key = "123"
-			secret_key = "456"
-		}
+  type = "cloudwatch"
+  name = "terraform-acc-test-cloudwatch"
+
+  json_data {
+    default_region            = "us-east-1"
+    auth_type                 = "keys"
+    assume_role_arn           = "arn:aws:sts::*:assumed-role/*/*"
+    custom_metrics_namespaces = "foo"
+  }
+
+  secure_json_data {
+    access_key = "123"
+    secret_key = "456"
+  }
 }
 `
