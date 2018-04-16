@@ -30,10 +30,6 @@ $ cd $GOPATH/src/github.com/hashicorp/terraform-provider-$PROVIDER_NAME
 $ make build
 ```
 
-Using the provider
-----------------------
-## Fill in for each provider
-
 Developing the Provider
 ---------------------------
 
@@ -54,10 +50,36 @@ In order to test the provider, you can simply run `make test`.
 $ make test
 ```
 
-In order to run the full suite of Acceptance tests, run `make testacc`.
-
-*Note:* Acceptance tests create real resources, and often cost money to run.
+In order to run the full suite of Acceptance tests, run `make testacc`. This should be
+performed before merging or opening pull requests.
 
 ```sh
-$ make testacc
+$ GRAFANA_URL=http://localhost:3000 GRAFANA_AUTH=admin:admin make testacc
 ```
+
+This requires a running Grafana server locally. This provider targets
+the latest version of Grafana, but older versions should be compatible where
+possible. In some cases, older versions of this provider will work with
+older versions of Grafana.
+
+If you have [Docker](https://docs.docker.com/install/) installed, you can
+run Grafana with the following command:
+
+```sh
+$ make test-serv
+```
+
+By default, this will use the latest version of Grafana based on their
+Docker repository. You can specify the version with the following:
+
+```sh
+$ GRAFANA_VERSION=3.1.1 make test-serv
+```
+
+This command will run attached and will stop the Grafana server when
+interrupted. Images will be cached locally by Docker so it is quicky to
+restart the server as necessary. The server will use the default port and
+credentials for the `GRAFANA_AUTH` and `GRAFANA_URL` environment variables.
+
+Nightly acceptance tests are run against the `latest` tag of the Grafana
+maintained Docker image.
