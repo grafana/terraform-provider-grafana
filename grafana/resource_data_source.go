@@ -57,9 +57,10 @@ func ResourceDataSource() *schema.Resource {
 			},
 
 			"basic_auth_password": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Type:      schema.TypeString,
+				Optional:  true,
+				Default:   "",
+				Sensitive: true,
 			},
 
 			"username": &schema.Schema{
@@ -69,9 +70,10 @@ func ResourceDataSource() *schema.Resource {
 			},
 
 			"password": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Type:      schema.TypeString,
+				Optional:  true,
+				Default:   "",
+				Sensitive: true,
 			},
 
 			"json_data": &schema.Schema{
@@ -100,8 +102,9 @@ func ResourceDataSource() *schema.Resource {
 			},
 
 			"secure_json_data": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
+				Type:      schema.TypeList,
+				Optional:  true,
+				Sensitive: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"access_key": &schema.Schema{

@@ -27,6 +27,12 @@ func TestAccDataSource_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"grafana_data_source.test_influxdb", "type", "influxdb",
 					),
+					resource.TestCheckResourceAttr(
+						"grafana_data_source.test_influxdb", "password", "terraform_password",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_data_source.test_influxdb", "basic_auth_password", "basic_password",
+					),
 					resource.TestMatchResourceAttr(
 						"grafana_data_source.test_influxdb", "id", regexp.MustCompile(`\d+`),
 					),
@@ -62,6 +68,9 @@ func TestAccDataSource_basicCloudwatch(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_data_source.test_cloudwatch", "json_data.0.default_region", "us-east-1",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_data_source.test_cloudwatch", "secure_json_data.0.access_key", "123",
 					),
 				),
 			},
@@ -110,12 +119,13 @@ func testAccDataSourceCheckDestroy(dataSource *gapi.DataSource) resource.TestChe
 
 const testAccDataSourceConfig_basic = `
 resource "grafana_data_source" "test_influxdb" {
-  type          = "influxdb"
-  name          = "terraform-acc-test-influxdb"
-  database_name = "terraform-acc-test-influxdb"
-  url           = "http://terraform-acc-test.invalid/"
-  username      = "terraform_user"
-  password      = "terraform_password"
+  type                = "influxdb"
+  name                = "terraform-acc-test-influxdb"
+  database_name       = "terraform-acc-test-influxdb"
+  url                 = "http://terraform-acc-test.invalid/"
+  username            = "terraform_user"
+  password            = "terraform_password"
+  basic_auth_password = "basic_password"
 }
 `
 const testAccDataSourceConfig_basicCloudwatch = `

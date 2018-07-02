@@ -39,8 +39,9 @@ func ResourceAlertNotification() *schema.Resource {
 			},
 
 			"settings": {
-				Type:     schema.TypeMap,
-				Optional: true,
+				Type:      schema.TypeMap,
+				Optional:  true,
+				Sensitive: true,
 			},
 		},
 	}
