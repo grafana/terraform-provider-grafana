@@ -30,6 +30,9 @@ func TestAccAlertNotification_basic(t *testing.T) {
 					resource.TestMatchResourceAttr(
 						"grafana_alert_notification.test", "id", regexp.MustCompile(`\d+`),
 					),
+					resource.TestCheckResourceAttr(
+						"grafana_alert_notification.test", "settings.addresses", "foo@bar.test",
+					),
 				),
 			},
 		},
