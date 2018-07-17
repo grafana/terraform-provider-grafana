@@ -210,27 +210,27 @@ func collectUsers(d *schema.ResourceData) (map[string]OrgUser, map[string]OrgUse
 	return oldUsers, newUsers
 }
 
-func changes(oldUsers, newUsers map[string]OrgUser) map[string]UserChange {
-	changes := make(map[string]UserChange)
+func changes(oldUsers, newUsers map[string]OrgUser) []UserChange {
+	var changes []UserChange
 	for _, user := range newUsers {
 		oUser, ok := oldUsers[user.Email]
 		if !ok {
-			changes[user.Email] = UserChange{UserAdd, user}
+			changes = append(changes, UserChange{UserAdd, user})
 			continue
 		}
 		if oUser.Role != user.Role {
-			changes[user.Email] = UserChange{UserUpdate, user}
+			changes = append(changes, UserChange{UserUpdate, user})
 		}
 	}
 	for _, user := range oldUsers {
 		if _, ok := newUsers[user.Email]; !ok {
-			changes[user.Email] = UserChange{UserRemove, user}
+			changes = append(changes, UserChange{UserRemove, user})
 		}
 	}
 	return changes
 }
 
-func addIds(d *schema.ResourceData, meta interface{}, changes map[string]UserChange) (map[string]UserChange, error) {
+func addIds(d *schema.ResourceData, meta interface{}, changes []UserChange) ([]UserChange, error) {
 	client := meta.(*gapi.Client)
 	gUserMap := make(map[string]int64)
 	gUsers, err := client.Users()
@@ -240,7 +240,7 @@ func addIds(d *schema.ResourceData, meta interface{}, changes map[string]UserCha
 	for _, u := range gUsers {
 		gUserMap[u.Email] = u.Id
 	}
-	output := make(map[string]UserChange)
+	var output []UserChange
 	create := d.Get("create_users").(bool)
 	for _, change := range changes {
 		id, ok := gUserMap[change.User.Email]
@@ -256,7 +256,7 @@ func addIds(d *schema.ResourceData, meta interface{}, changes map[string]UserCha
 			id = user
 		}
 		change.User.Id = id
-		output[change.User.Email] = change
+		output = append(output, change)
 	}
 	return output, nil
 }
@@ -284,7 +284,7 @@ func createUser(meta interface{}, user string) (int64, error) {
 	return id, err
 }
 
-func applyChanges(meta interface{}, orgId int64, changes map[string]UserChange) error {
+func applyChanges(meta interface{}, orgId int64, changes []UserChange) error {
 	var err error
 	client := meta.(*gapi.Client)
 	for _, change := range changes {
