@@ -19,6 +19,7 @@ func Provider() terraform.ResourceProvider {
 			"auth": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
+				Sensitive:   true,
 				DefaultFunc: schema.EnvDefaultFunc("GRAFANA_AUTH", nil),
 				Description: "Credentials for accessing the Grafana API.",
 			},
