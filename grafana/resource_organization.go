@@ -39,28 +39,18 @@ func ResourceOrganization() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the Grafana organization.",
+				Type:     schema.TypeString,
+				Required: true,
 			},
 			"admin_user": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "admin",
-				Description: `The name of the Grafana admin user, defaulting to
-"admin". Grafana adds this user to all organizations automatically, and this
-will keep Terraform from removing them from managed organizations. Specifying a
-blank string here will cause Terraform to remove the default admin user from the
-organization.`,
 			},
 			"create_users": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
-				Description: `When set to true (the default if unspecified) users
-will be created for any specified organization user not already registered in
-Grafana. This is particularly userful for authentication integrations such as
-google_auth and github_auth.`,
 			},
 			"org_id": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -72,9 +62,6 @@ google_auth and github_auth.`,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Description: `A list containing email addresses of users who
-should be given the role 'Admin' within this organization. Note: users specified
-here must already exist in Grafana.`,
 			},
 			"editors": &schema.Schema{
 				Type:     schema.TypeList,
@@ -82,9 +69,6 @@ here must already exist in Grafana.`,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Description: `A list containing email addresses of users who
-should have the role 'Editor' within this organization. Note: users specified
-here must already exist in Grafana.`,
 			},
 			"viewers": &schema.Schema{
 				Type:     schema.TypeList,
@@ -92,9 +76,6 @@ here must already exist in Grafana.`,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Description: `A list containing email addresses of users who
-should have the role 'Viewer' within this organization. Note: users specified
-here must already exist in Grafana.`,
 			},
 		},
 	}

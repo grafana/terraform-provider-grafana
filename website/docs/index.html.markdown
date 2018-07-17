@@ -56,4 +56,20 @@ resource "grafana_alert_notification" "slack" {
   }
 }
 
+resource "grafana_organization" "org" {
+    name         = "Grafana Organization
+    admin_user   = "admin"
+    create_users = true
+    admins       = [
+        "admin@example.com"
+    ]
+    editors      = [
+        "editor-01@example.com",
+        "editor-02@example.com"
+    ]
+    viewers      = [
+        "viewer-01@example.com",
+        "viewer-02@example.com"
+    ]
+}
 ```
