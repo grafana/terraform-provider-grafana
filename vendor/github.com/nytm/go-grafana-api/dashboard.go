@@ -33,7 +33,7 @@ func (c *Client) SaveDashboard(model map[string]interface{}, overwrite bool) (*D
 	if err != nil {
 		return nil, err
 	}
-	req, err := c.newRequest("POST", "/api/dashboards/db", bytes.NewBuffer(data))
+	req, err := c.newRequest("POST", "/api/dashboards/db", nil, bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func (c *Client) SaveDashboard(model map[string]interface{}, overwrite bool) (*D
 
 func (c *Client) Dashboard(slug string) (*Dashboard, error) {
 	path := fmt.Sprintf("/api/dashboards/db/%s", slug)
-	req, err := c.newRequest("GET", path, nil)
+	req, err := c.newRequest("GET", path, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (c *Client) Dashboard(slug string) (*Dashboard, error) {
 
 func (c *Client) DeleteDashboard(slug string) error {
 	path := fmt.Sprintf("/api/dashboards/db/%s", slug)
-	req, err := c.newRequest("DELETE", path, nil)
+	req, err := c.newRequest("DELETE", path, nil, nil)
 	if err != nil {
 		return err
 	}

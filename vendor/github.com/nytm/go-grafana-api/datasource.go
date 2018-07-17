@@ -49,7 +49,7 @@ func (c *Client) NewDataSource(s *DataSource) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	req, err := c.newRequest("POST", "/api/datasources", bytes.NewBuffer(data))
+	req, err := c.newRequest("POST", "/api/datasources", nil, bytes.NewBuffer(data))
 	if err != nil {
 		return 0, err
 	}
@@ -80,7 +80,7 @@ func (c *Client) UpdateDataSource(s *DataSource) error {
 	if err != nil {
 		return err
 	}
-	req, err := c.newRequest("PUT", path, bytes.NewBuffer(data))
+	req, err := c.newRequest("PUT", path, nil, bytes.NewBuffer(data))
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (c *Client) UpdateDataSource(s *DataSource) error {
 
 func (c *Client) DataSource(id int64) (*DataSource, error) {
 	path := fmt.Sprintf("/api/datasources/%d", id)
-	req, err := c.newRequest("GET", path, nil)
+	req, err := c.newRequest("GET", path, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func (c *Client) DataSource(id int64) (*DataSource, error) {
 
 func (c *Client) DeleteDataSource(id int64) error {
 	path := fmt.Sprintf("/api/datasources/%d", id)
-	req, err := c.newRequest("DELETE", path, nil)
+	req, err := c.newRequest("DELETE", path, nil, nil)
 	if err != nil {
 		return err
 	}
