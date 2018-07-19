@@ -89,7 +89,6 @@ func CreateOrganization(d *schema.ResourceData, meta interface{}) error {
 		return errors.New(fmt.Sprintf("Error: A Grafana Organization with the name '%s' already exists.", name))
 	}
 	if err != nil {
-		log.Printf("[DEBUG] creating Grafana organization %s", name)
 		return err
 	}
 	d.SetId(strconv.FormatInt(orgId, 10))
@@ -100,12 +99,12 @@ func ReadOrganization(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
 	resp, err := client.Org(orgId)
+	if err != nil && err.Error() == "404 Not Found" {
+		log.Printf("[WARN] removing organization %s from state because it no longer exists in grafana", d.Id())
+		d.SetId("")
+		return nil
+	}
 	if err != nil {
-		if err.Error() == "404 Not Found" {
-			log.Printf("[WARN] removing organization %s from state because it no longer exists in grafana", d.Id())
-			d.SetId("")
-			return nil
-		}
 		return err
 	}
 	d.Set("name", resp.Name)
@@ -119,8 +118,6 @@ func UpdateOrganization(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
 	if d.HasChange("name") {
-		oldName, newName := d.GetChange("name")
-		log.Printf("[DEBUG] org name has been updated from %s to %s", oldName.(string), newName.(string))
 		name := d.Get("name").(string)
 		err := client.UpdateOrg(orgId, name)
 		if err != nil {
@@ -248,7 +245,6 @@ func addIds(d *schema.ResourceData, meta interface{}, changes []UserChange) ([]U
 			return nil, errors.New(fmt.Sprintf("Error adding user %s. User does not exist in Grafana.", change.User.Email))
 		}
 		if !ok && create {
-			log.Printf("[DEBUG] Creating user '%s'. User is not known to Grafana.", change.User.Email)
 			user, err := createUser(meta, change.User.Email)
 			if err != nil {
 				return nil, err
@@ -270,7 +266,6 @@ func createUser(meta interface{}, user string) (int64, error) {
 		return id, err
 	}
 	pass := string(bytes[:n])
-	log.Printf("[DEBUG] creating user %s with random password", user)
 	u := gapi.User{
 		Name:     user,
 		Login:    user,
