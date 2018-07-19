@@ -17,14 +17,18 @@ type OrgUser struct {
 	Role  string
 }
 
-const UserAdd = 10
-const UserUpdate = 20
-const UserRemove = 30
-
 type UserChange struct {
-	Type int8
+	Type ChangeType
 	User OrgUser
 }
+
+type ChangeType int8
+
+const (
+	Add ChangeType = iota
+	Update
+	Remove
+)
 
 func ResourceOrganization() *schema.Resource {
 	return &schema.Resource{
@@ -212,16 +216,16 @@ func changes(oldUsers, newUsers map[string]OrgUser) []UserChange {
 	for _, user := range newUsers {
 		oUser, ok := oldUsers[user.Email]
 		if !ok {
-			changes = append(changes, UserChange{UserAdd, user})
+			changes = append(changes, UserChange{Add, user})
 			continue
 		}
 		if oUser.Role != user.Role {
-			changes = append(changes, UserChange{UserUpdate, user})
+			changes = append(changes, UserChange{Update, user})
 		}
 	}
 	for _, user := range oldUsers {
 		if _, ok := newUsers[user.Email]; !ok {
-			changes = append(changes, UserChange{UserRemove, user})
+			changes = append(changes, UserChange{Remove, user})
 		}
 	}
 	return changes
@@ -285,11 +289,11 @@ func applyChanges(meta interface{}, orgId int64, changes []UserChange) error {
 	for _, change := range changes {
 		u := change.User
 		switch change.Type {
-		case UserAdd:
+		case Add:
 			err = client.AddOrgUser(orgId, u.Email, u.Role)
-		case UserUpdate:
+		case Update:
 			err = client.UpdateOrgUser(orgId, u.Id, u.Role)
-		case UserRemove:
+		case Remove:
 			err = client.RemoveOrgUser(orgId, u.Id)
 		}
 		if err != nil && err.Error() != "409 Conflict" {
