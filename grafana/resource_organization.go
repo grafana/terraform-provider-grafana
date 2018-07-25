@@ -263,7 +263,7 @@ func addIdsToChanges(d *schema.ResourceData, meta interface{}, changes []UserCha
 			return nil, errors.New(fmt.Sprintf("Error adding user %s. User does not exist in Grafana.", change.User.Email))
 		}
 		if !ok && create {
-			id, err := createUser(meta, change.User.Email)
+			id, err = createUser(meta, change.User.Email)
 			if err != nil {
 				return nil, err
 			}
