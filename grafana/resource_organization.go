@@ -191,7 +191,7 @@ func UpdateUsers(d *schema.ResourceData, meta interface{}) error {
 	}
 	changes := changes(stateUsers, configUsers)
 	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
-	changes, err = addIds(d, meta, changes)
+	changes, err = addIdsToChanges(d, meta, changes)
 	if err != nil {
 		return err
 	}
@@ -240,7 +240,7 @@ func changes(stateUsers, configUsers map[string]OrgUser) []UserChange {
 	return changes
 }
 
-func addIds(d *schema.ResourceData, meta interface{}, changes []UserChange) ([]UserChange, error) {
+func addIdsToChanges(d *schema.ResourceData, meta interface{}, changes []UserChange) ([]UserChange, error) {
 	client := meta.(*gapi.Client)
 	gUserMap := make(map[string]int64)
 	gUsers, err := client.Users()
