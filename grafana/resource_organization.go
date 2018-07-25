@@ -225,15 +225,20 @@ func changes(stateUsers, configUsers map[string]OrgUser) []UserChange {
 	for _, user := range configUsers {
 		sUser, ok := stateUsers[user.Email]
 		if !ok {
+			// User doesn't exist in Grafana's state for the organization, should be added.
 			changes = append(changes, UserChange{Add, user})
 			continue
 		}
 		if sUser.Role != user.Role {
+			// Update the user as they're configured with a different role than
+			// what is in Grafana's state.
 			changes = append(changes, UserChange{Update, user})
 		}
 	}
 	for _, user := range stateUsers {
 		if _, ok := configUsers[user.Email]; !ok {
+			// User exists in Grafana's state for the organization, but isn't
+			// present in the organization configuration, should be removed.
 			changes = append(changes, UserChange{Remove, user})
 		}
 	}
