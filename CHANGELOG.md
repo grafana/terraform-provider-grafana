@@ -1,4 +1,9 @@
 ## 1.0.3 (Unreleased)
+
+IMPROVEMENTS:
+
+* `provider` - mark various secret fields as sensitive [GH-28]
+
 ## 1.0.2 (April 18, 2018)
 
 IMPROVEMENTS:
