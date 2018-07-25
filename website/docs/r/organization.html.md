@@ -73,6 +73,9 @@ The following arguments are supported:
   should be given `viewer` access to the organization. Note: users specified
   here must already exist in Grafana unless 'create_users' is set to true.
 
+A user can only be listed under one role-group for an organization, listing the
+same user under multiple roles will cause an error to be thrown.
+
 Note - Users specified for each role-group (`admins`, `editors`, `viewers`)
 should be listed in ascending alphabetical order (A-Z). By defining users in
 alphabetical order, Terraform is prevented from detecting unnecessary changes
