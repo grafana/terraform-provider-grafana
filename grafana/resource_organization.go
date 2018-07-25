@@ -185,46 +185,55 @@ func ReadUsers(d *schema.ResourceData, meta interface{}) error {
 }
 
 func UpdateUsers(d *schema.ResourceData, meta interface{}) error {
-	oldUsers, newUsers := collectUsers(d)
-	changes := changes(oldUsers, newUsers)
+	stateUsers, configUsers, err := collectUsers(d)
+	if err != nil {
+		return err
+	}
+	changes := changes(stateUsers, configUsers)
 	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
-	changes, err := addIds(d, meta, changes)
+	changes, err = addIds(d, meta, changes)
 	if err != nil {
 		return err
 	}
 	return applyChanges(meta, orgId, changes)
 }
 
-func collectUsers(d *schema.ResourceData) (map[string]OrgUser, map[string]OrgUser) {
+func collectUsers(d *schema.ResourceData) (map[string]OrgUser, map[string]OrgUser, error) {
 	roles := []string{"admins", "editors", "viewers"}
-	oldUsers, newUsers := make(map[string]OrgUser), make(map[string]OrgUser)
+	stateUsers, configUsers := make(map[string]OrgUser), make(map[string]OrgUser)
 	for _, role := range roles {
 		roleName := strings.Title(role[:len(role)-1])
-		old, new := d.GetChange(role)
-		for _, u := range old.([]interface{}) {
-			oldUsers[u.(string)] = OrgUser{0, u.(string), roleName}
+		// Get the lists of users read in from Grafana state (old) and configured (new)
+		state, config := d.GetChange(role)
+		for _, u := range state.([]interface{}) {
+			stateUsers[u.(string)] = OrgUser{0, u.(string), roleName}
 		}
-		for _, u := range new.([]interface{}) {
-			newUsers[u.(string)] = OrgUser{0, u.(string), roleName}
+		for _, u := range config.([]interface{}) {
+			email := u.(string)
+			// Sanity check that a user isn't specified twice within an organization
+			if _, ok := configUsers[email]; ok {
+				return nil, nil, errors.New(fmt.Sprintf("Error: User '%s' cannot be specified multiple times.", email))
+			}
+			configUsers[email] = OrgUser{0, email, roleName}
 		}
 	}
-	return oldUsers, newUsers
+	return stateUsers, configUsers, nil
 }
 
-func changes(oldUsers, newUsers map[string]OrgUser) []UserChange {
+func changes(stateUsers, configUsers map[string]OrgUser) []UserChange {
 	var changes []UserChange
-	for _, user := range newUsers {
-		oUser, ok := oldUsers[user.Email]
+	for _, user := range configUsers {
+		sUser, ok := stateUsers[user.Email]
 		if !ok {
 			changes = append(changes, UserChange{Add, user})
 			continue
 		}
-		if oUser.Role != user.Role {
+		if sUser.Role != user.Role {
 			changes = append(changes, UserChange{Update, user})
 		}
 	}
-	for _, user := range oldUsers {
-		if _, ok := newUsers[user.Email]; !ok {
+	for _, user := range stateUsers {
+		if _, ok := configUsers[user.Email]; !ok {
 			changes = append(changes, UserChange{Remove, user})
 		}
 	}
