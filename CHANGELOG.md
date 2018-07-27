@@ -1,8 +1,8 @@
-## 1.1.0 (Unreleased)
+## 1.1.0 (July 27, 2018)
 
 IMPROVEMENTS:
 
-* `provider` - mark various secret fields as sensitive [GH-28]
+* `provider` - mark various secret fields as sensitive ([#28](https://github.com/terraform-providers/terraform-provider-grafana/issues/28))
 
 ## 1.0.2 (April 18, 2018)
 
