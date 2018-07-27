@@ -206,7 +206,12 @@ func collectUsers(d *schema.ResourceData) (map[string]OrgUser, map[string]OrgUse
 		// Get the lists of users read in from Grafana state (old) and configured (new)
 		state, config := d.GetChange(role)
 		for _, u := range state.([]interface{}) {
-			stateUsers[u.(string)] = OrgUser{0, u.(string), roleName}
+			email := u.(string)
+			// Sanity check that a user isn't specified twice within an organization
+			if _, ok := stateUsers[email]; ok {
+				return nil, nil, errors.New(fmt.Sprintf("Error: User '%s' cannot be specified multiple times.", email))
+			}
+			stateUsers[email] = OrgUser{0, email, roleName}
 		}
 		for _, u := range config.([]interface{}) {
 			email := u.(string)
