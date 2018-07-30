@@ -9,16 +9,16 @@ import (
 )
 
 type AlertNotification struct {
-	Id          int64       `json:"id,omitempty"`
-	Name        string      `json:"name"`
-	Type        string      `json:"type"`
-	IsDefault   bool        `json:"isDefault"`
-	Settings    interface{} `json:"settings"`
+	Id        int64       `json:"id,omitempty"`
+	Name      string      `json:"name"`
+	Type      string      `json:"type"`
+	IsDefault bool        `json:"isDefault"`
+	Settings  interface{} `json:"settings"`
 }
 
 func (c *Client) AlertNotification(id int64) (*AlertNotification, error) {
 	path := fmt.Sprintf("/api/alert-notifications/%d", id)
-	req, err := c.newRequest("GET", path, nil)
+	req, err := c.newRequest("GET", path, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (c *Client) NewAlertNotification(a *AlertNotification) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	req, err := c.newRequest("POST", "/api/alert-notifications", bytes.NewBuffer(data))
+	req, err := c.newRequest("POST", "/api/alert-notifications", nil, bytes.NewBuffer(data))
 	if err != nil {
 		return 0, err
 	}
@@ -77,7 +77,7 @@ func (c *Client) UpdateAlertNotification(a *AlertNotification) error {
 	if err != nil {
 		return err
 	}
-	req, err := c.newRequest("PUT", path, bytes.NewBuffer(data))
+	req, err := c.newRequest("PUT", path, nil, bytes.NewBuffer(data))
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (c *Client) UpdateAlertNotification(a *AlertNotification) error {
 
 func (c *Client) DeleteAlertNotification(id int64) error {
 	path := fmt.Sprintf("/api/alert-notifications/%d", id)
-	req, err := c.newRequest("DELETE", path, nil)
+	req, err := c.newRequest("DELETE", path, nil, nil)
 	if err != nil {
 		return err
 	}

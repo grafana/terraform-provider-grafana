@@ -29,6 +29,7 @@ func Provider() terraform.ResourceProvider {
 			"grafana_alert_notification": ResourceAlertNotification(),
 			"grafana_dashboard":          ResourceDashboard(),
 			"grafana_data_source":        ResourceDataSource(),
+			"grafana_organization":       ResourceOrganization(),
 		},
 
 		ConfigureFunc: providerConfigure,
