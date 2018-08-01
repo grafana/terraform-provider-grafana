@@ -1,4 +1,8 @@
 ## 1.2.0 (Unreleased)
+
+FEATURES:
+* **New Resource:** `grafana_resource_organization` [GH-29]
+
 ## 1.1.0 (July 27, 2018)
 
 IMPROVEMENTS:
