@@ -1,7 +1,7 @@
-## 1.2.0 (Unreleased)
+## 1.2.0 (August 01, 2018)
 
 FEATURES:
-* **New Resource:** `grafana_resource_organization` [GH-29]
+* **New Resource:** `grafana_resource_organization` ([#29](https://github.com/terraform-providers/terraform-provider-grafana/issues/29))
 
 ## 1.1.0 (July 27, 2018)
 
