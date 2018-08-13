@@ -4,11 +4,12 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/schema"
-	gapi "github.com/nytm/go-grafana-api"
 	"log"
 	"strconv"
 	"strings"
+
+	"github.com/hashicorp/terraform/helper/schema"
+	gapi "github.com/nytm/go-grafana-api"
 )
 
 type OrgUser struct {
@@ -153,7 +154,7 @@ func ExistsOrganization(d *schema.ResourceData, meta interface{}) (bool, error) 
 func ImportOrganization(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	exists, err := ExistsOrganization(d, meta)
 	if err != nil || !exists {
-		return nil, errors.New("Error Importing Grafana Organization")
+		return nil, errors.New(fmt.Sprintf("Error: Unable to import Grafana Organization: %s.", err))
 	}
 	d.Set("admin_user", "admin")
 	d.Set("create_users", "true")
