@@ -17,7 +17,7 @@ be created and managed.
 # Create a Grafana organization with defined membership, creating placeholder
 # accounts for users that don't exist.
 resource "grafana_organization" "test-org" {
-    name         = "Test Organization
+    name         = "Test Organization"
     admin_user   = "admin"
     create_users = true
     admins       = [

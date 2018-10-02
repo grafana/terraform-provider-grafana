@@ -57,7 +57,7 @@ resource "grafana_alert_notification" "slack" {
 }
 
 resource "grafana_organization" "org" {
-    name         = "Grafana Organization
+    name         = "Grafana Organization"
     admin_user   = "admin"
     create_users = true
     admins       = [
