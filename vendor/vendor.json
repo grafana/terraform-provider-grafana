@@ -264,6 +264,12 @@
 			"revisionTime": "2017-01-17T13:00:17Z"
 		},
 		{
+			"checksumSHA1": "nmAHVzOzlaSrY0A3uxQPYuYGuZk=",
+			"path": "github.com/goraxe/go-grafana-api",
+			"revision": "cebdee9127596d60be97958298235c8c72d51079",
+			"revisionTime": "2018-10-11T01:41:52Z"
+		},
+		{
 			"checksumSHA1": "paYJOejUxCHLctah6T6p7yL7rp8=",
 			"path": "github.com/gosimple/slug",
 			"revision": "32efb997950eba210b1880d8cf52b601c1b5abe3",
