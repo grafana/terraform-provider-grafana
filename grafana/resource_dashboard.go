@@ -22,6 +22,14 @@ func ResourceDashboard() *schema.Resource {
 				Computed: true,
 			},
 
+			"folder": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Required: false,
+				ForceNew: true,
+				Computed: false,
+			},
+
 			"config_json": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
@@ -36,9 +44,13 @@ func ResourceDashboard() *schema.Resource {
 func CreateDashboard(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
-	model := prepareDashboardModel(d.Get("config_json").(string))
+	dashboard := gapi.Dashboard{}
 
-	resp, err := client.SaveDashboard(model, false)
+	dashboard.Model = prepareDashboardModel(d.Get("config_json").(string))
+
+	dashboard.Folder = int64(d.Get("folder").(int))
+
+	resp, err := client.NewDashboard(dashboard)
 	if err != nil {
 		return err
 	}
@@ -74,6 +86,7 @@ func ReadDashboard(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(dashboard.Meta.Slug)
 	d.Set("slug", dashboard.Meta.Slug)
 	d.Set("config_json", configJSON)
+	d.Set("folder", dashboard.Folder)
 
 	return nil
 }
