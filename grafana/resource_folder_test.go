@@ -52,12 +52,16 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 		if err != nil {
 			return err
 		}
+
+		if id == 0 {
+			return fmt.Errorf("got a folder id of 0")
+		}
 		gotFolder, err := client.Folder(id)
 		if err != nil {
 			return fmt.Errorf("error getting folder: %s", err)
 		}
 
-		folder = &gotFolder
+		*folder = *gotFolder
 
 		return nil
 	}
