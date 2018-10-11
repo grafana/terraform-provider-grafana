@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/schema"
 	gapi "github.com/goraxe/go-grafana-api"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 type OrgUser struct {
