@@ -53,9 +53,9 @@ func (c *Client) newRequest(method, requestPath string, query url.Values, body i
 
 	if os.Getenv("GF_LOG") != "" {
 		if body == nil {
-			log.Println("request to ", url.String(), "with no body data")
+			log.Printf("request (%s) to %s with no body data", method, url.String())
 		} else {
-			log.Println("request to ", url.String(), "with body data", body.(*bytes.Buffer).String())
+			log.Printf("request (%s) to %s with body data: %s", method, url.String(), body.(*bytes.Buffer).String())
 		}
 	}
 

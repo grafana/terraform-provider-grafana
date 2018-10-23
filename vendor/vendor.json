@@ -603,10 +603,10 @@
 			"revisionTime": "2016-10-03T17:45:16Z"
 		},
 		{
-			"checksumSHA1": "Qw8GWOuQ1rq1SpxMREDMJ8NwSzM=",
+			"checksumSHA1": "o2tvQtDD1n17Ie+HV3Ui1seldYs=",
 			"path": "github.com/nytm/go-grafana-api",
-			"revision": "d769eac759956916df08aaea55dc69f64bf3b5d5",
-			"revisionTime": "2018-07-13T13:50:26Z"
+			"revision": "9cc848df73853d7772a5a952b8e6597a586f9b83",
+			"revisionTime": "2018-10-22T15:28:30Z"
 		},
 		{
 			"checksumSHA1": "pvg8L4xN+zO9HLJislpVeHPPLjM=",
