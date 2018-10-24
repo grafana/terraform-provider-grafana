@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	gapi "github.com/nytm/go-grafana-api"
+	gapi "github.com/goraxe/go-grafana-api"
 )
 
 func ResourceDashboard() *schema.Resource {
@@ -25,9 +25,7 @@ func ResourceDashboard() *schema.Resource {
 			"folder": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Required: false,
 				ForceNew: true,
-				Computed: false,
 			},
 
 			"config_json": &schema.Schema{

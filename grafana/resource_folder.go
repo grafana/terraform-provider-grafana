@@ -26,7 +26,6 @@ func ResourceFolder() *schema.Resource {
 			"uid": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
-				Required: false,
 			},
 
 			"title": &schema.Schema{

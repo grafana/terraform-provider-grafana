@@ -104,7 +104,6 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 
 func testAccDashboardCheckExistsInFolder(dashboard *gapi.Dashboard, folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		// return fmt.Errorf("folder: %#v dashboard: %#v", folder, dashboard)
 		if dashboard.Folder != folder.Id && folder.Id != 0 {
 			return fmt.Errorf("dashboard.Folder(%d) does not match folder.Id(%d)", dashboard.Folder, folder.Id)
 		}
