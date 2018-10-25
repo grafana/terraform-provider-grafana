@@ -95,11 +95,23 @@ func ReadAlertNotification(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	settings := map[string]interface{}{}
+	for k, v := range alertNotification.Settings.(map[string]interface{}) {
+		boolVal, ok := v.(bool)
+		if ok && boolVal {
+			settings[k] = "true"
+		} else if ok && !boolVal {
+			settings[k] = "false"
+		} else {
+			settings[k] = v
+		}
+	}
+
 	d.Set("id", alertNotification.Id)
 	d.Set("is_default", alertNotification.IsDefault)
 	d.Set("name", alertNotification.Name)
 	d.Set("type", alertNotification.Type)
-	d.Set("settings", alertNotification.Settings)
+	d.Set("settings", settings)
 
 	return nil
 }
@@ -124,11 +136,23 @@ func makeAlertNotification(d *schema.ResourceData) (*gapi.AlertNotification, err
 		id, err = strconv.ParseInt(idStr, 10, 64)
 	}
 
+	settings := map[string]interface{}{}
+	for k, v := range d.Get("settings").(map[string]interface{}) {
+		strVal, ok := v.(string)
+		if ok && strVal == "true" {
+			settings[k] = true
+		} else if ok && strVal == "false" {
+			settings[k] = false
+		} else {
+			settings[k] = v
+		}
+	}
+
 	return &gapi.AlertNotification{
 		Id:        id,
 		Name:      d.Get("name").(string),
 		Type:      d.Get("type").(string),
 		IsDefault: d.Get("is_default").(bool),
-		Settings:  d.Get("settings").(interface{}),
+		Settings:  settings,
 	}, err
 }
