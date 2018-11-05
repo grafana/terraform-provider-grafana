@@ -34,6 +34,8 @@ The following arguments are supported:
 * `is_default` - (Optional) Is this the default channel for all your alerts.
 * `settings` - (Optional) Additional settings, for full reference lookup [Grafana HTTP API documentation](http://docs.grafana.org/http_api/alerting).
 
+**Note:** In `settings` the strings `"true"` and `"false"` are mapped to boolean `true` and `false` when sent to Grafana.
+
 ## Attributes Reference
 
 The resource exports the following attributes:
