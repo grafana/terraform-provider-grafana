@@ -19,14 +19,34 @@ func TestAccDashboard_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccDashboardCheckDestroy(&dashboard),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			// first step creates the resource
+			{
 				Config: testAccDashboardConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 					resource.TestMatchResourceAttr(
 						"grafana_dashboard.test", "id", regexp.MustCompile(`terraform-acceptance-test.*`),
 					),
+					resource.TestMatchResourceAttr(
+						"grafana_dashboard.test", "config_json", regexp.MustCompile(".*Terraform Acceptance Test.*"),
+					),
 				),
+			},
+			// second step updates it with a new title
+			{
+				Config: testAccDashboardConfig_update,
+				Check: resource.ComposeTestCheckFunc(
+					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
+					resource.TestMatchResourceAttr(
+						"grafana_dashboard.test", "config_json", regexp.MustCompile(".*Updated Title.*"),
+					),
+				),
+			},
+			// final step checks importing the current state we reached in the step above
+			{
+				ResourceName:      "grafana_dashboard.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -48,7 +68,7 @@ func TestAccDashboard_folder(t *testing.T) {
 					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
 					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
 					resource.TestMatchResourceAttr(
-						"grafana_dashboard.test_folder", "id", regexp.MustCompile(`terraform-acceptance-test.*`),
+						"grafana_dashboard.test_folder", "id", regexp.MustCompile(`terraform-folder-test-dashboard`),
 					),
 					resource.TestMatchResourceAttr(
 						"grafana_dashboard.test_folder", "folder", regexp.MustCompile(`\d+`),
@@ -68,7 +88,7 @@ func TestAccDashboard_disappear(t *testing.T) {
 		CheckDestroy: testAccDashboardCheckDestroy(&dashboard),
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccDashboardConfig_basic,
+				Config: testAccDashboardConfig_disappear,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 					testAccDashboardDisappear(&dashboard),
@@ -149,8 +169,7 @@ func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.
 
 // The "id" and "version" properties in the config below are there to test
 // that we correctly normalize them away. They are not actually used by this
-// resource, since it uses slugs for identification and never modifies an
-// existing dashboard.
+// resource, since it uses slugs for identification.
 const testAccDashboardConfig_basic = `
 resource "grafana_dashboard" "test" {
     config_json = <<EOT
@@ -163,19 +182,41 @@ EOT
 }
 `
 
+// this is used as an update on the basic resource above
+// NOTE: it leaves out id and version, as this is what users will do when updating
+const testAccDashboardConfig_update = `
+resource "grafana_dashboard" "test" {
+	config_json = <<EOT
+{
+	"title": "Updated Title"
+}
+EOT
+}
+`
+
 const testAccDashboardConfig_folder = `
 
 resource "grafana_folder" "test_folder" {
-    title = "Terraform Dashboard Folder Acceptance Test",
+    title = "Terraform Folder Test Folder"
 }
 
 resource "grafana_dashboard" "test_folder" {
     folder = "${grafana_folder.test_folder.id}"
     config_json = <<EOT
 {
-    "title": "Terraform Acceptance Test",
+    "title": "Terraform Folder Test Dashboard",
     "id": 12,
     "version": "43"
+}
+EOT
+}
+`
+
+const testAccDashboardConfig_disappear = `
+resource "grafana_dashboard" "test" {
+    config_json = <<EOT
+{
+    "title": "Terraform Disappear Test"
 }
 EOT
 }
