@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 
@@ -13,8 +14,12 @@ import (
 func ResourceDashboard() *schema.Resource {
 	return &schema.Resource{
 		Create: CreateDashboard,
-		Delete: DeleteDashboard,
 		Read:   ReadDashboard,
+		Update: UpdateDashboard,
+		Delete: DeleteDashboard,
+		Importer: &schema.ResourceImporter{
+			State: ImportDashboard,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"slug": &schema.Schema{
@@ -25,13 +30,11 @@ func ResourceDashboard() *schema.Resource {
 			"folder": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"config_json": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				ForceNew:     true,
 				StateFunc:    NormalizeDashboardConfigJSON,
 				ValidateFunc: ValidateDashboardConfigJSON,
 			},
@@ -89,11 +92,40 @@ func ReadDashboard(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
+func UpdateDashboard(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*gapi.Client)
+
+	dashboard := gapi.Dashboard{}
+
+	dashboard.Model = prepareDashboardModel(d.Get("config_json").(string))
+
+	dashboard.Folder = int64(d.Get("folder").(int))
+	dashboard.Overwrite = true
+
+	resp, err := client.NewDashboard(dashboard)
+	if err != nil {
+		return err
+	}
+
+	d.SetId(resp.Slug)
+
+	return ReadDashboard(d, meta)
+}
+
 func DeleteDashboard(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
 	slug := d.Id()
 	return client.DeleteDashboard(slug)
+}
+
+func ImportDashboard(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	err := ReadDashboard(d, meta)
+
+	if err != nil || d.Id() == "" {
+		return nil, errors.New(fmt.Sprintf("Error: Unable to import Grafana Dashboard: %s.", err))
+	}
+	return []*schema.ResourceData{d}, nil
 }
 
 func prepareDashboardModel(configJSON string) map[string]interface{} {
