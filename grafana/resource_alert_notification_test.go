@@ -85,6 +85,7 @@ resource "grafana_alert_notification" "test" {
     settings {
 			"addresses" = "foo@bar.test"
 			"uploadImage" = "false"
+			"autoResolve" = "true"
 		}
 }
 `
