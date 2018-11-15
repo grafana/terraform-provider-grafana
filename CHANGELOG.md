@@ -1,4 +1,19 @@
-## 1.2.1 (Unreleased)
+## 1.3.0 (Unreleased)
+
+FEATURES:
+
+* **New Resource:** `grafana_folder` [GH-36]
+
+IMPROVEMENTS:
+
+* `grafana_dashboard` - Add support for creating dashboards inside folders [GH-36]
+* `grafana_organization` - Add missing quotes in docs [GH-32]
+* `grafana_organization` - Better import error debugging [GH-30]
+
+BUG FIXES:
+
+* `grafana_alert_notification` - Support boolean settings for alert notifications [GH-37]
+
 ## 1.2.0 (August 01, 2018)
 
 FEATURES:
