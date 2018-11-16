@@ -1,18 +1,18 @@
-## 1.3.0 (Unreleased)
+## 1.3.0 (November 16, 2018)
 
 FEATURES:
 
-* **New Resource:** `grafana_folder` [GH-36]
+* **New Resource:** `grafana_folder` ([#36](https://github.com/terraform-providers/terraform-provider-grafana/issues/36))
 
 IMPROVEMENTS:
 
-* `grafana_dashboard` - Add support for creating dashboards inside folders [GH-36]
-* `grafana_organization` - Add missing quotes in docs [GH-32]
-* `grafana_organization` - Better import error debugging [GH-30]
+* `grafana_dashboard` - Add support for creating dashboards inside folders ([#36](https://github.com/terraform-providers/terraform-provider-grafana/issues/36))
+* `grafana_organization` - Add missing quotes in docs ([#32](https://github.com/terraform-providers/terraform-provider-grafana/issues/32))
+* `grafana_organization` - Better import error debugging ([#30](https://github.com/terraform-providers/terraform-provider-grafana/issues/30))
 
 BUG FIXES:
 
-* `grafana_alert_notification` - Support boolean settings for alert notifications [GH-37]
+* `grafana_alert_notification` - Support boolean settings for alert notifications ([#37](https://github.com/terraform-providers/terraform-provider-grafana/issues/37))
 
 ## 1.2.0 (August 01, 2018)
 
