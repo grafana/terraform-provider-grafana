@@ -32,7 +32,12 @@ provider "grafana" {
   auth = "1234abcd"
 }
 
+resource "grafana_folder" "examples" {
+  title = "Example dashboards"
+}
+
 resource "grafana_dashboard" "metrics" {
+  folder      = "${grafana_folder.examples.id}"
   config_json = "${file("grafana-dashboard.json")}"
 }
 

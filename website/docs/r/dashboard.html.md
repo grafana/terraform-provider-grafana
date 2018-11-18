@@ -37,6 +37,9 @@ meta-parameter:
 The following arguments are supported:
 
 * `config_json` - (Required) The JSON configuration for the dashboard.
+* `folder` - (Optional) ID of the folder to put the dashboard in. Can be
+  left out to put the dashboard into the organization's root ("General")
+  folder.
 
 ## Attributes Reference
 
