@@ -19,7 +19,7 @@ func TestAccDashboard_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccDashboardCheckDestroy(&dashboard),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDashboardConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
@@ -41,7 +41,7 @@ func TestAccDashboard_folder(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccDashboardFolderCheckDestroy(&dashboard, &folder),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDashboardConfig_folder,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test_folder", &dashboard),
@@ -67,7 +67,7 @@ func TestAccDashboard_disappear(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccDashboardCheckDestroy(&dashboard),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDashboardConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),

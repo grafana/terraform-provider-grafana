@@ -18,82 +18,82 @@ func ResourceDataSource() *schema.Resource {
 		Read:   ReadDataSource,
 
 		Schema: map[string]*schema.Schema{
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"url": &schema.Schema{
+			"url": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"is_default": &schema.Schema{
+			"is_default": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
 
-			"basic_auth_enabled": &schema.Schema{
+			"basic_auth_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
 
-			"basic_auth_username": &schema.Schema{
+			"basic_auth_username": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
 			},
 
-			"basic_auth_password": &schema.Schema{
+			"basic_auth_password": {
 				Type:      schema.TypeString,
 				Optional:  true,
 				Default:   "",
 				Sensitive: true,
 			},
 
-			"username": &schema.Schema{
+			"username": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
 			},
 
-			"password": &schema.Schema{
+			"password": {
 				Type:      schema.TypeString,
 				Optional:  true,
 				Default:   "",
 				Sensitive: true,
 			},
 
-			"json_data": &schema.Schema{
+			"json_data": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"auth_type": &schema.Schema{
+						"auth_type": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"default_region": &schema.Schema{
+						"default_region": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"custom_metrics_namespaces": &schema.Schema{
+						"custom_metrics_namespaces": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"assume_role_arn": &schema.Schema{
+						"assume_role_arn": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -101,17 +101,17 @@ func ResourceDataSource() *schema.Resource {
 				},
 			},
 
-			"secure_json_data": &schema.Schema{
+			"secure_json_data": {
 				Type:      schema.TypeList,
 				Optional:  true,
 				Sensitive: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"access_key": &schema.Schema{
+						"access_key": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"secret_key": &schema.Schema{
+						"secret_key": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -119,13 +119,13 @@ func ResourceDataSource() *schema.Resource {
 				},
 			},
 
-			"database_name": &schema.Schema{
+			"database_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
 			},
 
-			"access_mode": &schema.Schema{
+			"access_mode": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "proxy",

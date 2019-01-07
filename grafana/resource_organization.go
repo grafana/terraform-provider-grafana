@@ -43,39 +43,39 @@ func ResourceOrganization() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"admin_user": &schema.Schema{
+			"admin_user": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "admin",
 			},
-			"create_users": &schema.Schema{
+			"create_users": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			"org_id": &schema.Schema{
+			"org_id": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"admins": &schema.Schema{
+			"admins": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"editors": &schema.Schema{
+			"editors": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"viewers": &schema.Schema{
+			"viewers": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Schema{

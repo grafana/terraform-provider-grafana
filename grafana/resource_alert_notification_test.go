@@ -20,7 +20,7 @@ func TestAccAlertNotification_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAlertNotificationConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccAlertNotificationCheckExists("grafana_alert_notification.test", &alertNotification),

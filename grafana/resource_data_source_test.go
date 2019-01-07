@@ -20,7 +20,7 @@ func TestAccDataSource_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccDataSourceCheckDestroy(&dataSource),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDataSourceConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourceCheckExists("grafana_data_source.test_influxdb", &dataSource),
@@ -50,7 +50,7 @@ func TestAccDataSource_basicCloudwatch(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccDataSourceCheckDestroy(&dataSource),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDataSourceConfig_basicCloudwatch,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourceCheckExists("grafana_data_source.test_cloudwatch", &dataSource),

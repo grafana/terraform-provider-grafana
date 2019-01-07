@@ -18,17 +18,17 @@ func ResourceFolder() *schema.Resource {
 		Read:   ReadFolder,
 
 		Schema: map[string]*schema.Schema{
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
 
-			"uid": &schema.Schema{
+			"uid": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"title": &schema.Schema{
+			"title": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
