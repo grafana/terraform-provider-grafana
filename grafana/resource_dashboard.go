@@ -17,18 +17,18 @@ func ResourceDashboard() *schema.Resource {
 		Read:   ReadDashboard,
 
 		Schema: map[string]*schema.Schema{
-			"slug": &schema.Schema{
+			"slug": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"folder": &schema.Schema{
+			"folder": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"config_json": &schema.Schema{
+			"config_json": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,

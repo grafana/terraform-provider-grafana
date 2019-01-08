@@ -20,7 +20,7 @@ func TestAccFolder_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccFolderCheckDestroy(&folder),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccFolderConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccFolderCheckExists("grafana_folder.test_folder", &folder),

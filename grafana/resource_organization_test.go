@@ -19,7 +19,7 @@ func TestAccOrganization_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccOrganizationConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccOrganizationCheckExists("grafana_organization.test", &org),
@@ -31,7 +31,7 @@ func TestAccOrganization_basic(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccOrganizationConfig_updateName,
 				Check: resource.ComposeTestCheckFunc(
 					testAccOrganizationCheckExists("grafana_organization.test", &org),
@@ -52,7 +52,7 @@ func TestAccOrganization_users(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccOrganizationConfig_usersCreate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccOrganizationCheckExists("grafana_organization.test", &org),
@@ -73,7 +73,7 @@ func TestAccOrganization_users(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccOrganizationConfig_usersUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccOrganizationCheckExists("grafana_organization.test", &org),
@@ -94,7 +94,7 @@ func TestAccOrganization_users(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccOrganizationConfig_usersRemove,
 				Check: resource.ComposeTestCheckFunc(
 					testAccOrganizationCheckExists("grafana_organization.test", &org),
@@ -124,7 +124,7 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccOrganizationConfig_defaultAdminNormal,
 				Check: resource.ComposeTestCheckFunc(
 					testAccOrganizationCheckExists("grafana_organization.test", &org),
@@ -148,7 +148,7 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccOrganizationConfig_defaultAdminChange,
 				Check: resource.ComposeTestCheckFunc(
 					testAccOrganizationCheckExists("grafana_organization.test", &org),
