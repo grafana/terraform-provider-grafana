@@ -18,11 +18,6 @@ func ResourceDataSource() *schema.Resource {
 		Read:   ReadDataSource,
 
 		Schema: map[string]*schema.Schema{
-			"id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
 			"type": {
 				Type:     schema.TypeString,
 				Required: true,

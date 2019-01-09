@@ -166,7 +166,7 @@ EOT
 const testAccDashboardConfig_folder = `
 
 resource "grafana_folder" "test_folder" {
-    title = "Terraform Dashboard Folder Acceptance Test",
+    title = "Terraform Dashboard Folder Acceptance Test"
 }
 
 resource "grafana_dashboard" "test_folder" {
