@@ -80,7 +80,7 @@ github.com/hashicorp/go-safetemp
 github.com/hashicorp/go-uuid
 # github.com/hashicorp/go-version v1.0.0
 github.com/hashicorp/go-version
-# github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
+# github.com/hashicorp/hcl v1.0.0
 github.com/hashicorp/hcl
 github.com/hashicorp/hcl/hcl/ast
 github.com/hashicorp/hcl/hcl/parser
@@ -108,7 +108,7 @@ github.com/hashicorp/hil/parser
 github.com/hashicorp/hil/scanner
 # github.com/hashicorp/logutils v0.0.0-20150609070431-0dc08b1671f3
 github.com/hashicorp/logutils
-# github.com/hashicorp/terraform v0.12.0-alpha4.0.20190105003045-34e792db2cb5
+# github.com/hashicorp/terraform v0.12.0-alpha4.0.20190114221020-778cf445d42f
 github.com/hashicorp/terraform/plugin
 github.com/hashicorp/terraform/helper/schema
 github.com/hashicorp/terraform/terraform
@@ -148,8 +148,13 @@ github.com/hashicorp/terraform/command/format
 github.com/hashicorp/terraform/configs/configload
 github.com/hashicorp/terraform/helper/config
 github.com/hashicorp/terraform/helper/logging
+github.com/hashicorp/terraform/internal/initwd
 github.com/hashicorp/terraform/svchost
 github.com/hashicorp/terraform/svchost/auth
+github.com/hashicorp/terraform/internal/modsdir
+github.com/hashicorp/terraform/internal/earlyconfig
+# github.com/hashicorp/terraform-config-inspect v0.0.0-20181213005350-314d8affa1db
+github.com/hashicorp/terraform-config-inspect/tfconfig
 # github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb
 github.com/hashicorp/yamux
 # github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
