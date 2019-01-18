@@ -82,7 +82,7 @@ const testAccAlertNotificationConfig_basic = `
 resource "grafana_alert_notification" "test" {
     type = "email"
     name = "terraform-acc-test"
-    settings {
+    settings = {
 			"addresses" = "foo@bar.test"
 			"uploadImage" = "false"
 			"autoResolve" = "true"

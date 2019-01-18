@@ -80,8 +80,8 @@ func TestAccOrganization_users(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "name", "terraform-acc-test",
 					),
-					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "admins.#", "0",
+					resource.TestCheckNoResourceAttr(
+						"grafana_organization.test", "admins.#",
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "editors.#", "1",
@@ -89,8 +89,8 @@ func TestAccOrganization_users(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "editors.0", "john.doe@example.com",
 					),
-					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "viewers.#", "0",
+					resource.TestCheckNoResourceAttr(
+						"grafana_organization.test", "viewers.#",
 					),
 				),
 			},
@@ -167,11 +167,11 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "admins.1", "john.doe@example.com",
 					),
-					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "editors.#", "0",
+					resource.TestCheckNoResourceAttr(
+						"grafana_organization.test", "editors.#",
 					),
-					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "viewers.#", "0",
+					resource.TestCheckNoResourceAttr(
+						"grafana_organization.test", "viewers.#",
 					),
 				),
 			},

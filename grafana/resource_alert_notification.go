@@ -17,11 +17,6 @@ func ResourceAlertNotification() *schema.Resource {
 		Read:   ReadAlertNotification,
 
 		Schema: map[string]*schema.Schema{
-			"id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
 			"type": {
 				Type:     schema.TypeString,
 				Required: true,
