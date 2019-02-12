@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	gapi "github.com/nytm/go-grafana-api"
+	gapi "github.com/emerald-squad/go-grafana-api"
 )
 
 func ResourceDataSource() *schema.Resource {
@@ -125,6 +125,11 @@ func ResourceDataSource() *schema.Resource {
 				Optional: true,
 				Default:  "proxy",
 			},
+
+			"org_id": {
+				Type:     schema.TypeInt,
+				Required: true,
+			},
 		},
 	}
 }
@@ -132,6 +137,12 @@ func ResourceDataSource() *schema.Resource {
 // CreateDataSource creates a Grafana datasource
 func CreateDataSource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
+
+	//switch org context
+	err := client.SwitchCurrentUserOrg(d.Get("org_id").(int64))
+	if err != nil {
+		return err
+	}
 
 	dataSource, err := makeDataSource(d)
 	if err != nil {
@@ -219,14 +230,15 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 	}
 
 	return &gapi.DataSource{
-		Id:                id,
-		Name:              d.Get("name").(string),
-		Type:              d.Get("type").(string),
-		URL:               d.Get("url").(string),
-		Access:            d.Get("access_mode").(string),
-		Database:          d.Get("database_name").(string),
-		User:              d.Get("username").(string),
-		Password:          d.Get("password").(string),
+		Id:       id,
+		Name:     d.Get("name").(string),
+		Type:     d.Get("type").(string),
+		URL:      d.Get("url").(string),
+		Access:   d.Get("access_mode").(string),
+		Database: d.Get("database_name").(string),
+		User:     d.Get("username").(string),
+		Password: d.Get("password").(string),
+
 		IsDefault:         d.Get("is_default").(bool),
 		BasicAuth:         d.Get("basic_auth_enabled").(bool),
 		BasicAuthUser:     d.Get("basic_auth_username").(string),
