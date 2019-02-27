@@ -138,18 +138,12 @@ func ResourceDataSource() *schema.Resource {
 func CreateDataSource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
-	//switch org context
-	err := client.SwitchCurrentUserOrg(d.Get("org_id").(int64))
-	if err != nil {
-		return err
-	}
-
 	dataSource, err := makeDataSource(d)
 	if err != nil {
 		return err
 	}
 
-	id, err := client.NewDataSource(dataSource)
+	id, err := client.NewDataSource(dataSource, int64(d.Get("org_id").(int)))
 	if err != nil {
 		return err
 	}
@@ -167,13 +161,14 @@ func UpdateDataSource(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-
-	return client.UpdateDataSource(dataSource)
+	orgId := int64(d.Get("org_id").(int))
+	return client.UpdateDataSource(dataSource, orgId)
 }
 
 // ReadDataSource reads a Grafana datasource
 func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
+	orgId := int64(d.Get("org_id").(int))
 
 	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)
@@ -186,7 +181,7 @@ func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Invalid id: %#v", idStr)
 	}
 
-	dataSource, err := client.DataSource(id)
+	dataSource, err := client.DataSource(id, orgId)
 	if err != nil {
 
 		return err
@@ -211,14 +206,14 @@ func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 // DeleteDataSource deletes a Grafana datasource
 func DeleteDataSource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
-
+	orgId := int64(d.Get("org_id").(int))
 	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return fmt.Errorf("Invalid id: %#v", idStr)
 	}
 
-	return client.DeleteDataSource(id)
+	return client.DeleteDataSource(id, orgId)
 }
 
 func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {

@@ -126,12 +126,14 @@ resource "grafana_data_source" "test_influxdb" {
   username            = "terraform_user"
   password            = "terraform_password"
   basic_auth_password = "basic_password"
+  org_id			  = "7"
 }
 `
 const testAccDataSourceConfig_basicCloudwatch = `
 resource "grafana_data_source" "test_cloudwatch" {
   type = "cloudwatch"
   name = "terraform-acc-test-cloudwatch"
+  org_id = "7"
 
   json_data {
     default_region            = "us-east-1"
