@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"testing"
 
+	gapi "github.com/emerald-squad/go-grafana-api"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	gapi "github.com/nytm/go-grafana-api"
 )
 
 func TestAccOrganization_basic(t *testing.T) {

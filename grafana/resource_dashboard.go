@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	gapi "github.com/nytm/go-grafana-api"
+	gapi "github.com/emerald-squad/go-grafana-api"
 )
 
 func ResourceDashboard() *schema.Resource {

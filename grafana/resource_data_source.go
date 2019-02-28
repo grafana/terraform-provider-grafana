@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	gapi "github.com/nytm/go-grafana-api"
+	gapi "github.com/emerald-squad/go-grafana-api"
 )
 
 func ResourceDataSource() *schema.Resource {
@@ -125,6 +125,11 @@ func ResourceDataSource() *schema.Resource {
 				Optional: true,
 				Default:  "proxy",
 			},
+
+			"org_id": {
+				Type:     schema.TypeInt,
+				Required: true,
+			},
 		},
 	}
 }
@@ -138,7 +143,7 @@ func CreateDataSource(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	id, err := client.NewDataSource(dataSource)
+	id, err := client.NewDataSource(dataSource, int64(d.Get("org_id").(int)))
 	if err != nil {
 		return err
 	}
@@ -156,13 +161,14 @@ func UpdateDataSource(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-
-	return client.UpdateDataSource(dataSource)
+	orgId := int64(d.Get("org_id").(int))
+	return client.UpdateDataSource(dataSource, orgId)
 }
 
 // ReadDataSource reads a Grafana datasource
 func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
+	orgId := int64(d.Get("org_id").(int))
 
 	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)
@@ -175,7 +181,7 @@ func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Invalid id: %#v", idStr)
 	}
 
-	dataSource, err := client.DataSource(id)
+	dataSource, err := client.DataSource(id, orgId)
 	if err != nil {
 
 		return err
@@ -200,14 +206,14 @@ func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 // DeleteDataSource deletes a Grafana datasource
 func DeleteDataSource(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
-
+	orgId := int64(d.Get("org_id").(int))
 	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return fmt.Errorf("Invalid id: %#v", idStr)
 	}
 
-	return client.DeleteDataSource(id)
+	return client.DeleteDataSource(id, orgId)
 }
 
 func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
@@ -219,14 +225,15 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 	}
 
 	return &gapi.DataSource{
-		Id:                id,
-		Name:              d.Get("name").(string),
-		Type:              d.Get("type").(string),
-		URL:               d.Get("url").(string),
-		Access:            d.Get("access_mode").(string),
-		Database:          d.Get("database_name").(string),
-		User:              d.Get("username").(string),
-		Password:          d.Get("password").(string),
+		Id:       id,
+		Name:     d.Get("name").(string),
+		Type:     d.Get("type").(string),
+		URL:      d.Get("url").(string),
+		Access:   d.Get("access_mode").(string),
+		Database: d.Get("database_name").(string),
+		User:     d.Get("username").(string),
+		Password: d.Get("password").(string),
+
 		IsDefault:         d.Get("is_default").(bool),
 		BasicAuth:         d.Get("basic_auth_enabled").(bool),
 		BasicAuthUser:     d.Get("basic_auth_username").(string),
