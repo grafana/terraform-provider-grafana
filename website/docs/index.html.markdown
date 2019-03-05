@@ -50,7 +50,7 @@ resource "grafana_alert_notification" "slack" {
   type = "slack"
 
   settings {
-    "slack" = "https://myteam.slack.com/hoook"
+    "url" = "https://myteam.slack.com/hook"
     "recipient" = "@someguy"
     "uploadImage" = "false"
   }
