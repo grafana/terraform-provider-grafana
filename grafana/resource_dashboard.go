@@ -30,6 +30,7 @@ func ResourceDashboard() *schema.Resource {
 			"folder": {
 				Type:     schema.TypeInt,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			"config_json": {
