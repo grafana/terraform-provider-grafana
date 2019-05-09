@@ -47,8 +47,8 @@ func CreateDashboard(d *schema.ResourceData, meta interface{}) error {
 	dashboard.Model = prepareDashboardModel(d.Get("config_json").(string))
 
 	dashboard.Folder = int64(d.Get("folder").(int))
-
-	resp, err := client.NewDashboard(dashboard)
+	orgID := int64(d.Get("org_id").(int))
+	resp, err := client.NewDashboard(dashboard, orgID)
 	if err != nil {
 		return err
 	}
@@ -62,8 +62,8 @@ func ReadDashboard(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
 	slug := d.Id()
-
-	dashboard, err := client.Dashboard(slug)
+	orgID := int64(d.Get("org_id").(int))
+	dashboard, err := client.Dashboard(slug, orgID)
 	if err != nil {
 		if err.Error() == "404 Not Found" {
 			log.Printf("[WARN] removing dashboard %s from state because it no longer exists in grafana", slug)
@@ -93,7 +93,8 @@ func DeleteDashboard(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
 	slug := d.Id()
-	return client.DeleteDashboard(slug)
+	orgID := int64(d.Get("org_id").(int))
+	return client.DeleteDashboard(slug, orgID)
 }
 
 func prepareDashboardModel(configJSON string) map[string]interface{} {
