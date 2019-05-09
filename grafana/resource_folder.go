@@ -28,6 +28,12 @@ func ResourceFolder() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+
+			"org_id": {
+				Type:     schema.TypeInt,
+				Required: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -37,7 +43,7 @@ func CreateFolder(d *schema.ResourceData, meta interface{}) error {
 
 	model := d.Get("title").(string)
 
-	resp, err := client.NewFolder(model)
+	resp, err := client.NewFolder(model, int64(d.Get("org_id").(int)))
 	if err != nil {
 		return err
 	}
@@ -58,7 +64,7 @@ func ReadFolder(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	folder, err := client.Folder(id)
+	folder, err := client.Folder(id, int64(d.Get("org_id").(int)))
 	if err != nil {
 		if err.Error() == "404 Not Found" {
 			log.Printf("[WARN] removing folder %d from state because it no longer exists in grafana", id)
@@ -78,7 +84,7 @@ func ReadFolder(d *schema.ResourceData, meta interface{}) error {
 func DeleteFolder(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
-	return client.DeleteFolder(d.Get("uid").(string))
+	return client.DeleteFolder(d.Get("uid").(string), int64(d.Get("org_id").(int)))
 }
 
 func prepareFolderModel(configJSON string) map[string]interface{} {
