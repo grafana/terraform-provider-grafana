@@ -95,7 +95,7 @@ func testAccDataSourceCheckExists(rn string, dataSource *gapi.DataSource) resour
 		}
 
 		client := testAccProvider.Meta().(*gapi.Client)
-		gotDataSource, err := client.DataSource(id)
+		gotDataSource, err := client.DataSource(id, 1)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
 		}
@@ -109,7 +109,7 @@ func testAccDataSourceCheckExists(rn string, dataSource *gapi.DataSource) resour
 func testAccDataSourceCheckDestroy(dataSource *gapi.DataSource) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*gapi.Client)
-		_, err := client.DataSource(dataSource.Id)
+		_, err := client.DataSource(dataSource.Id, 1)
 		if err == nil {
 			return fmt.Errorf("data source still exists")
 		}

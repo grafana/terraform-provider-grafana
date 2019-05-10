@@ -56,7 +56,7 @@ func testAccAlertNotificationCheckExists(rn string, a *gapi.AlertNotification) r
 		}
 
 		client := testAccProvider.Meta().(*gapi.Client)
-		gotAlertNotification, err := client.AlertNotification(id)
+		gotAlertNotification, err := client.AlertNotification(id, 1)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
 		}
@@ -70,7 +70,7 @@ func testAccAlertNotificationCheckExists(rn string, a *gapi.AlertNotification) r
 func testAccAlertNotificationCheckDestroy(a *gapi.AlertNotification) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*gapi.Client)
-		alert, err := client.AlertNotification(a.Id)
+		alert, err := client.AlertNotification(a.Id, 1)
 		if err == nil && alert != nil {
 			return fmt.Errorf("alert-notification still exists")
 		}

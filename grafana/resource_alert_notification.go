@@ -38,6 +38,11 @@ func ResourceAlertNotification() *schema.Resource {
 				Optional:  true,
 				Sensitive: true,
 			},
+
+			"org_id": {
+				Type:     schema.TypeInt,
+				Required: true,
+			},
 		},
 	}
 }
@@ -50,7 +55,9 @@ func CreateAlertNotification(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	id, err := client.NewAlertNotification(alertNotification)
+	orgID := int64(d.Get("org_id").(int))
+
+	id, err := client.NewAlertNotification(alertNotification, orgID)
 	if err != nil {
 		return err
 	}
@@ -68,7 +75,9 @@ func UpdateAlertNotification(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	return client.UpdateAlertNotification(alertNotification)
+	orgID := int64(d.Get("org_id").(int))
+
+	return client.UpdateAlertNotification(alertNotification, orgID)
 }
 
 func ReadAlertNotification(d *schema.ResourceData, meta interface{}) error {
@@ -80,7 +89,8 @@ func ReadAlertNotification(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Invalid id: %#v", idStr)
 	}
 
-	alertNotification, err := client.AlertNotification(id)
+	orgID := int64(d.Get("org_id").(int))
+	alertNotification, err := client.AlertNotification(id, orgID)
 	if err != nil {
 		if err.Error() == "404 Not Found" {
 			log.Printf("[WARN] removing datasource %s from state because it no longer exists in grafana", d.Get("name").(string))
@@ -119,8 +129,9 @@ func DeleteAlertNotification(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("Invalid id: %#v", idStr)
 	}
+	orgID := int64(d.Get("org_id").(int))
 
-	return client.DeleteAlertNotification(id)
+	return client.DeleteAlertNotification(id, orgID)
 }
 
 func makeAlertNotification(d *schema.ResourceData) (*gapi.AlertNotification, error) {

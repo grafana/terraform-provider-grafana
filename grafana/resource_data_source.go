@@ -129,6 +129,7 @@ func ResourceDataSource() *schema.Resource {
 			"org_id": {
 				Type:     schema.TypeInt,
 				Required: true,
+				ForceNew: true,
 			},
 		},
 	}
