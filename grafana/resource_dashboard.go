@@ -35,6 +35,12 @@ func ResourceDashboard() *schema.Resource {
 				StateFunc:    NormalizeDashboardConfigJSON,
 				ValidateFunc: ValidateDashboardConfigJSON,
 			},
+
+			"org_id": {
+				Type:     schema.TypeInt,
+				Required: true,
+				ForceNew: true,
+			},
 		},
 	}
 }

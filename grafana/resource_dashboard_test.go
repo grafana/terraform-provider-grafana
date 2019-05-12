@@ -153,6 +153,7 @@ func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.
 // existing dashboard.
 const testAccDashboardConfig_basic = `
 resource "grafana_dashboard" "test" {
+	org_id = 1
     config_json = <<EOT
 {
     "title": "Terraform Acceptance Test",
@@ -166,10 +167,12 @@ EOT
 const testAccDashboardConfig_folder = `
 
 resource "grafana_folder" "test_folder" {
+	org_id = 1
     title = "Terraform Dashboard Folder Acceptance Test"
 }
 
 resource "grafana_dashboard" "test_folder" {
+	org_id = 1
     folder = "${grafana_folder.test_folder.id}"
     config_json = <<EOT
 {

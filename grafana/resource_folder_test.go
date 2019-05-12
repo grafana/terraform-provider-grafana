@@ -89,6 +89,7 @@ func testAccFolderCheckDestroy(folder *gapi.Folder) resource.TestCheckFunc {
 
 const testAccFolderConfig_basic = `
 resource "grafana_folder" "test_folder" {
+	org_id = 1
     title = "Terraform Acceptance Test Folder"
 }
 `

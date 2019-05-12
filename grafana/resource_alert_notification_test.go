@@ -80,6 +80,7 @@ func testAccAlertNotificationCheckDestroy(a *gapi.AlertNotification) resource.Te
 
 const testAccAlertNotificationConfig_basic = `
 resource "grafana_alert_notification" "test" {
+	org_id = 1
     type = "email"
     name = "terraform-acc-test"
     settings = {
