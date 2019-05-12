@@ -14,11 +14,12 @@ import (
 
 func TestAccDataSource_basic(t *testing.T) {
 	var dataSource gapi.DataSource
+	var testOrgID int64 = 1
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccDataSourceCheckDestroy(&dataSource),
+		CheckDestroy: testAccDataSourceCheckDestroy(&dataSource, testOrgID),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDataSourceConfig_basic,
@@ -44,11 +45,12 @@ func TestAccDataSource_basic(t *testing.T) {
 
 func TestAccDataSource_basicCloudwatch(t *testing.T) {
 	var dataSource gapi.DataSource
+	var testOrgID int64 = 1
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccDataSourceCheckDestroy(&dataSource),
+		CheckDestroy: testAccDataSourceCheckDestroy(&dataSource, testOrgID),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDataSourceConfig_basicCloudwatch,
@@ -94,8 +96,13 @@ func testAccDataSourceCheckExists(rn string, dataSource *gapi.DataSource) resour
 			return fmt.Errorf("resource id is malformed")
 		}
 
+		orgID, err := strconv.ParseInt(rs.Primary.Attributes["org_id"], 10, 64)
+		if err != nil {
+			return fmt.Errorf("could not find org_id")
+		}
+
 		client := testAccProvider.Meta().(*gapi.Client)
-		gotDataSource, err := client.DataSource(id, 1)
+		gotDataSource, err := client.DataSource(id, orgID)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
 		}
@@ -106,10 +113,10 @@ func testAccDataSourceCheckExists(rn string, dataSource *gapi.DataSource) resour
 	}
 }
 
-func testAccDataSourceCheckDestroy(dataSource *gapi.DataSource) resource.TestCheckFunc {
+func testAccDataSourceCheckDestroy(dataSource *gapi.DataSource, orgID int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*gapi.Client)
-		_, err := client.DataSource(dataSource.Id, 1)
+		_, err := client.DataSource(dataSource.Id, orgID)
 		if err == nil {
 			return fmt.Errorf("data source still exists")
 		}

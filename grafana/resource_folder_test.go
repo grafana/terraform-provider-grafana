@@ -14,11 +14,12 @@ import (
 
 func TestAccFolder_basic(t *testing.T) {
 	var folder gapi.Folder
+	var testOrgID int64 = 1
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccFolderCheckDestroy(&folder),
+		CheckDestroy: testAccFolderCheckDestroy(&folder, testOrgID),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFolderConfig_basic,
@@ -56,7 +57,13 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 		if id == 0 {
 			return fmt.Errorf("got a folder id of 0")
 		}
-		gotFolder, err := client.Folder(id, 1)
+
+		orgID, err := strconv.ParseInt(rs.Primary.Attributes["org_id"], 10, 64)
+		if err != nil {
+			return fmt.Errorf("could not find org_id")
+		}
+
+		gotFolder, err := client.Folder(id, orgID)
 		if err != nil {
 			return fmt.Errorf("error getting folder: %s", err)
 		}
@@ -67,19 +74,19 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 	}
 }
 
-func testAccFolderDisappear(folder *gapi.Folder) resource.TestCheckFunc {
+func testAccFolderDisappear(folder *gapi.Folder, orgID int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// At this point testAccFolderCheckExists should have been called and
 		// folder should have been populated
 		client := testAccProvider.Meta().(*gapi.Client)
-		return client.DeleteFolder((*folder).Uid, 1)
+		return client.DeleteFolder((*folder).Uid, orgID)
 	}
 }
 
-func testAccFolderCheckDestroy(folder *gapi.Folder) resource.TestCheckFunc {
+func testAccFolderCheckDestroy(folder *gapi.Folder, orgID int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*gapi.Client)
-		_, err := client.Folder(folder.Id, 1)
+		_, err := client.Folder(folder.Id, orgID)
 		if err == nil {
 			return fmt.Errorf("folder still exists")
 		}

@@ -3,6 +3,7 @@ package grafana
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"testing"
 
 	gapi "github.com/emerald-squad/go-grafana-api"
@@ -13,11 +14,12 @@ import (
 
 func TestAccDashboard_basic(t *testing.T) {
 	var dashboard gapi.Dashboard
+	var testOrgID int64 = 1
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccDashboardCheckDestroy(&dashboard),
+		CheckDestroy: testAccDashboardCheckDestroy(&dashboard, testOrgID),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDashboardConfig_basic,
@@ -35,11 +37,12 @@ func TestAccDashboard_basic(t *testing.T) {
 func TestAccDashboard_folder(t *testing.T) {
 	var dashboard gapi.Dashboard
 	var folder gapi.Folder
+	var testOrgID int64 = 1
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccDashboardFolderCheckDestroy(&dashboard, &folder),
+		CheckDestroy: testAccDashboardFolderCheckDestroy(&dashboard, &folder, testOrgID),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDashboardConfig_folder,
@@ -61,17 +64,18 @@ func TestAccDashboard_folder(t *testing.T) {
 
 func TestAccDashboard_disappear(t *testing.T) {
 	var dashboard gapi.Dashboard
+	var testOrgID int64 = 1
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccDashboardCheckDestroy(&dashboard),
+		CheckDestroy: testAccDashboardCheckDestroy(&dashboard, testOrgID),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDashboardConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-					testAccDashboardDisappear(&dashboard),
+					testAccDashboardDisappear(&dashboard, testOrgID),
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -90,8 +94,14 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 			return fmt.Errorf("resource id not set")
 		}
 
+		orgID, err := strconv.ParseInt(rs.Primary.Attributes["org_id"], 10, 64)
+		if err != nil {
+			return fmt.Errorf("could not find org_id")
+		}
+
 		client := testAccProvider.Meta().(*gapi.Client)
-		gotDashboard, err := client.Dashboard(rs.Primary.ID, 1)
+
+		gotDashboard, err := client.Dashboard(rs.Primary.ID, orgID)
 		if err != nil {
 			return fmt.Errorf("error getting dashboard: %s", err)
 		}
@@ -111,20 +121,20 @@ func testAccDashboardCheckExistsInFolder(dashboard *gapi.Dashboard, folder *gapi
 	}
 }
 
-func testAccDashboardDisappear(dashboard *gapi.Dashboard) resource.TestCheckFunc {
+func testAccDashboardDisappear(dashboard *gapi.Dashboard, orgID int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// At this point testAccDashboardCheckExists should have been called and
 		// dashboard should have been populated
 		client := testAccProvider.Meta().(*gapi.Client)
-		client.DeleteDashboard((*dashboard).Meta.Slug, 1)
+		client.DeleteDashboard((*dashboard).Meta.Slug, orgID)
 		return nil
 	}
 }
 
-func testAccDashboardCheckDestroy(dashboard *gapi.Dashboard) resource.TestCheckFunc {
+func testAccDashboardCheckDestroy(dashboard *gapi.Dashboard, orgID int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*gapi.Client)
-		_, err := client.Dashboard(dashboard.Meta.Slug, 1)
+		_, err := client.Dashboard(dashboard.Meta.Slug, orgID)
 		if err == nil {
 			return fmt.Errorf("dashboard still exists")
 		}
@@ -132,14 +142,14 @@ func testAccDashboardCheckDestroy(dashboard *gapi.Dashboard) resource.TestCheckF
 	}
 }
 
-func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.Folder) resource.TestCheckFunc {
+func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.Folder, orgID int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*gapi.Client)
-		_, err := client.Dashboard(dashboard.Meta.Slug, 1)
+		_, err := client.Dashboard(dashboard.Meta.Slug, orgID)
 		if err == nil {
 			return fmt.Errorf("dashboard still exists")
 		}
-		_, err = client.Folder(folder.Id, 1)
+		_, err = client.Folder(folder.Id, orgID)
 		if err == nil {
 			return fmt.Errorf("folder still exists")
 		}

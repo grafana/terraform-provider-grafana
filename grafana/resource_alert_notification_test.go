@@ -14,11 +14,12 @@ import (
 
 func TestAccAlertNotification_basic(t *testing.T) {
 	var alertNotification gapi.AlertNotification
+	var testOrgID int64 = 1
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccAlertNotificationCheckDestroy(&alertNotification),
+		CheckDestroy: testAccAlertNotificationCheckDestroy(&alertNotification, testOrgID),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAlertNotificationConfig_basic,
@@ -55,8 +56,13 @@ func testAccAlertNotificationCheckExists(rn string, a *gapi.AlertNotification) r
 			return fmt.Errorf("resource id is malformed")
 		}
 
+		orgID, err := strconv.ParseInt(rs.Primary.Attributes["org_id"], 10, 64)
+		if err != nil {
+			return fmt.Errorf("could not find org_id")
+		}
+
 		client := testAccProvider.Meta().(*gapi.Client)
-		gotAlertNotification, err := client.AlertNotification(id, 1)
+		gotAlertNotification, err := client.AlertNotification(id, orgID)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
 		}
@@ -67,10 +73,10 @@ func testAccAlertNotificationCheckExists(rn string, a *gapi.AlertNotification) r
 	}
 }
 
-func testAccAlertNotificationCheckDestroy(a *gapi.AlertNotification) resource.TestCheckFunc {
+func testAccAlertNotificationCheckDestroy(a *gapi.AlertNotification, orgID int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*gapi.Client)
-		alert, err := client.AlertNotification(a.Id, 1)
+		alert, err := client.AlertNotification(a.Id, orgID)
 		if err == nil && alert != nil {
 			return fmt.Errorf("alert-notification still exists")
 		}
