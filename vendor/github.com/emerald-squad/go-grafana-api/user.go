@@ -3,6 +3,7 @@ package gapi
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/url"
 )
@@ -73,4 +74,23 @@ func (c *Client) UserByEmail(email string) (User, error) {
 	}
 	user = User(tmp)
 	return user, err
+}
+
+// SwitchCurrentUserOrg will switch the current organisation of the signed in user
+func (c *Client) SwitchCurrentUserOrg(orgID int64) error {
+	req, err := c.newRequest("POST", fmt.Sprintf("/api/user/using/%d", orgID), nil, nil)
+
+	_, err = c.Do(req)
+
+	return err
+}
+
+// SwitchUserOrg will switch the current organisation of the given user ID (via basic auth) to
+// the given organisation ID
+func (c *Client) SwitchUserOrg(userID, orgID int64) error {
+	req, err := c.newRequest("POST", fmt.Sprintf("/api/users/%d/using/%d", userID, orgID), nil, nil)
+
+	_, err = c.Do(req)
+
+	return err
 }

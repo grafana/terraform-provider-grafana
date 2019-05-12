@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"strconv"
 )
 
 type Folder struct {
@@ -14,13 +15,16 @@ type Folder struct {
 	Title string `json:"title"`
 }
 
-func (c *Client) Folders() ([]Folder, error) {
+func (c *Client) Folders(orgID int64) ([]Folder, error) {
 	folders := make([]Folder, 0)
 
 	req, err := c.newRequest("GET", "/api/folders/", nil, nil)
 	if err != nil {
 		return folders, err
 	}
+
+	req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(orgID, 10))
+
 	resp, err := c.Do(req)
 	if err != nil {
 		return folders, err
@@ -36,12 +40,15 @@ func (c *Client) Folders() ([]Folder, error) {
 	return folders, err
 }
 
-func (c *Client) Folder(id int64) (*Folder, error) {
+func (c *Client) Folder(id int64, orgID int64) (*Folder, error) {
 	folder := &Folder{}
 	req, err := c.newRequest("GET", fmt.Sprintf("/api/folders/id/%d", id), nil, nil)
 	if err != nil {
 		return folder, err
 	}
+
+	req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(orgID, 10))
+
 	resp, err := c.Do(req)
 	if err != nil {
 		return folder, err
@@ -57,7 +64,7 @@ func (c *Client) Folder(id int64) (*Folder, error) {
 	return folder, err
 }
 
-func (c *Client) NewFolder(title string) (Folder, error) {
+func (c *Client) NewFolder(title string, orgID int64) (Folder, error) {
 	folder := Folder{}
 	dataMap := map[string]string{
 		"title": title,
@@ -67,6 +74,9 @@ func (c *Client) NewFolder(title string) (Folder, error) {
 	if err != nil {
 		return folder, err
 	}
+
+	req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(orgID, 10))
+
 	resp, err := c.Do(req)
 	if err != nil {
 		return folder, err
@@ -86,7 +96,7 @@ func (c *Client) NewFolder(title string) (Folder, error) {
 	return folder, err
 }
 
-func (c *Client) UpdateFolder(id string, name string) error {
+func (c *Client) UpdateFolder(id string, name string, orgID int64) error {
 	dataMap := map[string]string{
 		"name": name,
 	}
@@ -95,6 +105,9 @@ func (c *Client) UpdateFolder(id string, name string) error {
 	if err != nil {
 		return err
 	}
+
+	req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(orgID, 10))
+
 	resp, err := c.Do(req)
 	if err != nil {
 		return err
@@ -105,11 +118,14 @@ func (c *Client) UpdateFolder(id string, name string) error {
 	return err
 }
 
-func (c *Client) DeleteFolder(id string) error {
+func (c *Client) DeleteFolder(id string, orgID int64) error {
 	req, err := c.newRequest("DELETE", fmt.Sprintf("/api/folders/%s", id), nil, nil)
 	if err != nil {
 		return err
 	}
+
+	req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(orgID, 10))
+
 	resp, err := c.Do(req)
 	if err != nil {
 		return err

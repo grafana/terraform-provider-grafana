@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
 )
 
 type DashboardMeta struct {
@@ -65,7 +66,7 @@ func (c *Client) SaveDashboard(model map[string]interface{}, overwrite bool) (*D
 	return result, err
 }
 
-func (c *Client) NewDashboard(dashboard Dashboard) (*DashboardSaveResponse, error) {
+func (c *Client) NewDashboard(dashboard Dashboard, orgID int64) (*DashboardSaveResponse, error) {
 	data, err := json.Marshal(dashboard)
 	if err != nil {
 		return nil, err
@@ -74,6 +75,8 @@ func (c *Client) NewDashboard(dashboard Dashboard) (*DashboardSaveResponse, erro
 	if err != nil {
 		return nil, err
 	}
+
+	req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(orgID, 10))
 
 	resp, err := c.Do(req)
 	if err != nil {
@@ -93,12 +96,14 @@ func (c *Client) NewDashboard(dashboard Dashboard) (*DashboardSaveResponse, erro
 	return result, err
 }
 
-func (c *Client) Dashboard(slug string) (*Dashboard, error) {
+func (c *Client) Dashboard(slug string, orgID int64) (*Dashboard, error) {
 	path := fmt.Sprintf("/api/dashboards/db/%s", slug)
 	req, err := c.newRequest("GET", path, nil, nil)
 	if err != nil {
 		return nil, err
 	}
+
+	req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(orgID, 10))
 
 	resp, err := c.Do(req)
 	if err != nil {
@@ -122,12 +127,14 @@ func (c *Client) Dashboard(slug string) (*Dashboard, error) {
 	return result, err
 }
 
-func (c *Client) DeleteDashboard(slug string) error {
+func (c *Client) DeleteDashboard(slug string, orgID int64) error {
 	path := fmt.Sprintf("/api/dashboards/db/%s", slug)
 	req, err := c.newRequest("DELETE", path, nil, nil)
 	if err != nil {
 		return err
 	}
+
+	req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(orgID, 10))
 
 	resp, err := c.Do(req)
 	if err != nil {

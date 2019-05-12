@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"strconv"
 )
 
 type AlertNotification struct {
@@ -16,12 +17,14 @@ type AlertNotification struct {
 	Settings  interface{} `json:"settings"`
 }
 
-func (c *Client) AlertNotification(id int64) (*AlertNotification, error) {
+func (c *Client) AlertNotification(id int64, orgID int64) (*AlertNotification, error) {
 	path := fmt.Sprintf("/api/alert-notifications/%d", id)
 	req, err := c.newRequest("GET", path, nil, nil)
 	if err != nil {
 		return nil, err
 	}
+
+	req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(orgID, 10))
 
 	resp, err := c.Do(req)
 	if err != nil {
@@ -41,7 +44,7 @@ func (c *Client) AlertNotification(id int64) (*AlertNotification, error) {
 	return result, err
 }
 
-func (c *Client) NewAlertNotification(a *AlertNotification) (int64, error) {
+func (c *Client) NewAlertNotification(a *AlertNotification, orgID int64) (int64, error) {
 	data, err := json.Marshal(a)
 	if err != nil {
 		return 0, err
@@ -50,6 +53,8 @@ func (c *Client) NewAlertNotification(a *AlertNotification) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+
+	req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(orgID, 10))
 
 	resp, err := c.Do(req)
 	if err != nil {
@@ -71,7 +76,7 @@ func (c *Client) NewAlertNotification(a *AlertNotification) (int64, error) {
 	return result.Id, err
 }
 
-func (c *Client) UpdateAlertNotification(a *AlertNotification) error {
+func (c *Client) UpdateAlertNotification(a *AlertNotification, orgID int64) error {
 	path := fmt.Sprintf("/api/alert-notifications/%d", a.Id)
 	data, err := json.Marshal(a)
 	if err != nil {
@@ -81,6 +86,8 @@ func (c *Client) UpdateAlertNotification(a *AlertNotification) error {
 	if err != nil {
 		return err
 	}
+
+	req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(orgID, 10))
 
 	resp, err := c.Do(req)
 	if err != nil {
@@ -93,12 +100,14 @@ func (c *Client) UpdateAlertNotification(a *AlertNotification) error {
 	return nil
 }
 
-func (c *Client) DeleteAlertNotification(id int64) error {
+func (c *Client) DeleteAlertNotification(id int64, orgID int64) error {
 	path := fmt.Sprintf("/api/alert-notifications/%d", id)
 	req, err := c.newRequest("DELETE", path, nil, nil)
 	if err != nil {
 		return err
 	}
+
+	req.Header.Set("X-Grafana-Org-Id", strconv.FormatInt(orgID, 10))
 
 	resp, err := c.Do(req)
 	if err != nil {
