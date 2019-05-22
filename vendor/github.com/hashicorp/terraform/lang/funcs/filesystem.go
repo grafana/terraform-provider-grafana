@@ -29,26 +29,9 @@ func MakeFileFunc(baseDir string, encBase64 bool) function.Function {
 		Type: function.StaticReturnType(cty.String),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			path := args[0].AsString()
-			path, err := homedir.Expand(path)
+			src, err := readFileBytes(baseDir, path)
 			if err != nil {
-				return cty.UnknownVal(cty.String), fmt.Errorf("failed to expand ~: %s", err)
-			}
-
-			if !filepath.IsAbs(path) {
-				path = filepath.Join(baseDir, path)
-			}
-
-			// Ensure that the path is canonical for the host OS
-			path = filepath.Clean(path)
-
-			src, err := ioutil.ReadFile(path)
-			if err != nil {
-				// ReadFile does not return Terraform-user-friendly error
-				// messages, so we'll provide our own.
-				if os.IsNotExist(err) {
-					return cty.UnknownVal(cty.String), fmt.Errorf("no file exists at %s", path)
-				}
-				return cty.UnknownVal(cty.String), fmt.Errorf("failed to read %s", path)
+				return cty.UnknownVal(cty.String), err
 			}
 
 			switch {
@@ -57,7 +40,7 @@ func MakeFileFunc(baseDir string, encBase64 bool) function.Function {
 				return cty.StringVal(enc), nil
 			default:
 				if !utf8.Valid(src) {
-					return cty.UnknownVal(cty.String), fmt.Errorf("contents of %s are not valid UTF-8; to read arbitrary bytes, use the filebase64 function instead", path)
+					return cty.UnknownVal(cty.String), fmt.Errorf("contents of %s are not valid UTF-8; use the filebase64 function to obtain the Base64 encoded contents or the other file functions (e.g. filemd5, filesha256) to obtain file hashing results instead", path)
 				}
 				return cty.StringVal(string(src)), nil
 			}
@@ -109,7 +92,7 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 
 	renderTmpl := func(expr hcl.Expression, varsVal cty.Value) (cty.Value, error) {
 		if varsTy := varsVal.Type(); !(varsTy.IsMapType() || varsTy.IsObjectType()) {
-			return cty.DynamicVal, function.NewArgErrorf(2, "invalid vars value: must be a map") // or an object, but we don't strongly distinguish these most of the time
+			return cty.DynamicVal, function.NewArgErrorf(1, "invalid vars value: must be a map") // or an object, but we don't strongly distinguish these most of the time
 		}
 
 		ctx := &hcl.EvalContext{
@@ -122,7 +105,7 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 		for _, traversal := range expr.Variables() {
 			root := traversal.RootName()
 			if _, ok := ctx.Variables[root]; !ok {
-				return cty.DynamicVal, function.NewArgErrorf(2, "vars map does not contain key %q, referenced at %s", root, traversal[0].SourceRange())
+				return cty.DynamicVal, function.NewArgErrorf(1, "vars map does not contain key %q, referenced at %s", root, traversal[0].SourceRange())
 			}
 		}
 
@@ -269,6 +252,32 @@ var PathExpandFunc = function.New(&function.Spec{
 		return cty.StringVal(homePath), err
 	},
 })
+
+func readFileBytes(baseDir, path string) ([]byte, error) {
+	path, err := homedir.Expand(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to expand ~: %s", err)
+	}
+
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(baseDir, path)
+	}
+
+	// Ensure that the path is canonical for the host OS
+	path = filepath.Clean(path)
+
+	src, err := ioutil.ReadFile(path)
+	if err != nil {
+		// ReadFile does not return Terraform-user-friendly error
+		// messages, so we'll provide our own.
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("no file exists at %s", path)
+		}
+		return nil, fmt.Errorf("failed to read %s", path)
+	}
+
+	return src, nil
+}
 
 // File reads the contents of the file at the given path.
 //
