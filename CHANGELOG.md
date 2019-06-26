@@ -1,4 +1,9 @@
 ## 1.5.0 (Unreleased)
+
+BUG FIXES:
+
+* `grafana_data_source` Fix 404 check [GH-56]
+
 ## 1.4.0 (May 22, 2019)
 
 IMPROVEMENTS:
