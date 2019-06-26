@@ -87,7 +87,7 @@ func TestAccDashboard_disappear(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccDashboardCheckDestroy(&dashboard),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDashboardConfig_disappear,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),

@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 
@@ -18,7 +17,7 @@ func ResourceDashboard() *schema.Resource {
 		Update: UpdateDashboard,
 		Delete: DeleteDashboard,
 		Importer: &schema.ResourceImporter{
-			State: ImportDashboard,
+			State: schema.ImportStatePassthrough,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -118,15 +117,6 @@ func DeleteDashboard(d *schema.ResourceData, meta interface{}) error {
 
 	slug := d.Id()
 	return client.DeleteDashboard(slug)
-}
-
-func ImportDashboard(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	err := ReadDashboard(d, meta)
-
-	if err != nil || d.Id() == "" {
-		return nil, errors.New(fmt.Sprintf("Error: Unable to import Grafana Dashboard: %s.", err))
-	}
-	return []*schema.ResourceData{d}, nil
 }
 
 func prepareDashboardModel(configJSON string) map[string]interface{} {
