@@ -1,8 +1,12 @@
 ## 1.5.0 (Unreleased)
 
+IMPROVEMENTS
+
+* `grafana_dashboard` - Add update support [GH-52]
+
 BUG FIXES:
 
-* `grafana_data_source` Fix 404 check [GH-56]
+* `grafana_data_source` - Fix 404 check [GH-56]
 
 ## 1.4.0 (May 22, 2019)
 
