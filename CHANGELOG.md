@@ -1,12 +1,12 @@
-## 1.5.0 (Unreleased)
+## 1.5.0 (June 26, 2019)
 
 IMPROVEMENTS
 
-* `grafana_dashboard` - Add update support [GH-52]
+* `grafana_dashboard` - Add update support ([#52](https://github.com/terraform-providers/terraform-provider-grafana/issues/52))
 
 BUG FIXES:
 
-* `grafana_data_source` - Fix 404 check [GH-56]
+* `grafana_data_source` - Fix 404 check ([#56](https://github.com/terraform-providers/terraform-provider-grafana/issues/56))
 
 ## 1.4.0 (May 22, 2019)
 
