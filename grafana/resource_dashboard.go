@@ -13,8 +13,12 @@ import (
 func ResourceDashboard() *schema.Resource {
 	return &schema.Resource{
 		Create: CreateDashboard,
-		Delete: DeleteDashboard,
 		Read:   ReadDashboard,
+		Update: UpdateDashboard,
+		Delete: DeleteDashboard,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"slug": {
@@ -31,7 +35,6 @@ func ResourceDashboard() *schema.Resource {
 			"config_json": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ForceNew:     true,
 				StateFunc:    NormalizeDashboardConfigJSON,
 				ValidateFunc: ValidateDashboardConfigJSON,
 			},
@@ -87,6 +90,26 @@ func ReadDashboard(d *schema.ResourceData, meta interface{}) error {
 	d.Set("folder", dashboard.Folder)
 
 	return nil
+}
+
+func UpdateDashboard(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*gapi.Client)
+
+	dashboard := gapi.Dashboard{}
+
+	dashboard.Model = prepareDashboardModel(d.Get("config_json").(string))
+
+	dashboard.Folder = int64(d.Get("folder").(int))
+	dashboard.Overwrite = true
+
+	resp, err := client.NewDashboard(dashboard)
+	if err != nil {
+		return err
+	}
+
+	d.SetId(resp.Slug)
+
+	return ReadDashboard(d, meta)
 }
 
 func DeleteDashboard(d *schema.ResourceData, meta interface{}) error {
