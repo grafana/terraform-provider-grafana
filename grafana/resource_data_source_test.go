@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	gapi "github.com/nytm/go-grafana-api"
+	gapi "github.com/kalinon/go-grafana-api"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -78,6 +78,36 @@ func TestAccDataSource_basicCloudwatch(t *testing.T) {
 	})
 }
 
+func TestAccDataSource_basicPrometheus(t *testing.T) {
+	var dataSource gapi.DataSource
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccDataSourceCheckDestroy(&dataSource),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceConfig_basicPrometheus,
+				Check: resource.ComposeTestCheckFunc(
+					testAccDataSourceCheckExists("grafana_data_source.test_prometheus", &dataSource),
+					resource.TestCheckResourceAttr(
+						"grafana_data_source.test_prometheus", "type", "prometheus",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_data_source.test_prometheus", "json_data.0.http_method", "POST",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_data_source.test_prometheus", "json_data.0.query_timeout", "30s",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_data_source.test_prometheus", "json_data.0.time_interval", "1m",
+					),
+				),
+			},
+		},
+	})
+}
+
 func testAccDataSourceCheckExists(rn string, dataSource *gapi.DataSource) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
@@ -128,6 +158,7 @@ resource "grafana_data_source" "test_influxdb" {
   basic_auth_password = "basic_password"
 }
 `
+
 const testAccDataSourceConfig_basicCloudwatch = `
 resource "grafana_data_source" "test_cloudwatch" {
   type = "cloudwatch"
@@ -143,6 +174,19 @@ resource "grafana_data_source" "test_cloudwatch" {
   secure_json_data {
     access_key = "123"
     secret_key = "456"
+  }
+}
+`
+
+const testAccDataSourceConfig_basicPrometheus = `
+resource "grafana_data_source" "test_prometheus" {
+  type = "prometheus"
+  name = "terraform-acc-test-prometheus"
+
+  json_data {
+    http_method   = "POST"
+	query_timeout = "30s"
+    time_interval = "1m"
   }
 }
 `

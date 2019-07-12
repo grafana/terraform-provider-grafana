@@ -100,10 +100,10 @@ The following arguments are supported:
 
 JSON Data (`json_data`) supports the following:
 
-* `auth_type` - (Required by some data source types) The authentication type
+* `auth_type` - (Optional, for some data source types) The authentication type
   type used to access the data source.
 
-* `default` - (Required by some data source types) The default region for
+* `default_region` - (Optional, for some data source types) The default region for
   the data source.
 
 * `custom_metrics_namespaces` - (Optional, for the CloudWatch data source type)
@@ -117,6 +117,9 @@ JSON Data (`json_data`) supports the following:
   How to query the database (`GET` or `POST` HTTP verb).
   The `POST` verb allows heavy queries that would return
   an error using the `GET` verb. Default is `GET`.
+
+* `query_timeout` - (Optional, for the Prometheus data source type) 
+  This will be used as the timeout value for queries to prometheus.
 
 * `time_interval` - (Optional, for the Prometheus data source type)
   This will be used as a lower limit for the Prometheus

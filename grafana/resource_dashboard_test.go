@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"testing"
 
-	gapi "github.com/nytm/go-grafana-api"
+	gapi "github.com/kalinon/go-grafana-api"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"

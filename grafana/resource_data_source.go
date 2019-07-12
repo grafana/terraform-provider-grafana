@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	gapi "github.com/nytm/go-grafana-api"
+	gapi "github.com/kalinon/go-grafana-api"
 )
 
 func ResourceDataSource() *schema.Resource {
@@ -78,11 +78,11 @@ func ResourceDataSource() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"auth_type": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 						"default_region": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 						"custom_metrics_namespaces": {
 							Type:     schema.TypeString,
@@ -93,6 +93,10 @@ func ResourceDataSource() *schema.Resource {
 							Optional: true,
 						},
 						"http_method": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"query_timeout": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -249,6 +253,8 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		DefaultRegion:           d.Get("json_data.0.default_region").(string),
 		CustomMetricsNamespaces: d.Get("json_data.0.custom_metrics_namespaces").(string),
 		AssumeRoleArn:           d.Get("json_data.0.assume_role_arn").(string),
+		HttpMethod:              d.Get("json_data.0.http_method").(string),
+		TimeInterval:            d.Get("json_data.0.time_interval").(string),
 	}
 }
 

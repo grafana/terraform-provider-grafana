@@ -196,8 +196,7 @@ github.com/mitchellh/hashstructure
 github.com/mitchellh/mapstructure
 # github.com/mitchellh/reflectwalk v1.0.0
 github.com/mitchellh/reflectwalk
-# github.com/nytm/go-grafana-api v0.0.0-20181022152830-9cc848df7385
-github.com/nytm/go-grafana-api
+github.com/kalinon/go-grafana-api
 # github.com/oklog/run v1.0.0
 github.com/oklog/run
 # github.com/posener/complete v1.2.1
