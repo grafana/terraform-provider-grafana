@@ -113,6 +113,15 @@ JSON Data (`json_data`) supports the following:
 * `assume_role_arn` - (Optional, for the CloudWatch data source type) The role
   ARN to be assumed by Grafana when using the CloudWatch data source.
 
+* `http_method` - (Optional, for some data source types)
+  How to query the database (`GET` or `POST` HTTP verb).
+  The `POST` verb allows heavy queries that would return
+  an error using the `GET` verb. Default is `GET`.
+
+* `time_interval` - (Optional, for the Prometheus data source type)
+  This will be used as a lower limit for the Prometheus
+  step query parameter. Default value is 15s.
+
 Secure JSON Data (`secure_json_data`) supports the following:
 
 * `access_key` - (Required by some data source types) The access key required

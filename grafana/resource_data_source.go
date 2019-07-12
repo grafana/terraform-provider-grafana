@@ -92,6 +92,14 @@ func ResourceDataSource() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+						"http_method": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"time_interval": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 					},
 				},
 			},
