@@ -198,7 +198,6 @@ func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 	d.Set("type", dataSource.Type)
 	d.Set("url", dataSource.URL)
 	d.Set("username", dataSource.User)
-	d.Set("skip_tls_verify", dataSource.User)
 
 	return nil
 }
