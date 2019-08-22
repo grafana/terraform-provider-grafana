@@ -71,6 +71,12 @@ func ResourceDataSource() *schema.Resource {
 				Sensitive: true,
 			},
 
+			"tls_skip_verify": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  "",
+			},
+
 			"json_data": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -192,6 +198,7 @@ func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 	d.Set("type", dataSource.Type)
 	d.Set("url", dataSource.URL)
 	d.Set("username", dataSource.User)
+	d.Set("skip_tls_verify", dataSource.User)
 
 	return nil
 }
@@ -241,6 +248,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		DefaultRegion:           d.Get("json_data.0.default_region").(string),
 		CustomMetricsNamespaces: d.Get("json_data.0.custom_metrics_namespaces").(string),
 		AssumeRoleArn:           d.Get("json_data.0.assume_role_arn").(string),
+		TlsSkipVerify:           d.Get("tls_skip_verify").(bool),
 	}
 }
 
