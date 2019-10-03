@@ -19,8 +19,8 @@ resource "grafana_alert_notification" "email_someteam" {
   is_default = false
 
   settings {
-    "addresses" = "foo@example.net;bar@example.net"
-    "uploadImage" = "false"
+    addresses = "foo@example.net;bar@example.net"
+    uploadImage = "false"
   }
 }
 ```
