@@ -86,6 +86,9 @@ The following arguments are supported:
   and authentication type to access the data source. `json_data` is documented
   in more detail below.
 
+* `tls_skip_verify` - Optional boolean value indicating if verification of 
+  tls should be skipped.
+
 * `secure_json_data` - (Required by some data source types) The access and
   secret keys required to access the data source. `secure_json_data` is
   documented in more detail below.
