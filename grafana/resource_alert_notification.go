@@ -107,7 +107,8 @@ func ReadAlertNotification(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", alertNotification.Name)
 	d.Set("type", alertNotification.Type)
 	d.Set("settings", settings)
-
+	d.Set("uid", alertNotification.uid)
+	
 	return nil
 }
 
