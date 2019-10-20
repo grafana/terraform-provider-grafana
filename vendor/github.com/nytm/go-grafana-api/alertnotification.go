@@ -9,11 +9,39 @@ import (
 )
 
 type AlertNotification struct {
-	Id        int64       `json:"id,omitempty"`
-	Name      string      `json:"name"`
-	Type      string      `json:"type"`
-	IsDefault bool        `json:"isDefault"`
-	Settings  interface{} `json:"settings"`
+	Id                    int64       `json:"id,omitempty"`
+	Name                  string      `json:"name"`
+	Type                  string      `json:"type"`
+	IsDefault             bool        `json:"isDefault"`
+	DisableResolveMessage bool        `json:"disableResolveMessage"`
+	SendReminder          bool        `json:"sendReminder"`
+	Frequency             string      `json:"frequency"`
+	Settings              interface{} `json:"settings"`
+}
+
+func (c *Client) AlertNotifications() ([]AlertNotification, error) {
+	alertnotifications := make([]AlertNotification, 0)
+
+	req, err := c.newRequest("GET", "/api/alert-notifications/", nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != 200 {
+		return nil, errors.New(resp.Status)
+	}
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(data, &alertnotifications)
+	return alertnotifications, err
 }
 
 func (c *Client) AlertNotification(id int64) (*AlertNotification, error) {

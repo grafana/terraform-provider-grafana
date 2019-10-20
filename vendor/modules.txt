@@ -76,7 +76,7 @@ github.com/google/go-cmp/cmp/internal/value
 github.com/googleapis/gax-go/v2
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
-# github.com/hashicorp/go-cleanhttp v0.5.0
+# github.com/hashicorp/go-cleanhttp v0.5.1
 github.com/hashicorp/go-cleanhttp
 # github.com/hashicorp/go-getter v1.3.0
 github.com/hashicorp/go-getter
@@ -196,7 +196,7 @@ github.com/mitchellh/hashstructure
 github.com/mitchellh/mapstructure
 # github.com/mitchellh/reflectwalk v1.0.0
 github.com/mitchellh/reflectwalk
-# github.com/nytm/go-grafana-api v0.0.0-20181022152830-9cc848df7385
+# github.com/nytm/go-grafana-api v0.2.0
 github.com/nytm/go-grafana-api
 # github.com/oklog/run v1.0.0
 github.com/oklog/run
