@@ -10,6 +10,8 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	"github.com/hashicorp/go-cleanhttp"
 )
 
 type Client struct {
@@ -35,7 +37,7 @@ func New(auth, baseURL string) (*Client, error) {
 	return &Client{
 		key,
 		*u,
-		&http.Client{},
+		cleanhttp.DefaultClient(),
 	}, nil
 }
 
