@@ -31,6 +31,11 @@ func ResourceDashboard() *schema.Resource {
 				Computed: true,
 			},
 
+			"dashboard_id": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+
 			"folder": {
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -90,6 +95,7 @@ func ReadDashboard(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(dashboard.Meta.Slug)
 	d.Set("slug", dashboard.Meta.Slug)
 	d.Set("uid", dashboard.Model["uid"])
+	d.Set("dashboard_id", dashboard.Model["id"])
 	d.Set("config_json", configJSON)
 	d.Set("folder", dashboard.Folder)
 
@@ -100,7 +106,7 @@ func UpdateDashboard(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
 	dashboard := gapi.Dashboard{}
-	dashboard.Model = prepareDashboardModelForUpdate(d.Get("config_json").(string), d.Get("uid").(string))
+	dashboard.Model = prepareDashboardModelForUpdate(d)
 	dashboard.Folder = int64(d.Get("folder").(int))
 	dashboard.Overwrite = true
 
@@ -124,17 +130,20 @@ func DeleteDashboard(d *schema.ResourceData, meta interface{}) error {
 func prepareDashboardModelForCreate(configJSON string) map[string]interface{} {
 	configMap := prepareDashboardModel(configJSON)
 
+	delete(configMap, "id")
 	// Only exists in 5.0+
 	delete(configMap, "uid")
 
 	return configMap
 }
 
-func prepareDashboardModelForUpdate(configJSON string, uid string) map[string]interface{} {
+func prepareDashboardModelForUpdate(d *schema.ResourceData) map[string]interface{} {
+	configJSON := d.Get("config_json").(string)
 	configMap := prepareDashboardModel(configJSON)
 
+	configMap["id"] = d.Get("dashboard_id").(int)
 	// Only exists in 5.0+
-	configMap["uid"] = uid
+	configMap["uid"] = d.Get("uid").(string)
 
 	return configMap
 }
@@ -147,7 +156,6 @@ func prepareDashboardModel(configJSON string) map[string]interface{} {
 		panic(fmt.Errorf("Invalid JSON got into prepare func"))
 	}
 
-	delete(configMap, "id")
 	configMap["version"] = 0
 
 	return configMap

@@ -28,6 +28,7 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"grafana_alert_notification": ResourceAlertNotification(),
 			"grafana_dashboard":          ResourceDashboard(),
+			"grafana_playlist":           ResourcePlaylist(),
 			"grafana_data_source":        ResourceDataSource(),
 			"grafana_folder":             ResourceFolder(),
 			"grafana_organization":       ResourceOrganization(),

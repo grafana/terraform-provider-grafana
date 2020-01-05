@@ -30,6 +30,9 @@ func TestAccDashboard_basic(t *testing.T) {
 					resource.TestMatchResourceAttr(
 						"grafana_dashboard.test", "config_json", regexp.MustCompile(".*Terraform Acceptance Test.*"),
 					),
+					resource.TestMatchResourceAttr(
+						"grafana_dashboard.test", "dashboard_id", regexp.MustCompile(`\d+`),
+					),
 				),
 			},
 			// second step updates it with a new title
