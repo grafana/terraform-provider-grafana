@@ -33,7 +33,6 @@ func ResourceDataSource() *schema.Resource {
 				Optional:   true,
 				Default:    "",
 				Sensitive:  true,
-				Deprecated: "Use of this field has been deprecated. Please switch to using secure_json_data.basic_auth_password",
 			},
 			"basic_auth_username": {
 				Type:     schema.TypeString,
@@ -167,7 +166,6 @@ func ResourceDataSource() *schema.Resource {
 				Optional:   true,
 				Default:    "",
 				Sensitive:  true,
-				Deprecated: "Use of this field has been deprecated. Please switch to using secure_json_data.password",
 			},
 			"secure_json_data": {
 				Type:      schema.TypeList,
