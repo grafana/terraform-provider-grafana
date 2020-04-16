@@ -14,9 +14,10 @@ The data source resource allows a data source to be created on a Grafana server.
 
 The required arguments for this resource vary depending on the type of data
 source selected (via the `type` argument). The following example is for
-InfluxDB. See
-[Grafana's *Data Sources Guides*](http://docs.grafana.org/#data-sources-guides)
-for more details on the supported data source types and the arguments they use.
+InfluxDB. See [Grafana's Data Sources Guides][datasources] for more details on
+the supported data source types and the arguments they use.
+
+[datasources]: https://grafana.com/docs/grafana/latest/features/datasources/
 
 For an InfluxDB datasource:
 
