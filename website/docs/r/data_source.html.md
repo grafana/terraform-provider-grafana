@@ -100,26 +100,94 @@ The following arguments are supported:
 
 JSON Data (`json_data`) supports the following:
 
-* `auth_type` - (Required by some data source types) The authentication type
-  type used to access the data source.
+All fields are optional, though some data sources may need a subset of these
+fields to operate properly.
 
-* `default` - (Required by some data source types) The default region for
-  the data source.
+* `assume_role_arn` - (CloudWatch) The ARN of the role to be assumed by Grafana
+  when using the CloudWatch data source.
 
-* `custom_metrics_namespaces` - (Optional, for the CloudWatch data source type)
+* `auth_type` - (CloudWatch) The authentication type type used to access the
+  data source.
+
+* `conn_max_lifetime` - (MySQL, PostgreSQL, and MSSQL) Maximum amount of time in
+  seconds a connection may be reused (Grafana v5.4+).
+
+* `custom_metrics_namespaces` - (CloudWatch)
   A comma-separated list of custom namespaces to be queried by the CloudWatch
   data source.
 
-* `assume_role_arn` - (Optional, for the CloudWatch data source type) The role
-  ARN to be assumed by Grafana when using the CloudWatch data source.
+* `default_region` - (CloudWatch) The default region for the data source.
+
+* `encrypt` - (MSSQL) Connection SSL encryption handling. 'disable', 'false' or
+  'true'
+
+* `es_version` - (Elasticsearch) Elasticsearch version as a number (2/5/56/60/70).
+
+* `graphite_version` - (Graphite) Graphite version
+
+* `http_method` - (Prometheus) HTTP method to use for making requests.
+
+* `interval` - (Elasticsearch) Index date time format. nil(No Pattern), 'Hourly',
+  'Daily', 'Weekly', 'Monthly' or 'Yearly'.
+
+* `log_level_field` - (Elasticsearch) Which field should be used to indicate the
+  priority of the log message.
+
+* `log_message_field` - (Elasticsearch) Which field should be used as the log
+  message.
+
+* `max_idle_conns` - (MySQL, PostgreSQL and MSSQL) Maximum number of connections
+  in the idle connection pool (Grafana v5.4+).
+
+* `max_open_conns` - (MySQL, PostgreSQL and MSSQL) Maximum number of open
+  connections to the database (Grafana v5.4+).
+
+* `postgres_version` - (PostgreSQL) Postgres version as a number
+  (903/904/905/906/1000) meaning v9.3, v9.4, …, v10.
+
+* `query_timeout` - (Prometheus) Timeout for queries made to the Prometheus
+  data source in seconds.
+
+* `ssl_mode` - (PostgreSQL) SSLmode. 'disable', 'require', 'verify-ca' or
+  'verify-full'.
+
+* `timescaledb` - (PostgreSQL) Enable usage of TimescaleDB extension.
+
+* `time_field` - (Elasticsearch) Which field that should be used as timestamp.
+
+* `time_interval` - (Prometheus, Elasticsearch, InfluxDB, MySQL, PostgreSQL, and
+  MSSQL) Lowest interval/step value that should be used for this data source.
+
+* `tls_auth` - (All) Enable TLS authentication using client cert configured in
+  secure json data.
+
+* `tls_auth_with_ca_cert` - (All) Enable TLS authentication using CA cert.
+
+* `tls_skip_verify` - (All) Controls whether a client verifies the server’s
+  certificate chain and host name.
+
+* `tsdb_resolution` - (OpenTSDB) Resolution.
+
+* `tsdb_version` - (OpenTSDB) Version.
 
 Secure JSON Data (`secure_json_data`) supports the following:
 
-* `access_key` - (Required by some data source types) The access key required
-  to access the data source.
+All fields are optional, though some data sources may need a subset of these
+fields to operate properly.
 
-* `secret_key` - (Required by some data source types) The secret key required
-  to access the data source.
+* `access_key` - (CloudWatch) The access key to use to access the data source.
+
+* `basic_auth_password` - (All) Password to use for basic authentication.
+
+* `password` - (All) Password to use for authentication.
+
+* `tls_ca_cert` - (All) CA cert for out going requests.
+
+* `tls_client_cert` - (All) TLS Client cert for outgoing requests.
+
+* `tls_client_key` - (All) TLS Client key for outgoing requests.
+
+* `secret_key` - (CloudWatch) The secret key to use to access the data source.
 
 ## Attributes Reference
 
