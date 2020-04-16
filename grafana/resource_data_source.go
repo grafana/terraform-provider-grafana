@@ -29,10 +29,10 @@ func ResourceDataSource() *schema.Resource {
 				Default:  false,
 			},
 			"basic_auth_password": {
-				Type:       schema.TypeString,
-				Optional:   true,
-				Default:    "",
-				Sensitive:  true,
+				Type:      schema.TypeString,
+				Optional:  true,
+				Default:   "",
+				Sensitive: true,
 			},
 			"basic_auth_username": {
 				Type:     schema.TypeString,
@@ -162,10 +162,10 @@ func ResourceDataSource() *schema.Resource {
 				Required: true,
 			},
 			"password": {
-				Type:       schema.TypeString,
-				Optional:   true,
-				Default:    "",
-				Sensitive:  true,
+				Type:      schema.TypeString,
+				Optional:  true,
+				Default:   "",
+				Sensitive: true,
 			},
 			"secure_json_data": {
 				Type:      schema.TypeList,
