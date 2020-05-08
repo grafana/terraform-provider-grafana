@@ -94,9 +94,10 @@ The following arguments are supported:
   database to use on the selected data source server.
 
 * `access_mode` - (Optional) The method by which the browser-based Grafana
-  application will access the data source. The default is "proxy", which means
+  application will access the data source. The default is `proxy`, which means
   that the application will make requests via a proxy endpoint on the Grafana
-  server.
+  server. Proxy is displayed in the Grafana admin as Server. Another possible value is 
+  `direct` which is displayed in the Grafana admin as Browser.
 
 JSON Data (`json_data`) supports the following:
 
