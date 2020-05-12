@@ -1,12 +1,18 @@
 package grafana
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	gapi "github.com/nytm/go-grafana-api"
+)
+
+var (
+	ErrFrequenceMustBeSet = errors.New("frequency must be set when send_reminder is set to 'true'")
 )
 
 func ResourceAlertNotification() *schema.Resource {
@@ -31,6 +37,18 @@ func ResourceAlertNotification() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
+			},
+
+			"send_reminder": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
+			"frequency": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
 			},
 
 			"settings": {
@@ -143,11 +161,26 @@ func makeAlertNotification(d *schema.ResourceData) (*gapi.AlertNotification, err
 		}
 	}
 
+	sendReminder := d.Get("send_reminder").(bool)
+	frequency := d.Get("frequency").(string)
+
+	if sendReminder {
+		if frequency == "" {
+			return nil, ErrFrequenceMustBeSet
+		}
+
+		if _, err := time.ParseDuration(frequency); err != nil {
+			return nil, err
+		}
+	}
+
 	return &gapi.AlertNotification{
-		Id:        id,
-		Name:      d.Get("name").(string),
-		Type:      d.Get("type").(string),
-		IsDefault: d.Get("is_default").(bool),
-		Settings:  settings,
+		Id:           id,
+		Name:         d.Get("name").(string),
+		Type:         d.Get("type").(string),
+		IsDefault:    d.Get("is_default").(bool),
+		SendReminder: sendReminder,
+		Frequency:    frequency,
+		Settings:     settings,
 	}, err
 }
