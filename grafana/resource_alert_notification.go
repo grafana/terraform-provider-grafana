@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	ErrFrequenceMustBeSet = errors.New("frequency must be set when send_reminder is set to 'true'")
+	ErrFrequencyMustBeSet = errors.New("frequency must be set when send_reminder is set to 'true'")
 )
 
 func ResourceAlertNotification() *schema.Resource {
@@ -166,7 +166,7 @@ func makeAlertNotification(d *schema.ResourceData) (*gapi.AlertNotification, err
 
 	if sendReminder {
 		if frequency == "" {
-			return nil, ErrFrequenceMustBeSet
+			return nil, ErrFrequencyMustBeSet
 		}
 
 		if _, err := time.ParseDuration(frequency); err != nil {
