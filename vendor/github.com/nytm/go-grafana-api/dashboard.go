@@ -93,8 +93,16 @@ func (c *Client) NewDashboard(dashboard Dashboard) (*DashboardSaveResponse, erro
 	return result, err
 }
 
+// Deprecated: Starting from Grafana v5.0. Please update to use DashboardByUID instead.
 func (c *Client) Dashboard(slug string) (*Dashboard, error) {
-	path := fmt.Sprintf("/api/dashboards/db/%s", slug)
+	return c.dashboard(fmt.Sprintf("/api/dashboards/db/%s", slug))
+}
+
+func (c *Client) DashboardByUID(uid string) (*Dashboard, error) {
+	return c.dashboard(fmt.Sprintf("/api/dashboards/uid/%s", uid))
+}
+
+func (c *Client) dashboard(path string) (*Dashboard, error) {
 	req, err := c.newRequest("GET", path, nil, nil)
 	if err != nil {
 		return nil, err
@@ -122,8 +130,16 @@ func (c *Client) Dashboard(slug string) (*Dashboard, error) {
 	return result, err
 }
 
+// Deprecated: Starting from Grafana v5.0. Please update to use DeleteDashboardByUID instead.
 func (c *Client) DeleteDashboard(slug string) error {
-	path := fmt.Sprintf("/api/dashboards/db/%s", slug)
+	return c.deleteDashboard(fmt.Sprintf("/api/dashboards/db/%s", slug))
+}
+
+func (c *Client) DeleteDashboardByUID(uid string) error {
+	return c.deleteDashboard(fmt.Sprintf("/api/dashboards/uid/%s", uid))
+}
+
+func (c *Client) deleteDashboard(path string) error {
 	req, err := c.newRequest("DELETE", path, nil, nil)
 	if err != nil {
 		return err
