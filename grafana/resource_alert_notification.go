@@ -60,7 +60,7 @@ func ResourceAlertNotification() *schema.Resource {
 			"uid": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Required: false,
+				Computed: true,
 			},
 		},
 	}
@@ -182,21 +182,13 @@ func makeAlertNotification(d *schema.ResourceData) (*gapi.AlertNotification, err
 	}
 
 	return &gapi.AlertNotification{
-<<<<<<< HEAD
-		Id:        id,
-		Name:      d.Get("name").(string),
-		Type:      d.Get("type").(string),
-		IsDefault: d.Get("is_default").(bool),
-		Uid:       d.Get("uid").(string),
-		Settings:  settings,
-=======
 		Id:           id,
 		Name:         d.Get("name").(string),
 		Type:         d.Get("type").(string),
 		IsDefault:    d.Get("is_default").(bool),
+		Uid:          d.Get("uid").(string),
 		SendReminder: sendReminder,
 		Frequency:    frequency,
 		Settings:     settings,
->>>>>>> 990698f53c710a0038542bacaddb5d76e242702e
 	}, err
 }
