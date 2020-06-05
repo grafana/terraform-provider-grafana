@@ -13,8 +13,14 @@ The dashboard resource allows a dashboard to be created on a Grafana server.
 ## Example Usage
 
 ```hcl
+
+resource "grafana_folder" "eu_west" {
+  title = "eu-west"
+}
+
 resource "grafana_dashboard" "metrics" {
   config_json = "${file("grafana-dashboard.json")}"
+  folder = grafana_folder.us_east.id 
 }
 ```
 
@@ -38,7 +44,7 @@ The following arguments are supported:
 
 * `config_json` - (Required) The JSON configuration for the dashboard.
 * `folder` - (Optional, Forces new resource) The internal id of the folder
-  in Grafana in which to place the dashboard. 
+  in Grafana in which to place the dashboard. Requires Grafana v5.1+
 
 ## Attributes Reference
 

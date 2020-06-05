@@ -14,13 +14,13 @@ viewing and sharing metrics dashboards.
 
 The provider configuration block accepts the following arguments:
 
-* ``url`` - (Required) The root URL of a Grafana server. May alternatively be
-  set via the ``GRAFANA_URL`` environment variable.
+* `url` - (Required) The root URL of a Grafana server. May alternatively be
+  set via the `GRAFANA_URL` environment variable.
 
-* ``auth`` - (Required) The API token or username/password to use to
+* `auth` - (Required) The API token or username/password to use to
   authenticate to the Grafana server. If username/password is used, they
   are provided in a single string and separated by a colon. May alternatively
-  be set via the ``GRAFANA_AUTH`` environment variable.
+  be set via the `GRAFANA_AUTH` environment variable.
 
 Use the navigation to the left to read about the available resources.
 
@@ -29,7 +29,7 @@ Use the navigation to the left to read about the available resources.
 ```hcl
 provider "grafana" {
   url  = "http://grafana.example.com/"
-  auth = "1234abcd"
+  auth = "username:password"
 }
 
 resource "grafana_dashboard" "metrics" {
