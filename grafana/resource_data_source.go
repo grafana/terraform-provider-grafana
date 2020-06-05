@@ -18,84 +18,155 @@ func ResourceDataSource() *schema.Resource {
 		Read:   ReadDataSource,
 
 		Schema: map[string]*schema.Schema{
-			"type": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-
-			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-
-			"url": {
+			"access_mode": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "proxy",
 			},
-
-			"is_default": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-			},
-
 			"basic_auth_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-
-			"basic_auth_username": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
-			},
-
 			"basic_auth_password": {
 				Type:      schema.TypeString,
 				Optional:  true,
 				Default:   "",
 				Sensitive: true,
 			},
-
-			"username": {
+			"basic_auth_username": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
 			},
-
-			"password": {
-				Type:      schema.TypeString,
-				Optional:  true,
-				Default:   "",
-				Sensitive: true,
+			"database_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
 			},
-
+			"is_default": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"json_data": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"assume_role_arn": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 						"auth_type": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
-						"default_region": {
-							Type:     schema.TypeString,
-							Required: true,
+						"conn_max_lifetime": {
+							Type:     schema.TypeInt,
+							Optional: true,
 						},
 						"custom_metrics_namespaces": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"assume_role_arn": {
+						"default_region": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"encrypt": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"es_version": {
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"graphite_version": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"http_method": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"interval": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"log_level_field": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"log_message_field": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"max_idle_conns": {
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"max_open_conns": {
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"postgres_version": {
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"query_timeout": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"ssl_mode": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"timescaledb": {
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+						"time_field": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"time_interval": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"tls_auth": {
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+						"tls_auth_with_ca_cert": {
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+						"tls_skip_verify": {
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+						"tsdb_resolution": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"tsdb_version": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 					},
 				},
 			},
-
+			"name": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"password": {
+				Type:      schema.TypeString,
+				Optional:  true,
+				Default:   "",
+				Sensitive: true,
+			},
 			"secure_json_data": {
 				Type:      schema.TypeList,
 				Optional:  true,
@@ -103,27 +174,55 @@ func ResourceDataSource() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"access_key": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:      schema.TypeString,
+							Optional:  true,
+							Sensitive: true,
+						},
+						"basic_auth_password": {
+							Type:      schema.TypeString,
+							Optional:  true,
+							Sensitive: true,
+						},
+						"password": {
+							Type:      schema.TypeString,
+							Optional:  true,
+							Sensitive: true,
 						},
 						"secret_key": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:      schema.TypeString,
+							Optional:  true,
+							Sensitive: true,
+						},
+						"tls_ca_cert": {
+							Type:      schema.TypeString,
+							Optional:  true,
+							Sensitive: true,
+						},
+						"tls_client_cert": {
+							Type:      schema.TypeString,
+							Optional:  true,
+							Sensitive: true,
+						},
+						"tls_client_key": {
+							Type:      schema.TypeString,
+							Optional:  true,
+							Sensitive: true,
 						},
 					},
 				},
 			},
-
-			"database_name": {
+			"type": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"url": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"username": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
-			},
-
-			"access_mode": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "proxy",
 			},
 		},
 	}
@@ -237,16 +336,42 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 
 func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 	return gapi.JSONData{
-		AuthType:                d.Get("json_data.0.auth_type").(string),
-		DefaultRegion:           d.Get("json_data.0.default_region").(string),
-		CustomMetricsNamespaces: d.Get("json_data.0.custom_metrics_namespaces").(string),
 		AssumeRoleArn:           d.Get("json_data.0.assume_role_arn").(string),
+		AuthType:                d.Get("json_data.0.auth_type").(string),
+		ConnMaxLifetime:         int64(d.Get("json_data.0.conn_max_lifetime").(int)),
+		CustomMetricsNamespaces: d.Get("json_data.0.custom_metrics_namespaces").(string),
+		DefaultRegion:           d.Get("json_data.0.default_region").(string),
+		Encrypt:                 d.Get("json_data.0.encrypt").(string),
+		EsVersion:               int64(d.Get("json_data.0.es_version").(int)),
+		GraphiteVersion:         d.Get("json_data.0.graphite_version").(string),
+		HttpMethod:              d.Get("json_data.0.http_method").(string),
+		Interval:                d.Get("json_data.0.interval").(string),
+		LogLevelField:           d.Get("json_data.0.log_level_field").(string),
+		LogMessageField:         d.Get("json_data.0.log_message_field").(string),
+		MaxIdleConns:            int64(d.Get("json_data.0.max_idle_conns").(int)),
+		MaxOpenConns:            int64(d.Get("json_data.0.max_open_conns").(int)),
+		PostgresVersion:         int64(d.Get("json_data.0.postgres_version").(int)),
+		QueryTimeout:            d.Get("json_data.0.query_timeout").(string),
+		Sslmode:                 d.Get("json_data.0.ssl_mode").(string),
+		Timescaledb:             d.Get("json_data.0.timescaledb").(bool),
+		TimeField:               d.Get("json_data.0.time_field").(string),
+		TimeInterval:            d.Get("json_data.0.time_interval").(string),
+		TlsAuth:                 d.Get("json_data.0.tls_auth").(bool),
+		TlsAuthWithCACert:       d.Get("json_data.0.tls_auth_with_ca_cert").(bool),
+		TlsSkipVerify:           d.Get("json_data.0.tls_skip_verify").(bool),
+		TsdbResolution:          d.Get("json_data.0.tsdb_resolution").(string),
+		TsdbVersion:             d.Get("json_data.0.tsdb_version").(string),
 	}
 }
 
 func makeSecureJSONData(d *schema.ResourceData) gapi.SecureJSONData {
 	return gapi.SecureJSONData{
-		AccessKey: d.Get("secure_json_data.0.access_key").(string),
-		SecretKey: d.Get("secure_json_data.0.secret_key").(string),
+		AccessKey:         d.Get("secure_json_data.0.access_key").(string),
+		BasicAuthPassword: d.Get("secure_json_data.0.basic_auth_password").(string),
+		Password:          d.Get("secure_json_data.0.password").(string),
+		SecretKey:         d.Get("secure_json_data.0.secret_key").(string),
+		TlsCACert:         d.Get("secure_json_data.0.tls_ca_cert").(string),
+		TlsClientCert:     d.Get("secure_json_data.0.tls_client_cert").(string),
+		TlsClientKey:      d.Get("secure_json_data.0.tls_client_key").(string),
 	}
 }
