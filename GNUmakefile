@@ -19,7 +19,7 @@ testacc: fmtcheck
 
 test-serv: fmtcheck
 	@docker pull "grafana/grafana:$(GRAFANA_VERSION)"
-	docker run -p 127.0.0.1:3000:3000 "grafana/grafana:$(GRAFANA_VERSION)"
+	docker run --rm -p 3000:3000 "grafana/grafana:$(GRAFANA_VERSION)"
 
 vet:
 	@echo "go vet ."
