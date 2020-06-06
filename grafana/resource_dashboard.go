@@ -19,16 +19,16 @@ func ResourceDashboard() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
-
 		Schema: map[string]*schema.Schema{
-			"slug": {
+			"uid": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"uid": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"slug": {
+				Type:       schema.TypeString,
+				Computed:   true,
+				Deprecated: "Slug is deprecated since Grafana v5. Use uid instead.",
 			},
 
 			"folder": {
@@ -43,6 +43,14 @@ func ResourceDashboard() *schema.Resource {
 				ValidateFunc: ValidateDashboardConfigJSON,
 			},
 		},
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceDashboardResourceV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceDashboardStateUpgradeV0,
+				Version: 0,
+			},
+		},
 	}
 }
 
@@ -55,28 +63,25 @@ func CreateDashboard(d *schema.ResourceData, meta interface{}) error {
 
 	resp, err := client.NewDashboard(dashboard)
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating dashboard: %s", err)
 	}
 
-	d.SetId(resp.Slug)
-
+	d.SetId(resp.Uid)
 	return ReadDashboard(d, meta)
 }
 
 func ReadDashboard(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
-	slug := d.Id()
-
-	dashboard, err := client.Dashboard(slug)
+	dashboard, err := client.DashboardByUID(d.Id())
 	if err != nil {
 		if err.Error() == "404 Not Found" {
-			log.Printf("[WARN] removing dashboard %s from state because it no longer exists in grafana", slug)
+			log.Printf("[WARN] Removing dashboard %s from state because it no longer exists in grafana", d.Id())
 			d.SetId("")
 			return nil
 		}
 
-		return err
+		return fmt.Errorf("Failed to read dashboard '%s': %v", d.Id(), err)
 	}
 
 	configJSONBytes, err := json.Marshal(dashboard.Model)
@@ -84,12 +89,9 @@ func ReadDashboard(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	configJSON := NormalizeDashboardConfigJSON(string(configJSONBytes))
-
-	d.SetId(dashboard.Meta.Slug)
+	d.Set("uid", d.Id())
 	d.Set("slug", dashboard.Meta.Slug)
-	d.Set("uid", dashboard.Model["uid"])
-	d.Set("config_json", configJSON)
+	d.Set("config_json", NormalizeDashboardConfigJSON(string(configJSONBytes)))
 	d.Set("folder", dashboard.Folder)
 
 	return nil
@@ -99,16 +101,14 @@ func UpdateDashboard(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
 	dashboard := gapi.Dashboard{}
-	dashboard.Model = prepareDashboardModelForUpdate(d.Get("config_json").(string), d.Get("uid").(string))
+	dashboard.Model = prepareDashboardModelForUpdate(d.Get("config_json").(string), d.Id())
 	dashboard.Folder = int64(d.Get("folder").(int))
 	dashboard.Overwrite = true
 
-	resp, err := client.NewDashboard(dashboard)
+	_, err := client.NewDashboard(dashboard)
 	if err != nil {
-		return err
+		return fmt.Errorf("error updating dashboard %q: %s", d.Id(), err)
 	}
-
-	d.SetId(resp.Slug)
 
 	return ReadDashboard(d, meta)
 }
@@ -116,25 +116,23 @@ func UpdateDashboard(d *schema.ResourceData, meta interface{}) error {
 func DeleteDashboard(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
-	slug := d.Id()
-	return client.DeleteDashboard(slug)
+	err := client.DeleteDashboardByUID(d.Id())
+	if err != nil {
+		return fmt.Errorf("error deleting dashboard %q: %s", d.Id(), err)
+	}
+
+	return nil
 }
 
 func prepareDashboardModelForCreate(configJSON string) map[string]interface{} {
 	configMap := prepareDashboardModel(configJSON)
-
-	// Only exists in 5.0+
-	delete(configMap, "uid")
-
+	delete(configMap, "uid") // Requests without a uid are creating a new dashboard
 	return configMap
 }
 
 func prepareDashboardModelForUpdate(configJSON string, uid string) map[string]interface{} {
 	configMap := prepareDashboardModel(configJSON)
-
-	// Only exists in 5.0+
 	configMap["uid"] = uid
-
 	return configMap
 }
 
@@ -143,17 +141,17 @@ func prepareDashboardModel(configJSON string) map[string]interface{} {
 	err := json.Unmarshal([]byte(configJSON), &configMap)
 	if err != nil {
 		// The validate function should've taken care of this.
-		panic(fmt.Errorf("Invalid JSON got into prepare func"))
+		panic("invalid JSON")
 	}
 
-	delete(configMap, "id")
-	configMap["version"] = 0
+	delete(configMap, "id") // We don't care about the id. Uid's are better!
+	delete(configMap, "version")
 
 	return configMap
 }
 
-func ValidateDashboardConfigJSON(configI interface{}, k string) ([]string, []error) {
-	configJSON := configI.(string)
+func ValidateDashboardConfigJSON(state interface{}, k string) ([]string, []error) {
+	configJSON := state.(string)
 	configMap := map[string]interface{}{}
 	err := json.Unmarshal([]byte(configJSON), &configMap)
 	if err != nil {
@@ -162,28 +160,69 @@ func ValidateDashboardConfigJSON(configI interface{}, k string) ([]string, []err
 	return nil, nil
 }
 
-func NormalizeDashboardConfigJSON(configI interface{}) string {
-	configJSON := configI.(string)
+func NormalizeDashboardConfigJSON(state interface{}) string {
+	configJSON := state.(string)
 
 	configMap := map[string]interface{}{}
 	err := json.Unmarshal([]byte(configJSON), &configMap)
 	if err != nil {
 		// The validate function should've taken care of this.
-		return ""
+		panic("invalid JSON")
 	}
 
 	// Some properties are managed by this provider and are thus not
 	// significant when included in the JSON.
 	delete(configMap, "id")
 	delete(configMap, "version")
-	// Only exists in 5.0+
 	delete(configMap, "uid")
 
 	ret, err := json.Marshal(configMap)
 	if err != nil {
-		// Should never happen.
-		return configJSON
+		// The validate function should've taken care of this.
+		panic("invalid JSON")
 	}
 
 	return string(ret)
+}
+
+func resourceDashboardResourceV0() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"slug": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"folder": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
+			},
+			"config_json": {
+				Type:         schema.TypeString,
+				Required:     true,
+				StateFunc:    NormalizeDashboardConfigJSON,
+				ValidateFunc: ValidateDashboardConfigJSON,
+			},
+		},
+	}
+}
+
+func resourceDashboardStateUpgradeV0(rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+	client := meta.(*gapi.Client)
+	slug := rawState["slug"].(string)
+
+	dashboard, err := client.Dashboard(slug)
+	if err != nil {
+		return nil, fmt.Errorf("error upgrading dashboard [slug=%q]: %s", slug, err)
+	}
+
+	uid, ok := dashboard.Model["uid"]
+	if !ok {
+		return nil, fmt.Errorf("error upgrading dashboard [slug=%q]: grafana_dashboard requires Grafana v5.0+. Please update Grafana or use a Terraform Grafana provider prior or equal to version v1.5.0", slug)
+	}
+
+	rawState["id"] = uid
+	rawState["uid"] = uid
+
+	return rawState, nil
 }

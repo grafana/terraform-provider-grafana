@@ -24,9 +24,8 @@ func TestAccDashboard_basic(t *testing.T) {
 				Config: testAccDashboardConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-					resource.TestMatchResourceAttr(
-						"grafana_dashboard.test", "id", regexp.MustCompile(`terraform-acceptance-test.*`),
-					),
+					resource.TestCheckResourceAttrSet("grafana_dashboard.test", "id"),
+					resource.TestCheckResourceAttrPair("grafana_dashboard.test", "id", "grafana_dashboard.test", "uid"),
 					resource.TestMatchResourceAttr(
 						"grafana_dashboard.test", "config_json", regexp.MustCompile(".*Terraform Acceptance Test.*"),
 					),
@@ -36,6 +35,7 @@ func TestAccDashboard_basic(t *testing.T) {
 			{
 				Config: testAccDashboardConfig_update,
 				Check: resource.ComposeTestCheckFunc(
+					// #todo check if uid has not changed
 					testAccDashboardCheckNotExistsBySlug("terraform-acceptance-test"),
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 					resource.TestMatchResourceAttr(
@@ -68,9 +68,8 @@ func TestAccDashboard_folder(t *testing.T) {
 					testAccDashboardCheckExists("grafana_dashboard.test_folder", &dashboard),
 					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
 					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
-					resource.TestMatchResourceAttr(
-						"grafana_dashboard.test_folder", "id", regexp.MustCompile(`terraform-folder-test-dashboard`),
-					),
+					resource.TestCheckResourceAttrSet("grafana_dashboard.test_folder", "id"),
+					resource.TestCheckResourceAttrPair("grafana_dashboard.test_folder", "id", "grafana_dashboard.test_folder", "uid"),
 					resource.TestMatchResourceAttr(
 						"grafana_dashboard.test_folder", "folder", regexp.MustCompile(`\d+`),
 					),
@@ -112,7 +111,7 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 		}
 
 		client := testAccProvider.Meta().(*gapi.Client)
-		gotDashboard, err := client.Dashboard(rs.Primary.ID)
+		gotDashboard, err := client.DashboardByUID(rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting dashboard: %s", err)
 		}
