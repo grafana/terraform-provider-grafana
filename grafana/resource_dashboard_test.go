@@ -54,24 +54,30 @@ func TestAccDashboard_basic(t *testing.T) {
 
 func TestAccDashboard_folder(t *testing.T) {
 	var dashboard gapi.Dashboard
-	var folder gapi.Folder
+	var folder1 gapi.Folder
+	var folder2 gapi.Folder
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccDashboardFolderCheckDestroy(&dashboard, &folder),
+		CheckDestroy: testAccDashboardAndFoldersCheckDestroy(&dashboard, []*gapi.Folder{&folder1, &folder2}),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDashboardConfig_folder,
 				Check: resource.ComposeTestCheckFunc(
-					testAccDashboardCheckExists("grafana_dashboard.test_folder", &dashboard),
-					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
-					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
-					resource.TestCheckResourceAttrSet("grafana_dashboard.test_folder", "id"),
-					resource.TestCheckResourceAttrPair("grafana_dashboard.test_folder", "id", "grafana_dashboard.test_folder", "uid"),
-					resource.TestMatchResourceAttr(
-						"grafana_dashboard.test_folder", "folder", regexp.MustCompile(`\d+`),
-					),
+					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
+					testAccFolderCheckExists("grafana_folder.folder_1", &folder1),
+					testAccFolderCheckExists("grafana_folder.folder_2", &folder2),
+					testAccDashboardIsInFolder(&dashboard, &folder1),
+				),
+			},
+			{
+				Config: testAccDashboardConfig_folderUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
+					testAccFolderCheckExists("grafana_folder.folder_1", &folder1),
+					testAccFolderCheckExists("grafana_folder.folder_2", &folder2),
+					testAccDashboardIsInFolder(&dashboard, &folder2),
 				),
 			},
 		},
@@ -121,7 +127,7 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 	}
 }
 
-func testAccDashboardCheckExistsInFolder(dashboard *gapi.Dashboard, folder *gapi.Folder) resource.TestCheckFunc {
+func testAccDashboardIsInFolder(dashboard *gapi.Dashboard, folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if dashboard.Folder != folder.Id && folder.Id != 0 {
 			return fmt.Errorf("dashboard.Folder(%d) does not match folder.Id(%d)", dashboard.Folder, folder.Id)
@@ -151,16 +157,19 @@ func testAccDashboardCheckDestroy(dashboard *gapi.Dashboard) resource.TestCheckF
 	}
 }
 
-func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.Folder) resource.TestCheckFunc {
+func testAccDashboardAndFoldersCheckDestroy(dashboard *gapi.Dashboard, folders []*gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*gapi.Client)
 		_, err := client.DashboardByUID(dashboard.Model["uid"].(string))
 		if err == nil {
 			return fmt.Errorf("dashboard still exists")
 		}
-		_, err = client.Folder(folder.Id)
-		if err == nil {
-			return fmt.Errorf("folder still exists")
+
+		for _, folder := range folders {
+			_, err = client.Folder(folder.Id)
+			if err == nil {
+				return fmt.Errorf("folder still exists")
+			}
 		}
 		return nil
 	}
@@ -196,16 +205,40 @@ EOT
 `
 
 const testAccDashboardConfig_folder = `
-
-resource "grafana_folder" "test_folder" {
-    title = "Terraform Folder Test Folder"
+resource "grafana_folder" "folder_1" {
+    title = "Folder 1"
 }
 
-resource "grafana_dashboard" "test_folder" {
-    folder = "${grafana_folder.test_folder.id}"
+resource "grafana_folder" "folder_2" {
+    title = "Folder 2"
+}
+
+resource "grafana_dashboard" "test" {
+    folder = "${grafana_folder.folder_1.id}"
     config_json = <<EOT
 {
-    "title": "Terraform Folder Test Dashboard",
+    "title": "Test Dashboard",
+    "id": 12,
+    "version": "43"
+}
+EOT
+}
+`
+
+const testAccDashboardConfig_folderUpdate = `
+resource "grafana_folder" "folder_1" {
+    title = "Folder 1"
+}
+
+resource "grafana_folder" "folder_2" {
+    title = "Folder 2"
+}
+
+resource "grafana_dashboard" "test" {
+    folder = "${grafana_folder.folder_2.id}"
+    config_json = <<EOT
+{
+    "title": "Test Dashboard",
     "id": 12,
     "version": "43"
 }
