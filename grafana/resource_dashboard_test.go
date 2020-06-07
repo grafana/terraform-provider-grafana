@@ -35,8 +35,7 @@ func TestAccDashboard_basic(t *testing.T) {
 			{
 				Config: testAccDashboardConfig_update,
 				Check: resource.ComposeTestCheckFunc(
-					// #todo check if uid has not changed
-					testAccDashboardCheckNotExistsBySlug("terraform-acceptance-test"),
+					resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "IqewyNmMz"),
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 					resource.TestMatchResourceAttr(
 						"grafana_dashboard.test", "config_json", regexp.MustCompile(".*Updated Title.*"),
@@ -122,18 +121,6 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 	}
 }
 
-func testAccDashboardCheckNotExistsBySlug(slug string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*gapi.Client)
-		_, err := client.Dashboard(slug)
-		if err == nil {
-			return fmt.Errorf("dashboard still exists")
-		}
-
-		return nil
-	}
-}
-
 func testAccDashboardCheckExistsInFolder(dashboard *gapi.Dashboard, folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if dashboard.Folder != folder.Id && folder.Id != 0 {
@@ -148,19 +135,15 @@ func testAccDashboardDisappear(dashboard *gapi.Dashboard) resource.TestCheckFunc
 		// At this point testAccDashboardCheckExists should have been called and
 		// dashboard should have been populated
 		client := testAccProvider.Meta().(*gapi.Client)
-		_ = client.DeleteDashboard(dashboard.Meta.Slug)
+		_ = client.DeleteDashboardByUID(dashboard.Model["uid"].(string))
 		return nil
 	}
 }
 
 func testAccDashboardCheckDestroy(dashboard *gapi.Dashboard) resource.TestCheckFunc {
-	return testAccDashboardCheckDestroyBySlug(dashboard.Meta.Slug)
-}
-
-func testAccDashboardCheckDestroyBySlug(slug string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*gapi.Client)
-		_, err := client.Dashboard(slug)
+		_, err := client.DashboardByUID(dashboard.Model["uid"].(string))
 		if err == nil {
 			return fmt.Errorf("dashboard still exists")
 		}
@@ -171,7 +154,7 @@ func testAccDashboardCheckDestroyBySlug(slug string) resource.TestCheckFunc {
 func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*gapi.Client)
-		_, err := client.Dashboard(dashboard.Meta.Slug)
+		_, err := client.DashboardByUID(dashboard.Model["uid"].(string))
 		if err == nil {
 			return fmt.Errorf("dashboard still exists")
 		}
@@ -183,9 +166,9 @@ func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.
 	}
 }
 
-// The "id" and "version" properties in the config below are there to test
+// The "id", "uid" "version" properties in the config_json below are there to test
 // that we correctly normalize them away. They are not actually used by this
-// resource, since it uses slugs for identification.
+// resource, since terraform manages the uid for identification.
 const testAccDashboardConfig_basic = `
 resource "grafana_dashboard" "test" {
 	uid = "IqewyNmMz"
