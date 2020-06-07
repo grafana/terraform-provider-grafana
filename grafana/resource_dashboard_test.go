@@ -24,7 +24,7 @@ func TestAccDashboard_basic(t *testing.T) {
 				Config: testAccDashboardConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-					resource.TestCheckResourceAttrSet("grafana_dashboard.test", "id"),
+					resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "IqewyNmMz"),
 					resource.TestCheckResourceAttrPair("grafana_dashboard.test", "id", "grafana_dashboard.test", "uid"),
 					resource.TestMatchResourceAttr(
 						"grafana_dashboard.test", "config_json", regexp.MustCompile(".*Terraform Acceptance Test.*"),
@@ -188,10 +188,12 @@ func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.
 // resource, since it uses slugs for identification.
 const testAccDashboardConfig_basic = `
 resource "grafana_dashboard" "test" {
+	uid = "IqewyNmMz"
     config_json = <<EOT
 {
     "title": "Terraform Acceptance Test",
-    "id": 12,
+	"id": 12,
+	"uid": "ignored",
     "version": "43"
 }
 EOT

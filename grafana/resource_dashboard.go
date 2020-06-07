@@ -23,6 +23,8 @@ func ResourceDashboard() *schema.Resource {
 			"uid": {
 				Type:     schema.TypeString,
 				Computed: true,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"slug": {
@@ -58,7 +60,7 @@ func CreateDashboard(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
 	dashboard := gapi.Dashboard{}
-	dashboard.Model = prepareDashboardModelForCreate(d.Get("config_json").(string))
+	dashboard.Model = prepareDashboardModel(d.Get("config_json").(string), d.Get("uid").(string))
 	dashboard.Folder = int64(d.Get("folder").(int))
 
 	resp, err := client.NewDashboard(dashboard)
@@ -101,7 +103,7 @@ func UpdateDashboard(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 
 	dashboard := gapi.Dashboard{}
-	dashboard.Model = prepareDashboardModelForUpdate(d.Get("config_json").(string), d.Id())
+	dashboard.Model = prepareDashboardModel(d.Get("config_json").(string), d.Id())
 	dashboard.Folder = int64(d.Get("folder").(int))
 	dashboard.Overwrite = true
 
@@ -124,30 +126,28 @@ func DeleteDashboard(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func prepareDashboardModelForCreate(configJSON string) map[string]interface{} {
-	configMap := prepareDashboardModel(configJSON)
-	delete(configMap, "uid") // Requests without a uid are creating a new dashboard
-	return configMap
-}
-
-func prepareDashboardModelForUpdate(configJSON string, uid string) map[string]interface{} {
-	configMap := prepareDashboardModel(configJSON)
-	configMap["uid"] = uid
-	return configMap
-}
-
-func prepareDashboardModel(configJSON string) map[string]interface{} {
-	configMap := map[string]interface{}{}
-	err := json.Unmarshal([]byte(configJSON), &configMap)
+func prepareDashboardModel(configJSON string, uid string) map[string]interface{} {
+	model := map[string]interface{}{}
+	err := json.Unmarshal([]byte(configJSON), &model)
 	if err != nil {
 		// The validate function should've taken care of this.
 		panic("invalid JSON")
 	}
 
-	delete(configMap, "id") // We don't care about the id. Uid's are better!
-	delete(configMap, "version")
+	// Grafana's API is strange. We need to delete this field, otherwise Grafana wont create a new dashboard for us. Update also works without this field.
+	delete(model, "id")
 
-	return configMap
+	// Let's use the uid from the terraform file. The one in config_file will be ignored.
+	// Can be empty to create a dashboard.
+	if len(uid) > 0 {
+		model["uid"] = uid
+	} else {
+		delete(model, "uid")
+	}
+
+	delete(model, "version")
+
+	return model
 }
 
 func ValidateDashboardConfigJSON(state interface{}, k string) ([]string, []error) {
