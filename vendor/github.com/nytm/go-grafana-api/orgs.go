@@ -78,11 +78,15 @@ func (c *Client) Org(id int64) (Org, error) {
 }
 
 func (c *Client) NewOrg(name string) (int64, error) {
+	id := int64(0)
+
 	dataMap := map[string]string{
 		"name": name,
 	}
 	data, err := json.Marshal(dataMap)
-	id := int64(0)
+	if err != nil {
+		return id, err
+	}
 	req, err := c.newRequest("POST", "/api/orgs", nil, bytes.NewBuffer(data))
 	if err != nil {
 		return id, err
@@ -114,6 +118,9 @@ func (c *Client) UpdateOrg(id int64, name string) error {
 		"name": name,
 	}
 	data, err := json.Marshal(dataMap)
+	if err != nil {
+		return err
+	}
 	req, err := c.newRequest("PUT", fmt.Sprintf("/api/orgs/%d", id), nil, bytes.NewBuffer(data))
 	if err != nil {
 		return err

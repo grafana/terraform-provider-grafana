@@ -46,6 +46,9 @@ func (c *Client) AddOrgUser(orgId int64, user, role string) error {
 		"role":         role,
 	}
 	data, err := json.Marshal(dataMap)
+	if err != nil {
+		return err
+	}
 	req, err := c.newRequest("POST", fmt.Sprintf("/api/orgs/%d/users", orgId), nil, bytes.NewBuffer(data))
 	if err != nil {
 		return err
@@ -65,6 +68,9 @@ func (c *Client) UpdateOrgUser(orgId, userId int64, role string) error {
 		"role": role,
 	}
 	data, err := json.Marshal(dataMap)
+	if err != nil {
+		return err
+	}
 	req, err := c.newRequest("PATCH", fmt.Sprintf("/api/orgs/%d/users/%d", orgId, userId), nil, bytes.NewBuffer(data))
 	if err != nil {
 		return err

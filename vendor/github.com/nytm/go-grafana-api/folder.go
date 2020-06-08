@@ -63,6 +63,9 @@ func (c *Client) NewFolder(title string) (Folder, error) {
 		"title": title,
 	}
 	data, err := json.Marshal(dataMap)
+	if err != nil {
+		return folder, err
+	}
 	req, err := c.newRequest("POST", "/api/folders", nil, bytes.NewBuffer(data))
 	if err != nil {
 		return folder, err
@@ -91,6 +94,9 @@ func (c *Client) UpdateFolder(id string, name string) error {
 		"name": name,
 	}
 	data, err := json.Marshal(dataMap)
+	if err != nil {
+		return err
+	}
 	req, err := c.newRequest("PUT", fmt.Sprintf("/api/folders/%s", id), nil, bytes.NewBuffer(data))
 	if err != nil {
 		return err

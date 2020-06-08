@@ -296,10 +296,8 @@ github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86/go.mod h1:kHJE
 github.com/neelance/sourcemap v0.0.0-20151028013722-8c68805598ab/go.mod h1:Qr6/a/Q4r9LP1IltGz7tA7iOK1WonHEYhu1HRBA7ZiM=
 github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d h1:VhgPp6v9qf9Agr/56bj7Y/xa04UccTW04VP0Qed4vnQ=
 github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d/go.mod h1:YUTz3bUH2ZwIWBy3CJBeOBEugqcmXREj14T+iG/4k4U=
-github.com/nytm/go-grafana-api v0.2.0 h1:Aa5h2zMKDGjY1gS0bfesAfwSeRdTZG1GF8it+Nkd6l0=
-github.com/nytm/go-grafana-api v0.2.0/go.mod h1:YOJL2MOLAmCeqz0cbHU9tZIDj0OxpOiIFKSJXRbAorY=
-github.com/nytm/go-grafana-api v0.3.1 h1:UMQYx88ZIpAxW2GunD2JgNve4QJt/T31PQXIyEtxzEs=
-github.com/nytm/go-grafana-api v0.3.1/go.mod h1:YOJL2MOLAmCeqz0cbHU9tZIDj0OxpOiIFKSJXRbAorY=
+github.com/nytm/go-grafana-api v0.5.0 h1:8pIbNPNDguBa4aUNxcYl0GN247W6PXMvsOwiRBmk1sE=
+github.com/nytm/go-grafana-api v0.5.0/go.mod h1:YOJL2MOLAmCeqz0cbHU9tZIDj0OxpOiIFKSJXRbAorY=
 github.com/oklog/run v1.0.0 h1:Ru7dDtJNOyC66gQ5dQmaCa0qIsAUFY3sFpK1Xk8igrw=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
