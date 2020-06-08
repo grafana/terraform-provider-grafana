@@ -14,22 +14,22 @@ The playlist resource allows a playlist to be created on a Grafana server.
 
 ```hcl
 resource "grafana_playlist" "playlist" {
-	name = "my playlist"
-	interval = "5m"
-	
-    item {
-		order = 1
-		title = "Terraform Dashboard by Tag"
-        type = "dashboard_by_tag"
-		value = "myTag"
-	}
+  name     = "my playlist"
+  interval = "5m"
 
-    item {
-        order = 2
-        title = "Terraform Dashbord By ID"
-		type = "dashboard_by_id"
-		value = "myTag"
-	}
+  item {
+    order = 1
+    title = "Terraform Dashboard by Tag"
+    type  = "dashboard_by_tag"
+    value = "myTag"
+  }
+
+  item {
+    order = 2
+    title = "Terraform Dashbord By ID"
+    type  = "dashboard_by_id"
+    value = "myTag"
+  }
 }
 ```
 
