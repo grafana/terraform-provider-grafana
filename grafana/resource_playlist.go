@@ -99,9 +99,9 @@ func resourcePlaylistRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", resp.Name)
 	d.Set("interval", resp.Interval)
 	if err := d.Set("item", flattenPlaylistItems(resp.Items)); err != nil {
-		return fmt.Errorf("unable to set item: %s", err)
+		return fmt.Errorf("error setting item: %v", err)
 	}
-	log.Printf("[INFO] SETTING ITEMS AS %v", d.Get("item").(*schema.Set))
+
 	return nil
 
 }
