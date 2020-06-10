@@ -69,7 +69,6 @@ func TestAccPlaylist_update(t *testing.T) {
 					resource.TestMatchResourceAttr(rn, "id", regexp.MustCompile(`\d+`)),
 					resource.TestCheckResourceAttr(rn, "name", updatedName),
 					resource.TestCheckResourceAttr(rn, "item.#", "1"),
-					resource.TestMatchResourceAttr(rn, "id", regexp.MustCompile(`\d+`)),
 					resource.TestCheckResourceAttr(rn, "item.1966873348.order", "1"),
 					resource.TestCheckResourceAttr(rn, "item.1966873348.title", "Terraform Dashboard By ID"),
 					resource.TestCheckResourceAttr(rn, "item.1966873348.type", "dashboard_by_id"),
