@@ -13,8 +13,8 @@ The data source resource allows a data source to be created on a Grafana server.
 ## Example Usage
 
 The required arguments for this resource vary depending on the type of data
-source selected (via the `type` argument). The following example is for
-InfluxDB. See [Grafana's Data Sources Guides][datasources] for more details on
+source selected (via the `type` argument). The following examples are for
+InfluxDB, CloudWatch, and Google Stackdriver. See [Grafana's Data Sources Guides][datasources] for more details on
 the supported data source types and the arguments they use.
 
 [datasources]: https://grafana.com/docs/grafana/latest/features/datasources/
@@ -47,6 +47,19 @@ resource "grafana_data_source" "test_cloudwatch" {
   secure_json_data {
     access_key = "123"
     secret_key = "456"
+  }
+}
+```
+
+For a Stackdriver datasource:
+
+```hcl
+resource "grafana_data_source" "test_stackdriver" {
+  type = "stackdriver"
+  name = "sd-example"
+
+  secure_json_data {
+    private_key = "-----BEGIN PRIVATE KEY-----\nprivate-key\n-----END PRIVATE KEY-----\n"
   }
 }
 ```
@@ -182,6 +195,8 @@ fields to operate properly.
 * `basic_auth_password` - (All) Password to use for basic authentication.
 
 * `password` - (All) Password to use for authentication.
+
+* `private_key` - (Stackdriver) The [service account key](https://cloud.google.com/iam/docs/creating-managing-service-account-keys) `private_key` to use to access the data source.
 
 * `tls_ca_cert` - (All) CA cert for out going requests.
 

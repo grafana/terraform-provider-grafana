@@ -188,6 +188,11 @@ func ResourceDataSource() *schema.Resource {
 							Optional:  true,
 							Sensitive: true,
 						},
+						"private_key": {
+							Type:      schema.TypeString,
+							Optional:  true,
+							Sensitive: true,
+						},
 						"secret_key": {
 							Type:      schema.TypeString,
 							Optional:  true,
@@ -369,6 +374,7 @@ func makeSecureJSONData(d *schema.ResourceData) gapi.SecureJSONData {
 		AccessKey:         d.Get("secure_json_data.0.access_key").(string),
 		BasicAuthPassword: d.Get("secure_json_data.0.basic_auth_password").(string),
 		Password:          d.Get("secure_json_data.0.password").(string),
+		PrivateKey:        d.Get("secure_json_data.0.private_key").(string),
 		SecretKey:         d.Get("secure_json_data.0.secret_key").(string),
 		TlsCACert:         d.Get("secure_json_data.0.tls_ca_cert").(string),
 		TlsClientCert:     d.Get("secure_json_data.0.tls_client_cert").(string),
