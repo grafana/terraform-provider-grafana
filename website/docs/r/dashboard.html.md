@@ -14,7 +14,7 @@ The dashboard resource allows a dashboard to be created on a Grafana server.
 
 ## Example Usage
 
-### Basig usage
+### Basic usage
 ```hcl
 resource "grafana_dashboard" "metrics" {
   config_json = "${file("grafana-dashboard.json")}"
