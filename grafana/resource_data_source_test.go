@@ -257,6 +257,23 @@ resource "grafana_data_source" "testdata" {
 			"json_data.0.query_timeout": "1",
 		},
 	},
+	{
+		"grafana_data_source.stackdriver",
+		`
+		resource "grafana_data_source" "stackdriver" {
+			type = "stackdriver"
+			name = "stackdriver"
+			secure_json_data {
+				private_key = "-----BEGIN PRIVATE KEY-----\nprivate-key\n-----END PRIVATE KEY-----\n"
+			}
+		}
+		`,
+		map[string]string{
+			"type":                           "stackdriver",
+			"name":                           "stackdriver",
+			"secure_json_data.0.private_key": "-----BEGIN PRIVATE KEY-----\nprivate-key\n-----END PRIVATE KEY-----\n",
+		},
+	},
 }
 
 func TestAccDataSource_basic(t *testing.T) {
