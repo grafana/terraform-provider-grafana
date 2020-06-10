@@ -4,10 +4,10 @@ services:
 - docker
 language: go
 go:
-  - "1.11.x"
+  - "1.14.x"
 
 env:
-  - GOFLAGS=-mod=vendor
+  - GOFLAGS=-mod=readonly
 
 install:
 # This script is used by the Travis build to install a cookie for
@@ -24,6 +24,7 @@ script:
 branches:
   only:
   - master
+
 matrix:
   fast_finish: true
   allow_failures:
