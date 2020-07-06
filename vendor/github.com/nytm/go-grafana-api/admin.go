@@ -11,6 +11,10 @@ import (
 func (c *Client) CreateUser(user User) (int64, error) {
 	id := int64(0)
 	data, err := json.Marshal(user)
+	if err != nil {
+		return id, err
+	}
+
 	req, err := c.newRequest("POST", "/api/admin/users", nil, bytes.NewBuffer(data))
 	if err != nil {
 		return id, err

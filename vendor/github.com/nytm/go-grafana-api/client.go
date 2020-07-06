@@ -29,9 +29,9 @@ func New(auth, baseURL string) (*Client, error) {
 	}
 	key := ""
 	if strings.Contains(auth, ":") {
-		split := strings.Split(auth, ":")
+		split := strings.SplitN(auth, ":", 2)
 		u.User = url.UserPassword(split[0], split[1])
-	} else {
+	} else if auth != "" {
 		key = fmt.Sprintf("Bearer %s", auth)
 	}
 	return &Client{

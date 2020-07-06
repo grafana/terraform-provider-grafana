@@ -1,4 +1,20 @@
 ## 1.6.0 (Unreleased)
+
+IMPROVEMENTS:
+
+* provider: Improve provider logging [GH-46]
+* resource/alert_notification: Add `uid` field [GH-87]
+* resource/alert_notification: Add `send_reminder` and `frequency` fields [GH-94]
+* resource/dashboard: Document `folder` field [GH-86]
+* resource/data_source: Support additional data sources [GH-90]
+* resource/data_source: Update the `access_mode` field description [GH-93]
+
+BUG FIXES:
+
+* resource/data_source: Mark `secret_key` in `secure_json_data` as sensitive [GH-78]
+* resource/alert_notification: Update example fields [GH-45]
+* resource/alert_notification: Update example formatting [GH-73]
+
 ## 1.5.0 (June 26, 2019)
 
 IMPROVEMENTS
