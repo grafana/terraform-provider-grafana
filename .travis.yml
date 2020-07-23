@@ -19,7 +19,6 @@ install:
 script:
 - make test
 - make vet
-- make website-test
 
 branches:
   only:
