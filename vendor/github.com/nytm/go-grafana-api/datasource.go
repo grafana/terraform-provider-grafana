@@ -78,6 +78,12 @@ type JSONData struct {
 	// Used by Prometheus
 	HttpMethod   string `json:"httpMethod,omitempty"`
 	QueryTimeout string `json:"queryTimeout,omitempty"`
+
+	// Used by Stackdriver
+	AuthenticationType string `json:"authenticationType,omitempty"`
+	ClientEmail        string `json:"clientEmail,omitempty"`
+	DefaultProject     string `json:"defaultProject,omitempty"`
+	TokenUri           string `json:"tokenUri,omitempty"`
 }
 
 // SecureJSONData is a representation of the datasource `secureJsonData` property
@@ -92,6 +98,9 @@ type SecureJSONData struct {
 	// Used by Cloudwatch
 	AccessKey string `json:"accessKey,omitempty"`
 	SecretKey string `json:"secretKey,omitempty"`
+
+	// Used by Stackdriver
+	PrivateKey string `json:"privateKey,omitempty"`
 }
 
 func (c *Client) NewDataSource(s *DataSource) (int64, error) {

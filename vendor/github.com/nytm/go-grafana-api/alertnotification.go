@@ -10,6 +10,7 @@ import (
 
 type AlertNotification struct {
 	Id                    int64       `json:"id,omitempty"`
+	Uid                   string      `json:"uid"`
 	Name                  string      `json:"name"`
 	Type                  string      `json:"type"`
 	IsDefault             bool        `json:"isDefault"`
