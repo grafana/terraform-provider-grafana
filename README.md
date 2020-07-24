@@ -37,3 +37,7 @@ GRAFANA_URL=http://localhost:3000 \
 GRAFANA_AUTH=admin:admin \
 make testacc
 ```
+
+This codebase leverages
+[nytm/go-grafana-api](https://github.com/nytm/go-grafana-api) as its Grafana API
+client. All resources and data sources should leverage this.
