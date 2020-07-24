@@ -1,12 +1,14 @@
-# Terraform Provider
+<a href="https://terraform.io">
+  <img src="https://cdn.rawgit.com/hashicorp/terraform-website/master/content/source/assets/images/logo-hashicorp.svg" title="Terraform" align="right" height="50" />
+</a>
+
+# Terraform Provider for Grafana
 
 - Website: https://terraform.io
 - Documentation: https://www.terraform.io/docs/providers/grafana/index.html
 - Chat: [Terraform Gitter](https://gitter.im/hashicorp-terraform/Lobby)
 - Chat: [Grafana #terraform Slack channel](https://grafana.slack.com/archives/C017MUCFJUT)
 - Mailing List: [Google Groups](http://groups.google.com/group/terraform-tool)
-
-<img src="https://cdn.rawgit.com/hashicorp/terraform-website/master/content/source/assets/images/logo-hashicorp.svg" width="600px">
 
 ## Development
 
