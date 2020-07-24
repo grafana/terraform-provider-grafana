@@ -4,11 +4,12 @@
 
 # Terraform Provider for Grafana
 
-- Website: https://terraform.io
-- Documentation: https://www.terraform.io/docs/providers/grafana/index.html
-- Chat: [Terraform Gitter](https://gitter.im/hashicorp-terraform/Lobby)
-- Chat: [Grafana #terraform Slack channel](https://grafana.slack.com/archives/C017MUCFJUT)
-- Mailing List: [Google Groups](http://groups.google.com/group/terraform-tool)
+- Terraform website: https://terraform.io
+- Grafana website: https://grafana.com
+- Provider Documentation: https://www.terraform.io/docs/providers/grafana/index.html
+- Terraform Chat: [Terraform Gitter](https://gitter.im/hashicorp-terraform/Lobby)
+- Grafana Chat: [Grafana #terraform Slack channel](https://grafana.slack.com/archives/C017MUCFJUT)
+- Terraform Mailing List: [Google Groups](http://groups.google.com/group/terraform-tool)
 
 ## Development
 
