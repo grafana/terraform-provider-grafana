@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/schema"
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 var (
