@@ -195,7 +195,7 @@ func makeAlertNotification(d *schema.ResourceData) (*gapi.AlertNotification, err
 		Name:                  d.Get("name").(string),
 		Type:                  d.Get("type").(string),
 		IsDefault:             d.Get("is_default").(bool),
-    Uid:                   d.Get("uid").(string),
+		Uid:                   d.Get("uid").(string),
 		DisableResolveMessage: d.Get("disable_resolve_message").(bool),
 		SendReminder:          d.Get("send_reminder").(bool),
 		Frequency:             d.Get("frequency").(string),
