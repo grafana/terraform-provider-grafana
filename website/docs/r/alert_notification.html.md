@@ -33,6 +33,9 @@ The following arguments are supported:
 * `type` - (Required) The type of the alert notification channel.
 * `is_default` - (Optional) Is this the default channel for all your alerts.
 * `settings` - (Optional) Additional settings, for full reference lookup [Grafana HTTP API documentation](http://docs.grafana.org/http_api/alerting).
+* `disable_resolve_message` - (Optional) When selected, this option disables the resolve message [OK] that is sent when the alerting state returns to false (default: false).
+* `send_reminder` - (Optional) If you want to send reminder alert. If this is in true, you must to specify a frequency. (default: false).
+* `frequency` - (Optional) When this option is checked additional notifications (reminders) will be sent for triggered alerts. You can specify how often reminders should be sent using number of seconds (s), minutes (m) or hours (h), for example 30s, 3m, 5m or 1h (default: "").
 
 **Note:** In `settings` the strings `"true"` and `"false"` are mapped to boolean `true` and `false` when sent to Grafana.
 

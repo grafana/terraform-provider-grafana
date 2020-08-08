@@ -33,6 +33,12 @@ func TestAccAlertNotification_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"grafana_alert_notification.test", "settings.addresses", "foo@bar.test",
 					),
+					resource.TestCheckResourceAttr(
+						"grafana_alert_notification.test", "settings.send_reminder", "true",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_alert_notification.test", "settings.frequency", "15m",
+					),
 				),
 			},
 		},
@@ -86,6 +92,8 @@ resource "grafana_alert_notification" "test" {
 			"addresses" = "foo@bar.test"
 			"uploadImage" = "false"
 			"autoResolve" = "true"
+			"send_reminder" = "true"
+			"frequency" = "15m"
 		}
 }
 `
