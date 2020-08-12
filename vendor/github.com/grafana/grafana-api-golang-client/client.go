@@ -2,8 +2,10 @@ package gapi
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -14,6 +16,7 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 )
 
+// Client is a Grafana API client.
 type Client struct {
 	key     string
 	baseURL url.URL
@@ -39,6 +42,42 @@ func New(auth, baseURL string) (*Client, error) {
 		*u,
 		cleanhttp.DefaultClient(),
 	}, nil
+}
+
+func (c *Client) request(method, requestPath string, query url.Values, body io.Reader, responseStruct interface{}) error {
+	r, err := c.newRequest(method, requestPath, query, body)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.Do(r)
+	if err != nil {
+		return err
+	}
+
+	bodyContents, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	if os.Getenv("GF_LOG") != "" {
+		log.Printf("response status %d with body %v", resp.StatusCode, string(bodyContents))
+	}
+
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("status: %d, body: %v", resp.StatusCode, string(bodyContents))
+	}
+
+	if responseStruct == nil {
+		return nil
+	}
+
+	err = json.Unmarshal(bodyContents, responseStruct)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *Client) newRequest(method, requestPath string, query url.Values, body io.Reader) (*http.Request, error) {
