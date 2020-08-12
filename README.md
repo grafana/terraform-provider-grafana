@@ -42,5 +42,5 @@ make testacc
 ```
 
 This codebase leverages
-[nytm/go-grafana-api](https://github.com/nytm/go-grafana-api) as its Grafana API
+[grafana/grafana-api-golang-client](https://github.com/grafana/grafana-api-golang-client) as its Grafana API
 client. All resources and data sources should leverage this.
