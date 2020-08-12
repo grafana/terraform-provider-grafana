@@ -315,7 +315,7 @@ func applyChanges(meta interface{}, orgId int64, changes []UserChange) error {
 		case Remove:
 			err = client.RemoveOrgUser(orgId, u.Id)
 		}
-		if err != nil && err.Error() != "409 Conflict" {
+		if err != nil && !strings.HasPrefix(err.Error(), "status: 409") {
 			return err
 		}
 	}
