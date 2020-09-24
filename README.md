@@ -23,25 +23,38 @@ $ mkdir -p $GOPATH/src/github.com/terraform-providers; cd $GOPATH/src/github.com
 $ git clone git@github.com:terraform-providers/terraform-provider-grafana
 ```
 
-Enter the provider directory and build the provider
+Build the provider in place:
 
 ```sh
 $ cd $GOPATH/src/github.com/terraform-providers/terraform-provider-grafana
 $ make build
 ```
 
+Install the provider as a Go binary (in `$GOPATH/bin`) and create a symlink to
+it from the third-party user plugins directory in Terraform
+(`~/.terraform.d/plugins/`):
+
+```sh
+$ cd $GOPATH/src/github.com/terraform-providers/terraform-provider-grafana
+$ make install
+```
+
 Developing the Provider
----------------------------
+-----------------------
 
 If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.11+ is *required*). You'll also need to correctly setup a [GOPATH](http://golang.org/doc/code.html#GOPATH), as well as adding `$GOPATH/bin` to your `$PATH`.
 
-To compile the provider, run `make build`. This will build the provider and put the provider binary in the `$GOPATH/bin` directory.
+To compile the provider, run `make build`. This will build the provider in
+current directory.
 
 ```sh
-$ make bin
-...
-$ $GOPATH/bin/terraform-provider-grafana
-...
+$ make build
+==> Checking that code complies with gofmt requirements...
+go build
+$ ./terraform-provider-grafana
+This binary is a plugin. These are not meant to be executed directly.
+Please execute the program that consumes these plugins, which will
+load any plugins automatically
 ```
 
 In order to test the provider, you can simply run `make test`.
@@ -50,8 +63,9 @@ In order to test the provider, you can simply run `make test`.
 $ make test
 ```
 
-In order to run the full suite of Acceptance tests, run `make testacc`. This should be
-performed before merging or opening pull requests.
+In order to run the full suite of acceptance tests on a local Grafana server,
+run `make testacc`. This should be performed before merging or opening pull
+requests.
 
 ```sh
 $ GRAFANA_URL=http://localhost:3000 GRAFANA_AUTH=admin:admin make testacc

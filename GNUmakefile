@@ -7,7 +7,12 @@ GRAFANA_VERSION ?= "latest"
 default: build
 
 build: fmtcheck
+	go build
+
+install: build
 	go install
+	mkdir -p ~/.terraform.d/plugins
+	ln -fs $(GOPATH)/bin/terraform-provider-grafana $(HOME)/.terraform.d/plugins/
 
 test: fmtcheck
 	go test -i $(TEST) || exit 1
