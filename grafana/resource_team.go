@@ -66,7 +66,7 @@ func CreateTeam(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 	name := d.Get("name").(string)
 	email := d.Get("email").(string)
-	teamID, _, err := client.AddTeam(name, email)
+	teamID, err := client.AddTeam(name, email)
 	if err != nil && err.Error() == "409 Conflict" {
 		return errors.New(fmt.Sprintf("Error: A Grafana Team with the name '%s' already exists.", name))
 	}
