@@ -32,6 +32,7 @@ func Provider() terraform.ResourceProvider {
 			"grafana_data_source":        ResourceDataSource(),
 			"grafana_folder":             ResourceFolder(),
 			"grafana_organization":       ResourceOrganization(),
+			"grafana_team":               ResourceTeam(),
 		},
 
 		ConfigureFunc: providerConfigure,
