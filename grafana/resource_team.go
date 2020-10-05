@@ -91,7 +91,8 @@ func ReadTeam(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	d.Set("name", resp.Name)
-	if err := ReadUsers(d, meta); err != nil {
+	d.Set("email", resp.Email)
+	if err := ReadMembers(d, meta); err != nil {
 		return err
 	}
 	return nil
@@ -100,7 +101,7 @@ func ReadTeam(d *schema.ResourceData, meta interface{}) error {
 func UpdateTeam(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	if d.HasChange("name") {
+	if d.HasChange("name") || d.HasChange("email") {
 		name := d.Get("name").(string)
 		email := d.Get("email").(string)
 		err := client.UpdateTeam(teamID, name, email)
@@ -149,11 +150,11 @@ func ReadMembers(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	memberMap := map[string][]string{"member": nil}
+	memberSlice := []string{}
 	for _, teamMember := range teamMembers {
-		memberMap["member"] = append(memberMap["member"], teamMember.Login)
+		memberSlice = append(memberSlice, teamMember.Login)
 	}
-	d.Set("members", memberMap["member"])
+	d.Set("members", memberSlice)
 
 	return nil
 }
@@ -163,12 +164,15 @@ func UpdateMembers(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+	//compile the list of differences between current state and config
 	changes := memberChanges(stateMembers, configMembers)
-	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	changes, err = addMemberIdsToChanges(d, meta, changes)
+	//retrieves the corresponding user IDs based on the email provided
+	changes, err = addMemberIdsToChanges(meta, changes)
 	if err != nil {
 		return err
 	}
+	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
+	//now we can make the corresponding updates so current state matches config
 	return applyMemberChanges(meta, teamID, changes)
 }
 
@@ -217,7 +221,7 @@ func memberChanges(stateMembers, configMembers map[string]TeamMember) []MemberCh
 	return changes
 }
 
-func addMemberIdsToChanges(d *schema.ResourceData, meta interface{}, changes []MemberChange) ([]MemberChange, error) {
+func addMemberIdsToChanges(meta interface{}, changes []MemberChange) ([]MemberChange, error) {
 	client := meta.(*gapi.Client)
 	gUserMap := make(map[string]int64)
 	gUsers, err := client.Users()

@@ -125,6 +125,7 @@ func testAccTeamCheckDestroy(a *gapi.Team) resource.TestCheckFunc {
 const testAccTeamConfig_basic = `
 resource "grafana_team" "test" {
 	name = "terraform-acc-test"
+	email = "..."
 }
 `
 const testAccTeamConfig_updateName = `
@@ -142,6 +143,7 @@ resource "grafana_team" "test" {
 `
 const testAccTeamConfig_memberRemove = `
 resource "grafana_team" "test" {
-    name = "terraform-acc-test"
+	name = "terraform-acc-test"
+	members = [ ]
 }
 `
