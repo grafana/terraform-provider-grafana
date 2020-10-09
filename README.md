@@ -1,85 +1,46 @@
-Terraform Provider
-==================
+<a href="https://terraform.io">
+  <img src="https://cdn.rawgit.com/hashicorp/terraform-website/master/content/source/assets/images/logo-hashicorp.svg" title="Terraform" align="right" height="50" />
+</a>
 
-- Website: https://www.terraform.io
-- [![Gitter chat](https://badges.gitter.im/hashicorp-terraform/Lobby.png)](https://gitter.im/hashicorp-terraform/Lobby)
-- Mailing list: [Google Groups](http://groups.google.com/group/terraform-tool)
+# Terraform Provider for Grafana
 
-<img src="https://cdn.rawgit.com/hashicorp/terraform-website/master/content/source/assets/images/logo-hashicorp.svg" width="600px">
+- Terraform website: https://terraform.io
+- Grafana website: https://grafana.com
+- Provider Documentation: https://registry.terraform.io/providers/grafana/grafana/latest/docs
+- Terraform Chat: [Terraform Gitter](https://gitter.im/hashicorp-terraform/Lobby)
+- Grafana Chat: [Grafana #terraform Slack channel](https://grafana.slack.com/archives/C017MUCFJUT)
+- Terraform Mailing List: [Google Groups](http://groups.google.com/group/terraform-tool)
 
-Requirements
-------------
+## Development
 
--	[Terraform](https://www.terraform.io/downloads.html) 0.10.x
--	[Go](https://golang.org/doc/install) 1.11 (to build the provider plugin)
+If you're new to provider development, a good place to start is the [Extending
+Terraform](https://www.terraform.io/docs/extend/index.html) docs.
 
-Building The Provider
----------------------
+Set up your local environment by installing [Go](http://www.golang.org). Also
+recommended is [Docker](https://docs.docker.com/install/). Docker is not
+required, but it makes running a local Grafana instance for acceptance tests
+very easy.
 
-Clone repository to: `$GOPATH/src/github.com/terraform-providers/terraform-provider-grafana`
-
-```sh
-$ mkdir -p $GOPATH/src/github.com/terraform-providers; cd $GOPATH/src/github.com/terraform-providers
-$ git clone git@github.com:terraform-providers/terraform-provider-grafana
-```
-
-Enter the provider directory and build the provider
+Run [unit tests](https://www.terraform.io/docs/extend/testing/unit-testing.html):
 
 ```sh
-$ cd $GOPATH/src/github.com/terraform-providers/terraform-provider-grafana
-$ make build
+make test
 ```
 
-Developing the Provider
----------------------------
-
-If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.11+ is *required*). You'll also need to correctly setup a [GOPATH](http://golang.org/doc/code.html#GOPATH), as well as adding `$GOPATH/bin` to your `$PATH`.
-
-To compile the provider, run `make build`. This will build the provider and put the provider binary in the `$GOPATH/bin` directory.
+Run [acceptance tests](https://www.terraform.io/docs/extend/testing/acceptance-tests/index.html):
 
 ```sh
-$ make bin
-...
-$ $GOPATH/bin/terraform-provider-grafana
-...
+# In one terminal, run a Grafana container.
+# You may optionally override the image tag...
+# GRAFANA_VERSION=7.1.1 \
+make test-serve
+
+# In another...
+GRAFANA_URL=http://localhost:3000 \
+GRAFANA_AUTH=admin:admin \
+make testacc
 ```
 
-In order to test the provider, you can simply run `make test`.
-
-```sh
-$ make test
-```
-
-In order to run the full suite of Acceptance tests, run `make testacc`. This should be
-performed before merging or opening pull requests.
-
-```sh
-$ GRAFANA_URL=http://localhost:3000 GRAFANA_AUTH=admin:admin make testacc
-```
-
-This requires a running Grafana server locally. This provider targets
-the latest version of Grafana, but older versions should be compatible where
-possible. In some cases, older versions of this provider will work with
-older versions of Grafana.
-
-If you have [Docker](https://docs.docker.com/install/) installed, you can
-run Grafana with the following command:
-
-```sh
-$ make test-serv
-```
-
-By default, this will use the latest version of Grafana based on their
-Docker repository. You can specify the version with the following:
-
-```sh
-$ GRAFANA_VERSION=3.1.1 make test-serv
-```
-
-This command will run attached and will stop the Grafana server when
-interrupted. Images will be cached locally by Docker so it is quicky to
-restart the server as necessary. The server will use the default port and
-credentials for the `GRAFANA_AUTH` and `GRAFANA_URL` environment variables.
-
-Nightly acceptance tests are run against the `latest` tag of the Grafana
-maintained Docker image.
+This codebase leverages
+[grafana/grafana-api-golang-client](https://github.com/grafana/grafana-api-golang-client) as its Grafana API
+client. All resources and data sources should leverage this.

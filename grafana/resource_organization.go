@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform/helper/schema"
-	gapi "github.com/nytm/go-grafana-api"
 )
 
 type OrgUser struct {
@@ -315,7 +315,7 @@ func applyChanges(meta interface{}, orgId int64, changes []UserChange) error {
 		case Remove:
 			err = client.RemoveOrgUser(orgId, u.Id)
 		}
-		if err != nil && err.Error() != "409 Conflict" {
+		if err != nil && !strings.HasPrefix(err.Error(), "status: 409") {
 			return err
 		}
 	}
