@@ -6,7 +6,7 @@
 
 - Terraform website: https://terraform.io
 - Grafana website: https://grafana.com
-- Provider Documentation: https://www.terraform.io/docs/providers/grafana/index.html
+- Provider Documentation: https://registry.terraform.io/providers/grafana/grafana/latest/docs
 - Terraform Chat: [Terraform Gitter](https://gitter.im/hashicorp-terraform/Lobby)
 - Grafana Chat: [Grafana #terraform Slack channel](https://grafana.slack.com/archives/C017MUCFJUT)
 - Terraform Mailing List: [Google Groups](http://groups.google.com/group/terraform-tool)
