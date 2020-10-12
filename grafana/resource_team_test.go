@@ -105,7 +105,7 @@ func testAccTeamCheckExists(rn string, a *gapi.Team) resource.TestCheckFunc {
 			return fmt.Errorf("error getting data source: %s", err)
 		}
 
-		*a = team
+		*a = *team
 
 		return nil
 	}
