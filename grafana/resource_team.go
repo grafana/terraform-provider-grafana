@@ -6,8 +6,8 @@ import (
 	"log"
 	"strconv"
 
+	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform/helper/schema"
-	gapi "github.com/nytm/go-grafana-api"
 )
 
 type TeamMember struct {

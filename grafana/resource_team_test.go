@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"testing"
 
+	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	gapi "github.com/nytm/go-grafana-api"
 )
 
 func TestAccTeam_basic(t *testing.T) {
