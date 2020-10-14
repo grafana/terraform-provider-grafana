@@ -17,11 +17,11 @@ be created and managed.
 # Create a Grafana team with defined membership. The resource
 # requires users to already exist in the system
 resource "grafana_team" "test-team" {
-    name         = "Test Team"
-    email        = "teamemail@example.com"
-    members       = [
-        "viewer-01@example.com"
-    ]
+  name    = "Test Team"
+  email   = "teamemail@example.com"
+  members = [
+    "viewer-01@example.com"
+  ]
 }
 ```
 

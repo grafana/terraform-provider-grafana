@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -67,9 +68,6 @@ func CreateTeam(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
 	email := d.Get("email").(string)
 	teamID, err := client.AddTeam(name, email)
-	if err != nil && err.Error() == "409 Conflict" {
-		return errors.New(fmt.Sprintf("Error: A Grafana Team with the name '%s' already exists.", name))
-	}
 	if err != nil {
 		return err
 	}
@@ -82,7 +80,7 @@ func ReadTeam(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gapi.Client)
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	resp, err := client.Team(teamID)
-	if err != nil && err.Error() == "404 Not Found" {
+	if err != nil && strings.HasPrefix(err.Error(), "status: 404") {
 		log.Printf("[WARN] removing team %s from state because it no longer exists in grafana", d.Id())
 		d.SetId("")
 		return nil
@@ -122,7 +120,7 @@ func ExistsTeam(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(*gapi.Client)
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	_, err := client.Team(teamID)
-	if err != nil && err.Error() == "404 Not Found" {
+	if err != nil && strings.HasPrefix(err.Error(), "status: 404") {
 		return false, nil
 	}
 	if err != nil {
@@ -152,7 +150,7 @@ func ReadMembers(d *schema.ResourceData, meta interface{}) error {
 	}
 	memberSlice := []string{}
 	for _, teamMember := range teamMembers {
-		memberSlice = append(memberSlice, teamMember.Login)
+		memberSlice = append(memberSlice, teamMember.Email)
 	}
 	d.Set("members", memberSlice)
 
@@ -256,7 +254,7 @@ func applyMemberChanges(meta interface{}, teamId int64, changes []MemberChange) 
 		case RemoveMember:
 			err = client.RemoveMemberFromTeam(teamId, u.ID)
 		}
-		if err != nil && err.Error() != "409 Conflict" {
+		if err != nil {
 			return err
 		}
 	}

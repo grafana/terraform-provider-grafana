@@ -26,6 +26,9 @@ func TestAccTeam_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"grafana_team.test", "name", "terraform-acc-test",
 					),
+					resource.TestCheckResourceAttr(
+						"grafana_team.test", "email", "teamEmail@example.com",
+					),
 					resource.TestMatchResourceAttr(
 						"grafana_team.test", "id", regexp.MustCompile(`\d+`),
 					),
@@ -37,6 +40,9 @@ func TestAccTeam_basic(t *testing.T) {
 					testAccTeamCheckExists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr(
 						"grafana_team.test", "name", "terraform-acc-test-update",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_team.test", "email", "teamEmailUpdate@example.com",
 					),
 				),
 			},
@@ -124,26 +130,29 @@ func testAccTeamCheckDestroy(a *gapi.Team) resource.TestCheckFunc {
 
 const testAccTeamConfig_basic = `
 resource "grafana_team" "test" {
-	name = "terraform-acc-test"
-	email = "..."
+  name  = "terraform-acc-test"
+  email = "teamEmail@example.com"
 }
 `
 const testAccTeamConfig_updateName = `
 resource "grafana_team" "test" {
-	name = "terraform-acc-test-update"
+  name    = "terraform-acc-test-update"
+  email   = "teamEmailUpdate@example.com"
 }
 `
 const testAccTeamConfig_memberAdd = `
 resource "grafana_team" "test" {
-    name = "terraform-acc-test"
-    members = [
-        "john.doe@example.com",
-    ]
+  name    = "terraform-acc-test"
+  email   = "teamEmail@example.com"
+  members = [
+    "john.doe@example.com",
+  ]
 }
 `
 const testAccTeamConfig_memberRemove = `
 resource "grafana_team" "test" {
-	name = "terraform-acc-test"
-	members = [ ]
+  name    = "terraform-acc-test"
+  email   = "teamEmail@example.com"
+  members = [ ]
 }
 `
