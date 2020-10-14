@@ -79,18 +79,29 @@ func (c *Client) Team(id int64) (*Team, error) {
 // AddTeam makes a new team
 // email arg is an optional value.
 // If you don't want to set email, please set "" (empty string).
-func (c *Client) AddTeam(name string, email string) error {
-	path := fmt.Sprintf("/api/teams")
+// When team creation is successful, returns the team ID.
+func (c *Client) AddTeam(name string, email string) (int64, error) {
+	id := int64(0)
+	path := "/api/teams"
 	team := Team{
 		Name:  name,
 		Email: email,
 	}
 	data, err := json.Marshal(team)
 	if err != nil {
-		return err
+		return id, err
 	}
 
-	return c.request("POST", path, nil, bytes.NewBuffer(data), nil)
+	tmp := struct {
+		ID int64 `json:"teamId"`
+	}{}
+
+	err = c.request("POST", path, nil, bytes.NewBuffer(data), &tmp)
+	if err != nil {
+		return id, err
+	}
+
+	return tmp.ID, err
 }
 
 // UpdateTeam updates a Grafana team.

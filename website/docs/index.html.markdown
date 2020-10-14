@@ -72,4 +72,12 @@ resource "grafana_organization" "org" {
         "viewer-02@example.com"
     ]
 }
+
+resource "grafana_team" "team1" {
+  name    = "Grafana Team 1"
+  email   = "GrafanaTeam1@example.com"
+  members = [
+        "viewer-01@example.com"
+  ]
+}
 ```

@@ -23,8 +23,8 @@ type Client struct {
 	*http.Client
 }
 
-//New creates a new grafana client
-//auth can be in user:pass format, or it can be an api key
+// New creates a new grafana client.
+// auth can be in user:pass format, or it can be an api key
 func New(auth, baseURL string) (*Client, error) {
 	u, err := url.Parse(baseURL)
 	if err != nil {
@@ -54,6 +54,7 @@ func (c *Client) request(method, requestPath string, query url.Values, body io.R
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	bodyContents, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
