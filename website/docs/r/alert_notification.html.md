@@ -20,7 +20,7 @@ resource "grafana_alert_notification" "email_someteam" {
   send_reminder = true
   frequency = "24h"
 
-  settings {
+  settings = {
     addresses = "foo@example.net;bar@example.net"
     uploadImage = "false"
   }
