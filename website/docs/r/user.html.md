@@ -39,3 +39,12 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The ID of the resource
+
+## Import
+
+Existing users can be imported using the user id obtained from the Grafana Web
+UI under 'Server Admin'.
+
+```
+$ terraform import grafana_user.user_name {user_id}
+```

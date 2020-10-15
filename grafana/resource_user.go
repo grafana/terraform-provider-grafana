@@ -1,11 +1,12 @@
 package grafana
 
 import (
+	"errors"
+	"fmt"
 	"strconv"
 
-	"github.com/hashicorp/terraform/helper/schema"
-
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func ResourceUser() *schema.Resource {
@@ -14,6 +15,10 @@ func ResourceUser() *schema.Resource {
 		Read:   ReadUser,
 		Update: UpdateUser,
 		Delete: DeleteUser,
+		Exists: ExistsUser,
+		Importer: &schema.ResourceImporter{
+			State: ImportUser,
+		},
 		Schema: map[string]*schema.Schema{
 			"email": {
 				Type:     schema.TypeString,
@@ -100,4 +105,26 @@ func DeleteUser(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	return client.DeleteUser(id)
+}
+
+func ExistsUser(d *schema.ResourceData, meta interface{}) (bool, error) {
+	client := meta.(*gapi.Client)
+	userId, _ := strconv.ParseInt(d.Id(), 10, 64)
+	_, err := client.User(userId)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func ImportUser(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	exists, err := ExistsUser(d, meta)
+	if err != nil || !exists {
+		return nil, errors.New(fmt.Sprintf("Error: Unable to import Grafana User: %s.", err))
+	}
+	err = ReadUser(d, meta)
+	if err != nil {
+		return nil, err
+	}
+	return []*schema.ResourceData{d}, nil
 }
