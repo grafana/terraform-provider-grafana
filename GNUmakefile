@@ -44,3 +44,19 @@ test-compile:
 		exit 1; \
 	fi
 	go test -c $(TEST) $(TESTARGS)
+
+changelog:
+	@test $${RELEASE_VERSION?Please set environment variable RELEASE_VERSION}
+	@test $${CHANGELOG_GITHUB_TOKEN?Please set environment variable CHANGELOG_GITHUB_TOKEN}
+	@docker run -it --rm \
+		-v $$PWD:/usr/local/src/your-app \
+		-e CHANGELOG_GITHUB_TOKEN=$$CHANGELOG_GITHUB_TOKEN \
+		ferrarimarco/github-changelog-generator \
+		--user grafana \
+		--project terraform-provider-grafana \
+		--future-release $$RELEASE_VERSION
+	@git add CHANGELOG.md && git commit -m "Release $$RELEASE_VERSION"
+
+release: changelog
+	@git tag $$RELEASE_VERSION
+	@git push origin $$RELEASE_VERSION

@@ -44,3 +44,25 @@ make testacc
 This codebase leverages
 [grafana/grafana-api-golang-client](https://github.com/grafana/grafana-api-golang-client) as its Grafana API
 client. All resources and data sources should leverage this.
+
+## Releasing
+
+Builds and releases are automated with GitHub Actions and
+[GoReleaser](https://github.com/goreleaser/goreleaser/). The changelog is
+managed with
+[github-changelog-generator](https://github.com/github-changelog-generator/github-changelog-generator).
+
+Create a new release with the `release` Make target:
+
+```
+RELEASE_VERSION=v... \
+CHANGELOG_GITHUB_TOKEN=... \
+make release
+```
+
+Once the command exits, you can monitor the rest of the process on the [Actions
+UI](https://github.com/grafana/terraform-provider-grafana/actions?query=workflow%3Arelease).
+
+The Action creates the release, but leaves it in "draft" state. Open it up in a
+[browser](https://github.com/grafana/terraform-provider-grafana/releases) and if
+all looks well, mash the publish button.
