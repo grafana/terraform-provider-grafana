@@ -62,9 +62,6 @@ func TestAccOrganization_users(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "admins.#", "1",
 					),
-					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "admins.0", "john.doe@example.com",
-					),
 					resource.TestCheckNoResourceAttr(
 						"grafana_organization.test", "editors.#",
 					),
@@ -85,9 +82,6 @@ func TestAccOrganization_users(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "editors.#", "1",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "editors.0", "john.doe@example.com",
 					),
 					resource.TestCheckNoResourceAttr(
 						"grafana_organization.test", "viewers.#",
@@ -137,9 +131,6 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "admins.#", "1",
 					),
-					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "admins.0", "john.doe@example.com",
-					),
 					resource.TestCheckNoResourceAttr(
 						"grafana_organization.test", "editors.#",
 					),
@@ -160,12 +151,6 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "admins.#", "2",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "admins.0", "admin@localhost",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "admins.1", "john.doe@example.com",
 					),
 					resource.TestCheckNoResourceAttr(
 						"grafana_organization.test", "editors.#",
