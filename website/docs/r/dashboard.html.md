@@ -29,7 +29,7 @@ source is created before a dashboard that refers to it, use the `depends_on`
 meta-parameter:
 
 ```hcl
-    depends_on = ["grafana_data_source.metrics"]
+depends_on = ["grafana_data_source.metrics"]
 ```
 
 ## Argument Reference
@@ -38,7 +38,7 @@ The following arguments are supported:
 
 * `config_json` - (Required) The JSON configuration for the dashboard.
 * `folder` - (Optional, Forces new resource) The internal id of the folder
-  in Grafana in which to place the dashboard. 
+  in Grafana in which to place the dashboard.
 
 ## Attributes Reference
 
