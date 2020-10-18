@@ -109,7 +109,7 @@ func ReadFolderPermissions(d *schema.ResourceData, meta interface{}) error {
 
 	permissionItems := make([]interface{}, len(folderPermissions))
 	count := 0
-	for i, permission := range folderPermissions {
+	for _, permission := range folderPermissions {
 		if permission.FolderUid != "" {
 			permissionItem := make(map[string]interface{})
 			permissionItem["role"] = permission.Role
