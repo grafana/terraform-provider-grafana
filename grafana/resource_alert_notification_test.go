@@ -55,7 +55,7 @@ func TestAccAlertNotification_invalid_frequence(t *testing.T) {
 		CheckDestroy: testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
 			{
-				ExpectError: regexp.MustCompile("invalid duration hi"),
+				ExpectError: regexp.MustCompile("invalid duration \"hi\""),
 				Config:      testAccAlertNotificationConfig_invalid_frequency,
 			},
 		},
