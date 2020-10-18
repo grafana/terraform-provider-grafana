@@ -8,7 +8,8 @@ description: |-
 
 # grafana\_folder\_permission
 
-The folder permission resource allows permissions to be set for a given folder.
+The folder permission resource allows permissions to be set for a given folder. Note: all permissions
+must be specified for the given folder, including those for the default `Viewer` and `Editor` roles.
 
 ## Example Usage
 
