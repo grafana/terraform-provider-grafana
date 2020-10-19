@@ -146,6 +146,8 @@ github.com/hashicorp/terraform/helper/logging
 github.com/hashicorp/terraform/helper/plugin
 github.com/hashicorp/terraform/helper/resource
 github.com/hashicorp/terraform/helper/schema
+github.com/hashicorp/terraform/helper/structure
+github.com/hashicorp/terraform/helper/validation
 github.com/hashicorp/terraform/httpclient
 github.com/hashicorp/terraform/internal/earlyconfig
 github.com/hashicorp/terraform/internal/initwd
