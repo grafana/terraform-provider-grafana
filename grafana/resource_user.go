@@ -80,7 +80,7 @@ func UpdateUser(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	u := gapi.User{
-		Id:    id,
+		ID:    id,
 		Email: d.Get("email").(string),
 		Name:  d.Get("name").(string),
 		Login: d.Get("login").(string),

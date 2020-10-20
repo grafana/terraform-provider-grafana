@@ -42,9 +42,9 @@ func CreateFolder(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	id := strconv.FormatInt(resp.Id, 10)
+	id := strconv.FormatInt(resp.ID, 10)
 	d.SetId(id)
-	d.Set("uid", resp.Uid)
+	d.Set("uid", resp.UID)
 	d.Set("title", resp.Title)
 
 	return ReadFolder(d, meta)
@@ -69,7 +69,7 @@ func ReadFolder(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.SetId(strconv.FormatInt(folder.Id, 10))
+	d.SetId(strconv.FormatInt(folder.ID, 10))
 	d.Set("title", folder.Title)
 
 	return nil

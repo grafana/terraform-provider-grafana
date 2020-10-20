@@ -227,7 +227,7 @@ func addMemberIdsToChanges(meta interface{}, changes []MemberChange) ([]MemberCh
 		return nil, err
 	}
 	for _, u := range gUsers {
-		gUserMap[u.Email] = u.Id
+		gUserMap[u.Email] = u.ID
 	}
 	var output []MemberChange
 

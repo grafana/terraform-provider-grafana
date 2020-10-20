@@ -89,7 +89,7 @@ func testAccUserCheckExists(rn string, a *gapi.User) resource.TestCheckFunc {
 func testAccUserCheckDestroy(a *gapi.User) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*gapi.Client)
-		user, err := client.User(a.Id)
+		user, err := client.User(a.ID)
 		if err == nil && user.Email != "" {
 			return fmt.Errorf("user still exists")
 		}

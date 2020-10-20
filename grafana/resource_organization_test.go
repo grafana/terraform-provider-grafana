@@ -195,7 +195,7 @@ func testAccOrganizationCheckExists(rn string, a *gapi.Org) resource.TestCheckFu
 func testAccOrganizationCheckDestroy(a *gapi.Org) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*gapi.Client)
-		org, err := client.Org(a.Id)
+		org, err := client.Org(a.ID)
 		if err == nil && org.Name != "" {
 			return fmt.Errorf("organization still exists")
 		}

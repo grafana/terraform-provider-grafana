@@ -72,14 +72,14 @@ func testAccFolderDisappear(folder *gapi.Folder) resource.TestCheckFunc {
 		// At this point testAccFolderCheckExists should have been called and
 		// folder should have been populated
 		client := testAccProvider.Meta().(*gapi.Client)
-		return client.DeleteFolder((*folder).Uid)
+		return client.DeleteFolder((*folder).UID)
 	}
 }
 
 func testAccFolderCheckDestroy(folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*gapi.Client)
-		_, err := client.Folder(folder.Id)
+		_, err := client.Folder(folder.ID)
 		if err == nil {
 			return fmt.Errorf("folder still exists")
 		}

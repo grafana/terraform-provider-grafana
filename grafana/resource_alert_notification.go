@@ -126,12 +126,12 @@ func ReadAlertNotification(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	d.Set("id", alertNotification.Id)
+	d.Set("id", alertNotification.ID)
 	d.Set("is_default", alertNotification.IsDefault)
 	d.Set("name", alertNotification.Name)
 	d.Set("type", alertNotification.Type)
 	d.Set("settings", settings)
-	d.Set("uid", alertNotification.Uid)
+	d.Set("uid", alertNotification.UID)
 
 	return nil
 }
@@ -182,11 +182,11 @@ func makeAlertNotification(d *schema.ResourceData) (*gapi.AlertNotification, err
 	}
 
 	return &gapi.AlertNotification{
-		Id:           id,
+		ID:           id,
 		Name:         d.Get("name").(string),
 		Type:         d.Get("type").(string),
 		IsDefault:    d.Get("is_default").(bool),
-		Uid:          d.Get("uid").(string),
+		UID:          d.Get("uid").(string),
 		SendReminder: sendReminder,
 		Frequency:    frequency,
 		Settings:     settings,

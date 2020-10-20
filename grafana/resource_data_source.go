@@ -284,7 +284,7 @@ func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set("id", dataSource.Id)
+	d.Set("id", dataSource.ID)
 	d.Set("access_mode", dataSource.Access)
 	d.Set("basic_auth_enabled", dataSource.BasicAuth)
 	d.Set("basic_auth_username", dataSource.BasicAuthUser)
@@ -322,7 +322,7 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 	}
 
 	return &gapi.DataSource{
-		Id:                id,
+		ID:                id,
 		Name:              d.Get("name").(string),
 		Type:              d.Get("type").(string),
 		URL:               d.Get("url").(string),
@@ -349,7 +349,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		Encrypt:                 d.Get("json_data.0.encrypt").(string),
 		EsVersion:               int64(d.Get("json_data.0.es_version").(int)),
 		GraphiteVersion:         d.Get("json_data.0.graphite_version").(string),
-		HttpMethod:              d.Get("json_data.0.http_method").(string),
+		HTTPMethod:              d.Get("json_data.0.http_method").(string),
 		Interval:                d.Get("json_data.0.interval").(string),
 		LogLevelField:           d.Get("json_data.0.log_level_field").(string),
 		LogMessageField:         d.Get("json_data.0.log_message_field").(string),
@@ -361,9 +361,9 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		Timescaledb:             d.Get("json_data.0.timescaledb").(bool),
 		TimeField:               d.Get("json_data.0.time_field").(string),
 		TimeInterval:            d.Get("json_data.0.time_interval").(string),
-		TlsAuth:                 d.Get("json_data.0.tls_auth").(bool),
-		TlsAuthWithCACert:       d.Get("json_data.0.tls_auth_with_ca_cert").(bool),
-		TlsSkipVerify:           d.Get("json_data.0.tls_skip_verify").(bool),
+		TLSAuth:                 d.Get("json_data.0.tls_auth").(bool),
+		TLSAuthWithCACert:       d.Get("json_data.0.tls_auth_with_ca_cert").(bool),
+		TLSSkipVerify:           d.Get("json_data.0.tls_skip_verify").(bool),
 		TsdbResolution:          d.Get("json_data.0.tsdb_resolution").(string),
 		TsdbVersion:             d.Get("json_data.0.tsdb_version").(string),
 	}
@@ -376,8 +376,8 @@ func makeSecureJSONData(d *schema.ResourceData) gapi.SecureJSONData {
 		Password:          d.Get("secure_json_data.0.password").(string),
 		PrivateKey:        d.Get("secure_json_data.0.private_key").(string),
 		SecretKey:         d.Get("secure_json_data.0.secret_key").(string),
-		TlsCACert:         d.Get("secure_json_data.0.tls_ca_cert").(string),
-		TlsClientCert:     d.Get("secure_json_data.0.tls_client_cert").(string),
-		TlsClientKey:      d.Get("secure_json_data.0.tls_client_key").(string),
+		TLSCACert:         d.Get("secure_json_data.0.tls_ca_cert").(string),
+		TLSClientCert:     d.Get("secure_json_data.0.tls_client_cert").(string),
+		TLSClientKey:      d.Get("secure_json_data.0.tls_client_key").(string),
 	}
 }

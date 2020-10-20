@@ -259,7 +259,7 @@ func addIdsToChanges(d *schema.ResourceData, meta interface{}, changes []UserCha
 		return nil, err
 	}
 	for _, u := range gUsers {
-		gUserMap[u.Email] = u.Id
+		gUserMap[u.Email] = u.ID
 	}
 	var output []UserChange
 	create := d.Get("create_users").(bool)
