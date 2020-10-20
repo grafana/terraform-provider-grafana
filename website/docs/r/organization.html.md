@@ -76,12 +76,6 @@ The following arguments are supported:
 A user can only be listed under one role-group for an organization, listing the
 same user under multiple roles will cause an error to be thrown.
 
-Note - Users specified for each role-group (`admins`, `editors`, `viewers`)
-should be listed in ascending alphabetical order (A-Z). By defining users in
-alphabetical order, Terraform is prevented from detecting unnecessary changes
-when comparing the list of defined users in the resource to the (ordered) list
-returned by the Grafana API.
-
 ## Attributes Reference
 
 The following attributes are exported:

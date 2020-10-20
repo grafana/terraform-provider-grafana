@@ -62,21 +62,21 @@ func ResourceOrganization() *schema.Resource {
 				Computed: true,
 			},
 			"admins": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
 			"editors": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
 			"viewers": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -206,7 +206,7 @@ func collectUsers(d *schema.ResourceData) (map[string]OrgUser, map[string]OrgUse
 		roleName := strings.Title(role[:len(role)-1])
 		// Get the lists of users read in from Grafana state (old) and configured (new)
 		state, config := d.GetChange(role)
-		for _, u := range state.([]interface{}) {
+		for _, u := range state.(*schema.Set).List() {
 			email := u.(string)
 			// Sanity check that a user isn't specified twice within an organization
 			if _, ok := stateUsers[email]; ok {
@@ -214,7 +214,7 @@ func collectUsers(d *schema.ResourceData) (map[string]OrgUser, map[string]OrgUse
 			}
 			stateUsers[email] = OrgUser{0, email, roleName}
 		}
-		for _, u := range config.([]interface{}) {
+		for _, u := range config.(*schema.Set).List() {
 			email := u.(string)
 			// Sanity check that a user isn't specified twice within an organization
 			if _, ok := configUsers[email]; ok {
