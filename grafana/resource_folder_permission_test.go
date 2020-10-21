@@ -86,7 +86,7 @@ func testAccFolderPermissionsRemoval(permissions *gapi.FolderPermission) resourc
 	return func(s *terraform.State) error {
 		//since the permissions aren't deleted, let's just check if we have empty permissions
 		client := testAccProvider.Meta().(*gapi.Client)
-		newPermissions, err := client.FolderPermissions(permissions.FolderUid)
+		newPermissions, err := client.FolderPermissions(permissions.FolderUID)
 		if err != nil {
 			return fmt.Errorf(err.Error())
 		}
@@ -105,14 +105,14 @@ resource "grafana_folder" "testFolder" {
 resource "grafana_team" "testTeam" {
   name = "terraform-test-team-permissions"
 }
-  
+
 resource "grafana_user" "testAdminUser" {
   email    = "terraform-test-permissions@localhost"
   name     = "Terraform Test Permissions"
   login    = "ttp"
   password = "zyx987"
 }
-  
+
 resource "grafana_folder_permission" "testPermission" {
   folder_uid = grafana_folder.testFolder.uid
   permissions {
@@ -141,7 +141,7 @@ resource "grafana_folder" "testFolder" {
 resource "grafana_team" "testTeam" {
   name = "terraform-test-team-permissions"
 }
-  
+
 resource "grafana_user" "testAdminUser" {
   email    = "terraform-test-permissions@localhost"
   name     = "Terraform Test Permissions"

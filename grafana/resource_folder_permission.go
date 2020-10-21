@@ -70,10 +70,10 @@ func UpdateFolderPermissions(d *schema.ResourceData, meta interface{}) error {
 			permissionItem.Role = permission["role"].(string)
 		}
 		if permission["team_id"].(int) != -1 {
-			permissionItem.TeamId = int64(permission["team_id"].(int))
+			permissionItem.TeamID = int64(permission["team_id"].(int))
 		}
 		if permission["user_id"].(int) != -1 {
-			permissionItem.UserId = int64(permission["user_id"].(int))
+			permissionItem.UserID = int64(permission["user_id"].(int))
 		}
 		permissionItem.Permission = mapPermissionStringToInt64(permission["permission"].(string))
 		permissionList.Items = append(permissionList.Items, &permissionItem)
@@ -110,11 +110,11 @@ func ReadFolderPermissions(d *schema.ResourceData, meta interface{}) error {
 	permissionItems := make([]interface{}, len(folderPermissions))
 	count := 0
 	for _, permission := range folderPermissions {
-		if permission.FolderUid != "" {
+		if permission.FolderUID != "" {
 			permissionItem := make(map[string]interface{})
 			permissionItem["role"] = permission.Role
-			permissionItem["team_id"] = permission.TeamId
-			permissionItem["user_id"] = permission.UserId
+			permissionItem["team_id"] = permission.TeamID
+			permissionItem["user_id"] = permission.UserID
 			permissionItem["permission"] = mapPermissionInt64ToString(permission.Permission)
 
 			permissionItems[count] = permission
