@@ -138,7 +138,7 @@ func DeleteFolderPermissions(d *schema.ResourceData, meta interface{}) error {
 
 	err := client.UpdateFolderPermissions(folderUID, &emptyPermissions)
 	if err != nil {
-		if err.Error() == "404 Not Found" {
+		if strings.HasPrefix(err.Error(), "status: 404") {
 			d.SetId("")
 			return nil
 		}
