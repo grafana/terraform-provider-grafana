@@ -74,7 +74,7 @@ github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
 # github.com/googleapis/gax-go/v2 v2.0.3
 github.com/googleapis/gax-go/v2
-# github.com/grafana/grafana-api-golang-client v0.0.0-20201012135725-c87fc20af1ea => /Users/dorsey/src/grafana-api-golang-client
+# github.com/grafana/grafana-api-golang-client v0.0.0-20201012135725-c87fc20af1ea
 ## explicit
 github.com/grafana/grafana-api-golang-client
 # github.com/hashicorp/errwrap v1.0.0
@@ -344,4 +344,3 @@ google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
 google.golang.org/grpc/test/bufconn
-# github.com/grafana/grafana-api-golang-client => /Users/dorsey/src/grafana-api-golang-client
