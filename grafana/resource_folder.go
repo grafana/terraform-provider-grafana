@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -60,7 +61,7 @@ func ReadFolder(d *schema.ResourceData, meta interface{}) error {
 
 	folder, err := client.Folder(id)
 	if err != nil {
-		if err.Error() == "404 Not Found" {
+		if strings.HasPrefix(err.Error(), "status: 404") {
 			log.Printf("[WARN] removing folder %d from state because it no longer exists in grafana", id)
 			d.SetId("")
 			return nil
