@@ -8,10 +8,10 @@ import (
 
 // FolderPermission has information such as a folder, user, team, role and permission.
 type FolderPermission struct {
-	Id        int64  `json:"id"`
-	FolderUid string `json:"uid"`
-	UserId    int64  `json:"userId"`
-	TeamId    int64  `json:"teamId"`
+	ID        int64  `json:"id"`
+	FolderUID string `json:"uid"`
+	UserID    int64  `json:"userId"`
+	TeamID    int64  `json:"teamId"`
 	Role      string `json:"role"`
 	IsFolder  bool   `json:"isFolder"`
 
@@ -23,8 +23,8 @@ type FolderPermission struct {
 	PermissionName string `json:"permissionName"`
 
 	// optional fields
-	FolderId    int64 `json:"folderId,omitempty"`
-	DashboardId int64 `json:"dashboardId,omitempty"`
+	FolderID    int64 `json:"folderId,omitempty"`
+	DashboardID int64 `json:"dashboardId,omitempty"`
 }
 
 // PermissionItems represents Grafana folder permission items.
@@ -34,11 +34,11 @@ type PermissionItems struct {
 
 // PermissionItem represents a Grafana folder permission item.
 type PermissionItem struct {
-	// As you can see the docs, each item has a pair of [Role|TeamId|UserId] and Permission.
+	// As you can see the docs, each item has a pair of [Role|TeamID|UserID] and Permission.
 	// unnecessary fields are omitted.
 	Role       string `json:"role,omitempty"`
-	TeamId     int64  `json:"teamId,omitempty"`
-	UserId     int64  `json:"userId,omitempty"`
+	TeamID     int64  `json:"teamId,omitempty"`
+	UserID     int64  `json:"userId,omitempty"`
 	Permission int64  `json:"permission"`
 }
 

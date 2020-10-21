@@ -11,19 +11,19 @@ import (
 // User represents a Grafana user. It is structured after the UserProfileDTO
 // struct in the Grafana codebase.
 type User struct {
-	Id         int64     `json:"id,omitempty"`
+	ID         int64     `json:"id,omitempty"`
 	Email      string    `json:"email,omitempty"`
 	Name       string    `json:"name,omitempty"`
 	Login      string    `json:"login,omitempty"`
 	Theme      string    `json:"theme,omitempty"`
-	OrgId      int64     `json:"orgId,omitempty"`
+	OrgID      int64     `json:"orgId,omitempty"`
 	IsAdmin    bool      `json:"isGrafanaAdmin,omitempty"`
 	IsDisabled bool      `json:"isDisabled,omitempty"`
 	IsExternal bool      `json:"isExternal,omitempty"`
 	UpdatedAt  time.Time `json:"updatedAt,omitempty"`
 	CreatedAt  time.Time `json:"createdAt,omitempty"`
 	AuthLabels []string  `json:"authLabels,omitempty"`
-	AvatarUrl  string    `json:"avatarUrl,omitempty"`
+	AvatarURL  string    `json:"avatarUrl,omitempty"`
 	Password   string    `json:"password,omitempty"`
 }
 
@@ -32,7 +32,7 @@ type User struct {
 // reduced and differing fields. It is structured after the UserSearchHitDTO
 // struct in the Grafana codebase.
 type UserSearch struct {
-	Id            int64     `json:"id,omitempty"`
+	ID            int64     `json:"id,omitempty"`
 	Email         string    `json:"email,omitempty"`
 	Name          string    `json:"name,omitempty"`
 	Login         string    `json:"login,omitempty"`
@@ -41,7 +41,7 @@ type UserSearch struct {
 	LastSeenAt    time.Time `json:"lastSeenAt,omitempty"`
 	LastSeenAtAge string    `json:"lastSeenAtAge,omitempty"`
 	AuthLabels    []string  `json:"authLabels,omitempty"`
-	AvatarUrl     string    `json:"avatarUrl,omitempty"`
+	AvatarURL     string    `json:"avatarUrl,omitempty"`
 }
 
 // Users fetches and returns Grafana users.
@@ -70,5 +70,5 @@ func (c *Client) UserUpdate(u User) error {
 	if err != nil {
 		return err
 	}
-	return c.request("PUT", fmt.Sprintf("/api/users/%d", u.Id), nil, bytes.NewBuffer(data), nil)
+	return c.request("PUT", fmt.Sprintf("/api/users/%d", u.ID), nil, bytes.NewBuffer(data), nil)
 }

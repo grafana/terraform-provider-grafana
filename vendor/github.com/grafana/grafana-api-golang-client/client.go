@@ -11,36 +11,47 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"strings"
 
 	"github.com/hashicorp/go-cleanhttp"
 )
 
 // Client is a Grafana API client.
 type Client struct {
-	key     string
+	config  Config
 	baseURL url.URL
-	*http.Client
+	client  *http.Client
 }
 
-// New creates a new grafana client.
-// auth can be in user:pass format, or it can be an api key
-func New(auth, baseURL string) (*Client, error) {
+// Config contains client configuration.
+type Config struct {
+	// APIKey is an optional API key.
+	APIKey string
+	// BasicAuth is optional basic auth credentials.
+	BasicAuth *url.Userinfo
+	// Client provides an optional HTTP client, otherwise a default will be used.
+	Client *http.Client
+}
+
+// New creates a new Grafana client.
+func New(baseURL string, cfg Config) (*Client, error) {
 	u, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, err
 	}
-	key := ""
-	if strings.Contains(auth, ":") {
-		split := strings.SplitN(auth, ":", 2)
-		u.User = url.UserPassword(split[0], split[1])
-	} else if auth != "" {
-		key = fmt.Sprintf("Bearer %s", auth)
+
+	if cfg.BasicAuth != nil {
+		u.User = cfg.BasicAuth
 	}
+
+	cli := cfg.Client
+	if cli == nil {
+		cli = cleanhttp.DefaultClient()
+	}
+
 	return &Client{
-		key,
-		*u,
-		cleanhttp.DefaultClient(),
+		config:  cfg,
+		baseURL: *u,
+		client:  cli,
 	}, nil
 }
 
@@ -50,7 +61,7 @@ func (c *Client) request(method, requestPath string, query url.Values, body io.R
 		return err
 	}
 
-	resp, err := c.Do(r)
+	resp, err := c.client.Do(r)
 	if err != nil {
 		return err
 	}
@@ -89,8 +100,9 @@ func (c *Client) newRequest(method, requestPath string, query url.Values, body i
 	if err != nil {
 		return req, err
 	}
-	if c.key != "" {
-		req.Header.Add("Authorization", c.key)
+
+	if c.config.APIKey != "" {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.config.APIKey))
 	}
 
 	if os.Getenv("GF_LOG") != "" {

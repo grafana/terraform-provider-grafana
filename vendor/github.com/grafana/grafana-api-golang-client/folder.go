@@ -8,8 +8,8 @@ import (
 
 // Folder represents a Grafana folder.
 type Folder struct {
-	Id    int64  `json:"id"`
-	Uid   string `json:"uid"`
+	ID    int64  `json:"id"`
+	UID   string `json:"uid"`
 	Title string `json:"title"`
 }
 

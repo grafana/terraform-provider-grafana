@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"testing"
 )
 
 type mockServer struct {
@@ -16,7 +17,9 @@ func (m *mockServer) Close() {
 	m.server.Close()
 }
 
-func gapiTestTools(code int, body string) (*mockServer, *Client) {
+func gapiTestTools(t *testing.T, code int, body string) (*mockServer, *Client) {
+	t.Helper()
+
 	mock := &mockServer{
 		code: code,
 	}
@@ -35,11 +38,9 @@ func gapiTestTools(code int, body string) (*mockServer, *Client) {
 
 	httpClient := &http.Client{Transport: tr}
 
-	url := url.URL{
-		Scheme: "http",
-		Host:   "my-grafana.com",
+	client, err := New("http://my-grafana.com", Config{APIKey: "my-key", Client: httpClient})
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	client := &Client{"my-key", url, httpClient}
 	return mock, client
 }

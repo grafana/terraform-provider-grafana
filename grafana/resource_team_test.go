@@ -120,7 +120,7 @@ func testAccTeamCheckExists(rn string, a *gapi.Team) resource.TestCheckFunc {
 func testAccTeamCheckDestroy(a *gapi.Team) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*gapi.Client)
-		team, err := client.Team(a.Id)
+		team, err := client.Team(a.ID)
 		if err == nil && team.Name != "" {
 			return fmt.Errorf("team still exists")
 		}

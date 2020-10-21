@@ -119,7 +119,7 @@ func testAccAlertNotificationDefinition(a *gapi.AlertNotification) resource.Test
 func testAccAlertNotificationCheckDestroy(a *gapi.AlertNotification) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*gapi.Client)
-		alert, err := client.AlertNotification(a.Id)
+		alert, err := client.AlertNotification(a.ID)
 		if err == nil && alert != nil {
 			return fmt.Errorf("alert-notification still exists")
 		}

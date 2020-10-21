@@ -8,7 +8,7 @@ import (
 
 // Org represents a Grafana org.
 type Org struct {
-	Id   int64  `json:"id"`
+	ID   int64  `json:"id"`
 	Name string `json:"name"`
 }
 
@@ -57,7 +57,7 @@ func (c *Client) NewOrg(name string) (int64, error) {
 		return id, err
 	}
 	tmp := struct {
-		Id int64 `json:"orgId"`
+		ID int64 `json:"orgId"`
 	}{}
 
 	err = c.request("POST", "/api/orgs", nil, bytes.NewBuffer(data), &tmp)
@@ -65,7 +65,7 @@ func (c *Client) NewOrg(name string) (int64, error) {
 		return id, err
 	}
 
-	return tmp.Id, err
+	return tmp.ID, err
 }
 
 // UpdateOrg updates a Grafana org.

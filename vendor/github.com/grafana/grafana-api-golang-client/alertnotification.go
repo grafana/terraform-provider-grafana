@@ -8,8 +8,8 @@ import (
 
 // AlertNotification represents a Grafana alert notification.
 type AlertNotification struct {
-	Id                    int64       `json:"id,omitempty"`
-	Uid                   string      `json:"uid"`
+	ID                    int64       `json:"id,omitempty"`
+	UID                   string      `json:"uid"`
 	Name                  string      `json:"name"`
 	Type                  string      `json:"type"`
 	IsDefault             bool        `json:"isDefault"`
@@ -50,7 +50,7 @@ func (c *Client) NewAlertNotification(a *AlertNotification) (int64, error) {
 		return 0, err
 	}
 	result := struct {
-		Id int64 `json:"id"`
+		ID int64 `json:"id"`
 	}{}
 
 	err = c.request("POST", "/api/alert-notifications", nil, bytes.NewBuffer(data), &result)
@@ -58,12 +58,12 @@ func (c *Client) NewAlertNotification(a *AlertNotification) (int64, error) {
 		return 0, err
 	}
 
-	return result.Id, err
+	return result.ID, err
 }
 
 // UpdateAlertNotification updates a Grafana alert notification.
 func (c *Client) UpdateAlertNotification(a *AlertNotification) error {
-	path := fmt.Sprintf("/api/alert-notifications/%d", a.Id)
+	path := fmt.Sprintf("/api/alert-notifications/%d", a.ID)
 	data, err := json.Marshal(a)
 	if err != nil {
 		return err

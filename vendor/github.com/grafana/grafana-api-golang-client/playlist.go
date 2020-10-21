@@ -16,7 +16,7 @@ type PlaylistItem struct {
 
 // Playlist represents a Grafana playlist.
 type Playlist struct {
-	Id       int            `json:"id"`
+	ID       int            `json:"id"`
 	Name     string         `json:"name"`
 	Interval string         `json:"interval"`
 	Items    []PlaylistItem `json:"items"`
@@ -42,7 +42,7 @@ func (c *Client) NewPlaylist(playlist Playlist) (int, error) {
 	}
 
 	result := struct {
-		Id int
+		ID int
 	}{}
 
 	err = c.request("POST", "/api/playlists", nil, bytes.NewBuffer(data), &result)
@@ -50,12 +50,12 @@ func (c *Client) NewPlaylist(playlist Playlist) (int, error) {
 		return 0, err
 	}
 
-	return result.Id, nil
+	return result.ID, nil
 }
 
 // UpdatePlaylist updates a Grafana playlist.
 func (c *Client) UpdatePlaylist(playlist Playlist) error {
-	path := fmt.Sprintf("/api/playlists/%d", playlist.Id)
+	path := fmt.Sprintf("/api/playlists/%d", playlist.ID)
 	data, err := json.Marshal(playlist)
 	if err != nil {
 		return err

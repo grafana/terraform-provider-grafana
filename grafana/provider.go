@@ -1,6 +1,10 @@
 package grafana
 
 import (
+	"net/url"
+	"strings"
+
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -42,15 +46,21 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	client, err := gapi.New(
-		d.Get("auth").(string),
-		d.Get("url").(string),
-	)
+	auth := strings.SplitN(d.Get("auth").(string), ":", 2)
+	cli := cleanhttp.DefaultClient()
+	cli.Transport = logging.NewTransport("Grafana", cli.Transport)
+	cfg := gapi.Config{
+		Client: cli,
+	}
+	if len(auth) == 2 {
+		cfg.BasicAuth = url.UserPassword(auth[0], auth[1])
+	} else {
+		cfg.APIKey = auth[0]
+	}
+	client, err := gapi.New(d.Get("url").(string), cfg)
 	if err != nil {
 		return nil, err
 	}
-
-	client.Transport = logging.NewTransport("Grafana", client.Transport)
 
 	return client, nil
 }

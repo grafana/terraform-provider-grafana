@@ -22,7 +22,7 @@ func (c *Client) CreateUser(user User) (int64, error) {
 	}
 
 	created := struct {
-		Id int64 `json:"id"`
+		ID int64 `json:"id"`
 	}{}
 
 	err = c.request("POST", "/api/admin/users", nil, bytes.NewBuffer(data), &created)
@@ -30,7 +30,7 @@ func (c *Client) CreateUser(user User) (int64, error) {
 		return id, err
 	}
 
-	return created.Id, err
+	return created.ID, err
 }
 
 // DeleteUser deletes a Grafana user.
