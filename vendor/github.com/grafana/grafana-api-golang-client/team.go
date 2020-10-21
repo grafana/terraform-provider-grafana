@@ -18,30 +18,30 @@ type SearchTeam struct {
 // Team consists of a get response
 // It's used in  Add and Update API
 type Team struct {
-	Id          int64  `json:"id,omitempty"`
-	OrgId       int64  `json:"orgId,omitempty"`
+	ID          int64  `json:"id,omitempty"`
+	OrgID       int64  `json:"orgId,omitempty"`
 	Name        string `json:"name"`
 	Email       string `json:"email,omitempty"`
-	AvatarUrl   string `json:"avatarUrl,omitempty"`
+	AvatarURL   string `json:"avatarUrl,omitempty"`
 	MemberCount int64  `json:"memberCount,omitempty"`
 	Permission  int64  `json:"permission,omitempty"`
 }
 
 // TeamMember represents a Grafana team member.
 type TeamMember struct {
-	OrgId      int64  `json:"orgId,omitempty"`
-	TeamId     int64  `json:"teamId,omitempty"`
-	UserId     int64  `json:"userId,omitempty"`
+	OrgID      int64  `json:"orgId,omitempty"`
+	TeamID     int64  `json:"teamId,omitempty"`
+	UserID     int64  `json:"userID,omitempty"`
 	Email      string `json:"email,omitempty"`
 	Login      string `json:"login,omitempty"`
-	AvatarUrl  string `json:"avatarUrl,omitempty"`
+	AvatarURL  string `json:"avatarUrl,omitempty"`
 	Permission int64  `json:"permission,omitempty"`
 }
 
 // Preferences represents Grafana preferences.
 type Preferences struct {
 	Theme           string `json:"theme"`
-	HomeDashboardId int64  `json:"homeDashboardId"`
+	HomeDashboardID int64  `json:"homeDashboardID"`
 	Timezone        string `json:"timezone"`
 }
 
@@ -141,7 +141,7 @@ func (c *Client) TeamMembers(id int64) ([]*TeamMember, error) {
 // AddTeamMember adds a user to the Grafana team whose ID it's passed.
 func (c *Client) AddTeamMember(id int64, userID int64) error {
 	path := fmt.Sprintf("/api/teams/%d/members", id)
-	member := TeamMember{UserId: userID}
+	member := TeamMember{UserID: userID}
 	data, err := json.Marshal(member)
 	if err != nil {
 		return err
@@ -173,7 +173,7 @@ func (c *Client) UpdateTeamPreferences(id int64, theme string, homeDashboardID i
 	path := fmt.Sprintf("/api/teams/%d", id)
 	preferences := Preferences{
 		Theme:           theme,
-		HomeDashboardId: homeDashboardID,
+		HomeDashboardID: homeDashboardID,
 		Timezone:        timezone,
 	}
 	data, err := json.Marshal(preferences)

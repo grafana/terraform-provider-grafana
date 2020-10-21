@@ -17,27 +17,27 @@ type DashboardMeta struct {
 // DashboardSaveResponse represents the Grafana API response to creating or saving a dashboard.
 type DashboardSaveResponse struct {
 	Slug    string `json:"slug"`
-	Id      int64  `json:"id"`
-	Uid     string `json:"uid"`
+	ID      int64  `json:"id"`
+	UID     string `json:"uid"`
 	Status  string `json:"status"`
 	Version int64  `json:"version"`
 }
 
 // DashboardSearchResponse represents the Grafana API dashboard search response.
 type DashboardSearchResponse struct {
-	Id          uint     `json:"id"`
-	Uid         string   `json:"uid"`
+	ID          uint     `json:"id"`
+	UID         string   `json:"uid"`
 	Title       string   `json:"title"`
-	Uri         string   `json:"uri"`
-	Url         string   `json:"url"`
+	URI         string   `json:"uri"`
+	URL         string   `json:"url"`
 	Slug        string   `json:"slug"`
 	Type        string   `json:"type"`
 	Tags        []string `json:"tags"`
 	IsStarred   bool     `json:"isStarred"`
-	FolderId    uint     `json:"folderId"`
-	FolderUid   string   `json:"folderUid"`
+	FolderID    uint     `json:"folderId"`
+	FolderUID   string   `json:"folderUid"`
 	FolderTitle string   `json:"folderTitle"`
-	FolderUrl   string   `json:"folderUrl"`
+	FolderURL   string   `json:"folderUrl"`
 }
 
 // Dashboard represents a Grafana dashboard.
@@ -100,19 +100,13 @@ func (c *Client) Dashboards() ([]DashboardSearchResponse, error) {
 	return dashboards, err
 }
 
-// DashboardByUid fetches and returns the dashboard whose UID is passed.
-func (c *Client) DashboardByUid(uid string) (*Dashboard, error) {
-	return c.dashboard(fmt.Sprintf("/api/dashboards/uid/%s", uid))
-}
-
 // Dashboard will be removed.
-// Deprecated: Starting from Grafana v5.0. Use DashboardByUid instead.
+// Deprecated: Starting from Grafana v5.0. Use DashboardByUID instead.
 func (c *Client) Dashboard(slug string) (*Dashboard, error) {
 	return c.dashboard(fmt.Sprintf("/api/dashboards/db/%s", slug))
 }
 
-// DashboardByUID will be removed.
-// Deprecated: Interface typo. Use DashboardByUid instead.
+// DashboardByUID gets a dashboard by UID.
 func (c *Client) DashboardByUID(uid string) (*Dashboard, error) {
 	return c.dashboard(fmt.Sprintf("/api/dashboards/uid/%s", uid))
 }
@@ -128,19 +122,13 @@ func (c *Client) dashboard(path string) (*Dashboard, error) {
 	return result, err
 }
 
-// DeleteDashboardByUid deletes the dashboard whose UID it's passed.
-func (c *Client) DeleteDashboardByUid(uid string) error {
-	return c.deleteDashboard(fmt.Sprintf("/api/dashboards/uid/%s", uid))
-}
-
 // DeleteDashboard will be removed.
-// Deprecated: Starting from Grafana v5.0. Use DeleteDashboardByUid instead.
+// Deprecated: Starting from Grafana v5.0. Use DeleteDashboardByUID instead.
 func (c *Client) DeleteDashboard(slug string) error {
 	return c.deleteDashboard(fmt.Sprintf("/api/dashboards/db/%s", slug))
 }
 
-// DeleteDashboardByUID will be removed.
-// Deprecated: Interface typo. Use DeleteDashboardByUid instead.
+// DeleteDashboardByUID deletes a dashboard by UID.
 func (c *Client) DeleteDashboardByUID(uid string) error {
 	return c.deleteDashboard(fmt.Sprintf("/api/dashboards/uid/%s", uid))
 }

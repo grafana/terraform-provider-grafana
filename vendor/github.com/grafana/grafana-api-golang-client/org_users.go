@@ -8,8 +8,8 @@ import (
 
 // OrgUser represents a Grafana org user.
 type OrgUser struct {
-	OrgId  int64  `json:"orgId"`
-	UserId int64  `json:"userId"`
+	OrgID  int64  `json:"orgId"`
+	UserID int64  `json:"userId"`
 	Email  string `json:"email"`
 	Login  string `json:"login"`
 	Role   string `json:"role"`

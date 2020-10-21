@@ -32,7 +32,7 @@ enable = [
   "exportloopref",
   "staticcheck",
   "structcheck",
-  #"stylecheck",
+  "stylecheck",
   "typecheck",
   "unconvert",
   "unused",

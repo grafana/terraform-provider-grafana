@@ -8,7 +8,7 @@ import (
 
 // DataSource represents a Grafana data source.
 type DataSource struct {
-	Id     int64  `json:"id,omitempty"`
+	ID     int64  `json:"id,omitempty"`
 	Name   string `json:"name"`
 	Type   string `json:"type"`
 	URL    string `json:"url"`
@@ -19,7 +19,7 @@ type DataSource struct {
 	// Deprecated: Use secureJsonData.password instead.
 	Password string `json:"password,omitempty"`
 
-	OrgId     int64 `json:"orgId,omitempty"`
+	OrgID     int64 `json:"orgId,omitempty"`
 	IsDefault bool  `json:"isDefault"`
 
 	BasicAuth     bool   `json:"basicAuth"`
@@ -34,9 +34,9 @@ type DataSource struct {
 // JSONData is a representation of the datasource `jsonData` property
 type JSONData struct {
 	// Used by all datasources
-	TlsAuth           bool `json:"tlsAuth,omitempty"`
-	TlsAuthWithCACert bool `json:"tlsAuthWithCACert,omitempty"`
-	TlsSkipVerify     bool `json:"tlsSkipVerify,omitempty"`
+	TLSAuth           bool `json:"tlsAuth,omitempty"`
+	TLSAuthWithCACert bool `json:"tlsAuthWithCACert,omitempty"`
+	TLSSkipVerify     bool `json:"tlsSkipVerify,omitempty"`
 
 	// Used by Graphite
 	GraphiteVersion string `json:"graphiteVersion,omitempty"`
@@ -75,22 +75,22 @@ type JSONData struct {
 	ConnMaxLifetime int64 `json:"connMaxLifetime,omitempty"`
 
 	// Used by Prometheus
-	HttpMethod   string `json:"httpMethod,omitempty"`
+	HTTPMethod   string `json:"httpMethod,omitempty"`
 	QueryTimeout string `json:"queryTimeout,omitempty"`
 
 	// Used by Stackdriver
 	AuthenticationType string `json:"authenticationType,omitempty"`
 	ClientEmail        string `json:"clientEmail,omitempty"`
 	DefaultProject     string `json:"defaultProject,omitempty"`
-	TokenUri           string `json:"tokenUri,omitempty"`
+	TokenURI           string `json:"tokenUri,omitempty"`
 }
 
 // SecureJSONData is a representation of the datasource `secureJsonData` property
 type SecureJSONData struct {
 	// Used by all datasources
-	TlsCACert         string `json:"tlsCACert,omitempty"`
-	TlsClientCert     string `json:"tlsClientCert,omitempty"`
-	TlsClientKey      string `json:"tlsClientKey,omitempty"`
+	TLSCACert         string `json:"tlsCACert,omitempty"`
+	TLSClientCert     string `json:"tlsClientCert,omitempty"`
+	TLSClientKey      string `json:"tlsClientKey,omitempty"`
 	Password          string `json:"password,omitempty"`
 	BasicAuthPassword string `json:"basicAuthPassword,omitempty"`
 
@@ -110,7 +110,7 @@ func (c *Client) NewDataSource(s *DataSource) (int64, error) {
 	}
 
 	result := struct {
-		Id int64 `json:"id"`
+		ID int64 `json:"id"`
 	}{}
 
 	err = c.request("POST", "/api/datasources", nil, bytes.NewBuffer(data), &result)
@@ -118,12 +118,12 @@ func (c *Client) NewDataSource(s *DataSource) (int64, error) {
 		return 0, err
 	}
 
-	return result.Id, err
+	return result.ID, err
 }
 
 // UpdateDataSource updates a Grafana data source.
 func (c *Client) UpdateDataSource(s *DataSource) error {
-	path := fmt.Sprintf("/api/datasources/%d", s.Id)
+	path := fmt.Sprintf("/api/datasources/%d", s.ID)
 	data, err := json.Marshal(s)
 	if err != nil {
 		return err
