@@ -128,11 +128,22 @@ func ReadFolderPermissions(d *schema.ResourceData, meta interface{}) error {
 }
 
 func DeleteFolderPermissions(d *schema.ResourceData, meta interface{}) error {
-	//there is no delete call for folder permissions. we *could* try to delete
-	//all of the individual permissions for the folder, but that would just leave
-	//us with an inoperable folder. however, in cases where a folder is deleted,
-	//we want the corresponding folder permissions to be removed from state without
-	//making a call to the API which would just fail if the folder is gone.
+	//since permissions are tied to folders, we can't really delete the permissions.
+	//we will simply remove all permissions, leaving a folder that only an admin can access.
+	//if for some reason the parent folder doesn't exist, we'll just ignore the error
+	client := meta.(*gapi.Client)
+
+	folderUID := d.Get("folder_uid").(string)
+	emptyPermissions := gapi.PermissionItems{}
+
+	err := client.UpdateFolderPermissions(folderUID, &emptyPermissions)
+	if err != nil {
+		if err.Error() == "404 Not Found" {
+			d.SetId("")
+			return nil
+		}
+		return err
+	}
 
 	return nil
 }

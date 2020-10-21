@@ -26,8 +26,8 @@ resource "grafana_folder" "collection" {
   title = "Folder Title"
 }
 
-resource "grafana_dashboard_permission" "collectionPermission" {
-  folder_uid = "${grafana_folder.colection.uid}"
+resource "grafana_folder_permission" "collectionPermission" {
+  folder_uid = grafana_folder.colection.uid
   permissions {
     role       = "Editor"
     permission = "Edit"
