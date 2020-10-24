@@ -6,7 +6,7 @@ description: |-
   The grafana_folder resource allows a Grafana folder to be created.
 ---
 
-# grafana_folder
+# grafana\_folder
 
 The folder resource allows a folder to be created on a Grafana server.
 
@@ -27,16 +27,16 @@ resource "grafana_dashboard" "dashboard_in_folder" {
 
 The following arguments are supported:
 
-- `title` - (Required) The title of the folder.
+* `title` - (Required) The title of the folder.
 
 ## Attributes Reference
 
 The resource exports the following attributes:
 
-- `id` - The internal id of the folder in Grafana (only guaranteed to be unique
+* `id` - The internal id of the folder in Grafana (only guaranteed to be unique
   within this Grafana instance). The `id` is used by the `grafana_dashboard` resource
   to place a dashboard within a folder.
-- `uid` - An external id of the folder in Grafana (stable when folders are migrated
+* `uid` - An external id of the folder in Grafana (stable when folders are migrated
   between Grafana instances). The `uid` is required by several Grafana Folder APIs.
 
 ## Import
