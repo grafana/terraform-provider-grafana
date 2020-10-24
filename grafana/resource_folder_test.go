@@ -32,6 +32,11 @@ func TestAccFolder_basic(t *testing.T) {
 					),
 				),
 			},
+			{
+				ResourceName:      "grafana_folder.test_folder",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
