@@ -169,13 +169,8 @@ func (c *Client) TeamPreferences(id int64) (*Preferences, error) {
 }
 
 // UpdateTeamPreferences updates team preferences for the Grafana team whose ID it's passed.
-func (c *Client) UpdateTeamPreferences(id int64, theme string, homeDashboardID int64, timezone string) error {
-	path := fmt.Sprintf("/api/teams/%d", id)
-	preferences := Preferences{
-		Theme:           theme,
-		HomeDashboardID: homeDashboardID,
-		Timezone:        timezone,
-	}
+func (c *Client) UpdateTeamPreferences(id int64, preferences Preferences) error {
+	path := fmt.Sprintf("/api/teams/%d/preferences", id)
 	data, err := json.Marshal(preferences)
 	if err != nil {
 		return err

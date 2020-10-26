@@ -9,7 +9,8 @@ description: |-
 # grafana\_team\_preferences
 
 The team preferences resource allows for team preferences to be set once a team 
-has been created. 
+has been created. Available preferences are a light or dark theme, the default
+timezone to be used, and the dashboard to be displayed upon login. 
 
 ## Example Usage
 

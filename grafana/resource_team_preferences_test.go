@@ -45,7 +45,6 @@ resource "grafana_team" "testTeam" {
 }
 
 resource "grafana_dashboard" "test" {
-  dashboard_id = 13
   config_json = <<EOT
 {
   "title": "Terraform Team Preferences Acceptance Test",
@@ -63,6 +62,19 @@ resource "grafana_team_preferences" "testTeamPreferences" {
 }
 `
 const testAccTeamPreferencesConfig_Update = `
+resource "grafana_team" "testTeam" {
+  name = "terraform-test-team-preferences"
+}
+
+resource "grafana_dashboard" "test" {
+  config_json = <<EOT
+{
+  "title": "Terraform Team Preferences Acceptance Test",
+  "id": 13,
+  "version": "43"
+}
+EOT
+}
 resource "grafana_team_preferences" "testTeamPreferences" {
   team_id           = grafana_team.testTeam.id
   theme             = "light"

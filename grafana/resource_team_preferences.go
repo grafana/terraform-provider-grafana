@@ -46,12 +46,12 @@ func UpdateTeamPreferences(d *schema.ResourceData, meta interface{}) error {
 
 	teamID := int64(d.Get("team_id").(int))
 	theme := d.Get("theme").(string)
-	homeDashboardId := int64(d.Get("home_dashboard_id").(int))
+	homeDashboardID := int64(d.Get("home_dashboard_id").(int))
 	timezone := d.Get("timezone").(string)
 
 	preferences := gapi.Preferences{
 		Theme:           theme,
-		HomeDashboardId: homeDashboardId,
+		HomeDashboardID: homeDashboardID,
 		Timezone:        timezone,
 	}
 
@@ -75,7 +75,7 @@ func ReadTeamPreferences(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(strconv.FormatInt(teamID, 10))
 	d.Set("theme", preferences.Theme)
-	d.Set("home_dashboard_id", preferences.HomeDashboardId)
+	d.Set("home_dashboard_id", preferences.HomeDashboardID)
 	d.Set("timezone", preferences.Timezone)
 
 	return nil
@@ -91,7 +91,7 @@ func DeleteTeamPreferences(d *schema.ResourceData, meta interface{}) error {
 	teamID := int64(d.Get("team_id").(int))
 	defaultPreferences := gapi.Preferences{}
 
-	err := client.UpdateTeamPreferences(teamID, &defaultPreferences)
+	err := client.UpdateTeamPreferences(teamID, defaultPreferences)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
 			d.SetId("")
