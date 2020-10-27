@@ -41,4 +41,9 @@ The resource exports the following attributes:
 
 ## Import
 
-Folders cannot be imported.
+Existing folders can be imported using the folder "id" which can be
+obtained from Grafana database or inspecting requests in folder (e.g. `https://grafana.mydomain.com/f/abcdef-gh/folder-title`)
+
+```
+$ terraform import grafana_folder.folder_name {folder_id}
+```

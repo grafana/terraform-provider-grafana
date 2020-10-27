@@ -17,6 +17,9 @@ func ResourceFolder() *schema.Resource {
 		Create: CreateFolder,
 		Delete: DeleteFolder,
 		Read:   ReadFolder,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"uid": {
@@ -72,6 +75,7 @@ func ReadFolder(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(strconv.FormatInt(folder.ID, 10))
 	d.Set("title", folder.Title)
+	d.Set("uid", folder.UID)
 
 	return nil
 }
