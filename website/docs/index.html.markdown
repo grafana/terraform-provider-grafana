@@ -22,14 +22,19 @@ The provider configuration block accepts the following arguments:
   are provided in a single string and separated by a colon. May alternatively
   be set via the ``GRAFANA_AUTH`` environment variable.
 
+* org_id - (Required) The organization id to operate on within grafana.
+  Default org_id is 1.  May alternatively be set via the
+  GRAFANA_ORG_ID environment variable.
+
 Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
 ```hcl
 provider "grafana" {
-  url  = "http://grafana.example.com/"
-  auth = "1234abcd"
+  url    = "http://grafana.example.com/"
+  auth   = "1234abcd"
+  org_id = 1
 }
 
 resource "grafana_dashboard" "metrics" {
