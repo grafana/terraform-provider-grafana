@@ -38,6 +38,7 @@ func Provider() terraform.ResourceProvider {
 			"grafana_folder_permission":  ResourceFolderPermission(),
 			"grafana_organization":       ResourceOrganization(),
 			"grafana_team":               ResourceTeam(),
+			"grafana_team_preferences":   ResourceTeamPreferences(),
 			"grafana_user":               ResourceUser(),
 		},
 
