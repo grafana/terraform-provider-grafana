@@ -26,6 +26,22 @@ The provider configuration block accepts the following arguments:
   Default org_id is 1.  May alternatively be set via the
   GRAFANA_ORG_ID environment variable.
 
+* ``tls_key`` - (Optional) Client TLS key file to use to authenticate to the
+  Grafana server. May alternatively be set via the ``GRAFANA_TLS_KEY``
+  environment variable.
+
+* ``tls_cert`` - (Optional) Client TLS certificate file to use to authenticate
+  to the Grafana server. May alternatively be set via the ``GRAFANA_TLS_CERT``
+  environment variable.
+
+* ``ca_cert`` - (Optional) Certificate CA bundle to use to verify the
+  Grafana server's certifiate.. May alternatively be set via the
+  ``GRAFANA_CA_CERT`` environment variable.
+
+* ``insecure_skip_verify`` - (Optional) Bool. Disable verification of the
+  Grafana Server's certificate. May alternatively be set via the
+  ``GRAFANA_INSECURE_SKIP_VERIFY`` environment variable.
+
 Use the navigation to the left to read about the available resources.
 
 ## Example Usage

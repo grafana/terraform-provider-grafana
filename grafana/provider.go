@@ -1,6 +1,9 @@
 package grafana
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
 	"net/url"
 	"strings"
 
@@ -34,6 +37,30 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("GRAFANA_ORG_ID", 1),
 				Description: "Organization id for resources",
 			},
+			"tls_key": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GRAFANA_TLS_KEY", nil),
+				Description: "Client TLS key for accessing the Grafana API.",
+			},
+			"tls_cert": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GRAFANA_TLS_CERT", nil),
+				Description: "Client TLS cert for accessing the Grafana API.",
+			},
+			"ca_cert": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GRAFANA_CA_CERT", nil),
+				Description: "CA cert bundle for validating the Grafana API's certificate.",
+			},
+			"insecure_skip_verify": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GRAFANA_INSECURE_SKIP_VERIFY", nil),
+				Description: "Skip TLS certificate verification",
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -55,7 +82,34 @@ func Provider() terraform.ResourceProvider {
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	auth := strings.SplitN(d.Get("auth").(string), ":", 2)
 	cli := cleanhttp.DefaultClient()
-	cli.Transport = logging.NewTransport("Grafana", cli.Transport)
+	transport := cleanhttp.DefaultTransport()
+
+	// TLS Config
+	tlsKey := d.Get("tls_key").(string)
+	tlsCert := d.Get("tls_cert").(string)
+	caCert := d.Get("ca_cert").(string)
+	insecure := d.Get("insecure_skip_verify").(bool)
+	if caCert != "" {
+		ca, err := ioutil.ReadFile(caCert)
+		if err != nil {
+			return nil, err
+		}
+		pool := x509.NewCertPool()
+		pool.AppendCertsFromPEM(ca)
+		transport.TLSClientConfig.RootCAs = pool
+	}
+	if tlsKey != "" && tlsCert != "" {
+		cert, err := tls.LoadX509KeyPair(tlsCert, tlsKey)
+		if err != nil {
+			return nil, err
+		}
+		transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
+	}
+	if insecure {
+		transport.TLSClientConfig.InsecureSkipVerify = true
+	}
+
+	cli.Transport = logging.NewTransport("Grafana", transport)
 	cfg := gapi.Config{
 		Client: cli,
 		OrgID:  int64(d.Get("org_id").(int)),
