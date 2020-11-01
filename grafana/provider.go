@@ -83,6 +83,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	auth := strings.SplitN(d.Get("auth").(string), ":", 2)
 	cli := cleanhttp.DefaultClient()
 	transport := cleanhttp.DefaultTransport()
+	transport.TLSClientConfig = &tls.Config{}
 
 	// TLS Config
 	tlsKey := d.Get("tls_key").(string)

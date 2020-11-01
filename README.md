@@ -35,11 +35,24 @@ Run [acceptance tests](https://www.terraform.io/docs/extend/testing/acceptance-t
 # GRAFANA_VERSION=7.3.4 \
 make test-serve
 
+# Alternatively, run Grafana with TLS:
+# GRAFANA_VERSION=7.3.4 \
+# make test-serve-tls
+
 # In another...
 GRAFANA_URL=http://localhost:3000 \
 GRAFANA_AUTH=admin:admin \
 GRAFANA_ORG_ID=1 \
 make testacc
+
+# Alternatively, run acceptance tests with TLS client certs:
+# GRAFANA_URL=https://localhost:3001 \
+# GRAFANA_ORG_ID=1 \
+# GRAFANA_AUTH=admin:admin \
+# GRAFANA_TLS_KEY=$PWD/testdata/client.key \
+# GRAFANA_TLS_CERT=$PWD/testdata/client.crt \
+# GRAFANA_CA_CERT=$PWD/testdata/ca.crt \
+# make testacc
 ```
 
 This codebase leverages

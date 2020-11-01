@@ -1,0 +1,23 @@
+version: "3.3"
+
+services:
+  mtls-proxy:
+    image: squareup/ghostunnel:v1.5.2
+    command: |
+      server
+        --listen 0.0.0.0:3001
+        --target grafana:3000
+        --unsafe-target
+        --key /certs/grafana.key
+        --cert /certs/grafana.crt
+        --cacert /certs/ca.crt
+        --allow-cn "client"
+    volumes:
+      - "./testdata:/certs"
+    ports:
+      - "3001:3001"
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_VERSION}
+    ports:
+      - 3000
