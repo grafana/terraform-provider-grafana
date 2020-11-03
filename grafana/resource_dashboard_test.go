@@ -12,21 +12,18 @@ import (
 )
 
 func TestAccDashboard_basic(t *testing.T) {
-	var dashboard gapi.Dashboard
+	var uid string
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccDashboardCheckDestroy(&dashboard),
+		CheckDestroy: testAccDashboardCheckDestroy(&uid),
 		Steps: []resource.TestStep{
 			// first step creates the resource
 			{
 				Config: testAccDashboardConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-					resource.TestMatchResourceAttr(
-						"grafana_dashboard.test", "id", regexp.MustCompile(`terraform-acceptance-test.*`),
-					),
+					testAccDashboardCheckExists("grafana_dashboard.test", &uid),
 					resource.TestMatchResourceAttr(
 						"grafana_dashboard.test", "config_json", regexp.MustCompile(".*Terraform Acceptance Test.*"),
 					),
@@ -36,7 +33,7 @@ func TestAccDashboard_basic(t *testing.T) {
 			{
 				Config: testAccDashboardConfig_update,
 				Check: resource.ComposeTestCheckFunc(
-					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
+					testAccDashboardCheckExists("grafana_dashboard.test", &uid),
 					resource.TestMatchResourceAttr(
 						"grafana_dashboard.test", "config_json", regexp.MustCompile(".*Updated Title.*"),
 					),
@@ -53,22 +50,22 @@ func TestAccDashboard_basic(t *testing.T) {
 }
 
 func TestAccDashboard_folder(t *testing.T) {
-	var dashboard gapi.Dashboard
+	var uid string
 	var folder gapi.Folder
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccDashboardFolderCheckDestroy(&dashboard, &folder),
+		CheckDestroy: testAccDashboardFolderCheckDestroy(uid, &folder),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDashboardConfig_folder,
 				Check: resource.ComposeTestCheckFunc(
-					testAccDashboardCheckExists("grafana_dashboard.test_folder", &dashboard),
+					testAccDashboardCheckExists("grafana_dashboard.test_folder", &uid),
 					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
-					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
+					testAccDashboardCheckExistsInFolder(&uid, &folder),
 					resource.TestMatchResourceAttr(
-						"grafana_dashboard.test_folder", "id", regexp.MustCompile(`terraform-folder-test-dashboard`),
+						"grafana_dashboard.test_folder", "config_json", regexp.MustCompile(".*Terraform Folder Test Dashboard.*"),
 					),
 					resource.TestMatchResourceAttr(
 						"grafana_dashboard.test_folder", "folder", regexp.MustCompile(`\d+`),
@@ -80,18 +77,18 @@ func TestAccDashboard_folder(t *testing.T) {
 }
 
 func TestAccDashboard_disappear(t *testing.T) {
-	var dashboard gapi.Dashboard
+	var uid string
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccDashboardCheckDestroy(&dashboard),
+		CheckDestroy: testAccDashboardCheckDestroy(&uid),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDashboardConfig_disappear,
 				Check: resource.ComposeTestCheckFunc(
-					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-					testAccDashboardDisappear(&dashboard),
+					testAccDashboardCheckExists("grafana_dashboard.test", &uid),
+					testAccDashboardDisappear(&uid),
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -99,7 +96,7 @@ func TestAccDashboard_disappear(t *testing.T) {
 	})
 }
 
-func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.TestCheckFunc {
+func testAccDashboardCheckExists(rn string, uid *string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
 		if !ok {
@@ -111,19 +108,25 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 		}
 
 		client := testAccProvider.Meta().(*gapi.Client)
-		gotDashboard, err := client.Dashboard(rs.Primary.ID)
+		_, err := client.DashboardByUID(rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting dashboard: %s", err)
 		}
 
-		*dashboard = *gotDashboard
+		*uid = rs.Primary.ID
 
 		return nil
 	}
 }
 
-func testAccDashboardCheckExistsInFolder(dashboard *gapi.Dashboard, folder *gapi.Folder) resource.TestCheckFunc {
+func testAccDashboardCheckExistsInFolder(uid *string, folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
+		client := testAccProvider.Meta().(*gapi.Client)
+		dashboard, err := client.DashboardByUID(*uid)
+		if err != nil {
+			return fmt.Errorf("error getting dashboard: %s", err)
+		}
+
 		if dashboard.Folder != folder.ID && folder.ID != 0 {
 			return fmt.Errorf("dashboard.Folder(%d) does not match folder.ID(%d)", dashboard.Folder, folder.ID)
 		}
@@ -131,20 +134,20 @@ func testAccDashboardCheckExistsInFolder(dashboard *gapi.Dashboard, folder *gapi
 	}
 }
 
-func testAccDashboardDisappear(dashboard *gapi.Dashboard) resource.TestCheckFunc {
+func testAccDashboardDisappear(uid *string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// At this point testAccDashboardCheckExists should have been called and
 		// dashboard should have been populated
 		client := testAccProvider.Meta().(*gapi.Client)
-		client.DeleteDashboard((*dashboard).Meta.Slug)
+		client.DeleteDashboardByUID(*uid)
 		return nil
 	}
 }
 
-func testAccDashboardCheckDestroy(dashboard *gapi.Dashboard) resource.TestCheckFunc {
+func testAccDashboardCheckDestroy(uid *string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*gapi.Client)
-		_, err := client.Dashboard(dashboard.Meta.Slug)
+		_, err := client.DashboardByUID(*uid)
 		if err == nil {
 			return fmt.Errorf("dashboard still exists")
 		}
@@ -152,10 +155,10 @@ func testAccDashboardCheckDestroy(dashboard *gapi.Dashboard) resource.TestCheckF
 	}
 }
 
-func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.Folder) resource.TestCheckFunc {
+func testAccDashboardFolderCheckDestroy(uid string, folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*gapi.Client)
-		_, err := client.Dashboard(dashboard.Meta.Slug)
+		_, err := client.DashboardByUID(uid)
 		if err == nil {
 			return fmt.Errorf("dashboard still exists")
 		}
@@ -169,7 +172,7 @@ func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.
 
 // The "id" and "version" properties in the config below are there to test
 // that we correctly normalize them away. They are not actually used by this
-// resource, since it uses slugs for identification.
+// resource, since it uses UIDs for identification.
 const testAccDashboardConfig_basic = `
 resource "grafana_dashboard" "test" {
     config_json = <<EOT
