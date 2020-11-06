@@ -14,13 +14,13 @@ viewing and sharing metrics dashboards.
 
 The provider configuration block accepts the following arguments:
 
-* ``url`` - (Required) The root URL of a Grafana server. May alternatively be
-  set via the ``GRAFANA_URL`` environment variable.
+* `url` - (Required) The root URL of a Grafana server. May alternatively be set
+  via the `GRAFANA_URL` environment variable.
 
-* ``auth`` - (Required) The API token or username/password to use to
-  authenticate to the Grafana server. If username/password is used, they
-  are provided in a single string and separated by a colon. May alternatively
-  be set via the ``GRAFANA_AUTH`` environment variable.
+* `auth` - (Required) The API token or username/password to use to authenticate
+  to the Grafana server. If username/password is used, they are provided in a
+  single string and separated by a colon. May alternatively be set via the
+  ``GRAFANA_AUTH`` environment variable.
 
 Use the navigation to the left to read about the available resources.
 
@@ -33,7 +33,7 @@ provider "grafana" {
 }
 
 resource "grafana_dashboard" "metrics" {
-  config_json = "${file("grafana-dashboard.json")}"
+  config_json = file("grafana-dashboard.json")
 }
 
 resource "grafana_data_source" "influxdb" {
@@ -49,35 +49,35 @@ resource "grafana_alert_notification" "slack" {
   name = "My Slack"
   type = "slack"
 
-  settings {
-    "url"         = "https://hooks.slack.com/hoook"
-    "recipient"   = "@someguy"
-    "uploadImage" = "false"
+  settings = {
+    url         = "https://hooks.slack.com/hoook"
+    recipient   = "@someguy"
+    uploadImage = "false"
   }
 }
 
 resource "grafana_organization" "org" {
-    name         = "Grafana Organization"
-    admin_user   = "admin"
-    create_users = true
-    admins       = [
-        "admin@example.com"
-    ]
-    editors      = [
-        "editor-01@example.com",
-        "editor-02@example.com"
-    ]
-    viewers      = [
-        "viewer-01@example.com",
-        "viewer-02@example.com"
-    ]
+  name         = "Grafana Organization"
+  admin_user   = "admin"
+  create_users = true
+  admins = [
+    "admin@example.com",
+  ]
+  editors = [
+    "editor-01@example.com",
+    "editor-02@example.com",
+  ]
+  viewers = [
+    "viewer-01@example.com",
+    "viewer-02@example.com",
+  ]
 }
 
 resource "grafana_team" "team1" {
-  name    = "Grafana Team 1"
-  email   = "GrafanaTeam1@example.com"
+  name  = "Grafana Team 1"
+  email = "GrafanaTeam1@example.com"
   members = [
-        "viewer-01@example.com"
+    "viewer-01@example.com",
   ]
 }
 ```
