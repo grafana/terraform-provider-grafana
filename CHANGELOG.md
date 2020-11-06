@@ -1,5 +1,22 @@
 # Changelog
 
+## [v1.7.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.7.0) (2020-11-06)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.6.0...v1.7.0)
+
+**Closed issues:**
+
+- \[Feature Request\] Add more supported settings for jsonData in grafana\_data\_source resource [\#124](https://github.com/grafana/terraform-provider-grafana/issues/124)
+- 1.6.0 ETA release [\#106](https://github.com/grafana/terraform-provider-grafana/issues/106)
+
+**Merged pull requests:**
+
+- Add folder resource import [\#132](https://github.com/grafana/terraform-provider-grafana/pull/132) ([zombispormedio](https://github.com/zombispormedio))
+- Add team preferences functionality to provider [\#131](https://github.com/grafana/terraform-provider-grafana/pull/131) ([jonathan-dorsey](https://github.com/jonathan-dorsey))
+- Apply changes to match the change to a Config struct [\#130](https://github.com/grafana/terraform-provider-grafana/pull/130) ([medains](https://github.com/medains))
+- Adding folder permission functionality [\#128](https://github.com/grafana/terraform-provider-grafana/pull/128) ([jonathan-dorsey](https://github.com/jonathan-dorsey))
+- Change user lists to sets [\#116](https://github.com/grafana/terraform-provider-grafana/pull/116) ([medains](https://github.com/medains))
+
 ## [v1.6.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.6.0) (2020-10-16)
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.5.0...v1.6.0)
