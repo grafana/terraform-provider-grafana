@@ -1,7 +1,9 @@
 package grafana
 
 import (
+	"encoding/json"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/go-cleanhttp"
@@ -27,6 +29,14 @@ func Provider() terraform.ResourceProvider {
 				Sensitive:   true,
 				DefaultFunc: schema.EnvDefaultFunc("GRAFANA_AUTH", nil),
 				Description: "Credentials for accessing the Grafana API.",
+			},
+			"headers": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Sensitive:   true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: "Optional. HTTP headers mapping keys to values used for accessing the Grafana API.",
+				DefaultFunc: JsonEnvDefaultFunc("GRAFANA_HTTP_HEADERS", nil),
 			},
 		},
 
@@ -58,10 +68,46 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	} else {
 		cfg.APIKey = auth[0]
 	}
+
+	headersObj := d.Get("headers").(map[string]interface{})
+	if headersObj != nil && len(headersObj) == 0 {
+		// Workaround for a bug when DefaultFunc returns a TypeMap
+		headersObjAbs, _ := JsonEnvDefaultFunc("GRAFANA_HTTP_HEADERS", nil)()
+		headersObj = headersObjAbs.(map[string]interface{})
+	}
+	if headersObj != nil {
+		// Convert headers from map[string]interface{} to map[string]string
+		headers := make(map[string]string)
+		for k, v := range headersObj {
+			switch v := v.(type) {
+			case string:
+				headers[k] = v
+			}
+		}
+		cfg.HTTPHeaders = headers
+	}
+
 	client, err := gapi.New(d.Get("url").(string), cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	return client, nil
+}
+
+// JsonEnvDefaultFunc is a helper function that parses the given environment
+// variable as a JSON object, or returns the default value otherwise.
+func JsonEnvDefaultFunc(k string, dv interface{}) schema.SchemaDefaultFunc {
+	return func() (interface{}, error) {
+		if valStr := os.Getenv(k); valStr != "" {
+			var valObj map[string]interface{}
+			err := json.Unmarshal([]byte(valStr), &valObj)
+			if err != nil {
+				return nil, err
+			}
+			return valObj, nil
+		}
+
+		return dv, nil
+	}
 }
