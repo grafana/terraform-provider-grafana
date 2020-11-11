@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	gapi "github.com/nytm/go-grafana-api"
+	gapi "github.com/grafana/grafana-api-golang-client"
 )
 
 func ResourceDashboard() *schema.Resource {
@@ -23,6 +24,11 @@ func ResourceDashboard() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"slug": {
 				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"dashboard_id": {
+				Type:     schema.TypeInt,
 				Computed: true,
 			},
 
@@ -68,7 +74,7 @@ func ReadDashboard(d *schema.ResourceData, meta interface{}) error {
 
 	dashboard, err := client.Dashboard(slug)
 	if err != nil {
-		if err.Error() == "404 Not Found" {
+		if strings.HasPrefix(err.Error(), "status: 404") {
 			log.Printf("[WARN] removing dashboard %s from state because it no longer exists in grafana", slug)
 			d.SetId("")
 			return nil
@@ -88,6 +94,7 @@ func ReadDashboard(d *schema.ResourceData, meta interface{}) error {
 	d.Set("slug", dashboard.Meta.Slug)
 	d.Set("config_json", configJSON)
 	d.Set("folder", dashboard.Folder)
+	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
 
 	return nil
 }

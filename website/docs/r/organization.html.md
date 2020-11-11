@@ -17,20 +17,20 @@ be created and managed.
 # Create a Grafana organization with defined membership, creating placeholder
 # accounts for users that don't exist.
 resource "grafana_organization" "test-org" {
-    name         = "Test Organization"
-    admin_user   = "admin"
-    create_users = true
-    admins       = [
-        "admin@example.com"
-    ]
-    editors      = [
-        "editor-01@example.com",
-        "editor-02@example.com"
-    ]
-    viewers      = [
-        "viewer-01@example.com",
-        "viewer-02@example.com"
-    ]
+  name         = "Test Organization"
+  admin_user   = "admin"
+  create_users = true
+  admins = [
+    "admin@example.com"
+  ]
+  editors = [
+    "editor-01@example.com",
+    "editor-02@example.com"
+  ]
+  viewers = [
+    "viewer-01@example.com",
+    "viewer-02@example.com"
+  ]
 }
 ```
 
@@ -75,12 +75,6 @@ The following arguments are supported:
 
 A user can only be listed under one role-group for an organization, listing the
 same user under multiple roles will cause an error to be thrown.
-
-Note - Users specified for each role-group (`admins`, `editors`, `viewers`)
-should be listed in ascending alphabetical order (A-Z). By defining users in
-alphabetical order, Terraform is prevented from detecting unnecessary changes
-when comparing the list of defined users in the resource to the (ordered) list
-returned by the Grafana API.
 
 ## Attributes Reference
 

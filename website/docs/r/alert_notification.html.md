@@ -14,14 +14,14 @@ The alert notification resource allows an alert notification channel to be creat
 
 ```hcl
 resource "grafana_alert_notification" "email_someteam" {
-  name = "Email that team"
-  type = "email"
-  is_default = false
+  name          = "Email that team"
+  type          = "email"
+  is_default    = false
   send_reminder = true
-  frequency = "24h"
+  frequency     = "24h"
 
-  settings {
-    addresses = "foo@example.net;bar@example.net"
+  settings = {
+    addresses   = "foo@example.net;bar@example.net"
     uploadImage = "false"
   }
 }

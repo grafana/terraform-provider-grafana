@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"testing"
 
+	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	gapi "github.com/nytm/go-grafana-api"
 )
 
 func TestAccOrganization_basic(t *testing.T) {
@@ -62,9 +62,6 @@ func TestAccOrganization_users(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "admins.#", "1",
 					),
-					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "admins.0", "john.doe@example.com",
-					),
 					resource.TestCheckNoResourceAttr(
 						"grafana_organization.test", "editors.#",
 					),
@@ -85,9 +82,6 @@ func TestAccOrganization_users(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "editors.#", "1",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "editors.0", "john.doe@example.com",
 					),
 					resource.TestCheckNoResourceAttr(
 						"grafana_organization.test", "viewers.#",
@@ -137,9 +131,6 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "admins.#", "1",
 					),
-					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "admins.0", "john.doe@example.com",
-					),
 					resource.TestCheckNoResourceAttr(
 						"grafana_organization.test", "editors.#",
 					),
@@ -160,12 +151,6 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "admins.#", "2",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "admins.0", "admin@localhost",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "admins.1", "john.doe@example.com",
 					),
 					resource.TestCheckNoResourceAttr(
 						"grafana_organization.test", "editors.#",
@@ -210,7 +195,7 @@ func testAccOrganizationCheckExists(rn string, a *gapi.Org) resource.TestCheckFu
 func testAccOrganizationCheckDestroy(a *gapi.Org) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*gapi.Client)
-		org, err := client.Org(a.Id)
+		org, err := client.Org(a.ID)
 		if err == nil && org.Name != "" {
 			return fmt.Errorf("organization still exists")
 		}

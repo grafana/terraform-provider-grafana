@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	gapi "github.com/nytm/go-grafana-api"
+	gapi "github.com/grafana/grafana-api-golang-client"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -61,7 +61,7 @@ func TestAccAlertNotification_invalid_frequence(t *testing.T) {
 		CheckDestroy: testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
 			{
-				ExpectError: regexp.MustCompile("invalid duration hi"),
+				ExpectError: regexp.MustCompile("invalid duration \"hi\""),
 				Config:      testAccAlertNotificationConfig_invalid_frequency,
 			},
 		},
@@ -125,7 +125,7 @@ func testAccAlertNotificationDefinition(a *gapi.AlertNotification) resource.Test
 func testAccAlertNotificationCheckDestroy(a *gapi.AlertNotification) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*gapi.Client)
-		alert, err := client.AlertNotification(a.Id)
+		alert, err := client.AlertNotification(a.ID)
 		if err == nil && alert != nil {
 			return fmt.Errorf("alert-notification still exists")
 		}

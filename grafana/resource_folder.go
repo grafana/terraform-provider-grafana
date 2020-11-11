@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	gapi "github.com/nytm/go-grafana-api"
+	gapi "github.com/grafana/grafana-api-golang-client"
 )
 
 func ResourceFolder() *schema.Resource {
@@ -16,6 +17,9 @@ func ResourceFolder() *schema.Resource {
 		Create: CreateFolder,
 		Delete: DeleteFolder,
 		Read:   ReadFolder,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"uid": {
@@ -42,9 +46,9 @@ func CreateFolder(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	id := strconv.FormatInt(resp.Id, 10)
+	id := strconv.FormatInt(resp.ID, 10)
 	d.SetId(id)
-	d.Set("uid", resp.Uid)
+	d.Set("uid", resp.UID)
 	d.Set("title", resp.Title)
 
 	return ReadFolder(d, meta)
@@ -60,7 +64,7 @@ func ReadFolder(d *schema.ResourceData, meta interface{}) error {
 
 	folder, err := client.Folder(id)
 	if err != nil {
-		if err.Error() == "404 Not Found" {
+		if strings.HasPrefix(err.Error(), "status: 404") {
 			log.Printf("[WARN] removing folder %d from state because it no longer exists in grafana", id)
 			d.SetId("")
 			return nil
@@ -69,8 +73,9 @@ func ReadFolder(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.SetId(strconv.FormatInt(folder.Id, 10))
+	d.SetId(strconv.FormatInt(folder.ID, 10))
 	d.Set("title", folder.Title)
+	d.Set("uid", folder.UID)
 
 	return nil
 }
