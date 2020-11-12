@@ -147,11 +147,11 @@ func ResourceDataSource() *schema.Resource {
 							Optional: true,
 						},
 						"tsdb_resolution": {
-							Type:     schema.TypeString,
+							Type:     schema.TypeInt,
 							Optional: true,
 						},
 						"tsdb_version": {
-							Type:     schema.TypeString,
+							Type:     schema.TypeInt,
 							Optional: true,
 						},
 					},
@@ -364,8 +364,8 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		TLSAuth:                 d.Get("json_data.0.tls_auth").(bool),
 		TLSAuthWithCACert:       d.Get("json_data.0.tls_auth_with_ca_cert").(bool),
 		TLSSkipVerify:           d.Get("json_data.0.tls_skip_verify").(bool),
-		TsdbResolution:          d.Get("json_data.0.tsdb_resolution").(string),
-		TsdbVersion:             d.Get("json_data.0.tsdb_version").(string),
+		TsdbResolution:          int64(d.Get("json_data.0.tsdb_resolution").(int)),
+		TsdbVersion:             int64(d.Get("json_data.0.tsdb_version").(int)),
 	}
 }
 
