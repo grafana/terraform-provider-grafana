@@ -318,12 +318,12 @@ source selected (via the 'type' argument).
 							Description: "(Stackdriver) The token URI used, provided in the service account key.",
 						},
 						"tsdb_resolution": {
-							Type:        schema.TypeString,
+							Type:        schema.TypeInt,
 							Optional:    true,
 							Description: "(OpenTSDB) Resolution.",
 						},
 						"tsdb_version": {
-							Type:        schema.TypeString,
+							Type:        schema.TypeInt,
 							Optional:    true,
 							Description: "(OpenTSDB) Version.",
 						},
@@ -622,8 +622,8 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		TLSAuthWithCACert:          d.Get("json_data.0.tls_auth_with_ca_cert").(bool),
 		TLSSkipVerify:              d.Get("json_data.0.tls_skip_verify").(bool),
 		TokenURI:                   d.Get("json_data.0.token_uri").(string),
-		TsdbResolution:             d.Get("json_data.0.tsdb_resolution").(string),
-		TsdbVersion:                d.Get("json_data.0.tsdb_version").(string),
+		TsdbResolution:             int64(d.Get("json_data.0.tsdb_resolution").(int)),
+		TsdbVersion:                int64(d.Get("json_data.0.tsdb_version").(int)),
 		Version:                    d.Get("json_data.0.version").(string),
 		Workgroup:                  d.Get("json_data.0.workgroup").(string),
 	}
