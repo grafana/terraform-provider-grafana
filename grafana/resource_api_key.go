@@ -1,0 +1,118 @@
+package grafana
+
+import (
+	"context"
+	"strconv"
+
+	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+)
+
+func resourceApiKey() *schema.Resource {
+	return &schema.Resource{
+		CreateContext: resourceAPIKeyCreate,
+		ReadContext:   resourceAPIKeyRead,
+		DeleteContext: resourceAPIKeyDelete,
+
+		Schema: map[string]*schema.Schema{
+			"name": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+			"role": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+			"seconds_to_live": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
+			},
+			"id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"key": {
+				Type:      schema.TypeString,
+				Computed:  true,
+				Sensitive: true,
+			},
+			"expiration": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	name := d.Get("name").(string)
+	role := d.Get("role").(string)
+	ttl := d.Get("seconds_to_live").(int)
+
+	c := m.(*client).gapi
+	request := gapi.CreateAPIKeyRequest{Name: name, Role: role, SecondsToLive: int64(ttl)}
+	response, err := c.CreateAPIKey(request)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	d.Set("key", response.Key)
+
+	// Fill the true resource's state after a create by performing a read.
+	resourceAPIKeyRead(ctx, d, m)
+
+	return diags
+}
+
+func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	c := m.(*client).gapi
+	response, err := c.GetAPIKeys(true)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	name := d.Get("name").(string)
+	for _, key := range response {
+		if name == key.Name {
+			d.SetId(strconv.FormatInt(key.ID, 10))
+			d.Set("name", key.Name)
+			d.Set("role", key.Role)
+
+			if !key.Expiration.IsZero() {
+				d.Set("expiration", key.Expiration.String())
+			}
+
+			return diags
+		}
+	}
+
+	// Resource was not found via the client. Have Terraform destroy it.
+	d.SetId("")
+
+	return diags
+}
+
+func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	id, err := strconv.ParseInt(d.Id(), 10, 32)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	c := m.(*client).gapi
+	_, err = c.DeleteAPIKey(id)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diags
+}
