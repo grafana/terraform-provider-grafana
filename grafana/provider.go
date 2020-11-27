@@ -58,7 +58,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	cli.Transport = logging.NewTransport("Grafana", cli.Transport)
 	cfg := gapi.Config{
 		Client: cli,
-		OrgID:  d.Get("org_id").(int64),
+		OrgID:  int64(d.Get("org_id").(int)),
 	}
 	if len(auth) == 2 {
 		cfg.BasicAuth = url.UserPassword(auth[0], auth[1])
