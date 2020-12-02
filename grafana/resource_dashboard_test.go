@@ -176,7 +176,8 @@ resource "grafana_dashboard" "test" {
 {
     "title": "Terraform Acceptance Test",
     "id": 12,
-    "version": "43"
+    "version": "43",
+    "uid": "someuid"
 }
 EOT
 }
@@ -188,7 +189,8 @@ const testAccDashboardConfig_update = `
 resource "grafana_dashboard" "test" {
 	config_json = <<EOT
 {
-	"title": "Updated Title"
+	"title": "Updated Title",
+	"uid": "someuid"
 }
 EOT
 }
@@ -206,7 +208,8 @@ resource "grafana_dashboard" "test_folder" {
 {
     "title": "Terraform Folder Test Dashboard",
     "id": 12,
-    "version": "43"
+    "version": "43",
+    "uid": "someuid"
 }
 EOT
 }
@@ -216,7 +219,8 @@ const testAccDashboardConfig_disappear = `
 resource "grafana_dashboard" "test" {
     config_json = <<EOT
 {
-    "title": "Terraform Disappear Test"
+    "title": "Terraform Disappear Test",
+    "uid": "someuid"
 }
 EOT
 }
