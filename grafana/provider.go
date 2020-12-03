@@ -28,6 +28,12 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("GRAFANA_AUTH", nil),
 				Description: "Credentials for accessing the Grafana API.",
 			},
+			"org_id": {
+				Type:        schema.TypeInt,
+				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GRAFANA_ORG_ID", 1),
+				Description: "Organization id for resources",
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -52,6 +58,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	cli.Transport = logging.NewTransport("Grafana", cli.Transport)
 	cfg := gapi.Config{
 		Client: cli,
+		OrgID:  int64(d.Get("org_id").(int)),
 	}
 	if len(auth) == 2 {
 		cfg.BasicAuth = url.UserPassword(auth[0], auth[1])

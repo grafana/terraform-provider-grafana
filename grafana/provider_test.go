@@ -51,4 +51,7 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("GRAFANA_AUTH"); v == "" {
 		t.Fatal("GRAFANA_AUTH must be set for acceptance tests")
 	}
+	if v := os.Getenv("GRAFANA_ORG_ID"); v == "" {
+		t.Fatal("GRAFANA_ORG_ID must be set for acceptance tests")
+	}
 }
