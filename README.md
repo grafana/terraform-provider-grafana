@@ -32,12 +32,13 @@ Run [acceptance tests](https://www.terraform.io/docs/extend/testing/acceptance-t
 ```sh
 # In one terminal, run a Grafana container.
 # You may optionally override the image tag...
-# GRAFANA_VERSION=7.1.1 \
+# GRAFANA_VERSION=7.3.4 \
 make test-serve
 
 # In another...
 GRAFANA_URL=http://localhost:3000 \
 GRAFANA_AUTH=admin:admin \
+GRAFANA_ORG_ID=1 \
 make testacc
 ```
 

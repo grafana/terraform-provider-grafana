@@ -15,7 +15,7 @@ test: fmtcheck
 testacc: fmtcheck
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
 
-test-serv: fmtcheck
+test-serve: fmtcheck
 	@docker pull "grafana/grafana:$(GRAFANA_VERSION)"
 	docker run -p 127.0.0.1:3000:3000 "grafana/grafana:$(GRAFANA_VERSION)"
 
