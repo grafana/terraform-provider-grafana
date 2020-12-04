@@ -49,7 +49,8 @@ resource "grafana_dashboard" "test" {
 {
   "title": "Terraform Team Preferences Acceptance Test",
   "id": 13,
-  "version": "43"
+  "version": "43",
+  "uid": "someuid"
 }
 EOT
 }
@@ -71,7 +72,8 @@ resource "grafana_dashboard" "test" {
 {
   "title": "Terraform Team Preferences Acceptance Test",
   "id": 13,
-  "version": "43"
+  "version": "43",
+  "uid": "someuid"
 }
 EOT
 }
