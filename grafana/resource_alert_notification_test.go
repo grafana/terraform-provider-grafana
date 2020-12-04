@@ -38,7 +38,7 @@ func TestAccAlertNotification_basic(t *testing.T) {
 						"grafana_alert_notification.test", "frequency", "12h",
 					),
 					resource.TestCheckResourceAttr(
-						"grafana_alert_notification.test", "disable_resolve_message", "true",
+						"grafana_alert_notification.test", "disable_resolve_message", "false",
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_alert_notification.test", "settings.addresses", "foo@bar.test",
