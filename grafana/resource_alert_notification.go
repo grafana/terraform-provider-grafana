@@ -62,6 +62,12 @@ func ResourceAlertNotification() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+
+			"disable_resolve_message": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
 }
@@ -132,6 +138,9 @@ func ReadAlertNotification(d *schema.ResourceData, meta interface{}) error {
 	d.Set("type", alertNotification.Type)
 	d.Set("settings", settings)
 	d.Set("uid", alertNotification.UID)
+	d.Set("disable_resolve_message", alertNotification.DisableResolveMessage)
+	d.Set("send_reminder", alertNotification.SendReminder)
+	d.Set("frequency", alertNotification.Frequency)
 
 	return nil
 }
