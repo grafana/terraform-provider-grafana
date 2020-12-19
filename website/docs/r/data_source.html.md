@@ -17,7 +17,7 @@ source selected (via the `type` argument). The following examples are for
 InfluxDB, CloudWatch, and Google Stackdriver. See [Grafana's Data Sources Guides][datasources] for more details on
 the supported data source types and the arguments they use.
 
-[datasources]: https://grafana.com/docs/grafana/latest/features/datasources/
+[datasources]: https://grafana.com/docs/grafana/latest/datasources/#data-sources
 
 For an InfluxDB datasource:
 
