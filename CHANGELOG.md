@@ -1,5 +1,21 @@
 # Changelog
 
+## [v1.8.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.8.0) (2020-12-22)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.7.0...v1.8.0)
+
+**Closed issues:**
+
+- Issue initialising Grafana provider [\#148](https://github.com/grafana/terraform-provider-grafana/issues/148)
+- access grafana api via Kube proxy [\#139](https://github.com/grafana/terraform-provider-grafana/issues/139)
+
+**Merged pull requests:**
+
+- Add support for dashboard permissions [\#150](https://github.com/grafana/terraform-provider-grafana/pull/150) ([pascal-hofmann](https://github.com/pascal-hofmann))
+- Updated dead link in documentation - data\_sources [\#149](https://github.com/grafana/terraform-provider-grafana/pull/149) ([WilliamDahlen](https://github.com/WilliamDahlen))
+- Do not delete dashboard uid fields [\#136](https://github.com/grafana/terraform-provider-grafana/pull/136) ([gw0](https://github.com/gw0))
+- Add organization id to the provider. [\#110](https://github.com/grafana/terraform-provider-grafana/pull/110) ([medains](https://github.com/medains))
+
 ## [v1.7.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.7.0) (2020-11-06)
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.6.0...v1.7.0)
@@ -108,6 +124,7 @@
 - support boolean settings for alert notifications [\#37](https://github.com/grafana/terraform-provider-grafana/pull/37) ([DanCech](https://github.com/DanCech))
 - Add support for creating folders and creating dashboards inside folders [\#36](https://github.com/grafana/terraform-provider-grafana/pull/36) ([goraxe](https://github.com/goraxe))
 - Add missing quotes in grafana\_organization docs [\#32](https://github.com/grafana/terraform-provider-grafana/pull/32) ([illagrenan](https://github.com/illagrenan))
+- make: Add website + website-test targets [\#21](https://github.com/grafana/terraform-provider-grafana/pull/21) ([radeksimko](https://github.com/radeksimko))
 
 ## [v1.2.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.2.0) (2018-08-01)
 
@@ -129,7 +146,6 @@
 
 - fix\(Schema\): Mark arguments containing secrets as sensitive [\#28](https://github.com/grafana/terraform-provider-grafana/pull/28) ([donoftime](https://github.com/donoftime))
 - Change of Library [\#27](https://github.com/grafana/terraform-provider-grafana/pull/27) ([mlclmj](https://github.com/mlclmj))
-- make: Add website + website-test targets [\#21](https://github.com/grafana/terraform-provider-grafana/pull/21) ([radeksimko](https://github.com/radeksimko))
 
 ## [v1.0.2](https://github.com/grafana/terraform-provider-grafana/tree/v1.0.2) (2018-04-18)
 
