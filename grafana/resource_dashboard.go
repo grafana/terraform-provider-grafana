@@ -164,6 +164,7 @@ func NormalizeDashboardConfigJSON(configI interface{}) string {
 	// significant when included in the JSON.
 	delete(configMap, "id")
 	delete(configMap, "version")
+	delete(configMap, "uid")
 
 	ret, err := json.Marshal(configMap)
 	if err != nil {
