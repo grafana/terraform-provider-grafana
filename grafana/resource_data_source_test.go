@@ -263,15 +263,25 @@ resource "grafana_data_source" "testdata" {
 		resource "grafana_data_source" "stackdriver" {
 			type = "stackdriver"
 			name = "stackdriver"
+			json_data {
+				token_uri = "https://oauth2.googleapis.com/token"
+				authentication_type = "jwt"
+				default_project = "default-project"
+				client_email = "client-email@default-project.iam.gserviceaccount.com"
+			}			
 			secure_json_data {
 				private_key = "-----BEGIN PRIVATE KEY-----\nprivate-key\n-----END PRIVATE KEY-----\n"
 			}
 		}
 		`,
 		map[string]string{
-			"type":                           "stackdriver",
-			"name":                           "stackdriver",
-			"secure_json_data.0.private_key": "-----BEGIN PRIVATE KEY-----\nprivate-key\n-----END PRIVATE KEY-----\n",
+			"type":                            "stackdriver",
+			"name":                            "stackdriver",
+			"json_data.0.token_uri":           "https://oauth2.googleapis.com/token",
+			"json_data.0.authentication_type": "jwt",
+			"json_data.0.default_project":     "default-project",
+			"json_data.0.client_email":        "client-email@default-project.iam.gserviceaccount.com",
+			"secure_json_data.0.private_key":  "-----BEGIN PRIVATE KEY-----\nprivate-key\n-----END PRIVATE KEY-----\n",
 		},
 	},
 }

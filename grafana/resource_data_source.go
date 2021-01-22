@@ -62,11 +62,23 @@ func ResourceDataSource() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+						"authentication_type": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"client_email": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 						"conn_max_lifetime": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
 						"custom_metrics_namespaces": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"default_project": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -144,6 +156,10 @@ func ResourceDataSource() *schema.Resource {
 						},
 						"tls_skip_verify": {
 							Type:     schema.TypeBool,
+							Optional: true,
+						},
+						"token_uri": {
+							Type:     schema.TypeString,
 							Optional: true,
 						},
 						"tsdb_resolution": {
@@ -343,8 +359,11 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 	return gapi.JSONData{
 		AssumeRoleArn:           d.Get("json_data.0.assume_role_arn").(string),
 		AuthType:                d.Get("json_data.0.auth_type").(string),
+		AuthenticationType:      d.Get("json_data.0.authentication_type").(string),
+		ClientEmail:             d.Get("json_data.0.client_email").(string),
 		ConnMaxLifetime:         int64(d.Get("json_data.0.conn_max_lifetime").(int)),
 		CustomMetricsNamespaces: d.Get("json_data.0.custom_metrics_namespaces").(string),
+		DefaultProject:          d.Get("json_data.0.default_project").(string),
 		DefaultRegion:           d.Get("json_data.0.default_region").(string),
 		Encrypt:                 d.Get("json_data.0.encrypt").(string),
 		EsVersion:               int64(d.Get("json_data.0.es_version").(int)),
@@ -364,6 +383,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		TLSAuth:                 d.Get("json_data.0.tls_auth").(bool),
 		TLSAuthWithCACert:       d.Get("json_data.0.tls_auth_with_ca_cert").(bool),
 		TLSSkipVerify:           d.Get("json_data.0.tls_skip_verify").(bool),
+		TokenURI:                d.Get("json_data.0.token_uri").(string),
 		TsdbResolution:          d.Get("json_data.0.tsdb_resolution").(string),
 		TsdbVersion:             d.Get("json_data.0.tsdb_version").(string),
 	}
