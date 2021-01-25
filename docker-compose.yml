@@ -2,14 +2,12 @@ version: '3.8'
 
 services:
   grafana-provider:
-    build:
-      context: .
-      dockerfile: ./Dockerfile
-    image: terraform-provider-grafana
+    image: golang:1.14
     environment:
       - GRAFANA_URL=http://grafana:3000
       - GRAFANA_AUTH=admin:admin
       - GRAFANA_ORG_ID=1
+      - GOFLAGS=-mod=vendor
     depends_on:
     - grafana
 
