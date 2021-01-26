@@ -62,6 +62,12 @@ func ResourceAlertNotification() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+
+			"disable_resolve_message": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
 }
@@ -132,6 +138,9 @@ func ReadAlertNotification(d *schema.ResourceData, meta interface{}) error {
 	d.Set("type", alertNotification.Type)
 	d.Set("settings", settings)
 	d.Set("uid", alertNotification.UID)
+	d.Set("disable_resolve_message", alertNotification.DisableResolveMessage)
+	d.Set("send_reminder", alertNotification.SendReminder)
+	d.Set("frequency", alertNotification.Frequency)
 
 	return nil
 }
@@ -182,13 +191,14 @@ func makeAlertNotification(d *schema.ResourceData) (*gapi.AlertNotification, err
 	}
 
 	return &gapi.AlertNotification{
-		ID:           id,
-		Name:         d.Get("name").(string),
-		Type:         d.Get("type").(string),
-		IsDefault:    d.Get("is_default").(bool),
-		UID:          d.Get("uid").(string),
-		SendReminder: sendReminder,
-		Frequency:    frequency,
-		Settings:     settings,
+		ID:                    id,
+		Name:                  d.Get("name").(string),
+		Type:                  d.Get("type").(string),
+		IsDefault:             d.Get("is_default").(bool),
+		DisableResolveMessage: d.Get("disable_resolve_message").(bool),
+		UID:                   d.Get("uid").(string),
+		SendReminder:          sendReminder,
+		Frequency:             frequency,
+		Settings:              settings,
 	}, err
 }

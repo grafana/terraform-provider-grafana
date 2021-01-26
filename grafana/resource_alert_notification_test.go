@@ -38,6 +38,46 @@ func TestAccAlertNotification_basic(t *testing.T) {
 						"grafana_alert_notification.test", "frequency", "12h",
 					),
 					resource.TestCheckResourceAttr(
+						"grafana_alert_notification.test", "disable_resolve_message", "false",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_alert_notification.test", "settings.addresses", "foo@bar.test",
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAlertNotification_disableResolveMessage(t *testing.T) {
+	var alertNotification gapi.AlertNotification
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccAlertNotificationCheckDestroy(&alertNotification),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAlertNotificationConfig_disable_resolve_message,
+				Check: resource.ComposeTestCheckFunc(
+					testAccAlertNotificationCheckExists("grafana_alert_notification.test", &alertNotification),
+					testAccAlertNotificationDefinition(&alertNotification),
+					resource.TestCheckResourceAttr(
+						"grafana_alert_notification.test", "type", "email",
+					),
+					resource.TestMatchResourceAttr(
+						"grafana_alert_notification.test", "id", regexp.MustCompile(`\d+`),
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_alert_notification.test", "send_reminder", "true",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_alert_notification.test", "frequency", "12h",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_alert_notification.test", "disable_resolve_message", "true",
+					),
+					resource.TestCheckResourceAttr(
 						"grafana_alert_notification.test", "settings.addresses", "foo@bar.test",
 					),
 				),
@@ -55,7 +95,7 @@ func TestAccAlertNotification_invalid_frequence(t *testing.T) {
 		CheckDestroy: testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
 			{
-				ExpectError: regexp.MustCompile("invalid duration \"hi\""),
+				ExpectError: regexp.MustCompile("time: invalid duration hi"),
 				Config:      testAccAlertNotificationConfig_invalid_frequency,
 			},
 		},
@@ -133,6 +173,21 @@ resource "grafana_alert_notification" "test" {
     name = "terraform-acc-test"
 		send_reminder = true
 		frequency = "12h"
+    settings = {
+			"addresses" = "foo@bar.test"
+			"uploadImage" = "false"
+			"autoResolve" = "true"
+		}
+}
+`
+
+const testAccAlertNotificationConfig_disable_resolve_message = `
+resource "grafana_alert_notification" "test" {
+    type = "email"
+    name = "terraform-acc-test"
+		send_reminder = true
+		frequency = "12h"
+		disable_resolve_message = true
     settings = {
 			"addresses" = "foo@bar.test"
 			"uploadImage" = "false"
