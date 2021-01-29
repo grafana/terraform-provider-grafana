@@ -56,6 +56,9 @@ func TestAccUser_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"grafana_user.test", "password", "zyx987",
 					),
+					resource.TestCheckResourceAttr(
+						"grafana_user.test", "is_admin", "true",
+					),
 				),
 			},
 		},
@@ -103,6 +106,7 @@ resource "grafana_user" "test" {
   name     = "Terraform Test"
   login    = "tt"
   password = "abc123"
+  is_admin = false
 }
 `
 
@@ -112,5 +116,6 @@ resource "grafana_user" "test" {
   name     = "Terraform Test Update"
   login    = "ttu"
   password = "zyx987"
+  is_admin = true
 }
 `
