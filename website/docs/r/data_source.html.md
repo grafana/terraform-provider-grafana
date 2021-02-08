@@ -173,6 +173,9 @@ fields to operate properly.
 * `postgres_version` - (PostgreSQL) Postgres version as a number
   (903/904/905/906/1000) meaning v9.3, v9.4, …, v10.
 
+* `profile` - (CloudWatch) The credentials profile name to use when authentication
+  type is set as 'Credentials file'.
+
 * `query_timeout` - (Prometheus) Timeout for queries made to the Prometheus
   data source in seconds.
 

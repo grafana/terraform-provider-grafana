@@ -126,6 +126,10 @@ func ResourceDataSource() *schema.Resource {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
+						"profile": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 						"query_timeout": {
 							Type:     schema.TypeString,
 							Optional: true,
@@ -375,6 +379,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		MaxIdleConns:            int64(d.Get("json_data.0.max_idle_conns").(int)),
 		MaxOpenConns:            int64(d.Get("json_data.0.max_open_conns").(int)),
 		PostgresVersion:         int64(d.Get("json_data.0.postgres_version").(int)),
+		Profile:                 d.Get("json_data.0.profile").(string),
 		QueryTimeout:            d.Get("json_data.0.query_timeout").(string),
 		Sslmode:                 d.Get("json_data.0.ssl_mode").(string),
 		Timescaledb:             d.Get("json_data.0.timescaledb").(bool),
