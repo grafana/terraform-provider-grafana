@@ -4,10 +4,18 @@ WEBSITE_REPO=github.com/hashicorp/terraform-website
 PKG_NAME=grafana
 GRAFANA_VERSION ?= "latest"
 
+DOCKER_COMPOSE_DEVELOP=GRAFANA_VERSION=$(GRAFANA_VERSION) docker-compose -f ./docker-compose.yml -f ./docker-compose.develop.yml
+
 default: build
 
 build: fmtcheck
 	go install
+
+develop-docker:
+	@$(DOCKER_COMPOSE_DEVELOP) run --rm grafana-provider bash; $(DOCKER_COMPOSE_DEVELOP) down -v
+
+testacc-docker:
+	@$(DOCKER_COMPOSE_DEVELOP) run --rm grafana-provider make testacc; $(DOCKER_COMPOSE_DEVELOP) down -v
 
 test: fmtcheck
 	go test $(TEST) $(TESTARGS) -timeout=30s -parallel=4

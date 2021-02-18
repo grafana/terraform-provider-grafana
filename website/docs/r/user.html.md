@@ -22,6 +22,7 @@ resource "grafana_user" "staff" {
   name     = "Staff Name"
   login    = "staff"
   password = "my-password"
+  is_admin = false
 }
 ```
 
@@ -33,6 +34,7 @@ The following arguments are supported:
 * `name` - (Optional) The display name for the Grafana user.
 * `login` - (Optional) The username for the Grafana user.
 * `password` - (Optional) The password for the Grafana user.
+* `is_admin` - (Optional, default if `false`) The admin privileges for the Grafana user.
 
 ## Attributes Reference
 

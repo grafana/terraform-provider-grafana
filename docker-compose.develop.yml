@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+  grafana-provider:
+    command: bash
+    working_dir: /go/src/github.com/terraform-providers/terraform-provider-grafana
+    volumes:
+      - .:/go/src/github.com/terraform-providers/terraform-provider-grafana

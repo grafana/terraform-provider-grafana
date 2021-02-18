@@ -30,6 +30,12 @@ make test
 Run [acceptance tests](https://www.terraform.io/docs/extend/testing/acceptance-tests/index.html):
 
 ```sh
+You could run the acceptance tests inside docker or outside of docker
+
+make testacc-docker.
+
+Alternatively,
+
 # In one terminal, run a Grafana container.
 # You may optionally override the image tag...
 # GRAFANA_VERSION=7.3.4 \

@@ -1,15 +1,15 @@
 ---
 layout: "grafana"
-page_title: "Grafana: grafana_folder_permission"
-sidebar_current: "docs-grafana-resource-folder-permission"
+page_title: "Grafana: grafana_dashboard_permission"
+sidebar_current: "docs-grafana-resource-dashboard-permission"
 description: |-
-  The grafana_folder_permission resource allows a Grafana folder's permissions to be maintained
+  The grafana_dashboard_permission resource allows a Grafana dashboard's permissions to be maintained
 ---
 
-# grafana\_folder\_permission
+# grafana\_dashboard\_permission
 
-The folder permission resource allows permissions to be set for a given folder. Note: all permissions
-must be specified for the given folder, including those for the default `Viewer` and `Editor` roles.
+The dashboard permission resource allows permissions to be set for a given dashboard. Note: all permissions
+must be specified for the given dashboard, including those for the default `Viewer` and `Editor` roles.
 
 ## Example Usage
 
@@ -22,12 +22,12 @@ resource "grafana_user" "user" {
   email = "user.name@example.com"
 }
 
-resource "grafana_folder" "collection" {
-  title = "Folder Title"
+resource "grafana_dashboard" "metrics" {
+  config_json = file("grafana-dashboard.json")
 }
 
-resource "grafana_folder_permission" "collectionPermission" {
-  folder_uid = grafana_folder.collection.uid
+resource "grafana_dashboard_permission" "collectionPermission" {
+  dashboard_uid = grafana_dashboard.metrics.dashboard_id
   permissions {
     role       = "Editor"
     permission = "Edit"
@@ -47,7 +47,7 @@ resource "grafana_folder_permission" "collectionPermission" {
 
 The following arguments are supported:
 
-* `folder_uid` - (Required) The UID of the folder
+* `dashboard_id` - (Required) The ID of the dashboard
 * `permissions` - (Required) The specified permission for the role, team, or user. 
                   `permissions` is described in more detail below. 
 
@@ -63,4 +63,4 @@ The role, team, or user must be specified, but only one can be given for each
 
 ## Import
 
-Folder permissions cannot be imported.
+Dashboard permissions cannot be imported.

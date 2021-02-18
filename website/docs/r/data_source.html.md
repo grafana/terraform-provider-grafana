@@ -17,7 +17,7 @@ source selected (via the `type` argument). The following examples are for
 InfluxDB, CloudWatch, and Google Stackdriver. See [Grafana's Data Sources Guides][datasources] for more details on
 the supported data source types and the arguments they use.
 
-[datasources]: https://grafana.com/docs/grafana/latest/features/datasources/
+[datasources]: https://grafana.com/docs/grafana/latest/datasources/#data-sources
 
 For an InfluxDB datasource:
 
@@ -57,6 +57,13 @@ For a Stackdriver datasource:
 resource "grafana_data_source" "test_stackdriver" {
   type = "stackdriver"
   name = "sd-example"
+
+  json_data {
+    token_uri = "https://oauth2.googleapis.com/token"
+    authentication_type = "jwt"
+    default_project = "default-project"
+    client_email = "client-email@default-project.iam.gserviceaccount.com"
+  }
 
   secure_json_data {
     private_key = "-----BEGIN PRIVATE KEY-----\nprivate-key\n-----END PRIVATE KEY-----\n"
@@ -121,8 +128,12 @@ fields to operate properly.
 * `assume_role_arn` - (CloudWatch) The ARN of the role to be assumed by Grafana
   when using the CloudWatch data source.
 
-* `auth_type` - (CloudWatch) The authentication type type used to access the
+* `auth_type` - (CloudWatch) The authentication type used to access the
   data source.
+
+* `authentication_type` - (Stackdriver) The authentication type. 'jwt' or 'gce'
+
+* `client_email` - (Stackdriver) Email address associated with [service account key](https://cloud.google.com/iam/docs/creating-managing-service-account-keys).
 
 * `conn_max_lifetime` - (MySQL, PostgreSQL, and MSSQL) Maximum amount of time in
   seconds a connection may be reused (Grafana v5.4+).
@@ -130,6 +141,8 @@ fields to operate properly.
 * `custom_metrics_namespaces` - (CloudWatch)
   A comma-separated list of custom namespaces to be queried by the CloudWatch
   data source.
+
+* `default_project` - (Stackdriver) The default project for the data source.
 
 * `default_region` - (CloudWatch) The default region for the data source.
 
@@ -160,6 +173,9 @@ fields to operate properly.
 * `postgres_version` - (PostgreSQL) Postgres version as a number
   (903/904/905/906/1000) meaning v9.3, v9.4, …, v10.
 
+* `profile` - (CloudWatch) The credentials profile name to use when authentication
+  type is set as 'Credentials file'.
+
 * `query_timeout` - (Prometheus) Timeout for queries made to the Prometheus
   data source in seconds.
 
@@ -180,6 +196,8 @@ fields to operate properly.
 
 * `tls_skip_verify` - (All) Controls whether a client verifies the server’s
   certificate chain and host name.
+
+* `token_uri` - (Stackdriver) The token URI used, provided in the [service account key](https://cloud.google.com/iam/docs/creating-managing-service-account-keys).
 
 * `tsdb_resolution` - (OpenTSDB) Resolution.
 

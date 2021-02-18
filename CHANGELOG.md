@@ -1,5 +1,34 @@
 # Changelog
 
+## [v1.8.1](https://github.com/grafana/terraform-provider-grafana/tree/v1.8.1) (2020-12-24)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.8.0...v1.8.1)
+
+**Fixed bugs:**
+
+- Delete UID in NormalizeDashboardConfigJSON [\#153](https://github.com/grafana/terraform-provider-grafana/pull/153) ([trotttrotttrott](https://github.com/trotttrotttrott))
+
+**Closed issues:**
+
+- uid is always updated in previously created dashboards [\#152](https://github.com/grafana/terraform-provider-grafana/issues/152)
+- Repeated updates to uid in 1.8.0 [\#151](https://github.com/grafana/terraform-provider-grafana/issues/151)
+
+## [v1.8.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.8.0) (2020-12-22)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.7.0...v1.8.0)
+
+**Closed issues:**
+
+- Issue initialising Grafana provider [\#148](https://github.com/grafana/terraform-provider-grafana/issues/148)
+- access grafana api via Kube proxy [\#139](https://github.com/grafana/terraform-provider-grafana/issues/139)
+
+**Merged pull requests:**
+
+- Add support for dashboard permissions [\#150](https://github.com/grafana/terraform-provider-grafana/pull/150) ([pascal-hofmann](https://github.com/pascal-hofmann))
+- Updated dead link in documentation - data\_sources [\#149](https://github.com/grafana/terraform-provider-grafana/pull/149) ([WilliamDahlen](https://github.com/WilliamDahlen))
+- Do not delete dashboard uid fields [\#136](https://github.com/grafana/terraform-provider-grafana/pull/136) ([gw0](https://github.com/gw0))
+- Add organization id to the provider. [\#110](https://github.com/grafana/terraform-provider-grafana/pull/110) ([medains](https://github.com/medains))
+
 ## [v1.7.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.7.0) (2020-11-06)
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.6.0...v1.7.0)

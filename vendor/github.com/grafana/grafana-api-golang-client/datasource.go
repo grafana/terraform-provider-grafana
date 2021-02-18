@@ -56,6 +56,7 @@ type JSONData struct {
 	AssumeRoleArn           string `json:"assumeRoleArn,omitempty"`
 	DefaultRegion           string `json:"defaultRegion,omitempty"`
 	CustomMetricsNamespaces string `json:"customMetricsNamespaces,omitempty"`
+	Profile                 string `json:"profile,omitempty"`
 
 	// Used by OpenTSDB
 	TsdbVersion    string `json:"tsdbVersion,omitempty"`

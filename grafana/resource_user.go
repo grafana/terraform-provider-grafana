@@ -37,6 +37,11 @@ func ResourceUser() *schema.Resource {
 				Required:  true,
 				Sensitive: true,
 			},
+			"is_admin": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
 }
@@ -52,6 +57,12 @@ func CreateUser(d *schema.ResourceData, meta interface{}) error {
 	id, err := client.CreateUser(user)
 	if err != nil {
 		return err
+	}
+	if d.HasChange("is_admin") {
+		err = client.UpdateUserPermissions(id, d.Get("is_admin").(bool))
+		if err != nil {
+			return err
+		}
 	}
 	d.SetId(strconv.FormatInt(id, 10))
 	return ReadUser(d, meta)
@@ -70,6 +81,7 @@ func ReadUser(d *schema.ResourceData, meta interface{}) error {
 	d.Set("email", user.Email)
 	d.Set("name", user.Name)
 	d.Set("login", user.Login)
+	d.Set("is_admin", user.IsAdmin)
 	return nil
 }
 
@@ -91,6 +103,12 @@ func UpdateUser(d *schema.ResourceData, meta interface{}) error {
 	}
 	if d.HasChange("password") {
 		err = client.UpdateUserPassword(id, d.Get("password").(string))
+		if err != nil {
+			return err
+		}
+	}
+	if d.HasChange("is_admin") {
+		err = client.UpdateUserPermissions(id, d.Get("is_admin").(bool))
 		if err != nil {
 			return err
 		}
