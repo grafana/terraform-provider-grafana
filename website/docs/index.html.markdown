@@ -20,27 +20,27 @@ The provider configuration block accepts the following arguments:
 * `auth` - (Required) The API token or username/password to use to authenticate
   to the Grafana server. If username/password is used, they are provided in a
   single string and separated by a colon. May alternatively be set via the
-  ``GRAFANA_AUTH`` environment variable.
+  `GRAFANA_AUTH` environment variable.
 
-* org_id - (Required) The organization id to operate on within grafana.
-  Default org_id is 1.  May alternatively be set via the
-  GRAFANA_ORG_ID environment variable.
+* `org_id` - (Required) The organization id to operate on within grafana.
+  Default is 1.  May alternatively be set via the `GRAFANA_ORG_ID` environment
+  variable.
 
-* ``tls_key`` - (Optional) Client TLS key file to use to authenticate to the
-  Grafana server. May alternatively be set via the ``GRAFANA_TLS_KEY``
+* `tls_key` - (Optional) Client TLS key file to use to authenticate to the
+  Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY`
   environment variable.
 
-* ``tls_cert`` - (Optional) Client TLS certificate file to use to authenticate
-  to the Grafana server. May alternatively be set via the ``GRAFANA_TLS_CERT``
+* `tls_cert` - (Optional) Client TLS certificate file to use to authenticate
+  to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT`
   environment variable.
 
-* ``ca_cert`` - (Optional) Certificate CA bundle to use to verify the
-  Grafana server's certifiate.. May alternatively be set via the
-  ``GRAFANA_CA_CERT`` environment variable.
+* `ca_cert` - (Optional) Certificate CA bundle to use to verify the Grafana
+  server's certifiate. May alternatively be set via the `GRAFANA_CA_CERT`
+  environment variable.
 
-* ``insecure_skip_verify`` - (Optional) Bool. Disable verification of the
-  Grafana Server's certificate. May alternatively be set via the
-  ``GRAFANA_INSECURE_SKIP_VERIFY`` environment variable.
+* `insecure_skip_verify` - (Optional) Bool. Disable verification of the Grafana
+  Server's certificate. May alternatively be set via the
+  `GRAFANA_INSECURE_SKIP_VERIFY` environment variable.
 
 Use the navigation to the left to read about the available resources.
 
