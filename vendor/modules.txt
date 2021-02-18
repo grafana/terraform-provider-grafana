@@ -79,7 +79,7 @@ github.com/googleapis/gax-go/v2
 github.com/grafana/grafana-api-golang-client
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
-# github.com/hashicorp/go-cleanhttp v0.5.1
+# github.com/hashicorp/go-cleanhttp v0.5.2
 ## explicit
 github.com/hashicorp/go-cleanhttp
 # github.com/hashicorp/go-getter v1.3.0
