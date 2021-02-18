@@ -10,7 +10,7 @@ platform:
 steps:
 
 - name: tests
-  image: golang:1-16
+  image: golang:1.16
   commands:
   - make vet
   - make test
