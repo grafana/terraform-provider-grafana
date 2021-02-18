@@ -29,7 +29,7 @@ test-serve: fmtcheck
 
 test-serve-tls: fmtcheck
 	GRAFANA_VERSION=$(GRAFANA_VERSION) \
-		docker-compose up --abort-on-container-exit --renew-anon-volumes
+		docker-compose -f ./docker-compose.tls.yml up --abort-on-container-exit --renew-anon-volumes
 
 vet:
 	@echo "go vet ."
