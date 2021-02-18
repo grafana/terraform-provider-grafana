@@ -27,6 +27,10 @@ test-serve: fmtcheck
 	@docker pull "grafana/grafana:$(GRAFANA_VERSION)"
 	docker run -p 127.0.0.1:3000:3000 "grafana/grafana:$(GRAFANA_VERSION)"
 
+test-serve-tls: fmtcheck
+	GRAFANA_VERSION=$(GRAFANA_VERSION) \
+		docker-compose -f ./docker-compose.tls.yml up --abort-on-container-exit --renew-anon-volumes
+
 vet:
 	@echo "go vet ."
 	@go vet $$(go list ./... | grep -v vendor/) ; if [ $$? -eq 1 ]; then \
