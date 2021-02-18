@@ -1,6 +1,6 @@
 module github.com/terraform-providers/terraform-provider-grafana
 
-go 1.14
+go 1.16
 
 require (
 	github.com/grafana/grafana-api-golang-client v0.0.0-20210204123314-0aa501c4b8c4
