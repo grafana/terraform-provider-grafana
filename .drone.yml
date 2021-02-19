@@ -1,0 +1,29 @@
+---
+kind: pipeline
+type: docker
+name: test-pr
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+
+- name: tests
+  image: golang:1.16
+  commands:
+  - make vet
+  - make test
+  - make testacc
+  environment:
+    GRAFANA_URL: http://grafana:3000
+    GRAFANA_AUTH: admin:admin
+    GRAFANA_ORG_ID: 1
+
+services:
+- name: grafana
+  image: grafana/grafana:7.4.2
+
+trigger:
+  event:
+  - pull_request
