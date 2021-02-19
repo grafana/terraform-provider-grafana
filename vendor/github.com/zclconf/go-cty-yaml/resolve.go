@@ -20,6 +20,25 @@ type resolveMapItem struct {
 var resolveTable = make([]byte, 256)
 var resolveMap = make(map[string]resolveMapItem)
 
+// Numeric literal regular expressions from the YAML 1.2 spec:
+//
+// https://yaml.org/spec/1.2/spec.html#id2805071
+var integerLiteralRegexp = regexp.MustCompile(`` +
+	// start of string, optional sign, and one of:
+	`\A[-+]?(` +
+	// octal literal with 0o prefix and optional _ spaces
+	`|0o[0-7_]+` +
+	// decimal literal and optional _ spaces
+	`|[0-9_]+` +
+	// hexadecimal literal with 0x prefix and optional _ spaces
+	`|0x[0-9a-fA-F_]+` +
+	// end of group, and end of string
+	`)\z`,
+)
+var floatLiteralRegexp = regexp.MustCompile(
+	`\A[-+]?(\.[0-9]+|[0-9]+(\.[0-9]*)?)([eE][-+]?[0-9]+)?\z`,
+)
+
 func init() {
 	t := resolveTable
 	t[int('+')] = 'S' // Sign
@@ -84,7 +103,7 @@ func resolvableTag(tag string) bool {
 
 var yamlStyleFloat = regexp.MustCompile(`^[-+]?(\.[0-9]+|[0-9]+(\.[0-9]*)?)([eE][-+]?[0-9]+)?$`)
 
-func (c *Converter) resolveScalar(tag string, src string) (cty.Value, error) {
+func (c *Converter) resolveScalar(tag string, src string, style yaml_scalar_style_t) (cty.Value, error) {
 	if !resolvableTag(tag) {
 		return cty.NilVal, fmt.Errorf("unsupported tag %q", tag)
 	}
@@ -96,6 +115,10 @@ func (c *Converter) resolveScalar(tag string, src string) (cty.Value, error) {
 		hint = resolveTable[src[0]]
 	}
 	if hint != 0 && tag != yaml_STR_TAG && tag != yaml_BINARY_TAG {
+		if style == yaml_SINGLE_QUOTED_SCALAR_STYLE || style == yaml_DOUBLE_QUOTED_SCALAR_STYLE {
+			return cty.StringVal(src), nil
+		}
+
 		// Handle things we can lookup in a map.
 		if item, ok := resolveMap[src]; ok {
 			return item.value, nil
@@ -136,12 +159,13 @@ func (c *Converter) resolveScalar(tag string, src string) (cty.Value, error) {
 				}
 			}
 
-			plain := strings.Replace(src, "_", "", -1)
-			if numberVal, err := cty.ParseNumberVal(plain); err == nil {
-				return numberVal, nil
-			}
-			if strings.HasPrefix(plain, "0b") || strings.HasPrefix(plain, "-0b") {
+			if integerLiteralRegexp.MatchString(src) {
 				tag = yaml_INT_TAG // will handle parsing below in our tag switch
+				break
+			}
+			if floatLiteralRegexp.MatchString(src) {
+				tag = yaml_FLOAT_TAG // will handle parsing below in our tag switch
+				break
 			}
 		default:
 			panic(fmt.Sprintf("cannot resolve tag %q with source %q", tag, src))
@@ -182,21 +206,6 @@ func (c *Converter) resolveScalar(tag string, src string) (cty.Value, error) {
 		}
 		if uintv, err := strconv.ParseUint(plain, 0, 64); err == nil { // handles 0x and 00 prefixes
 			return cty.NumberUIntVal(uintv), nil
-		}
-		if strings.HasPrefix(plain, "0b") {
-			intv, err := strconv.ParseInt(plain[2:], 2, 64)
-			if err == nil {
-				return cty.NumberIntVal(intv), nil
-			}
-			uintv, err := strconv.ParseUint(plain[2:], 2, 64)
-			if err == nil {
-				return cty.NumberUIntVal(uintv), nil
-			}
-		} else if strings.HasPrefix(plain, "-0b") {
-			intv, err := strconv.ParseInt("-"+plain[3:], 2, 64)
-			if err == nil {
-				return cty.NumberIntVal(intv), nil
-			}
 		}
 		return cty.NilVal, fmt.Errorf("cannot parse %q as %s", src, tag)
 	case yaml_TIMESTAMP_TAG:
