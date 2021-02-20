@@ -51,7 +51,7 @@ In addition to all arguments above, the following attributes are exported:
 
 ## Import
 
-Existing organizations can be imported using the dashboard "slug" which can be
+Existing dashboards can be imported using the dashboard "slug" which can be
 obtained from the url of the dashboard in Grafana (e.g. `https://grafana.mydomain.com/d/abcdef-gh/dashboard-slug`)
 
 ```
