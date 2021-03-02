@@ -1,5 +1,34 @@
 # Changelog
 
+## [v1.9.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.9.0) (2021-03-02)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.8.1...v1.9.0)
+
+**Implemented enhancements:**
+
+- Refactor CI [\#158](https://github.com/grafana/terraform-provider-grafana/issues/158)
+- \[feature request\] Support "sendReminder" and "frequency" options in the alert notification resource [\#62](https://github.com/grafana/terraform-provider-grafana/issues/62)
+
+**Closed issues:**
+
+- Unable to set "Credentials profile name" for CloudWatch in grafana\_data\_source [\#154](https://github.com/grafana/terraform-provider-grafana/issues/154)
+- support mTLS client certs when connecting to Grafana [\#107](https://github.com/grafana/terraform-provider-grafana/issues/107)
+- \[enhancement\] resource/datasource: Incomplete Stackdriver Support [\#105](https://github.com/grafana/terraform-provider-grafana/issues/105)
+
+**Merged pull requests:**
+
+- Allow dependabot to check github actions [\#171](https://github.com/grafana/terraform-provider-grafana/pull/171) ([jlosito](https://github.com/jlosito))
+- Fix typo in dashboard.html.md [\#170](https://github.com/grafana/terraform-provider-grafana/pull/170) ([asmgf](https://github.com/asmgf))
+- Drone Pipeline: build-master  [\#169](https://github.com/grafana/terraform-provider-grafana/pull/169) ([trotttrotttrott](https://github.com/trotttrotttrott))
+- Refactor CI: Use Drone and Go 1.16 [\#168](https://github.com/grafana/terraform-provider-grafana/pull/168) ([trotttrotttrott](https://github.com/trotttrotttrott))
+- Bump github.com/hashicorp/go-cleanhttp from 0.5.1 to 0.5.2 [\#167](https://github.com/grafana/terraform-provider-grafana/pull/167) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Allow dependabot to check go modules [\#165](https://github.com/grafana/terraform-provider-grafana/pull/165) ([jlosito](https://github.com/jlosito))
+- Adding profile field to JSON Data [\#164](https://github.com/grafana/terraform-provider-grafana/pull/164) ([grlvrl](https://github.com/grlvrl))
+- is\_admin added to grafana\_user. [\#157](https://github.com/grafana/terraform-provider-grafana/pull/157) ([AlirezaKm](https://github.com/AlirezaKm))
+- Add full Stackdriver data source support [\#155](https://github.com/grafana/terraform-provider-grafana/pull/155) ([ryanaross](https://github.com/ryanaross))
+- r/grafana\_alert\_notification Add disable\_resolve\_message [\#145](https://github.com/grafana/terraform-provider-grafana/pull/145) ([Puneeth-n](https://github.com/Puneeth-n))
+- feat: add new TLS configuration options [\#133](https://github.com/grafana/terraform-provider-grafana/pull/133) ([joemiller](https://github.com/joemiller))
+
 ## [v1.8.1](https://github.com/grafana/terraform-provider-grafana/tree/v1.8.1) (2020-12-24)
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.8.0...v1.8.1)
