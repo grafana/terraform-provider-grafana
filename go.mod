@@ -1,4 +1,4 @@
-module github.com/terraform-providers/terraform-provider-grafana
+module github.com/grafana/terraform-provider-grafana
 
 go 1.16
 
