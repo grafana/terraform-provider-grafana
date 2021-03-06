@@ -7,5 +7,4 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/terraform-plugin-sdk v1.16.0
-	github.com/hashicorp/terraform-plugin-test v1.2.0 // indirect
 )
