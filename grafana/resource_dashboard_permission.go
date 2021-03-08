@@ -118,7 +118,7 @@ func ReadDashboardPermissions(d *schema.ResourceData, meta interface{}) error {
 			permissionItem["user_id"] = permission.UserID
 			permissionItem["permission"] = mapPermissionInt64ToString(permission.Permission)
 
-			permissionItems[count] = permission
+			permissionItems[count] = permissionItem
 			count++
 		}
 	}
