@@ -37,12 +37,12 @@ func ResourceDashboardPermission() *schema.Resource {
 						"team_id": {
 							Type:     schema.TypeInt,
 							Optional: true,
-							Default:  -1,
+							Default:  0,
 						},
 						"user_id": {
 							Type:     schema.TypeInt,
 							Optional: true,
-							Default:  -1,
+							Default:  0,
 						},
 						"permission": {
 							Type:         schema.TypeString,
