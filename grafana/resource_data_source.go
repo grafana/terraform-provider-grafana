@@ -5,7 +5,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 )
@@ -304,7 +304,7 @@ func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set("id", dataSource.ID)
+	d.SetId(strconv.FormatInt(dataSource.ID, 10))
 	d.Set("access_mode", dataSource.Access)
 	d.Set("basic_auth_enabled", dataSource.BasicAuth)
 	d.Set("basic_auth_username", dataSource.BasicAuthUser)

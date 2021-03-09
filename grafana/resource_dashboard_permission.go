@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 )
@@ -37,12 +37,12 @@ func ResourceDashboardPermission() *schema.Resource {
 						"team_id": {
 							Type:     schema.TypeInt,
 							Optional: true,
-							Default:  -1,
+							Default:  0,
 						},
 						"user_id": {
 							Type:     schema.TypeInt,
 							Optional: true,
-							Default:  -1,
+							Default:  0,
 						},
 						"permission": {
 							Type:         schema.TypeString,
@@ -118,7 +118,7 @@ func ReadDashboardPermissions(d *schema.ResourceData, meta interface{}) error {
 			permissionItem["user_id"] = permission.UserID
 			permissionItem["permission"] = mapPermissionInt64ToString(permission.Permission)
 
-			permissionItems[count] = permission
+			permissionItems[count] = permissionItem
 			count++
 		}
 	}

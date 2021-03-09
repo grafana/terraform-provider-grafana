@@ -8,7 +8,7 @@ import (
 	"time"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 var (
@@ -132,7 +132,7 @@ func ReadAlertNotification(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	d.Set("id", alertNotification.ID)
+	d.SetId(strconv.FormatInt(alertNotification.ID, 10))
 	d.Set("is_default", alertNotification.IsDefault)
 	d.Set("name", alertNotification.Name)
 	d.Set("type", alertNotification.Type)

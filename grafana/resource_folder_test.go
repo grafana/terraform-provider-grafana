@@ -8,8 +8,8 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccFolder_basic(t *testing.T) {

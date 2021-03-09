@@ -13,6 +13,10 @@
 - Grafana Chat: [Grafana #terraform Slack channel](https://grafana.slack.com/archives/C017MUCFJUT)
 - Terraform Mailing List: [Google Groups](http://groups.google.com/group/terraform-tool)
 
+## Requirements
+
+* [Terraform](https://www.terraform.io/downloads.html) 0.12+
+
 ## Development
 
 If you're new to provider development, a good place to start is the [Extending
