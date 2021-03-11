@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-
+	"strings"	
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -296,7 +296,7 @@ func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 
 	dataSource, err := client.DataSource(id)
 	if err != nil {
-		if err.Error() == "404 Not Found" {
+		if strings.HasPrefix(err.Error(), "status: 404") {
 			log.Printf("[WARN] removing datasource %s from state because it no longer exists in grafana", d.Get("name").(string))
 			d.SetId("")
 			return nil
