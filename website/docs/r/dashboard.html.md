@@ -14,7 +14,7 @@ The dashboard resource allows a dashboard to be created on a Grafana server.
 
 ```hcl
 resource "grafana_dashboard" "metrics" {
-  config_json = "${file("grafana-dashboard.json")}"
+  config_json = file("grafana-dashboard.json")
 }
 ```
 

@@ -28,7 +28,7 @@ resource "grafana_data_source" "metrics" {
   url           = "http://influxdb.example.net:8086/"
   username      = "myapp"
   password      = "foobarbaz"
-  database_name = "${influxdb_database.metrics.name}"
+  database_name = influxdb_database.metrics.name
 }
 ```
 

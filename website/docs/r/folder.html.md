@@ -18,7 +18,7 @@ resource "grafana_folder" "collection" {
 }
 
 resource "grafana_dashboard" "dashboard_in_folder" {
-  folder = "${grafana_folder.collection.id}"
+  folder = grafana_folder.collection.id
   ...
 }
 ```
