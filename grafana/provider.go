@@ -1,6 +1,7 @@
 package grafana
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"io/ioutil"
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -75,11 +77,11 @@ func Provider() *schema.Provider {
 			"grafana_user":                 ResourceUser(),
 		},
 
-		ConfigureFunc: providerConfigure,
+		ConfigureContextFunc: providerConfigure,
 	}
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	auth := strings.SplitN(d.Get("auth").(string), ":", 2)
 	cli := cleanhttp.DefaultClient()
 	transport := cleanhttp.DefaultTransport()
@@ -93,7 +95,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	if caCert != "" {
 		ca, err := ioutil.ReadFile(caCert)
 		if err != nil {
-			return nil, err
+			return nil, diag.FromErr(err)
 		}
 		pool := x509.NewCertPool()
 		pool.AppendCertsFromPEM(ca)
@@ -102,7 +104,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	if tlsKey != "" && tlsCert != "" {
 		cert, err := tls.LoadX509KeyPair(tlsCert, tlsKey)
 		if err != nil {
-			return nil, err
+			return nil, diag.FromErr(err)
 		}
 		transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
 	}
@@ -122,7 +124,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 	client, err := gapi.New(d.Get("url").(string), cfg)
 	if err != nil {
-		return nil, err
+		return nil, diag.FromErr(err)
 	}
 
 	return client, nil
