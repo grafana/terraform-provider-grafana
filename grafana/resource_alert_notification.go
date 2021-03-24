@@ -99,8 +99,7 @@ func UpdateAlertNotification(ctx context.Context, d *schema.ResourceData, meta i
 		return diag.FromErr(err)
 	}
 
-	err = client.UpdateAlertNotification(alertNotification)
-	if err != nil {
+	if err = client.UpdateAlertNotification(alertNotification); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -160,8 +159,7 @@ func DeleteAlertNotification(ctx context.Context, d *schema.ResourceData, meta i
 		return diag.Errorf("Invalid id: %#v", idStr)
 	}
 
-	err = client.DeleteAlertNotification(id)
-	if err != nil {
+	if err = client.DeleteAlertNotification(id); err != nil {
 		return diag.FromErr(err)
 	}
 

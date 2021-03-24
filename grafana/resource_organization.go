@@ -99,8 +99,7 @@ func CreateOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(orgId, 10))
-	err = UpdateUsers(d, meta)
-	if err != nil {
+	if err = UpdateUsers(d, meta); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -136,8 +135,7 @@ func UpdateOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 			return diag.FromErr(err)
 		}
 	}
-	err := UpdateUsers(d, meta)
-	if err != nil {
+	if err := UpdateUsers(d, meta); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -147,8 +145,7 @@ func UpdateOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 func DeleteOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
-	err := client.DeleteOrg(orgId)
-	if err != nil {
+	if err := client.DeleteOrg(orgId); err != nil {
 		return diag.FromErr(err)
 	}
 

@@ -124,8 +124,7 @@ func DeleteUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	err = client.DeleteUser(id)
-	if err != nil {
+	if err = client.DeleteUser(id); err != nil {
 		return diag.FromErr(err)
 	}
 

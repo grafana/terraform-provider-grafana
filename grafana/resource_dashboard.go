@@ -125,8 +125,7 @@ func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 	client := meta.(*gapi.Client)
 
 	slug := d.Id()
-	err := client.DeleteDashboard(slug)
-	if err != nil {
+	if err := client.DeleteDashboard(slug); err != nil {
 		return diag.FromErr(err)
 	}
 

@@ -85,8 +85,7 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
-	err := client.DeleteFolder(d.Get("uid").(string))
-	if err != nil {
+	if err := client.DeleteFolder(d.Get("uid").(string)); err != nil {
 		return diag.FromErr(err)
 	}
 

@@ -75,8 +75,7 @@ func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	}
 
 	d.SetId(strconv.FormatInt(teamID, 10))
-	err = UpdateMembers(d, meta)
-	if err != nil {
+	if err = UpdateMembers(d, meta); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -114,8 +113,7 @@ func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 			return diag.FromErr(err)
 		}
 	}
-	err := UpdateMembers(d, meta)
-	if err != nil {
+	if err := UpdateMembers(d, meta); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -125,8 +123,7 @@ func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 func DeleteTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	err := client.DeleteTeam(teamID)
-	if err != nil {
+	if err := client.DeleteTeam(teamID); err != nil {
 		return diag.FromErr(err)
 	}
 

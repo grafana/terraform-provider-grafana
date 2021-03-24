@@ -282,8 +282,7 @@ func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta interfac
 		return diag.FromErr(err)
 	}
 
-	err = client.UpdateDataSource(dataSource)
-	if err != nil {
+	if err = client.UpdateDataSource(dataSource); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -336,8 +335,7 @@ func DeleteDataSource(ctx context.Context, d *schema.ResourceData, meta interfac
 		return diag.Errorf("Invalid id: %#v", idStr)
 	}
 
-	err = client.DeleteDataSource(id)
-	if err != nil {
+	if err = client.DeleteDataSource(id); err != nil {
 		return diag.FromErr(err)
 	}
 
