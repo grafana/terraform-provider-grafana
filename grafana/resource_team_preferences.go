@@ -1,9 +1,11 @@
 package grafana
 
 import (
+	"context"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
@@ -12,10 +14,10 @@ import (
 
 func ResourceTeamPreferences() *schema.Resource {
 	return &schema.Resource{
-		Create: UpdateTeamPreferences,
-		Read:   ReadTeamPreferences,
-		Update: UpdateTeamPreferences,
-		Delete: DeleteTeamPreferences,
+		CreateContext: UpdateTeamPreferences,
+		ReadContext:   ReadTeamPreferences,
+		UpdateContext: UpdateTeamPreferences,
+		DeleteContext: DeleteTeamPreferences,
 
 		Schema: map[string]*schema.Schema{
 			"team_id": {
@@ -41,7 +43,7 @@ func ResourceTeamPreferences() *schema.Resource {
 	}
 }
 
-func UpdateTeamPreferences(d *schema.ResourceData, meta interface{}) error {
+func UpdateTeamPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	teamID := int64(d.Get("team_id").(int))
@@ -57,20 +59,20 @@ func UpdateTeamPreferences(d *schema.ResourceData, meta interface{}) error {
 
 	err := client.UpdateTeamPreferences(teamID, preferences)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return ReadTeamPreferences(d, meta)
+	return ReadTeamPreferences(ctx, d, meta)
 }
 
-func ReadTeamPreferences(d *schema.ResourceData, meta interface{}) error {
+func ReadTeamPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	teamID := int64(d.Get("team_id").(int))
 
 	preferences, err := client.TeamPreferences(teamID)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(teamID, 10))
@@ -81,7 +83,7 @@ func ReadTeamPreferences(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func DeleteTeamPreferences(d *schema.ResourceData, meta interface{}) error {
+func DeleteTeamPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	//there is no delete call for team preferences. instead we will just remove
 	//the specified preferences and go back to the default values. note: if the
 	//call fails because the team no longer exists - we'll just ignore the error
@@ -97,7 +99,7 @@ func DeleteTeamPreferences(d *schema.ResourceData, meta interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

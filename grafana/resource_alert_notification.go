@@ -157,7 +157,7 @@ func DeleteAlertNotification(ctx context.Context, d *schema.ResourceData, meta i
 	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return diag.Errorf("Invalid id: %#v, error: %v", idStr, err)
+		return diag.Errorf("Invalid id: %#v", idStr)
 	}
 
 	err = client.DeleteAlertNotification(id)
