@@ -38,7 +38,7 @@ func ResourceTeam() *schema.Resource {
 		DeleteContext: DeleteTeam,
 		Exists:        ExistsTeam,
 		Importer: &schema.ResourceImporter{
-			StateContext: ImportTeam,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -141,18 +141,6 @@ func ExistsTeam(d *schema.ResourceData, meta interface{}) (bool, error) {
 		return false, err
 	}
 	return true, err
-}
-
-func ImportTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	exists, err := ExistsTeam(d, meta)
-	if err != nil || !exists {
-		return nil, errors.New(fmt.Sprintf("Error: Unable to import Grafana Team: %s.", err))
-	}
-	diags := ReadTeam(ctx, d, meta)
-	if diags != nil {
-		return nil, err
-	}
-	return []*schema.ResourceData{d}, nil
 }
 
 func ReadMembers(d *schema.ResourceData, meta interface{}) error {

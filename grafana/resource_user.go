@@ -2,8 +2,6 @@ package grafana
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"strconv"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -19,7 +17,7 @@ func ResourceUser() *schema.Resource {
 		DeleteContext: DeleteUser,
 		Exists:        ExistsUser,
 		Importer: &schema.ResourceImporter{
-			StateContext: ImportUser,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"email": {
@@ -139,16 +137,4 @@ func ExistsUser(d *schema.ResourceData, meta interface{}) (bool, error) {
 		return false, err
 	}
 	return true, nil
-}
-
-func ImportUser(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	exists, err := ExistsUser(d, meta)
-	if err != nil || !exists {
-		return nil, errors.New(fmt.Sprintf("Error: Unable to import Grafana User: %s.", err))
-	}
-	diags := ReadUser(ctx, d, meta)
-	if diags != nil {
-		return nil, err
-	}
-	return []*schema.ResourceData{d}, nil
 }

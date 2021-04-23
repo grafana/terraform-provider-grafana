@@ -41,7 +41,7 @@ func ResourceOrganization() *schema.Resource {
 		DeleteContext: DeleteOrganization,
 		Exists:        ExistsOrganization,
 		Importer: &schema.ResourceImporter{
-			StateContext: ImportOrganization,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -163,20 +163,6 @@ func ExistsOrganization(d *schema.ResourceData, meta interface{}) (bool, error) 
 		return false, err
 	}
 	return true, err
-}
-
-func ImportOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	exists, err := ExistsOrganization(d, meta)
-	if err != nil || !exists {
-		return nil, errors.New(fmt.Sprintf("Error: Unable to import Grafana Organization: %s.", err))
-	}
-	d.Set("admin_user", "admin")
-	d.Set("create_users", "true")
-	diags := ReadOrganization(ctx, d, meta)
-	if diags != nil {
-		return nil, err
-	}
-	return []*schema.ResourceData{d}, nil
 }
 
 func ReadUsers(d *schema.ResourceData, meta interface{}) error {
