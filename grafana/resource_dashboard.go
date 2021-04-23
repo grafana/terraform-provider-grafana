@@ -20,7 +20,7 @@ func ResourceDashboard() *schema.Resource {
 		UpdateContext: UpdateDashboard,
 		DeleteContext: DeleteDashboard,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthroughContext,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{

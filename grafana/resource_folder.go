@@ -20,7 +20,7 @@ func ResourceFolder() *schema.Resource {
 		DeleteContext: DeleteFolder,
 		ReadContext:   ReadFolder,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthroughContext,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
