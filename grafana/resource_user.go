@@ -1,23 +1,23 @@
 package grafana
 
 import (
-	"errors"
-	"fmt"
+	"context"
 	"strconv"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func ResourceUser() *schema.Resource {
 	return &schema.Resource{
-		Create: CreateUser,
-		Read:   ReadUser,
-		Update: UpdateUser,
-		Delete: DeleteUser,
-		Exists: ExistsUser,
+		CreateContext: CreateUser,
+		ReadContext:   ReadUser,
+		UpdateContext: UpdateUser,
+		DeleteContext: DeleteUser,
+		Exists:        ExistsUser,
 		Importer: &schema.ResourceImporter{
-			State: ImportUser,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
 			"email": {
@@ -46,7 +46,7 @@ func ResourceUser() *schema.Resource {
 	}
 }
 
-func CreateUser(d *schema.ResourceData, meta interface{}) error {
+func CreateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 	user := gapi.User{
 		Email:    d.Get("email").(string),
@@ -56,27 +56,27 @@ func CreateUser(d *schema.ResourceData, meta interface{}) error {
 	}
 	id, err := client.CreateUser(user)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if d.HasChange("is_admin") {
 		err = client.UpdateUserPermissions(id, d.Get("is_admin").(bool))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 	d.SetId(strconv.FormatInt(id, 10))
-	return ReadUser(d, meta)
+	return ReadUser(ctx, d, meta)
 }
 
-func ReadUser(d *schema.ResourceData, meta interface{}) error {
+func ReadUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	user, err := client.User(id)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.Set("email", user.Email)
 	d.Set("name", user.Name)
@@ -85,11 +85,11 @@ func ReadUser(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func UpdateUser(d *schema.ResourceData, meta interface{}) error {
+func UpdateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	u := gapi.User{
 		ID:    id,
@@ -99,30 +99,34 @@ func UpdateUser(d *schema.ResourceData, meta interface{}) error {
 	}
 	err = client.UserUpdate(u)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if d.HasChange("password") {
 		err = client.UpdateUserPassword(id, d.Get("password").(string))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 	if d.HasChange("is_admin") {
 		err = client.UpdateUserPermissions(id, d.Get("is_admin").(bool))
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
-	return ReadUser(d, meta)
+	return ReadUser(ctx, d, meta)
 }
 
-func DeleteUser(d *schema.ResourceData, meta interface{}) error {
+func DeleteUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	return client.DeleteUser(id)
+	if err = client.DeleteUser(id); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.Diagnostics{}
 }
 
 func ExistsUser(d *schema.ResourceData, meta interface{}) (bool, error) {
@@ -133,16 +137,4 @@ func ExistsUser(d *schema.ResourceData, meta interface{}) (bool, error) {
 		return false, err
 	}
 	return true, nil
-}
-
-func ImportUser(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	exists, err := ExistsUser(d, meta)
-	if err != nil || !exists {
-		return nil, errors.New(fmt.Sprintf("Error: Unable to import Grafana User: %s.", err))
-	}
-	err = ReadUser(d, meta)
-	if err != nil {
-		return nil, err
-	}
-	return []*schema.ResourceData{d}, nil
 }

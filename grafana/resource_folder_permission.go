@@ -1,9 +1,11 @@
 package grafana
 
 import (
+	"context"
 	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
@@ -12,10 +14,10 @@ import (
 
 func ResourceFolderPermission() *schema.Resource {
 	return &schema.Resource{
-		Create: UpdateFolderPermissions,
-		Read:   ReadFolderPermissions,
-		Update: UpdateFolderPermissions,
-		Delete: DeleteFolderPermissions,
+		CreateContext: UpdateFolderPermissions,
+		ReadContext:   ReadFolderPermissions,
+		UpdateContext: UpdateFolderPermissions,
+		DeleteContext: DeleteFolderPermissions,
 
 		Schema: map[string]*schema.Schema{
 			"folder_uid": {
@@ -55,7 +57,7 @@ func ResourceFolderPermission() *schema.Resource {
 	}
 }
 
-func UpdateFolderPermissions(d *schema.ResourceData, meta interface{}) error {
+func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	v, ok := d.GetOk("permissions")
@@ -83,15 +85,15 @@ func UpdateFolderPermissions(d *schema.ResourceData, meta interface{}) error {
 
 	err := client.UpdateFolderPermissions(folderUID, &permissionList)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(folderUID)
 
-	return ReadFolderPermissions(d, meta)
+	return ReadFolderPermissions(ctx, d, meta)
 }
 
-func ReadFolderPermissions(d *schema.ResourceData, meta interface{}) error {
+func ReadFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	folderUID := d.Get("folder_uid").(string)
@@ -104,7 +106,7 @@ func ReadFolderPermissions(d *schema.ResourceData, meta interface{}) error {
 			return nil
 		}
 
-		return err
+		return diag.FromErr(err)
 	}
 
 	permissionItems := make([]interface{}, len(folderPermissions))
@@ -127,7 +129,7 @@ func ReadFolderPermissions(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func DeleteFolderPermissions(d *schema.ResourceData, meta interface{}) error {
+func DeleteFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	//since permissions are tied to folders, we can't really delete the permissions.
 	//we will simply remove all permissions, leaving a folder that only an admin can access.
 	//if for some reason the parent folder doesn't exist, we'll just ignore the error
@@ -142,7 +144,7 @@ func DeleteFolderPermissions(d *schema.ResourceData, meta interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

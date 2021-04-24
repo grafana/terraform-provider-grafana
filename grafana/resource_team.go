@@ -1,6 +1,7 @@
 package grafana
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -30,13 +32,13 @@ const (
 
 func ResourceTeam() *schema.Resource {
 	return &schema.Resource{
-		Create: CreateTeam,
-		Read:   ReadTeam,
-		Update: UpdateTeam,
-		Delete: DeleteTeam,
-		Exists: ExistsTeam,
+		CreateContext: CreateTeam,
+		ReadContext:   ReadTeam,
+		UpdateContext: UpdateTeam,
+		DeleteContext: DeleteTeam,
+		Exists:        ExistsTeam,
 		Importer: &schema.ResourceImporter{
-			State: ImportTeam,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -63,20 +65,24 @@ func ResourceTeam() *schema.Resource {
 	}
 }
 
-func CreateTeam(d *schema.ResourceData, meta interface{}) error {
+func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 	name := d.Get("name").(string)
 	email := d.Get("email").(string)
 	teamID, err := client.AddTeam(name, email)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(teamID, 10))
-	return UpdateMembers(d, meta)
+	if err = UpdateMembers(d, meta); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.Diagnostics{}
 }
 
-func ReadTeam(d *schema.ResourceData, meta interface{}) error {
+func ReadTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	resp, err := client.Team(teamID)
@@ -86,17 +92,17 @@ func ReadTeam(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.Set("name", resp.Name)
 	d.Set("email", resp.Email)
 	if err := ReadMembers(d, meta); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	return nil
 }
 
-func UpdateTeam(d *schema.ResourceData, meta interface{}) error {
+func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	if d.HasChange("name") || d.HasChange("email") {
@@ -104,16 +110,24 @@ func UpdateTeam(d *schema.ResourceData, meta interface{}) error {
 		email := d.Get("email").(string)
 		err := client.UpdateTeam(teamID, name, email)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
-	return UpdateMembers(d, meta)
+	if err := UpdateMembers(d, meta); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.Diagnostics{}
 }
 
-func DeleteTeam(d *schema.ResourceData, meta interface{}) error {
+func DeleteTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	return client.DeleteTeam(teamID)
+	if err := client.DeleteTeam(teamID); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.Diagnostics{}
 }
 
 func ExistsTeam(d *schema.ResourceData, meta interface{}) (bool, error) {
@@ -127,18 +141,6 @@ func ExistsTeam(d *schema.ResourceData, meta interface{}) (bool, error) {
 		return false, err
 	}
 	return true, err
-}
-
-func ImportTeam(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	exists, err := ExistsTeam(d, meta)
-	if err != nil || !exists {
-		return nil, errors.New(fmt.Sprintf("Error: Unable to import Grafana Team: %s.", err))
-	}
-	err = ReadTeam(d, meta)
-	if err != nil {
-		return nil, err
-	}
-	return []*schema.ResourceData{d}, nil
 }
 
 func ReadMembers(d *schema.ResourceData, meta interface{}) error {

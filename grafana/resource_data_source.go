@@ -1,10 +1,11 @@
 package grafana
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -12,10 +13,10 @@ import (
 
 func ResourceDataSource() *schema.Resource {
 	return &schema.Resource{
-		Create: CreateDataSource,
-		Update: UpdateDataSource,
-		Delete: DeleteDataSource,
-		Read:   ReadDataSource,
+		CreateContext: CreateDataSource,
+		UpdateContext: UpdateDataSource,
+		DeleteContext: DeleteDataSource,
+		ReadContext:   ReadDataSource,
 
 		Schema: map[string]*schema.Schema{
 			"access_mode": {
@@ -254,44 +255,48 @@ func ResourceDataSource() *schema.Resource {
 }
 
 // CreateDataSource creates a Grafana datasource
-func CreateDataSource(d *schema.ResourceData, meta interface{}) error {
+func CreateDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	dataSource, err := makeDataSource(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	id, err := client.NewDataSource(dataSource)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(id, 10))
 
-	return ReadDataSource(d, meta)
+	return ReadDataSource(ctx, d, meta)
 }
 
 // UpdateDataSource updates a Grafana datasource
-func UpdateDataSource(d *schema.ResourceData, meta interface{}) error {
+func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	dataSource, err := makeDataSource(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return client.UpdateDataSource(dataSource)
+	if err = client.UpdateDataSource(dataSource); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.Diagnostics{}
 }
 
 // ReadDataSource reads a Grafana datasource
-func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
+func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return fmt.Errorf("Invalid id: %#v", idStr)
+		return diag.Errorf("Invalid id: %#v", idStr)
 	}
 
 	dataSource, err := client.DataSource(id)
@@ -301,7 +306,7 @@ func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(dataSource.ID, 10))
@@ -321,16 +326,20 @@ func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 }
 
 // DeleteDataSource deletes a Grafana datasource
-func DeleteDataSource(d *schema.ResourceData, meta interface{}) error {
+func DeleteDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return fmt.Errorf("Invalid id: %#v", idStr)
+		return diag.Errorf("Invalid id: %#v", idStr)
 	}
 
-	return client.DeleteDataSource(id)
+	if err = client.DeleteDataSource(id); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.Diagnostics{}
 }
 
 func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {

@@ -1,6 +1,7 @@
 package grafana
 
 import (
+	"context"
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -33,13 +35,13 @@ const (
 
 func ResourceOrganization() *schema.Resource {
 	return &schema.Resource{
-		Create: CreateOrganization,
-		Read:   ReadOrganization,
-		Update: UpdateOrganization,
-		Delete: DeleteOrganization,
-		Exists: ExistsOrganization,
+		CreateContext: CreateOrganization,
+		ReadContext:   ReadOrganization,
+		UpdateContext: UpdateOrganization,
+		DeleteContext: DeleteOrganization,
+		Exists:        ExistsOrganization,
 		Importer: &schema.ResourceImporter{
-			State: ImportOrganization,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -86,21 +88,25 @@ func ResourceOrganization() *schema.Resource {
 	}
 }
 
-func CreateOrganization(d *schema.ResourceData, meta interface{}) error {
+func CreateOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 	name := d.Get("name").(string)
 	orgId, err := client.NewOrg(name)
 	if err != nil && err.Error() == "409 Conflict" {
-		return errors.New(fmt.Sprintf("Error: A Grafana Organization with the name '%s' already exists.", name))
+		return diag.Errorf("Error: A Grafana Organization with the name '%s' already exists.", name)
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(orgId, 10))
-	return UpdateUsers(d, meta)
+	if err = UpdateUsers(d, meta); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.Diagnostics{}
 }
 
-func ReadOrganization(d *schema.ResourceData, meta interface{}) error {
+func ReadOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
 	resp, err := client.Org(orgId)
@@ -110,32 +116,40 @@ func ReadOrganization(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.Set("name", resp.Name)
 	if err := ReadUsers(d, meta); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	return nil
 }
 
-func UpdateOrganization(d *schema.ResourceData, meta interface{}) error {
+func UpdateOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
 	if d.HasChange("name") {
 		name := d.Get("name").(string)
 		err := client.UpdateOrg(orgId, name)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
-	return UpdateUsers(d, meta)
+	if err := UpdateUsers(d, meta); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.Diagnostics{}
 }
 
-func DeleteOrganization(d *schema.ResourceData, meta interface{}) error {
+func DeleteOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
-	return client.DeleteOrg(orgId)
+	if err := client.DeleteOrg(orgId); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.Diagnostics{}
 }
 
 func ExistsOrganization(d *schema.ResourceData, meta interface{}) (bool, error) {
@@ -149,20 +163,6 @@ func ExistsOrganization(d *schema.ResourceData, meta interface{}) (bool, error) 
 		return false, err
 	}
 	return true, err
-}
-
-func ImportOrganization(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	exists, err := ExistsOrganization(d, meta)
-	if err != nil || !exists {
-		return nil, errors.New(fmt.Sprintf("Error: Unable to import Grafana Organization: %s.", err))
-	}
-	d.Set("admin_user", "admin")
-	d.Set("create_users", "true")
-	err = ReadOrganization(d, meta)
-	if err != nil {
-		return nil, err
-	}
-	return []*schema.ResourceData{d}, nil
 }
 
 func ReadUsers(d *schema.ResourceData, meta interface{}) error {
