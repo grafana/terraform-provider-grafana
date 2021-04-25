@@ -1,5 +1,8 @@
 GRAFANA_VERSION ?= latest
 
+testacc:
+	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
+
 testacc-docker:
 	GRAFANA_VERSION=$(GRAFANA_VERSION) \
 		docker-compose \
@@ -14,9 +17,6 @@ testacc-docker-tls:
 		-f ./docker-compose.tls.yml \
 		run --rm grafana-provider \
 		make testacc
-
-testacc:
-	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
 
 changelog:
 	@test $${RELEASE_VERSION?Please set environment variable RELEASE_VERSION}
