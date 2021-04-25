@@ -6,12 +6,9 @@
 
 [![Build Status](https://drone.grafana.net/api/badges/grafana/terraform-provider-grafana/status.svg)](https://drone.grafana.net/grafana/terraform-provider-grafana)
 
-- Terraform website: https://terraform.io
 - Grafana website: https://grafana.com
 - Provider Documentation: https://registry.terraform.io/providers/grafana/grafana/latest/docs
-- Terraform Chat: [Terraform Gitter](https://gitter.im/hashicorp-terraform/Lobby)
 - Grafana Chat: [Grafana #terraform Slack channel](https://grafana.slack.com/archives/C017MUCFJUT)
-- Terraform Mailing List: [Google Groups](http://groups.google.com/group/terraform-tool)
 
 ## Requirements
 
@@ -23,53 +20,28 @@ If you're new to provider development, a good place to start is the [Extending
 Terraform](https://www.terraform.io/docs/extend/index.html) docs.
 
 Set up your local environment by installing [Go](http://www.golang.org). Also
-recommended is [Docker](https://docs.docker.com/install/). Docker is not
-required, but it makes running a local Grafana instance for acceptance tests
-very easy.
+[Docker](https://docs.docker.com/install/) can be used for running tests.
 
-Run [unit tests](https://www.terraform.io/docs/extend/testing/unit-testing.html):
+### Running Tests
+
+Acceptance tests require a running instance of Grafana. You can either handle
+unning an instance of Grafana yourself or use `docker-compose`.
+
+If you choose `docker-compose`, run `make testacc-docker`. This is the simplest
+option, but often not the quickest.
+
+Alternatively you can use the `testacc` target which will use your local `go`
+installation:
 
 ```sh
-make test
-```
+# Assuming Grafana was run with:
+# docker run --rm -p 3000:3000 grafana/grafana
 
-Run [acceptance tests](https://www.terraform.io/docs/extend/testing/acceptance-tests/index.html):
-
-```sh
-You could run the acceptance tests inside docker or outside of docker
-
-make testacc-docker.
-
-Alternatively,
-
-# In one terminal, run a Grafana container.
-# You may optionally override the image tag...
-# GRAFANA_VERSION=7.3.4 \
-make test-serve
-
-# Alternatively, run Grafana with TLS:
-# GRAFANA_VERSION=7.3.4 \
-# make test-serve-tls
-
-# In another...
 GRAFANA_URL=http://localhost:3000 \
 GRAFANA_AUTH=admin:admin \
 GRAFANA_ORG_ID=1 \
 make testacc
-
-# Alternatively, run acceptance tests with TLS client certs:
-# GRAFANA_URL=https://localhost:3001 \
-# GRAFANA_ORG_ID=1 \
-# GRAFANA_AUTH=admin:admin \
-# GRAFANA_TLS_KEY=$PWD/testdata/client.key \
-# GRAFANA_TLS_CERT=$PWD/testdata/client.crt \
-# GRAFANA_CA_CERT=$PWD/testdata/ca.crt \
-# make testacc
 ```
-
-This codebase leverages
-[grafana/grafana-api-golang-client](https://github.com/grafana/grafana-api-golang-client) as its Grafana API
-client. All resources and data sources should leverage this.
 
 ## Releasing
 
@@ -78,17 +50,36 @@ Builds and releases are automated with GitHub Actions and
 managed with
 [github-changelog-generator](https://github.com/github-changelog-generator/github-changelog-generator).
 
-Create a new release with the `release` Make target:
+Currently there are a few manual steps to this:
 
-```
-RELEASE_VERSION=v... \
-CHANGELOG_GITHUB_TOKEN=... \
-make release
-```
+1. Update the changelog:
 
-Once the command exits, you can monitor the rest of the process on the [Actions
-UI](https://github.com/grafana/terraform-provider-grafana/actions?query=workflow%3Arelease).
+   ```sh
+   RELEASE_VERSION=v... \
+   CHANGELOG_GITHUB_TOKEN=... \
+   make changelog
+   ```
 
-The Action creates the release, but leaves it in "draft" state. Open it up in a
-[browser](https://github.com/grafana/terraform-provider-grafana/releases) and if
-all looks well, mash the publish button.
+   This will commit the changelog locally.
+
+2. Review generated changelog and push:
+
+   View the committed changelog with `git show`. If all is well `git push origin
+   master`.
+
+3. Kick off the release:
+
+   ```sh
+   RELEASE_VERSION=v... \
+   make release
+   ```
+
+   Once the command exits, you can monitor the rest of the process on the
+   [Actions
+   UI](https://github.com/grafana/terraform-provider-grafana/actions?query=workflow%3Arelease).
+
+4. Publish release:
+
+   The Action creates the release, but leaves it in "draft" state. Open it up in
+   a [browser](https://github.com/grafana/terraform-provider-grafana/releases)
+   and if all looks well, mash the publish button.
