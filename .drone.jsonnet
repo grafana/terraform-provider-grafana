@@ -16,8 +16,6 @@ local pipeline(name, trigger) = {
       name: 'tests',
       image: golang,
       commands: [
-        'make vet',
-        'make test',
         'make testacc',
       ],
       environment: {
