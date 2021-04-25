@@ -31,5 +31,6 @@ changelog:
 	@git add CHANGELOG.md && git commit -m "Release $$RELEASE_VERSION"
 
 release:
+	@test $${RELEASE_VERSION?Please set environment variable RELEASE_VERSION}
 	@git tag $$RELEASE_VERSION
 	@git push origin $$RELEASE_VERSION
