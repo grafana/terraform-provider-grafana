@@ -16,6 +16,12 @@ import (
 
 func ResourceFolder() *schema.Resource {
 	return &schema.Resource{
+
+		Description: `
+* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/dashboard_folders/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/folder/)
+`,
+
 		CreateContext: CreateFolder,
 		DeleteContext: DeleteFolder,
 		ReadContext:   ReadFolder,
@@ -25,14 +31,16 @@ func ResourceFolder() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"uid": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Unique identifier.",
 			},
 
 			"title": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The title of the folder.",
 			},
 		},
 	}
