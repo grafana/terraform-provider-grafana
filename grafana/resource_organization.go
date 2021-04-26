@@ -35,6 +35,12 @@ const (
 
 func ResourceOrganization() *schema.Resource {
 	return &schema.Resource{
+
+		Description: `
+* [Official documentation](https://grafana.com/docs/grafana/latest/manage-users/server-admin/server-admin-manage-orgs/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/org/)
+`,
+
 		CreateContext: CreateOrganization,
 		ReadContext:   ReadOrganization,
 		UpdateContext: UpdateOrganization,
@@ -46,22 +52,39 @@ func ResourceOrganization() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The display name for the Grafana organization created.",
 			},
 			"admin_user": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "admin",
+				Description: `
+The login name of the configured default admin user for the Grafana
+installation. If unset, this value defaults to admin, the Grafana default.
+Grafana adds the default admin user to all organizations automatically upon
+creation, and this parameter keeps Terraform from removing it from
+organizations.
+`,
 			},
 			"create_users": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
+				Description: `
+Whether or not to create Grafana users specified in the organization's
+membership if they don't already exist in Grafana. If unspecified, this
+parameter defaults to true, creating placeholder users with the name, login,
+and email set to the email of the user, and a random password. Setting this
+option to false will cause an error to be thrown for any users that do not
+already exist in Grafana.
+`,
 			},
 			"org_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The organization id assigned to this organization by Grafana.",
 			},
 			"admins": {
 				Type:     schema.TypeSet,
@@ -69,6 +92,11 @@ func ResourceOrganization() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Description: `
+A list of email addresses corresponding to users who should be given admin
+access to the organization. Note: users specified here must already exist in
+Grafana unless 'create_users' is set to true.
+`,
 			},
 			"editors": {
 				Type:     schema.TypeSet,
@@ -76,6 +104,11 @@ func ResourceOrganization() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Description: `
+A list of email addresses corresponding to users who should be given editor
+access to the organization. Note: users specified here must already exist in
+Grafana unless 'create_users' is set to true.
+`,
 			},
 			"viewers": {
 				Type:     schema.TypeSet,
@@ -83,6 +116,11 @@ func ResourceOrganization() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Description: `
+A list of email addresses corresponding to users who should be given viewer
+access to the organization. Note: users specified here must already exist in
+Grafana unless 'create_users' is set to true.
+`,
 			},
 		},
 	}
