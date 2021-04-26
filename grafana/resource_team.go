@@ -32,6 +32,12 @@ const (
 
 func ResourceTeam() *schema.Resource {
 	return &schema.Resource{
+
+		Description: `
+* [Official documentation](https://grafana.com/docs/grafana/latest/manage-users/manage-teams/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/team/)
+`,
+
 		CreateContext: CreateTeam,
 		ReadContext:   ReadTeam,
 		UpdateContext: UpdateTeam,
@@ -43,16 +49,19 @@ func ResourceTeam() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"team_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The team id assigned to this team by Grafana.",
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The display name for the Grafana team created.",
 			},
 			"email": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "An email address for the team.",
 			},
 			"members": {
 				Type:     schema.TypeList,
@@ -60,6 +69,10 @@ func ResourceTeam() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Description: `
+A list of email addresses corresponding to users who should be given membership
+to the team. Note: users specified here must already exist in Grafana.
+`,
 			},
 		},
 	}
