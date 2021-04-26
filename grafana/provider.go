@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"io/ioutil"
 	"net/url"
 	"strings"
@@ -15,6 +16,17 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 )
+
+func init() {
+	schema.DescriptionKind = schema.StringMarkdown
+	schema.SchemaDescriptionBuilder = func(s *schema.Schema) string {
+		desc := s.Description
+		if s.Default != nil {
+			desc += fmt.Sprintf(" Defaults to `%v`.", s.Default)
+		}
+		return strings.TrimSpace(desc)
+	}
+}
 
 func Provider() *schema.Provider {
 	return &schema.Provider{
@@ -36,7 +48,7 @@ func Provider() *schema.Provider {
 				Type:        schema.TypeInt,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GRAFANA_ORG_ID", 1),
-				Description: "The organization id to operate on within grafana. Defaults to 1. May alternatively be set via the `GRAFANA_ORG_ID` environment variable.",
+				Description: "The organization id to operate on within grafana. May alternatively be set via the `GRAFANA_ORG_ID` environment variable.",
 			},
 			"tls_key": {
 				Type:        schema.TypeString,
