@@ -14,6 +14,12 @@ import (
 
 func ResourceTeamPreferences() *schema.Resource {
 	return &schema.Resource{
+
+		Description: `
+* [Official documentation](https://grafana.com/docs/grafana/latest/administration/preferences/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/team/)
+`,
+
 		CreateContext: UpdateTeamPreferences,
 		ReadContext:   ReadTeamPreferences,
 		UpdateContext: UpdateTeamPreferences,
@@ -21,23 +27,27 @@ func ResourceTeamPreferences() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"team_id": {
-				Type:     schema.TypeInt,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeInt,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The numeric team ID.",
 			},
 			"theme": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice([]string{"light", "dark", ""}, false),
+				Description:  "The theme for the specified team. Available themes are `light`, `dark`, or an empty string for the default theme.",
 			},
 			"home_dashboard_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The numeric ID of the dashboard to display when a team member logs in.",
 			},
 			"timezone": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice([]string{"utc", "browser", ""}, false),
+				Description:  "The timezone for the specified team. Available values are `utc`, `browser`, or an empty string for the default.",
 			},
 		},
 	}
