@@ -24,6 +24,9 @@ resource "grafana_alert_notification" "email_someteam" {
     addresses   = "foo@example.net;bar@example.net"
     uploadImage = "false"
   }
+  secure_settings = {
+    apiKey = "xxx-yyyy"
+  }
 }
 ```
 
@@ -38,6 +41,7 @@ The following arguments are supported:
 * `frequency` - (Optional) Frequency of alert reminders. Frequency must be set if reminders are enabled.
 * `disable_resolve_message` - (Optional) Whether to disable sending resolve messages.
 * `settings` - (Optional) Additional settings, for full reference lookup [Grafana HTTP API documentation](https://grafana.com/docs/grafana/latest/http_api/alerting_notification_channels/).
+* `secure_settings` - (Optional) Additional secure_settings, for full reference lookup [Grafana Supported Settings documentation](https://grafana.com/docs/grafana/latest/administration/provisioning/#supported-settings).
 
 **Note:** In `settings` the strings `"true"` and `"false"` are mapped to boolean `true` and `false` when sent to Grafana.
 
