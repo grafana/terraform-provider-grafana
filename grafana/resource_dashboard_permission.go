@@ -15,6 +15,12 @@ import (
 
 func ResourceDashboardPermission() *schema.Resource {
 	return &schema.Resource{
+
+		Description: `
+* [Official documentation](https://grafana.com/docs/grafana/latest/permissions/dashboard_folder_permissions/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/dashboard_permissions/)
+`,
+
 		CreateContext: UpdateDashboardPermissions,
 		ReadContext:   ReadDashboardPermissions,
 		UpdateContext: UpdateDashboardPermissions,
@@ -22,34 +28,40 @@ func ResourceDashboardPermission() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"dashboard_id": {
-				Type:     schema.TypeInt,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeInt,
+				Required:    true,
+				ForceNew:    true,
+				Description: "ID of the dashboard to apply permissions to.",
 			},
 			"permissions": {
-				Type:     schema.TypeSet,
-				Required: true,
+				Type:        schema.TypeSet,
+				Required:    true,
+				Description: "The permission items to add/update. Items that are omitted from the list will be removed.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"role": {
 							Type:         schema.TypeString,
 							Optional:     true,
 							ValidateFunc: validation.StringInSlice([]string{"Viewer", "Editor"}, false),
+							Description:  "Manage permissions for `Viewer` or `Editor` roles.",
 						},
 						"team_id": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							Default:  0,
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     0,
+							Description: "ID of the team to manage permissions for.",
 						},
 						"user_id": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							Default:  0,
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     0,
+							Description: "ID of the user to manage permissions for.",
 						},
 						"permission": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validation.StringInSlice([]string{"View", "Edit", "Admin"}, false),
+							Description:  "Permission to associate with item. Must be one of `View`, `Edit`, or `Admin`.",
 						},
 					},
 				},
