@@ -14,6 +14,12 @@ import (
 
 func ResourceFolderPermission() *schema.Resource {
 	return &schema.Resource{
+
+		Description: `
+* [Official documentation](https://grafana.com/docs/grafana/latest/permissions/dashboard_folder_permissions/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/folder_permissions/)
+`,
+
 		CreateContext: UpdateFolderPermissions,
 		ReadContext:   ReadFolderPermissions,
 		UpdateContext: UpdateFolderPermissions,
@@ -21,34 +27,40 @@ func ResourceFolderPermission() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"folder_uid": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The UID of the folder.",
 			},
 			"permissions": {
-				Type:     schema.TypeSet,
-				Required: true,
+				Type:        schema.TypeSet,
+				Required:    true,
+				Description: "The permission items to add/update. Items that are omitted from the list will be removed.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"role": {
 							Type:         schema.TypeString,
 							Optional:     true,
 							ValidateFunc: validation.StringInSlice([]string{"Viewer", "Editor"}, false),
+							Description:  "Manage permissions for `Viewer` or `Editor` roles.",
 						},
 						"team_id": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							Default:  0,
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     0,
+							Description: "ID of the team to manage permissions for.",
 						},
 						"user_id": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							Default:  0,
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     0,
+							Description: "ID of the user to manage permissions for.",
 						},
 						"permission": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validation.StringInSlice([]string{"View", "Edit", "Admin"}, false),
+							Description:  "Permission to associate with item. Must be one of `View`, `Edit`, or `Admin`.",
 						},
 					},
 				},
