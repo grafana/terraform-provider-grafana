@@ -25,7 +25,7 @@ Set up your local environment by installing [Go](http://www.golang.org). Also
 ### Running Tests
 
 Acceptance tests require a running instance of Grafana. You can either handle
-unning an instance of Grafana yourself or use `docker-compose`.
+running an instance of Grafana yourself or use `docker-compose`.
 
 If you choose `docker-compose`, run `make testacc-docker`. This is the simplest
 option, but often not the quickest.
