@@ -18,6 +18,12 @@ var (
 
 func ResourceAlertNotification() *schema.Resource {
 	return &schema.Resource{
+
+		Description: `
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/notifications/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/alerting_notification_channels/)
+`,
+
 		CreateContext: CreateAlertNotification,
 		UpdateContext: UpdateAlertNotification,
 		DeleteContext: DeleteAlertNotification,
@@ -25,49 +31,57 @@ func ResourceAlertNotification() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"type": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The type of the alert notification channel.",
 			},
 
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the alert notification channel.",
 			},
 
 			"is_default": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Is this the default channel for all your alerts.",
 			},
 
 			"send_reminder": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Whether to send reminders for triggered alerts.",
 			},
 
 			"frequency": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: "Frequency of alert reminders. Frequency must be set if reminders are enabled.",
 			},
 
 			"settings": {
-				Type:      schema.TypeMap,
-				Optional:  true,
-				Sensitive: true,
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "Additional settings, for full reference see [Grafana HTTP API documentation](https://grafana.com/docs/grafana/latest/http_api/alerting_notification_channels/).",
 			},
 
 			"uid": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "Unique identifier. If unset, this will be automatically generated.",
 			},
 
 			"disable_resolve_message": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Whether to disable sending resolve messages.",
 			},
 		},
 	}
