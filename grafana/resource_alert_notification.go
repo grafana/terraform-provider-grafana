@@ -154,7 +154,6 @@ func ReadAlertNotification(ctx context.Context, d *schema.ResourceData, meta int
 		}
 	}
 	d.Set("secure_settings", secureSettings)
-	d.Set("id", alertNotification.ID)
 	d.SetId(strconv.FormatInt(alertNotification.ID, 10))
 	d.Set("is_default", alertNotification.IsDefault)
 	d.Set("name", alertNotification.Name)
