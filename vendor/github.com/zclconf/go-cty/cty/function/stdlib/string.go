@@ -6,7 +6,11 @@ import (
 	"sort"
 	"strings"
 
+<<<<<<< HEAD
 	"github.com/apparentlymart/go-textseg/v12/textseg"
+=======
+	"github.com/apparentlymart/go-textseg/v13/textseg"
+>>>>>>> master
 
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"

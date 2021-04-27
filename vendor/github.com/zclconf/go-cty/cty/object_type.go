@@ -112,7 +112,11 @@ func (t typeObject) GoString() string {
 		return "cty.EmptyObject"
 	}
 	if len(t.AttrOptional) > 0 {
+<<<<<<< HEAD
 		opt := make([]string, len(t.AttrOptional))
+=======
+		var opt []string
+>>>>>>> master
 		for k := range t.AttrOptional {
 			opt = append(opt, k)
 		}

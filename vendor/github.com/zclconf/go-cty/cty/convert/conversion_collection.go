@@ -45,10 +45,21 @@ func conversionCollectionToList(ety cty.Type, conv conversion) conversion {
 		}
 
 		if len(elems) == 0 {
+<<<<<<< HEAD
 			if ety == cty.DynamicPseudoType {
 				ety = val.Type().ElementType()
+=======
+			// Prefer a concrete type over a dynamic type when returning an
+			// empty list
+			if ety == cty.DynamicPseudoType {
+				return cty.ListValEmpty(val.Type().ElementType()), nil
+>>>>>>> master
 			}
 			return cty.ListValEmpty(ety), nil
+		}
+
+		if !cty.CanListVal(elems) {
+			return cty.NilVal, path.NewErrorf("element types must all match for conversion to list")
 		}
 
 		return cty.ListVal(elems), nil
@@ -91,9 +102,17 @@ func conversionCollectionToSet(ety cty.Type, conv conversion) conversion {
 			// Prefer a concrete type over a dynamic type when returning an
 			// empty set
 			if ety == cty.DynamicPseudoType {
+<<<<<<< HEAD
 				ety = val.Type().ElementType()
+=======
+				return cty.SetValEmpty(val.Type().ElementType()), nil
+>>>>>>> master
 			}
 			return cty.SetValEmpty(ety), nil
+		}
+
+		if !cty.CanSetVal(elems) {
+			return cty.NilVal, path.NewErrorf("element types must all match for conversion to set")
 		}
 
 		return cty.SetVal(elems), nil
@@ -140,7 +159,11 @@ func conversionCollectionToMap(ety cty.Type, conv conversion) conversion {
 			// Prefer a concrete type over a dynamic type when returning an
 			// empty map
 			if ety == cty.DynamicPseudoType {
+<<<<<<< HEAD
 				ety = val.Type().ElementType()
+=======
+				return cty.MapValEmpty(val.Type().ElementType()), nil
+>>>>>>> master
 			}
 			return cty.MapValEmpty(ety), nil
 		}
@@ -152,8 +175,13 @@ func conversionCollectionToMap(ety cty.Type, conv conversion) conversion {
 			}
 		}
 
+<<<<<<< HEAD
 		if err := conversionCheckMapElementTypes(elems, path); err != nil {
 			return cty.NilVal, err
+=======
+		if !cty.CanMapVal(elems) {
+			return cty.NilVal, path.NewErrorf("element types must all match for conversion to map")
+>>>>>>> master
 		}
 
 		return cty.MapVal(elems), nil
@@ -235,6 +263,10 @@ func conversionTupleToSet(tupleType cty.Type, setEty cty.Type, unsafe bool) conv
 			elems = append(elems, val)
 
 			i++
+		}
+
+		if !cty.CanSetVal(elems) {
+			return cty.NilVal, path.NewErrorf("element types must all match for conversion to set")
 		}
 
 		return cty.SetVal(elems), nil
@@ -324,6 +356,14 @@ func conversionTupleToList(tupleType cty.Type, listEty cty.Type, unsafe bool) co
 		if err != nil {
 			return cty.NilVal, err
 		}
+<<<<<<< HEAD
+=======
+
+		if !cty.CanListVal(elems) {
+			return cty.NilVal, path.NewErrorf("element types must all match for conversion to list")
+		}
+
+>>>>>>> master
 		return cty.ListVal(elems), nil
 	}
 }
@@ -402,8 +442,13 @@ func conversionObjectToMap(objectType cty.Type, mapEty cty.Type, unsafe bool) co
 			}
 		}
 
+<<<<<<< HEAD
 		if err := conversionCheckMapElementTypes(elems, path); err != nil {
 			return cty.NilVal, err
+=======
+		if !cty.CanMapVal(elems) {
+			return cty.NilVal, path.NewErrorf("attribute types must all match for conversion to map")
+>>>>>>> master
 		}
 
 		return cty.MapVal(elems), nil
@@ -487,7 +532,11 @@ func conversionUnifyCollectionElements(elems map[string]cty.Value, path cty.Path
 	}
 	unifiedType, _ := unify(elemTypes, unsafe)
 	if unifiedType == cty.NilType {
+<<<<<<< HEAD
 		return nil, path.NewErrorf("collection elements cannot be unified")
+=======
+		return nil, path.NewErrorf("cannot find a common base type for all elements")
+>>>>>>> master
 	}
 
 	unifiedElems := make(map[string]cty.Value)
@@ -514,6 +563,7 @@ func conversionUnifyCollectionElements(elems map[string]cty.Value, path cty.Path
 	return unifiedElems, nil
 }
 
+<<<<<<< HEAD
 func conversionCheckMapElementTypes(elems map[string]cty.Value, path cty.Path) error {
 	elementType := cty.NilType
 	elemPath := append(path.Copy(), nil)
@@ -534,6 +584,8 @@ func conversionCheckMapElementTypes(elems map[string]cty.Value, path cty.Path) e
 	return nil
 }
 
+=======
+>>>>>>> master
 func conversionUnifyListElements(elems []cty.Value, path cty.Path, unsafe bool) ([]cty.Value, error) {
 	elemTypes := make([]cty.Type, len(elems))
 	for i, elem := range elems {
@@ -541,7 +593,11 @@ func conversionUnifyListElements(elems []cty.Value, path cty.Path, unsafe bool) 
 	}
 	unifiedType, _ := unify(elemTypes, unsafe)
 	if unifiedType == cty.NilType {
+<<<<<<< HEAD
 		return nil, path.NewErrorf("collection elements cannot be unified")
+=======
+		return nil, path.NewErrorf("cannot find a common base type for all elements")
+>>>>>>> master
 	}
 
 	ret := make([]cty.Value, len(elems))
