@@ -399,14 +399,6 @@ var DistinctFunc = function.New(&function.Spec{
 var ChunklistFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
-<<<<<<< HEAD
-			Name: "list",
-			Type: cty.List(cty.DynamicPseudoType),
-		},
-		{
-			Name: "size",
-			Type: cty.Number,
-=======
 			Name:        "list",
 			Type:        cty.List(cty.DynamicPseudoType),
 			AllowMarked: true,
@@ -415,7 +407,6 @@ var ChunklistFunc = function.New(&function.Spec{
 			Name:        "size",
 			Type:        cty.Number,
 			AllowMarked: true,
->>>>>>> master
 		},
 	},
 	Type: func(args []cty.Value) (cty.Type, error) {
@@ -423,20 +414,6 @@ var ChunklistFunc = function.New(&function.Spec{
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		listVal := args[0]
-<<<<<<< HEAD
-		if !listVal.IsKnown() {
-			return cty.UnknownVal(retType), nil
-		}
-
-		if listVal.LengthInt() == 0 {
-			return cty.ListValEmpty(listVal.Type()), nil
-		}
-
-		var size int
-		err = gocty.FromCtyValue(args[1], &size)
-		if err != nil {
-			return cty.NilVal, fmt.Errorf("invalid index: %s", err)
-=======
 		sizeVal := args[1]
 		listVal, listMarks := listVal.Unmark()
 		sizeVal, sizeMarks := sizeVal.Unmark()
@@ -450,39 +427,27 @@ var ChunklistFunc = function.New(&function.Spec{
 		err = gocty.FromCtyValue(sizeVal, &size)
 		if err != nil {
 			return cty.NilVal, fmt.Errorf("invalid size: %s", err)
->>>>>>> master
 		}
 
 		if size < 0 {
 			return cty.NilVal, errors.New("the size argument must be positive")
 		}
 
-<<<<<<< HEAD
-=======
 		if listVal.LengthInt() == 0 {
 			return cty.ListValEmpty(listVal.Type()).WithMarks(retMarks), nil
 		}
 
->>>>>>> master
 		output := make([]cty.Value, 0)
 
 		// if size is 0, returns a list made of the initial list
 		if size == 0 {
 			output = append(output, listVal)
-<<<<<<< HEAD
-			return cty.ListVal(output), nil
-=======
 			return cty.ListVal(output).WithMarks(retMarks), nil
->>>>>>> master
 		}
 
 		chunk := make([]cty.Value, 0)
 
-<<<<<<< HEAD
-		l := args[0].LengthInt()
-=======
 		l := listVal.LengthInt()
->>>>>>> master
 		i := 0
 
 		for it := listVal.ElementIterator(); it.Next(); {
@@ -497,11 +462,7 @@ var ChunklistFunc = function.New(&function.Spec{
 			i++
 		}
 
-<<<<<<< HEAD
-		return cty.ListVal(output), nil
-=======
 		return cty.ListVal(output).WithMarks(retMarks), nil
->>>>>>> master
 	},
 })
 
@@ -510,14 +471,9 @@ var ChunklistFunc = function.New(&function.Spec{
 var FlattenFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
-<<<<<<< HEAD
-			Name: "list",
-			Type: cty.DynamicPseudoType,
-=======
 			Name:        "list",
 			Type:        cty.DynamicPseudoType,
 			AllowMarked: true,
->>>>>>> master
 		},
 	},
 	Type: func(args []cty.Value) (cty.Type, error) {
@@ -530,12 +486,8 @@ var FlattenFunc = function.New(&function.Spec{
 			return cty.NilType, errors.New("can only flatten lists, sets and tuples")
 		}
 
-<<<<<<< HEAD
-		retVal, known := flattener(args[0])
-=======
 		// marks are attached to values, so ignore while determining type
 		retVal, _, known := flattener(args[0])
->>>>>>> master
 		if !known {
 			return cty.DynamicPseudoType, nil
 		}
@@ -548,18 +500,6 @@ var FlattenFunc = function.New(&function.Spec{
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		inputList := args[0]
-<<<<<<< HEAD
-		if inputList.LengthInt() == 0 {
-			return cty.EmptyTupleVal, nil
-		}
-
-		out, known := flattener(inputList)
-		if !known {
-			return cty.UnknownVal(retType), nil
-		}
-
-		return cty.TupleVal(out), nil
-=======
 
 		if unmarked, marks := inputList.Unmark(); unmarked.LengthInt() == 0 {
 			return cty.EmptyTupleVal.WithMarks(marks), nil
@@ -571,22 +511,12 @@ var FlattenFunc = function.New(&function.Spec{
 		}
 
 		return cty.TupleVal(out).WithMarks(markses...), nil
->>>>>>> master
 	},
 })
 
 // Flatten until it's not a cty.List, and return whether the value is known.
 // We can flatten lists with unknown values, as long as they are not
 // lists themselves.
-<<<<<<< HEAD
-func flattener(flattenList cty.Value) ([]cty.Value, bool) {
-	if !flattenList.Length().IsKnown() {
-		// If we don't know the length of what we're flattening then we can't
-		// predict the length of our result yet either.
-		return nil, false
-	}
-	out := make([]cty.Value, 0)
-=======
 func flattener(flattenList cty.Value) ([]cty.Value, []cty.ValueMarks, bool) {
 	var markses []cty.ValueMarks
 	flattenList, flattenListMarks := flattenList.Unmark()
@@ -600,21 +530,10 @@ func flattener(flattenList cty.Value) ([]cty.Value, []cty.ValueMarks, bool) {
 	}
 	out := make([]cty.Value, 0)
 	isKnown := true
->>>>>>> master
 	for it := flattenList.ElementIterator(); it.Next(); {
 		_, val := it.Element()
 		if val.Type().IsListType() || val.Type().IsSetType() || val.Type().IsTupleType() {
 			if !val.IsKnown() {
-<<<<<<< HEAD
-				return out, false
-			}
-
-			res, known := flattener(val)
-			if !known {
-				return res, known
-			}
-			out = append(out, res...)
-=======
 				isKnown = false
 				_, unknownMarks := val.Unmark()
 				markses = append(markses, unknownMarks)
@@ -628,16 +547,11 @@ func flattener(flattenList cty.Value) ([]cty.Value, []cty.ValueMarks, bool) {
 			} else {
 				isKnown = false
 			}
->>>>>>> master
 		} else {
 			out = append(out, val)
 		}
 	}
-<<<<<<< HEAD
-	return out, true
-=======
 	return out, markses, isKnown
->>>>>>> master
 }
 
 // KeysFunc is a function that takes a map and returns a sorted list of the map keys.
@@ -647,10 +561,7 @@ var KeysFunc = function.New(&function.Spec{
 			Name:         "inputMap",
 			Type:         cty.DynamicPseudoType,
 			AllowUnknown: true,
-<<<<<<< HEAD
-=======
 			AllowMarked:  true,
->>>>>>> master
 		},
 	},
 	Type: func(args []cty.Value) (cty.Type, error) {
@@ -675,15 +586,11 @@ var KeysFunc = function.New(&function.Spec{
 		}
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-<<<<<<< HEAD
-		m := args[0]
-=======
 		// We must unmark the value before we can use ElementIterator on it, and
 		// then re-apply the same marks (possibly none) when we return. Since we
 		// don't mark map keys, we can throw away any nested marks, which would
 		// only apply to values.
 		m, marks := args[0].Unmark()
->>>>>>> master
 		var keys []cty.Value
 
 		switch {
@@ -696,49 +603,28 @@ var KeysFunc = function.New(&function.Spec{
 			}
 			sort.Strings(names) // same ordering guaranteed by cty's ElementIterator
 			if len(names) == 0 {
-<<<<<<< HEAD
-				return cty.EmptyTupleVal, nil
-=======
 				return cty.EmptyTupleVal.WithMarks(marks), nil
->>>>>>> master
 			}
 			keys = make([]cty.Value, len(names))
 			for i, name := range names {
 				keys[i] = cty.StringVal(name)
 			}
-<<<<<<< HEAD
-			return cty.TupleVal(keys), nil
-		default:
-			if !m.IsKnown() {
-				return cty.UnknownVal(retType), nil
-=======
 			return cty.TupleVal(keys).WithMarks(marks), nil
 		default:
 			if !m.IsKnown() {
 				return cty.UnknownVal(retType).WithMarks(marks), nil
->>>>>>> master
 			}
 
 			// cty guarantees that ElementIterator will iterate in lexicographical
 			// order by key.
-<<<<<<< HEAD
-			for it := args[0].ElementIterator(); it.Next(); {
-=======
 			for it := m.ElementIterator(); it.Next(); {
->>>>>>> master
 				k, _ := it.Element()
 				keys = append(keys, k)
 			}
 			if len(keys) == 0 {
-<<<<<<< HEAD
-				return cty.ListValEmpty(cty.String), nil
-			}
-			return cty.ListVal(keys), nil
-=======
 				return cty.ListValEmpty(cty.String).WithMarks(marks), nil
 			}
 			return cty.ListVal(keys).WithMarks(marks), nil
->>>>>>> master
 		}
 	},
 })
@@ -747,18 +633,6 @@ var KeysFunc = function.New(&function.Spec{
 var LookupFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
-<<<<<<< HEAD
-			Name: "inputMap",
-			Type: cty.DynamicPseudoType,
-		},
-		{
-			Name: "key",
-			Type: cty.String,
-		},
-		{
-			Name: "default",
-			Type: cty.DynamicPseudoType,
-=======
 			Name:        "inputMap",
 			Type:        cty.DynamicPseudoType,
 			AllowMarked: true,
@@ -772,7 +646,6 @@ var LookupFunc = function.New(&function.Spec{
 			Name:        "default",
 			Type:        cty.DynamicPseudoType,
 			AllowMarked: true,
->>>>>>> master
 		},
 	},
 	Type: func(args []cty.Value) (ret cty.Type, err error) {
@@ -784,12 +657,8 @@ var LookupFunc = function.New(&function.Spec{
 				return cty.DynamicPseudoType, nil
 			}
 
-<<<<<<< HEAD
-			key := args[1].AsString()
-=======
 			keyVal, _ := args[1].Unmark()
 			key := keyVal.AsString()
->>>>>>> master
 			if ty.HasAttribute(key) {
 				return args[0].GetAttr(key).Type(), nil
 			} else if len(args) == 3 {
@@ -811,15 +680,6 @@ var LookupFunc = function.New(&function.Spec{
 		}
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-<<<<<<< HEAD
-		defaultVal := args[2]
-
-		mapVar := args[0]
-		lookupKey := args[1].AsString()
-
-		if !mapVar.IsWhollyKnown() {
-			return cty.UnknownVal(retType), nil
-=======
 		// leave default value marked
 		defaultVal := args[2]
 
@@ -838,33 +698,21 @@ var LookupFunc = function.New(&function.Spec{
 
 		if !mapVar.IsWhollyKnown() {
 			return cty.UnknownVal(retType).WithMarks(markses...), nil
->>>>>>> master
 		}
 
 		if mapVar.Type().IsObjectType() {
 			if mapVar.Type().HasAttribute(lookupKey) {
-<<<<<<< HEAD
-				return mapVar.GetAttr(lookupKey), nil
-			}
-		} else if mapVar.HasIndex(cty.StringVal(lookupKey)) == cty.True {
-			return mapVar.Index(cty.StringVal(lookupKey)), nil
-=======
 				return mapVar.GetAttr(lookupKey).WithMarks(markses...), nil
 			}
 		} else if mapVar.HasIndex(cty.StringVal(lookupKey)) == cty.True {
 			return mapVar.Index(cty.StringVal(lookupKey)).WithMarks(markses...), nil
->>>>>>> master
 		}
 
 		defaultVal, err = convert.Convert(defaultVal, retType)
 		if err != nil {
 			return cty.NilVal, err
 		}
-<<<<<<< HEAD
-		return defaultVal, nil
-=======
 		return defaultVal.WithMarks(markses...), nil
->>>>>>> master
 	},
 })
 
@@ -881,10 +729,7 @@ var MergeFunc = function.New(&function.Spec{
 		Type:             cty.DynamicPseudoType,
 		AllowDynamicType: true,
 		AllowNull:        true,
-<<<<<<< HEAD
-=======
 		AllowMarked:      true,
->>>>>>> master
 	},
 	Type: func(args []cty.Value) (cty.Type, error) {
 		// empty args is accepted, so assume an empty object since we have no
@@ -910,11 +755,8 @@ var MergeFunc = function.New(&function.Spec{
 			if !ty.IsMapType() && !ty.IsObjectType() {
 				return cty.NilType, fmt.Errorf("arguments must be maps or objects, got %#v", ty.FriendlyName())
 			}
-<<<<<<< HEAD
-=======
 			// marks are attached to values, so ignore while determining type
 			arg, _ = arg.Unmark()
->>>>>>> master
 
 			switch {
 			case ty.IsObjectType() && !arg.IsNull():
@@ -964,22 +806,16 @@ var MergeFunc = function.New(&function.Spec{
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		outputMap := make(map[string]cty.Value)
-<<<<<<< HEAD
-=======
 		var markses []cty.ValueMarks // remember any marked maps/objects we find
->>>>>>> master
 
 		for _, arg := range args {
 			if arg.IsNull() {
 				continue
 			}
-<<<<<<< HEAD
-=======
 			arg, argMarks := arg.Unmark()
 			if len(argMarks) > 0 {
 				markses = append(markses, argMarks)
 			}
->>>>>>> master
 			for it := arg.ElementIterator(); it.Next(); {
 				k, v := it.Element()
 				outputMap[k.AsString()] = v
@@ -989,19 +825,11 @@ var MergeFunc = function.New(&function.Spec{
 		switch {
 		case retType.IsMapType():
 			if len(outputMap) == 0 {
-<<<<<<< HEAD
-				return cty.MapValEmpty(retType.ElementType()), nil
-			}
-			return cty.MapVal(outputMap), nil
-		case retType.IsObjectType(), retType.Equals(cty.DynamicPseudoType):
-			return cty.ObjectVal(outputMap), nil
-=======
 				return cty.MapValEmpty(retType.ElementType()).WithMarks(markses...), nil
 			}
 			return cty.MapVal(outputMap).WithMarks(markses...), nil
 		case retType.IsObjectType(), retType.Equals(cty.DynamicPseudoType):
 			return cty.ObjectVal(outputMap).WithMarks(markses...), nil
->>>>>>> master
 		default:
 			panic(fmt.Sprintf("unexpected return type: %#v", retType))
 		}
@@ -1058,14 +886,9 @@ var ReverseListFunc = function.New(&function.Spec{
 var SetProductFunc = function.New(&function.Spec{
 	Params: []function.Parameter{},
 	VarParam: &function.Parameter{
-<<<<<<< HEAD
-		Name: "sets",
-		Type: cty.DynamicPseudoType,
-=======
 		Name:        "sets",
 		Type:        cty.DynamicPseudoType,
 		AllowMarked: true,
->>>>>>> master
 	},
 	Type: func(args []cty.Value) (retType cty.Type, err error) {
 		if len(args) < 2 {
@@ -1109,13 +932,6 @@ var SetProductFunc = function.New(&function.Spec{
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		ety := retType.ElementType()
-<<<<<<< HEAD
-
-		total := 1
-		for _, arg := range args {
-			if !arg.Length().IsKnown() {
-				return cty.UnknownVal(retType), nil
-=======
 		var retMarks cty.ValueMarks
 
 		total := 1
@@ -1125,7 +941,6 @@ var SetProductFunc = function.New(&function.Spec{
 
 			if !arg.Length().IsKnown() {
 				return cty.UnknownVal(retType).Mark(marks), nil
->>>>>>> master
 			}
 
 			// Because of our type checking function, we are guaranteed that
@@ -1138,15 +953,9 @@ var SetProductFunc = function.New(&function.Spec{
 			// If any of the arguments was an empty collection then our result
 			// is also an empty collection, which we'll short-circuit here.
 			if retType.IsListType() {
-<<<<<<< HEAD
-				return cty.ListValEmpty(ety), nil
-			}
-			return cty.SetValEmpty(ety), nil
-=======
 				return cty.ListValEmpty(ety).Mark(retMarks), nil
 			}
 			return cty.SetValEmpty(ety).Mark(retMarks), nil
->>>>>>> master
 		}
 
 		subEtys := ety.TupleElementTypes()
@@ -1157,11 +966,8 @@ var SetProductFunc = function.New(&function.Spec{
 		s := 0
 		argVals := make([][]cty.Value, len(args))
 		for i, arg := range args {
-<<<<<<< HEAD
-=======
 			// We've already stored the marks in retMarks
 			arg, _ := arg.Unmark()
->>>>>>> master
 			argVals[i] = arg.AsValueSlice()
 		}
 
@@ -1201,15 +1007,9 @@ var SetProductFunc = function.New(&function.Spec{
 		}
 
 		if retType.IsListType() {
-<<<<<<< HEAD
-			return cty.ListVal(productVals), nil
-		}
-		return cty.SetVal(productVals), nil
-=======
 			return cty.ListVal(productVals).WithMarks(retMarks), nil
 		}
 		return cty.SetVal(productVals).WithMarks(retMarks), nil
->>>>>>> master
 	},
 })
 
@@ -1335,14 +1135,9 @@ func sliceIndexes(args []cty.Value) (int, int, bool, error) {
 var ValuesFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
-<<<<<<< HEAD
-			Name: "values",
-			Type: cty.DynamicPseudoType,
-=======
 			Name:        "values",
 			Type:        cty.DynamicPseudoType,
 			AllowMarked: true,
->>>>>>> master
 		},
 	},
 	Type: func(args []cty.Value) (ret cty.Type, err error) {
@@ -1375,8 +1170,6 @@ var ValuesFunc = function.New(&function.Spec{
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		mapVar := args[0]
 
-<<<<<<< HEAD
-=======
 		// We must unmark the value before we can use ElementIterator on it,
 		// and then re-apply the same marks (possibly none) when we return.
 		// (We leave the inner values just as they are, because we won't be
@@ -1384,7 +1177,6 @@ var ValuesFunc = function.New(&function.Spec{
 		// result, marks and all.)
 		mapVar, marks := mapVar.Unmark()
 
->>>>>>> master
 		// We can just iterate the map/object value here because cty guarantees
 		// that these types always iterate in key lexicographical order.
 		var values []cty.Value
@@ -1393,15 +1185,6 @@ var ValuesFunc = function.New(&function.Spec{
 			values = append(values, val)
 		}
 
-<<<<<<< HEAD
-		if retType.IsTupleType() {
-			return cty.TupleVal(values), nil
-		}
-		if len(values) == 0 {
-			return cty.ListValEmpty(retType.ElementType()), nil
-		}
-		return cty.ListVal(values), nil
-=======
 		// All of the return paths must include .WithMarks(marks) so that we
 		// will preserve the markings of the overall map/object we were given.
 		if retType.IsTupleType() {
@@ -1411,7 +1194,6 @@ var ValuesFunc = function.New(&function.Spec{
 			return cty.ListValEmpty(retType.ElementType()).WithMarks(marks), nil
 		}
 		return cty.ListVal(values).WithMarks(marks), nil
->>>>>>> master
 	},
 })
 
@@ -1420,14 +1202,6 @@ var ValuesFunc = function.New(&function.Spec{
 var ZipmapFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
-<<<<<<< HEAD
-			Name: "keys",
-			Type: cty.List(cty.String),
-		},
-		{
-			Name: "values",
-			Type: cty.DynamicPseudoType,
-=======
 			Name:        "keys",
 			Type:        cty.List(cty.String),
 			AllowMarked: true,
@@ -1436,7 +1210,6 @@ var ZipmapFunc = function.New(&function.Spec{
 			Name:        "values",
 			Type:        cty.DynamicPseudoType,
 			AllowMarked: true,
->>>>>>> master
 		},
 	},
 	Type: func(args []cty.Value) (ret cty.Type, err error) {
@@ -1454,8 +1227,6 @@ var ZipmapFunc = function.New(&function.Spec{
 				return cty.DynamicPseudoType, nil
 			}
 
-<<<<<<< HEAD
-=======
 			// NOTE: Marking of the keys list can't be represented in the
 			// result type, so the tuple type here will disclose the keys.
 			// This is unfortunate but is a common compromise with dynamic
@@ -1463,7 +1234,6 @@ var ZipmapFunc = function.New(&function.Spec{
 			// from the keys list, so a mark-using caller should look out for
 			// that if it's important for their use-case.
 			keys, _ := keys.Unmark()
->>>>>>> master
 			keysRaw := keys.AsValueSlice()
 			valueTypesRaw := valuesTy.TupleElementTypes()
 			if len(keysRaw) != len(valueTypesRaw) {
@@ -1471,10 +1241,7 @@ var ZipmapFunc = function.New(&function.Spec{
 			}
 			atys := make(map[string]cty.Type, len(valueTypesRaw))
 			for i, keyVal := range keysRaw {
-<<<<<<< HEAD
-=======
 				keyVal, _ = keyVal.Unmark()
->>>>>>> master
 				if keyVal.IsNull() {
 					return cty.NilType, fmt.Errorf("keys list has null value at index %d", i)
 				}
@@ -1490,24 +1257,17 @@ var ZipmapFunc = function.New(&function.Spec{
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		keys := args[0]
 		values := args[1]
-<<<<<<< HEAD
-=======
 		keys, keysMarks := keys.Unmark()
 		values, valuesMarks := values.Unmark()
 
 		// All of our return paths must pass through the merged marks from
 		// both the keys and the values, if any, using .WithMarks(retMarks)
 		retMarks := cty.NewValueMarks(keysMarks, valuesMarks)
->>>>>>> master
 
 		if !keys.IsWhollyKnown() {
 			// Unknown map keys and object attributes are not supported, so
 			// our entire result must be unknown in this case.
-<<<<<<< HEAD
-			return cty.UnknownVal(retType), nil
-=======
 			return cty.UnknownVal(retType).WithMarks(retMarks), nil
->>>>>>> master
 		}
 
 		// both keys and values are guaranteed to be shallowly-known here,
@@ -1521,10 +1281,6 @@ var ZipmapFunc = function.New(&function.Spec{
 		i := 0
 		for it := keys.ElementIterator(); it.Next(); {
 			_, v := it.Element()
-<<<<<<< HEAD
-			val := values.Index(cty.NumberIntVal(int64(i)))
-			output[v.AsString()] = val
-=======
 			v, vMarks := v.Unmark()
 			val := values.Index(cty.NumberIntVal(int64(i)))
 			output[v.AsString()] = val
@@ -1533,26 +1289,17 @@ var ZipmapFunc = function.New(&function.Spec{
 			// returned map, because keys can't carry marks on their own.
 			retMarks = cty.NewValueMarks(retMarks, vMarks)
 
->>>>>>> master
 			i++
 		}
 
 		switch {
 		case retType.IsMapType():
 			if len(output) == 0 {
-<<<<<<< HEAD
-				return cty.MapValEmpty(retType.ElementType()), nil
-			}
-			return cty.MapVal(output), nil
-		case retType.IsObjectType():
-			return cty.ObjectVal(output), nil
-=======
 				return cty.MapValEmpty(retType.ElementType()).WithMarks(retMarks), nil
 			}
 			return cty.MapVal(output).WithMarks(retMarks), nil
 		case retType.IsObjectType():
 			return cty.ObjectVal(output).WithMarks(retMarks), nil
->>>>>>> master
 		default:
 			// Should never happen because the type-check function should've
 			// caught any other case.

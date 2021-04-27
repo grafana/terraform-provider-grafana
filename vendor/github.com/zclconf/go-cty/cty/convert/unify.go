@@ -29,11 +29,8 @@ func unify(types []cty.Type, unsafe bool) (cty.Type, []Conversion) {
 	// unification purposes.
 	{
 		mapCt := 0
-<<<<<<< HEAD
-=======
 		listCt := 0
 		setCt := 0
->>>>>>> master
 		objectCt := 0
 		tupleCt := 0
 		dynamicCt := 0
@@ -41,13 +38,10 @@ func unify(types []cty.Type, unsafe bool) (cty.Type, []Conversion) {
 			switch {
 			case ty.IsMapType():
 				mapCt++
-<<<<<<< HEAD
-=======
 			case ty.IsListType():
 				listCt++
 			case ty.IsSetType():
 				setCt++
->>>>>>> master
 			case ty.IsObjectType():
 				objectCt++
 			case ty.IsTupleType():
@@ -60,9 +54,6 @@ func unify(types []cty.Type, unsafe bool) (cty.Type, []Conversion) {
 		}
 		switch {
 		case mapCt > 0 && (mapCt+dynamicCt) == len(types):
-<<<<<<< HEAD
-			return unifyMapTypes(types, unsafe, dynamicCt > 0)
-=======
 			return unifyCollectionTypes(cty.Map, types, unsafe, dynamicCt > 0)
 
 		case mapCt > 0 && (mapCt+objectCt+dynamicCt) == len(types):
@@ -88,7 +79,6 @@ func unify(types []cty.Type, unsafe bool) (cty.Type, []Conversion) {
 			}
 		case setCt > 0 && (setCt+dynamicCt) == len(types):
 			return unifyCollectionTypes(cty.Set, types, unsafe, dynamicCt > 0)
->>>>>>> master
 		case objectCt > 0 && (objectCt+dynamicCt) == len(types):
 			return unifyObjectTypes(types, unsafe, dynamicCt > 0)
 		case tupleCt > 0 && (tupleCt+dynamicCt) == len(types):
@@ -140,9 +130,6 @@ Preferences:
 	return cty.NilType, nil
 }
 
-<<<<<<< HEAD
-func unifyMapTypes(types []cty.Type, unsafe bool, hasDynamic bool) (cty.Type, []Conversion) {
-=======
 // unifyTuplesAsList attempts to first see if the tuples unify as lists, then
 // re-unifies the given types with the list in place of the tuples.
 func unifyTuplesAsList(types []cty.Type, unsafe bool) (cty.Type, []Conversion) {
@@ -258,7 +245,6 @@ func unifyObjectsAsMaps(types []cty.Type, unsafe bool) (cty.Type, []Conversion) 
 }
 
 func unifyCollectionTypes(collectionType func(cty.Type) cty.Type, types []cty.Type, unsafe bool, hasDynamic bool) (cty.Type, []Conversion) {
->>>>>>> master
 	// If we had any dynamic types in the input here then we can't predict
 	// what path we'll take through here once these become known types, so
 	// we'll conservatively produce DynamicVal for these.
@@ -275,11 +261,7 @@ func unifyCollectionTypes(collectionType func(cty.Type) cty.Type, types []cty.Ty
 		return cty.NilType, nil
 	}
 
-<<<<<<< HEAD
-	retTy := cty.Map(retElemType)
-=======
 	retTy := collectionType(retElemType)
->>>>>>> master
 
 	conversions := make([]Conversion, len(types))
 	for i, ty := range types {
