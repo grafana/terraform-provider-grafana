@@ -15,6 +15,12 @@ import (
 
 func ResourceDashboard() *schema.Resource {
 	return &schema.Resource{
+
+		Description: `
+* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/dashboard/)
+`,
+
 		CreateContext: CreateDashboard,
 		ReadContext:   ReadDashboard,
 		UpdateContext: UpdateDashboard,
@@ -25,19 +31,22 @@ func ResourceDashboard() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"slug": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "URL friendly version of the dashboard title.",
 			},
 
 			"dashboard_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The numeric ID of the dashboard computed by Grafana.",
 			},
 
 			"folder": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
+				Type:        schema.TypeInt,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "The id of the folder to save the dashboard in.",
 			},
 
 			"config_json": {
@@ -45,6 +54,7 @@ func ResourceDashboard() *schema.Resource {
 				Required:     true,
 				StateFunc:    NormalizeDashboardConfigJSON,
 				ValidateFunc: ValidateDashboardConfigJSON,
+				Description:  "The complete dashboard model JSON.",
 			},
 		},
 	}

@@ -11,6 +11,15 @@ import (
 
 func ResourceUser() *schema.Resource {
 	return &schema.Resource{
+
+		Description: `
+* [Official documentation](https://grafana.com/docs/grafana/latest/manage-users/server-admin/server-admin-manage-users/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/user/)
+
+This resource uses Grafana's admin APIs for creating and updating users which
+does not currently work with API Tokens. You must use basic auth.
+`,
+
 		CreateContext: CreateUser,
 		ReadContext:   ReadUser,
 		UpdateContext: UpdateUser,
@@ -21,26 +30,31 @@ func ResourceUser() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"email": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The email address of the Grafana user.",
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The display name for the Grafana user.",
 			},
 			"login": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The username for the Grafana user.",
 			},
 			"password": {
-				Type:      schema.TypeString,
-				Required:  true,
-				Sensitive: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Sensitive:   true,
+				Description: "The password for the Grafana user.",
 			},
 			"is_admin": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Whether to make user an admin.",
 			},
 		},
 	}

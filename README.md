@@ -43,6 +43,18 @@ GRAFANA_ORG_ID=1 \
 make testacc
 ```
 
+## Documentation
+
+Documentation is generated with
+[tfplugindocs](https://github.com/hashicorp/terraform-plugin-docs). Generated
+files are in `docs/` and should not be updated manually. They are derived from:
+
+* Schema `Description` fields in the provider Go code.
+* [examples/](./examples)
+* [templates/](./templates)
+
+Use `go generate` to update generated docs.
+
 ## Releasing
 
 Builds and releases are automated with GitHub Actions and

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"io/ioutil"
 	"net/url"
 	"strings"
@@ -16,6 +17,17 @@ import (
 	gapi "github.com/grafana/grafana-api-golang-client"
 )
 
+func init() {
+	schema.DescriptionKind = schema.StringMarkdown
+	schema.SchemaDescriptionBuilder = func(s *schema.Schema) string {
+		desc := s.Description
+		if s.Default != nil {
+			desc += fmt.Sprintf(" Defaults to `%v`.", s.Default)
+		}
+		return strings.TrimSpace(desc)
+	}
+}
+
 func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
@@ -23,44 +35,44 @@ func Provider() *schema.Provider {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GRAFANA_URL", nil),
-				Description: "URL of the root of the target Grafana server.",
+				Description: "The root URL of a Grafana server. May alternatively be set via the `GRAFANA_URL` environment variable.",
 			},
 			"auth": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Sensitive:   true,
 				DefaultFunc: schema.EnvDefaultFunc("GRAFANA_AUTH", nil),
-				Description: "Credentials for accessing the Grafana API.",
+				Description: "API token or basic auth username:password. May alternatively be set via the `GRAFANA_AUTH` environment variable.",
 			},
 			"org_id": {
 				Type:        schema.TypeInt,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GRAFANA_ORG_ID", 1),
-				Description: "Organization id for resources",
+				Description: "The organization id to operate on within grafana. May alternatively be set via the `GRAFANA_ORG_ID` environment variable.",
 			},
 			"tls_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GRAFANA_TLS_KEY", nil),
-				Description: "Client TLS key for accessing the Grafana API.",
+				Description: "Client TLS key file to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.",
 			},
 			"tls_cert": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GRAFANA_TLS_CERT", nil),
-				Description: "Client TLS cert for accessing the Grafana API.",
+				Description: "Client TLS certificate file to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.",
 			},
 			"ca_cert": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GRAFANA_CA_CERT", nil),
-				Description: "CA cert bundle for validating the Grafana API's certificate.",
+				Description: "Certificate CA bundle to use to verify the Grafana server's certificate. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.",
 			},
 			"insecure_skip_verify": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GRAFANA_INSECURE_SKIP_VERIFY", nil),
-				Description: "Skip TLS certificate verification",
+				Description: "Skip TLS certificate verification. May alternatively be set via the `GRAFANA_INSECURE_SKIP_VERIFY` environment variable.",
 			},
 		},
 
