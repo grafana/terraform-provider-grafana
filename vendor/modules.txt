@@ -8,12 +8,20 @@ cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/version
 # cloud.google.com/go/storage v1.10.0
 cloud.google.com/go/storage
+# github.com/Masterminds/goutils v1.1.0
+github.com/Masterminds/goutils
+# github.com/Masterminds/semver v1.5.0
+github.com/Masterminds/semver
+# github.com/Masterminds/sprig v2.22.0+incompatible
+github.com/Masterminds/sprig
 # github.com/agext/levenshtein v1.2.2
 github.com/agext/levenshtein
 # github.com/apparentlymart/go-textseg v1.0.0
 github.com/apparentlymart/go-textseg/textseg
 # github.com/apparentlymart/go-textseg/v13 v13.0.0
 github.com/apparentlymart/go-textseg/v13/textseg
+# github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310
+github.com/armon/go-radix
 # github.com/aws/aws-sdk-go v1.25.3
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
@@ -54,6 +62,8 @@ github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
 # github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d
 github.com/bgentry/go-netrc/netrc
+# github.com/bgentry/speakeasy v0.1.0
+github.com/bgentry/speakeasy
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/fatih/color v1.7.0
@@ -70,6 +80,8 @@ github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/empty
 github.com/golang/protobuf/ptypes/timestamp
+# github.com/google/uuid v1.1.2
+github.com/google/uuid
 # github.com/googleapis/gax-go/v2 v2.0.5
 github.com/googleapis/gax-go/v2
 # github.com/grafana/grafana-api-golang-client v0.0.0-20210204123314-0aa501c4b8c4
@@ -117,6 +129,14 @@ github.com/hashicorp/terraform-exec/tfexec
 github.com/hashicorp/terraform-exec/tfinstall
 # github.com/hashicorp/terraform-json v0.10.0
 github.com/hashicorp/terraform-json
+# github.com/hashicorp/terraform-plugin-docs v0.4.0
+## explicit
+github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+github.com/hashicorp/terraform-plugin-docs/internal/cmd
+github.com/hashicorp/terraform-plugin-docs/internal/mdplain
+github.com/hashicorp/terraform-plugin-docs/internal/provider
+github.com/hashicorp/terraform-plugin-docs/internal/tmplfuncs
+github.com/hashicorp/terraform-plugin-docs/schemamd
 # github.com/hashicorp/terraform-plugin-go v0.3.0
 github.com/hashicorp/terraform-plugin-go/tfprotov5
 github.com/hashicorp/terraform-plugin-go/tfprotov5/internal/fromproto
@@ -145,6 +165,10 @@ github.com/hashicorp/terraform-plugin-sdk/v2/plugin
 github.com/hashicorp/terraform-plugin-sdk/v2/terraform
 # github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
 github.com/hashicorp/yamux
+# github.com/huandu/xstrings v1.3.2
+github.com/huandu/xstrings
+# github.com/imdario/mergo v0.3.12
+github.com/imdario/mergo
 # github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
 github.com/jmespath/go-jmespath
 # github.com/jstemmer/go-junit-report v0.9.1
@@ -157,10 +181,12 @@ github.com/klauspost/compress/huff0
 github.com/klauspost/compress/snappy
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/mattn/go-colorable v0.1.4
+# github.com/mattn/go-colorable v0.1.8
 github.com/mattn/go-colorable
-# github.com/mattn/go-isatty v0.0.10
+# github.com/mattn/go-isatty v0.0.12
 github.com/mattn/go-isatty
+# github.com/mitchellh/cli v1.1.2
+github.com/mitchellh/cli
 # github.com/mitchellh/copystructure v1.0.0
 github.com/mitchellh/copystructure
 # github.com/mitchellh/go-homedir v1.1.0
@@ -175,6 +201,13 @@ github.com/mitchellh/mapstructure
 github.com/mitchellh/reflectwalk
 # github.com/oklog/run v1.0.0
 github.com/oklog/run
+# github.com/posener/complete v1.1.1
+github.com/posener/complete
+github.com/posener/complete/cmd
+github.com/posener/complete/cmd/install
+github.com/posener/complete/match
+# github.com/russross/blackfriday v1.6.0
+github.com/russross/blackfriday
 # github.com/ulikunitz/xz v0.5.8
 github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/hash
@@ -216,6 +249,8 @@ golang.org/x/crypto/openpgp/elgamal
 golang.org/x/crypto/openpgp/errors
 golang.org/x/crypto/openpgp/packet
 golang.org/x/crypto/openpgp/s2k
+golang.org/x/crypto/pbkdf2
+golang.org/x/crypto/scrypt
 # golang.org/x/lint v0.0.0-20200302205851-738671d3881b
 golang.org/x/lint
 golang.org/x/lint/golint
