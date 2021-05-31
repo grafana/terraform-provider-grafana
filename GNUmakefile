@@ -3,6 +3,9 @@ GRAFANA_VERSION ?= latest
 testacc:
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
 
+testacc-enterprise: testacc
+	TF_ACC=1 go test ./... -tags="enterprise" -v $(TESTARGS) -timeout 120m
+
 testacc-docker:
 	GRAFANA_VERSION=$(GRAFANA_VERSION) \
 		docker-compose \
