@@ -44,6 +44,7 @@ func ResourceBuiltInRoleAssignment() *schema.Resource {
 						"uid": {
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 						},
 						"global": {
 							Type:     schema.TypeBool,
