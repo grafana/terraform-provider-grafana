@@ -1,10 +1,12 @@
 package grafana
 
 import (
+	"context"
 	"log"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
@@ -13,41 +15,53 @@ import (
 
 func ResourceDashboardPermission() *schema.Resource {
 	return &schema.Resource{
-		Create: UpdateDashboardPermissions,
-		Read:   ReadDashboardPermissions,
-		Update: UpdateDashboardPermissions,
-		Delete: DeleteDashboardPermissions,
+
+		Description: `
+* [Official documentation](https://grafana.com/docs/grafana/latest/permissions/dashboard_folder_permissions/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/dashboard_permissions/)
+`,
+
+		CreateContext: UpdateDashboardPermissions,
+		ReadContext:   ReadDashboardPermissions,
+		UpdateContext: UpdateDashboardPermissions,
+		DeleteContext: DeleteDashboardPermissions,
 
 		Schema: map[string]*schema.Schema{
 			"dashboard_id": {
-				Type:     schema.TypeInt,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeInt,
+				Required:    true,
+				ForceNew:    true,
+				Description: "ID of the dashboard to apply permissions to.",
 			},
 			"permissions": {
-				Type:     schema.TypeSet,
-				Required: true,
+				Type:        schema.TypeSet,
+				Required:    true,
+				Description: "The permission items to add/update. Items that are omitted from the list will be removed.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"role": {
 							Type:         schema.TypeString,
 							Optional:     true,
 							ValidateFunc: validation.StringInSlice([]string{"Viewer", "Editor"}, false),
+							Description:  "Manage permissions for `Viewer` or `Editor` roles.",
 						},
 						"team_id": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							Default:  0,
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     0,
+							Description: "ID of the team to manage permissions for.",
 						},
 						"user_id": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							Default:  0,
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     0,
+							Description: "ID of the user to manage permissions for.",
 						},
 						"permission": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validation.StringInSlice([]string{"View", "Edit", "Admin"}, false),
+							Description:  "Permission to associate with item. Must be one of `View`, `Edit`, or `Admin`.",
 						},
 					},
 				},
@@ -56,7 +70,7 @@ func ResourceDashboardPermission() *schema.Resource {
 	}
 }
 
-func UpdateDashboardPermissions(d *schema.ResourceData, meta interface{}) error {
+func UpdateDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	v, ok := d.GetOk("permissions")
@@ -84,15 +98,15 @@ func UpdateDashboardPermissions(d *schema.ResourceData, meta interface{}) error 
 
 	err := client.UpdateDashboardPermissions(dashboardId, &permissionList)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(dashboardId, 10))
 
-	return ReadDashboardPermissions(d, meta)
+	return ReadDashboardPermissions(ctx, d, meta)
 }
 
-func ReadDashboardPermissions(d *schema.ResourceData, meta interface{}) error {
+func ReadDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	dashboardId := int64(d.Get("dashboard_id").(int))
@@ -105,7 +119,7 @@ func ReadDashboardPermissions(d *schema.ResourceData, meta interface{}) error {
 			return nil
 		}
 
-		return err
+		return diag.FromErr(err)
 	}
 
 	permissionItems := make([]interface{}, len(dashboardPermissions))
@@ -128,7 +142,7 @@ func ReadDashboardPermissions(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func DeleteDashboardPermissions(d *schema.ResourceData, meta interface{}) error {
+func DeleteDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	//since permissions are tied to dashboards, we can't really delete the permissions.
 	//we will simply remove all permissions, leaving a dashboard that only an admin can access.
 	//if for some reason the parent dashboard doesn't exist, we'll just ignore the error
@@ -143,7 +157,7 @@ func DeleteDashboardPermissions(d *schema.ResourceData, meta interface{}) error 
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

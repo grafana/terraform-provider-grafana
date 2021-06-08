@@ -1,0 +1,1 @@
+terraform import grafana_builtin_role_assignment.builtin_role_name {{builtin_role_name}}

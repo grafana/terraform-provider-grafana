@@ -1,10 +1,12 @@
 package grafana
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"strconv"
-	"strings"	
+	"strings"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -12,286 +14,350 @@ import (
 
 func ResourceDataSource() *schema.Resource {
 	return &schema.Resource{
-		Create: CreateDataSource,
-		Update: UpdateDataSource,
-		Delete: DeleteDataSource,
-		Read:   ReadDataSource,
+
+		Description: `
+* [Official documentation](https://grafana.com/docs/grafana/latest/datasources/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/data_source/)
+
+The required arguments for this resource vary depending on the type of data
+source selected (via the 'type' argument).
+`,
+
+		CreateContext: CreateDataSource,
+		UpdateContext: UpdateDataSource,
+		DeleteContext: DeleteDataSource,
+		ReadContext:   ReadDataSource,
 
 		Schema: map[string]*schema.Schema{
 			"access_mode": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "proxy",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "proxy",
+				Description: "The method by which Grafana will access the data source: `proxy` or `direct`.",
 			},
 			"basic_auth_enabled": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Whether to enable basic auth for the data source.",
 			},
 			"basic_auth_password": {
-				Type:      schema.TypeString,
-				Optional:  true,
-				Default:   "",
-				Sensitive: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Sensitive:   true,
+				Description: "Basic auth password.",
 			},
 			"basic_auth_username": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: "Basic auth username.",
 			},
 			"database_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: "(Required by some data source types) The name of the database to use on the selected data source server.",
 			},
 			"is_default": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Whether to set the data source as default. This should only be `true` to a single data source.",
 			},
 			"json_data": {
-				Type:     schema.TypeList,
-				Optional: true,
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "(Required by some data source types)",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"assume_role_arn": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(CloudWatch) The ARN of the role to be assumed by Grafana when using the CloudWatch data source.",
 						},
 						"auth_type": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(CloudWatch) The authentication type used to access the data source.",
 						},
 						"authentication_type": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Stackdriver) The authentication type: `jwt` or `gce`.",
 						},
 						"client_email": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Stackdriver) Service account email address.",
 						},
 						"conn_max_lifetime": {
-							Type:     schema.TypeInt,
-							Optional: true,
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Description: "(MySQL, PostgreSQL, and MSSQL) Maximum amount of time in seconds a connection may be reused (Grafana v5.4+).",
 						},
 						"custom_metrics_namespaces": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(CloudWatch) A comma-separated list of custom namespaces to be queried by the CloudWatch data source.",
 						},
 						"default_project": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Stackdriver) The default project for the data source.",
 						},
 						"default_region": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(CloudWatch) The default region for the data source.",
 						},
 						"encrypt": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(MSSQL) Connection SSL encryption handling: 'disable', 'false' or 'true'.",
 						},
 						"es_version": {
-							Type:     schema.TypeInt,
-							Optional: true,
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Description: "(Elasticsearch) Elasticsearch version as a number (2/5/56/60/70).",
 						},
 						"graphite_version": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Graphite) Graphite version.",
 						},
 						"http_method": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Prometheus) HTTP method to use for making requests.",
 						},
 						"interval": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Elasticsearch) Index date time format. nil(No Pattern), 'Hourly', 'Daily', 'Weekly', 'Monthly' or 'Yearly'.",
 						},
 						"log_level_field": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Elasticsearch) Which field should be used to indicate the priority of the log message.",
 						},
 						"log_message_field": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Elasticsearch) Which field should be used as the log message.",
 						},
 						"max_idle_conns": {
-							Type:     schema.TypeInt,
-							Optional: true,
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Description: "(MySQL, PostgreSQL and MSSQL) Maximum number of connections in the idle connection pool (Grafana v5.4+).",
 						},
 						"max_open_conns": {
-							Type:     schema.TypeInt,
-							Optional: true,
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Description: "(MySQL, PostgreSQL and MSSQL) Maximum number of open connections to the database (Grafana v5.4+).",
 						},
 						"postgres_version": {
-							Type:     schema.TypeInt,
-							Optional: true,
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Description: "(PostgreSQL) Postgres version as a number (903/904/905/906/1000) meaning v9.3, v9.4, etc.",
 						},
 						"profile": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(CloudWatch) The credentials profile name to use when authentication type is set as 'Credentials file'.",
 						},
 						"query_timeout": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Prometheus) Timeout for queries made to the Prometheus data source in seconds.",
 						},
 						"ssl_mode": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(PostgreSQL) SSLmode. 'disable', 'require', 'verify-ca' or 'verify-full'.",
 						},
 						"timescaledb": {
-							Type:     schema.TypeBool,
-							Optional: true,
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "(PostgreSQL) Enable usage of TimescaleDB extension.",
 						},
 						"time_field": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Elasticsearch) Which field that should be used as timestamp.",
 						},
 						"time_interval": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Prometheus, Elasticsearch, InfluxDB, MySQL, PostgreSQL, and MSSQL) Lowest interval/step value that should be used for this data source.",
 						},
 						"tls_auth": {
-							Type:     schema.TypeBool,
-							Optional: true,
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "(All) Enable TLS authentication using client cert configured in secure json data.",
 						},
 						"tls_auth_with_ca_cert": {
-							Type:     schema.TypeBool,
-							Optional: true,
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "(All) Enable TLS authentication using CA cert.",
 						},
 						"tls_skip_verify": {
-							Type:     schema.TypeBool,
-							Optional: true,
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "(All) Controls whether a client verifies the server’s certificate chain and host name.",
 						},
 						"token_uri": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Stackdriver) The token URI used, provided in the service account key.",
 						},
 						"tsdb_resolution": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(OpenTSDB) Resolution.",
 						},
 						"tsdb_version": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(OpenTSDB) Version.",
 						},
 					},
 				},
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "A unique name for the data source.",
 			},
 			"password": {
-				Type:      schema.TypeString,
-				Optional:  true,
-				Default:   "",
-				Sensitive: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Sensitive:   true,
+				Description: "(Required by some data source types) The password to use to authenticate to the data source.",
 			},
 			"secure_json_data": {
-				Type:      schema.TypeList,
-				Optional:  true,
-				Sensitive: true,
+				Type:        schema.TypeList,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"access_key": {
-							Type:      schema.TypeString,
-							Optional:  true,
-							Sensitive: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Sensitive:   true,
+							Description: "(CloudWatch) The access key to use to access the data source.",
 						},
 						"basic_auth_password": {
-							Type:      schema.TypeString,
-							Optional:  true,
-							Sensitive: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Sensitive:   true,
+							Description: "(All) Password to use for basic authentication.",
 						},
 						"password": {
-							Type:      schema.TypeString,
-							Optional:  true,
-							Sensitive: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Sensitive:   true,
+							Description: "(All) Password to use for authentication.",
 						},
 						"private_key": {
-							Type:      schema.TypeString,
-							Optional:  true,
-							Sensitive: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Sensitive:   true,
+							Description: "(Stackdriver) The service account key `private_key` to use to access the data source.",
 						},
 						"secret_key": {
-							Type:      schema.TypeString,
-							Optional:  true,
-							Sensitive: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Sensitive:   true,
+							Description: "(CloudWatch) The secret key to use to access the data source.",
 						},
 						"tls_ca_cert": {
-							Type:      schema.TypeString,
-							Optional:  true,
-							Sensitive: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Sensitive:   true,
+							Description: "(All) CA cert for out going requests.",
 						},
 						"tls_client_cert": {
-							Type:      schema.TypeString,
-							Optional:  true,
-							Sensitive: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Sensitive:   true,
+							Description: "(All) TLS Client cert for outgoing requests.",
 						},
 						"tls_client_key": {
-							Type:      schema.TypeString,
-							Optional:  true,
-							Sensitive: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Sensitive:   true,
+							Description: "(All) TLS Client key for outgoing requests.",
 						},
 					},
 				},
 			},
 			"type": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The data source type. Must be one of the supported data source keywords.",
 			},
 			"url": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The URL for the data source. The type of URL required varies depending on the chosen data source type.",
 			},
 			"username": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: "(Required by some data source types) The username to use to authenticate to the data source.",
 			},
 		},
 	}
 }
 
 // CreateDataSource creates a Grafana datasource
-func CreateDataSource(d *schema.ResourceData, meta interface{}) error {
+func CreateDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	dataSource, err := makeDataSource(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	id, err := client.NewDataSource(dataSource)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(id, 10))
 
-	return ReadDataSource(d, meta)
+	return ReadDataSource(ctx, d, meta)
 }
 
 // UpdateDataSource updates a Grafana datasource
-func UpdateDataSource(d *schema.ResourceData, meta interface{}) error {
+func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	dataSource, err := makeDataSource(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return client.UpdateDataSource(dataSource)
+	if err = client.UpdateDataSource(dataSource); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.Diagnostics{}
 }
 
 // ReadDataSource reads a Grafana datasource
-func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
+func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return fmt.Errorf("Invalid id: %#v", idStr)
+		return diag.Errorf("Invalid id: %#v", idStr)
 	}
 
 	dataSource, err := client.DataSource(id)
@@ -301,7 +367,7 @@ func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(dataSource.ID, 10))
@@ -321,16 +387,20 @@ func ReadDataSource(d *schema.ResourceData, meta interface{}) error {
 }
 
 // DeleteDataSource deletes a Grafana datasource
-func DeleteDataSource(d *schema.ResourceData, meta interface{}) error {
+func DeleteDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return fmt.Errorf("Invalid id: %#v", idStr)
+		return diag.Errorf("Invalid id: %#v", idStr)
 	}
 
-	return client.DeleteDataSource(id)
+	if err = client.DeleteDataSource(id); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.Diagnostics{}
 }
 
 func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {

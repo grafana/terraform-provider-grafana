@@ -1,12 +1,14 @@
 package grafana
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -14,36 +16,44 @@ import (
 
 func ResourceFolder() *schema.Resource {
 	return &schema.Resource{
-		Create: CreateFolder,
-		Delete: DeleteFolder,
-		Read:   ReadFolder,
+
+		Description: `
+* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/dashboard_folders/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/folder/)
+`,
+
+		CreateContext: CreateFolder,
+		DeleteContext: DeleteFolder,
+		ReadContext:   ReadFolder,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
 			"uid": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Unique identifier.",
 			},
 
 			"title": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The title of the folder.",
 			},
 		},
 	}
 }
 
-func CreateFolder(d *schema.ResourceData, meta interface{}) error {
+func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	model := d.Get("title").(string)
 
 	resp, err := client.NewFolder(model)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	id := strconv.FormatInt(resp.ID, 10)
@@ -51,15 +61,15 @@ func CreateFolder(d *schema.ResourceData, meta interface{}) error {
 	d.Set("uid", resp.UID)
 	d.Set("title", resp.Title)
 
-	return ReadFolder(d, meta)
+	return ReadFolder(ctx, d, meta)
 }
 
-func ReadFolder(d *schema.ResourceData, meta interface{}) error {
+func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	folder, err := client.Folder(id)
@@ -70,7 +80,7 @@ func ReadFolder(d *schema.ResourceData, meta interface{}) error {
 			return nil
 		}
 
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(folder.ID, 10))
@@ -80,10 +90,14 @@ func ReadFolder(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func DeleteFolder(d *schema.ResourceData, meta interface{}) error {
+func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
-	return client.DeleteFolder(d.Get("uid").(string))
+	if err := client.DeleteFolder(d.Get("uid").(string)); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.Diagnostics{}
 }
 
 func prepareFolderModel(configJSON string) map[string]interface{} {

@@ -1,61 +1,25 @@
-TEST?=$$(go list ./... |grep -v 'vendor')
-GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
-WEBSITE_REPO=github.com/hashicorp/terraform-website
-PKG_NAME=grafana
-GRAFANA_VERSION ?= "latest"
+GRAFANA_VERSION ?= latest
 
-DOCKER_COMPOSE_DEVELOP=GRAFANA_VERSION=$(GRAFANA_VERSION) docker-compose -f ./docker-compose.yml -f ./docker-compose.develop.yml
+testacc:
+	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
 
-default: build
-
-build: fmtcheck
-	go install
-
-develop-docker:
-	@$(DOCKER_COMPOSE_DEVELOP) run --rm grafana-provider bash; $(DOCKER_COMPOSE_DEVELOP) down -v
+testacc-enterprise: testacc
+	TF_ACC=1 go test ./... -tags="enterprise" -v $(TESTARGS) -timeout 120m
 
 testacc-docker:
-	@$(DOCKER_COMPOSE_DEVELOP) run --rm grafana-provider make testacc; $(DOCKER_COMPOSE_DEVELOP) down -v
-
-test: fmtcheck
-	go test $(TEST) $(TESTARGS) -timeout=30s -parallel=4
-
-testacc: fmtcheck
-	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
-
-test-serve: fmtcheck
-	@docker pull "grafana/grafana:$(GRAFANA_VERSION)"
-	docker run -p 127.0.0.1:3000:3000 "grafana/grafana:$(GRAFANA_VERSION)"
-
-test-serve-tls: fmtcheck
 	GRAFANA_VERSION=$(GRAFANA_VERSION) \
-		docker-compose -f ./docker-compose.tls.yml up --abort-on-container-exit --renew-anon-volumes
+		docker-compose \
+		-f ./docker-compose.yml \
+		run --rm grafana-provider \
+		make testacc
 
-vet:
-	@echo "go vet ."
-	@go vet $$(go list ./... | grep -v vendor/) ; if [ $$? -eq 1 ]; then \
-		echo ""; \
-		echo "Vet found suspicious constructs. Please check the reported constructs"; \
-		echo "and fix them if necessary before submitting the code for review."; \
-		exit 1; \
-	fi
-
-fmt:
-	gofmt -w $(GOFMT_FILES)
-
-fmtcheck:
-	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
-
-errcheck:
-	@sh -c "'$(CURDIR)/scripts/errcheck.sh'"
-
-test-compile:
-	@if [ "$(TEST)" = "./..." ]; then \
-		echo "ERROR: Set TEST to a specific package. For example,"; \
-		echo "  make test-compile TEST=./$(PKG_NAME)"; \
-		exit 1; \
-	fi
-	go test -c $(TEST) $(TESTARGS)
+testacc-docker-tls:
+	GRAFANA_VERSION=$(GRAFANA_VERSION) \
+		docker-compose \
+		-f ./docker-compose.yml \
+		-f ./docker-compose.tls.yml \
+		run --rm grafana-provider \
+		make testacc
 
 changelog:
 	@test $${RELEASE_VERSION?Please set environment variable RELEASE_VERSION}
@@ -69,6 +33,7 @@ changelog:
 		--future-release $$RELEASE_VERSION
 	@git add CHANGELOG.md && git commit -m "Release $$RELEASE_VERSION"
 
-release: changelog
+release:
+	@test $${RELEASE_VERSION?Please set environment variable RELEASE_VERSION}
 	@git tag $$RELEASE_VERSION
 	@git push origin $$RELEASE_VERSION

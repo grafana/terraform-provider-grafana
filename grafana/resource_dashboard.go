@@ -1,11 +1,13 @@
 package grafana
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -13,29 +15,38 @@ import (
 
 func ResourceDashboard() *schema.Resource {
 	return &schema.Resource{
-		Create: CreateDashboard,
-		Read:   ReadDashboard,
-		Update: UpdateDashboard,
-		Delete: DeleteDashboard,
+
+		Description: `
+* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/dashboard/)
+`,
+
+		CreateContext: CreateDashboard,
+		ReadContext:   ReadDashboard,
+		UpdateContext: UpdateDashboard,
+		DeleteContext: DeleteDashboard,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
 			"slug": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "URL friendly version of the dashboard title.",
 			},
 
 			"dashboard_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The numeric ID of the dashboard computed by Grafana.",
 			},
 
 			"folder": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
+				Type:        schema.TypeInt,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "The id of the folder to save the dashboard in.",
 			},
 
 			"config_json": {
@@ -43,12 +54,13 @@ func ResourceDashboard() *schema.Resource {
 				Required:     true,
 				StateFunc:    NormalizeDashboardConfigJSON,
 				ValidateFunc: ValidateDashboardConfigJSON,
+				Description:  "The complete dashboard model JSON.",
 			},
 		},
 	}
 }
 
-func CreateDashboard(d *schema.ResourceData, meta interface{}) error {
+func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	dashboard := gapi.Dashboard{}
@@ -59,15 +71,15 @@ func CreateDashboard(d *schema.ResourceData, meta interface{}) error {
 
 	resp, err := client.NewDashboard(dashboard)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(resp.Slug)
 
-	return ReadDashboard(d, meta)
+	return ReadDashboard(ctx, d, meta)
 }
 
-func ReadDashboard(d *schema.ResourceData, meta interface{}) error {
+func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	slug := d.Id()
@@ -80,12 +92,12 @@ func ReadDashboard(d *schema.ResourceData, meta interface{}) error {
 			return nil
 		}
 
-		return err
+		return diag.FromErr(err)
 	}
 
 	configJSONBytes, err := json.Marshal(dashboard.Model)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	configJSON := NormalizeDashboardConfigJSON(string(configJSONBytes))
@@ -99,7 +111,7 @@ func ReadDashboard(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func UpdateDashboard(d *schema.ResourceData, meta interface{}) error {
+func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	dashboard := gapi.Dashboard{}
@@ -111,19 +123,23 @@ func UpdateDashboard(d *schema.ResourceData, meta interface{}) error {
 
 	resp, err := client.NewDashboard(dashboard)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(resp.Slug)
 
-	return ReadDashboard(d, meta)
+	return ReadDashboard(ctx, d, meta)
 }
 
-func DeleteDashboard(d *schema.ResourceData, meta interface{}) error {
+func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	slug := d.Id()
-	return client.DeleteDashboard(slug)
+	if err := client.DeleteDashboard(slug); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.Diagnostics{}
 }
 
 func prepareDashboardModel(configJSON string) map[string]interface{} {

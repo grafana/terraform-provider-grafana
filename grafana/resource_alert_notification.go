@@ -1,14 +1,15 @@
 package grafana
 
 import (
+	"context"
 	"errors"
-	"fmt"
 	"log"
 	"strconv"
 	"time"
 	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -18,97 +19,115 @@ var (
 
 func ResourceAlertNotification() *schema.Resource {
 	return &schema.Resource{
-		Create: CreateAlertNotification,
-		Update: UpdateAlertNotification,
-		Delete: DeleteAlertNotification,
-		Read:   ReadAlertNotification,
+
+		Description: `
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/notifications/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/alerting_notification_channels/)
+`,
+
+		CreateContext: CreateAlertNotification,
+		UpdateContext: UpdateAlertNotification,
+		DeleteContext: DeleteAlertNotification,
+		ReadContext:   ReadAlertNotification,
 
 		Schema: map[string]*schema.Schema{
 			"type": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The type of the alert notification channel.",
 			},
 
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the alert notification channel.",
 			},
 
 			"is_default": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Is this the default channel for all your alerts.",
 			},
 
 			"send_reminder": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Whether to send reminders for triggered alerts.",
 			},
 
 			"frequency": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: "Frequency of alert reminders. Frequency must be set if reminders are enabled.",
 			},
 
 			"settings": {
-				Type:      schema.TypeMap,
-				Optional:  true,
-				Sensitive: true,
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "Additional settings, for full reference see [Grafana HTTP API documentation](https://grafana.com/docs/grafana/latest/http_api/alerting_notification_channels/).",
 			},
 
 			"uid": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "Unique identifier. If unset, this will be automatically generated.",
 			},
 
 			"disable_resolve_message": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Whether to disable sending resolve messages.",
 			},
 		},
 	}
 }
 
-func CreateAlertNotification(d *schema.ResourceData, meta interface{}) error {
+func CreateAlertNotification(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
-	alertNotification, err := makeAlertNotification(d)
+	alertNotification, err := makeAlertNotification(ctx, d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	id, err := client.NewAlertNotification(alertNotification)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(id, 10))
 
-	return ReadAlertNotification(d, meta)
+	return ReadAlertNotification(ctx, d, meta)
 }
 
-func UpdateAlertNotification(d *schema.ResourceData, meta interface{}) error {
+func UpdateAlertNotification(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
-	alertNotification, err := makeAlertNotification(d)
+	alertNotification, err := makeAlertNotification(ctx, d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return client.UpdateAlertNotification(alertNotification)
+	if err = client.UpdateAlertNotification(alertNotification); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.Diagnostics{}
 }
 
-func ReadAlertNotification(d *schema.ResourceData, meta interface{}) error {
+func ReadAlertNotification(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return fmt.Errorf("Invalid id: %#v", idStr)
+		return diag.Errorf("Invalid id: %#v", idStr)
 	}
 
 	alertNotification, err := client.AlertNotification(id)
@@ -118,7 +137,7 @@ func ReadAlertNotification(d *schema.ResourceData, meta interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	settings := map[string]interface{}{}
@@ -146,19 +165,23 @@ func ReadAlertNotification(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func DeleteAlertNotification(d *schema.ResourceData, meta interface{}) error {
+func DeleteAlertNotification(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gapi.Client)
 
 	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return fmt.Errorf("Invalid id: %#v", idStr)
+		return diag.Errorf("Invalid id: %#v", idStr)
 	}
 
-	return client.DeleteAlertNotification(id)
+	if err = client.DeleteAlertNotification(id); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.Diagnostics{}
 }
 
-func makeAlertNotification(d *schema.ResourceData) (*gapi.AlertNotification, error) {
+func makeAlertNotification(ctx context.Context, d *schema.ResourceData) (*gapi.AlertNotification, error) {
 	idStr := d.Id()
 	var id int64
 	var err error

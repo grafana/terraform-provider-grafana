@@ -1,5 +1,33 @@
 # Changelog
 
+## [v1.10.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.10.0) (2021-04-29)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.9.0...v1.10.0)
+
+**Implemented enhancements:**
+
+- Leverage SDK v2 Context-Aware Schema Functions and Diagnostics [\#175](https://github.com/grafana/terraform-provider-grafana/issues/175)
+- Upgrade to Terraform Plugin SDK v2 [\#159](https://github.com/grafana/terraform-provider-grafana/issues/159)
+
+**Closed issues:**
+
+- Documentation doesn't mention resource grafana\_alert\_notification.uid [\#182](https://github.com/grafana/terraform-provider-grafana/issues/182)
+- Strange behaviour with Grafana using Postgres as backend \(grafana\_organization\) [\#174](https://github.com/grafana/terraform-provider-grafana/issues/174)
+- A password from grafana\_user resource is stored in state as plain text [\#162](https://github.com/grafana/terraform-provider-grafana/issues/162)
+- Provider not available in registry.terraform.io [\#113](https://github.com/grafana/terraform-provider-grafana/issues/113)
+
+**Merged pull requests:**
+
+- Bump github.com/hashicorp/terraform-plugin-sdk/v2 from 2.5.0 to 2.6.1 [\#189](https://github.com/grafana/terraform-provider-grafana/pull/189) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Migrate Legacy Documentation to tfplugindocs [\#187](https://github.com/grafana/terraform-provider-grafana/pull/187) ([trotttrotttrott](https://github.com/trotttrotttrott))
+- Repo Cleanup [\#186](https://github.com/grafana/terraform-provider-grafana/pull/186) ([trotttrotttrott](https://github.com/trotttrotttrott))
+- Refactor Issue Template [\#185](https://github.com/grafana/terraform-provider-grafana/pull/185) ([trotttrotttrott](https://github.com/trotttrotttrott))
+- Bump github.com/hashicorp/terraform-plugin-sdk/v2 from 2.4.4 to 2.5.0 [\#181](https://github.com/grafana/terraform-provider-grafana/pull/181) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Leverage SDK v2 context-aware schema functions and diagnostics [\#180](https://github.com/grafana/terraform-provider-grafana/pull/180) ([nikosmeds](https://github.com/nikosmeds))
+- Remove string interpolation in docs [\#177](https://github.com/grafana/terraform-provider-grafana/pull/177) ([julienduchesne](https://github.com/julienduchesne))
+- Upgrade to Terraform Plugin SDK v2 [\#176](https://github.com/grafana/terraform-provider-grafana/pull/176) ([trotttrotttrott](https://github.com/trotttrotttrott))
+- renames the `terraform-providers` module organization to `grafana` [\#173](https://github.com/grafana/terraform-provider-grafana/pull/173) ([mupdt](https://github.com/mupdt))
+
 ## [v1.9.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.9.0) (2021-03-02)
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.8.1...v1.9.0)
