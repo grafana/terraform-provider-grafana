@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -361,7 +362,7 @@ func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{
 
 	dataSource, err := client.DataSource(id)
 	if err != nil {
-		if err.Error() == "404 Not Found" {
+		if strings.HasPrefix(err.Error(), "status: 404") {
 			log.Printf("[WARN] removing datasource %s from state because it no longer exists in grafana", d.Get("name").(string))
 			d.SetId("")
 			return nil

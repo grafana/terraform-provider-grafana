@@ -148,7 +148,7 @@ func ReadOrganization(ctx context.Context, d *schema.ResourceData, meta interfac
 	client := meta.(*gapi.Client)
 	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
 	resp, err := client.Org(orgId)
-	if err != nil && err.Error() == "404 Not Found" {
+	if err != nil && strings.HasPrefix(err.Error(), "status: 404") {
 		log.Printf("[WARN] removing organization %s from state because it no longer exists in grafana", d.Id())
 		d.SetId("")
 		return nil
