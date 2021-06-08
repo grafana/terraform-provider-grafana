@@ -69,6 +69,11 @@ func ResourceAlertNotification() *schema.Resource {
 				Sensitive:   true,
 				Description: "Additional settings, for full reference see [Grafana HTTP API documentation](https://grafana.com/docs/grafana/latest/http_api/alerting_notification_channels/).",
 			},
+			"secure_settings": {
+				Type:      schema.TypeMap,
+				Optional:  true,
+				Sensitive: true,
+			},
 
 			"uid": {
 				Type:        schema.TypeString,
@@ -150,7 +155,19 @@ func ReadAlertNotification(ctx context.Context, d *schema.ResourceData, meta int
 			settings[k] = v
 		}
 	}
+	secureSettings := map[string]interface{}{}
 
+	for k, v := range alertNotification.SecureFields.(map[string]interface{}) {
+		boolVal, ok := v.(bool)
+		if ok && boolVal {
+			secureSettings[k] = "true"
+		} else if ok && !boolVal {
+			secureSettings[k] = "false"
+		} else {
+			secureSettings[k] = v
+		}
+	}
+	d.Set("secure_settings", secureSettings)
 	d.SetId(strconv.FormatInt(alertNotification.ID, 10))
 	d.Set("is_default", alertNotification.IsDefault)
 	d.Set("name", alertNotification.Name)
@@ -199,6 +216,17 @@ func makeAlertNotification(ctx context.Context, d *schema.ResourceData) (*gapi.A
 			settings[k] = v
 		}
 	}
+	secureSettings := map[string]interface{}{}
+	for k, v := range d.Get("secure_settings").(map[string]interface{}) {
+		strVal, ok := v.(string)
+		if ok && strVal == "true" {
+			secureSettings[k] = true
+		} else if ok && strVal == "false" {
+			secureSettings[k] = false
+		} else {
+			secureSettings[k] = v
+		}
+	}
 
 	sendReminder := d.Get("send_reminder").(bool)
 	frequency := d.Get("frequency").(string)
@@ -223,5 +251,6 @@ func makeAlertNotification(ctx context.Context, d *schema.ResourceData) (*gapi.A
 		SendReminder:          sendReminder,
 		Frequency:             frequency,
 		Settings:              settings,
+		SecureSettings:        secureSettings,
 	}, err
 }
