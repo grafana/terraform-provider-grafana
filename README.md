@@ -43,6 +43,21 @@ GRAFANA_ORG_ID=1 \
 make testacc
 ```
 
+#### Running enterprise tests
+
+To run tests for resources which are available only for Grafana Enterprise, running instance of Grafana Enterprise is required.
+It is only possible to run tests for Grafana Enterprise using local environment.
+
+```sh
+# Assuming Grafana was run with:
+# docker run --rm -p 3000:3000 grafana/grafana
+
+GRAFANA_URL=http://localhost:3000 \
+GRAFANA_AUTH=admin:admin \
+GRAFANA_ORG_ID=1 \
+make testacc-enterprise
+```
+
 ## Documentation
 
 Documentation is generated with
