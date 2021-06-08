@@ -17,6 +17,8 @@ type AlertNotification struct {
 	SendReminder          bool        `json:"sendReminder"`
 	Frequency             string      `json:"frequency"`
 	Settings              interface{} `json:"settings"`
+	SecureFields          interface{} `json:"secureFields,omitempty"`
+	SecureSettings        interface{} `json:"secureSettings,omitempty"`
 }
 
 // AlertNotifications fetches and returns Grafana alert notifications.
