@@ -42,6 +42,7 @@ resource "grafana_alert_notification" "email_someteam" {
 - **frequency** (String) Frequency of alert reminders. Frequency must be set if reminders are enabled. Defaults to ``.
 - **id** (String) The ID of this resource.
 - **is_default** (Boolean) Is this the default channel for all your alerts. Defaults to `false`.
+- **secure_settings** (Map of String, Sensitive) Additional secure settings, for full reference lookup [Grafana Supported Settings documentation](https://grafana.com/docs/grafana/latest/administration/provisioning/#supported-settings).
 - **send_reminder** (Boolean) Whether to send reminders for triggered alerts. Defaults to `false`.
 - **settings** (Map of String, Sensitive) Additional settings, for full reference see [Grafana HTTP API documentation](https://grafana.com/docs/grafana/latest/http_api/alerting_notification_channels/).
 - **uid** (String) Unique identifier. If unset, this will be automatically generated.

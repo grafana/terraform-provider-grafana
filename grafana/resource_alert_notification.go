@@ -69,10 +69,12 @@ func ResourceAlertNotification() *schema.Resource {
 				Sensitive:   true,
 				Description: "Additional settings, for full reference see [Grafana HTTP API documentation](https://grafana.com/docs/grafana/latest/http_api/alerting_notification_channels/).",
 			},
+
 			"secure_settings": {
-				Type:      schema.TypeMap,
-				Optional:  true,
-				Sensitive: true,
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "Additional secure settings, for full reference lookup [Grafana Supported Settings documentation](https://grafana.com/docs/grafana/latest/administration/provisioning/#supported-settings).",
 			},
 
 			"uid": {
