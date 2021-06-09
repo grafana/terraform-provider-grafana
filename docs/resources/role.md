@@ -39,27 +39,27 @@ resource "grafana_role" "super_user" {
 
 ### Required
 
-- **name** (String)
-- **version** (Number)
+- **name** (String) Name of the role.
+- **version** (Number) Version of the role. A role is updated only on version increase.
 
 ### Optional
 
-- **description** (String)
-- **global** (Boolean) Defaults to `false`.
-- **id** (String) The ID of this resource.
-- **permissions** (Block Set) (see [below for nested schema](#nestedblock--permissions))
-- **uid** (String)
+- **description** (String) Description of the role.
+- **global** (Boolean) Defaults to `false`. Boolean to state whether the role is available across all organizations or not.
+- **id** (String) The ID of this resource. 
+- **permissions** (Block Set) (see [below for nested schema](#nestedblock--permissions)) Specific set of actions granted by the role.
+- **uid** (String) Unique identifier of the role. Used for assignments.
 
 <a id="nestedblock--permissions"></a>
 ### Nested Schema for `permissions`
 
 Required:
 
-- **action** (String)
+- **action** (String) Specific action users granted with the role will be allowed to perform (for example: "users:read").
 
 Optional:
 
-- **scope** (String)
+- **scope** (String) Scope to restrict the action to a set of resources (for example: "roles:customrole1").
 
 ## Import
 
