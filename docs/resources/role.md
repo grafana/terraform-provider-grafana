@@ -55,11 +55,11 @@ resource "grafana_role" "super_user" {
 
 Required:
 
-- **action** (String) Specific action users granted with the role will be allowed to perform (for example: "users:read").
+- **action** (String) Specific action users granted with the role will be allowed to perform (for example: `users:read`).
 
 Optional:
 
-- **scope** (String) Scope to restrict the action to a set of resources (for example: "roles:customrole1").
+- **scope** (String) Scope to restrict the action to a set of resources (for example: `users:*` or `roles:customrole1`).
 
 ## Import
 
