@@ -1,5 +1,24 @@
 # Changelog
 
+## [v1.11.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.11.0) (2021-06-09)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.10.0...v1.11.0)
+
+**Implemented enhancements:**
+
+- Custom HTTP Headers [\#202](https://github.com/grafana/terraform-provider-grafana/issues/202)
+- Add Secure Settings to Alert Notification Resource [\#208](https://github.com/grafana/terraform-provider-grafana/pull/208) ([trotttrotttrott](https://github.com/trotttrotttrott))
+
+**Fixed bugs:**
+
+- Problem downloading provider v1.10.0 [\#194](https://github.com/grafana/terraform-provider-grafana/issues/194)
+
+**Merged pull requests:**
+
+- Add resources for managing fine-grained access control in Grafana Enterprise [\#207](https://github.com/grafana/terraform-provider-grafana/pull/207) ([vtorosyan](https://github.com/vtorosyan))
+- GoReleaser uses Go 1.16 [\#201](https://github.com/grafana/terraform-provider-grafana/pull/201) ([trotttrotttrott](https://github.com/trotttrotttrott))
+- Fixed handling of manually deleted resources [\#178](https://github.com/grafana/terraform-provider-grafana/pull/178) ([RyanW8](https://github.com/RyanW8))
+
 ## [v1.10.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.10.0) (2021-04-29)
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.9.0...v1.10.0)
@@ -18,6 +37,7 @@
 
 **Merged pull requests:**
 
+- Release v1.10.0 [\#192](https://github.com/grafana/terraform-provider-grafana/pull/192) ([nikosmeds](https://github.com/nikosmeds))
 - Bump github.com/hashicorp/terraform-plugin-sdk/v2 from 2.5.0 to 2.6.1 [\#189](https://github.com/grafana/terraform-provider-grafana/pull/189) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Migrate Legacy Documentation to tfplugindocs [\#187](https://github.com/grafana/terraform-provider-grafana/pull/187) ([trotttrotttrott](https://github.com/trotttrotttrott))
 - Repo Cleanup [\#186](https://github.com/grafana/terraform-provider-grafana/pull/186) ([trotttrotttrott](https://github.com/trotttrotttrott))
@@ -27,6 +47,8 @@
 - Remove string interpolation in docs [\#177](https://github.com/grafana/terraform-provider-grafana/pull/177) ([julienduchesne](https://github.com/julienduchesne))
 - Upgrade to Terraform Plugin SDK v2 [\#176](https://github.com/grafana/terraform-provider-grafana/pull/176) ([trotttrotttrott](https://github.com/trotttrotttrott))
 - renames the `terraform-providers` module organization to `grafana` [\#173](https://github.com/grafana/terraform-provider-grafana/pull/173) ([mupdt](https://github.com/mupdt))
+- Fix typo in dashboard.html.md [\#170](https://github.com/grafana/terraform-provider-grafana/pull/170) ([asmgf](https://github.com/asmgf))
+- Refactor CI: Use Drone and Go 1.16 [\#168](https://github.com/grafana/terraform-provider-grafana/pull/168) ([trotttrotttrott](https://github.com/trotttrotttrott))
 
 ## [v1.9.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.9.0) (2021-03-02)
 
@@ -46,10 +68,7 @@
 **Merged pull requests:**
 
 - Allow dependabot to check github actions [\#171](https://github.com/grafana/terraform-provider-grafana/pull/171) ([jlosito](https://github.com/jlosito))
-- Fix typo in dashboard.html.md [\#170](https://github.com/grafana/terraform-provider-grafana/pull/170) ([asmgf](https://github.com/asmgf))
 - Drone Pipeline: build-master  [\#169](https://github.com/grafana/terraform-provider-grafana/pull/169) ([trotttrotttrott](https://github.com/trotttrotttrott))
-- Refactor CI: Use Drone and Go 1.16 [\#168](https://github.com/grafana/terraform-provider-grafana/pull/168) ([trotttrotttrott](https://github.com/trotttrotttrott))
-- Bump github.com/hashicorp/go-cleanhttp from 0.5.1 to 0.5.2 [\#167](https://github.com/grafana/terraform-provider-grafana/pull/167) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Allow dependabot to check go modules [\#165](https://github.com/grafana/terraform-provider-grafana/pull/165) ([jlosito](https://github.com/jlosito))
 - Adding profile field to JSON Data [\#164](https://github.com/grafana/terraform-provider-grafana/pull/164) ([grlvrl](https://github.com/grlvrl))
 - is\_admin added to grafana\_user. [\#157](https://github.com/grafana/terraform-provider-grafana/pull/157) ([AlirezaKm](https://github.com/AlirezaKm))
@@ -69,6 +88,10 @@
 
 - uid is always updated in previously created dashboards [\#152](https://github.com/grafana/terraform-provider-grafana/issues/152)
 - Repeated updates to uid in 1.8.0 [\#151](https://github.com/grafana/terraform-provider-grafana/issues/151)
+
+**Merged pull requests:**
+
+- Bump github.com/hashicorp/go-cleanhttp from 0.5.1 to 0.5.2 [\#167](https://github.com/grafana/terraform-provider-grafana/pull/167) ([dependabot[bot]](https://github.com/apps/dependabot))
 
 ## [v1.8.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.8.0) (2020-12-22)
 
@@ -194,6 +217,7 @@
 - support boolean settings for alert notifications [\#37](https://github.com/grafana/terraform-provider-grafana/pull/37) ([DanCech](https://github.com/DanCech))
 - Add support for creating folders and creating dashboards inside folders [\#36](https://github.com/grafana/terraform-provider-grafana/pull/36) ([goraxe](https://github.com/goraxe))
 - Add missing quotes in grafana\_organization docs [\#32](https://github.com/grafana/terraform-provider-grafana/pull/32) ([illagrenan](https://github.com/illagrenan))
+- Change of Library [\#27](https://github.com/grafana/terraform-provider-grafana/pull/27) ([mlclmj](https://github.com/mlclmj))
 
 ## [v1.2.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.2.0) (2018-08-01)
 
@@ -214,7 +238,6 @@
 **Merged pull requests:**
 
 - fix\(Schema\): Mark arguments containing secrets as sensitive [\#28](https://github.com/grafana/terraform-provider-grafana/pull/28) ([donoftime](https://github.com/donoftime))
-- Change of Library [\#27](https://github.com/grafana/terraform-provider-grafana/pull/27) ([mlclmj](https://github.com/mlclmj))
 - make: Add website + website-test targets [\#21](https://github.com/grafana/terraform-provider-grafana/pull/21) ([radeksimko](https://github.com/radeksimko))
 
 ## [v1.0.2](https://github.com/grafana/terraform-provider-grafana/tree/v1.0.2) (2018-04-18)
