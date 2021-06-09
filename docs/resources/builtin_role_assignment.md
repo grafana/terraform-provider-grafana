@@ -35,8 +35,8 @@ resource "grafana_builtin_role_assignment" "viewer" {
 
 ### Required
 
-- **builtin_role** (String)
-- **roles** (Block Set, Min: 1) (see [below for nested schema](#nestedblock--roles))
+- **builtin_role** (String) Organization roles (`Viewer`, `Editor`, `Admin`) or `Grafana Admin` to assign the roles to.
+- **roles** (Block Set, Min: 1) Fixed or custom roles which provide granular access for specific resources within Grafana. (see [below for nested schema](#nestedblock--roles))
 
 ### Optional
 
@@ -47,11 +47,11 @@ resource "grafana_builtin_role_assignment" "viewer" {
 
 Required:
 
-- **uid** (String)
+- **uid** (String) Unique identifier of the role to assign to `builtin_role`.
 
 Optional:
 
-- **global** (Boolean) Defaults to `false`.
+- **global** (Boolean) States whether the assignment is available across all organizations or not. Defaults to `false`.
 
 ## Import
 
