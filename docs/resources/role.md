@@ -46,7 +46,7 @@ resource "grafana_role" "super_user" {
 
 - **description** (String) Description of the role.
 - **global** (Boolean) Defaults to `false`. Boolean to state whether the role is available across all organizations or not.
-- **id** (String) The ID of this resource. 
+- **id** (String) The ID of this resource.
 - **permissions** (Block Set) (see [below for nested schema](#nestedblock--permissions)) Specific set of actions granted by the role.
 - **uid** (String) Unique identifier of the role. Used for assignments.
 
