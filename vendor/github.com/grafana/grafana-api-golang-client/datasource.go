@@ -45,11 +45,12 @@ type JSONData struct {
 	TimeInterval string `json:"timeInterval,omitempty"`
 
 	// Used by Elasticsearch
-	EsVersion       int64  `json:"esVersion,omitempty"`
-	TimeField       string `json:"timeField,omitempty"`
-	Interval        string `json:"inteval,omitempty"`
-	LogMessageField string `json:"logMessageField,omitempty"`
-	LogLevelField   string `json:"logLevelField,omitempty"`
+	EsVersion                  int64  `json:"esVersion,omitempty"`
+	TimeField                  string `json:"timeField,omitempty"`
+	Interval                   string `json:"interval,omitempty"`
+	LogMessageField            string `json:"logMessageField,omitempty"`
+	LogLevelField              string `json:"logLevelField,omitempty"`
+	MaxConcurrentShardRequests int64  `json:"maxConcurrentShardRequests,omitempty"`
 
 	// Used by Cloudwatch
 	AuthType                string `json:"authType,omitempty"`
