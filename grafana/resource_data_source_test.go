@@ -106,6 +106,7 @@ resource "grafana_data_source" "testdata" {
 			time_field        = "@timestamp"
 			log_message_field = "message"
 			log_level_field   = "fields.level"
+			max_concurrent_shard_requests = 8
 		}
 	}
 	`,
@@ -119,6 +120,7 @@ resource "grafana_data_source" "testdata" {
 			"json_data.0.time_field":        "@timestamp",
 			"json_data.0.log_message_field": "message",
 			"json_data.0.log_level_field":   "fields.level",
+			"json_data.0.max_concurrent_shard_requests": "8",
 		},
 	},
 	{

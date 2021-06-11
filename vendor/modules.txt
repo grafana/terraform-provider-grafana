@@ -90,7 +90,7 @@ github.com/golang/protobuf/ptypes/timestamp
 github.com/google/uuid
 # github.com/googleapis/gax-go/v2 v2.0.5
 github.com/googleapis/gax-go/v2
-# github.com/grafana/grafana-api-golang-client v0.0.0-20210602235839-9bd3cddb7c2b
+# github.com/grafana/grafana-api-golang-client v0.0.0-20210609221621-5181ce3ac670
 ## explicit
 github.com/grafana/grafana-api-golang-client
 # github.com/grafana/synthetic-monitoring-agent v0.0.22
