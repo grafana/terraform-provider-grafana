@@ -56,6 +56,12 @@ func ResourceDashboard() *schema.Resource {
 				ValidateFunc: ValidateDashboardConfigJSON,
 				Description:  "The complete dashboard model JSON.",
 			},
+
+			"overwrite": {
+				Type: schema.TypeBool,
+				Optional: true,
+				Description: "Set to true if you want to overwrite existing dashboard with newer version, same dashboard title in folder or same dashboard uid.",
+			},
 		},
 	}
 }
@@ -68,6 +74,8 @@ func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 	dashboard.Model = prepareDashboardModel(d.Get("config_json").(string))
 
 	dashboard.Folder = int64(d.Get("folder").(int))
+
+	dashboard.Overwrite = d.Get("overwrite").(bool)
 
 	resp, err := client.NewDashboard(dashboard)
 	if err != nil {
