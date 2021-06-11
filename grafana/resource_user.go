@@ -61,7 +61,7 @@ does not currently work with API Tokens. You must use basic auth.
 }
 
 func CreateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	user := gapi.User{
 		Email:    d.Get("email").(string),
 		Name:     d.Get("name").(string),
@@ -83,7 +83,7 @@ func CreateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func ReadUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -100,7 +100,7 @@ func ReadUser(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 }
 
 func UpdateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -131,7 +131,7 @@ func UpdateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func DeleteUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -144,7 +144,7 @@ func DeleteUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func ExistsUser(d *schema.ResourceData, meta interface{}) (bool, error) {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	userId, _ := strconv.ParseInt(d.Id(), 10, 64)
 	_, err := client.User(userId)
 	if err != nil {

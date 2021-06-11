@@ -1,56 +1,76 @@
 package grafana
 
 import (
+	"context"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-// To run these acceptance tests, you will need a Grafana server.
-// Grafana can be downloaded here: http://grafana.org/download/
-//
-// The tests will need an API key to authenticate with the server. To create
-// one, use the menu for one of your installation's organizations (The
-// "Main Org." is fine if you've just done a fresh installation to run these
-// tests) to reach the "API Keys" admin page.
-//
-// Giving the API key the Admin role is the easiest way to ensure enough
-// access is granted to run all of the tests.
-//
-// Once you've created the API key, set the GRAFANA_URL and GRAFANA_AUTH
-// environment variables to the Grafana base URL and the API key respectively,
-// and then run:
-//    make testacc TEST=./builtin/providers/grafana
+// testAccProviderFactories is a static map containing only the main provider instance
+var testAccProviderFactories map[string]func() (*schema.Provider, error)
 
-var testAccProviders map[string]*schema.Provider
+// testAccProvider is the "main" provider instance
+//
+// This Provider can be used in testing code for API calls without requiring
+// the use of saving and referencing specific ProviderFactories instances.
+//
+// testAccPreCheck(t) must be called before using this provider instance.
 var testAccProvider *schema.Provider
 
+// testAccProviderConfigure ensures testAccProvider is only configured once
+//
+// The testAccPreCheck(t) function is invoked for every test and this prevents
+// extraneous reconfiguration to the same values each time. However, this does
+// not prevent reconfiguration that may happen should the address of
+// testAccProvider be errantly reused in ProviderFactories.
+var testAccProviderConfigure sync.Once
+
 func init() {
-	testAccProvider = Provider()
-	testAccProviders = map[string]*schema.Provider{
-		"grafana": testAccProvider,
+	testAccProvider = Provider("testacc")()
+
+	// Always allocate a new provider instance each invocation, otherwise gRPC
+	// ProviderConfigure() can overwrite configuration during concurrent testing.
+	testAccProviderFactories = map[string]func() (*schema.Provider, error){
+		"grafana": func() (*schema.Provider, error) {
+			return Provider("testacc")(), nil
+		},
 	}
 }
 
 func TestProvider(t *testing.T) {
-	if err := Provider().InternalValidate(); err != nil {
+	if err := Provider("dev")().InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 }
 
-func TestProvider_impl(t *testing.T) {
-	var _ *schema.Provider = Provider()
-}
-
+// testAccPreCheck verifies required provider testing configuration
+//
+// This PreCheck function should be present in every acceptance test. It allows
+// test configurations to omit a provider configuration with region and ensures
+// testing functions that attempt to call AWS APIs are previously configured.
+//
+// These verifications and configuration are preferred at this level to prevent
+// provider developers from experiencing less clear errors for every test.
 func testAccPreCheck(t *testing.T) {
-	if v := os.Getenv("GRAFANA_URL"); v == "" {
-		t.Fatal("GRAFANA_URL must be set for acceptance tests")
-	}
-	if v := os.Getenv("GRAFANA_AUTH"); v == "" {
-		t.Fatal("GRAFANA_AUTH must be set for acceptance tests")
-	}
-	if v := os.Getenv("GRAFANA_ORG_ID"); v == "" {
-		t.Fatal("GRAFANA_ORG_ID must be set for acceptance tests")
-	}
+	testAccProviderConfigure.Do(func() {
+		if v := os.Getenv("GRAFANA_URL"); v == "" {
+			t.Fatal("GRAFANA_URL must be set for acceptance tests")
+		}
+		if v := os.Getenv("GRAFANA_AUTH"); v == "" {
+			t.Fatal("GRAFANA_AUTH must be set for acceptance tests")
+		}
+		if v := os.Getenv("GRAFANA_ORG_ID"); v == "" {
+			t.Fatal("GRAFANA_ORG_ID must be set for acceptance tests")
+		}
+		// Since we are outside the scope of the Terraform configuration we must
+		// call Configure() to properly initialize the provider configuration.
+		err := testAccProvider.Configure(context.Background(), terraform.NewResourceConfigRaw(nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
 }

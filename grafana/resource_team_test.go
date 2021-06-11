@@ -15,9 +15,9 @@ func TestAccTeam_basic(t *testing.T) {
 	var team gapi.Team
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccTeamCheckDestroy(&team),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccTeamCheckDestroy(&team),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTeamConfig_basic,
@@ -54,9 +54,9 @@ func TestAccTeam_Members(t *testing.T) {
 	var team gapi.Team
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccTeamCheckDestroy(&team),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccTeamCheckDestroy(&team),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTeamConfig_memberAdd,
@@ -105,7 +105,7 @@ func testAccTeamCheckExists(rn string, a *gapi.Team) resource.TestCheckFunc {
 			return fmt.Errorf("resource id is malformed")
 		}
 
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		team, err := client.Team(id)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
@@ -119,7 +119,7 @@ func testAccTeamCheckExists(rn string, a *gapi.Team) resource.TestCheckFunc {
 
 func testAccTeamCheckDestroy(a *gapi.Team) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		team, err := client.Team(a.ID)
 		if err == nil && team.Name != "" {
 			return fmt.Errorf("team still exists")

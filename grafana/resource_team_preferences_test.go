@@ -10,9 +10,9 @@ import (
 func TestAccTeamPreferences_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccTeamPreferencesCheckDestroy(),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccTeamPreferencesCheckDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTeamPreferencesConfig_Basic,
@@ -54,7 +54,7 @@ resource "grafana_dashboard" "test" {
 }
 EOT
 }
-  
+
 resource "grafana_team_preferences" "testTeamPreferences" {
   team_id           = grafana_team.testTeam.id
   theme             = "dark"

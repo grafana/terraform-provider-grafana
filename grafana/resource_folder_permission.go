@@ -70,7 +70,7 @@ func ResourceFolderPermission() *schema.Resource {
 }
 
 func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	v, ok := d.GetOk("permissions")
 	if !ok {
@@ -106,7 +106,7 @@ func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func ReadFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	folderUID := d.Get("folder_uid").(string)
 
@@ -145,7 +145,7 @@ func DeleteFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 	//since permissions are tied to folders, we can't really delete the permissions.
 	//we will simply remove all permissions, leaving a folder that only an admin can access.
 	//if for some reason the parent folder doesn't exist, we'll just ignore the error
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	folderUID := d.Get("folder_uid").(string)
 	emptyPermissions := gapi.PermissionItems{}

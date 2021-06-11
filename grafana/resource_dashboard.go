@@ -61,7 +61,7 @@ func ResourceDashboard() *schema.Resource {
 }
 
 func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	dashboard := gapi.Dashboard{}
 
@@ -80,7 +80,7 @@ func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 }
 
 func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	slug := d.Id()
 
@@ -112,7 +112,7 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 }
 
 func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	dashboard := gapi.Dashboard{}
 
@@ -132,7 +132,7 @@ func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 }
 
 func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	slug := d.Id()
 	if err := client.DeleteDashboard(slug); err != nil {

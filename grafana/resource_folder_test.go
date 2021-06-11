@@ -16,9 +16,9 @@ func TestAccFolder_basic(t *testing.T) {
 	var folder gapi.Folder
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccFolderCheckDestroy(&folder),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccFolderCheckDestroy(&folder),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFolderConfig_basic,
@@ -52,7 +52,7 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
 		if err != nil {
 			return err
@@ -76,14 +76,14 @@ func testAccFolderDisappear(folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// At this point testAccFolderCheckExists should have been called and
 		// folder should have been populated
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		return client.DeleteFolder((*folder).UID)
 	}
 }
 
 func testAccFolderCheckDestroy(folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		_, err := client.Folder(folder.ID)
 		if err == nil {
 			return fmt.Errorf("folder still exists")

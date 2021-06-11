@@ -268,7 +268,7 @@ resource "grafana_data_source" "testdata" {
 				authentication_type = "jwt"
 				default_project = "default-project"
 				client_email = "client-email@default-project.iam.gserviceaccount.com"
-			}			
+			}
 			secure_json_data {
 				private_key = "-----BEGIN PRIVATE KEY-----\nprivate-key\n-----END PRIVATE KEY-----\n"
 			}
@@ -312,9 +312,9 @@ func TestAccDataSource_basic(t *testing.T) {
 		}
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:     func() { testAccPreCheck(t) },
-			Providers:    testAccProviders,
-			CheckDestroy: testAccDataSourceCheckDestroy(&dataSource),
+			PreCheck:          func() { testAccPreCheck(t) },
+			ProviderFactories: testAccProviderFactories,
+			CheckDestroy:      testAccDataSourceCheckDestroy(&dataSource),
 			Steps: []resource.TestStep{
 				{
 					Config: test.config,
@@ -343,7 +343,7 @@ func testAccDataSourceCheckExists(rn string, dataSource *gapi.DataSource) resour
 			return fmt.Errorf("resource id is malformed")
 		}
 
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		gotDataSource, err := client.DataSource(id)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
@@ -357,7 +357,7 @@ func testAccDataSourceCheckExists(rn string, dataSource *gapi.DataSource) resour
 
 func testAccDataSourceCheckDestroy(dataSource *gapi.DataSource) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		_, err := client.DataSource(dataSource.ID)
 		if err == nil {
 			return fmt.Errorf("data source still exists")

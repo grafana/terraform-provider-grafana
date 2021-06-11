@@ -127,7 +127,7 @@ Grafana unless 'create_users' is set to true.
 }
 
 func CreateOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	name := d.Get("name").(string)
 	orgId, err := client.NewOrg(name)
 	if err != nil && err.Error() == "409 Conflict" {
@@ -145,7 +145,7 @@ func CreateOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func ReadOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
 	resp, err := client.Org(orgId)
 	if err != nil && strings.HasPrefix(err.Error(), "status: 404") {
@@ -164,7 +164,7 @@ func ReadOrganization(ctx context.Context, d *schema.ResourceData, meta interfac
 }
 
 func UpdateOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
 	if d.HasChange("name") {
 		name := d.Get("name").(string)
@@ -181,7 +181,7 @@ func UpdateOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func DeleteOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
 	if err := client.DeleteOrg(orgId); err != nil {
 		return diag.FromErr(err)
@@ -191,7 +191,7 @@ func DeleteOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func ExistsOrganization(d *schema.ResourceData, meta interface{}) (bool, error) {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
 	_, err := client.Org(orgId)
 	if err != nil && err.Error() == "404 Not Found" {
@@ -204,7 +204,7 @@ func ExistsOrganization(d *schema.ResourceData, meta interface{}) (bool, error) 
 }
 
 func ReadUsers(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
 	orgUsers, err := client.OrgUsers(orgId)
 	if err != nil {
@@ -290,7 +290,7 @@ func changes(stateUsers, configUsers map[string]OrgUser) []UserChange {
 }
 
 func addIdsToChanges(d *schema.ResourceData, meta interface{}, changes []UserChange) ([]UserChange, error) {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	gUserMap := make(map[string]int64)
 	gUsers, err := client.Users()
 	if err != nil {
@@ -319,7 +319,7 @@ func addIdsToChanges(d *schema.ResourceData, meta interface{}, changes []UserCha
 }
 
 func createUser(meta interface{}, user string) (int64, error) {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	id, n := int64(0), 64
 	bytes := make([]byte, n)
 	_, err := rand.Read(bytes)
@@ -342,7 +342,7 @@ func createUser(meta interface{}, user string) (int64, error) {
 
 func applyChanges(meta interface{}, orgId int64, changes []UserChange) error {
 	var err error
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	for _, change := range changes {
 		u := change.User
 		switch change.Type {

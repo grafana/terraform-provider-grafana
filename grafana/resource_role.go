@@ -80,7 +80,7 @@ func ResourceRole() *schema.Resource {
 }
 
 func CreateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	role := gapi.Role{
 		UID:         d.Get("uid").(string),
@@ -121,7 +121,7 @@ func permissions(d *schema.ResourceData) []gapi.Permission {
 }
 
 func ReadRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	uid := d.Id()
 	r, err := client.GetRole(uid)
 
@@ -171,7 +171,7 @@ func ReadRole(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 }
 
 func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	if d.HasChange("version") || d.HasChange("name") || d.HasChange("description") || d.HasChange("permissions") {
 		desc := ""
@@ -195,7 +195,7 @@ func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func DeleteRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	uid := d.Id()
 	g := d.Get("global").(bool)
 
