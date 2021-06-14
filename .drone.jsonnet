@@ -16,6 +16,7 @@ local pipeline(name, trigger) = {
       name: 'tests',
       image: golang,
       commands: [
+        'sleep 5', // https://docs.drone.io/pipeline/docker/syntax/services/#initialization
         'make testacc',
       ],
       environment: {
