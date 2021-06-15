@@ -1,5 +1,5 @@
 local golang = 'golang:1.16';
-local grafana = 'grafana/grafana:7.4.2';
+local grafana = 'grafana/grafana:8.0.2';
 
 // We'd like the same pipeline for testing pull requests as we do for building
 // master. The only difference is their names and triggers.
@@ -16,7 +16,7 @@ local pipeline(name, trigger) = {
       name: 'tests',
       image: golang,
       commands: [
-        'sleep 5', // https://docs.drone.io/pipeline/docker/syntax/services/#initialization
+        'sleep 5',  // https://docs.drone.io/pipeline/docker/syntax/services/#initialization
         'make testacc',
       ],
       environment: {
