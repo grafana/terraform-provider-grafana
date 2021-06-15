@@ -16,9 +16,9 @@ func TestAccAlertNotification_basic(t *testing.T) {
 	var alertNotification gapi.AlertNotification
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccAlertNotificationCheckDestroy(&alertNotification),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAlertNotificationConfig_basic,
@@ -53,9 +53,9 @@ func TestAccAlertNotification_disableResolveMessage(t *testing.T) {
 	var alertNotification gapi.AlertNotification
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccAlertNotificationCheckDestroy(&alertNotification),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAlertNotificationConfig_disable_resolve_message,
@@ -90,9 +90,9 @@ func TestAccAlertNotification_invalid_frequence(t *testing.T) {
 	var alertNotification gapi.AlertNotification
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccAlertNotificationCheckDestroy(&alertNotification),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
 			{
 				ExpectError: regexp.MustCompile("time: invalid duration \"hi\""),
@@ -106,9 +106,9 @@ func TestAccAlertNotification_reminder_no_frequence(t *testing.T) {
 	var alertNotification gapi.AlertNotification
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccAlertNotificationCheckDestroy(&alertNotification),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
 			{
 				ExpectError: regexp.MustCompile("frequency must be set when send_reminder is set to 'true'"),
@@ -134,7 +134,7 @@ func testAccAlertNotificationCheckExists(rn string, a *gapi.AlertNotification) r
 			return fmt.Errorf("resource id is malformed")
 		}
 
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		gotAlertNotification, err := client.AlertNotification(id)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
@@ -158,7 +158,7 @@ func testAccAlertNotificationDefinition(a *gapi.AlertNotification) resource.Test
 
 func testAccAlertNotificationCheckDestroy(a *gapi.AlertNotification) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		alert, err := client.AlertNotification(a.ID)
 		if err == nil && alert != nil {
 			return fmt.Errorf("alert-notification still exists")

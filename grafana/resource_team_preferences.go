@@ -54,7 +54,7 @@ func ResourceTeamPreferences() *schema.Resource {
 }
 
 func UpdateTeamPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	teamID := int64(d.Get("team_id").(int))
 	theme := d.Get("theme").(string)
@@ -76,7 +76,7 @@ func UpdateTeamPreferences(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func ReadTeamPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	teamID := int64(d.Get("team_id").(int))
 
@@ -98,7 +98,7 @@ func DeleteTeamPreferences(ctx context.Context, d *schema.ResourceData, meta int
 	//the specified preferences and go back to the default values. note: if the
 	//call fails because the team no longer exists - we'll just ignore the error
 
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	teamID := int64(d.Get("team_id").(int))
 	defaultPreferences := gapi.Preferences{}

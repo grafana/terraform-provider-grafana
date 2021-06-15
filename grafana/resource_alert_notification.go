@@ -5,8 +5,8 @@ import (
 	"errors"
 	"log"
 	"strconv"
-	"time"
 	"strings"
+	"time"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -96,7 +96,7 @@ func ResourceAlertNotification() *schema.Resource {
 }
 
 func CreateAlertNotification(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	alertNotification, err := makeAlertNotification(ctx, d)
 	if err != nil {
@@ -114,7 +114,7 @@ func CreateAlertNotification(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func UpdateAlertNotification(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	alertNotification, err := makeAlertNotification(ctx, d)
 	if err != nil {
@@ -129,7 +129,7 @@ func UpdateAlertNotification(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func ReadAlertNotification(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)
@@ -185,7 +185,7 @@ func ReadAlertNotification(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func DeleteAlertNotification(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)

@@ -15,9 +15,9 @@ import (
 func TestAccUser_basic(t *testing.T) {
 	var user gapi.User
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccUserCheckDestroy(&user),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccUserCheckDestroy(&user),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccUserConfig_basic,
@@ -79,7 +79,7 @@ func testAccUserCheckExists(rn string, a *gapi.User) resource.TestCheckFunc {
 		if err != nil {
 			return fmt.Errorf("resource id is malformed")
 		}
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		user, err := client.User(id)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
@@ -91,7 +91,7 @@ func testAccUserCheckExists(rn string, a *gapi.User) resource.TestCheckFunc {
 
 func testAccUserCheckDestroy(a *gapi.User) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		user, err := client.User(a.ID)
 		if err == nil && user.Email != "" {
 			return fmt.Errorf("user still exists")

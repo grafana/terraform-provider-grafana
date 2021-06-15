@@ -16,9 +16,9 @@ func TestAccBuiltInRoleAssignment(t *testing.T) {
 	var br gapi.BuiltInRoleAssignment
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccBuiltInRoleAssignmentCheckDestroy(&br),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccBuiltInRoleAssignmentCheckDestroy(&br),
 		Steps: []resource.TestStep{
 			{
 				Config: builtInRoleAssignmentConfig,
@@ -59,7 +59,7 @@ func testAccBuiltInRoleAssignmentCheckExists(rn string) resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		assignments, err := client.GetBuiltInRoleAssignments()
 		if err != nil || assignments[rs.Primary.ID] == nil {
 			return fmt.Errorf("error getting built-in role assignments: %s", err)
@@ -71,7 +71,7 @@ func testAccBuiltInRoleAssignmentCheckExists(rn string) resource.TestCheckFunc {
 
 func testAccBuiltInRoleAssignmentCheckDestroy(br *gapi.BuiltInRoleAssignment) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		bra, err := client.GetBuiltInRoleAssignments()
 		if err == nil && bra[br.BuiltinRole] != nil {
 			return fmt.Errorf("assignment still exists")
@@ -116,7 +116,7 @@ resource "grafana_builtin_role_assignment" "test_assignment" {
   roles {
 	uid = grafana_role.test_role.id
 	global = true
-  } 
+  }
   roles {
 	uid = grafana_role.test_role_two.id
 	global = false

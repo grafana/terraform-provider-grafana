@@ -15,9 +15,9 @@ func TestAccOrganization_basic(t *testing.T) {
 	var org gapi.Org
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccOrganizationCheckDestroy(&org),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_basic,
@@ -48,9 +48,9 @@ func TestAccOrganization_users(t *testing.T) {
 	var org gapi.Org
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccOrganizationCheckDestroy(&org),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_usersCreate,
@@ -114,9 +114,9 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 	var org gapi.Org
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccOrganizationCheckDestroy(&org),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_defaultAdminNormal,
@@ -180,7 +180,7 @@ func testAccOrganizationCheckExists(rn string, a *gapi.Org) resource.TestCheckFu
 			return fmt.Errorf("resource id is malformed")
 		}
 
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		org, err := client.Org(id)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
@@ -194,7 +194,7 @@ func testAccOrganizationCheckExists(rn string, a *gapi.Org) resource.TestCheckFu
 
 func testAccOrganizationCheckDestroy(a *gapi.Org) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		org, err := client.Org(a.ID)
 		if err == nil && org.Name != "" {
 			return fmt.Errorf("organization still exists")

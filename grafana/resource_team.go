@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -79,7 +78,7 @@ to the team. Note: users specified here must already exist in Grafana.
 }
 
 func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	name := d.Get("name").(string)
 	email := d.Get("email").(string)
 	teamID, err := client.AddTeam(name, email)
@@ -96,7 +95,7 @@ func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func ReadTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	resp, err := client.Team(teamID)
 	if err != nil && strings.HasPrefix(err.Error(), "status: 404") {
@@ -116,7 +115,7 @@ func ReadTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 }
 
 func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	if d.HasChange("name") || d.HasChange("email") {
 		name := d.Get("name").(string)
@@ -134,7 +133,7 @@ func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func DeleteTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	if err := client.DeleteTeam(teamID); err != nil {
 		return diag.FromErr(err)
@@ -144,7 +143,7 @@ func DeleteTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func ExistsTeam(d *schema.ResourceData, meta interface{}) (bool, error) {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	_, err := client.Team(teamID)
 	if err != nil && strings.HasPrefix(err.Error(), "status: 404") {
@@ -157,7 +156,7 @@ func ExistsTeam(d *schema.ResourceData, meta interface{}) (bool, error) {
 }
 
 func ReadMembers(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	teamMembers, err := client.TeamMembers(teamID)
 	if err != nil {
@@ -235,7 +234,7 @@ func memberChanges(stateMembers, configMembers map[string]TeamMember) []MemberCh
 }
 
 func addMemberIdsToChanges(meta interface{}, changes []MemberChange) ([]MemberChange, error) {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	gUserMap := make(map[string]int64)
 	gUsers, err := client.Users()
 	if err != nil {
@@ -260,7 +259,7 @@ func addMemberIdsToChanges(meta interface{}, changes []MemberChange) ([]MemberCh
 
 func applyMemberChanges(meta interface{}, teamId int64, changes []MemberChange) error {
 	var err error
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	for _, change := range changes {
 		u := change.Member
 		switch change.Type {

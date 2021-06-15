@@ -7,6 +7,7 @@
 [![Build Status](https://drone.grafana.net/api/badges/grafana/terraform-provider-grafana/status.svg)](https://drone.grafana.net/grafana/terraform-provider-grafana)
 
 - Grafana website: https://grafana.com
+* Grafana Cloud website: https://grafana.com/products/cloud/
 - Provider Documentation: https://registry.terraform.io/providers/grafana/grafana/latest/docs
 - Grafana Chat: [Grafana #terraform Slack channel](https://grafana.slack.com/archives/C017MUCFJUT)
 

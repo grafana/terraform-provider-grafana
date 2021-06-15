@@ -15,9 +15,9 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 	dashboardID := int64(-1)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccDashboardPermissionCheckDestroy(),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccDashboardPermissionCheckDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDashboardPermissionConfig_Basic,
@@ -47,7 +47,7 @@ func testAccDashboardPermissionsCheckExists(rn string, dashboardID *int64) resou
 			return fmt.Errorf("Resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 
 		gotDashboardID, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
 		if err != nil {
@@ -67,7 +67,7 @@ func testAccDashboardPermissionsCheckExists(rn string, dashboardID *int64) resou
 
 func testAccDashboardPermissionsCheckEmpty(dashboardID *int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		permissions, err := client.DashboardPermissions(*dashboardID)
 		if err != nil {
 			return fmt.Errorf("Error getting dashboard permissions %d: %s", *dashboardID, err)
@@ -90,7 +90,7 @@ func testAccDashboardPermissionCheckDestroy() resource.TestCheckFunc {
 func testAccDashboardPermissionsRemoval(permissions *gapi.DashboardPermission) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		//since the permissions aren't deleted, let's just check if we have empty permissions
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		newPermissions, err := client.DashboardPermissions(permissions.DashboardID)
 		if err != nil {
 			return fmt.Errorf(err.Error())

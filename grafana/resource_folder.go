@@ -10,8 +10,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	gapi "github.com/grafana/grafana-api-golang-client"
 )
 
 func ResourceFolder() *schema.Resource {
@@ -47,7 +45,7 @@ func ResourceFolder() *schema.Resource {
 }
 
 func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	model := d.Get("title").(string)
 
@@ -65,7 +63,7 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 }
 
 func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -91,7 +89,7 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	if err := client.DeleteFolder(d.Get("uid").(string)); err != nil {
 		return diag.FromErr(err)

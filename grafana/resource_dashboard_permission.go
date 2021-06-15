@@ -71,7 +71,7 @@ func ResourceDashboardPermission() *schema.Resource {
 }
 
 func UpdateDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	v, ok := d.GetOk("permissions")
 	if !ok {
@@ -107,7 +107,7 @@ func UpdateDashboardPermissions(ctx context.Context, d *schema.ResourceData, met
 }
 
 func ReadDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	dashboardId := int64(d.Get("dashboard_id").(int))
 
@@ -146,7 +146,7 @@ func DeleteDashboardPermissions(ctx context.Context, d *schema.ResourceData, met
 	//since permissions are tied to dashboards, we can't really delete the permissions.
 	//we will simply remove all permissions, leaving a dashboard that only an admin can access.
 	//if for some reason the parent dashboard doesn't exist, we'll just ignore the error
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	dashboardId := int64(d.Get("dashboard_id").(int))
 	emptyPermissions := gapi.PermissionItems{}

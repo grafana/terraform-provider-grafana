@@ -88,7 +88,7 @@ func updateAssignments(d *schema.ResourceData, meta interface{}) diag.Diagnostic
 }
 
 func ReadBuiltInRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	brName := d.Id()
 	builtInRoles, err := client.GetBuiltInRoleAssignments()
 
@@ -136,7 +136,7 @@ func UpdateBuiltInRoleAssignments(ctx context.Context, d *schema.ResourceData, m
 }
 
 func DeleteBuiltInRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	for _, r := range d.Get("roles").(*schema.Set).List() {
 		role := r.(map[string]interface{})
@@ -215,7 +215,7 @@ func collectRoles(d *schema.ResourceData) (map[string]bool, map[string]bool, err
 }
 
 func createOrRemove(meta interface{}, name string, changes []RoleChange) error {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	var err error
 	for _, c := range changes {
 		br := gapi.BuiltInRoleAssignment{BuiltinRole: name, RoleUID: c.UID, Global: c.Global}

@@ -14,9 +14,9 @@ func TestAccFolderPermission_basic(t *testing.T) {
 	folderUID := "uninitialized"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccFolderPermissionCheckDestroy(),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccFolderPermissionCheckDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFolderPermissionConfig_Basic,
@@ -46,7 +46,7 @@ func testAccFolderPermissionsCheckExists(rn string, folderUID *string) resource.
 			return fmt.Errorf("Resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 
 		gotFolderUID := rs.Primary.ID
 		_, err := client.FolderPermissions(gotFolderUID)
@@ -62,7 +62,7 @@ func testAccFolderPermissionsCheckExists(rn string, folderUID *string) resource.
 
 func testAccFolderPermissionsCheckEmpty(folderUID *string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		permissions, err := client.FolderPermissions(*folderUID)
 		if err != nil {
 			return fmt.Errorf("Error getting folder permissions %s: %s", *folderUID, err)
@@ -85,7 +85,7 @@ func testAccFolderPermissionCheckDestroy() resource.TestCheckFunc {
 func testAccFolderPermissionsRemoval(permissions *gapi.FolderPermission) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		//since the permissions aren't deleted, let's just check if we have empty permissions
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		newPermissions, err := client.FolderPermissions(permissions.FolderUID)
 		if err != nil {
 			return fmt.Errorf(err.Error())

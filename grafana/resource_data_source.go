@@ -322,7 +322,7 @@ source selected (via the 'type' argument).
 
 // CreateDataSource creates a Grafana datasource
 func CreateDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	dataSource, err := makeDataSource(d)
 	if err != nil {
@@ -341,7 +341,7 @@ func CreateDataSource(ctx context.Context, d *schema.ResourceData, meta interfac
 
 // UpdateDataSource updates a Grafana datasource
 func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	dataSource, err := makeDataSource(d)
 	if err != nil {
@@ -357,7 +357,7 @@ func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta interfac
 
 // ReadDataSource reads a Grafana datasource
 func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)
@@ -393,7 +393,7 @@ func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{
 
 // DeleteDataSource deletes a Grafana datasource
 func DeleteDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 
 	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)

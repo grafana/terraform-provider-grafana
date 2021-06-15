@@ -15,9 +15,9 @@ func TestAccDashboard_basic(t *testing.T) {
 	var dashboard gapi.Dashboard
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccDashboardCheckDestroy(&dashboard),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
 		Steps: []resource.TestStep{
 			// first step creates the resource
 			{
@@ -57,9 +57,9 @@ func TestAccDashboard_folder(t *testing.T) {
 	var folder gapi.Folder
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccDashboardFolderCheckDestroy(&dashboard, &folder),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccDashboardFolderCheckDestroy(&dashboard, &folder),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDashboardConfig_folder,
@@ -83,9 +83,9 @@ func TestAccDashboard_disappear(t *testing.T) {
 	var dashboard gapi.Dashboard
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccDashboardCheckDestroy(&dashboard),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDashboardConfig_disappear,
@@ -110,7 +110,7 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		gotDashboard, err := client.Dashboard(rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting dashboard: %s", err)
@@ -135,7 +135,7 @@ func testAccDashboardDisappear(dashboard *gapi.Dashboard) resource.TestCheckFunc
 	return func(s *terraform.State) error {
 		// At this point testAccDashboardCheckExists should have been called and
 		// dashboard should have been populated
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		client.DeleteDashboard((*dashboard).Meta.Slug)
 		return nil
 	}
@@ -143,7 +143,7 @@ func testAccDashboardDisappear(dashboard *gapi.Dashboard) resource.TestCheckFunc
 
 func testAccDashboardCheckDestroy(dashboard *gapi.Dashboard) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		_, err := client.Dashboard(dashboard.Meta.Slug)
 		if err == nil {
 			return fmt.Errorf("dashboard still exists")
@@ -154,7 +154,7 @@ func testAccDashboardCheckDestroy(dashboard *gapi.Dashboard) resource.TestCheckF
 
 func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		_, err := client.Dashboard(dashboard.Meta.Slug)
 		if err == nil {
 			return fmt.Errorf("dashboard still exists")
