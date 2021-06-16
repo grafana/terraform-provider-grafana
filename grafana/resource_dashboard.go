@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -100,11 +99,16 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	client := meta.(*client).gapi
 	uid := d.Id()
 	dashboard, err := client.DashboardByUID(uid)
+	var diags diag.Diagnostics
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing dashboard %s from state because it no longer exists in grafana", uid)
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  fmt.Sprintf("Dashboard %q is in state, but no longer exists in grafana", uid),
+				Detail:   fmt.Sprintf("%q will be recreated when you apply", uid),
+			})
 			d.SetId("")
-			return diag.FromErr(err)
+			return diags
 		} else {
 			return diag.FromErr(err)
 		}
@@ -125,7 +129,7 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
 	d.Set("version", int64(dashboard.Model["version"].(float64)))
 
-	return nil
+	return diags
 }
 
 func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -144,16 +148,11 @@ func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 	client := meta.(*client).gapi
 	uid := d.Id()
 	err := client.DeleteDashboardByUID(uid)
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing dashboard %s from state because it no longer exists in grafana", uid)
-			d.SetId("")
-			return diag.FromErr(err)
-		} else {
-			return diag.FromErr(err)
-		}
+	var diags diag.Diagnostics
+	if err != nil && !strings.HasPrefix(err.Error(), "status: 404") {
+		return diag.FromErr(err)
 	}
-	return diag.Diagnostics{}
+	return diags
 }
 
 func makeDashboard(d *schema.ResourceData) gapi.Dashboard {
