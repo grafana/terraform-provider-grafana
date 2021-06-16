@@ -17,6 +17,8 @@ func ResourceDashboard() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
+Manages Grafana dashboards.
+
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/http_api/dashboard/)
 `,
@@ -30,16 +32,33 @@ func ResourceDashboard() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+
+			"uid": {
+				Type:     schema.TypeString,
+				Computed: true,
+				Description: "The unique identifier of a dashboard. This is used to construct its URL. " +
+					"It’s automatically generated if not provided when creating a dashboard. " +
+					"The uid allows having consistent URLs for accessing dashboards and when syncing dashboards between multiple Grafana installs. ",
+			},
+
 			"slug": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "URL friendly version of the dashboard title.",
+				Description: "URL friendly version of the dashboard title. This field is deprecated, please use `uid` instead.",
+				Deprecated:  "Use `uid` instead.",
 			},
 
 			"dashboard_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "The numeric ID of the dashboard computed by Grafana.",
+			},
+
+			"version": {
+				Type:     schema.TypeInt,
+				Computed: true,
+				Description: "Whenever you save a version of your dashboard, a copy of that version is saved " +
+					"so that previous versions of your dashboard are not lost.",
 			},
 
 			"folder": {
@@ -58,8 +77,8 @@ func ResourceDashboard() *schema.Resource {
 			},
 
 			"overwrite": {
-				Type: schema.TypeBool,
-				Optional: true,
+				Type:        schema.TypeBool,
+				Optional:    true,
 				Description: "Set to true if you want to overwrite existing dashboard with newer version, same dashboard title in folder or same dashboard uid.",
 			},
 		},
@@ -68,39 +87,27 @@ func ResourceDashboard() *schema.Resource {
 
 func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
-
-	dashboard := gapi.Dashboard{}
-
-	dashboard.Model = prepareDashboardModel(d.Get("config_json").(string))
-
-	dashboard.Folder = int64(d.Get("folder").(int))
-
-	dashboard.Overwrite = d.Get("overwrite").(bool)
-
+	dashboard := makeDashboard(d)
 	resp, err := client.NewDashboard(dashboard)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	d.SetId(resp.Slug)
-
+	d.SetId(resp.UID)
 	return ReadDashboard(ctx, d, meta)
 }
 
 func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
-
-	slug := d.Id()
-
-	dashboard, err := client.Dashboard(slug)
+	uid := d.Id()
+	dashboard, err := client.DashboardByUID(uid)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing dashboard %s from state because it no longer exists in grafana", slug)
+			log.Printf("[WARN] removing dashboard %s from state because it no longer exists in grafana", uid)
 			d.SetId("")
-			return nil
+			return diag.FromErr(err)
+		} else {
+			return diag.FromErr(err)
 		}
-
-		return diag.FromErr(err)
 	}
 
 	configJSONBytes, err := json.Marshal(dashboard.Model)
@@ -110,58 +117,66 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 
 	configJSON := NormalizeDashboardConfigJSON(string(configJSONBytes))
 
-	d.SetId(dashboard.Meta.Slug)
+	d.SetId(dashboard.Model["uid"].(string))
+	d.Set("uid", dashboard.Model["uid"].(string))
 	d.Set("slug", dashboard.Meta.Slug)
 	d.Set("config_json", configJSON)
 	d.Set("folder", dashboard.Folder)
 	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
+	d.Set("version", int64(dashboard.Model["version"].(float64)))
 
 	return nil
 }
 
 func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
-
-	dashboard := gapi.Dashboard{}
-
-	dashboard.Model = prepareDashboardModel(d.Get("config_json").(string))
-
-	dashboard.Folder = int64(d.Get("folder").(int))
+	dashboard := makeDashboard(d)
 	dashboard.Overwrite = true
-
 	resp, err := client.NewDashboard(dashboard)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	d.SetId(resp.Slug)
-
+	d.SetId(resp.UID)
 	return ReadDashboard(ctx, d, meta)
 }
 
 func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
-
-	slug := d.Id()
-	if err := client.DeleteDashboard(slug); err != nil {
-		return diag.FromErr(err)
+	uid := d.Id()
+	err := client.DeleteDashboardByUID(uid)
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "status: 404") {
+			log.Printf("[WARN] removing dashboard %s from state because it no longer exists in grafana", uid)
+			d.SetId("")
+			return diag.FromErr(err)
+		} else {
+			return diag.FromErr(err)
+		}
 	}
-
 	return diag.Diagnostics{}
 }
 
-func prepareDashboardModel(configJSON string) map[string]interface{} {
-	configMap := map[string]interface{}{}
-	err := json.Unmarshal([]byte(configJSON), &configMap)
+func makeDashboard(d *schema.ResourceData) gapi.Dashboard {
+
+	dashboard := gapi.Dashboard{
+		Folder:    int64(d.Get("folder").(int)),
+		Overwrite: d.Get("overwrite").(bool),
+	}
+
+	configJSON := d.Get("config_json").(string)
+
+	dashboardJSON := map[string]interface{}{}
+	err := json.Unmarshal([]byte(configJSON), &dashboardJSON)
 	if err != nil {
 		// The validate function should've taken care of this.
 		panic(fmt.Errorf("Invalid JSON got into prepare func"))
 	}
 
-	delete(configMap, "id")
-	configMap["version"] = 0
+	delete(dashboardJSON, "id")
+	delete(dashboardJSON, "version")
 
-	return configMap
+	dashboard.Model = dashboardJSON
+	return dashboard
 }
 
 func ValidateDashboardConfigJSON(configI interface{}, k string) ([]string, []error) {
@@ -188,7 +203,6 @@ func NormalizeDashboardConfigJSON(configI interface{}) string {
 	// significant when included in the JSON.
 	delete(configMap, "id")
 	delete(configMap, "version")
-	delete(configMap, "uid")
 
 	ret, err := json.Marshal(configMap)
 	if err != nil {

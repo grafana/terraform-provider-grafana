@@ -49,11 +49,8 @@ func TestProvider(t *testing.T) {
 	}
 }
 
-// testAccPreCheck verifies required provider testing configuration
-//
-// This PreCheck function should be present in every acceptance test. It allows
-// test configurations to omit a provider configuration with region and ensures
-// testing functions that attempt to call AWS APIs are previously configured.
+// testAccPreCheck verifies required provider testing configuration. It should
+// be present in every acceptance test.
 //
 // These verifications and configuration are preferred at this level to prevent
 // provider developers from experiencing less clear errors for every test.
