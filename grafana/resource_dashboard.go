@@ -30,10 +30,10 @@ func ResourceDashboard() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"slug": {
+			"dashboard_uid": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "URL friendly version of the dashboard title.",
+				Description: "The unique ID of the dashboard computed by Grafana.",
 			},
 
 			"dashboard_id": {
@@ -58,8 +58,8 @@ func ResourceDashboard() *schema.Resource {
 			},
 
 			"overwrite": {
-				Type: schema.TypeBool,
-				Optional: true,
+				Type:        schema.TypeBool,
+				Optional:    true,
 				Description: "Set to true if you want to overwrite existing dashboard with newer version, same dashboard title in folder or same dashboard uid.",
 			},
 		},
@@ -82,7 +82,7 @@ func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 		return diag.FromErr(err)
 	}
 
-	d.SetId(resp.Slug)
+	d.SetId(resp.UID)
 
 	return ReadDashboard(ctx, d, meta)
 }
@@ -90,12 +90,12 @@ func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	slug := d.Id()
+	uid := d.Id()
 
-	dashboard, err := client.Dashboard(slug)
+	dashboard, err := client.DashboardByUID(uid)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing dashboard %s from state because it no longer exists in grafana", slug)
+			log.Printf("[WARN] removing dashboard %s from state because it no longer exists in grafana", uid)
 			d.SetId("")
 			return nil
 		}
@@ -110,8 +110,7 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 
 	configJSON := NormalizeDashboardConfigJSON(string(configJSONBytes))
 
-	d.SetId(dashboard.Meta.Slug)
-	d.Set("slug", dashboard.Meta.Slug)
+	d.Set("uid", uid)
 	d.Set("config_json", configJSON)
 	d.Set("folder", dashboard.Folder)
 	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
@@ -134,7 +133,7 @@ func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 		return diag.FromErr(err)
 	}
 
-	d.SetId(resp.Slug)
+	d.SetId(resp.UID)
 
 	return ReadDashboard(ctx, d, meta)
 }
@@ -142,8 +141,8 @@ func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	slug := d.Id()
-	if err := client.DeleteDashboard(slug); err != nil {
+	uid := d.Id()
+	if err := client.DeleteDashboardByUID(uid); err != nil {
 		return diag.FromErr(err)
 	}
 
