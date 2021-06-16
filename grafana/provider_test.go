@@ -2,6 +2,8 @@ package grafana
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
 	"os"
 	"sync"
 	"testing"
@@ -73,4 +75,15 @@ func testAccPreCheck(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
+}
+
+// testAccExample returns an example config from the examples directory.
+// Examples are used for both documentation and acceptance tests.
+func testAccExample(t *testing.T, path string) string {
+	path = fmt.Sprintf("../examples/%s", path)
+	example, err := ioutil.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(example)
 }
