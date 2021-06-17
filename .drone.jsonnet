@@ -30,6 +30,10 @@ local pipeline(name, trigger) = {
     {
       name: 'grafana',
       image: grafana,
+      environment: {
+        // Prevents error="database is locked"
+        GF_DATABASE_URL: 'sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL',
+      },
     },
   ],
   trigger: trigger,
