@@ -2,8 +2,11 @@ package grafana
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -67,6 +70,18 @@ Manages Grafana dashboards.
 				Description: "The id of the folder to save the dashboard in.",
 			},
 
+			"config_json_md5": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
+					if val.(bool) == true {
+						os.Setenv("GRAFANA_CONFIG_JSON_MD5", "yes")
+					}
+					return
+				},
+				Description: "Set to true if you want to save only the md5sum instead of complete dashboard model JSON in the tfstate.",
+			},
+
 			"config_json": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -121,10 +136,16 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 
 	configJSON := NormalizeDashboardConfigJSON(string(configJSONBytes))
 
+	if d.Get("config_json_md5").(bool) == true {
+		data := md5.Sum([]byte(configJSON))
+		d.Set("config_json", hex.EncodeToString(data[:]))
+	} else {
+		d.Set("config_json", configJSON)
+	}
+
 	d.SetId(dashboard.Model["uid"].(string))
 	d.Set("uid", dashboard.Model["uid"].(string))
 	d.Set("slug", dashboard.Meta.Slug)
-	d.Set("config_json", configJSON)
 	d.Set("folder", dashboard.Folder)
 	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
 	d.Set("version", int64(dashboard.Model["version"].(float64)))
@@ -163,7 +184,6 @@ func makeDashboard(d *schema.ResourceData) gapi.Dashboard {
 	}
 
 	configJSON := d.Get("config_json").(string)
-
 	dashboardJSON := map[string]interface{}{}
 	err := json.Unmarshal([]byte(configJSON), &dashboardJSON)
 	if err != nil {
@@ -209,5 +229,11 @@ func NormalizeDashboardConfigJSON(configI interface{}) string {
 		return configJSON
 	}
 
-	return string(ret)
+	md5_store := os.Getenv("GRAFANA_CONFIG_JSON_MD5")
+	if md5_store == "yes" {
+		data := md5.Sum([]byte(ret))
+		return hex.EncodeToString(data[:])
+	} else {
+		return string(ret)
+	}
 }
