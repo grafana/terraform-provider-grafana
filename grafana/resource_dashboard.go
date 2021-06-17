@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -31,7 +32,6 @@ Manages Grafana dashboards.
 		},
 
 		Schema: map[string]*schema.Schema{
-
 			"uid": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -39,34 +39,29 @@ Manages Grafana dashboards.
 					"It’s automatically generated if not provided when creating a dashboard. " +
 					"The uid allows having consistent URLs for accessing dashboards and when syncing dashboards between multiple Grafana installs. ",
 			},
-
 			"slug": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "URL friendly version of the dashboard title. This field is deprecated, please use `uid` instead.",
 				Deprecated:  "Use `uid` instead.",
 			},
-
 			"dashboard_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "The numeric ID of the dashboard computed by Grafana.",
 			},
-
 			"version": {
 				Type:     schema.TypeInt,
 				Computed: true,
 				Description: "Whenever you save a version of your dashboard, a copy of that version is saved " +
 					"so that previous versions of your dashboard are not lost.",
 			},
-
 			"folder": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				ForceNew:    true,
 				Description: "The id of the folder to save the dashboard in.",
 			},
-
 			"config_json": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -74,7 +69,53 @@ Manages Grafana dashboards.
 				ValidateFunc: ValidateDashboardConfigJSON,
 				Description:  "The complete dashboard model JSON.",
 			},
+			"overwrite": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Set to true if you want to overwrite existing dashboard with newer version, same dashboard title in folder or same dashboard uid.",
+			},
+		},
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    resourceDashboardV0().CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceDashboardStateUpgradeV0,
+				Version: 0,
+			},
+		},
+	}
+}
 
+// resourceDashboardV0 is the original schema for this resource. For a long
+// time we relied on the `slug` field as our ID - even long after it was
+// deprecated in Grafana. In Grafana 8, slug endpoints were completely removed
+// so we had to finally move away from it and start using UID.
+func resourceDashboardV0() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"slug": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "URL friendly version of the dashboard title.",
+			},
+			"dashboard_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The numeric ID of the dashboard computed by Grafana.",
+			},
+			"folder": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "The id of the folder to save the dashboard in.",
+			},
+			"config_json": {
+				Type:         schema.TypeString,
+				Required:     true,
+				StateFunc:    NormalizeDashboardConfigJSON,
+				ValidateFunc: ValidateDashboardConfigJSON,
+				Description:  "The complete dashboard model JSON.",
+			},
 			"overwrite": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -82,6 +123,36 @@ Manages Grafana dashboards.
 			},
 		},
 	}
+}
+
+// resourceDashboardStateUpgradeV0 migrates from version 0 of this resource's
+// schema to version 1.
+// * Use UID instead of slug. Slug was deprecated in Grafana 5 in favor of UID.
+//   Slug API endpoints were removed in Grafana 8.
+// * Version field added to schema.
+func resourceDashboardStateUpgradeV0(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+	client := meta.(*client).gapi
+	dashboardID := int64(rawState["dashboard_id"].(float64))
+	params := map[string]string{
+		"type":         "dash-db",
+		"dashboardIds": strconv.FormatInt(dashboardID, 10),
+	}
+	resp, err := client.FolderDashboardSearch(params)
+	if err != nil {
+		return nil, fmt.Errorf("Error attempting to migrate state. Grafana returned an error while searching for dashboard with ID %s: %s", params["dashboardIds"], err)
+	}
+	if len(resp) > 1 {
+		return nil, fmt.Errorf("Error attempting to migrate state. Many dashboards returned by Grafana while searching for dashboard with ID, %s", params["dashboardIds"])
+	}
+	uid := resp[0].UID
+	rawState["id"] = uid
+	rawState["uid"] = uid
+	dashboard, err := client.DashboardByUID(uid)
+	if len(resp) > 1 {
+		return nil, fmt.Errorf("Error attempting to migrate state. Grafana returned an error while searching for dashboard with UID %s: %s", uid, err)
+	}
+	rawState["version"] = int64(dashboard.Model["version"].(float64))
+	return rawState, nil
 }
 
 func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -156,26 +227,27 @@ func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 }
 
 func makeDashboard(d *schema.ResourceData) gapi.Dashboard {
-
 	dashboard := gapi.Dashboard{
 		Folder:    int64(d.Get("folder").(int)),
 		Overwrite: d.Get("overwrite").(bool),
 	}
-
 	configJSON := d.Get("config_json").(string)
+	dashboardJSON := unmarshallDashboardJSON(configJSON)
+	delete(dashboardJSON, "id")
+	delete(dashboardJSON, "version")
+	dashboard.Model = dashboardJSON
+	return dashboard
+}
 
+// unmarshallDashboardJSON is a convenience func for unmarshalling dashboard JSON.
+func unmarshallDashboardJSON(configJSON string) map[string]interface{} {
 	dashboardJSON := map[string]interface{}{}
 	err := json.Unmarshal([]byte(configJSON), &dashboardJSON)
 	if err != nil {
 		// The validate function should've taken care of this.
 		panic(fmt.Errorf("Invalid JSON got into prepare func"))
 	}
-
-	delete(dashboardJSON, "id")
-	delete(dashboardJSON, "version")
-
-	dashboard.Model = dashboardJSON
-	return dashboard
+	return dashboardJSON
 }
 
 func ValidateDashboardConfigJSON(configI interface{}, k string) ([]string, []error) {
@@ -189,25 +261,12 @@ func ValidateDashboardConfigJSON(configI interface{}, k string) ([]string, []err
 }
 
 func NormalizeDashboardConfigJSON(configI interface{}) string {
-	configJSON := configI.(string)
-
-	configMap := map[string]interface{}{}
-	err := json.Unmarshal([]byte(configJSON), &configMap)
-	if err != nil {
-		// The validate function should've taken care of this.
-		return ""
-	}
-
+	dashboardJSON := unmarshallDashboardJSON(configI.(string))
 	// Some properties are managed by this provider and are thus not
 	// significant when included in the JSON.
-	delete(configMap, "id")
-	delete(configMap, "version")
-
-	ret, err := json.Marshal(configMap)
-	if err != nil {
-		// Should never happen.
-		return configJSON
-	}
-
-	return string(ret)
+	delete(dashboardJSON, "id")
+	delete(dashboardJSON, "uid")
+	delete(dashboardJSON, "version")
+	j, _ := json.Marshal(dashboardJSON)
+	return string(j)
 }
