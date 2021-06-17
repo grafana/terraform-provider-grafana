@@ -65,8 +65,8 @@ Manages Grafana dashboards.
 			"config_json": {
 				Type:         schema.TypeString,
 				Required:     true,
-				StateFunc:    NormalizeDashboardConfigJSON,
-				ValidateFunc: ValidateDashboardConfigJSON,
+				StateFunc:    normalizeDashboardConfigJSON,
+				ValidateFunc: validateDashboardConfigJSON,
 				Description:  "The complete dashboard model JSON.",
 			},
 			"overwrite": {
@@ -112,8 +112,8 @@ func resourceDashboardV0() *schema.Resource {
 			"config_json": {
 				Type:         schema.TypeString,
 				Required:     true,
-				StateFunc:    NormalizeDashboardConfigJSON,
-				ValidateFunc: ValidateDashboardConfigJSON,
+				StateFunc:    normalizeDashboardConfigJSON,
+				ValidateFunc: validateDashboardConfigJSON,
 				Description:  "The complete dashboard model JSON.",
 			},
 			"overwrite": {
@@ -190,7 +190,7 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 		return diag.FromErr(err)
 	}
 
-	configJSON := NormalizeDashboardConfigJSON(string(configJSONBytes))
+	configJSON := normalizeDashboardConfigJSON(string(configJSONBytes))
 
 	d.SetId(dashboard.Model["uid"].(string))
 	d.Set("uid", dashboard.Model["uid"].(string))
@@ -232,26 +232,26 @@ func makeDashboard(d *schema.ResourceData) gapi.Dashboard {
 		Overwrite: d.Get("overwrite").(bool),
 	}
 	configJSON := d.Get("config_json").(string)
-	dashboardJSON := unmarshallDashboardJSON(configJSON)
+	dashboardJSON := unmarshalDashboardJSON(configJSON)
 	delete(dashboardJSON, "id")
 	delete(dashboardJSON, "version")
 	dashboard.Model = dashboardJSON
 	return dashboard
 }
 
-// unmarshallDashboardJSON is a convenience func for unmarshalling dashboard JSON.
-func unmarshallDashboardJSON(configJSON string) map[string]interface{} {
+// unmarshalDashboardJSON is a convenience func for unmarshalling dashboard JSON.
+func unmarshalDashboardJSON(configJSON string) map[string]interface{} {
 	dashboardJSON := map[string]interface{}{}
 	err := json.Unmarshal([]byte(configJSON), &dashboardJSON)
 	if err != nil {
 		// The validate function should've taken care of this.
-		panic(fmt.Errorf("Invalid JSON got into prepare func"))
+		panic("Attempted to unmarshal invalid JSON. This unexpectedly got past schema validation.")
 	}
 	return dashboardJSON
 }
 
-func ValidateDashboardConfigJSON(configI interface{}, k string) ([]string, []error) {
-	configJSON := configI.(string)
+func validateDashboardConfigJSON(config interface{}, k string) ([]string, []error) {
+	configJSON := config.(string)
 	configMap := map[string]interface{}{}
 	err := json.Unmarshal([]byte(configJSON), &configMap)
 	if err != nil {
@@ -260,8 +260,8 @@ func ValidateDashboardConfigJSON(configI interface{}, k string) ([]string, []err
 	return nil, nil
 }
 
-func NormalizeDashboardConfigJSON(configI interface{}) string {
-	dashboardJSON := unmarshallDashboardJSON(configI.(string))
+func normalizeDashboardConfigJSON(configI interface{}) string {
+	dashboardJSON := unmarshalDashboardJSON(configI.(string))
 	// Some properties are managed by this provider and are thus not
 	// significant when included in the JSON.
 	delete(dashboardJSON, "id")
