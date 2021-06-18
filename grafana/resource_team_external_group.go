@@ -38,7 +38,7 @@ func ResourceTeamExternalGroup() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Description: `The team external groups list`,
+				Description: "The team external groups list",
 			},
 		},
 	}
@@ -84,11 +84,12 @@ func ReadGroups(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	groupSlice := []string{}
+	
+	groupIDs := make([]string, 0, len(teamGroups))
 	for _, teamGroup := range teamGroups {
-		groupSlice = append(groupSlice, teamGroup.GroupID)
+		groupIDs = append(groupIDs, teamGroup.GroupID)
 	}
-	d.Set("groups", groupSlice)
+	d.Set("groups", groupIDs)
 
 	return nil
 }
@@ -121,27 +122,25 @@ func groupChanges(d *schema.ResourceData) ([]string, []string) {
 	state, config := d.GetChange("groups")
 
 	stateGroups := make([]string, state.(*schema.Set).Len())
-	for _, v := range state.(*schema.Set).List() {
-		stateGroups = append(stateGroups, v.(string))
+	for i, v := range state.(*schema.Set).List() {
+		stateGroups[i] = v.(string)
 	}
 
 	configGroups := make([]string, config.(*schema.Set).Len())
-	for _, v := range config.(*schema.Set).List() {
-		configGroups = append(configGroups, v.(string))
+	for i, v := range config.(*schema.Set).List() {
+		configGroups[i] = v.(string)
 	}
 
 	addGroups := []string{}
 	for _, group := range configGroups {
-		_, exists := SliceFind(stateGroups, group)
-		if !exists {
+		if !SliceFind(stateGroups, group) {
 			addGroups = append(addGroups, group)
 		}
 	}
 
 	removeGroups := []string{}
 	for _, group := range stateGroups {
-		_, exists := SliceFind(configGroups, group)
-		if !exists {
+		if !SliceFind(configGroups, group) {
 			removeGroups = append(removeGroups, group)
 		}
 	}
@@ -150,14 +149,14 @@ func groupChanges(d *schema.ResourceData) ([]string, []string) {
 }
 
 // SliceFind takes a slice and looks for an element in it. If found it will
-// return it's key, otherwise it will return -1 and a bool of false.
-func SliceFind(slice []string, val string) (int, bool) {
-	for i, item := range slice {
+// return true, otherwise false.
+func SliceFind(slice []string, val string) bool {
+	for _, item := range slice {
 		if item == val {
-			return i, true
+			return true
 		}
 	}
-	return -1, false
+	return false
 }
 
 func RemoveIndex(s []string, index int) []string {
