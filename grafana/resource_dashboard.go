@@ -1,6 +1,8 @@
 package grafana
 
 import (
+	"os"
+	"crypto/sha256"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -55,6 +57,18 @@ func ResourceDashboard() *schema.Resource {
 				StateFunc:    NormalizeDashboardConfigJSON,
 				ValidateFunc: ValidateDashboardConfigJSON,
 				Description:  "The complete dashboard model JSON.",
+			},
+
+			"config_json_sha256": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
+					if val.(bool) == true {
+						os.Setenv("GRAFANA_CONFIG_JSON_SHA256", "yes")
+					}
+					return
+				},
+				Description: "Set to true if you want to save only the sha256sum instead of complete dashboard model JSON in the tfstate.",
 			},
 
 			"overwrite": {
@@ -115,6 +129,13 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	d.Set("config_json", configJSON)
 	d.Set("folder", dashboard.Folder)
 	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
+
+	if d.Get("config_json_sha256").(bool) == true {
+		configHash := sha256.Sum256([]byte(configJSON))
+		d.Set("config_json", string(configHash[:]))
+	} else {
+		d.Set("config_json", configJSON)
+	}
 
 	return nil
 }
@@ -196,5 +217,11 @@ func NormalizeDashboardConfigJSON(configI interface{}) string {
 		return configJSON
 	}
 
-	return string(ret)
+	sha256_store := os.Getenv("GRAFANA_CONFIG_JSON_SHA256")
+	if sha256_store == "yes" {
+		configHash := sha256.Sum256([]byte(ret))
+		return string(configHash[:])
+	} else {
+		return string(ret)
+	}
 }
