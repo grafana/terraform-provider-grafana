@@ -94,32 +94,27 @@ func resourceDashboardV0() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"slug": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "URL friendly version of the dashboard title.",
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"dashboard_id": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "The numeric ID of the dashboard computed by Grafana.",
+				Type:     schema.TypeInt,
+				Computed: true,
 			},
 			"folder": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				ForceNew:    true,
-				Description: "The id of the folder to save the dashboard in.",
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
 			},
 			"config_json": {
 				Type:         schema.TypeString,
 				Required:     true,
 				StateFunc:    normalizeDashboardConfigJSON,
 				ValidateFunc: validateDashboardConfigJSON,
-				Description:  "The complete dashboard model JSON.",
 			},
 			"overwrite": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Set to true if you want to overwrite existing dashboard with newer version, same dashboard title in folder or same dashboard uid.",
+				Type:     schema.TypeBool,
+				Optional: true,
 			},
 		},
 	}
