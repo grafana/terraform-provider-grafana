@@ -148,10 +148,13 @@ func resourceDashboardStateUpgradeV0(ctx context.Context, rawState map[string]in
 	rawState["id"] = uid
 	rawState["uid"] = uid
 	dashboard, err := client.DashboardByUID(uid)
-	if len(resp) > 1 {
-		return nil, fmt.Errorf("Error attempting to migrate state. Grafana returned an error while searching for dashboard with UID %s: %s", uid, err)
+	// Set version if we can.
+	// In the unlikely event that we don't get a dashboard back, we don't return
+	// an error because Terraform will be able to reconcile this field without
+	// much trouble.
+	if err == nil && dashboard != nil {
+		rawState["version"] = int64(dashboard.Model["version"].(float64))
 	}
-	rawState["version"] = int64(dashboard.Model["version"].(float64))
 	return rawState, nil
 }
 
