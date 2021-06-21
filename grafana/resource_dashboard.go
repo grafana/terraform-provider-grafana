@@ -136,8 +136,13 @@ func resourceDashboardStateUpgradeV0(ctx context.Context, rawState map[string]in
 	if err != nil {
 		return nil, fmt.Errorf("Error attempting to migrate state. Grafana returned an error while searching for dashboard with ID %s: %s", params["dashboardIds"], err)
 	}
-	if len(resp) > 1 {
+	switch {
+	case len(resp) > 1:
+		// Search endpoint returned multiple dashboards. This is not likely.
 		return nil, fmt.Errorf("Error attempting to migrate state. Many dashboards returned by Grafana while searching for dashboard with ID, %s", params["dashboardIds"])
+	case len(resp) == 0:
+		// Dashboard does not exist. Let Terraform recreate it.
+		return rawState, nil
 	}
 	uid := resp[0].UID
 	rawState["id"] = uid
