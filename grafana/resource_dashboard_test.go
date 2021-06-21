@@ -19,8 +19,8 @@ func TestAccDashboard_basic(t *testing.T) {
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
 		Steps: []resource.TestStep{
-			// first step creates the resource
 			{
+				// Test resource creation
 				Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
@@ -31,13 +31,27 @@ func TestAccDashboard_basic(t *testing.T) {
 					),
 				),
 			},
-			// second step updates it with a new title and uid
 			{
+				// Updates title
 				Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic_update.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-					resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "update"),
-					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "update"),
+					resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic"),
+					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic"),
+					resource.TestCheckResourceAttr(
+						"grafana_dashboard.test", "config_json", "{\"title\":\"Updated Title\"}",
+					),
+				),
+			},
+			{
+				// Updates uid.
+				// uid is removed from `config_json` before writing it to state so it's
+				// important to ensure changing it triggers an update of `config_json`.
+				Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic_update_uid.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
+					resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic-update"),
+					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic-update"),
 					resource.TestCheckResourceAttr(
 						"grafana_dashboard.test", "config_json", "{\"title\":\"Updated Title\"}",
 					),
