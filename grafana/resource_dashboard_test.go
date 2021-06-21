@@ -26,20 +26,20 @@ func TestAccDashboard_basic(t *testing.T) {
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 					resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic"),
 					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic"),
-					resource.TestMatchResourceAttr(
-						"grafana_dashboard.test", "config_json", regexp.MustCompile(".*Terraform Acceptance Test.*"),
+					resource.TestCheckResourceAttr(
+						"grafana_dashboard.test", "config_json", "{\"title\":\"Terraform Acceptance Test\"}",
 					),
 				),
 			},
-			// second step updates it with a new title
+			// second step updates it with a new title and uid
 			{
 				Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic_update.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 					resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "update"),
 					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "update"),
-					resource.TestMatchResourceAttr(
-						"grafana_dashboard.test", "config_json", regexp.MustCompile(".*Updated Title.*"),
+					resource.TestCheckResourceAttr(
+						"grafana_dashboard.test", "config_json", "{\"title\":\"Updated Title\"}",
 					),
 				),
 			},
