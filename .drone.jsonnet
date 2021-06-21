@@ -1,5 +1,5 @@
 local golang = 'golang:1.16';
-local grafana = 'grafana/grafana:8.0.2';
+local grafana = 'grafana/grafana:8.0.3';
 
 // We'd like the same pipeline for testing pull requests as we do for building
 // master. The only difference is their names and triggers.
