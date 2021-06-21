@@ -1,6 +1,6 @@
 # The "id" and "version" properties in the config below are there to test that
-# we correctly normalize them away. They are not actually used by this
-# resource, since it uses slugs for identification.
+# we correctly remove them from config_json and manage them in dedicated,
+# computed fields.
 #
 resource "grafana_dashboard" "test" {
   config_json = <<EOD
