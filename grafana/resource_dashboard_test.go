@@ -27,7 +27,7 @@ func TestAccDashboard_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic"),
 					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic"),
 					resource.TestCheckResourceAttr(
-						"grafana_dashboard.test", "config_json", "{\"title\":\"Terraform Acceptance Test\",\"uid\":\"basic\"}",
+						"grafana_dashboard.test", "config_json", `{"title":"Terraform Acceptance Test","uid":"basic"}`,
 					),
 				),
 			},
@@ -39,7 +39,7 @@ func TestAccDashboard_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic"),
 					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic"),
 					resource.TestCheckResourceAttr(
-						"grafana_dashboard.test", "config_json", "{\"title\":\"Updated Title\",\"uid\":\"basic\"}",
+						"grafana_dashboard.test", "config_json", `{"title":"Updated Title","uid":"basic"}`,
 					),
 				),
 			},
@@ -53,7 +53,7 @@ func TestAccDashboard_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic-update"),
 					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic-update"),
 					resource.TestCheckResourceAttr(
-						"grafana_dashboard.test", "config_json", "{\"title\":\"Updated Title\",\"uid\":\"basic-update\"}",
+						"grafana_dashboard.test", "config_json", `{"title":"Updated Title","uid":"basic-update"}`,
 					),
 				),
 			},
@@ -81,7 +81,7 @@ func TestAccDashboard_uid_unset(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 					resource.TestCheckResourceAttr(
-						"grafana_dashboard.test", "config_json", "{\"title\":\"UID Unset\"}",
+						"grafana_dashboard.test", "config_json", `{"title":"UID Unset"}`,
 					),
 				),
 			},
@@ -92,7 +92,7 @@ func TestAccDashboard_uid_unset(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 					resource.TestCheckResourceAttr(
-						"grafana_dashboard.test", "config_json", "{\"title\":\"UID Unset\",\"uid\":\"uid-previously-unset\"}",
+						"grafana_dashboard.test", "config_json", `{"title":"UID Unset","uid":"uid-previously-unset"}`,
 					),
 				),
 			},
@@ -102,7 +102,7 @@ func TestAccDashboard_uid_unset(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 					resource.TestCheckResourceAttr(
-						"grafana_dashboard.test", "config_json", "{\"title\":\"UID Unset\"}",
+						"grafana_dashboard.test", "config_json", `{"title":"UID Unset"}`,
 					),
 				),
 			},
