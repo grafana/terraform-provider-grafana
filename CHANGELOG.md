@@ -1,5 +1,39 @@
 # Changelog
 
+## [v1.12.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.12.0) (2021-06-22)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.11.0...v1.12.0)
+
+**Implemented enhancements:**
+
+- AccessControl: Add description in Access Control resources docs [\#209](https://github.com/grafana/terraform-provider-grafana/issues/209)
+- Unable to set "Max concurrent Shard Requests" for Elasticsearch in grafana\_data\_source [\#195](https://github.com/grafana/terraform-provider-grafana/issues/195)
+- \[Feature request\] Have Grafana dashboards be stored by uid instead of slug [\#95](https://github.com/grafana/terraform-provider-grafana/issues/95)
+- \[Feature Request\] Support dashboard overwriting [\#8](https://github.com/grafana/terraform-provider-grafana/issues/8)
+- Prepare For Grafana Cloud Resources [\#213](https://github.com/grafana/terraform-provider-grafana/pull/213) ([trotttrotttrott](https://github.com/trotttrotttrott))
+
+**Fixed bugs:**
+
+- Dashboard Resource Ignores Changes to UID [\#223](https://github.com/grafana/terraform-provider-grafana/issues/223)
+- Dashboard resource not working with Grafana v8 [\#212](https://github.com/grafana/terraform-provider-grafana/issues/212)
+- UID Change Causes Diff [\#224](https://github.com/grafana/terraform-provider-grafana/pull/224) ([trotttrotttrott](https://github.com/trotttrotttrott))
+
+**Closed issues:**
+
+- darwin/arm64 support [\#179](https://github.com/grafana/terraform-provider-grafana/issues/179)
+- Unsupported attribute dashboard\_id [\#138](https://github.com/grafana/terraform-provider-grafana/issues/138)
+- Terraform removes uid from config\_json before create dashboard on Grafana [\#121](https://github.com/grafana/terraform-provider-grafana/issues/121)
+- Editing Dashboard 'title' creates new dashboard - leaving old dashboard behind [\#80](https://github.com/grafana/terraform-provider-grafana/issues/80)
+
+**Merged pull requests:**
+
+- Dashboard Resource Works with Grafana 8 [\#217](https://github.com/grafana/terraform-provider-grafana/pull/217) ([trotttrotttrott](https://github.com/trotttrotttrott))
+- Remove Vendor Directory [\#215](https://github.com/grafana/terraform-provider-grafana/pull/215) ([trotttrotttrott](https://github.com/trotttrotttrott))
+- Allow to overwrite while creating dashboard from terraform [\#214](https://github.com/grafana/terraform-provider-grafana/pull/214) ([szemek](https://github.com/szemek))
+- typo in grafana\_dashboard\_permission docs [\#211](https://github.com/grafana/terraform-provider-grafana/pull/211) ([rssnyder](https://github.com/rssnyder))
+- AccessControl: Add description in AccessControl resources docs [\#210](https://github.com/grafana/terraform-provider-grafana/pull/210) ([gamab](https://github.com/gamab))
+- Added the MaxConcurrentShardRequests in JSONData for Elasticsearch datasources [\#196](https://github.com/grafana/terraform-provider-grafana/pull/196) ([aymericDD](https://github.com/aymericDD))
+
 ## [v1.11.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.11.0) (2021-06-09)
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.10.0...v1.11.0)
@@ -76,6 +110,7 @@
 - Allow dependabot to check go modules [\#165](https://github.com/grafana/terraform-provider-grafana/pull/165) ([jlosito](https://github.com/jlosito))
 - Adding profile field to JSON Data [\#164](https://github.com/grafana/terraform-provider-grafana/pull/164) ([grlvrl](https://github.com/grlvrl))
 - is\_admin added to grafana\_user. [\#157](https://github.com/grafana/terraform-provider-grafana/pull/157) ([AlirezaKm](https://github.com/AlirezaKm))
+- Add full Stackdriver data source support [\#155](https://github.com/grafana/terraform-provider-grafana/pull/155) ([ryanaross](https://github.com/ryanaross))
 - r/grafana\_alert\_notification Add disable\_resolve\_message [\#145](https://github.com/grafana/terraform-provider-grafana/pull/145) ([Puneeth-n](https://github.com/Puneeth-n))
 - feat: add new TLS configuration options [\#133](https://github.com/grafana/terraform-provider-grafana/pull/133) ([joemiller](https://github.com/joemiller))
 
@@ -103,7 +138,6 @@
 
 **Merged pull requests:**
 
-- Add full Stackdriver data source support [\#155](https://github.com/grafana/terraform-provider-grafana/pull/155) ([ryanaross](https://github.com/ryanaross))
 - Add support for dashboard permissions [\#150](https://github.com/grafana/terraform-provider-grafana/pull/150) ([pascal-hofmann](https://github.com/pascal-hofmann))
 - Updated dead link in documentation - data\_sources [\#149](https://github.com/grafana/terraform-provider-grafana/pull/149) ([WilliamDahlen](https://github.com/WilliamDahlen))
 - Do not delete dashboard uid fields [\#136](https://github.com/grafana/terraform-provider-grafana/pull/136) ([gw0](https://github.com/gw0))
@@ -189,10 +223,6 @@
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.3.0...v1.4.0)
 
-**Implemented enhancements:**
-
-- Import error debug [\#30](https://github.com/grafana/terraform-provider-grafana/pull/30) ([tonglil](https://github.com/tonglil))
-
 **Closed issues:**
 
 - Documentation missing quote [\#39](https://github.com/grafana/terraform-provider-grafana/issues/39)
@@ -206,6 +236,10 @@
 ## [v1.3.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.3.0) (2018-11-16)
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.2.0...v1.3.0)
+
+**Implemented enhancements:**
+
+- Import error debug [\#30](https://github.com/grafana/terraform-provider-grafana/pull/30) ([tonglil](https://github.com/tonglil))
 
 **Closed issues:**
 
