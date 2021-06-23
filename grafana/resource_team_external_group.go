@@ -18,7 +18,7 @@ func ResourceTeamExternalGroup() *schema.Resource {
 
 		CreateContext: CreateTeamExternalGroup,
 		UpdateContext: UpdateTeamExternalGroup,
-		DeleteContext: DeleteTeamExternalGroup,
+		DeleteContext: UpdateTeamExternalGroup,
 		ReadContext:   ReadTeamExternalGroup,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -47,7 +47,7 @@ func ResourceTeamExternalGroup() *schema.Resource {
 func CreateTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	teamID := d.Get("team_id").(int)
 	d.SetId(strconv.FormatInt(int64(teamID), 10))
-	if err := UpdateGroups(d, meta); err != nil {
+	if err := ManageGroups(d, meta); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -55,35 +55,11 @@ func CreateTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func ReadTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	if err := ReadGroups(d, meta); err != nil {
-		return diag.FromErr(err)
-	}
-	return nil
-}
-
-func UpdateTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	if err := UpdateGroups(d, meta); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return diag.Diagnostics{}
-}
-
-func DeleteTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	if err := UpdateGroups(d, meta); err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId("")
-
-	return diag.Diagnostics{}
-}
-
-func ReadGroups(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*client).gapi
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	teamGroups, err := client.TeamGroups(teamID)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	groupIDs := make([]string, 0, len(teamGroups))
@@ -92,10 +68,18 @@ func ReadGroups(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("groups", groupIDs)
 
-	return nil
+	return diag.Diagnostics{}
 }
 
-func UpdateGroups(d *schema.ResourceData, meta interface{}) error {
+func UpdateTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	if err := ManageGroups(d, meta); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.Diagnostics{}
+}
+
+func ManageGroups(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*client).gapi
 
 	addGroups, removeGroups := groupChanges(d)
@@ -122,44 +106,36 @@ func groupChanges(d *schema.ResourceData) ([]string, []string) {
 	// Get the lists of team groups read in from Grafana state (old) and configured (new)
 	state, config := d.GetChange("groups")
 
-	stateGroups := make([]string, state.(*schema.Set).Len())
+	currentGroups := make([]string, state.(*schema.Set).Len())
 	for i, v := range state.(*schema.Set).List() {
-		stateGroups[i] = v.(string)
+		currentGroups[i] = v.(string)
 	}
 
-	configGroups := make([]string, config.(*schema.Set).Len())
+	desiredGroups := make([]string, config.(*schema.Set).Len())
 	for i, v := range config.(*schema.Set).List() {
-		configGroups[i] = v.(string)
+		desiredGroups[i] = v.(string)
+	}
+
+	contains := func(slice []string, val string) bool {
+		for _, item := range slice {
+			if item == val {
+				return true
+			}
+		}
+		return false
 	}
 
 	addGroups := []string{}
-	for _, group := range configGroups {
-		if !SliceFind(stateGroups, group) {
+	for _, group := range desiredGroups {
+		if !contains(currentGroups, group) {
 			addGroups = append(addGroups, group)
 		}
 	}
-
 	removeGroups := []string{}
-	for _, group := range stateGroups {
-		if !SliceFind(configGroups, group) {
+	for _, group := range currentGroups {
+		if !contains(desiredGroups, group) {
 			removeGroups = append(removeGroups, group)
 		}
 	}
-
 	return addGroups, removeGroups
-}
-
-// SliceFind takes a slice and looks for an element in it. If found it will
-// return true, otherwise false.
-func SliceFind(slice []string, val string) bool {
-	for _, item := range slice {
-		if item == val {
-			return true
-		}
-	}
-	return false
-}
-
-func RemoveIndex(s []string, index int) []string {
-	return append(s[:index], s[index+1:]...)
 }
