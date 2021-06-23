@@ -86,6 +86,8 @@ func Provider(version string) func() *schema.Provider {
 			},
 
 			ResourcesMap: map[string]*schema.Resource{
+
+				// Grafana
 				"grafana_alert_notification":      ResourceAlertNotification(),
 				"grafana_builtin_role_assignment": ResourceBuiltInRoleAssignment(),
 				"grafana_dashboard":               ResourceDashboard(),
@@ -98,6 +100,17 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_team":                    ResourceTeam(),
 				"grafana_team_preferences":        ResourceTeamPreferences(),
 				"grafana_user":                    ResourceUser(),
+
+				// Synthetic Monitoring
+				"grafana_synthetic_monitoring_check": resourceSyntheticMonitoringCheck(),
+				"grafana_synthetic_monitoring_probe": resourceSyntheticMonitoringProbe(),
+			},
+
+			DataSourcesMap: map[string]*schema.Resource{
+
+				// Synthetic Monitoring
+				"grafana_synthetic_monitoring_probe":  dataSourceSyntheticMonitoringProbe(),
+				"grafana_synthetic_monitoring_probes": dataSourceSyntheticMonitoringProbes(),
 			},
 		}
 
