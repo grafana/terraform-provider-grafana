@@ -73,6 +73,7 @@ func DeleteTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta i
 	if err := UpdateGroups(d, meta); err != nil {
 		return diag.FromErr(err)
 	}
+	d.SetId("")
 
 	return diag.Diagnostics{}
 }
