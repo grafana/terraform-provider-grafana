@@ -85,7 +85,7 @@ func ReadGroups(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	
+
 	groupIDs := make([]string, 0, len(teamGroups))
 	for _, teamGroup := range teamGroups {
 		groupIDs = append(groupIDs, teamGroup.GroupID)
