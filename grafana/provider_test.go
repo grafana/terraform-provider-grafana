@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 	"sync"
 	"testing"
@@ -47,11 +48,8 @@ func TestProvider(t *testing.T) {
 	}
 }
 
-// testAccPreCheck verifies required provider testing configuration
-//
-// This PreCheck function should be present in every acceptance test. It allows
-// test configurations to omit a provider configuration with region and ensures
-// testing functions that attempt to call AWS APIs are previously configured.
+// testAccPreCheck verifies required provider testing configuration. It should
+// be present in every acceptance test.
 //
 // These verifications and configuration are preferred at this level to prevent
 // provider developers from experiencing less clear errors for every test.
@@ -73,4 +71,14 @@ func testAccPreCheck(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
+}
+
+// testAccExample returns an example config from the examples directory.
+// Examples are used for both documentation and acceptance tests.
+func testAccExample(t *testing.T, path string) string {
+	example, err := ioutil.ReadFile("../examples/" + path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(example)
 }
