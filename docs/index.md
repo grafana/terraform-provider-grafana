@@ -35,3 +35,51 @@ provider "grafana" {
 - **sm_access_token** (String, Sensitive) A Synthetic Monitoring access token. May alternatively be set via the `GRAFANA_SM_ACCESS_TOKEN` environment variable.
 - **tls_cert** (String) Client TLS certificate file to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.
 - **tls_key** (String) Client TLS key file to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.
+
+## Authentication
+
+### auth
+
+This can be a Grafana API key, basic auth `username:password`, or a
+[Grafana Cloud API key](https://grafana.com/docs/grafana-cloud/cloud-portal/create-api-key/).
+
+### sm\_access\_token
+
+[Synthetic Monitoring](https://grafana.com/docs/grafana-cloud/synthetic-monitoring/)
+endpoints require a dedicated access token. You may obtain an access token with its
+[Registration API](https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#registration-api).
+
+```
+curl \
+  -X POST \
+  -H 'Content-type: application/json; charset=utf-8' \
+  -H "Authorization: Bearer $GRAFANA_CLOUD_API_KEY" \
+  -d '{"stackId": <stack-id>, "metricsInstanceId": <metrics-instance-id>, "logsInstanceId": <logs-instance-id>}' \
+  'https://synthetic-monitoring-api.grafana.net/api/v1/register/install'
+```
+
+`GRAFANA_CLOUD_API_KEY` is an API key created on the
+[Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/cloud-portal/create-api-key/).
+It must have the `MetricsPublisher` role.
+
+`stackId`, `metricsInstanceId`, and `logsInstanceId` may also be obtained on
+the portal. First you need to create a Stack by clicking "Add Stack". When it's
+created you will be taken to its landing page on the portal. Get your `stackId`
+from the URL in your browser:
+
+```
+https://grafana.com/orgs/<org-slug>/stacks/<stack-id>
+```
+
+Next, go to "Details" for Prometheus. Again, get `metricsInstanceId` from your URL:
+
+```
+https://grafana.com/orgs/<org-slug>/hosted-metrics/<metrics-instance-id>
+```
+
+Finally, go back to your stack page, and go to "Details" for Loki to get
+`logsInstanceId`.
+
+```
+https://grafana.com/orgs/<org-slug>/hosted-logs/<logs-instance-id>
+```
