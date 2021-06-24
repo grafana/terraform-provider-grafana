@@ -11,7 +11,7 @@ import (
 
 func TestAccResourceSyntheticMonitoringCheck_dns(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { testAccPreCheckCloud(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -61,7 +61,7 @@ func TestAccResourceSyntheticMonitoringCheck_dns(t *testing.T) {
 
 func TestAccResourceSyntheticMonitoringCheck_http(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { testAccPreCheckCloud(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -117,7 +117,7 @@ func TestAccResourceSyntheticMonitoringCheck_http(t *testing.T) {
 
 func TestAccResourceSyntheticMonitoringCheck_ping(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { testAccPreCheckCloud(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -153,7 +153,7 @@ func TestAccResourceSyntheticMonitoringCheck_ping(t *testing.T) {
 
 func TestAccResourceSyntheticMonitoringCheck_tcp(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { testAccPreCheckCloud(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{

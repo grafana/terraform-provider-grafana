@@ -22,7 +22,7 @@ var testAccProviderFactories map[string]func() (*schema.Provider, error)
 // testAccPreCheck(t) must be called before using this provider instance.
 var testAccProvider *schema.Provider
 
-// testAccProviderConfigure ensures testAccProvider is only configured once
+// testAccProviderConfigure ensures that testAccProvider is only configured once.
 //
 // The testAccPreCheck(t) function is invoked for every test and this prevents
 // extraneous reconfiguration to the same values each time. However, this does
@@ -48,22 +48,26 @@ func TestProvider(t *testing.T) {
 	}
 }
 
+// testAccPreCheckEnv contains all environment variables that must be present
+// for acceptance tests to run. These are checked in testAccPreCheck.
+var testAccPreCheckEnv = []string{
+	"GRAFANA_URL",
+	"GRAFANA_AUTH",
+	"GRAFANA_ORG_ID",
+}
+
 // testAccPreCheck verifies required provider testing configuration. It should
 // be present in every acceptance test.
 //
 // These verifications and configuration are preferred at this level to prevent
 // provider developers from experiencing less clear errors for every test.
 func testAccPreCheck(t *testing.T) {
+	for _, e := range testAccPreCheckEnv {
+		if v := os.Getenv(e); v == "" {
+			t.Fatal(e + " must be set for acceptance tests")
+		}
+	}
 	testAccProviderConfigure.Do(func() {
-		if v := os.Getenv("GRAFANA_URL"); v == "" {
-			t.Fatal("GRAFANA_URL must be set for acceptance tests")
-		}
-		if v := os.Getenv("GRAFANA_AUTH"); v == "" {
-			t.Fatal("GRAFANA_AUTH must be set for acceptance tests")
-		}
-		if v := os.Getenv("GRAFANA_ORG_ID"); v == "" {
-			t.Fatal("GRAFANA_ORG_ID must be set for acceptance tests")
-		}
 		// Since we are outside the scope of the Terraform configuration we must
 		// call Configure() to properly initialize the provider configuration.
 		err := testAccProvider.Configure(context.Background(), terraform.NewResourceConfigRaw(nil))
@@ -71,6 +75,13 @@ func testAccPreCheck(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
+}
+
+// testAccPreCheckCloud should be called by acceptance tests in files where the
+// "cloud" build tag is present.
+func testAccPreCheckCloud(t *testing.T) {
+	testAccPreCheckEnv = append(testAccPreCheckEnv, "GRAFANA_SM_ACCESS_TOKEN")
+	testAccPreCheck(t)
 }
 
 // testAccExample returns an example config from the examples directory.
