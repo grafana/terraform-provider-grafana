@@ -86,7 +86,6 @@ func TestAccResourceSyntheticMonitoringCheck_http(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "job", "HTTP Defaults"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "target", "https://grafana.org"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "probes.0", "15"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "probes.0", "20"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "labels.foo", "bar"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.ip_version", "V6"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.method", "TRACE"),
