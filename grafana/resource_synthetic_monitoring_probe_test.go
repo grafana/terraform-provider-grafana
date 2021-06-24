@@ -14,7 +14,7 @@ func TestAccResourceSyntheticMonitoringProbe(t *testing.T) {
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_probe/basic.tf"),
+				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_probe/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.main", "id"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "name", "Mount Everest"),
@@ -26,7 +26,7 @@ func TestAccResourceSyntheticMonitoringProbe(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_probe/complex.tf"),
+				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_probe/resource_update.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.main", "id"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "name", "Mauna Loa"),
