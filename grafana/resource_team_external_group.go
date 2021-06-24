@@ -47,7 +47,7 @@ func ResourceTeamExternalGroup() *schema.Resource {
 func CreateTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	teamID := d.Get("team_id").(int)
 	d.SetId(strconv.FormatInt(int64(teamID), 10))
-	if err := ManageGroups(d, meta); err != nil {
+	if err := manageTeamExternalGroup(d, meta); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -72,17 +72,17 @@ func ReadTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func UpdateTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	if err := ManageGroups(d, meta); err != nil {
+	if err := manageTeamExternalGroup(d, meta); err != nil {
 		return diag.FromErr(err)
 	}
 
 	return diag.Diagnostics{}
 }
 
-func ManageGroups(d *schema.ResourceData, meta interface{}) error {
+func manageTeamExternalGroup(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*client).gapi
 
-	addGroups, removeGroups := groupChanges(d)
+	addGroups, removeGroups := groupChangesTeamExternalGroup(d)
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
 
 	for _, group := range addGroups {
@@ -102,7 +102,7 @@ func ManageGroups(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func groupChanges(d *schema.ResourceData) ([]string, []string) {
+func groupChangesTeamExternalGroup(d *schema.ResourceData) ([]string, []string) {
 	// Get the lists of team groups read in from Grafana state (old) and configured (new)
 	state, config := d.GetChange("groups")
 
