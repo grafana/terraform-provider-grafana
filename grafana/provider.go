@@ -99,6 +99,7 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_role":                    ResourceRole(),
 				"grafana_team":                    ResourceTeam(),
 				"grafana_team_preferences":        ResourceTeamPreferences(),
+				"grafana_team_external_group":     ResourceTeamExternalGroup(),
 				"grafana_user":                    ResourceUser(),
 
 				// Synthetic Monitoring
