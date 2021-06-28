@@ -67,7 +67,6 @@ func ResourceAlertNotification() *schema.Resource {
 			"settings": {
 				Type:        schema.TypeMap,
 				Optional:    true,
-				Sensitive:   true,
 				Description: "Additional settings, for full reference see [Grafana HTTP API documentation](https://grafana.com/docs/grafana/latest/http_api/alerting_notification_channels/).",
 			},
 
