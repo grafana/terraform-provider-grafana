@@ -1,5 +1,29 @@
 # Changelog
 
+## [v1.13.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.13.0) (2021-07-01)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.12.0...v1.13.0)
+
+**Implemented enhancements:**
+
+- Make settings in Alert Notification Resource non-sensitive [\#220](https://github.com/grafana/terraform-provider-grafana/issues/220)
+- Add Synthetic monitoring resource [\#198](https://github.com/grafana/terraform-provider-grafana/issues/198)
+- Add auth\_token to resource\_synthetic\_monitoring\_probe [\#235](https://github.com/grafana/terraform-provider-grafana/pull/235) ([trotttrotttrott](https://github.com/trotttrotttrott))
+- Synthetic Monitoring Probe and Check Resources and Data Sources [\#228](https://github.com/grafana/terraform-provider-grafana/pull/228) ([trotttrotttrott](https://github.com/trotttrotttrott))
+- Add Secure Settings to Alert Notification Resource [\#208](https://github.com/grafana/terraform-provider-grafana/pull/208) ([trotttrotttrott](https://github.com/trotttrotttrott))
+
+**Fixed bugs:**
+
+- Fix Acceptance Tests: terraform-json 0.12.0 [\#231](https://github.com/grafana/terraform-provider-grafana/pull/231) ([trotttrotttrott](https://github.com/trotttrotttrott))
+
+**Merged pull requests:**
+
+- Synthetic Monitoring Resource Fixes [\#237](https://github.com/grafana/terraform-provider-grafana/pull/237) ([trotttrotttrott](https://github.com/trotttrotttrott))
+- hashicorp/terraform-plugin-sdk/v2 v2.7.0 [\#233](https://github.com/grafana/terraform-provider-grafana/pull/233) ([trotttrotttrott](https://github.com/trotttrotttrott))
+- Generate docs for grafana\_team\_external\_group [\#230](https://github.com/grafana/terraform-provider-grafana/pull/230) ([trotttrotttrott](https://github.com/trotttrotttrott))
+- fix!: make alert\_notification settings nonsensitive [\#225](https://github.com/grafana/terraform-provider-grafana/pull/225) ([thor](https://github.com/thor))
+- add support of team external group [\#221](https://github.com/grafana/terraform-provider-grafana/pull/221) ([fgouteroux](https://github.com/fgouteroux))
+
 ## [v1.12.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.12.0) (2021-06-22)
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.11.0...v1.12.0)
@@ -37,10 +61,6 @@
 ## [v1.11.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.11.0) (2021-06-09)
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.10.0...v1.11.0)
-
-**Implemented enhancements:**
-
-- Add Secure Settings to Alert Notification Resource [\#208](https://github.com/grafana/terraform-provider-grafana/pull/208) ([trotttrotttrott](https://github.com/trotttrotttrott))
 
 **Fixed bugs:**
 
@@ -111,6 +131,7 @@
 - Adding profile field to JSON Data [\#164](https://github.com/grafana/terraform-provider-grafana/pull/164) ([grlvrl](https://github.com/grlvrl))
 - is\_admin added to grafana\_user. [\#157](https://github.com/grafana/terraform-provider-grafana/pull/157) ([AlirezaKm](https://github.com/AlirezaKm))
 - Add full Stackdriver data source support [\#155](https://github.com/grafana/terraform-provider-grafana/pull/155) ([ryanaross](https://github.com/ryanaross))
+- Updated dead link in documentation - data\_sources [\#149](https://github.com/grafana/terraform-provider-grafana/pull/149) ([WilliamDahlen](https://github.com/WilliamDahlen))
 - r/grafana\_alert\_notification Add disable\_resolve\_message [\#145](https://github.com/grafana/terraform-provider-grafana/pull/145) ([Puneeth-n](https://github.com/Puneeth-n))
 - feat: add new TLS configuration options [\#133](https://github.com/grafana/terraform-provider-grafana/pull/133) ([joemiller](https://github.com/joemiller))
 
@@ -139,7 +160,6 @@
 **Merged pull requests:**
 
 - Add support for dashboard permissions [\#150](https://github.com/grafana/terraform-provider-grafana/pull/150) ([pascal-hofmann](https://github.com/pascal-hofmann))
-- Updated dead link in documentation - data\_sources [\#149](https://github.com/grafana/terraform-provider-grafana/pull/149) ([WilliamDahlen](https://github.com/WilliamDahlen))
 - Do not delete dashboard uid fields [\#136](https://github.com/grafana/terraform-provider-grafana/pull/136) ([gw0](https://github.com/gw0))
 - Add organization id to the provider. [\#110](https://github.com/grafana/terraform-provider-grafana/pull/110) ([medains](https://github.com/medains))
 
