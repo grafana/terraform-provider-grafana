@@ -50,6 +50,7 @@ resource "grafana_synthetic_monitoring_probe" "main" {
 
 ### Read-Only
 
+- **auth_token** (String, Sensitive) The probe authentication token. Your probe must use this to authenticate with Grafana Cloud.
 - **id** (String) The ID of the probe.
 - **tenant_id** (Number) The tenant ID of the probe.
 
