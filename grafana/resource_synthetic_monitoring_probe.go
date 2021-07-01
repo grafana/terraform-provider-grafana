@@ -127,12 +127,14 @@ func resourceSyntheticMonitoringProbeRead(ctx context.Context, d *schema.Resourc
 	d.Set("region", prb.Region)
 	d.Set("public", prb.Public)
 
-	// Convert []sm.Label into a map before set.
-	labels := make(map[string]string, len(prb.Labels))
-	for _, l := range prb.Labels {
-		labels[l.Name] = l.Value
+	if len(prb.Labels) > 0 {
+		// Convert []sm.Label into a map before set.
+		labels := make(map[string]string, len(prb.Labels))
+		for _, l := range prb.Labels {
+			labels[l.Name] = l.Value
+		}
+		d.Set("labels", labels)
 	}
-	d.Set("labels", labels)
 
 	return diags
 }

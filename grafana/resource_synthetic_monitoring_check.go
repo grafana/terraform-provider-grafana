@@ -540,12 +540,14 @@ func resourceSyntheticMonitoringCheckRead(ctx context.Context, d *schema.Resourc
 	d.Set("basic_metrics_only", chk.BasicMetricsOnly)
 	d.Set("probes", chk.Probes)
 
-	// Convert []sm.Label into a map before set.
-	labels := make(map[string]string, len(chk.Labels))
-	for _, l := range chk.Labels {
-		labels[l.Name] = l.Value
+	if len(chk.Labels) > 0 {
+		// Convert []sm.Label into a map before set.
+		labels := make(map[string]string, len(chk.Labels))
+		for _, l := range chk.Labels {
+			labels[l.Name] = l.Value
+		}
+		d.Set("labels", labels)
 	}
-	d.Set("labels", labels)
 
 	// Convert sm.Settings...
 
