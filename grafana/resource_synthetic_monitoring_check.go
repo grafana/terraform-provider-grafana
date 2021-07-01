@@ -504,7 +504,6 @@ multiple checks for a single endpoint to check different capabilities.
 
 func resourceSyntheticMonitoringCheckCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client).smapi
-	var diags diag.Diagnostics
 	chk := makeCheck(d)
 	res, err := c.AddCheck(ctx, *chk)
 	if err != nil {
@@ -512,7 +511,7 @@ func resourceSyntheticMonitoringCheckCreate(ctx context.Context, d *schema.Resou
 	}
 	d.SetId(strconv.FormatInt(res.Id, 10))
 	d.Set("tenant_id", res.TenantId)
-	return diags
+	return resourceSyntheticMonitoringCheckRead(ctx, d, meta)
 }
 
 func resourceSyntheticMonitoringCheckRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -711,13 +710,12 @@ func resourceSyntheticMonitoringCheckRead(ctx context.Context, d *schema.Resourc
 
 func resourceSyntheticMonitoringCheckUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client).smapi
-	var diags diag.Diagnostics
 	chk := makeCheck(d)
 	_, err := c.UpdateCheck(ctx, *chk)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	return diags
+	return resourceSyntheticMonitoringCheckRead(ctx, d, meta)
 }
 
 func resourceSyntheticMonitoringCheckDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
