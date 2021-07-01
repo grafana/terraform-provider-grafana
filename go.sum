@@ -578,8 +578,9 @@ github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoA
 github.com/grafana/grafana-api-golang-client v0.0.0-20210622232726-d2fbe458a0cf h1:WZsKxplmqdGhrFJ/KAY8DaeRVq6/jCeqeIoiXfM1UEo=
 github.com/grafana/grafana-api-golang-client v0.0.0-20210622232726-d2fbe458a0cf/go.mod h1:24W29gPe9yl0/3A9X624TPkAOR8DpHno490cPwnkv8E=
 github.com/grafana/loki v1.6.1/go.mod h1:X+GvtCzAf2ok/xRLLvGB8kuWP1R+75nXnvjCEnenP0s=
-github.com/grafana/synthetic-monitoring-agent v0.0.23 h1:+9QQFhY7Snv2RvxmWXZlLLl2n9O3iXhokXaNBPgNqak=
 github.com/grafana/synthetic-monitoring-agent v0.0.23/go.mod h1:luWgdBaAQgOz9e6m/cGQCFFrPWkBTl+VZM/UC+75nSM=
+github.com/grafana/synthetic-monitoring-agent v0.0.24 h1:qfDFWIW2iPmffAsLO9WG/h8inAV+D/nXbQUQ4DTdL3E=
+github.com/grafana/synthetic-monitoring-agent v0.0.24/go.mod h1:sAsG2vhYy/La1NtNeHpAFOvNo/mNCi6voQhiTJo4/uo=
 github.com/grafana/synthetic-monitoring-api-go-client v0.0.2 h1:EYydbQ64YPUFuxnY3fP/mk01f4KlQRR6460WWLb6PMQ=
 github.com/grafana/synthetic-monitoring-api-go-client v0.0.2/go.mod h1:UKxPeeIkdqSsvZ08JJmobOL3Mvglp9sgV0YDFyp+/14=
 github.com/gregjones/httpcache v0.0.0-20170728041850-787624de3eb7/go.mod h1:FecbI9+v66THATjSRHfNgh1IVFe/9kFxbXtjV0ctIMA=
@@ -847,6 +848,7 @@ github.com/miekg/dns v1.1.29/go.mod h1:KNUDUusw/aVsxyTYZM1oqvCicbwhgbNgztCETuNZ7
 github.com/miekg/dns v1.1.30/go.mod h1:KNUDUusw/aVsxyTYZM1oqvCicbwhgbNgztCETuNZ7xM=
 github.com/miekg/dns v1.1.41/go.mod h1:p6aan82bvRIyn+zDIv9xYNUpwa73JcSh9BKwknJysuI=
 github.com/miekg/dns v1.1.42/go.mod h1:+evo5L0630/F6ca/Z9+GAqzhjGyn8/c+TBaOyfEl0V4=
+github.com/miekg/dns v1.1.43/go.mod h1:+evo5L0630/F6ca/Z9+GAqzhjGyn8/c+TBaOyfEl0V4=
 github.com/minio/minio-go/v6 v6.0.44/go.mod h1:qD0lajrGW49lKZLtXKtCB4X/qkMf0a5tBvN2PaZg7Gg=
 github.com/minio/minio-go/v6 v6.0.56/go.mod h1:KQMM+/44DSlSGSQWSfRrAZ12FVMmpWNuX37i2AX0jfI=
 github.com/minio/sha256-simd v0.1.1/go.mod h1:B5e1o+1/KgNmWrSQK08Y6Z1Vb5pwIktudl0J58iy0KM=
