@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"encoding/base64"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -40,6 +41,12 @@ Grafana Synthetic Monitoring Agent.
 				Description: "The tenant ID of the probe.",
 				Type:        schema.TypeInt,
 				Computed:    true,
+			},
+			"auth_token": {
+				Description: "The probe authentication token. Your probe must use this to authenticate with Grafana Cloud.",
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
 			},
 			"name": {
 				Description: "Name of the probe.",
@@ -89,12 +96,13 @@ func resourceSyntheticMonitoringProbeCreate(ctx context.Context, d *schema.Resou
 	c := meta.(*client).smapi
 	var diags diag.Diagnostics
 	p := makeProbe(d)
-	res, _, err := c.AddProbe(ctx, *p)
+	res, token, err := c.AddProbe(ctx, *p)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	d.SetId(strconv.FormatInt(res.Id, 10))
 	d.Set("tenant_id", res.TenantId)
+	d.Set("auth_token", base64.StdEncoding.EncodeToString(token))
 	return diags
 }
 

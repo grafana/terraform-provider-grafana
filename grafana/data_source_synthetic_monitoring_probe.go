@@ -13,8 +13,8 @@ import (
 func dataSourceSyntheticMonitoringProbe() *schema.Resource {
 
 	probeSchema := datasourceSchemaFromResourceSchema(syntheticMonitoringProbe.Schema)
-
 	addRequiredFieldsToSchema(probeSchema, "name")
+	delete(probeSchema, "auth_token")
 
 	return &schema.Resource{
 		Description: "Data source for retrieving a single probe by name.",

@@ -17,6 +17,7 @@ func TestAccResourceSyntheticMonitoringProbe(t *testing.T) {
 				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_probe/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.main", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.main", "auth_token"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "name", "Mount Everest"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "latitude", "27.98606"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "longitude", "86.92262"),
@@ -29,6 +30,7 @@ func TestAccResourceSyntheticMonitoringProbe(t *testing.T) {
 				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_probe/resource_update.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.main", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.main", "auth_token"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "name", "Mauna Loa"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "latitude", "19.47948"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "longitude", "-155.60282"),
