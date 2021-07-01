@@ -94,7 +94,6 @@ func resourceSyntheticMonitoringProbe() *schema.Resource {
 
 func resourceSyntheticMonitoringProbeCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client).smapi
-	var diags diag.Diagnostics
 	p := makeProbe(d)
 	res, token, err := c.AddProbe(ctx, *p)
 	if err != nil {
@@ -103,7 +102,7 @@ func resourceSyntheticMonitoringProbeCreate(ctx context.Context, d *schema.Resou
 	d.SetId(strconv.FormatInt(res.Id, 10))
 	d.Set("tenant_id", res.TenantId)
 	d.Set("auth_token", base64.StdEncoding.EncodeToString(token))
-	return diags
+	return resourceSyntheticMonitoringProbeRead(ctx, d, meta)
 }
 
 func resourceSyntheticMonitoringProbeRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -140,13 +139,12 @@ func resourceSyntheticMonitoringProbeRead(ctx context.Context, d *schema.Resourc
 
 func resourceSyntheticMonitoringProbeUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client).smapi
-	var diags diag.Diagnostics
 	p := makeProbe(d)
 	_, err := c.UpdateProbe(ctx, *p)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	return diags
+	return resourceSyntheticMonitoringProbeRead(ctx, d, meta)
 }
 
 func resourceSyntheticMonitoringProbeDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
