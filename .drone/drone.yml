@@ -1,0 +1,67 @@
+---
+kind: pipeline
+type: docker
+name: test-pr
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: tests
+  image: golang:1.16
+  commands:
+  - sleep 5
+  - make testacc
+  environment:
+    GRAFANA_AUTH: admin:admin
+    GRAFANA_ORG_ID: 1
+    GRAFANA_URL: http://grafana:3000
+
+services:
+- name: grafana
+  image: grafana/grafana:8.0.3
+  environment:
+    GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
+
+trigger:
+  event:
+  - pull_request
+
+---
+kind: pipeline
+type: docker
+name: build-master
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: tests
+  image: golang:1.16
+  commands:
+  - sleep 5
+  - make testacc
+  environment:
+    GRAFANA_AUTH: admin:admin
+    GRAFANA_ORG_ID: 1
+    GRAFANA_URL: http://grafana:3000
+
+services:
+- name: grafana
+  image: grafana/grafana:8.0.3
+  environment:
+    GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
+
+trigger:
+  branch:
+  - master
+  event:
+  - push
+
+---
+kind: signature
+hmac: c1a676f627f31e0a41b4f2625f9c55b37ec44fc6d4f31558909bde6f00a8bd5c
+
+...
