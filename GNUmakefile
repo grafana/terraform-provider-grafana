@@ -40,3 +40,8 @@ release:
 	@test $${RELEASE_VERSION?Please set environment variable RELEASE_VERSION}
 	@git tag $$RELEASE_VERSION
 	@git push origin $$RELEASE_VERSION
+
+drone:
+	drone jsonnet --stream --source .drone/drone.jsonnet --target .drone/drone.yml
+	drone lint .drone/drone.yml
+	drone sign --save grafana/terraform-provider-grafana .drone/drone.yml
