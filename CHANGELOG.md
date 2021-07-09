@@ -1,5 +1,14 @@
 # Changelog
 
+## [v1.13.1](https://github.com/grafana/terraform-provider-grafana/tree/v1.13.1) (2021-07-09)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.13.0...v1.13.1)
+
+**Merged pull requests:**
+
+- Make sm\_url configurable [\#242](https://github.com/grafana/terraform-provider-grafana/pull/242) ([captncraig](https://github.com/captncraig))
+- Sign Drone's configuration YAML file [\#239](https://github.com/grafana/terraform-provider-grafana/pull/239) ([julienduchesne](https://github.com/julienduchesne))
+
 ## [v1.13.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.13.0) (2021-07-01)
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.12.0...v1.13.0)
@@ -10,7 +19,6 @@
 - Add Synthetic monitoring resource [\#198](https://github.com/grafana/terraform-provider-grafana/issues/198)
 - Add auth\_token to resource\_synthetic\_monitoring\_probe [\#235](https://github.com/grafana/terraform-provider-grafana/pull/235) ([trotttrotttrott](https://github.com/trotttrotttrott))
 - Synthetic Monitoring Probe and Check Resources and Data Sources [\#228](https://github.com/grafana/terraform-provider-grafana/pull/228) ([trotttrotttrott](https://github.com/trotttrotttrott))
-- Add Secure Settings to Alert Notification Resource [\#208](https://github.com/grafana/terraform-provider-grafana/pull/208) ([trotttrotttrott](https://github.com/trotttrotttrott))
 
 **Fixed bugs:**
 
@@ -62,6 +70,10 @@
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.10.0...v1.11.0)
 
+**Implemented enhancements:**
+
+- Add Secure Settings to Alert Notification Resource [\#208](https://github.com/grafana/terraform-provider-grafana/pull/208) ([trotttrotttrott](https://github.com/trotttrotttrott))
+
 **Fixed bugs:**
 
 - Problem downloading provider v1.10.0 [\#194](https://github.com/grafana/terraform-provider-grafana/issues/194)
@@ -74,7 +86,6 @@
 
 - Add resources for managing fine-grained access control in Grafana Enterprise [\#207](https://github.com/grafana/terraform-provider-grafana/pull/207) ([vtorosyan](https://github.com/vtorosyan))
 - GoReleaser uses Go 1.16 [\#201](https://github.com/grafana/terraform-provider-grafana/pull/201) ([trotttrotttrott](https://github.com/trotttrotttrott))
-- Fixed handling of manually deleted resources [\#178](https://github.com/grafana/terraform-provider-grafana/pull/178) ([RyanW8](https://github.com/RyanW8))
 
 ## [v1.10.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.10.0) (2021-04-29)
 
@@ -101,6 +112,7 @@
 - Refactor Issue Template [\#185](https://github.com/grafana/terraform-provider-grafana/pull/185) ([trotttrotttrott](https://github.com/trotttrotttrott))
 - Bump github.com/hashicorp/terraform-plugin-sdk/v2 from 2.4.4 to 2.5.0 [\#181](https://github.com/grafana/terraform-provider-grafana/pull/181) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Leverage SDK v2 context-aware schema functions and diagnostics [\#180](https://github.com/grafana/terraform-provider-grafana/pull/180) ([nikosmeds](https://github.com/nikosmeds))
+- Fixed handling of manually deleted resources [\#178](https://github.com/grafana/terraform-provider-grafana/pull/178) ([RyanW8](https://github.com/RyanW8))
 - Remove string interpolation in docs [\#177](https://github.com/grafana/terraform-provider-grafana/pull/177) ([julienduchesne](https://github.com/julienduchesne))
 - Upgrade to Terraform Plugin SDK v2 [\#176](https://github.com/grafana/terraform-provider-grafana/pull/176) ([trotttrotttrott](https://github.com/trotttrotttrott))
 - renames the `terraform-providers` module organization to `grafana` [\#173](https://github.com/grafana/terraform-provider-grafana/pull/173) ([mupdt](https://github.com/mupdt))
@@ -131,7 +143,6 @@
 - Adding profile field to JSON Data [\#164](https://github.com/grafana/terraform-provider-grafana/pull/164) ([grlvrl](https://github.com/grlvrl))
 - is\_admin added to grafana\_user. [\#157](https://github.com/grafana/terraform-provider-grafana/pull/157) ([AlirezaKm](https://github.com/AlirezaKm))
 - Add full Stackdriver data source support [\#155](https://github.com/grafana/terraform-provider-grafana/pull/155) ([ryanaross](https://github.com/ryanaross))
-- Updated dead link in documentation - data\_sources [\#149](https://github.com/grafana/terraform-provider-grafana/pull/149) ([WilliamDahlen](https://github.com/WilliamDahlen))
 - r/grafana\_alert\_notification Add disable\_resolve\_message [\#145](https://github.com/grafana/terraform-provider-grafana/pull/145) ([Puneeth-n](https://github.com/Puneeth-n))
 - feat: add new TLS configuration options [\#133](https://github.com/grafana/terraform-provider-grafana/pull/133) ([joemiller](https://github.com/joemiller))
 
@@ -160,6 +171,7 @@
 **Merged pull requests:**
 
 - Add support for dashboard permissions [\#150](https://github.com/grafana/terraform-provider-grafana/pull/150) ([pascal-hofmann](https://github.com/pascal-hofmann))
+- Updated dead link in documentation - data\_sources [\#149](https://github.com/grafana/terraform-provider-grafana/pull/149) ([WilliamDahlen](https://github.com/WilliamDahlen))
 - Do not delete dashboard uid fields [\#136](https://github.com/grafana/terraform-provider-grafana/pull/136) ([gw0](https://github.com/gw0))
 - Add organization id to the provider. [\#110](https://github.com/grafana/terraform-provider-grafana/pull/110) ([medains](https://github.com/medains))
 
@@ -252,6 +264,7 @@
 - Update to TF SDK v0.12 [\#61](https://github.com/grafana/terraform-provider-grafana/pull/61) ([paultyng](https://github.com/paultyng))
 - switch to modules and vendor 0.12 sdk [\#44](https://github.com/grafana/terraform-provider-grafana/pull/44) ([appilon](https://github.com/appilon))
 - \[AUTOMATED\] Upgrade to Go 1.11 [\#41](https://github.com/grafana/terraform-provider-grafana/pull/41) ([appilon](https://github.com/appilon))
+- make: Add website + website-test targets [\#21](https://github.com/grafana/terraform-provider-grafana/pull/21) ([radeksimko](https://github.com/radeksimko))
 
 ## [v1.3.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.3.0) (2018-11-16)
 
@@ -292,7 +305,6 @@
 
 - fix\(Schema\): Mark arguments containing secrets as sensitive [\#28](https://github.com/grafana/terraform-provider-grafana/pull/28) ([donoftime](https://github.com/donoftime))
 - Change of Library [\#27](https://github.com/grafana/terraform-provider-grafana/pull/27) ([mlclmj](https://github.com/mlclmj))
-- make: Add website + website-test targets [\#21](https://github.com/grafana/terraform-provider-grafana/pull/21) ([radeksimko](https://github.com/radeksimko))
 
 ## [v1.0.2](https://github.com/grafana/terraform-provider-grafana/tree/v1.0.2) (2018-04-18)
 
