@@ -83,6 +83,12 @@ func Provider(version string) func() *schema.Provider {
 					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_SM_ACCESS_TOKEN", nil),
 					Description: "A Synthetic Monitoring access token. May alternatively be set via the `GRAFANA_SM_ACCESS_TOKEN` environment variable.",
 				},
+				"sm_url": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_SM_URL", "https://synthetic-monitoring-api.grafana.net"),
+					Description: "Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable.",
+				},
 			},
 
 			ResourcesMap: map[string]*schema.Resource{
@@ -182,7 +188,8 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		c.gapi = gclient
 
 		smToken := d.Get("sm_access_token").(string)
-		c.smapi = smapi.NewClient("https://synthetic-monitoring-api.grafana.net", smToken, nil)
+		smUrl := d.Get("sm_url").(string)
+		c.smapi = smapi.NewClient(smUrl, smToken, nil)
 
 		return c, diags
 	}
