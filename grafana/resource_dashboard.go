@@ -2,8 +2,10 @@ package grafana
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -68,6 +70,17 @@ Manages Grafana dashboards.
 				StateFunc:    normalizeDashboardConfigJSON,
 				ValidateFunc: validateDashboardConfigJSON,
 				Description:  "The complete dashboard model JSON.",
+			},
+			"config_json_sha256": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
+					if val.(bool) == true {
+						os.Setenv("GRAFANA_CONFIG_JSON_SHA256", "yes")
+					}
+					return
+				},
+				Description: "Set to true if you want to save only the sha256sum instead of complete dashboard model JSON in the tfstate.",
 			},
 			"overwrite": {
 				Type:        schema.TypeBool,
@@ -215,7 +228,12 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	}
 
 	configJSON := normalizeDashboardConfigJSON(remoteDashJSON)
-	d.Set("config_json", configJSON)
+	if d.Get("config_json_sha256").(bool) == true {
+		configHash := sha256.Sum256([]byte(configJSON))
+		d.Set("config_json", string(configHash[:]))
+	} else {
+		d.Set("config_json", configJSON)
+	}
 
 	return diags
 }
@@ -301,5 +319,11 @@ func normalizeDashboardConfigJSON(config interface{}) string {
 	delete(dashboardJSON, "id")
 	delete(dashboardJSON, "version")
 	j, _ := json.Marshal(dashboardJSON)
-	return string(j)
+	sha256_store := os.Getenv("GRAFANA_CONFIG_JSON_SHA256")
+	if sha256_store == "yes" {
+		configHash := sha256.Sum256([]byte(j))
+		return string(configHash[:])
+	} else {
+		return string(j)
+	}
 }
