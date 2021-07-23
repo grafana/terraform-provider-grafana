@@ -248,6 +248,9 @@ resource "grafana_data_source" "testdata" {
 			json_data {
 				http_method = "GET"
 				query_timeout = "1"
+                sigv4_auth   = true
+	            sigv4_auth_type = "default"
+	            sigv4_region    = "eu-west-1"
 			}
 		}
 		`,
@@ -257,29 +260,6 @@ resource "grafana_data_source" "testdata" {
 			"url":                       "http://acc-test.invalid:9090",
 			"json_data.0.http_method":   "GET",
 			"json_data.0.query_timeout": "1",
-		},
-	},
-	{
-		"grafana_data_source.amp",
-		`
-		resource "grafana_data_source" "prometheus" {
-			type = "prometheus"
-			name = "amp"
-			url  = "https://aps-workspaces.eu-west-1.amazonaws.com/workspaces/ws-123/"
-			json_data {
-				http_method = "POST"
-				query_timeout = "1"
-                sigv4_auth   = true
-	            sigv4_auth_type = "default"
-	            sigv4_region    = "eu-west-1"
-			}
-		}
-		`,
-		map[string]string{
-			"type":                      "prometheus",
-			"name":                      "amp",
-			"url":                       "https://aps-workspaces.eu-west-1.amazonaws.com/workspaces/ws-123/",
-			"json_data.0.http_method":   "POST",
 			"json_data.0.sigv4_auth":     "true",
 			"json_data.0.sigv4_auth_type":  "default",
 			"json_data.0.sigv4_region":     "eu-west-1",
