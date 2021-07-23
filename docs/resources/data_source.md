@@ -43,6 +43,20 @@ resource "grafana_data_source" "cloudwatch" {
   }
 }
 
+resource "grafana_data_source" "prometheus" {
+  type          = "prometheus"
+  name          = "amp"
+  url           = "https://aps-workspaces.eu-west-1.amazonaws.com/workspaces/ws-1234567890/"
+  
+  json_data {
+	 http_method     = "POST"
+	 sigv4_auth      = true
+	 sigv4_auth_type = "default"
+	 sigv4_region    = "eu-west-1"
+   }
+}
+
+
 resource "grafana_data_source" "stackdriver" {
   type = "stackdriver"
   name = "sd-example"
@@ -109,6 +123,12 @@ Optional:
 - **postgres_version** (Number) (PostgreSQL) Postgres version as a number (903/904/905/906/1000) meaning v9.3, v9.4, etc.
 - **profile** (String) (CloudWatch) The credentials profile name to use when authentication type is set as 'Credentials file'.
 - **query_timeout** (String) (Prometheus) Timeout for queries made to the Prometheus data source in seconds.
+- **sigv4_assume_role_arn** (String) (Elasticsearch and Prometheus) Specifies the ARN of an IAM role to assume.
+- **sigv4_auth** (Boolean) (Elasticsearch and Prometheus) Enable usage of SigV4.
+- **sigv4_auth_type** (String) (Elasticsearch and Prometheus) The Sigv4 authentication provider to use: 'default', 'credentials' or 'keys' (AMG: 'workspace-iam-role').
+- **sigv4_external_id** (String) Elasticsearch and Prometheus) When assuming a role in another account use this external ID.
+- **sigv4_profile** (String) (Elasticsearch and Prometheus) Credentials profile name, leave blank for default.
+- **sigv4_region** (String) (Elasticsearch and Prometheus) AWS region to use for Sigv4.
 - **ssl_mode** (String) (PostgreSQL) SSLmode. 'disable', 'require', 'verify-ca' or 'verify-full'.
 - **time_field** (String) (Elasticsearch) Which field that should be used as timestamp.
 - **time_interval** (String) (Prometheus, Elasticsearch, InfluxDB, MySQL, PostgreSQL, and MSSQL) Lowest interval/step value that should be used for this data source.
@@ -130,7 +150,9 @@ Optional:
 - **basic_auth_password** (String, Sensitive) (All) Password to use for basic authentication.
 - **password** (String, Sensitive) (All) Password to use for authentication.
 - **private_key** (String, Sensitive) (Stackdriver) The service account key `private_key` to use to access the data source.
-- **secret_key** (String, Sensitive) (CloudWatch) The secret key to use to access the data source.
+- **secret_key** (String, Sensitive) (CloudWatch) The secret key to use to access the data source. 
+- **sigv4_access_key** (String, Sensitive) (Elasticsearch and Prometheus) SigV4 access key. Required when using 'keys' auth provider.
+- **sigv4_secret_key** (String, Sensitive) (Elasticsearch and Prometheus) SigV4 secret key. Required when using 'keys' auth provider.
 - **tls_ca_cert** (String, Sensitive) (All) CA cert for out going requests.
 - **tls_client_cert** (String, Sensitive) (All) TLS Client cert for outgoing requests.
 - **tls_client_key** (String, Sensitive) (All) TLS Client key for outgoing requests.

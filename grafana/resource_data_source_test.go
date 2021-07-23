@@ -260,6 +260,32 @@ resource "grafana_data_source" "testdata" {
 		},
 	},
 	{
+		"grafana_data_source.amp",
+		`
+		resource "grafana_data_source" "prometheus" {
+			type = "prometheus"
+			name = "amp"
+			url  = "https://aps-workspaces.eu-west-1.amazonaws.com/workspaces/ws-123/"
+			json_data {
+				http_method = "POST"
+				query_timeout = "1"
+                sigv4_auth   = true
+	            sigv4_auth_type = "default"
+	            sigv4_region    = "eu-west-1"
+			}
+		}
+		`,
+		map[string]string{
+			"type":                      "prometheus",
+			"name":                      "amp",
+			"url":                       "https://aps-workspaces.eu-west-1.amazonaws.com/workspaces/ws-123/",
+			"json_data.0.http_method":   "POST",
+			"json_data.0.sigv4_auth":     "true",
+			"json_data.0.sigv4_auth_type":  "default",
+			"json_data.0.sigv4_region":     "eu-west-1",
+		},
+	},
+	{
 		"grafana_data_source.stackdriver",
 		`
 		resource "grafana_data_source" "stackdriver" {
