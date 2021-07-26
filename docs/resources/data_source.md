@@ -47,15 +47,14 @@ resource "grafana_data_source" "prometheus" {
   type          = "prometheus"
   name          = "amp"
   url           = "https://aps-workspaces.eu-west-1.amazonaws.com/workspaces/ws-1234567890/"
-  
+
   json_data {
-	 http_method     = "POST"
-	 sigv4_auth      = true
-	 sigv4_auth_type = "default"
-	 sigv4_region    = "eu-west-1"
+    http_method     = "POST"
+    sigv4_auth      = true
+    sigv4_auth_type = "default"
+    sigv4_region    = "eu-west-1"
    }
 }
-
 
 resource "grafana_data_source" "stackdriver" {
   type = "stackdriver"
@@ -126,7 +125,7 @@ Optional:
 - **sigv4_assume_role_arn** (String) (Elasticsearch and Prometheus) Specifies the ARN of an IAM role to assume.
 - **sigv4_auth** (Boolean) (Elasticsearch and Prometheus) Enable usage of SigV4.
 - **sigv4_auth_type** (String) (Elasticsearch and Prometheus) The Sigv4 authentication provider to use: 'default', 'credentials' or 'keys' (AMG: 'workspace-iam-role').
-- **sigv4_external_id** (String) Elasticsearch and Prometheus) When assuming a role in another account use this external ID.
+- **sigv4_external_id** (String) (Elasticsearch and Prometheus) When assuming a role in another account use this external ID.
 - **sigv4_profile** (String) (Elasticsearch and Prometheus) Credentials profile name, leave blank for default.
 - **sigv4_region** (String) (Elasticsearch and Prometheus) AWS region to use for Sigv4.
 - **ssl_mode** (String) (PostgreSQL) SSLmode. 'disable', 'require', 'verify-ca' or 'verify-full'.
@@ -150,7 +149,7 @@ Optional:
 - **basic_auth_password** (String, Sensitive) (All) Password to use for basic authentication.
 - **password** (String, Sensitive) (All) Password to use for authentication.
 - **private_key** (String, Sensitive) (Stackdriver) The service account key `private_key` to use to access the data source.
-- **secret_key** (String, Sensitive) (CloudWatch) The secret key to use to access the data source. 
+- **secret_key** (String, Sensitive) (CloudWatch) The secret key to use to access the data source.
 - **sigv4_access_key** (String, Sensitive) (Elasticsearch and Prometheus) SigV4 access key. Required when using 'keys' auth provider.
 - **sigv4_secret_key** (String, Sensitive) (Elasticsearch and Prometheus) SigV4 secret key. Required when using 'keys' auth provider.
 - **tls_ca_cert** (String, Sensitive) (All) CA cert for out going requests.

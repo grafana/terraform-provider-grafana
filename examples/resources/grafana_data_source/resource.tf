@@ -22,6 +22,19 @@ resource "grafana_data_source" "cloudwatch" {
   }
 }
 
+resource "grafana_data_source" "prometheus" {
+  type          = "prometheus"
+  name          = "amp"
+  url           = "https://aps-workspaces.eu-west-1.amazonaws.com/workspaces/ws-1234567890/"
+
+  json_data {
+    http_method     = "POST"
+    sigv4_auth      = true
+    sigv4_auth_type = "default"
+    sigv4_region    = "eu-west-1"
+   }
+}
+
 resource "grafana_data_source" "stackdriver" {
   type = "stackdriver"
   name = "sd-example"

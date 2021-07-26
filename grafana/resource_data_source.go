@@ -190,7 +190,7 @@ source selected (via the 'type' argument).
 						"sigv4_auth_type": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(Elasticsearch and Prometheus) The Sigv4 authentication provider to use: 'default', 'credentials' or 'keys'.",
+							Description: "(Elasticsearch and Prometheus) The Sigv4 authentication provider to use: 'default', 'credentials' or 'keys' (AMG: 'workspace-iam-role').",
 						},
 						"sigv4_external_id": {
 							Type:        schema.TypeString,
