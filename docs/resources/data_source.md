@@ -44,16 +44,16 @@ resource "grafana_data_source" "cloudwatch" {
 }
 
 resource "grafana_data_source" "prometheus" {
-  type          = "prometheus"
-  name          = "amp"
-  url           = "https://aps-workspaces.eu-west-1.amazonaws.com/workspaces/ws-1234567890/"
+  type = "prometheus"
+  name = "amp"
+  url  = "https://aps-workspaces.eu-west-1.amazonaws.com/workspaces/ws-1234567890/"
 
   json_data {
     http_method     = "POST"
     sigv4_auth      = true
     sigv4_auth_type = "default"
     sigv4_region    = "eu-west-1"
-   }
+  }
 }
 
 resource "grafana_data_source" "stackdriver" {
@@ -155,5 +155,4 @@ Optional:
 - **tls_ca_cert** (String, Sensitive) (All) CA cert for out going requests.
 - **tls_client_cert** (String, Sensitive) (All) TLS Client cert for outgoing requests.
 - **tls_client_key** (String, Sensitive) (All) TLS Client key for outgoing requests.
-
 
