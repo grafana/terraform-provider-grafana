@@ -1,5 +1,26 @@
 # Changelog
 
+## [v1.13.3](https://github.com/grafana/terraform-provider-grafana/tree/v1.13.3) (2021-07-26)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.13.2...v1.13.3)
+
+**Implemented enhancements:**
+
+- sigV4Auth support for prometheus data source [\#193](https://github.com/grafana/terraform-provider-grafana/issues/193)
+
+**Fixed bugs:**
+
+- rpc error: code = Unavailable desc = transport is closing / rpc error: code = Canceled desc = context canceled [\#249](https://github.com/grafana/terraform-provider-grafana/issues/249)
+- Plan crashes  [\#245](https://github.com/grafana/terraform-provider-grafana/issues/245)
+
+**Closed issues:**
+
+- Error creating teams with token [\#146](https://github.com/grafana/terraform-provider-grafana/issues/146)
+
+**Merged pull requests:**
+
+- adds Sigv4 support  [\#247](https://github.com/grafana/terraform-provider-grafana/pull/247) ([mhausenblas](https://github.com/mhausenblas))
+
 ## [v1.13.2](https://github.com/grafana/terraform-provider-grafana/tree/v1.13.2) (2021-07-20)
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.13.1...v1.13.2)
@@ -15,6 +36,7 @@
 
 **Merged pull requests:**
 
+- Make sm\_url configurable [\#242](https://github.com/grafana/terraform-provider-grafana/pull/242) ([captncraig](https://github.com/captncraig))
 - Sign Drone's configuration YAML file [\#239](https://github.com/grafana/terraform-provider-grafana/pull/239) ([julienduchesne](https://github.com/julienduchesne))
 
 ## [v1.13.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.13.0) (2021-07-01)
@@ -34,7 +56,6 @@
 
 **Merged pull requests:**
 
-- Make sm\_url configurable [\#242](https://github.com/grafana/terraform-provider-grafana/pull/242) ([captncraig](https://github.com/captncraig))
 - Synthetic Monitoring Resource Fixes [\#237](https://github.com/grafana/terraform-provider-grafana/pull/237) ([trotttrotttrott](https://github.com/trotttrotttrott))
 - hashicorp/terraform-plugin-sdk/v2 v2.7.0 [\#233](https://github.com/grafana/terraform-provider-grafana/pull/233) ([trotttrotttrott](https://github.com/trotttrotttrott))
 - Generate docs for grafana\_team\_external\_group [\#230](https://github.com/grafana/terraform-provider-grafana/pull/230) ([trotttrotttrott](https://github.com/trotttrotttrott))
@@ -149,6 +170,7 @@
 - Refactor CI: Use Drone and Go 1.16 [\#168](https://github.com/grafana/terraform-provider-grafana/pull/168) ([trotttrotttrott](https://github.com/trotttrotttrott))
 - Bump github.com/hashicorp/go-cleanhttp from 0.5.1 to 0.5.2 [\#167](https://github.com/grafana/terraform-provider-grafana/pull/167) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Allow dependabot to check go modules [\#165](https://github.com/grafana/terraform-provider-grafana/pull/165) ([jlosito](https://github.com/jlosito))
+- Adding profile field to JSON Data [\#164](https://github.com/grafana/terraform-provider-grafana/pull/164) ([grlvrl](https://github.com/grlvrl))
 - is\_admin added to grafana\_user. [\#157](https://github.com/grafana/terraform-provider-grafana/pull/157) ([AlirezaKm](https://github.com/AlirezaKm))
 - Add full Stackdriver data source support [\#155](https://github.com/grafana/terraform-provider-grafana/pull/155) ([ryanaross](https://github.com/ryanaross))
 - r/grafana\_alert\_notification Add disable\_resolve\_message [\#145](https://github.com/grafana/terraform-provider-grafana/pull/145) ([Puneeth-n](https://github.com/Puneeth-n))
@@ -166,10 +188,6 @@
 
 - uid is always updated in previously created dashboards [\#152](https://github.com/grafana/terraform-provider-grafana/issues/152)
 - Repeated updates to uid in 1.8.0 [\#151](https://github.com/grafana/terraform-provider-grafana/issues/151)
-
-**Merged pull requests:**
-
-- Adding profile field to JSON Data [\#164](https://github.com/grafana/terraform-provider-grafana/pull/164) ([grlvrl](https://github.com/grlvrl))
 
 ## [v1.8.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.8.0) (2020-12-22)
 
