@@ -200,7 +200,10 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	remoteDashJSON := unmarshalDashboardConfigJSON(string(configJSONBytes))
+	remoteDashJSON, err := unmarshalDashboardConfigJSON(string(configJSONBytes))
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// If `uid` is not set in configuration, we need to delete it from the
 	// dashboard JSON we just read from the Grafana API. This is so it does not
@@ -208,7 +211,10 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	// it was removed after dashboard creation. In any case, the user doesn't
 	// care to manage it.
 	if configJson := d.Get("config_json").(string); configJson != "" {
-		configuredDashJSON := unmarshalDashboardConfigJSON(configJson)
+		configuredDashJSON, err := unmarshalDashboardConfigJSON(configJson)
+		if err != nil {
+			return diag.FromErr(err)
+		}
 		if _, ok := configuredDashJSON["uid"].(string); !ok {
 			delete(remoteDashJSON, "uid")
 		}
@@ -251,7 +257,10 @@ func makeDashboard(d *schema.ResourceData) gapi.Dashboard {
 		Overwrite: d.Get("overwrite").(bool),
 	}
 	configJSON := d.Get("config_json").(string)
-	dashboardJSON := unmarshalDashboardConfigJSON(configJSON)
+	dashboardJSON, err := unmarshalDashboardConfigJSON(configJSON)
+	if err != nil {
+		return dashboard
+	}
 	delete(dashboardJSON, "id")
 	delete(dashboardJSON, "version")
 	dashboard.Model = dashboardJSON
@@ -260,14 +269,13 @@ func makeDashboard(d *schema.ResourceData) gapi.Dashboard {
 
 // unmarshalDashboardConfigJSON is a convenience func for unmarshalling
 // `config_json` field.
-func unmarshalDashboardConfigJSON(configJSON string) map[string]interface{} {
+func unmarshalDashboardConfigJSON(configJSON string) (map[string]interface{}, error) {
 	dashboardJSON := map[string]interface{}{}
 	err := json.Unmarshal([]byte(configJSON), &dashboardJSON)
 	if err != nil {
-		// The validate function should've taken care of this.
-		panic("Attempted to unmarshal invalid JSON. This unexpectedly got past schema validation.")
+		return nil, err
 	}
-	return dashboardJSON
+	return dashboardJSON, nil
 }
 
 // validateDashboardConfigJSON is the ValidateFunc for `config_json`. It
@@ -296,7 +304,11 @@ func normalizeDashboardConfigJSON(config interface{}) string {
 	case map[string]interface{}:
 		dashboardJSON = config.(map[string]interface{})
 	case string:
-		dashboardJSON = unmarshalDashboardConfigJSON(config.(string))
+		var err error
+		dashboardJSON, err = unmarshalDashboardConfigJSON(config.(string))
+		if err != nil {
+			return config.(string)
+		}
 	}
 	delete(dashboardJSON, "id")
 	delete(dashboardJSON, "version")
