@@ -79,7 +79,7 @@ Grafana Synthetic Monitoring Agent.
 				},
 			},
 			"public": {
-				Description: "Public probes are run by Grafana Labs and can be used by all users. You must be an admin to set this to `true`.",
+				Description: "Public probes are run by Grafana Labs and can be used by all users. Only Grafana Labs managed public probes will be set to `true`.",
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,

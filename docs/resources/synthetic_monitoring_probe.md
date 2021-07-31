@@ -46,7 +46,7 @@ resource "grafana_synthetic_monitoring_probe" "main" {
 ### Optional
 
 - **labels** (Map of String) Custom labels to be included with collected metrics and logs.
-- **public** (Boolean) Public probes are run by Grafana Labs and can be used by all users. Only Grafana Labs managed public probes will be set to `true`, should be set to `false`, and is `false` by default.
+- **public** (Boolean) Public probes are run by Grafana Labs and can be used by all users. Only Grafana Labs managed public probes will be set to `true`. Defaults to `false`.
 
 ### Read-Only
 
