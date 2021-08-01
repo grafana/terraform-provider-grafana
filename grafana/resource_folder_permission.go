@@ -142,9 +142,9 @@ func ReadFolderPermissions(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func DeleteFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	//since permissions are tied to folders, we can't really delete the permissions.
-	//we will simply remove all permissions, leaving a folder that only an admin can access.
-	//if for some reason the parent folder doesn't exist, we'll just ignore the error
+	// since permissions are tied to folders, we can't really delete the permissions.
+	// we will simply remove all permissions, leaving a folder that only an admin can access.
+	// if for some reason the parent folder doesn't exist, we'll just ignore the error
 	client := meta.(*client).gapi
 
 	folderUID := d.Get("folder_uid").(string)

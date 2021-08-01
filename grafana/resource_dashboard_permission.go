@@ -143,9 +143,9 @@ func ReadDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta 
 }
 
 func DeleteDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	//since permissions are tied to dashboards, we can't really delete the permissions.
-	//we will simply remove all permissions, leaving a dashboard that only an admin can access.
-	//if for some reason the parent dashboard doesn't exist, we'll just ignore the error
+	// since permissions are tied to dashboards, we can't really delete the permissions.
+	// we will simply remove all permissions, leaving a dashboard that only an admin can access.
+	// if for some reason the parent dashboard doesn't exist, we'll just ignore the error
 	client := meta.(*client).gapi
 
 	dashboardId := int64(d.Get("dashboard_id").(int))

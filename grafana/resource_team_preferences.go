@@ -94,9 +94,9 @@ func ReadTeamPreferences(ctx context.Context, d *schema.ResourceData, meta inter
 }
 
 func DeleteTeamPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	//there is no delete call for team preferences. instead we will just remove
-	//the specified preferences and go back to the default values. note: if the
-	//call fails because the team no longer exists - we'll just ignore the error
+	// there is no delete call for team preferences. instead we will just remove
+	// the specified preferences and go back to the default values. note: if the
+	// call fails because the team no longer exists - we'll just ignore the error
 
 	client := meta.(*client).gapi
 

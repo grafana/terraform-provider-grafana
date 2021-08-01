@@ -300,14 +300,14 @@ func validateDashboardConfigJSON(config interface{}, k string) ([]string, []erro
 // * `version`: is incremented by Grafana each time a dashboard changes.
 func normalizeDashboardConfigJSON(config interface{}) string {
 	var dashboardJSON map[string]interface{}
-	switch config.(type) {
+	switch c := config.(type) {
 	case map[string]interface{}:
-		dashboardJSON = config.(map[string]interface{})
+		dashboardJSON = c
 	case string:
 		var err error
-		dashboardJSON, err = unmarshalDashboardConfigJSON(config.(string))
+		dashboardJSON, err = unmarshalDashboardConfigJSON(c)
 		if err != nil {
-			return config.(string)
+			return c
 		}
 	}
 	delete(dashboardJSON, "id")

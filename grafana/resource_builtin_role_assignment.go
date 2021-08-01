@@ -77,10 +77,10 @@ func updateAssignments(d *schema.ResourceData, meta interface{}) diag.Diagnostic
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	//compile the list of differences between current state and config
+	// compile the list of differences between current state and config
 	changes := roleChanges(stateRoles, configRoles)
 	brName := d.Get("builtin_role").(string)
-	//now we can make the corresponding updates so current state matches config
+	// now we can make the corresponding updates so current state matches config
 	if err := createOrRemove(meta, brName, changes); err != nil {
 		return diag.FromErr(err)
 	}

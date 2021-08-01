@@ -179,15 +179,15 @@ func UpdateMembers(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	//compile the list of differences between current state and config
+	// compile the list of differences between current state and config
 	changes := memberChanges(stateMembers, configMembers)
-	//retrieves the corresponding user IDs based on the email provided
+	// retrieves the corresponding user IDs based on the email provided
 	changes, err = addMemberIdsToChanges(meta, changes)
 	if err != nil {
 		return err
 	}
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	//now we can make the corresponding updates so current state matches config
+	// now we can make the corresponding updates so current state matches config
 	return applyMemberChanges(meta, teamID, changes)
 }
 

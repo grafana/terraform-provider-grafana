@@ -80,7 +80,7 @@ func testAccDashboardPermissionsCheckEmpty(dashboardID *int64) resource.TestChec
 
 func testAccDashboardPermissionCheckDestroy() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		//you can't really destroy dashboard permissions so nothing to check for
+		// you can't really destroy dashboard permissions so nothing to check for
 		return nil
 	}
 }

@@ -75,7 +75,7 @@ func testAccFolderPermissionsCheckEmpty(folderUID *string) resource.TestCheckFun
 
 func testAccFolderPermissionCheckDestroy() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		//you can't really destroy folder permissions so nothing to check for
+		// you can't really destroy folder permissions so nothing to check for
 		return nil
 	}
 }

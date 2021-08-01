@@ -149,11 +149,12 @@ func ReadAlertNotification(ctx context.Context, d *schema.ResourceData, meta int
 	settings := map[string]interface{}{}
 	for k, v := range alertNotification.Settings.(map[string]interface{}) {
 		boolVal, ok := v.(bool)
-		if ok && boolVal {
+		switch {
+		case ok && boolVal:
 			settings[k] = "true"
-		} else if ok && !boolVal {
+		case ok && !boolVal:
 			settings[k] = "false"
-		} else {
+		default:
 			settings[k] = v
 		}
 	}
@@ -161,11 +162,12 @@ func ReadAlertNotification(ctx context.Context, d *schema.ResourceData, meta int
 
 	for k, v := range alertNotification.SecureFields.(map[string]interface{}) {
 		boolVal, ok := v.(bool)
-		if ok && boolVal {
+		switch {
+		case ok && boolVal:
 			secureSettings[k] = "true"
-		} else if ok && !boolVal {
+		case ok && !boolVal:
 			secureSettings[k] = "false"
-		} else {
+		default:
 			secureSettings[k] = v
 		}
 	}
@@ -210,22 +212,24 @@ func makeAlertNotification(_ context.Context, d *schema.ResourceData) (*gapi.Ale
 	settings := map[string]interface{}{}
 	for k, v := range d.Get("settings").(map[string]interface{}) {
 		strVal, ok := v.(string)
-		if ok && strVal == "true" {
+		switch {
+		case ok && strVal == "true":
 			settings[k] = true
-		} else if ok && strVal == "false" {
+		case ok && strVal == "false":
 			settings[k] = false
-		} else {
+		default:
 			settings[k] = v
 		}
 	}
 	secureSettings := map[string]interface{}{}
 	for k, v := range d.Get("secure_settings").(map[string]interface{}) {
 		strVal, ok := v.(string)
-		if ok && strVal == "true" {
+		switch {
+		case ok && strVal == "true":
 			secureSettings[k] = true
-		} else if ok && strVal == "false" {
+		case ok && strVal == "false":
 			secureSettings[k] = false
-		} else {
+		default:
 			secureSettings[k] = v
 		}
 	}
