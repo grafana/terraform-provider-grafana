@@ -187,8 +187,8 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		c.gapi = gclient
 
 		smToken := d.Get("sm_access_token").(string)
-		smUrl := d.Get("sm_url").(string)
-		c.smapi = smapi.NewClient(smUrl, smToken, nil)
+		smURL := d.Get("sm_url").(string)
+		c.smapi = smapi.NewClient(smURL, smToken, nil)
 
 		return c, diags
 	}

@@ -183,7 +183,7 @@ func roleChanges(rolesInState, rolesInConfig map[string]bool) []RoleChange {
 
 func collectRoles(d *schema.ResourceData) (map[string]bool, map[string]bool, error) {
 	errFn := func(uid string) error {
-		return fmt.Errorf("Error: Role '%s' cannot be specified multiple times.", uid)
+		return fmt.Errorf("error: Role '%s' cannot be specified multiple times", uid)
 	}
 
 	rolesFn := func(roles interface{}) (map[string]bool, error) {
@@ -224,7 +224,7 @@ func createOrRemove(meta interface{}, name string, changes []RoleChange) error {
 			err = client.DeleteBuiltInRoleAssignment(br)
 		}
 		if err != nil {
-			return fmt.Errorf("Error with %s %v", name, err)
+			return fmt.Errorf("error with %s %v", name, err)
 		}
 	}
 	return nil
