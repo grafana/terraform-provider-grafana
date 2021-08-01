@@ -12,7 +12,7 @@ import (
 
 var (
 
-	// Set variables for schemas used in muliple fields and/or used to transform
+	// Set variables for schemas used in multiple fields and/or used to transform
 	// API client types back to schemas.
 
 	// All check types set IP version.
