@@ -8,7 +8,6 @@ import (
 )
 
 func dataSourceSyntheticMonitoringProbes() *schema.Resource {
-
 	return &schema.Resource{
 		Description: "Data source for retrieving all probes.",
 		ReadContext: dataSourceSyntheticMonitoringProbesRead,
@@ -26,7 +25,6 @@ func dataSourceSyntheticMonitoringProbes() *schema.Resource {
 }
 
 func dataSourceSyntheticMonitoringProbesRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-
 	c := meta.(*client).smapi
 	var diags diag.Diagnostics
 	prbs, err := c.ListProbes(ctx)

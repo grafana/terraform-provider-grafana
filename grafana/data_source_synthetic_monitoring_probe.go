@@ -11,7 +11,6 @@ import (
 )
 
 func dataSourceSyntheticMonitoringProbe() *schema.Resource {
-
 	probeSchema := datasourceSchemaFromResourceSchema(syntheticMonitoringProbe.Schema)
 	addRequiredFieldsToSchema(probeSchema, "name")
 	delete(probeSchema, "auth_token")

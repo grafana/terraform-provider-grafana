@@ -397,7 +397,6 @@ var (
 )
 
 func resourceSyntheticMonitoringCheck() *schema.Resource {
-
 	return &schema.Resource{
 
 		Description: `
@@ -733,7 +732,6 @@ func resourceSyntheticMonitoringCheckDelete(ctx context.Context, d *schema.Resou
 // makeCheck populates an instance of sm.Check. We need this for create and
 // update calls with the SM API client.
 func makeCheck(d *schema.ResourceData) *sm.Check {
-
 	var id int64
 	if d.Id() != "" {
 		id, _ = strconv.ParseInt(d.Id(), 10, 64)
@@ -772,7 +770,6 @@ func makeCheck(d *schema.ResourceData) *sm.Check {
 // by makeCheck. It's isolated from makeCheck to hopefully make it all more
 // human readable.
 func makeCheckSettings(settings map[string]interface{}) sm.CheckSettings {
-
 	cs := sm.CheckSettings{}
 
 	tlsConfig := func(t *schema.Set) *sm.TLSConfig {

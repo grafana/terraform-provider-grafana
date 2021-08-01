@@ -134,7 +134,6 @@ type client struct {
 
 func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
-
 		var diags diag.Diagnostics
 		p.UserAgent("terraform-provider-grafana", version)
 

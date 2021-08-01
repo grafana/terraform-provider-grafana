@@ -183,7 +183,6 @@ func roleChanges(rolesInState, rolesInConfig map[string]bool) []RoleChange {
 }
 
 func collectRoles(d *schema.ResourceData) (map[string]bool, map[string]bool, error) {
-
 	errFn := func(uid string) error {
 		return errors.New(fmt.Sprintf("Error: Role '%s' cannot be specified multiple times.", uid))
 	}
