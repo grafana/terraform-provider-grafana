@@ -100,8 +100,7 @@ func testAccTeamCheckExists(rn string, a *gapi.Team) resource.TestCheckFunc {
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource id not set")
 		}
-		tmp, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
-		id := int64(tmp)
+		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
 		if err != nil {
 			return fmt.Errorf("resource id is malformed")
 		}
