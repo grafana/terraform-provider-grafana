@@ -89,6 +89,7 @@ func TestAccTeam_Members(t *testing.T) {
 	})
 }
 
+//nolint:unparam // `rn` always receives `"grafana_team.test"`
 func testAccTeamCheckExists(rn string, a *gapi.Team) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]

@@ -199,7 +199,7 @@ func DeleteAlertNotification(ctx context.Context, d *schema.ResourceData, meta i
 	return diag.Diagnostics{}
 }
 
-func makeAlertNotification(ctx context.Context, d *schema.ResourceData) (*gapi.AlertNotification, error) {
+func makeAlertNotification(_ context.Context, d *schema.ResourceData) (*gapi.AlertNotification, error) {
 	idStr := d.Id()
 	var id int64
 	var err error
