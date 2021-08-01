@@ -3,7 +3,6 @@ package grafana
 import (
 	"context"
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -248,7 +247,7 @@ func collectUsers(d *schema.ResourceData) (map[string]OrgUser, map[string]OrgUse
 			email := u.(string)
 			// Sanity check that a user isn't specified twice within an organization
 			if _, ok := stateUsers[email]; ok {
-				return nil, nil, errors.New(fmt.Sprintf("Error: User '%s' cannot be specified multiple times.", email))
+				return nil, nil, fmt.Errorf("Error: User '%s' cannot be specified multiple times.", email)
 			}
 			stateUsers[email] = OrgUser{0, email, roleName}
 		}
@@ -256,7 +255,7 @@ func collectUsers(d *schema.ResourceData) (map[string]OrgUser, map[string]OrgUse
 			email := u.(string)
 			// Sanity check that a user isn't specified twice within an organization
 			if _, ok := configUsers[email]; ok {
-				return nil, nil, errors.New(fmt.Sprintf("Error: User '%s' cannot be specified multiple times.", email))
+				return nil, nil, fmt.Errorf("Error: User '%s' cannot be specified multiple times.", email)
 			}
 			configUsers[email] = OrgUser{0, email, roleName}
 		}
@@ -304,7 +303,7 @@ func addIdsToChanges(d *schema.ResourceData, meta interface{}, changes []UserCha
 	for _, change := range changes {
 		id, ok := gUserMap[change.User.Email]
 		if !ok && !create {
-			return nil, errors.New(fmt.Sprintf("Error adding user %s. User does not exist in Grafana.", change.User.Email))
+			return nil, fmt.Errorf("Error adding user %s. User does not exist in Grafana.", change.User.Email)
 		}
 		if !ok && create {
 			id, err = createUser(meta, change.User.Email)

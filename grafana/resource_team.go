@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -200,7 +199,7 @@ func collectMembers(d *schema.ResourceData) (map[string]TeamMember, map[string]T
 		login := u.(string)
 		// Sanity check that a member isn't specified twice within a team
 		if _, ok := stateMembers[login]; ok {
-			return nil, nil, errors.New(fmt.Sprintf("Error: Team Member '%s' cannot be specified multiple times.", login))
+			return nil, nil, fmt.Errorf("Error: Team Member '%s' cannot be specified multiple times.", login)
 		}
 		stateMembers[login] = TeamMember{0, login}
 	}
@@ -208,7 +207,7 @@ func collectMembers(d *schema.ResourceData) (map[string]TeamMember, map[string]T
 		login := u.(string)
 		// Sanity check that a member isn't specified twice within a team
 		if _, ok := configMembers[login]; ok {
-			return nil, nil, errors.New(fmt.Sprintf("Error: Team Member '%s' cannot be specified multiple times.", login))
+			return nil, nil, fmt.Errorf("Error: Team Member '%s' cannot be specified multiple times.", login)
 		}
 		configMembers[login] = TeamMember{0, login}
 	}
@@ -251,7 +250,7 @@ func addMemberIdsToChanges(meta interface{}, changes []MemberChange) ([]MemberCh
 	for _, change := range changes {
 		id, ok := gUserMap[change.Member.Email]
 		if !ok {
-			return nil, errors.New(fmt.Sprintf("Error adding user %s. User does not exist in Grafana.", change.Member.Email))
+			return nil, fmt.Errorf("Error adding user %s. User does not exist in Grafana.", change.Member.Email)
 		}
 
 		change.Member.ID = id

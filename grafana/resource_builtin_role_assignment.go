@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 
@@ -184,7 +183,7 @@ func roleChanges(rolesInState, rolesInConfig map[string]bool) []RoleChange {
 
 func collectRoles(d *schema.ResourceData) (map[string]bool, map[string]bool, error) {
 	errFn := func(uid string) error {
-		return errors.New(fmt.Sprintf("Error: Role '%s' cannot be specified multiple times.", uid))
+		return fmt.Errorf("Error: Role '%s' cannot be specified multiple times.", uid)
 	}
 
 	rolesFn := func(roles interface{}) (map[string]bool, error) {
@@ -225,7 +224,7 @@ func createOrRemove(meta interface{}, name string, changes []RoleChange) error {
 			err = client.DeleteBuiltInRoleAssignment(br)
 		}
 		if err != nil {
-			return errors.New(fmt.Sprintf("Error with %s %v", name, err))
+			return fmt.Errorf("Error with %s %v", name, err)
 		}
 	}
 	return nil
