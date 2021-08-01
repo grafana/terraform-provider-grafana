@@ -110,6 +110,26 @@ func TestAccDashboard_uid_unset(t *testing.T) {
 	})
 }
 
+func TestAccDashboard_computed_config(t *testing.T) {
+	var dashboard gapi.Dashboard
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
+		Steps: []resource.TestStep{
+			{
+				// Test resource creation.
+				Config: testAccExample(t, "resources/grafana_dashboard/_acc_computed.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
+					testAccDashboardCheckExists("grafana_dashboard.test-computed", &dashboard),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDashboard_folder(t *testing.T) {
 	var dashboard gapi.Dashboard
 	var folder gapi.Folder
@@ -186,5 +206,53 @@ func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.
 			return fmt.Errorf("folder still exists")
 		}
 		return nil
+	}
+}
+
+func Test_normalizeDashboardConfigJSON(t *testing.T) {
+	type args struct {
+		config interface{}
+	}
+
+	d := "New Dashboard"
+	expected := fmt.Sprintf("{\"title\":\"%s\"}", d)
+
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "String dashboard is valid",
+			args: args{config: fmt.Sprintf("{\"title\":\"%s\"}", d)},
+			want: expected,
+		},
+		{
+			name: "Map dashboard is valid",
+			args: args{config: map[string]interface{}{"title": d}},
+			want: expected,
+		},
+		{
+			name: "Version is removed",
+			args: args{config: map[string]interface{}{"title": d, "version": 10}},
+			want: expected,
+		},
+		{
+			name: "Id is removed",
+			args: args{config: map[string]interface{}{"title": d, "id": 10}},
+			want: expected,
+		},
+		{
+			name: "Bad json is ignored",
+			args: args{config: "74D93920-ED26–11E3-AC10–0800200C9A66"},
+			want: "74D93920-ED26–11E3-AC10–0800200C9A66",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := normalizeDashboardConfigJSON(tt.args.config); got != tt.want {
+				t.Errorf("normalizeDashboardConfigJSON() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
