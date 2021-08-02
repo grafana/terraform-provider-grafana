@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -77,22 +75,7 @@ func testAccFolderPermissionsCheckEmpty(folderUID *string) resource.TestCheckFun
 
 func testAccFolderPermissionCheckDestroy() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		//you can't really destroy folder permissions so nothing to check for
-		return nil
-	}
-}
-
-func testAccFolderPermissionsRemoval(permissions *gapi.FolderPermission) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		//since the permissions aren't deleted, let's just check if we have empty permissions
-		client := testAccProvider.Meta().(*client).gapi
-		newPermissions, err := client.FolderPermissions(permissions.FolderUID)
-		if err != nil {
-			return fmt.Errorf(err.Error())
-		}
-		if len(newPermissions) > 0 {
-			return fmt.Errorf("Permissions still exist for folder")
-		}
+		// you can't really destroy folder permissions so nothing to check for
 		return nil
 	}
 }

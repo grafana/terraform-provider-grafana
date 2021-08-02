@@ -9,9 +9,11 @@ platform:
 
 steps:
 - name: tests
-  image: golang:1.16
+  image: grafana/build-container:1.4.1
   commands:
   - sleep 5
+  - golangci-lint --version
+  - golangci-lint run ./...
   - make testacc
   environment:
     GRAFANA_AUTH: admin:admin
@@ -39,9 +41,11 @@ platform:
 
 steps:
 - name: tests
-  image: golang:1.16
+  image: grafana/build-container:1.4.1
   commands:
   - sleep 5
+  - golangci-lint --version
+  - golangci-lint run ./...
   - make testacc
   environment:
     GRAFANA_AUTH: admin:admin
@@ -62,6 +66,6 @@ trigger:
 
 ---
 kind: signature
-hmac: c1a676f627f31e0a41b4f2625f9c55b37ec44fc6d4f31558909bde6f00a8bd5c
+hmac: e720237ec519da396e1c93fba1b538353b1df9d3965095a3230ff640ae5b4bdd
 
 ...

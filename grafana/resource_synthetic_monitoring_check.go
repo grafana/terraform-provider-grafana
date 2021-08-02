@@ -12,11 +12,11 @@ import (
 
 var (
 
-	// Set variables for schemas used in muliple fields and/or used to transform
+	// Set variables for schemas used in multiple fields and/or used to transform
 	// API client types back to schemas.
 
 	// All check types set IP version.
-	syntheticMonitoringCheckIpVersion = &schema.Schema{
+	syntheticMonitoringCheckIPVersion = &schema.Schema{
 		Description: "Options are `V4`, `V6`, `Any`. Specifies whether the corresponding check will be performed using IPv4 or IPv6. " +
 			"The `Any` value indicates that IPv6 should be used, falling back to IPv4 if that's not available.",
 		Type:     schema.TypeString,
@@ -25,7 +25,7 @@ var (
 	}
 
 	// HTTP and TCP checks can set TLS config.
-	syntheticMonitoringCheckTlsConfig = &schema.Schema{
+	syntheticMonitoringCheckTLSConfig = &schema.Schema{
 		Description: "TLS config.",
 		Type:        schema.TypeSet,
 		Optional:    true,
@@ -70,14 +70,14 @@ var (
 				Type:        schema.TypeSet,
 				Optional:    true,
 				MaxItems:    1,
-				Elem:        syntheticMonitoringCheckSettingsDns,
+				Elem:        syntheticMonitoringCheckSettingsDNS,
 			},
 			"http": {
 				Description: "Settings for HTTP check. The target must be a URL (http or https).",
 				Type:        schema.TypeSet,
 				Optional:    true,
 				MaxItems:    1,
-				Elem:        syntheticMonitoringCheckSettingsHttp,
+				Elem:        syntheticMonitoringCheckSettingsHTTP,
 			},
 			"ping": {
 				Description: "Settings for ping (ICMP) check. The target must be a valid hostname or IP address.",
@@ -91,14 +91,14 @@ var (
 				Type:        schema.TypeSet,
 				Optional:    true,
 				MaxItems:    1,
-				Elem:        syntheticMonitoringCheckSettingsTcp,
+				Elem:        syntheticMonitoringCheckSettingsTCP,
 			},
 		},
 	}
 
-	syntheticMonitoringCheckSettingsDns = &schema.Resource{
+	syntheticMonitoringCheckSettingsDNS = &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"ip_version": syntheticMonitoringCheckIpVersion,
+			"ip_version": syntheticMonitoringCheckIPVersion,
 			"source_ip_address": {
 				Description: "Source IP address.",
 				Type:        schema.TypeString,
@@ -142,25 +142,25 @@ var (
 				Type:        schema.TypeSet,
 				Optional:    true,
 				MaxItems:    1,
-				Elem:        syntheticMonitoringCheckSettingsDnsValidate,
+				Elem:        syntheticMonitoringCheckSettingsDNSValidate,
 			},
 			"validate_authority_rrs": {
 				Description: "Validate response authority.",
 				Type:        schema.TypeSet,
 				Optional:    true,
 				MaxItems:    1,
-				Elem:        syntheticMonitoringCheckSettingsDnsValidate,
+				Elem:        syntheticMonitoringCheckSettingsDNSValidate,
 			},
 			"validate_additional_rrs": {
 				Description: "Validate additional matches.",
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Elem:        syntheticMonitoringCheckSettingsDnsValidate,
+				Elem:        syntheticMonitoringCheckSettingsDNSValidate,
 			},
 		},
 	}
 
-	syntheticMonitoringCheckSettingsDnsValidate = &schema.Resource{
+	syntheticMonitoringCheckSettingsDNSValidate = &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"fail_if_matches_regexp": {
 				Description: "Fail if value matches regex.",
@@ -181,10 +181,10 @@ var (
 		},
 	}
 
-	syntheticMonitoringCheckSettingsHttp = &schema.Resource{
+	syntheticMonitoringCheckSettingsHTTP = &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"ip_version": syntheticMonitoringCheckIpVersion,
-			"tls_config": syntheticMonitoringCheckTlsConfig,
+			"ip_version": syntheticMonitoringCheckIPVersion,
+			"tls_config": syntheticMonitoringCheckTLSConfig,
 			"method": {
 				Description: "Request method. One of `GET`, `CONNECT`, `DELETE`, `HEAD`, `OPTIONS`, `POST`, `PUT`, `TRACE`",
 				Type:        schema.TypeString,
@@ -215,7 +215,7 @@ var (
 				Type:        schema.TypeSet,
 				Optional:    true,
 				MaxItems:    1,
-				Elem:        syntheticMonitoringCheckSettingsHttpBasicAuth,
+				Elem:        syntheticMonitoringCheckSettingsHTTPBasicAuth,
 			},
 			"bearer_token": {
 				Description: "Token for use with bearer authorization header.",
@@ -275,13 +275,13 @@ var (
 				Description: "Check fails if headers match.",
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Elem:        syntheticMonitoringCheckSettingsHttpHeaderMatch,
+				Elem:        syntheticMonitoringCheckSettingsHTTPHeaderMatch,
 			},
 			"fail_if_header_not_matches_regexp": {
 				Description: "Check fails if headers do not match.",
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Elem:        syntheticMonitoringCheckSettingsHttpHeaderMatch,
+				Elem:        syntheticMonitoringCheckSettingsHTTPHeaderMatch,
 			},
 			"cache_busting_query_param_name": {
 				Description: "The name of the query parameter used to prevent the server from using a cached response. Each probe will assign a random value to this parameter each time a request is made.",
@@ -291,7 +291,7 @@ var (
 		},
 	}
 
-	syntheticMonitoringCheckSettingsHttpBasicAuth = &schema.Resource{
+	syntheticMonitoringCheckSettingsHTTPBasicAuth = &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"username": {
 				Description: "Basic auth username.",
@@ -306,7 +306,7 @@ var (
 		},
 	}
 
-	syntheticMonitoringCheckSettingsHttpHeaderMatch = &schema.Resource{
+	syntheticMonitoringCheckSettingsHTTPHeaderMatch = &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"header": {
 				Description: "Header name.",
@@ -329,7 +329,7 @@ var (
 
 	syntheticMonitoringCheckSettingsPing = &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"ip_version": syntheticMonitoringCheckIpVersion,
+			"ip_version": syntheticMonitoringCheckIPVersion,
 			"source_ip_address": {
 				Description: "Source IP address.",
 				Type:        schema.TypeString,
@@ -350,10 +350,10 @@ var (
 		},
 	}
 
-	syntheticMonitoringCheckSettingsTcp = &schema.Resource{
+	syntheticMonitoringCheckSettingsTCP = &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"ip_version": syntheticMonitoringCheckIpVersion,
-			"tls_config": syntheticMonitoringCheckTlsConfig,
+			"ip_version": syntheticMonitoringCheckIPVersion,
+			"tls_config": syntheticMonitoringCheckTLSConfig,
 			"source_ip_address": {
 				Description: "Source IP address.",
 				Type:        schema.TypeString,
@@ -369,12 +369,12 @@ var (
 				Description: "The query sent in the TCP probe and the expected associated response.",
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Elem:        syntheticMonitoringCheckSettingsTcpQueryResponse,
+				Elem:        syntheticMonitoringCheckSettingsTCPQueryResponse,
 			},
 		},
 	}
 
-	syntheticMonitoringCheckSettingsTcpQueryResponse = &schema.Resource{
+	syntheticMonitoringCheckSettingsTCPQueryResponse = &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"send": {
 				Description: "Data to send.",
@@ -397,7 +397,6 @@ var (
 )
 
 func resourceSyntheticMonitoringCheck() *schema.Resource {
-
 	return &schema.Resource{
 
 		Description: `
@@ -560,7 +559,7 @@ func resourceSyntheticMonitoringCheckRead(ctx context.Context, d *schema.Resourc
 			return &schema.Set{}
 		}
 		return schema.NewSet(
-			schema.HashResource(syntheticMonitoringCheckTlsConfig.Elem.(*schema.Resource)),
+			schema.HashResource(syntheticMonitoringCheckTLSConfig.Elem.(*schema.Resource)),
 			[]interface{}{
 				map[string]interface{}{
 					"insecure_skip_verify": t.InsecureSkipVerify,
@@ -575,7 +574,7 @@ func resourceSyntheticMonitoringCheckRead(ctx context.Context, d *schema.Resourc
 	switch {
 	case chk.Settings.Dns != nil:
 		dns := schema.NewSet(
-			schema.HashResource(syntheticMonitoringCheckSettingsDns),
+			schema.HashResource(syntheticMonitoringCheckSettingsDNS),
 			[]interface{}{},
 		)
 		dnsValidator := func(v *sm.DNSRRValidator) *schema.Set {
@@ -583,7 +582,7 @@ func resourceSyntheticMonitoringCheckRead(ctx context.Context, d *schema.Resourc
 				return &schema.Set{}
 			}
 			return schema.NewSet(
-				schema.HashResource(syntheticMonitoringCheckSettingsDnsValidate),
+				schema.HashResource(syntheticMonitoringCheckSettingsDNSValidate),
 				[]interface{}{
 					map[string]interface{}{
 						"fail_if_matches_regexp":     stringSliceToSet(v.FailIfMatchesRegexp),
@@ -614,7 +613,7 @@ func resourceSyntheticMonitoringCheckRead(ctx context.Context, d *schema.Resourc
 		)
 		basicAuth := schema.Set{}
 		if chk.Settings.Http.BasicAuth != nil {
-			basicAuth = *schema.NewSet(schema.HashResource(syntheticMonitoringCheckSettingsHttpBasicAuth),
+			basicAuth = *schema.NewSet(schema.HashResource(syntheticMonitoringCheckSettingsHTTPBasicAuth),
 				[]interface{}{
 					map[string]interface{}{
 						"username": chk.Settings.Http.BasicAuth.Username,
@@ -625,7 +624,7 @@ func resourceSyntheticMonitoringCheckRead(ctx context.Context, d *schema.Resourc
 		}
 		headerMatch := func(hms []sm.HeaderMatch) *schema.Set {
 			hmSet := schema.NewSet(
-				schema.HashResource(syntheticMonitoringCheckSettingsTcpQueryResponse),
+				schema.HashResource(syntheticMonitoringCheckSettingsTCPQueryResponse),
 				[]interface{}{},
 			)
 			for _, hm := range hms {
@@ -677,11 +676,11 @@ func resourceSyntheticMonitoringCheckRead(ctx context.Context, d *schema.Resourc
 		})
 	case chk.Settings.Tcp != nil:
 		tcp := schema.NewSet(
-			schema.HashResource(syntheticMonitoringCheckSettingsTcp),
+			schema.HashResource(syntheticMonitoringCheckSettingsTCP),
 			[]interface{}{},
 		)
 		queryResponse := schema.NewSet(
-			schema.HashResource(syntheticMonitoringCheckSettingsTcpQueryResponse),
+			schema.HashResource(syntheticMonitoringCheckSettingsTCPQueryResponse),
 			[]interface{}{},
 		)
 		for _, qr := range chk.Settings.Tcp.QueryResponse {
@@ -733,7 +732,6 @@ func resourceSyntheticMonitoringCheckDelete(ctx context.Context, d *schema.Resou
 // makeCheck populates an instance of sm.Check. We need this for create and
 // update calls with the SM API client.
 func makeCheck(d *schema.ResourceData) *sm.Check {
-
 	var id int64
 	if d.Id() != "" {
 		id, _ = strconv.ParseInt(d.Id(), 10, 64)
@@ -772,7 +770,6 @@ func makeCheck(d *schema.ResourceData) *sm.Check {
 // by makeCheck. It's isolated from makeCheck to hopefully make it all more
 // human readable.
 func makeCheckSettings(settings map[string]interface{}) sm.CheckSettings {
-
 	cs := sm.CheckSettings{}
 
 	tlsConfig := func(t *schema.Set) *sm.TLSConfig {

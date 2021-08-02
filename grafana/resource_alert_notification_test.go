@@ -86,7 +86,7 @@ func TestAccAlertNotification_disableResolveMessage(t *testing.T) {
 	})
 }
 
-func TestAccAlertNotification_invalid_frequence(t *testing.T) {
+func TestAccAlertNotification_invalid_frequency(t *testing.T) {
 	var alertNotification gapi.AlertNotification
 
 	resource.Test(t, resource.TestCase{
@@ -102,7 +102,7 @@ func TestAccAlertNotification_invalid_frequence(t *testing.T) {
 	})
 }
 
-func TestAccAlertNotification_reminder_no_frequence(t *testing.T) {
+func TestAccAlertNotification_reminder_no_frequency(t *testing.T) {
 	var alertNotification gapi.AlertNotification
 
 	resource.Test(t, resource.TestCase{

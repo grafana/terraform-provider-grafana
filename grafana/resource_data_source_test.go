@@ -299,7 +299,6 @@ func TestAccDataSource_basic(t *testing.T) {
 
 	// Iterate over the provided configurations for datasources
 	for _, test := range resourceTests {
-
 		// Always check that the resource was created and that `id` is a number
 		checks := []resource.TestCheckFunc{
 			testAccDataSourceCheckExists(test.resource, &dataSource),

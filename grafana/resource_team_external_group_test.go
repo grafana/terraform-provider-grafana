@@ -75,7 +75,7 @@ func testAccTeamExternalGroupCheckExists(rn string, teamID *int64) resource.Test
 
 func testAccTeamExternalGroupCheckDestroy() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		//you can't really destroy dashboard permissions so nothing to check for
+		// you can't really destroy dashboard permissions so nothing to check for
 		return nil
 	}
 }

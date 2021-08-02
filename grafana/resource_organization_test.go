@@ -164,6 +164,7 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 	})
 }
 
+//nolint:unparam // `rn` always receives `"grafana_organization.test"`
 func testAccOrganizationCheckExists(rn string, a *gapi.Org) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
@@ -174,8 +175,7 @@ func testAccOrganizationCheckExists(rn string, a *gapi.Org) resource.TestCheckFu
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource id not set")
 		}
-		tmp, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
-		id := int64(tmp)
+		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
 		if err != nil {
 			return fmt.Errorf("resource id is malformed")
 		}

@@ -145,8 +145,8 @@ func DeleteUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 
 func ExistsUser(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(*client).gapi
-	userId, _ := strconv.ParseInt(d.Id(), 10, 64)
-	_, err := client.User(userId)
+	userID, _ := strconv.ParseInt(d.Id(), 10, 64)
+	_, err := client.User(userID)
 	if err != nil {
 		return false, err
 	}

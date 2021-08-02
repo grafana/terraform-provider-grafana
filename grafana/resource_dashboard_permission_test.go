@@ -5,8 +5,6 @@ import (
 	"strconv"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -82,22 +80,7 @@ func testAccDashboardPermissionsCheckEmpty(dashboardID *int64) resource.TestChec
 
 func testAccDashboardPermissionCheckDestroy() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		//you can't really destroy dashboard permissions so nothing to check for
-		return nil
-	}
-}
-
-func testAccDashboardPermissionsRemoval(permissions *gapi.DashboardPermission) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		//since the permissions aren't deleted, let's just check if we have empty permissions
-		client := testAccProvider.Meta().(*client).gapi
-		newPermissions, err := client.DashboardPermissions(permissions.DashboardID)
-		if err != nil {
-			return fmt.Errorf(err.Error())
-		}
-		if len(newPermissions) > 0 {
-			return fmt.Errorf("Permissions still exist for dashboard")
-		}
+		// you can't really destroy dashboard permissions so nothing to check for
 		return nil
 	}
 }

@@ -8,7 +8,6 @@ import (
 )
 
 func TestAccTeamPreferences_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
@@ -34,7 +33,7 @@ func TestAccTeamPreferences_basic(t *testing.T) {
 
 func testAccTeamPreferencesCheckDestroy() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		//you can't really destroy team preferences so nothing to check for
+		// you can't really destroy team preferences so nothing to check for
 		return nil
 	}
 }
