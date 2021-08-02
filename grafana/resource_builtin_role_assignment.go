@@ -224,7 +224,7 @@ func createOrRemove(meta interface{}, name string, changes []RoleChange) error {
 			err = client.DeleteBuiltInRoleAssignment(br)
 		}
 		if err != nil {
-			return fmt.Errorf("error with %s %v", name, err)
+			return fmt.Errorf("error with %s %w", name, err)
 		}
 	}
 	return nil
