@@ -31,7 +31,7 @@ data "grafana_synthetic_monitoring_probe" "atlanta" {
 - **labels** (Map of String) Custom labels to be included with collected metrics and logs.
 - **latitude** (Number) Latitude coordinates.
 - **longitude** (Number) Longitude coordinates.
-- **public** (Boolean) Public probes are run by Grafana Labs and can be used by all users. You must be an admin to set this to `true`.
+- **public** (Boolean) Public probes are run by Grafana Labs and can be used by all users. Only Grafana Labs managed public probes will be set to `true`.
 - **region** (String) Region of the probe.
 - **tenant_id** (Number) The tenant ID of the probe.
 
