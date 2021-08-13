@@ -1,5 +1,17 @@
 # Changelog
 
+## [v1.13.4](https://github.com/grafana/terraform-provider-grafana/tree/v1.13.4) (2021-08-13)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.13.3...v1.13.4)
+
+**Implemented enhancements:**
+
+- Use golangci-lint in Drone Pipelines [\#255](https://github.com/grafana/terraform-provider-grafana/pull/255) ([trotttrotttrott](https://github.com/trotttrotttrott))
+
+**Merged pull requests:**
+
+- Crash when config\_json will be known after apply \#246 [\#248](https://github.com/grafana/terraform-provider-grafana/pull/248) ([jnahelou](https://github.com/jnahelou))
+
 ## [v1.13.3](https://github.com/grafana/terraform-provider-grafana/tree/v1.13.3) (2021-07-26)
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.13.2...v1.13.3)
@@ -19,6 +31,7 @@
 
 **Merged pull requests:**
 
+- Reword docs about Synthetic Monitoring public config [\#254](https://github.com/grafana/terraform-provider-grafana/pull/254) ([electron0zero](https://github.com/electron0zero))
 - adds Sigv4 support  [\#247](https://github.com/grafana/terraform-provider-grafana/pull/247) ([mhausenblas](https://github.com/mhausenblas))
 
 ## [v1.13.2](https://github.com/grafana/terraform-provider-grafana/tree/v1.13.2) (2021-07-20)
@@ -145,7 +158,6 @@
 - Leverage SDK v2 context-aware schema functions and diagnostics [\#180](https://github.com/grafana/terraform-provider-grafana/pull/180) ([nikosmeds](https://github.com/nikosmeds))
 - Remove string interpolation in docs [\#177](https://github.com/grafana/terraform-provider-grafana/pull/177) ([julienduchesne](https://github.com/julienduchesne))
 - Upgrade to Terraform Plugin SDK v2 [\#176](https://github.com/grafana/terraform-provider-grafana/pull/176) ([trotttrotttrott](https://github.com/trotttrotttrott))
-- renames the `terraform-providers` module organization to `grafana` [\#173](https://github.com/grafana/terraform-provider-grafana/pull/173) ([mupdt](https://github.com/mupdt))
 
 ## [v1.9.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.9.0) (2021-03-02)
 
@@ -164,6 +176,7 @@
 
 **Merged pull requests:**
 
+- renames the `terraform-providers` module organization to `grafana` [\#173](https://github.com/grafana/terraform-provider-grafana/pull/173) ([mupdt](https://github.com/mupdt))
 - Allow dependabot to check github actions [\#171](https://github.com/grafana/terraform-provider-grafana/pull/171) ([jlosito](https://github.com/jlosito))
 - Fix typo in dashboard.html.md [\#170](https://github.com/grafana/terraform-provider-grafana/pull/170) ([asmgf](https://github.com/asmgf))
 - Drone Pipeline: build-master  [\#169](https://github.com/grafana/terraform-provider-grafana/pull/169) ([trotttrotttrott](https://github.com/trotttrotttrott))
