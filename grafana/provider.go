@@ -171,8 +171,9 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 
 		cli.Transport = logging.NewTransport("Grafana", transport)
 		cfg := gapi.Config{
-			Client: cli,
-			OrgID:  int64(d.Get("org_id").(int)),
+			Client:     cli,
+			NumRetries: 10,
+			OrgID:      int64(d.Get("org_id").(int)),
 		}
 		if len(auth) == 2 {
 			cfg.BasicAuth = url.UserPassword(auth[0], auth[1])
