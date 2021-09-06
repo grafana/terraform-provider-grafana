@@ -6,18 +6,18 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
-	gapi "github.com/nytm/go-grafana-api"
+	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccOrganization_basic(t *testing.T) {
 	var org gapi.Org
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccOrganizationCheckDestroy(&org),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_basic,
@@ -48,9 +48,9 @@ func TestAccOrganization_users(t *testing.T) {
 	var org gapi.Org
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccOrganizationCheckDestroy(&org),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_usersCreate,
@@ -61,9 +61,6 @@ func TestAccOrganization_users(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "admins.#", "1",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "admins.0", "john.doe@example.com",
 					),
 					resource.TestCheckNoResourceAttr(
 						"grafana_organization.test", "editors.#",
@@ -85,9 +82,6 @@ func TestAccOrganization_users(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "editors.#", "1",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "editors.0", "john.doe@example.com",
 					),
 					resource.TestCheckNoResourceAttr(
 						"grafana_organization.test", "viewers.#",
@@ -120,9 +114,9 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 	var org gapi.Org
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccOrganizationCheckDestroy(&org),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_defaultAdminNormal,
@@ -136,9 +130,6 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "admins.#", "1",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "admins.0", "john.doe@example.com",
 					),
 					resource.TestCheckNoResourceAttr(
 						"grafana_organization.test", "editors.#",
@@ -161,12 +152,6 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "admins.#", "2",
 					),
-					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "admins.0", "admin@localhost",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "admins.1", "john.doe@example.com",
-					),
 					resource.TestCheckNoResourceAttr(
 						"grafana_organization.test", "editors.#",
 					),
@@ -179,6 +164,7 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 	})
 }
 
+//nolint:unparam // `rn` always receives `"grafana_organization.test"`
 func testAccOrganizationCheckExists(rn string, a *gapi.Org) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
@@ -189,13 +175,12 @@ func testAccOrganizationCheckExists(rn string, a *gapi.Org) resource.TestCheckFu
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource id not set")
 		}
-		tmp, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
-		id := int64(tmp)
+		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
 		if err != nil {
 			return fmt.Errorf("resource id is malformed")
 		}
 
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		org, err := client.Org(id)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
@@ -209,8 +194,8 @@ func testAccOrganizationCheckExists(rn string, a *gapi.Org) resource.TestCheckFu
 
 func testAccOrganizationCheckDestroy(a *gapi.Org) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*gapi.Client)
-		org, err := client.Org(a.Id)
+		client := testAccProvider.Meta().(*client).gapi
+		org, err := client.Org(a.ID)
 		if err == nil && org.Name != "" {
 			return fmt.Errorf("organization still exists")
 		}

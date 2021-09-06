@@ -6,19 +6,19 @@ import (
 	"strconv"
 	"testing"
 
-	gapi "github.com/nytm/go-grafana-api"
+	gapi "github.com/grafana/grafana-api-golang-client"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccFolder_basic(t *testing.T) {
 	var folder gapi.Folder
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccFolderCheckDestroy(&folder),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccFolderCheckDestroy(&folder),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFolderConfig_basic,
@@ -31,6 +31,11 @@ func TestAccFolder_basic(t *testing.T) {
 						"grafana_folder.test_folder", "uid", regexp.MustCompile(`\w+`),
 					),
 				),
+			},
+			{
+				ResourceName:      "grafana_folder.test_folder",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -47,7 +52,7 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
 		if err != nil {
 			return err
@@ -67,19 +72,10 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 	}
 }
 
-func testAccFolderDisappear(folder *gapi.Folder) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		// At this point testAccFolderCheckExists should have been called and
-		// folder should have been populated
-		client := testAccProvider.Meta().(*gapi.Client)
-		return client.DeleteFolder((*folder).Uid)
-	}
-}
-
 func testAccFolderCheckDestroy(folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*gapi.Client)
-		_, err := client.Folder(folder.Id)
+		client := testAccProvider.Meta().(*client).gapi
+		_, err := client.Folder(folder.ID)
 		if err == nil {
 			return fmt.Errorf("folder still exists")
 		}

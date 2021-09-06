@@ -1,66 +1,47 @@
-TEST?=$$(go list ./... |grep -v 'vendor')
-GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
-WEBSITE_REPO=github.com/hashicorp/terraform-website
-PKG_NAME=grafana
-GRAFANA_VERSION ?= "latest"
+GRAFANA_VERSION ?= latest
 
-default: build
+testacc:
+	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
 
-build: fmtcheck
-	go install
+testacc-enterprise: TESTARGS+=-tags='enterprise'
+testacc-enterprise: testacc
 
-test: fmtcheck
-	go test -i $(TEST) || exit 1
-	echo $(TEST) | \
-		xargs -t -n4 go test $(TESTARGS) -timeout=30s -parallel=4
+testacc-cloud: TESTARGS+=-tags='cloud'
+testacc-cloud: testacc
 
-testacc: fmtcheck
-	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
+testacc-docker:
+	GRAFANA_VERSION=$(GRAFANA_VERSION) \
+		docker-compose \
+		-f ./docker-compose.yml \
+		run --rm grafana-provider \
+		make testacc
 
-test-serv: fmtcheck
-	@docker pull "grafana/grafana:$(GRAFANA_VERSION)"
-	docker run -p 127.0.0.1:3000:3000 "grafana/grafana:$(GRAFANA_VERSION)"
+testacc-docker-tls:
+	GRAFANA_VERSION=$(GRAFANA_VERSION) \
+		docker-compose \
+		-f ./docker-compose.yml \
+		-f ./docker-compose.tls.yml \
+		run --rm grafana-provider \
+		make testacc
 
-vet:
-	@echo "go vet ."
-	@go vet $$(go list ./... | grep -v vendor/) ; if [ $$? -eq 1 ]; then \
-		echo ""; \
-		echo "Vet found suspicious constructs. Please check the reported constructs"; \
-		echo "and fix them if necessary before submitting the code for review."; \
-		exit 1; \
-	fi
+changelog:
+	@test $${RELEASE_VERSION?Please set environment variable RELEASE_VERSION}
+	@test $${CHANGELOG_GITHUB_TOKEN?Please set environment variable CHANGELOG_GITHUB_TOKEN}
+	@docker run -it --rm \
+		-v $$PWD:/usr/local/src/your-app \
+		-e CHANGELOG_GITHUB_TOKEN=$$CHANGELOG_GITHUB_TOKEN \
+		ferrarimarco/github-changelog-generator \
+		--user grafana \
+		--project terraform-provider-grafana \
+		--future-release $$RELEASE_VERSION
+	@git add CHANGELOG.md && git commit -m "Release $$RELEASE_VERSION"
 
-fmt:
-	gofmt -w $(GOFMT_FILES)
+release:
+	@test $${RELEASE_VERSION?Please set environment variable RELEASE_VERSION}
+	@git tag $$RELEASE_VERSION
+	@git push origin $$RELEASE_VERSION
 
-fmtcheck:
-	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
-
-errcheck:
-	@sh -c "'$(CURDIR)/scripts/errcheck.sh'"
-
-
-test-compile:
-	@if [ "$(TEST)" = "./..." ]; then \
-		echo "ERROR: Set TEST to a specific package. For example,"; \
-		echo "  make test-compile TEST=./$(PKG_NAME)"; \
-		exit 1; \
-	fi
-	go test -c $(TEST) $(TESTARGS)
-
-website:
-ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
-	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
-	git clone https://$(WEBSITE_REPO) $(GOPATH)/src/$(WEBSITE_REPO)
-endif
-	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
-
-website-test:
-ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
-	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
-	git clone https://$(WEBSITE_REPO) $(GOPATH)/src/$(WEBSITE_REPO)
-endif
-	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
-
-.PHONY: build test testacc vet fmt fmtcheck errcheck  test-compile website website-test
-
+drone:
+	drone jsonnet --stream --source .drone/drone.jsonnet --target .drone/drone.yml
+	drone lint .drone/drone.yml
+	drone sign --save grafana/terraform-provider-grafana .drone/drone.yml

@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"testing"
 
-	gapi "github.com/nytm/go-grafana-api"
+	gapi "github.com/grafana/grafana-api-golang-client"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 var resourceTests = []struct {
@@ -106,6 +106,7 @@ resource "grafana_data_source" "testdata" {
 			time_field        = "@timestamp"
 			log_message_field = "message"
 			log_level_field   = "fields.level"
+			max_concurrent_shard_requests = 8
 		}
 	}
 	`,
@@ -119,6 +120,7 @@ resource "grafana_data_source" "testdata" {
 			"json_data.0.time_field":        "@timestamp",
 			"json_data.0.log_message_field": "message",
 			"json_data.0.log_level_field":   "fields.level",
+			"json_data.0.max_concurrent_shard_requests": "8",
 		},
 	},
 	{
@@ -246,15 +248,48 @@ resource "grafana_data_source" "testdata" {
 			json_data {
 				http_method = "GET"
 				query_timeout = "1"
+				sigv4_auth   = true
+				sigv4_auth_type = "default"
+				sigv4_region    = "eu-west-1"
 			}
 		}
 		`,
 		map[string]string{
-			"type":                      "prometheus",
-			"name":                      "prometheus",
-			"url":                       "http://acc-test.invalid:9090",
-			"json_data.0.http_method":   "GET",
-			"json_data.0.query_timeout": "1",
+			"type":                        "prometheus",
+			"name":                        "prometheus",
+			"url":                         "http://acc-test.invalid:9090",
+			"json_data.0.http_method":     "GET",
+			"json_data.0.query_timeout":   "1",
+			"json_data.0.sigv4_auth":      "true",
+			"json_data.0.sigv4_auth_type": "default",
+			"json_data.0.sigv4_region":    "eu-west-1",
+		},
+	},
+	{
+		"grafana_data_source.stackdriver",
+		`
+		resource "grafana_data_source" "stackdriver" {
+			type = "stackdriver"
+			name = "stackdriver"
+			json_data {
+				token_uri = "https://oauth2.googleapis.com/token"
+				authentication_type = "jwt"
+				default_project = "default-project"
+				client_email = "client-email@default-project.iam.gserviceaccount.com"
+			}
+			secure_json_data {
+				private_key = "-----BEGIN PRIVATE KEY-----\nprivate-key\n-----END PRIVATE KEY-----\n"
+			}
+		}
+		`,
+		map[string]string{
+			"type":                            "stackdriver",
+			"name":                            "stackdriver",
+			"json_data.0.token_uri":           "https://oauth2.googleapis.com/token",
+			"json_data.0.authentication_type": "jwt",
+			"json_data.0.default_project":     "default-project",
+			"json_data.0.client_email":        "client-email@default-project.iam.gserviceaccount.com",
+			"secure_json_data.0.private_key":  "-----BEGIN PRIVATE KEY-----\nprivate-key\n-----END PRIVATE KEY-----\n",
 		},
 	},
 }
@@ -264,7 +299,6 @@ func TestAccDataSource_basic(t *testing.T) {
 
 	// Iterate over the provided configurations for datasources
 	for _, test := range resourceTests {
-
 		// Always check that the resource was created and that `id` is a number
 		checks := []resource.TestCheckFunc{
 			testAccDataSourceCheckExists(test.resource, &dataSource),
@@ -285,9 +319,9 @@ func TestAccDataSource_basic(t *testing.T) {
 		}
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:     func() { testAccPreCheck(t) },
-			Providers:    testAccProviders,
-			CheckDestroy: testAccDataSourceCheckDestroy(&dataSource),
+			PreCheck:          func() { testAccPreCheck(t) },
+			ProviderFactories: testAccProviderFactories,
+			CheckDestroy:      testAccDataSourceCheckDestroy(&dataSource),
 			Steps: []resource.TestStep{
 				{
 					Config: test.config,
@@ -316,7 +350,7 @@ func testAccDataSourceCheckExists(rn string, dataSource *gapi.DataSource) resour
 			return fmt.Errorf("resource id is malformed")
 		}
 
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		gotDataSource, err := client.DataSource(id)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
@@ -330,8 +364,8 @@ func testAccDataSourceCheckExists(rn string, dataSource *gapi.DataSource) resour
 
 func testAccDataSourceCheckDestroy(dataSource *gapi.DataSource) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*gapi.Client)
-		_, err := client.DataSource(dataSource.Id)
+		client := testAccProvider.Meta().(*client).gapi
+		_, err := client.DataSource(dataSource.ID)
 		if err == nil {
 			return fmt.Errorf("data source still exists")
 		}

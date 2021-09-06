@@ -1,19 +1,20 @@
 package grafana
 
 import (
+	"context"
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/schema"
-	gapi "github.com/nytm/go-grafana-api"
+	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 type OrgUser struct {
-	Id    int64
+	ID    int64
 	Email string
 	Role  string
 }
@@ -33,115 +34,165 @@ const (
 
 func ResourceOrganization() *schema.Resource {
 	return &schema.Resource{
-		Create: CreateOrganization,
-		Read:   ReadOrganization,
-		Update: UpdateOrganization,
-		Delete: DeleteOrganization,
-		Exists: ExistsOrganization,
+
+		Description: `
+* [Official documentation](https://grafana.com/docs/grafana/latest/manage-users/server-admin/server-admin-manage-orgs/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/org/)
+`,
+
+		CreateContext: CreateOrganization,
+		ReadContext:   ReadOrganization,
+		UpdateContext: UpdateOrganization,
+		DeleteContext: DeleteOrganization,
+		Exists:        ExistsOrganization,
 		Importer: &schema.ResourceImporter{
-			State: ImportOrganization,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The display name for the Grafana organization created.",
 			},
 			"admin_user": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "admin",
+				Description: `
+The login name of the configured default admin user for the Grafana
+installation. If unset, this value defaults to admin, the Grafana default.
+Grafana adds the default admin user to all organizations automatically upon
+creation, and this parameter keeps Terraform from removing it from
+organizations.
+`,
 			},
 			"create_users": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
+				Description: `
+Whether or not to create Grafana users specified in the organization's
+membership if they don't already exist in Grafana. If unspecified, this
+parameter defaults to true, creating placeholder users with the name, login,
+and email set to the email of the user, and a random password. Setting this
+option to false will cause an error to be thrown for any users that do not
+already exist in Grafana.
+`,
 			},
 			"org_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The organization id assigned to this organization by Grafana.",
 			},
 			"admins": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Description: `
+A list of email addresses corresponding to users who should be given admin
+access to the organization. Note: users specified here must already exist in
+Grafana unless 'create_users' is set to true.
+`,
 			},
 			"editors": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Description: `
+A list of email addresses corresponding to users who should be given editor
+access to the organization. Note: users specified here must already exist in
+Grafana unless 'create_users' is set to true.
+`,
 			},
 			"viewers": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Description: `
+A list of email addresses corresponding to users who should be given viewer
+access to the organization. Note: users specified here must already exist in
+Grafana unless 'create_users' is set to true.
+`,
 			},
 		},
 	}
 }
 
-func CreateOrganization(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*gapi.Client)
+func CreateOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
 	name := d.Get("name").(string)
-	orgId, err := client.NewOrg(name)
+	orgID, err := client.NewOrg(name)
 	if err != nil && err.Error() == "409 Conflict" {
-		return errors.New(fmt.Sprintf("Error: A Grafana Organization with the name '%s' already exists.", name))
+		return diag.Errorf("Error: A Grafana Organization with the name '%s' already exists.", name)
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	d.SetId(strconv.FormatInt(orgId, 10))
-	return UpdateUsers(d, meta)
+	d.SetId(strconv.FormatInt(orgID, 10))
+	if err = UpdateUsers(d, meta); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.Diagnostics{}
 }
 
-func ReadOrganization(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*gapi.Client)
-	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
-	resp, err := client.Org(orgId)
-	if err != nil && err.Error() == "404 Not Found" {
+func ReadOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
+	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
+	resp, err := client.Org(orgID)
+	if err != nil && strings.HasPrefix(err.Error(), "status: 404") {
 		log.Printf("[WARN] removing organization %s from state because it no longer exists in grafana", d.Id())
 		d.SetId("")
 		return nil
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.Set("name", resp.Name)
 	if err := ReadUsers(d, meta); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	return nil
 }
 
-func UpdateOrganization(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*gapi.Client)
-	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
+func UpdateOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
+	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	if d.HasChange("name") {
 		name := d.Get("name").(string)
-		err := client.UpdateOrg(orgId, name)
+		err := client.UpdateOrg(orgID, name)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
-	return UpdateUsers(d, meta)
+	if err := UpdateUsers(d, meta); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.Diagnostics{}
 }
 
-func DeleteOrganization(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*gapi.Client)
-	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
-	return client.DeleteOrg(orgId)
+func DeleteOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
+	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
+	if err := client.DeleteOrg(orgID); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.Diagnostics{}
 }
 
 func ExistsOrganization(d *schema.ResourceData, meta interface{}) (bool, error) {
-	client := meta.(*gapi.Client)
-	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
-	_, err := client.Org(orgId)
+	client := meta.(*client).gapi
+	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
+	_, err := client.Org(orgID)
 	if err != nil && err.Error() == "404 Not Found" {
 		return false, nil
 	}
@@ -151,24 +202,10 @@ func ExistsOrganization(d *schema.ResourceData, meta interface{}) (bool, error) 
 	return true, err
 }
 
-func ImportOrganization(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	exists, err := ExistsOrganization(d, meta)
-	if err != nil || !exists {
-		return nil, errors.New(fmt.Sprintf("Error: Unable to import Grafana Organization: %s.", err))
-	}
-	d.Set("admin_user", "admin")
-	d.Set("create_users", "true")
-	err = ReadOrganization(d, meta)
-	if err != nil {
-		return nil, err
-	}
-	return []*schema.ResourceData{d}, nil
-}
-
 func ReadUsers(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*gapi.Client)
-	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
-	orgUsers, err := client.OrgUsers(orgId)
+	client := meta.(*client).gapi
+	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
+	orgUsers, err := client.OrgUsers(orgID)
 	if err != nil {
 		return err
 	}
@@ -191,12 +228,12 @@ func UpdateUsers(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	changes := changes(stateUsers, configUsers)
-	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
+	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	changes, err = addIdsToChanges(d, meta, changes)
 	if err != nil {
 		return err
 	}
-	return applyChanges(meta, orgId, changes)
+	return applyChanges(meta, orgID, changes)
 }
 
 func collectUsers(d *schema.ResourceData) (map[string]OrgUser, map[string]OrgUser, error) {
@@ -206,19 +243,19 @@ func collectUsers(d *schema.ResourceData) (map[string]OrgUser, map[string]OrgUse
 		roleName := strings.Title(role[:len(role)-1])
 		// Get the lists of users read in from Grafana state (old) and configured (new)
 		state, config := d.GetChange(role)
-		for _, u := range state.([]interface{}) {
+		for _, u := range state.(*schema.Set).List() {
 			email := u.(string)
 			// Sanity check that a user isn't specified twice within an organization
 			if _, ok := stateUsers[email]; ok {
-				return nil, nil, errors.New(fmt.Sprintf("Error: User '%s' cannot be specified multiple times.", email))
+				return nil, nil, fmt.Errorf("error: User '%s' cannot be specified multiple times", email)
 			}
 			stateUsers[email] = OrgUser{0, email, roleName}
 		}
-		for _, u := range config.([]interface{}) {
+		for _, u := range config.(*schema.Set).List() {
 			email := u.(string)
 			// Sanity check that a user isn't specified twice within an organization
 			if _, ok := configUsers[email]; ok {
-				return nil, nil, errors.New(fmt.Sprintf("Error: User '%s' cannot be specified multiple times.", email))
+				return nil, nil, fmt.Errorf("error: User '%s' cannot be specified multiple times", email)
 			}
 			configUsers[email] = OrgUser{0, email, roleName}
 		}
@@ -252,21 +289,21 @@ func changes(stateUsers, configUsers map[string]OrgUser) []UserChange {
 }
 
 func addIdsToChanges(d *schema.ResourceData, meta interface{}, changes []UserChange) ([]UserChange, error) {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	gUserMap := make(map[string]int64)
 	gUsers, err := client.Users()
 	if err != nil {
 		return nil, err
 	}
 	for _, u := range gUsers {
-		gUserMap[u.Email] = u.Id
+		gUserMap[u.Email] = u.ID
 	}
 	var output []UserChange
 	create := d.Get("create_users").(bool)
 	for _, change := range changes {
 		id, ok := gUserMap[change.User.Email]
 		if !ok && !create {
-			return nil, errors.New(fmt.Sprintf("Error adding user %s. User does not exist in Grafana.", change.User.Email))
+			return nil, fmt.Errorf("error adding user %s. User does not exist in Grafana", change.User.Email)
 		}
 		if !ok && create {
 			id, err = createUser(meta, change.User.Email)
@@ -274,14 +311,14 @@ func addIdsToChanges(d *schema.ResourceData, meta interface{}, changes []UserCha
 				return nil, err
 			}
 		}
-		change.User.Id = id
+		change.User.ID = id
 		output = append(output, change)
 	}
 	return output, nil
 }
 
 func createUser(meta interface{}, user string) (int64, error) {
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	id, n := int64(0), 64
 	bytes := make([]byte, n)
 	_, err := rand.Read(bytes)
@@ -302,20 +339,20 @@ func createUser(meta interface{}, user string) (int64, error) {
 	return id, err
 }
 
-func applyChanges(meta interface{}, orgId int64, changes []UserChange) error {
+func applyChanges(meta interface{}, orgID int64, changes []UserChange) error {
 	var err error
-	client := meta.(*gapi.Client)
+	client := meta.(*client).gapi
 	for _, change := range changes {
 		u := change.User
 		switch change.Type {
 		case Add:
-			err = client.AddOrgUser(orgId, u.Email, u.Role)
+			err = client.AddOrgUser(orgID, u.Email, u.Role)
 		case Update:
-			err = client.UpdateOrgUser(orgId, u.Id, u.Role)
+			err = client.UpdateOrgUser(orgID, u.ID, u.Role)
 		case Remove:
-			err = client.RemoveOrgUser(orgId, u.Id)
+			err = client.RemoveOrgUser(orgID, u.ID)
 		}
-		if err != nil && err.Error() != "409 Conflict" {
+		if err != nil && !strings.HasPrefix(err.Error(), "status: 409") {
 			return err
 		}
 	}

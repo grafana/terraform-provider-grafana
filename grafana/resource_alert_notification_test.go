@@ -6,19 +6,19 @@ import (
 	"strconv"
 	"testing"
 
-	gapi "github.com/nytm/go-grafana-api"
+	gapi "github.com/grafana/grafana-api-golang-client"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccAlertNotification_basic(t *testing.T) {
 	var alertNotification gapi.AlertNotification
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccAlertNotificationCheckDestroy(&alertNotification),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAlertNotificationConfig_basic,
@@ -38,6 +38,9 @@ func TestAccAlertNotification_basic(t *testing.T) {
 						"grafana_alert_notification.test", "frequency", "12h",
 					),
 					resource.TestCheckResourceAttr(
+						"grafana_alert_notification.test", "disable_resolve_message", "false",
+					),
+					resource.TestCheckResourceAttr(
 						"grafana_alert_notification.test", "settings.addresses", "foo@bar.test",
 					),
 				),
@@ -46,29 +49,66 @@ func TestAccAlertNotification_basic(t *testing.T) {
 	})
 }
 
-func TestAccAlertNotification_invalid_frequence(t *testing.T) {
+func TestAccAlertNotification_disableResolveMessage(t *testing.T) {
 	var alertNotification gapi.AlertNotification
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccAlertNotificationCheckDestroy(&alertNotification),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
 			{
-				ExpectError: regexp.MustCompile("invalid duration hi"),
+				Config: testAccAlertNotificationConfig_disable_resolve_message,
+				Check: resource.ComposeTestCheckFunc(
+					testAccAlertNotificationCheckExists("grafana_alert_notification.test", &alertNotification),
+					testAccAlertNotificationDefinition(&alertNotification),
+					resource.TestCheckResourceAttr(
+						"grafana_alert_notification.test", "type", "email",
+					),
+					resource.TestMatchResourceAttr(
+						"grafana_alert_notification.test", "id", regexp.MustCompile(`\d+`),
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_alert_notification.test", "send_reminder", "true",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_alert_notification.test", "frequency", "12h",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_alert_notification.test", "disable_resolve_message", "true",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_alert_notification.test", "settings.addresses", "foo@bar.test",
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAlertNotification_invalid_frequency(t *testing.T) {
+	var alertNotification gapi.AlertNotification
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
+		Steps: []resource.TestStep{
+			{
+				ExpectError: regexp.MustCompile("time: invalid duration \"hi\""),
 				Config:      testAccAlertNotificationConfig_invalid_frequency,
 			},
 		},
 	})
 }
 
-func TestAccAlertNotification_reminder_no_frequence(t *testing.T) {
+func TestAccAlertNotification_reminder_no_frequency(t *testing.T) {
 	var alertNotification gapi.AlertNotification
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccAlertNotificationCheckDestroy(&alertNotification),
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
 			{
 				ExpectError: regexp.MustCompile("frequency must be set when send_reminder is set to 'true'"),
@@ -94,7 +134,7 @@ func testAccAlertNotificationCheckExists(rn string, a *gapi.AlertNotification) r
 			return fmt.Errorf("resource id is malformed")
 		}
 
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		gotAlertNotification, err := client.AlertNotification(id)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
@@ -118,8 +158,8 @@ func testAccAlertNotificationDefinition(a *gapi.AlertNotification) resource.Test
 
 func testAccAlertNotificationCheckDestroy(a *gapi.AlertNotification) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*gapi.Client)
-		alert, err := client.AlertNotification(a.Id)
+		client := testAccProvider.Meta().(*client).gapi
+		alert, err := client.AlertNotification(a.ID)
 		if err == nil && alert != nil {
 			return fmt.Errorf("alert-notification still exists")
 		}
@@ -133,6 +173,21 @@ resource "grafana_alert_notification" "test" {
     name = "terraform-acc-test"
 		send_reminder = true
 		frequency = "12h"
+    settings = {
+			"addresses" = "foo@bar.test"
+			"uploadImage" = "false"
+			"autoResolve" = "true"
+		}
+}
+`
+
+const testAccAlertNotificationConfig_disable_resolve_message = `
+resource "grafana_alert_notification" "test" {
+    type = "email"
+    name = "terraform-acc-test"
+		send_reminder = true
+		frequency = "12h"
+		disable_resolve_message = true
     settings = {
 			"addresses" = "foo@bar.test"
 			"uploadImage" = "false"

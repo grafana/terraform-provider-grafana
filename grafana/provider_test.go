@@ -1,54 +1,96 @@
 package grafana
 
 import (
+	"context"
+	"io/ioutil"
 	"os"
+	"sync"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-// To run these acceptance tests, you will need a Grafana server.
-// Grafana can be downloaded here: http://grafana.org/download/
-//
-// The tests will need an API key to authenticate with the server. To create
-// one, use the menu for one of your installation's organizations (The
-// "Main Org." is fine if you've just done a fresh installation to run these
-// tests) to reach the "API Keys" admin page.
-//
-// Giving the API key the Admin role is the easiest way to ensure enough
-// access is granted to run all of the tests.
-//
-// Once you've created the API key, set the GRAFANA_URL and GRAFANA_AUTH
-// environment variables to the Grafana base URL and the API key respectively,
-// and then run:
-//    make testacc TEST=./builtin/providers/grafana
+// testAccProviderFactories is a static map containing only the main provider instance
+var testAccProviderFactories map[string]func() (*schema.Provider, error)
 
-var testAccProviders map[string]terraform.ResourceProvider
+// testAccProvider is the "main" provider instance
+//
+// This Provider can be used in testing code for API calls without requiring
+// the use of saving and referencing specific ProviderFactories instances.
+//
+// testAccPreCheck(t) must be called before using this provider instance.
 var testAccProvider *schema.Provider
 
+// testAccProviderConfigure ensures that testAccProvider is only configured once.
+//
+// The testAccPreCheck(t) function is invoked for every test and this prevents
+// extraneous reconfiguration to the same values each time. However, this does
+// not prevent reconfiguration that may happen should the address of
+// testAccProvider be errantly reused in ProviderFactories.
+var testAccProviderConfigure sync.Once
+
 func init() {
-	testAccProvider = Provider().(*schema.Provider)
-	testAccProviders = map[string]terraform.ResourceProvider{
-		"grafana": testAccProvider,
+	testAccProvider = Provider("testacc")()
+
+	// Always allocate a new provider instance each invocation, otherwise gRPC
+	// ProviderConfigure() can overwrite configuration during concurrent testing.
+	testAccProviderFactories = map[string]func() (*schema.Provider, error){
+		//nolint:unparam // error is always nil
+		"grafana": func() (*schema.Provider, error) {
+			return Provider("testacc")(), nil
+		},
 	}
 }
 
 func TestProvider(t *testing.T) {
-	if err := Provider().(*schema.Provider).InternalValidate(); err != nil {
+	if err := Provider("dev")().InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 }
 
-func TestProvider_impl(t *testing.T) {
-	var _ terraform.ResourceProvider = Provider()
+// testAccPreCheckEnv contains all environment variables that must be present
+// for acceptance tests to run. These are checked in testAccPreCheck.
+var testAccPreCheckEnv = []string{
+	"GRAFANA_URL",
+	"GRAFANA_AUTH",
+	"GRAFANA_ORG_ID",
 }
 
+// testAccPreCheck verifies required provider testing configuration. It should
+// be present in every acceptance test.
+//
+// These verifications and configuration are preferred at this level to prevent
+// provider developers from experiencing less clear errors for every test.
 func testAccPreCheck(t *testing.T) {
-	if v := os.Getenv("GRAFANA_URL"); v == "" {
-		t.Fatal("GRAFANA_URL must be set for acceptance tests")
+	for _, e := range testAccPreCheckEnv {
+		if v := os.Getenv(e); v == "" {
+			t.Fatal(e + " must be set for acceptance tests")
+		}
 	}
-	if v := os.Getenv("GRAFANA_AUTH"); v == "" {
-		t.Fatal("GRAFANA_AUTH must be set for acceptance tests")
+	testAccProviderConfigure.Do(func() {
+		// Since we are outside the scope of the Terraform configuration we must
+		// call Configure() to properly initialize the provider configuration.
+		err := testAccProvider.Configure(context.Background(), terraform.NewResourceConfigRaw(nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+}
+
+// testAccPreCheckCloud should be called by acceptance tests in files where the
+// "cloud" build tag is present.
+func testAccPreCheckCloud(t *testing.T) {
+	testAccPreCheckEnv = append(testAccPreCheckEnv, "GRAFANA_SM_ACCESS_TOKEN")
+	testAccPreCheck(t)
+}
+
+// testAccExample returns an example config from the examples directory.
+// Examples are used for both documentation and acceptance tests.
+func testAccExample(t *testing.T, path string) string {
+	example, err := ioutil.ReadFile("../examples/" + path)
+	if err != nil {
+		t.Fatal(err)
 	}
+	return string(example)
 }

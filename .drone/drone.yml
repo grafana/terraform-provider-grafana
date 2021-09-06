@@ -1,0 +1,71 @@
+---
+kind: pipeline
+type: docker
+name: test-pr
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: tests
+  image: grafana/build-container:1.4.1
+  commands:
+  - sleep 5
+  - golangci-lint --version
+  - golangci-lint run ./...
+  - make testacc
+  environment:
+    GRAFANA_AUTH: admin:admin
+    GRAFANA_ORG_ID: 1
+    GRAFANA_URL: http://grafana:3000
+
+services:
+- name: grafana
+  image: grafana/grafana:8.0.3
+  environment:
+    GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
+
+trigger:
+  event:
+  - pull_request
+
+---
+kind: pipeline
+type: docker
+name: build-master
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: tests
+  image: grafana/build-container:1.4.1
+  commands:
+  - sleep 5
+  - golangci-lint --version
+  - golangci-lint run ./...
+  - make testacc
+  environment:
+    GRAFANA_AUTH: admin:admin
+    GRAFANA_ORG_ID: 1
+    GRAFANA_URL: http://grafana:3000
+
+services:
+- name: grafana
+  image: grafana/grafana:8.0.3
+  environment:
+    GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
+
+trigger:
+  branch:
+  - master
+  event:
+  - push
+
+---
+kind: signature
+hmac: e720237ec519da396e1c93fba1b538353b1df9d3965095a3230ff640ae5b4bdd
+
+...
