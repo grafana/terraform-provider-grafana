@@ -4,18 +4,16 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"testing"
 
-	gapi "github.com/nytm/go-grafana-api"
-
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccPlaylist_basic(t *testing.T) {
-	var playlist gapi.Playlist
-	rn := "grafana_playlist.test"
+	resourceName := "grafana_playlist.test"
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -26,18 +24,22 @@ func TestAccPlaylist_basic(t *testing.T) {
 			{
 				Config: testAccPlaylistConfigBasic(rName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccPlaylistCheckExists(rn, &playlist),
-					resource.TestMatchResourceAttr(rn, "id", regexp.MustCompile(`\d+`)),
-					resource.TestCheckResourceAttr(rn, "name", rName),
-					resource.TestCheckResourceAttr(rn, "item.#", "2"),
-					resource.TestCheckResourceAttr(rn, "item.3264172724.order", "1"),
-					resource.TestCheckResourceAttr(rn, "item.3264172724.title", "Terraform Dashboard By Tag"),
-					resource.TestCheckResourceAttr(rn, "item.3536342863.order", "2"),
-					resource.TestCheckResourceAttr(rn, "item.3536342863.title", "Terraform Dashboard By ID"),
+					testAccPlaylistCheckExists(resourceName),
+					resource.TestMatchResourceAttr(resourceName, "id", regexp.MustCompile(`\d+`)),
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
+					resource.TestCheckResourceAttr(resourceName, "item.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs(resourceName, "item.*", map[string]string{
+						"order": "1",
+						"title": "Terraform Dashboard By Tag",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(resourceName, "item.*", map[string]string{
+						"order": "2",
+						"title": "Terraform Dashboard By ID",
+					}),
 				),
 			},
 			{
-				ResourceName:      rn,
+				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -46,8 +48,7 @@ func TestAccPlaylist_basic(t *testing.T) {
 }
 
 func TestAccPlaylist_update(t *testing.T) {
-	var playlist gapi.Playlist
-	rn := "grafana_playlist.test"
+	resourceName := "grafana_playlist.test"
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 	updatedName := "updated name"
 
@@ -59,24 +60,26 @@ func TestAccPlaylist_update(t *testing.T) {
 			{
 				Config: testAccPlaylistConfigBasic(rName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccPlaylistCheckExists(rn, &playlist),
+					testAccPlaylistCheckExists(resourceName),
 				),
 			},
 			{
 				Config: testAccPlaylistConfigUpdate(updatedName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccPlaylistCheckExists(rn, &playlist),
-					resource.TestMatchResourceAttr(rn, "id", regexp.MustCompile(`\d+`)),
-					resource.TestCheckResourceAttr(rn, "name", updatedName),
-					resource.TestCheckResourceAttr(rn, "item.#", "1"),
-					resource.TestCheckResourceAttr(rn, "item.1966873348.order", "1"),
-					resource.TestCheckResourceAttr(rn, "item.1966873348.title", "Terraform Dashboard By ID"),
-					resource.TestCheckResourceAttr(rn, "item.1966873348.type", "dashboard_by_id"),
-					resource.TestCheckResourceAttr(rn, "item.1966873348.value", "3"),
+					testAccPlaylistCheckExists(resourceName),
+					resource.TestMatchResourceAttr(resourceName, "id", regexp.MustCompile(`\d+`)),
+					resource.TestCheckResourceAttr(resourceName, "name", updatedName),
+					resource.TestCheckResourceAttr(resourceName, "item.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(resourceName, "item.*", map[string]string{
+						"order": "1",
+						"title": "Terraform Dashboard By ID",
+						"type":  "dashboard_by_id",
+						"value": "3",
+					}),
 				),
 			},
 			{
-				ResourceName:      rn,
+				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -85,8 +88,7 @@ func TestAccPlaylist_update(t *testing.T) {
 }
 
 func TestAccPlaylist_disappears(t *testing.T) {
-	var playlist gapi.Playlist
-	rn := "grafana_playlist.test"
+	resourceName := "grafana_playlist.test"
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -97,8 +99,8 @@ func TestAccPlaylist_disappears(t *testing.T) {
 			{
 				Config: testAccPlaylistConfigBasic(rName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccPlaylistCheckExists(rn, &playlist),
-					testAccPlaylistDisappears(rn),
+					testAccPlaylistCheckExists(resourceName),
+					testAccPlaylistDisappears(resourceName),
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -106,7 +108,7 @@ func TestAccPlaylist_disappears(t *testing.T) {
 	})
 }
 
-func testAccPlaylistCheckExists(rn string, playlist *gapi.Playlist) resource.TestCheckFunc {
+func testAccPlaylistCheckExists(rn string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
 		if !ok {
@@ -117,18 +119,17 @@ func testAccPlaylistCheckExists(rn string, playlist *gapi.Playlist) resource.Tes
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		id, err := strconv.Atoi(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		gotPlaylist, err := client.Playlist(id)
-		if err != nil {
-			return fmt.Errorf("error getting playlist: %s", err)
-		}
+		_, err = client.Playlist(id)
 
-		*playlist = *gotPlaylist
+		if err != nil {
+			return fmt.Errorf("error getting playlist: %w", err)
+		}
 
 		return nil
 	}
@@ -145,7 +146,7 @@ func testAccPlaylistDisappears(rn string) resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*gapi.Client)
+		client := testAccProvider.Meta().(*client).gapi
 		id, err := strconv.Atoi(rs.Primary.ID)
 		if err != nil {
 			return err
@@ -157,7 +158,7 @@ func testAccPlaylistDisappears(rn string) resource.TestCheckFunc {
 }
 
 func testAccPlaylistDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*gapi.Client)
+	client := testAccProvider.Meta().(*client).gapi
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_playlist" {
@@ -169,24 +170,27 @@ func testAccPlaylistDestroy(s *terraform.State) error {
 			return err
 		}
 
-		gotPlaylist, err := client.Playlist(id)
+		playlist, err := client.Playlist(id)
+
 		if err != nil {
-			if err.Error() == "404 Not Found" {
-				return nil
+			if strings.HasPrefix(err.Error(), "status: 404") {
+				continue
 			}
 			return err
 		}
-		if gotPlaylist != nil {
+
+		if playlist != nil {
 			return fmt.Errorf("Playlist still exists")
 		}
 	}
+
 	return nil
 }
 
 func testAccPlaylistConfigBasic(name string) string {
 	return fmt.Sprintf(`
 resource "grafana_playlist" "test" {
-	name = "%s"
+	name     = %[1]q
 	interval = "5m"
 	
 	item {
@@ -205,7 +209,7 @@ resource "grafana_playlist" "test" {
 func testAccPlaylistConfigUpdate(name string) string {
 	return fmt.Sprintf(`
 resource "grafana_playlist" "test" {
-	name = "%s"
+	name     = %[1]q
 	interval = "5m"
 	
 	item {

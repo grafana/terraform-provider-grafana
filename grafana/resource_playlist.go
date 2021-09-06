@@ -1,29 +1,38 @@
 package grafana
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
-	"github.com/hashicorp/terraform/helper/schema"
-	gapi "github.com/nytm/go-grafana-api"
+	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func ResourcePlaylist() *schema.Resource {
 	return &schema.Resource{
-		Create: resourcePlaylistCreate,
-		Read:   resourcePlaylistRead,
-		Update: resourcePlaylistUpdate,
-		Delete: resourcePlaylistDelete,
+		CreateContext: CreatePlaylist,
+		ReadContext:   ReadPlaylist,
+		UpdateContext: UpdatePlaylist,
+		DeleteContext: DeletePlaylist,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
+
+		Description: `
+		* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/playlist/)
+		* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/playlist/)
+		`,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "The name of the playlist.",
 			},
 			"interval": {
 				Type:     schema.TypeString,
@@ -34,6 +43,10 @@ func ResourcePlaylist() *schema.Resource {
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 						"order": {
 							Type:     schema.TypeInt,
 							Required: true,
@@ -53,12 +66,16 @@ func ResourcePlaylist() *schema.Resource {
 					},
 				},
 			},
+			"org_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
 
-func resourcePlaylistCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*gapi.Client)
+func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
 
 	playlist := gapi.Playlist{
 		Name:     d.Get("name").(string),
@@ -66,48 +83,47 @@ func resourcePlaylistCreate(d *schema.ResourceData, meta interface{}) error {
 		Items:    expandPlaylistItems(d.Get("item").(*schema.Set).List()),
 	}
 
-	log.Printf("[DEBUG] Creating Playlist %s", playlist.Name)
 	id, err := client.NewPlaylist(playlist)
+
 	if err != nil {
-		return err
+		return diag.FromErr(fmt.Errorf("error creating Playlist: %w", err))
 	}
 
 	d.SetId(strconv.Itoa(id))
 
-	return resourcePlaylistRead(d, meta)
+	return ReadPlaylist(ctx, d, meta)
 }
 
-func resourcePlaylistRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*gapi.Client)
+func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(fmt.Errorf("error reading Playlist (%s): %w", d.Id(), err))
 	}
 
-	log.Printf("[DEBUG] Reading Playlist %s", d.Id())
 	resp, err := client.Playlist(id)
+
 	if err != nil {
-		if err.Error() == "404 Not Found" {
-			log.Printf("[WARN] removing playlist %s from state because it no longer exists in grafana", d.Id())
+		if strings.HasPrefix(err.Error(), "status: 404") {
+			log.Printf("[WARN] removing playlist %d from state because it no longer exists in grafana", id)
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(fmt.Errorf("error reading Playlist (%s): %w", d.Id(), err))
 	}
 
 	d.Set("name", resp.Name)
 	d.Set("interval", resp.Interval)
 	if err := d.Set("item", flattenPlaylistItems(resp.Items)); err != nil {
-		return fmt.Errorf("error setting item: %v", err)
+		return diag.FromErr(fmt.Errorf("error setting item: %v", err))
 	}
 
 	return nil
-
 }
 
-func resourcePlaylistUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*gapi.Client)
+func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
 
 	playlist := gapi.Playlist{
 		Name:     d.Get("name").(string),
@@ -115,26 +131,31 @@ func resourcePlaylistUpdate(d *schema.ResourceData, meta interface{}) error {
 		Items:    expandPlaylistItems(d.Get("item").(*schema.Set).List()),
 	}
 
-	log.Printf("[DEBUG] Updating Playlist %s", playlist.Name)
 	err := client.UpdatePlaylist(playlist)
 	if err != nil {
-		return err
+		return diag.FromErr(fmt.Errorf("error updating Playlist (%s): %w", d.Id(), err))
 	}
 
-	return resourcePlaylistRead(d, meta)
+	return ReadPlaylist(ctx, d, meta)
 }
 
-func resourcePlaylistDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*gapi.Client)
+func DeletePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
 
 	id, err := strconv.Atoi(d.Id())
+
 	if err != nil {
-		return err
+		return diag.FromErr(fmt.Errorf("error deleting Playlist (%s): %w", d.Id(), err))
 	}
 
-	log.Printf("[DEBUG] Deleting Playlist %s", d.Id())
-	err = client.DeletePlaylist(id)
-	return err
+	if err := client.DeletePlaylist(id); err != nil {
+		if strings.HasPrefix(err.Error(), "status: 404") {
+			return nil
+		}
+		return diag.FromErr(fmt.Errorf("error deleting Playlist (%s): %w", d.Id(), err))
+	}
+
+	return nil
 }
 
 func expandPlaylistItems(items []interface{}) []gapi.PlaylistItem {
