@@ -118,9 +118,9 @@ source selected (via the 'type' argument).
 							Description: "(MSSQL) Connection SSL encryption handling: 'disable', 'false' or 'true'.",
 						},
 						"es_version": {
-							Type:        schema.TypeInt,
+							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(Elasticsearch) Elasticsearch version as a number (2/5/56/60/70).",
+							Description: "(Elasticsearch) Elasticsearch semantic version (Grafana v8.0+).",
 						},
 						"graphite_version": {
 							Type:        schema.TypeString,
@@ -489,7 +489,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		DefaultProject:             d.Get("json_data.0.default_project").(string),
 		DefaultRegion:              d.Get("json_data.0.default_region").(string),
 		Encrypt:                    d.Get("json_data.0.encrypt").(string),
-		EsVersion:                  int64(d.Get("json_data.0.es_version").(int)),
+		EsVersion:                  d.Get("json_data.0.es_version").(string),
 		GraphiteVersion:            d.Get("json_data.0.graphite_version").(string),
 		HTTPMethod:                 d.Get("json_data.0.http_method").(string),
 		Interval:                   d.Get("json_data.0.interval").(string),

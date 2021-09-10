@@ -110,7 +110,7 @@ Optional:
 - **default_project** (String) (Stackdriver) The default project for the data source.
 - **default_region** (String) (CloudWatch) The default region for the data source.
 - **encrypt** (String) (MSSQL) Connection SSL encryption handling: 'disable', 'false' or 'true'.
-- **es_version** (Number) (Elasticsearch) Elasticsearch version as a number (2/5/56/60/70).
+- **es_version** (String) (Elasticsearch) Elasticsearch semantic version (Grafana v8.0+).
 - **graphite_version** (String) (Graphite) Graphite version.
 - **http_method** (String) (Prometheus) HTTP method to use for making requests.
 - **interval** (String) (Elasticsearch) Index date time format. nil(No Pattern), 'Hourly', 'Daily', 'Weekly', 'Monthly' or 'Yearly'.
