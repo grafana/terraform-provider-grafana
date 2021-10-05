@@ -3,9 +3,11 @@ package grafana
 import (
 	"context"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -118,9 +120,21 @@ source selected (via the 'type' argument).
 							Description: "(MSSQL) Connection SSL encryption handling: 'disable', 'false' or 'true'.",
 						},
 						"es_version": {
-							Type:        schema.TypeInt,
+							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(Elasticsearch) Elasticsearch version as a number (2/5/56/60/70).",
+							Description: "(Elasticsearch) Elasticsearch semantic version (Grafana v8.0+).",
+							ValidateDiagFunc: func(v interface{}, p cty.Path) diag.Diagnostics {
+								var diags diag.Diagnostics
+								r := regexp.MustCompile(`^\d+\.\d+\.\d+$`)
+								if !r.MatchString(v.(string)) {
+									diags = append(diags, diag.Diagnostic{
+										Severity: diag.Warning,
+										Summary:  "Expected semantic version",
+										Detail:   "As of Grafana 8.0, the Elasticsearch plugin expects es_version to be set as a semantic version (E.g. 7.0.0, 7.6.1).",
+									})
+								}
+								return diags
+							},
 						},
 						"graphite_version": {
 							Type:        schema.TypeString,
@@ -489,7 +503,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		DefaultProject:             d.Get("json_data.0.default_project").(string),
 		DefaultRegion:              d.Get("json_data.0.default_region").(string),
 		Encrypt:                    d.Get("json_data.0.encrypt").(string),
-		EsVersion:                  int64(d.Get("json_data.0.es_version").(int)),
+		EsVersion:                  d.Get("json_data.0.es_version").(string),
 		GraphiteVersion:            d.Get("json_data.0.graphite_version").(string),
 		HTTPMethod:                 d.Get("json_data.0.http_method").(string),
 		Interval:                   d.Get("json_data.0.interval").(string),

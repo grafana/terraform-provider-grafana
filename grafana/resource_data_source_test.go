@@ -101,7 +101,7 @@ resource "grafana_data_source" "testdata" {
 		database_name = "[filebeat-]YYYY.MM.DD"
 		url 	        = "http://acc-test.invalid/"
 		json_data {
-			es_version        = 70
+			es_version        = "7.0.0"
 			interval          = "Daily"
 			time_field        = "@timestamp"
 			log_message_field = "message"
@@ -115,7 +115,7 @@ resource "grafana_data_source" "testdata" {
 			"name":                          "elasticsearch",
 			"database_name":                 "[filebeat-]YYYY.MM.DD",
 			"url":                           "http://acc-test.invalid/",
-			"json_data.0.es_version":        "70",
+			"json_data.0.es_version":        "7.0.0",
 			"json_data.0.interval":          "Daily",
 			"json_data.0.time_field":        "@timestamp",
 			"json_data.0.log_message_field": "message",
