@@ -3,9 +3,11 @@ package grafana
 import (
 	"context"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -121,6 +123,18 @@ source selected (via the 'type' argument).
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: "(Elasticsearch) Elasticsearch semantic version (Grafana v8.0+).",
+							ValidateDiagFunc: func(v interface{}, p cty.Path) diag.Diagnostics {
+								var diags diag.Diagnostics
+								r := regexp.MustCompile(`^\d+\.\d+\.\d+$`)
+								if !r.MatchString(v.(string)) {
+									diags = append(diags, diag.Diagnostic{
+										Severity: diag.Warning,
+										Summary:  "Expected semantic version",
+										Detail:   "As of Grafana 8.0, the Elasticsearch plugin expects es_version to be set as a semantic version (E.g. 7.0.0, 7.6.1).",
+									})
+								}
+								return diags
+							},
 						},
 						"graphite_version": {
 							Type:        schema.TypeString,
