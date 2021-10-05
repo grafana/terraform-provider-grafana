@@ -35,12 +35,17 @@ curl \
   -H 'Content-type: application/json; charset=utf-8' \
   -H "Authorization: Bearer $GRAFANA_CLOUD_API_KEY" \
   -d '{"stackId": <stack-id>, "metricsInstanceId": <metrics-instance-id>, "logsInstanceId": <logs-instance-id>}' \
-  'https://synthetic-monitoring-api.grafana.net/api/v1/register/install'
+  "$SM_API_URL/api/v1/register/install"
 ```
 
 `GRAFANA_CLOUD_API_KEY` is an API key created on the
 [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/cloud-portal/create-api-key/).
 It must have the `MetricsPublisher` role.
+
+`SM_API_URL` is the URL of the Synthetic Monitoring API.
+Based on the region of your Grafana Cloud stack, you need to use a different API URL.
+
+Please [see API docs](https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#api-url) to find `SM_API_URL` for your region.
 
 `stackId`, `metricsInstanceId`, and `logsInstanceId` may also be obtained on
 the portal. First you need to create a Stack by clicking "Add Stack". When it's
