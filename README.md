@@ -44,6 +44,20 @@ GRAFANA_ORG_ID=1 \
 make testacc
 ```
 
+#### Limiting an acceptance test run to specific tests
+
+The tests run by a target can be filtered by specifying an additional `run` argument:
+
+```sh
+TESTARGS='--run=TestAccDataSource_basic' make testacc-docker
+```
+
+The value passed to `run` supports regular expressions:
+
+```sh
+TESTARGS='--run=TestAccDataSource_.*' make testacc-docker
+```
+
 #### Running enterprise tests
 
 To run tests for resources which are available only for Grafana Enterprise, running instance of Grafana Enterprise is required.

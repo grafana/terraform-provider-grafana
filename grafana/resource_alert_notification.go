@@ -160,15 +160,17 @@ func ReadAlertNotification(ctx context.Context, d *schema.ResourceData, meta int
 	}
 	secureSettings := map[string]interface{}{}
 
-	for k, v := range alertNotification.SecureFields.(map[string]interface{}) {
-		boolVal, ok := v.(bool)
-		switch {
-		case ok && boolVal:
-			secureSettings[k] = "true"
-		case ok && !boolVal:
-			secureSettings[k] = "false"
-		default:
-			secureSettings[k] = v
+	if f, ok := alertNotification.SecureFields.(map[string]interface{}); ok {
+		for k, v := range f {
+			boolVal, ok := v.(bool)
+			switch {
+			case ok && boolVal:
+				secureSettings[k] = "true"
+			case ok && !boolVal:
+				secureSettings[k] = "false"
+			default:
+				secureSettings[k] = v
+			}
 		}
 	}
 	d.Set("secure_settings", secureSettings)
