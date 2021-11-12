@@ -46,6 +46,12 @@ func Provider(version string) func() *schema.Provider {
 					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_AUTH", nil),
 					Description: "API token or basic auth username:password. May alternatively be set via the `GRAFANA_AUTH` environment variable.",
 				},
+				"retries": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_RETRIES", 3),
+					Description: "The amount of retries to use for Grafana API calls. May alternatively be set via the `GRAFANA_RETRIES` environment variable.",
+				},
 				"org_id": {
 					Type:        schema.TypeInt,
 					Required:    true,
@@ -172,7 +178,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		cli.Transport = logging.NewTransport("Grafana", transport)
 		cfg := gapi.Config{
 			Client:     cli,
-			NumRetries: 10,
+			NumRetries: d.Get("retries").(int),
 			OrgID:      int64(d.Get("org_id").(int)),
 		}
 		if len(auth) == 2 {
