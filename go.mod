@@ -3,7 +3,7 @@ module github.com/grafana/terraform-provider-grafana
 go 1.16
 
 require (
-	github.com/grafana/grafana-api-golang-client v0.0.0-20211005011003-c69abe946fa6
+	github.com/grafana/grafana-api-golang-client v0.0.0-20211109031802-c957748d66e7
 	github.com/grafana/synthetic-monitoring-agent v0.0.24
 	github.com/grafana/synthetic-monitoring-api-go-client v0.0.2
 	github.com/hashicorp/go-cleanhttp v0.5.2
