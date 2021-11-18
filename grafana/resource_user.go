@@ -29,6 +29,10 @@ does not currently work with API Tokens. You must use basic auth.
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 			"email": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -92,6 +96,7 @@ func ReadUser(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	d.Set("id", user.ID)
 	d.Set("email", user.Email)
 	d.Set("name", user.Name)
 	d.Set("login", user.Login)
