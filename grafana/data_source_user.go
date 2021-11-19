@@ -21,9 +21,10 @@ does not currently work with API Tokens. You must use basic auth.
 		ReadContext: dataSourceUserRead,
 		Schema: map[string]*schema.Schema{
 			"user_id": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  -1,
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     -1,
+				Description: "The numerical ID of the Grafana user.",
 			},
 			"email": {
 				Type:        schema.TypeString,

@@ -30,8 +30,9 @@ does not currently work with API Tokens. You must use basic auth.
 		},
 		Schema: map[string]*schema.Schema{
 			"user_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The numerical ID of the Grafana user.",
 			},
 			"email": {
 				Type:        schema.TypeString,
