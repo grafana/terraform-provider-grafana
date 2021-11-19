@@ -98,7 +98,6 @@ func Provider(version string) func() *schema.Provider {
 			},
 
 			ResourcesMap: map[string]*schema.Resource{
-
 				// Grafana
 				"grafana_alert_notification":      ResourceAlertNotification(),
 				"grafana_builtin_role_assignment": ResourceBuiltInRoleAssignment(),
@@ -120,6 +119,8 @@ func Provider(version string) func() *schema.Provider {
 			},
 
 			DataSourcesMap: map[string]*schema.Resource{
+				// Grafana
+				"grafana_user": DatasourceUser(),
 
 				// Synthetic Monitoring
 				"grafana_synthetic_monitoring_probe":  dataSourceSyntheticMonitoringProbe(),
