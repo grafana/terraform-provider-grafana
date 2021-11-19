@@ -20,7 +20,7 @@ does not currently work with API Tokens. You must use basic auth.
 `,
 		ReadContext: dataSourceUserRead,
 		Schema: map[string]*schema.Schema{
-			"id": {
+			"user_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  -1,
@@ -56,20 +56,21 @@ func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, meta interf
 
 	var user gapi.User
 	var err error
-	if id := d.Get("id").(int); id >= 0 {
+	if id := d.Get("user_id").(int); id >= 0 {
 		user, err = client.User(int64(id))
 	} else if email := d.Get("email").(string); email != "" {
 		user, err = client.UserByEmail(email)
 	} else if login := d.Get("login").(string); login != "" {
-		user, err = client.UserByEmail(email)
+		user, err = client.UserByEmail(login)
 	} else {
-		err = fmt.Errorf("must specify one of id, email, or login")
+		err = fmt.Errorf("must specify one of user_id, email, or login")
 	}
 
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	d.SetId(fmt.Sprintf("%d", user.ID))
 	d.Set("email", user.Email)
 	d.Set("name", user.Name)
 	d.Set("login", user.Login)

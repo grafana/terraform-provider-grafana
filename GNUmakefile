@@ -14,7 +14,7 @@ testacc-docker:
 		docker-compose \
 		-f ./docker-compose.yml \
 		run --rm grafana-provider \
-		make testacc
+		make testacc TESTARGS="$(TESTARGS)"
 
 testacc-docker-tls:
 	GRAFANA_VERSION=$(GRAFANA_VERSION) \
@@ -22,7 +22,7 @@ testacc-docker-tls:
 		-f ./docker-compose.yml \
 		-f ./docker-compose.tls.yml \
 		run --rm grafana-provider \
-		make testacc
+		make testacc TESTARGS="$(TESTARGS)"
 
 changelog:
 	@test $${RELEASE_VERSION?Please set environment variable RELEASE_VERSION}

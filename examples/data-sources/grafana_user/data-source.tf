@@ -1,13 +1,13 @@
 resource "grafana_user" "test" {
-  email    = "staff.name@example.com"
-  name     = "Staff Name"
-  login    = "staff"
+  email    = "test.datasource@example.com"
+  name     = "Testing Datasource"
+  login    = "test-datasource"
   password = "my-password"
-  is_admin = false
+  is_admin = true
 }
 
 data "grafana_user" "from_id" {
-  email = grafana_user.test.id
+  user_id = grafana_user.test.user_id
 }
 
 data "grafana_user" "from_email" {
@@ -15,5 +15,5 @@ data "grafana_user" "from_email" {
 }
 
 data "grafana_user" "from_login" {
-  email = grafana_user.test.login
+  login = grafana_user.test.login
 }
