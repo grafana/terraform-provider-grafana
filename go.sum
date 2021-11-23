@@ -454,6 +454,8 @@ github.com/gorilla/mux v1.7.3/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2z
 github.com/gorilla/websocket v0.0.0-20170926233335-4201258b820c/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
 github.com/grafana/grafana-api-golang-client v0.0.0-20211109031802-c957748d66e7 h1:laghHEgZhwoFl6wS67J0t+mSnHrRNpFuovZ2D6PucjI=
 github.com/grafana/grafana-api-golang-client v0.0.0-20211109031802-c957748d66e7/go.mod h1:24W29gPe9yl0/3A9X624TPkAOR8DpHno490cPwnkv8E=
+github.com/grafana/grafana-api-golang-client v0.0.0-20211123152407-e56f7ae2fac1 h1:fYQQgWL4Pk/w9JR4VJL62vt53f1Y5rgLQlx5lnOeQBA=
+github.com/grafana/grafana-api-golang-client v0.0.0-20211123152407-e56f7ae2fac1/go.mod h1:24W29gPe9yl0/3A9X624TPkAOR8DpHno490cPwnkv8E=
 github.com/grafana/synthetic-monitoring-agent v0.3.0/go.mod h1:P8WTBnw3SIZW5Nm5obOlSKvD887IxAfbrJkSnoZyIlA=
 github.com/grafana/synthetic-monitoring-agent v0.3.3 h1:/MM1vm/BwnbwQ2/aEwKbEpf01O4O3GhrcOofY4A0V9Q=
 github.com/grafana/synthetic-monitoring-agent v0.3.3/go.mod h1:qyo27gOTdj8K/dKkd+/SJ0M0zlnCV7t9nwVK+iLkVrk=
