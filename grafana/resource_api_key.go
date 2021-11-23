@@ -64,10 +64,8 @@ func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	d.Set("key", response.Key)
 
-	// Fill the true resource's state after a create by performing a read.
-	resourceAPIKeyRead(ctx, d, m)
-
-	return diags
+	// Fill the true resource's state after a create by performing a read
+	return resourceAPIKeyRead(ctx, d, m)
 }
 
 func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
