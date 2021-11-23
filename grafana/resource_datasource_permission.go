@@ -1,0 +1,229 @@
+package grafana
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"strconv"
+	"strings"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	gapi "github.com/grafana/grafana-api-golang-client"
+)
+
+func ResourceDatasourcePermission() *schema.Resource {
+	return &schema.Resource{
+
+		Description: `
+* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/datasource_permissions/)
+`,
+
+		CreateContext: UpdateDatasourcePermissions,
+		ReadContext:   ReadDatasourcePermissions,
+		UpdateContext: UpdateDatasourcePermissions,
+		DeleteContext: DeleteDatasourcePermissions,
+
+		Schema: map[string]*schema.Schema{
+			"datasource_id": {
+				Type:        schema.TypeInt,
+				Required:    true,
+				ForceNew:    true,
+				Description: "ID of the datasource to apply permissions to.",
+			},
+			"permissions": {
+				Type:        schema.TypeSet,
+				Required:    true,
+				Description: "The permission items to add/update. Items that are omitted from the list will be removed.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"team_id": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     0,
+							Description: "ID of the team to manage permissions for.",
+						},
+						"user_id": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     0,
+							Description: "ID of the user to manage permissions for.",
+						},
+						"permission": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validation.StringInSlice([]string{"Query"}, false),
+							Description:  "Permission to associate with item. Must be `Query`.",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
+
+	v, ok := d.GetOk("permissions")
+	if !ok {
+		return nil
+	}
+	datasourceID := int64(d.Get("datasource_id").(int))
+
+	configuredPermissions := []*gapi.DatasourcePermissionAddPayload{}
+	for _, permission := range v.(*schema.Set).List() {
+		permission := permission.(map[string]interface{})
+		permissionItem := gapi.DatasourcePermissionAddPayload{}
+		if permission["team_id"].(int) != -1 {
+			permissionItem.TeamID = int64(permission["team_id"].(int))
+		}
+		if permission["user_id"].(int) != -1 {
+			permissionItem.UserID = int64(permission["user_id"].(int))
+		}
+		permissionItem.Permission = mapDatasourcePermissionStringToInt64(permission["permission"].(string))
+		configuredPermissions = append(configuredPermissions, &permissionItem)
+	}
+
+	if err := updateDatasourcePermissions(client, datasourceID, configuredPermissions, true, false); err != nil {
+		return diag.FromErr(err)
+	}
+
+	d.SetId(strconv.FormatInt(datasourceID, 10))
+
+	return ReadDatasourcePermissions(ctx, d, meta)
+}
+
+func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
+
+	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	response, err := client.DatasourcePermissions(id)
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "status: 404") {
+			log.Printf("[WARN] removing datasource permissions %d from state because it no longer exists in grafana", id)
+			d.SetId("")
+			return nil
+		}
+
+		return diag.FromErr(err)
+	}
+
+	permissionItems := make([]interface{}, len(response.Permissions))
+	count := 0
+	for _, permission := range response.Permissions {
+		permissionItem := make(map[string]interface{})
+		permissionItem["team_id"] = permission.TeamID
+		permissionItem["user_id"] = permission.UserID
+		permissionItem["permission"] = mapDatasourcePermissionInt64ToString(permission.Permission)
+
+		permissionItems[count] = permissionItem
+		count++
+	}
+
+	d.Set("permissions", permissionItems)
+
+	return nil
+}
+
+func DeleteDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
+
+	datasourceID := int64(d.Get("datasource_id").(int))
+
+	if err := updateDatasourcePermissions(client, datasourceID, []*gapi.DatasourcePermissionAddPayload{}, false, true); err != nil {
+		if strings.HasPrefix(err.Error(), "status: 404") {
+			log.Printf("[WARN] removing datasource permissions %d from state because it no longer exists in grafana", datasourceID)
+			d.SetId("")
+			return nil
+		}
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func updateDatasourcePermissions(client *gapi.Client, id int64, permissions []*gapi.DatasourcePermissionAddPayload, enable, disable bool) error {
+	areEqual := func(a *gapi.DatasourcePermission, b *gapi.DatasourcePermissionAddPayload) bool {
+		return a.Permission == b.Permission && a.TeamID == b.TeamID && a.UserID == b.UserID
+	}
+
+	response, err := client.DatasourcePermissions(id)
+	if err != nil {
+		return err
+	}
+
+	if !response.Enabled {
+		if enable {
+			if err := client.EnableDatasourcePermissions(id); err != nil {
+				return err
+			}
+		} else if disable {
+			return nil
+		} else {
+			return fmt.Errorf("datasource permissions are disabled")
+		}
+	}
+
+deleteLoop:
+	for _, current := range response.Permissions {
+		for _, new := range permissions {
+			if areEqual(current, new) {
+				continue deleteLoop
+			}
+		}
+
+		err := client.RemoveDatasourcePermission(id, current.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+addLoop:
+	for _, new := range permissions {
+		for _, current := range response.Permissions {
+			if areEqual(current, new) {
+				continue addLoop
+			}
+		}
+
+		err := client.AddDatasourcePermission(id, new)
+		if err != nil {
+			return err
+		}
+	}
+
+	if response.Enabled {
+		if disable {
+			if err := client.DisableDatasourcePermissions(id); err != nil {
+				return err
+			}
+		} else if enable {
+			return nil
+		} else {
+			return fmt.Errorf("datasource permissions are enabled when they should be disabled")
+		}
+	}
+
+	return nil
+}
+
+func mapDatasourcePermissionStringToInt64(permission string) int64 {
+	if permission == "Query" {
+		return 1
+	}
+	return -1
+}
+
+func mapDatasourcePermissionInt64ToString(permission int64) string {
+	if permission == 1 {
+		return "Query"
+	}
+	return "None"
+}
