@@ -116,15 +116,13 @@ func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta
 	}
 
 	permissionItems := make([]interface{}, len(response.Permissions))
-	count := 0
-	for _, permission := range response.Permissions {
+	for i, permission := range response.Permissions {
 		permissionItem := make(map[string]interface{})
 		permissionItem["team_id"] = permission.TeamID
 		permissionItem["user_id"] = permission.UserID
 		permissionItem["permission"] = mapDatasourcePermissionInt64ToString(permission.Permission)
 
-		permissionItems[count] = permissionItem
-		count++
+		permissionItems[i] = permissionItem
 	}
 
 	d.Set("permissions", permissionItems)
