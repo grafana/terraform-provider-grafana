@@ -83,7 +83,10 @@ func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 		if permission["user_id"].(int) != -1 {
 			permissionItem.UserID = int64(permission["user_id"].(int))
 		}
-		permissionItem.Permission = mapDatasourcePermissionStringToInt64(permission["permission"].(string))
+		var err error
+		if permissionItem.Permission, err = mapDatasourcePermissionStringToType(permission["permission"].(string)); err != nil {
+			return diag.FromErr(err)
+		}
 		configuredPermissions = append(configuredPermissions, &permissionItem)
 	}
 
@@ -120,7 +123,9 @@ func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta
 		permissionItem := make(map[string]interface{})
 		permissionItem["team_id"] = permission.TeamID
 		permissionItem["user_id"] = permission.UserID
-		permissionItem["permission"] = mapDatasourcePermissionInt64ToString(permission.Permission)
+		if permissionItem["permission"], err = mapDatasourcePermissionTypeToString(permission.Permission); err != nil {
+			return diag.FromErr(err)
+		}
 
 		permissionItems[i] = permissionItem
 	}
@@ -212,16 +217,16 @@ addLoop:
 	return nil
 }
 
-func mapDatasourcePermissionStringToInt64(permission string) int64 {
+func mapDatasourcePermissionStringToType(permission string) (gapi.DatasourcePermissionType, error) {
 	if permission == "Query" {
-		return 1
+		return gapi.DatasourcePermissionQuery, nil
 	}
-	return -1
+	return 0, fmt.Errorf("unknown datasource permission: %s", permission)
 }
 
-func mapDatasourcePermissionInt64ToString(permission int64) string {
-	if permission == 1 {
-		return "Query"
+func mapDatasourcePermissionTypeToString(permission gapi.DatasourcePermissionType) (string, error) {
+	if permission == gapi.DatasourcePermissionQuery {
+		return "Query", nil
 	}
-	return "None"
+	return "", fmt.Errorf("unknown permission type: %d", permission)
 }
