@@ -1,5 +1,7 @@
 local grafana = 'grafana/grafana:8.0.3';
 local build = 'grafana/build-container:1.4.7';
+local goImage = 'golang:1.16-alpine';
+
 
 local secret(name, vaultPath, vaultKey) = {
   kind: 'secret',
@@ -18,6 +20,9 @@ local pipeline(name, steps, services=[]) = {
   kind: 'pipeline',
   type: 'docker',
   name: name,
+  workspace: {
+    path: '/drone/terraform-provider-grafana',
+  },
   platform: {
     os: 'linux',
     arch: 'amd64',
@@ -39,6 +44,23 @@ local pipeline(name, steps, services=[]) = {
         commands: [
           'golangci-lint --version',
           'golangci-lint run ./...',
+        ],
+      },
+    ]
+  ),
+
+  pipeline(
+    'docs', steps=[
+      {
+        name: 'check for drift',
+        image: goImage,
+        commands: [
+          'apk add git',
+          'go generate',
+          'if [ -n "$(git status --porcelain)" ]; then',
+          '  echo "docs are out of sync, run \\"go generate\\""',
+          '  exit 1',
+          'fi',
         ],
       },
     ]
