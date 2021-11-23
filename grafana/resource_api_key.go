@@ -62,6 +62,7 @@ func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
+	d.SetId(strconv.FormatInt(response.ID, 10))
 	d.Set("key", response.Key)
 
 	// Fill the true resource's state after a create by performing a read
@@ -75,9 +76,12 @@ func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
-	name := d.Get("name").(string)
+	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	for _, key := range response {
-		if name == key.Name {
+		if id == key.ID {
 			d.SetId(strconv.FormatInt(key.ID, 10))
 			d.Set("name", key.Name)
 			d.Set("role", key.Role)
