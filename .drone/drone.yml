@@ -18,6 +18,34 @@ trigger:
   - pull_request
   - push
 type: docker
+workspace:
+  path: /drone/terraform-provider-grafana
+---
+kind: pipeline
+name: docs
+platform:
+  arch: amd64
+  os: linux
+services: []
+steps:
+- commands:
+  - apk add git
+  - go generate
+  - if [ -n "$(git status --porcelain)" ]; then
+  - '  echo "docs are out of sync, run \"go generate\""'
+  - '  exit 1'
+  - fi
+  image: golang:1.16-alpine
+  name: check for drift
+trigger:
+  branch:
+  - master
+  event:
+  - pull_request
+  - push
+type: docker
+workspace:
+  path: /drone/terraform-provider-grafana
 ---
 kind: pipeline
 name: oss tests
@@ -46,6 +74,8 @@ trigger:
   - pull_request
   - push
 type: docker
+workspace:
+  path: /drone/terraform-provider-grafana
 ---
 kind: pipeline
 name: cloud tests
@@ -72,6 +102,8 @@ trigger:
   - pull_request
   - push
 type: docker
+workspace:
+  path: /drone/terraform-provider-grafana
 ---
 get:
   name: api-key
@@ -86,6 +118,6 @@ kind: secret
 name: grafana-sm-token
 ---
 kind: signature
-hmac: 89fe5fce8f18f6fea07e8250974711c58f963bea1f33947247691c48d3a1f858
+hmac: d9dcbbdd0a9eedf0cc4a65dea61814a43023f96161a3363ef25357322c03fda3
 
 ...
