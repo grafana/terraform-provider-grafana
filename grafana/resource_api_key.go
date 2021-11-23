@@ -12,6 +12,12 @@ import (
 
 func ResourceAPIKey() *schema.Resource {
 	return &schema.Resource{
+		Description: `
+Manages Grafana API Keys.
+
+* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/auth/)
+`,
+
 		CreateContext: resourceAPIKeyCreate,
 		ReadContext:   resourceAPIKeyRead,
 		DeleteContext: resourceAPIKeyDelete,
