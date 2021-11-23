@@ -7,6 +7,7 @@ import (
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func ResourceAPIKey() *schema.Resource {
@@ -22,9 +23,10 @@ func ResourceAPIKey() *schema.Resource {
 				ForceNew: true,
 			},
 			"role": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringInSlice([]string{"Viewer", "Editor", "Admin"}, false),
 			},
 			"seconds_to_live": {
 				Type:     schema.TypeInt,
