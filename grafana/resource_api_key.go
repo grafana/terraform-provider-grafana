@@ -49,8 +49,6 @@ func ResourceAPIKey() *schema.Resource {
 }
 
 func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
 	name := d.Get("name").(string)
 	role := d.Get("role").(string)
 	ttl := d.Get("seconds_to_live").(int)
@@ -69,8 +67,6 @@ func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 }
 
 func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
 	c := m.(*client).gapi
 	response, err := c.GetAPIKeys(true)
 	if err != nil {
@@ -88,19 +84,17 @@ func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 				d.Set("expiration", key.Expiration.String())
 			}
 
-			return diags
+			return nil
 		}
 	}
 
 	// Resource was not found via the client. Have Terraform destroy it.
 	d.SetId("")
 
-	return diags
+	return nil
 }
 
 func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
 	id, err := strconv.ParseInt(d.Id(), 10, 32)
 	if err != nil {
 		return diag.FromErr(err)
@@ -112,5 +106,5 @@ func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	return diags
+	return nil
 }
