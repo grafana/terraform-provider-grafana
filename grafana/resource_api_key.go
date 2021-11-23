@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceApiKey() *schema.Resource {
+func ResourceAPIKey() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceAPIKeyCreate,
 		ReadContext:   resourceAPIKeyRead,
