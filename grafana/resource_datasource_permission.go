@@ -162,15 +162,9 @@ func updateDatasourcePermissions(client *gapi.Client, id int64, permissions []*g
 		return err
 	}
 
-	if !response.Enabled {
-		if enable {
-			if err := client.EnableDatasourcePermissions(id); err != nil {
-				return err
-			}
-		} else if disable {
-			return nil
-		} else {
-			return fmt.Errorf("datasource permissions are disabled")
+	if !response.Enabled && enable {
+		if err := client.EnableDatasourcePermissions(id); err != nil {
+			return err
 		}
 	}
 
@@ -202,15 +196,9 @@ addLoop:
 		}
 	}
 
-	if response.Enabled {
-		if disable {
-			if err := client.DisableDatasourcePermissions(id); err != nil {
-				return err
-			}
-		} else if enable {
-			return nil
-		} else {
-			return fmt.Errorf("datasource permissions are enabled when they should be disabled")
+	if response.Enabled && disable {
+		if err := client.DisableDatasourcePermissions(id); err != nil {
+			return err
 		}
 	}
 
