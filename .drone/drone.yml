@@ -1,71 +1,91 @@
 ---
 kind: pipeline
-type: docker
-name: test-pr
-
+name: lint
 platform:
-  os: linux
   arch: amd64
-
+  os: linux
+services: []
 steps:
-- name: tests
-  image: grafana/build-container:1.4.1
-  commands:
-  - sleep 5
+- commands:
   - golangci-lint --version
   - golangci-lint run ./...
-  - make testacc
-  environment:
-    GRAFANA_AUTH: admin:admin
-    GRAFANA_ORG_ID: 1
-    GRAFANA_URL: http://grafana:3000
-
-services:
-- name: grafana
-  image: grafana/grafana:8.0.3
-  environment:
-    GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
-
-trigger:
-  event:
-  - pull_request
-
----
-kind: pipeline
-type: docker
-name: build-master
-
-platform:
-  os: linux
-  arch: amd64
-
-steps:
-- name: tests
-  image: grafana/build-container:1.4.1
-  commands:
-  - sleep 5
-  - golangci-lint --version
-  - golangci-lint run ./...
-  - make testacc
-  environment:
-    GRAFANA_AUTH: admin:admin
-    GRAFANA_ORG_ID: 1
-    GRAFANA_URL: http://grafana:3000
-
-services:
-- name: grafana
-  image: grafana/grafana:8.0.3
-  environment:
-    GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
-
+  image: grafana/build-container:1.4.7
+  name: lint
 trigger:
   branch:
   - master
   event:
+  - pull_request
   - push
-
+type: docker
+---
+kind: pipeline
+name: oss tests
+platform:
+  arch: amd64
+  os: linux
+services:
+- environment:
+    GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
+  image: grafana/grafana:8.0.3
+  name: grafana
+steps:
+- commands:
+  - sleep 5
+  - make testacc-oss
+  environment:
+    GRAFANA_AUTH: admin:admin
+    GRAFANA_ORG_ID: 1
+    GRAFANA_URL: http://grafana:3000
+  image: grafana/build-container:1.4.7
+  name: tests
+trigger:
+  branch:
+  - master
+  event:
+  - pull_request
+  - push
+type: docker
+---
+kind: pipeline
+name: cloud tests
+platform:
+  arch: amd64
+  os: linux
+services: []
+steps:
+- commands:
+  - make testacc-cloud
+  environment:
+    GRAFANA_AUTH:
+      from_secret: grafana-api-token
+    GRAFANA_ORG_ID: 1
+    GRAFANA_SM_ACCESS_TOKEN:
+      from_secret: grafana-sm-token
+    GRAFANA_URL: https://terraformprovidergrafana.grafana.net/
+  image: grafana/build-container:1.4.7
+  name: tests
+trigger:
+  branch:
+  - master
+  event:
+  - pull_request
+  - push
+type: docker
+---
+get:
+  name: api-key
+  path: infra/data/ci/terraform-provider-grafana/cloud
+kind: secret
+name: grafana-api-token
+---
+get:
+  name: sm-access-token
+  path: infra/data/ci/terraform-provider-grafana/cloud
+kind: secret
+name: grafana-sm-token
 ---
 kind: signature
-hmac: e720237ec519da396e1c93fba1b538353b1df9d3965095a3230ff640ae5b4bdd
+hmac: 89fe5fce8f18f6fea07e8250974711c58f963bea1f33947247691c48d3a1f858
 
 ...

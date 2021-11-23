@@ -40,18 +40,18 @@ provider "grafana" {
 
 ## Authentication
 
-### auth
+### `auth`
 
 This can be a Grafana API key, basic auth `username:password`, or a
-[Grafana Cloud API key](https://grafana.com/docs/grafana-cloud/cloud-portal/create-api-key/).
+[Grafana API key](https://grafana.com/docs/grafana/latest/http_api/create-api-tokens-for-org/).
 
-### sm\_access\_token
+### `sm_access_token`
 
 [Synthetic Monitoring](https://grafana.com/docs/grafana-cloud/synthetic-monitoring/)
 endpoints require a dedicated access token. You may obtain an access token with its
 [Registration API](https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#registration-api).
 
-```
+```console
 curl \
   -X POST \
   -H 'Content-type: application/json; charset=utf-8' \
@@ -74,19 +74,19 @@ the portal. First you need to create a Stack by clicking "Add Stack". When it's
 created you will be taken to its landing page on the portal. Get your `stackId`
 from the URL in your browser:
 
-```
+```http
 https://grafana.com/orgs/<org-slug>/stacks/<stack-id>
 ```
 
 Next, go to "Details" for Prometheus. Again, get `metricsInstanceId` from your URL:
 
-```
+```http
 https://grafana.com/orgs/<org-slug>/hosted-metrics/<metrics-instance-id>
 ```
 
 Finally, go back to your stack page, and go to "Details" for Loki to get
 `logsInstanceId`.
 
-```
+```http
 https://grafana.com/orgs/<org-slug>/hosted-logs/<logs-instance-id>
 ```
