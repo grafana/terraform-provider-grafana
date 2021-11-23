@@ -1,3 +1,6 @@
+//go:build oss
+// +build oss
+
 package grafana
 
 import (
@@ -28,7 +31,7 @@ func TestAccGrafanaAuthKey(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccGrafanaAuthKeyDestroy,
+		CheckDestroy:      testAccGrafanaAuthKeyCheckDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGrafanaAuthKeyBasicConfig,
@@ -46,7 +49,7 @@ func TestAccGrafanaAuthKey(t *testing.T) {
 	})
 }
 
-func testAccGrafanaAuthKeyDestroy(s *terraform.State) error {
+func testAccGrafanaAuthKeyCheckDestroy(s *terraform.State) error {
 	c := testAccProvider.Meta().(*client).gapi
 
 	for _, rs := range s.RootModule().Resources {
@@ -61,8 +64,8 @@ func testAccGrafanaAuthKeyDestroy(s *terraform.State) error {
 		}
 
 		_, err = c.DeleteAPIKey(id)
-		if err != nil {
-			return err
+		if err == nil {
+			return fmt.Errorf("api key still exists")
 		}
 	}
 
