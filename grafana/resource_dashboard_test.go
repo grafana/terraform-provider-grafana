@@ -146,6 +146,7 @@ func TestAccDashboard_folder(t *testing.T) {
 				Config: testAccExample(t, "resources/grafana_dashboard/_acc_folder.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test_folder", &dashboard),
+					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
 					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
 					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "folder"),
 					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", "folder"),
@@ -204,9 +205,9 @@ func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.
 		if err == nil {
 			return fmt.Errorf("dashboard still exists")
 		}
-		_, err = client.Folder(folder.ID)
+		folder, err = client.Folder(folder.ID)
 		if err == nil {
-			return fmt.Errorf("folder still exists")
+			return fmt.Errorf("the following folder still exists: %s", folder.Title)
 		}
 		return nil
 	}
