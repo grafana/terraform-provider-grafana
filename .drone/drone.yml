@@ -31,7 +31,9 @@ steps:
 - commands:
   - apk add git
   - go generate
-  - if [ -n "$(git status --porcelain)" ]; then
+  - gitstatus="$(git status --porcelain)"
+  - if [ -n "$gitstatus" ]; then
+  - '  echo "$gitstatus"'
   - '  echo "docs are out of sync, run \"go generate\""'
   - '  exit 1'
   - fi
@@ -118,6 +120,6 @@ kind: secret
 name: grafana-sm-token
 ---
 kind: signature
-hmac: 1a3927e9946f0d8c6de54b49b1b74effa4c33beed747cc0f2ea637d147187aba
+hmac: 309ebe722ec79c0757942e8b3abc29ff11f472844c9a9bff8231d8c7c20616ed
 
 ...

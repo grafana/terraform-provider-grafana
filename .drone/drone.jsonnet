@@ -57,7 +57,9 @@ local pipeline(name, steps, services=[]) = {
         commands: [
           'apk add git',
           'go generate',
-          'if [ -n "$(git status --porcelain)" ]; then',
+          'gitstatus="$(git status --porcelain)"',
+          'if [ -n "$gitstatus" ]; then',
+          '  echo "$gitstatus"',
           '  echo "docs are out of sync, run \\"go generate\\""',
           '  exit 1',
           'fi',
