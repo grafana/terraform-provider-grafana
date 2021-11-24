@@ -55,7 +55,7 @@ platform:
 services:
 - environment:
     GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
-  image: grafana/grafana:8.0.3
+  image: grafana/grafana:8.2.5
   name: grafana
 steps:
 - commands:
@@ -118,6 +118,6 @@ kind: secret
 name: grafana-sm-token
 ---
 kind: signature
-hmac: d9dcbbdd0a9eedf0cc4a65dea61814a43023f96161a3363ef25357322c03fda3
+hmac: 1a3927e9946f0d8c6de54b49b1b74effa4c33beed747cc0f2ea637d147187aba
 
 ...

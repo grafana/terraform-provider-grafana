@@ -1,4 +1,4 @@
-local grafana = 'grafana/grafana:8.0.3';
+local grafana = 'grafana/grafana:8.2.5';
 local build = 'grafana/build-container:1.4.7';
 local goImage = 'golang:1.16-alpine';
 
