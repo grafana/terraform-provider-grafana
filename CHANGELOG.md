@@ -1,5 +1,27 @@
 # Changelog
 
+## [v1.16.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.16.0) (2021-11-24)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.15.0...v1.16.0)
+
+**Implemented enhancements:**
+
+- CI for Cloud Acceptance Tests [\#226](https://github.com/grafana/terraform-provider-grafana/issues/226)
+- New feature: datasource permissions [\#205](https://github.com/grafana/terraform-provider-grafana/issues/205)
+- Support management of API Keys. [\#143](https://github.com/grafana/terraform-provider-grafana/issues/143)
+
+**Merged pull requests:**
+
+- docs: Print out the files that are out of sync [\#298](https://github.com/grafana/terraform-provider-grafana/pull/298) ([julienduchesne](https://github.com/julienduchesne))
+- Update the grafana version to 8.2.5 in tests [\#297](https://github.com/grafana/terraform-provider-grafana/pull/297) ([julienduchesne](https://github.com/julienduchesne))
+- Check for docs drift [\#296](https://github.com/grafana/terraform-provider-grafana/pull/296) ([julienduchesne](https://github.com/julienduchesne))
+- Api key support [\#295](https://github.com/grafana/terraform-provider-grafana/pull/295) ([baloo](https://github.com/baloo))
+- Run cloud tests in CI [\#293](https://github.com/grafana/terraform-provider-grafana/pull/293) ([julienduchesne](https://github.com/julienduchesne))
+- Bump github.com/hashicorp/terraform-plugin-sdk/v2 from 2.8.0 to 2.9.0 [\#292](https://github.com/grafana/terraform-provider-grafana/pull/292) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Add `grafana\_data\_source\_permission` resource [\#289](https://github.com/grafana/terraform-provider-grafana/pull/289) ([julienduchesne](https://github.com/julienduchesne))
+- Bump github.com/grafana/synthetic-monitoring-agent from 0.0.24 to 0.3.3 [\#288](https://github.com/grafana/terraform-provider-grafana/pull/288) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump github.com/grafana/synthetic-monitoring-api-go-client from 0.0.2 to 0.3.0 [\#282](https://github.com/grafana/terraform-provider-grafana/pull/282) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [v1.15.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.15.0) (2021-11-19)
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.14.0...v1.15.0)
@@ -199,7 +221,6 @@
 
 - Refactor CI [\#158](https://github.com/grafana/terraform-provider-grafana/issues/158)
 - \[feature request\] Support "sendReminder" and "frequency" options in the alert notification resource [\#62](https://github.com/grafana/terraform-provider-grafana/issues/62)
-- grafana\_user is importable [\#125](https://github.com/grafana/terraform-provider-grafana/pull/125) ([trotttrotttrott](https://github.com/trotttrotttrott))
 
 **Closed issues:**
 
@@ -217,6 +238,7 @@
 - Allow dependabot to check go modules [\#165](https://github.com/grafana/terraform-provider-grafana/pull/165) ([jlosito](https://github.com/jlosito))
 - Adding profile field to JSON Data [\#164](https://github.com/grafana/terraform-provider-grafana/pull/164) ([grlvrl](https://github.com/grlvrl))
 - is\_admin added to grafana\_user. [\#157](https://github.com/grafana/terraform-provider-grafana/pull/157) ([AlirezaKm](https://github.com/AlirezaKm))
+- Add full Stackdriver data source support [\#155](https://github.com/grafana/terraform-provider-grafana/pull/155) ([ryanaross](https://github.com/ryanaross))
 - r/grafana\_alert\_notification Add disable\_resolve\_message [\#145](https://github.com/grafana/terraform-provider-grafana/pull/145) ([Puneeth-n](https://github.com/Puneeth-n))
 - feat: add new TLS configuration options [\#133](https://github.com/grafana/terraform-provider-grafana/pull/133) ([joemiller](https://github.com/joemiller))
 
@@ -244,10 +266,10 @@
 
 **Merged pull requests:**
 
-- Add full Stackdriver data source support [\#155](https://github.com/grafana/terraform-provider-grafana/pull/155) ([ryanaross](https://github.com/ryanaross))
 - Add support for dashboard permissions [\#150](https://github.com/grafana/terraform-provider-grafana/pull/150) ([pascal-hofmann](https://github.com/pascal-hofmann))
 - Updated dead link in documentation - data\_sources [\#149](https://github.com/grafana/terraform-provider-grafana/pull/149) ([WilliamDahlen](https://github.com/WilliamDahlen))
 - Do not delete dashboard uid fields [\#136](https://github.com/grafana/terraform-provider-grafana/pull/136) ([gw0](https://github.com/gw0))
+- Adding folder permission functionality [\#128](https://github.com/grafana/terraform-provider-grafana/pull/128) ([jonathan-dorsey](https://github.com/jonathan-dorsey))
 - Add organization id to the provider. [\#110](https://github.com/grafana/terraform-provider-grafana/pull/110) ([medains](https://github.com/medains))
 
 ## [v1.7.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.7.0) (2020-11-06)
@@ -264,7 +286,6 @@
 - Add folder resource import [\#132](https://github.com/grafana/terraform-provider-grafana/pull/132) ([zombispormedio](https://github.com/zombispormedio))
 - Add team preferences functionality to provider [\#131](https://github.com/grafana/terraform-provider-grafana/pull/131) ([jonathan-dorsey](https://github.com/jonathan-dorsey))
 - Apply changes to match the change to a Config struct [\#130](https://github.com/grafana/terraform-provider-grafana/pull/130) ([medains](https://github.com/medains))
-- Adding folder permission functionality [\#128](https://github.com/grafana/terraform-provider-grafana/pull/128) ([jonathan-dorsey](https://github.com/jonathan-dorsey))
 - Change user lists to sets [\#116](https://github.com/grafana/terraform-provider-grafana/pull/116) ([medains](https://github.com/medains))
 
 ## [v1.6.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.6.0) (2020-10-16)
@@ -278,6 +299,7 @@
 - \[Feature Request\] Support setting version for Elasticsearch datasource [\#54](https://github.com/grafana/terraform-provider-grafana/issues/54)
 - Allow skipping TLS verify in datasources [\#42](https://github.com/grafana/terraform-provider-grafana/issues/42)
 - Targets/Docs for Releases and Changelog Generation [\#127](https://github.com/grafana/terraform-provider-grafana/pull/127) ([trotttrotttrott](https://github.com/trotttrotttrott))
+- grafana\_user is importable [\#125](https://github.com/grafana/terraform-provider-grafana/pull/125) ([trotttrotttrott](https://github.com/trotttrotttrott))
 - Automated Releases [\#123](https://github.com/grafana/terraform-provider-grafana/pull/123) ([trotttrotttrott](https://github.com/trotttrotttrott))
 - resource/data\_source: add support for stackdriver privatekey [\#100](https://github.com/grafana/terraform-provider-grafana/pull/100) ([anGie44](https://github.com/anGie44))
 - Add uid value to alert notification resource [\#87](https://github.com/grafana/terraform-provider-grafana/pull/87) ([58231](https://github.com/58231))
@@ -370,10 +392,6 @@
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.0.2...v1.1.0)
 
-**Implemented enhancements:**
-
-- alert\_notification/dashboard: fix compatibility with grafana 5.0 [\#17](https://github.com/grafana/terraform-provider-grafana/pull/17) ([pearkes](https://github.com/pearkes))
-
 **Closed issues:**
 
 - Upstream Library Ownership [\#26](https://github.com/grafana/terraform-provider-grafana/issues/26)
@@ -387,6 +405,10 @@
 ## [v1.0.2](https://github.com/grafana/terraform-provider-grafana/tree/v1.0.2) (2018-04-18)
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.0.1...v1.0.2)
+
+**Implemented enhancements:**
+
+- alert\_notification/dashboard: fix compatibility with grafana 5.0 [\#17](https://github.com/grafana/terraform-provider-grafana/pull/17) ([pearkes](https://github.com/pearkes))
 
 **Closed issues:**
 
