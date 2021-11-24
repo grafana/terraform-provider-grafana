@@ -105,6 +105,7 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_dashboard":               ResourceDashboard(),
 				"grafana_dashboard_permission":    ResourceDashboardPermission(),
 				"grafana_data_source":             ResourceDataSource(),
+				"grafana_data_source_permission":  ResourceDatasourcePermission(),
 				"grafana_folder":                  ResourceFolder(),
 				"grafana_folder_permission":       ResourceFolderPermission(),
 				"grafana_organization":            ResourceOrganization(),
