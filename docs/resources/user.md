@@ -42,6 +42,7 @@ resource "grafana_user" "staff" {
 - **is_admin** (Boolean) Whether to make user an admin. Defaults to `false`.
 - **login** (String) The username for the Grafana user.
 - **name** (String) The display name for the Grafana user.
+- **org_id** (Number) The organization ID to which the user must belong.
 
 ### Read-Only
 

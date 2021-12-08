@@ -55,6 +55,11 @@ does not currently work with API Tokens. You must use basic auth.
 				Sensitive:   true,
 				Description: "The password for the Grafana user.",
 			},
+			"org_id": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The OrgID for the Grafana user.",
+			},
 			"is_admin": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -72,6 +77,7 @@ func CreateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		Name:     d.Get("name").(string),
 		Login:    d.Get("login").(string),
 		Password: d.Get("password").(string),
+		OrgID:    int64(d.Get("org_id").(int)),
 	}
 	id, err := client.CreateUser(user)
 	if err != nil {
