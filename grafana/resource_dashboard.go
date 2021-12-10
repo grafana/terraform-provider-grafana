@@ -260,7 +260,7 @@ func makeDashboard(d *schema.ResourceData) gapi.Dashboard {
 	dashboard := gapi.Dashboard{
 		Folder:    int64(d.Get("folder").(int)),
 		Overwrite: d.Get("overwrite").(bool),
-		Message:	 d.Get("message").(string),
+		Message:   d.Get("message").(string),
 	}
 	configJSON := d.Get("config_json").(string)
 	dashboardJSON, err := unmarshalDashboardConfigJSON(configJSON)
