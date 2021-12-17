@@ -17,6 +17,12 @@ func TestAccDatasourceFolder(t *testing.T) {
 		resource.TestCheckResourceAttr(
 			"data.grafana_folder.from_title", "title", "test-folder",
 		),
+		resource.TestMatchResourceAttr(
+			"data.grafana_folder.from_title", "id", regexp.MustCompile(`^\d+$`),
+		),
+		resource.TestMatchResourceAttr(
+			"data.grafana_folder.from_title", "uid", regexp.MustCompile(`^[a-zA-Z0-9-]+$`),
+		),
 	}
 
 	resource.Test(t, resource.TestCase{
