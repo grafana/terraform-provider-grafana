@@ -1,6 +1,3 @@
-//go:build oss
-// +build oss
-
 package grafana
 
 import (
@@ -28,6 +25,8 @@ resource "grafana_api_key" "bar" {
 `
 
 func TestAccGrafanaAuthKey(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,

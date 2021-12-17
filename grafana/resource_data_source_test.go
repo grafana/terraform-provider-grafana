@@ -1,6 +1,3 @@
-//go:build oss
-// +build oss
-
 package grafana
 
 import (
@@ -298,6 +295,8 @@ resource "grafana_data_source" "testdata" {
 }
 
 func TestAccDataSource_basic(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var dataSource gapi.DataSource
 
 	// Iterate over the provided configurations for datasources

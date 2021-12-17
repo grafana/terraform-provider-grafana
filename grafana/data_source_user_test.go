@@ -1,6 +1,3 @@
-//go:build oss
-// +build oss
-
 package grafana
 
 import (
@@ -11,6 +8,8 @@ import (
 )
 
 func TestAccDatasourceUser(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var user gapi.User
 	checks := []resource.TestCheckFunc{
 		testAccUserCheckExists("grafana_user.test", &user),

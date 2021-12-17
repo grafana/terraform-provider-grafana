@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"sync"
 	"testing"
 
@@ -78,8 +79,7 @@ func testAccPreCheck(t *testing.T) {
 	})
 }
 
-// testAccPreCheckCloud should be called by acceptance tests in files where the
-// "cloud" build tag is present.
+// testAccPreCheckCloud should be called by cloud acceptance tests
 func testAccPreCheckCloud(t *testing.T) {
 	testAccPreCheckEnv = append(testAccPreCheckEnv, "GRAFANA_SM_ACCESS_TOKEN")
 	testAccPreCheck(t)
@@ -93,4 +93,37 @@ func testAccExample(t *testing.T, path string) string {
 		t.Fatal(err)
 	}
 	return string(example)
+}
+
+func accTestsEnabled(t *testing.T, envVarName string) bool {
+	v, ok := os.LookupEnv(envVarName)
+	if !ok {
+		return false
+	}
+	enabled, err := strconv.ParseBool(v)
+	if err != nil {
+		t.Fatalf("%s must be set to a boolean value", envVarName)
+	}
+	return enabled
+}
+
+func CheckOSSTestsEnabled(t *testing.T) {
+	t.Helper()
+	if !accTestsEnabled(t, "TF_ACC_OSS") {
+		t.Skip("TF_ACC_OSS must be set to a truthy value for OSS acceptance tests")
+	}
+}
+
+func CheckCloudTestsEnabled(t *testing.T) {
+	t.Helper()
+	if !accTestsEnabled(t, "TF_ACC_CLOUD") {
+		t.Skip("TF_ACC_CLOUD must be set to a truthy value for Cloud acceptance tests")
+	}
+}
+
+func CheckEnterpriseTestsEnabled(t *testing.T) {
+	t.Helper()
+	if !accTestsEnabled(t, "TF_ACC_ENTERPRISE") {
+		t.Skip("TF_ACC_ENTERPRISE must be set to a truthy value for Enterprise acceptance tests")
+	}
 }

@@ -1,6 +1,3 @@
-//go:build cloud
-// +build cloud
-
 package grafana
 
 import (
@@ -10,6 +7,8 @@ import (
 )
 
 func TestAccResourceSyntheticMonitoringProbe(t *testing.T) {
+	CheckCloudTestsEnabled(t)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheckCloud(t) },
 		ProviderFactories: testAccProviderFactories,

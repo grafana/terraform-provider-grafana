@@ -1,6 +1,3 @@
-//go:build oss
-// +build oss
-
 package grafana
 
 import (
@@ -16,6 +13,8 @@ import (
 )
 
 func TestAccUser_basic(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var user gapi.User
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },

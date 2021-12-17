@@ -3,29 +3,31 @@ GRAFANA_VERSION ?= 8.2.5
 testacc:
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
 
-testacc-oss: TESTARGS+=-tags='oss'
-testacc-oss: testacc
+testacc-oss: 
+	TF_ACC_OSS=true make testacc
 
-testacc-enterprise: TESTARGS+=-tags='enterprise'
-testacc-enterprise: testacc
+testacc-enterprise:
+	TF_ACC_ENTERPRISE=true make testacc
 
-testacc-cloud: TESTARGS+=-tags='cloud'
-testacc-cloud: testacc
+testacc-cloud:
+	TF_ACC_CLOUD=true make testacc
 
 testacc-docker:
 	GRAFANA_VERSION=$(GRAFANA_VERSION) \
 		docker-compose \
 		-f ./docker-compose.yml \
-		run --rm grafana-provider \
-		make testacc TESTARGS="-tags='oss' $(TESTARGS)"
+		run --rm -e TESTARGS="$(TESTARGS)" \
+		grafana-provider \
+		make testacc-oss
 
 testacc-docker-tls:
 	GRAFANA_VERSION=$(GRAFANA_VERSION) \
 		docker-compose \
 		-f ./docker-compose.yml \
 		-f ./docker-compose.tls.yml \
-		run --rm grafana-provider \
-		make testacc TESTARGS="-tags='oss' $(TESTARGS)"
+		run --rm -e TESTARGS="$(TESTARGS)" \
+		grafana-provider \
+		make testacc-oss
 
 changelog:
 	@test $${RELEASE_VERSION?Please set environment variable RELEASE_VERSION}

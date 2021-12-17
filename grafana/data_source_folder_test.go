@@ -1,6 +1,3 @@
-//go:build oss
-// +build oss
-
 package grafana
 
 import (
@@ -12,6 +9,8 @@ import (
 )
 
 func TestAccDatasourceFolder(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var folder gapi.Folder
 	checks := []resource.TestCheckFunc{
 		testAccFolderCheckExists("grafana_folder.test", &folder),

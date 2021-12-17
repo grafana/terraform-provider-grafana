@@ -1,6 +1,3 @@
-//go:build oss
-// +build oss
-
 package grafana
 
 import (
@@ -12,6 +9,8 @@ import (
 )
 
 func TestAccFolderPermission_basic(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	folderUID := "uninitialized"
 
 	resource.Test(t, resource.TestCase{

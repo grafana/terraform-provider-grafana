@@ -1,6 +1,3 @@
-//go:build cloud
-// +build cloud
-
 package grafana
 
 import (
@@ -13,6 +10,8 @@ import (
 )
 
 func TestAccDatasourcePermission_basic(t *testing.T) {
+	CheckCloudTestsEnabled(t)
+
 	datasourceID := int64(-1)
 
 	resource.Test(t, resource.TestCase{
