@@ -74,6 +74,11 @@ Manages Grafana dashboards.
 				Optional:    true,
 				Description: "Set to true if you want to overwrite existing dashboard with newer version, same dashboard title in folder or same dashboard uid.",
 			},
+			"message": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Set a commit message for the version history.",
+			},
 		},
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
@@ -255,6 +260,7 @@ func makeDashboard(d *schema.ResourceData) gapi.Dashboard {
 	dashboard := gapi.Dashboard{
 		Folder:    int64(d.Get("folder").(int)),
 		Overwrite: d.Get("overwrite").(bool),
+		Message:   d.Get("message").(string),
 	}
 	configJSON := d.Get("config_json").(string)
 	dashboardJSON, err := unmarshalDashboardConfigJSON(configJSON)

@@ -11,4 +11,5 @@ resource "grafana_dashboard" "test" {
   "version": 34
 }
 EOD
+  message     = "inital commit."
 }
