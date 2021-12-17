@@ -4,6 +4,7 @@
 package grafana
 
 import (
+	"regexp"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
