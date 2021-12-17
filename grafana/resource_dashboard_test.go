@@ -62,9 +62,10 @@ func TestAccDashboard_basic(t *testing.T) {
 			},
 			{
 				// Importing matches the state of the previous step.
-				ResourceName:      "grafana_dashboard.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "grafana_dashboard.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"message"},
 			},
 		},
 	})
