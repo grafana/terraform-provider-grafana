@@ -1,6 +1,3 @@
-//go:build oss
-// +build oss
-
 package grafana
 
 import (
@@ -11,6 +8,8 @@ import (
 )
 
 func TestAccTeamPreferences_basic(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,

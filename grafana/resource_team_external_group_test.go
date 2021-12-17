@@ -1,6 +1,3 @@
-//go:build enterprise
-// +build enterprise
-
 package grafana
 
 import (
@@ -13,6 +10,8 @@ import (
 )
 
 func TestAccTeamExternalGroup_basic(t *testing.T) {
+	CheckEnterpriseTestsEnabled(t)
+
 	teamID := int64(-1)
 
 	resource.Test(t, resource.TestCase{

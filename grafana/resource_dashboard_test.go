@@ -1,6 +1,3 @@
-//go:build oss
-// +build oss
-
 package grafana
 
 import (
@@ -15,6 +12,8 @@ import (
 )
 
 func TestAccDashboard_basic(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var dashboard gapi.Dashboard
 
 	resource.Test(t, resource.TestCase{
@@ -72,6 +71,8 @@ func TestAccDashboard_basic(t *testing.T) {
 }
 
 func TestAccDashboard_uid_unset(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var dashboard gapi.Dashboard
 
 	resource.Test(t, resource.TestCase{
@@ -115,6 +116,8 @@ func TestAccDashboard_uid_unset(t *testing.T) {
 }
 
 func TestAccDashboard_computed_config(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var dashboard gapi.Dashboard
 
 	resource.Test(t, resource.TestCase{
@@ -135,6 +138,8 @@ func TestAccDashboard_computed_config(t *testing.T) {
 }
 
 func TestAccDashboard_folder(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var dashboard gapi.Dashboard
 	var folder gapi.Folder
 

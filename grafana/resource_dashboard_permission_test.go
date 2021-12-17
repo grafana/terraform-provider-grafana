@@ -1,6 +1,3 @@
-//go:build oss
-// +build oss
-
 package grafana
 
 import (
@@ -13,6 +10,8 @@ import (
 )
 
 func TestAccDashboardPermission_basic(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	dashboardID := int64(-1)
 
 	resource.Test(t, resource.TestCase{

@@ -1,6 +1,3 @@
-//go:build oss
-// +build oss
-
 package grafana
 
 import (
@@ -15,6 +12,8 @@ import (
 )
 
 func TestAccTeam_basic(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var team gapi.Team
 
 	resource.Test(t, resource.TestCase{
@@ -54,6 +53,8 @@ func TestAccTeam_basic(t *testing.T) {
 }
 
 func TestAccTeam_Members(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var team gapi.Team
 
 	resource.Test(t, resource.TestCase{

@@ -1,6 +1,3 @@
-//go:build oss
-// +build oss
-
 package grafana
 
 import (
@@ -15,6 +12,8 @@ import (
 )
 
 func TestAccOrganization_basic(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var org gapi.Org
 
 	resource.Test(t, resource.TestCase{
@@ -48,6 +47,8 @@ func TestAccOrganization_basic(t *testing.T) {
 }
 
 func TestAccOrganization_users(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var org gapi.Org
 
 	resource.Test(t, resource.TestCase{
@@ -114,6 +115,8 @@ func TestAccOrganization_users(t *testing.T) {
 }
 
 func TestAccOrganization_defaultAdmin(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var org gapi.Org
 
 	resource.Test(t, resource.TestCase{

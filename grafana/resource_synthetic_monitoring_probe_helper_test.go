@@ -1,6 +1,3 @@
-//go:build cloud
-// +build cloud
-
 package grafana
 
 import (
@@ -11,6 +8,8 @@ import (
 )
 
 func TestImportProbeStateWithToken(t *testing.T) {
+	CheckCloudTestsEnabled(t)
+
 	testcases := map[string]struct {
 		input             string
 		expectError       bool

@@ -1,6 +1,3 @@
-//go:build enterprise
-// +build enterprise
-
 package grafana
 
 import (
@@ -14,6 +11,8 @@ import (
 )
 
 func TestAccRole(t *testing.T) {
+	CheckEnterpriseTestsEnabled(t)
+
 	var role gapi.Role
 
 	resource.Test(t, resource.TestCase{

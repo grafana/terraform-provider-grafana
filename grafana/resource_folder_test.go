@@ -1,6 +1,3 @@
-//go:build oss
-// +build oss
-
 package grafana
 
 import (
@@ -16,6 +13,8 @@ import (
 )
 
 func TestAccFolder_basic(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var folder gapi.Folder
 
 	resource.Test(t, resource.TestCase{

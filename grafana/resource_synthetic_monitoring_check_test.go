@@ -1,6 +1,3 @@
-//go:build cloud
-// +build cloud
-
 package grafana
 
 import (
@@ -11,6 +8,8 @@ import (
 )
 
 func TestAccResourceSyntheticMonitoringCheck_dns(t *testing.T) {
+	CheckCloudTestsEnabled(t)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheckCloud(t) },
 		ProviderFactories: testAccProviderFactories,
@@ -61,6 +60,8 @@ func TestAccResourceSyntheticMonitoringCheck_dns(t *testing.T) {
 }
 
 func TestAccResourceSyntheticMonitoringCheck_http(t *testing.T) {
+	CheckCloudTestsEnabled(t)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheckCloud(t) },
 		ProviderFactories: testAccProviderFactories,
@@ -116,6 +117,8 @@ func TestAccResourceSyntheticMonitoringCheck_http(t *testing.T) {
 }
 
 func TestAccResourceSyntheticMonitoringCheck_ping(t *testing.T) {
+	CheckCloudTestsEnabled(t)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheckCloud(t) },
 		ProviderFactories: testAccProviderFactories,
@@ -152,6 +155,8 @@ func TestAccResourceSyntheticMonitoringCheck_ping(t *testing.T) {
 }
 
 func TestAccResourceSyntheticMonitoringCheck_tcp(t *testing.T) {
+	CheckCloudTestsEnabled(t)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheckCloud(t) },
 		ProviderFactories: testAccProviderFactories,
