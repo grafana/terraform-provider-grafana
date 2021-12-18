@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"testing"
 
@@ -29,7 +28,7 @@ func TestAccOrganization_basic(t *testing.T) {
 						"grafana_organization.test", "name", "terraform-acc-test",
 					),
 					resource.TestMatchResourceAttr(
-						"grafana_organization.test", "id", regexp.MustCompile(`\d+`),
+						"grafana_organization.test", "id", idRegexp,
 					),
 				),
 			},

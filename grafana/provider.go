@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/go-cleanhttp"
@@ -16,6 +17,11 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
+)
+
+var (
+	idRegexp  = regexp.MustCompile(`^\d+$`)
+	uidRegexp = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
 )
 
 func init() {

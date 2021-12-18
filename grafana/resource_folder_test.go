@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"testing"
 
@@ -27,10 +26,10 @@ func TestAccFolder_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
 					resource.TestMatchResourceAttr(
-						"grafana_folder.test_folder", "id", regexp.MustCompile(`\d+`),
+						"grafana_folder.test_folder", "id", idRegexp,
 					),
 					resource.TestMatchResourceAttr(
-						"grafana_folder.test_folder", "uid", regexp.MustCompile(`\w+`),
+						"grafana_folder.test_folder", "uid", uidRegexp,
 					),
 				),
 			},

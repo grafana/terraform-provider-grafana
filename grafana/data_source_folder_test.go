@@ -1,7 +1,6 @@
 package grafana
 
 import (
-	"regexp"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -18,10 +17,10 @@ func TestAccDatasourceFolder(t *testing.T) {
 			"data.grafana_folder.from_title", "title", "test-folder",
 		),
 		resource.TestMatchResourceAttr(
-			"data.grafana_folder.from_title", "id", regexp.MustCompile(`^\d+$`),
+			"data.grafana_folder.from_title", "id", idRegexp,
 		),
 		resource.TestMatchResourceAttr(
-			"data.grafana_folder.from_title", "uid", regexp.MustCompile(`^[a-zA-Z0-9-]+$`),
+			"data.grafana_folder.from_title", "uid", uidRegexp,
 		),
 	}
 
