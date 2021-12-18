@@ -12,34 +12,37 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+const paylistResource = "grafana_playlist.test"
+
 func TestAccPlaylist_basic(t *testing.T) {
-	resourceName := "grafana_playlist.test"
+	CheckOSSTestsEnabled(t)
+
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccPlaylistDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccPlaylistDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPlaylistConfigBasic(rName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccPlaylistCheckExists(resourceName),
-					resource.TestMatchResourceAttr(resourceName, "id", regexp.MustCompile(`\d+`)),
-					resource.TestCheckResourceAttr(resourceName, "name", rName),
-					resource.TestCheckResourceAttr(resourceName, "item.#", "2"),
-					resource.TestCheckTypeSetElemNestedAttrs(resourceName, "item.*", map[string]string{
+					testAccPlaylistCheckExists(),
+					resource.TestMatchResourceAttr(paylistResource, "id", regexp.MustCompile(`\d+`)),
+					resource.TestCheckResourceAttr(paylistResource, "name", rName),
+					resource.TestCheckResourceAttr(paylistResource, "item.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "1",
 						"title": "Terraform Dashboard By Tag",
 					}),
-					resource.TestCheckTypeSetElemNestedAttrs(resourceName, "item.*", map[string]string{
+					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "2",
 						"title": "Terraform Dashboard By ID",
 					}),
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      paylistResource,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -48,29 +51,30 @@ func TestAccPlaylist_basic(t *testing.T) {
 }
 
 func TestAccPlaylist_update(t *testing.T) {
-	resourceName := "grafana_playlist.test"
+	CheckOSSTestsEnabled(t)
+
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 	updatedName := "updated name"
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccPlaylistDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccPlaylistDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPlaylistConfigBasic(rName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccPlaylistCheckExists(resourceName),
+					testAccPlaylistCheckExists(),
 				),
 			},
 			{
 				Config: testAccPlaylistConfigUpdate(updatedName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccPlaylistCheckExists(resourceName),
-					resource.TestMatchResourceAttr(resourceName, "id", regexp.MustCompile(`\d+`)),
-					resource.TestCheckResourceAttr(resourceName, "name", updatedName),
-					resource.TestCheckResourceAttr(resourceName, "item.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(resourceName, "item.*", map[string]string{
+					testAccPlaylistCheckExists(),
+					resource.TestMatchResourceAttr(paylistResource, "id", regexp.MustCompile(`\d+`)),
+					resource.TestCheckResourceAttr(paylistResource, "name", updatedName),
+					resource.TestCheckResourceAttr(paylistResource, "item.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "1",
 						"title": "Terraform Dashboard By ID",
 						"type":  "dashboard_by_id",
@@ -79,7 +83,7 @@ func TestAccPlaylist_update(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      paylistResource,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -88,19 +92,20 @@ func TestAccPlaylist_update(t *testing.T) {
 }
 
 func TestAccPlaylist_disappears(t *testing.T) {
-	resourceName := "grafana_playlist.test"
+	CheckOSSTestsEnabled(t)
+
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccPlaylistDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccPlaylistDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPlaylistConfigBasic(rName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccPlaylistCheckExists(resourceName),
-					testAccPlaylistDisappears(resourceName),
+					testAccPlaylistCheckExists(),
+					testAccPlaylistDisappears(),
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -108,11 +113,11 @@ func TestAccPlaylist_disappears(t *testing.T) {
 	})
 }
 
-func testAccPlaylistCheckExists(rn string) resource.TestCheckFunc {
+func testAccPlaylistCheckExists() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[rn]
+		rs, ok := s.RootModule().Resources[paylistResource]
 		if !ok {
-			return fmt.Errorf("resource not found: %s\n %#v", rn, s.RootModule().Resources)
+			return fmt.Errorf("resource not found: %s\n %#v", paylistResource, s.RootModule().Resources)
 		}
 
 		if rs.Primary.ID == "" {
@@ -135,11 +140,11 @@ func testAccPlaylistCheckExists(rn string) resource.TestCheckFunc {
 	}
 }
 
-func testAccPlaylistDisappears(rn string) resource.TestCheckFunc {
+func testAccPlaylistDisappears() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[rn]
+		rs, ok := s.RootModule().Resources[paylistResource]
 		if !ok {
-			return fmt.Errorf("resource not found: %s", rn)
+			return fmt.Errorf("resource not found: %s", paylistResource)
 		}
 
 		if rs.Primary.ID == "" {
