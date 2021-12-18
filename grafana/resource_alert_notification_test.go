@@ -31,7 +31,7 @@ func TestAccAlertNotification_basic(t *testing.T) {
 						"grafana_alert_notification.test", "type", "email",
 					),
 					resource.TestMatchResourceAttr(
-						"grafana_alert_notification.test", "id", regexp.MustCompile(`\d+`),
+						"grafana_alert_notification.test", "id", idRegexp,
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_alert_notification.test", "send_reminder", "true",
@@ -70,7 +70,7 @@ func TestAccAlertNotification_disableResolveMessage(t *testing.T) {
 						"grafana_alert_notification.test", "type", "email",
 					),
 					resource.TestMatchResourceAttr(
-						"grafana_alert_notification.test", "id", regexp.MustCompile(`\d+`),
+						"grafana_alert_notification.test", "id", idRegexp,
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_alert_notification.test", "send_reminder", "true",

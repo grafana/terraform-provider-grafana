@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"testing"
 
@@ -307,7 +306,7 @@ func TestAccDataSource_basic(t *testing.T) {
 			resource.TestMatchResourceAttr(
 				test.resource,
 				"id",
-				regexp.MustCompile(`\d+`),
+				idRegexp,
 			),
 		}
 

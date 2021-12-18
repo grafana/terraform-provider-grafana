@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"fmt"
-	"regexp"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -157,7 +156,7 @@ func TestAccDashboard_folder(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "folder"),
 					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", "folder"),
 					resource.TestMatchResourceAttr(
-						"grafana_dashboard.test_folder", "folder", regexp.MustCompile(`\d+`),
+						"grafana_dashboard.test_folder", "folder", idRegexp,
 					),
 				),
 			},

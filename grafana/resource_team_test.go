@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"testing"
 
@@ -32,7 +31,7 @@ func TestAccTeam_basic(t *testing.T) {
 						"grafana_team.test", "email", "teamEmail@example.com",
 					),
 					resource.TestMatchResourceAttr(
-						"grafana_team.test", "id", regexp.MustCompile(`\d+`),
+						"grafana_team.test", "id", idRegexp,
 					),
 				),
 			},
