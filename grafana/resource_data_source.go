@@ -68,6 +68,12 @@ source selected (via the 'type' argument).
 				Default:     false,
 				Description: "Whether to set the data source as default. This should only be `true` to a single data source.",
 			},
+			"uid": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "Unique identifier. If unset, this will be automatically generated.",
+			},
 			"json_data": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -439,6 +445,7 @@ func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{
 	d.Set("type", dataSource.Type)
 	d.Set("url", dataSource.URL)
 	d.Set("username", dataSource.User)
+	d.Set("uid", dataSource.UID)
 
 	// TODO: these fields should be migrated to SecureJSONData.
 	d.Set("basic_auth_enabled", dataSource.BasicAuth)
@@ -487,6 +494,7 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 		BasicAuth:         d.Get("basic_auth_enabled").(bool),
 		BasicAuthUser:     d.Get("basic_auth_username").(string),
 		BasicAuthPassword: d.Get("basic_auth_password").(string),
+		UID:               d.Get("uid").(string),
 		JSONData:          makeJSONData(d),
 		SecureJSONData:    makeSecureJSONData(d),
 	}, err

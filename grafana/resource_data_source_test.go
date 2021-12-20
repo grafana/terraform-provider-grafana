@@ -308,6 +308,11 @@ func TestAccDataSource_basic(t *testing.T) {
 				"id",
 				idRegexp,
 			),
+			resource.TestMatchResourceAttr(
+				test.resource,
+				"uid",
+				uidRegexp,
+			),
 		}
 
 		// Add custom checks for specified attribute values
