@@ -1,5 +1,30 @@
 # Changelog
 
+## [v1.17.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.17.0) (2021-12-20)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.16.0...v1.17.0)
+
+**Implemented enhancements:**
+
+- Enable data\_source uid output to address grafana 3.x dashboard changes [\#304](https://github.com/grafana/terraform-provider-grafana/issues/304)
+- \[Feature Request\] Support teams, admin users, users  [\#51](https://github.com/grafana/terraform-provider-grafana/issues/51)
+- \[Feature Request\] Manage Grafana playlists through Terraform [\#25](https://github.com/grafana/terraform-provider-grafana/issues/25)
+
+**Closed issues:**
+
+- Grafana Dashboard doesn't support folder\_id and org\_id [\#31](https://github.com/grafana/terraform-provider-grafana/issues/31)
+
+**Merged pull requests:**
+
+- Add UID to datasource reosurce and test [\#315](https://github.com/grafana/terraform-provider-grafana/pull/315) ([wanieldilson](https://github.com/wanieldilson))
+- Testing: Consistent uid and id regexes [\#313](https://github.com/grafana/terraform-provider-grafana/pull/313) ([julienduchesne](https://github.com/julienduchesne))
+- Feature: data source folder [\#312](https://github.com/grafana/terraform-provider-grafana/pull/312) ([julienduchesne](https://github.com/julienduchesne))
+- Skip tests instead of using build tags [\#311](https://github.com/grafana/terraform-provider-grafana/pull/311) ([julienduchesne](https://github.com/julienduchesne))
+- Bump github.com/hashicorp/terraform-plugin-sdk/v2 from 2.9.0 to 2.10.0 [\#310](https://github.com/grafana/terraform-provider-grafana/pull/310) ([dependabot[bot]](https://github.com/apps/dependabot))
+- add message to dashboard creation [\#306](https://github.com/grafana/terraform-provider-grafana/pull/306) ([justinTM](https://github.com/justinTM))
+- Bump github.com/grafana/synthetic-monitoring-agent from 0.3.3 to 0.4.1 [\#302](https://github.com/grafana/terraform-provider-grafana/pull/302) ([dependabot[bot]](https://github.com/apps/dependabot))
+- feat: new resource `grafana\_playlist` [\#264](https://github.com/grafana/terraform-provider-grafana/pull/264) ([anGie44](https://github.com/anGie44))
+
 ## [v1.16.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.16.0) (2021-11-24)
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.15.0...v1.16.0)
@@ -269,7 +294,6 @@
 - Add support for dashboard permissions [\#150](https://github.com/grafana/terraform-provider-grafana/pull/150) ([pascal-hofmann](https://github.com/pascal-hofmann))
 - Updated dead link in documentation - data\_sources [\#149](https://github.com/grafana/terraform-provider-grafana/pull/149) ([WilliamDahlen](https://github.com/WilliamDahlen))
 - Do not delete dashboard uid fields [\#136](https://github.com/grafana/terraform-provider-grafana/pull/136) ([gw0](https://github.com/gw0))
-- Adding folder permission functionality [\#128](https://github.com/grafana/terraform-provider-grafana/pull/128) ([jonathan-dorsey](https://github.com/jonathan-dorsey))
 - Add organization id to the provider. [\#110](https://github.com/grafana/terraform-provider-grafana/pull/110) ([medains](https://github.com/medains))
 
 ## [v1.7.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.7.0) (2020-11-06)
@@ -286,6 +310,7 @@
 - Add folder resource import [\#132](https://github.com/grafana/terraform-provider-grafana/pull/132) ([zombispormedio](https://github.com/zombispormedio))
 - Add team preferences functionality to provider [\#131](https://github.com/grafana/terraform-provider-grafana/pull/131) ([jonathan-dorsey](https://github.com/jonathan-dorsey))
 - Apply changes to match the change to a Config struct [\#130](https://github.com/grafana/terraform-provider-grafana/pull/130) ([medains](https://github.com/medains))
+- Adding folder permission functionality [\#128](https://github.com/grafana/terraform-provider-grafana/pull/128) ([jonathan-dorsey](https://github.com/jonathan-dorsey))
 - Change user lists to sets [\#116](https://github.com/grafana/terraform-provider-grafana/pull/116) ([medains](https://github.com/medains))
 
 ## [v1.6.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.6.0) (2020-10-16)
