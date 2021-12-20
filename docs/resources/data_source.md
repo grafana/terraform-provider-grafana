@@ -93,6 +93,7 @@ resource "grafana_data_source" "stackdriver" {
 - **json_data** (Block List) (Required by some data source types) (see [below for nested schema](#nestedblock--json_data))
 - **password** (String, Sensitive) (Required by some data source types) The password to use to authenticate to the data source. Defaults to ``.
 - **secure_json_data** (Block List) (see [below for nested schema](#nestedblock--secure_json_data))
+- **uid** (String) Unique identifier. If unset, this will be automatically generated.
 - **url** (String) The URL for the data source. The type of URL required varies depending on the chosen data source type.
 - **username** (String) (Required by some data source types) The username to use to authenticate to the data source. Defaults to ``.
 
