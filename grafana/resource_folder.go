@@ -32,7 +32,13 @@ func ResourceFolder() *schema.Resource {
 				Computed:    true,
 				Description: "Unique identifier.",
 			},
-
+			"id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Required:    false,
+				Optional:    false,
+				Description: "Unique internal identifier.",
+			},
 			"title": {
 				Type:        schema.TypeString,
 				Required:    true,
