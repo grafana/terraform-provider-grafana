@@ -1,7 +1,9 @@
-local grafana = 'grafana/grafana:8.2.5';
-local build = 'grafana/build-container:1.4.7';
-local goImage = 'golang:1.16-alpine';
-
+local grafanaVersions = ['8.3.3', '8.2.7', '8.1.8', '8.0.7', '7.5.12'];
+local images = {
+  go: 'golang:1.16',
+  lint: 'golangci/golangci-lint',
+  grafana(version): 'grafana/grafana:' + version,
+};
 
 local secret(name, vaultPath, vaultKey) = {
   kind: 'secret',
@@ -40,7 +42,7 @@ local pipeline(name, steps, services=[]) = {
     'lint', steps=[
       {
         name: 'lint',
-        image: build,
+        image: images.lint,
         commands: [
           'golangci-lint --version',
           'golangci-lint run ./...',
@@ -53,9 +55,8 @@ local pipeline(name, steps, services=[]) = {
     'docs', steps=[
       {
         name: 'check for drift',
-        image: goImage,
+        image: images.go,
         commands: [
-          'apk add git',
           'go generate',
           'gitstatus="$(git status --porcelain)"',
           'if [ -n "$gitstatus" ]; then',
@@ -69,11 +70,34 @@ local pipeline(name, steps, services=[]) = {
   ),
 
   pipeline(
-    'oss tests',
+    'cloud tests',
     steps=[
       {
         name: 'tests',
-        image: build,
+        image: images.go,
+        commands: [
+          'make testacc-cloud',
+        ],
+        environment: {
+          GRAFANA_URL: 'https://terraformprovidergrafana.grafana.net/',
+          GRAFANA_AUTH: apiToken.fromSecret,
+          GRAFANA_SM_ACCESS_TOKEN: smToken.fromSecret,
+          GRAFANA_ORG_ID: 1,
+        },
+      },
+    ]
+  ),
+
+  apiToken,
+  smToken,
+] +
+[
+  pipeline(
+    'oss tests: %s' % version,
+    steps=[
+      {
+        name: 'tests',
+        image: images.go,
         commands: [
           'sleep 5',  // https://docs.drone.io/pipeline/docker/syntax/services/#initialization
           'make testacc-oss',
@@ -88,32 +112,13 @@ local pipeline(name, steps, services=[]) = {
     services=[
       {
         name: 'grafana',
-        image: grafana,
+        image: images.grafana(version),
         environment: {
           // Prevents error="database is locked"
           GF_DATABASE_URL: 'sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL',
         },
       },
     ],
-  ),
-
-  pipeline(
-    'cloud tests',
-    steps=[
-      {
-        name: 'tests',
-        image: build,
-        commands: ['make testacc-cloud'],
-        environment: {
-          GRAFANA_URL: 'https://terraformprovidergrafana.grafana.net/',
-          GRAFANA_AUTH: apiToken.fromSecret,
-          GRAFANA_SM_ACCESS_TOKEN: smToken.fromSecret,
-          GRAFANA_ORG_ID: 1,
-        },
-      },
-    ]
-  ),
-
-  apiToken,
-  smToken,
+  )
+  for version in grafanaVersions
 ]
