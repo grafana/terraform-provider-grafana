@@ -62,9 +62,15 @@ func testAccGrafanaAuthKeyCheckDestroy(s *terraform.State) error {
 			return err
 		}
 
-		_, err = c.DeleteAPIKey(id)
-		if err == nil {
-			return fmt.Errorf("api key still exists")
+		keys, err := c.GetAPIKeys(false)
+		if err != nil {
+			return err
+		}
+
+		for _, key := range keys {
+			if key.ID == id {
+				return fmt.Errorf("API key still exists")
+			}
 		}
 	}
 
