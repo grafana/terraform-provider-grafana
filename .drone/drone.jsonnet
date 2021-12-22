@@ -76,7 +76,10 @@ local pipeline(name, steps, services=[]) = {
       {
         name: 'tests',
         image: images.go,
-        commands: ['make testacc-cloud'],
+        commands: [
+          'apk add make',
+          'make testacc-cloud',
+        ],
         environment: {
           GRAFANA_URL: 'https://terraformprovidergrafana.grafana.net/',
           GRAFANA_AUTH: apiToken.fromSecret,
@@ -98,6 +101,7 @@ local pipeline(name, steps, services=[]) = {
         name: 'tests',
         image: images.go,
         commands: [
+          'apk add make',
           'sleep 5',  // https://docs.drone.io/pipeline/docker/syntax/services/#initialization
           'make testacc-oss',
         ],

@@ -57,6 +57,7 @@ platform:
 services: []
 steps:
 - commands:
+  - apk add make
   - make testacc-cloud
   environment:
     GRAFANA_AUTH:
@@ -101,6 +102,7 @@ services:
   name: grafana
 steps:
 - commands:
+  - apk add make
   - sleep 5
   - make testacc-oss
   environment:
@@ -131,6 +133,7 @@ services:
   name: grafana
 steps:
 - commands:
+  - apk add make
   - sleep 5
   - make testacc-oss
   environment:
@@ -161,6 +164,7 @@ services:
   name: grafana
 steps:
 - commands:
+  - apk add make
   - sleep 5
   - make testacc-oss
   environment:
@@ -191,6 +195,7 @@ services:
   name: grafana
 steps:
 - commands:
+  - apk add make
   - sleep 5
   - make testacc-oss
   environment:
@@ -221,6 +226,7 @@ services:
   name: grafana
 steps:
 - commands:
+  - apk add make
   - sleep 5
   - make testacc-oss
   environment:
@@ -240,6 +246,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: 8f748dc874c458b7f301fd6ebbc26fd5ce5c6ce6d877c0fe3cc2c705b21395dc
+hmac: 93586228a02af1ba460d440b17c89f4f38591de53da686b231c71618f2a646ac
 
 ...
