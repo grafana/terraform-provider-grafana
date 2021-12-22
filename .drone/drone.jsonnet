@@ -1,7 +1,7 @@
-local grafana = 'grafana/grafana:8.2.5';
 local build = 'grafana/build-container:1.4.7';
 local goImage = 'golang:1.16-alpine';
 
+local grafanaVersions = ['8.3.3', '8.2.7', '8.1.8', '8.0.7', '7.5.12'];
 
 local secret(name, vaultPath, vaultKey) = {
   kind: 'secret',
@@ -69,35 +69,6 @@ local pipeline(name, steps, services=[]) = {
   ),
 
   pipeline(
-    'oss tests',
-    steps=[
-      {
-        name: 'tests',
-        image: build,
-        commands: [
-          'sleep 5',  // https://docs.drone.io/pipeline/docker/syntax/services/#initialization
-          'make testacc-oss',
-        ],
-        environment: {
-          GRAFANA_URL: 'http://grafana:3000',
-          GRAFANA_AUTH: 'admin:admin',
-          GRAFANA_ORG_ID: 1,
-        },
-      },
-    ],
-    services=[
-      {
-        name: 'grafana',
-        image: grafana,
-        environment: {
-          // Prevents error="database is locked"
-          GF_DATABASE_URL: 'sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL',
-        },
-      },
-    ],
-  ),
-
-  pipeline(
     'cloud tests',
     steps=[
       {
@@ -116,4 +87,35 @@ local pipeline(name, steps, services=[]) = {
 
   apiToken,
   smToken,
+] +
+[
+  pipeline(
+    'oss tests: %s' % version,
+    steps=[
+      {
+        name: 'tests',
+        image: build,
+        commands: [
+          'sleep 5',  // https://docs.drone.io/pipeline/docker/syntax/services/#initialization
+          'make testacc-oss',
+        ],
+        environment: {
+          GRAFANA_URL: 'http://grafana:3000',
+          GRAFANA_AUTH: 'admin:admin',
+          GRAFANA_ORG_ID: 1,
+        },
+      },
+    ],
+    services=[
+      {
+        name: 'grafana',
+        image: 'grafana/grafana:%s' % version,
+        environment: {
+          // Prevents error="database is locked"
+          GF_DATABASE_URL: 'sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL',
+        },
+      },
+    ],
+  )
+  for version in grafanaVersions
 ]

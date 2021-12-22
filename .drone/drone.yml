@@ -50,36 +50,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: pipeline
-name: oss tests
-platform:
-  arch: amd64
-  os: linux
-services:
-- environment:
-    GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
-  image: grafana/grafana:8.2.5
-  name: grafana
-steps:
-- commands:
-  - sleep 5
-  - make testacc-oss
-  environment:
-    GRAFANA_AUTH: admin:admin
-    GRAFANA_ORG_ID: 1
-    GRAFANA_URL: http://grafana:3000
-  image: grafana/build-container:1.4.7
-  name: tests
-trigger:
-  branch:
-  - master
-  event:
-  - pull_request
-  - push
-type: docker
-workspace:
-  path: /drone/terraform-provider-grafana
----
-kind: pipeline
 name: cloud tests
 platform:
   arch: amd64
@@ -119,7 +89,157 @@ get:
 kind: secret
 name: grafana-sm-token
 ---
+kind: pipeline
+name: 'oss tests: 8.3.3'
+platform:
+  arch: amd64
+  os: linux
+services:
+- environment:
+    GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
+  image: grafana/grafana:8.3.3
+  name: grafana
+steps:
+- commands:
+  - sleep 5
+  - make testacc-oss
+  environment:
+    GRAFANA_AUTH: admin:admin
+    GRAFANA_ORG_ID: 1
+    GRAFANA_URL: http://grafana:3000
+  image: grafana/build-container:1.4.7
+  name: tests
+trigger:
+  branch:
+  - master
+  event:
+  - pull_request
+  - push
+type: docker
+workspace:
+  path: /drone/terraform-provider-grafana
+---
+kind: pipeline
+name: 'oss tests: 8.2.7'
+platform:
+  arch: amd64
+  os: linux
+services:
+- environment:
+    GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
+  image: grafana/grafana:8.2.7
+  name: grafana
+steps:
+- commands:
+  - sleep 5
+  - make testacc-oss
+  environment:
+    GRAFANA_AUTH: admin:admin
+    GRAFANA_ORG_ID: 1
+    GRAFANA_URL: http://grafana:3000
+  image: grafana/build-container:1.4.7
+  name: tests
+trigger:
+  branch:
+  - master
+  event:
+  - pull_request
+  - push
+type: docker
+workspace:
+  path: /drone/terraform-provider-grafana
+---
+kind: pipeline
+name: 'oss tests: 8.1.8'
+platform:
+  arch: amd64
+  os: linux
+services:
+- environment:
+    GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
+  image: grafana/grafana:8.1.8
+  name: grafana
+steps:
+- commands:
+  - sleep 5
+  - make testacc-oss
+  environment:
+    GRAFANA_AUTH: admin:admin
+    GRAFANA_ORG_ID: 1
+    GRAFANA_URL: http://grafana:3000
+  image: grafana/build-container:1.4.7
+  name: tests
+trigger:
+  branch:
+  - master
+  event:
+  - pull_request
+  - push
+type: docker
+workspace:
+  path: /drone/terraform-provider-grafana
+---
+kind: pipeline
+name: 'oss tests: 8.0.7'
+platform:
+  arch: amd64
+  os: linux
+services:
+- environment:
+    GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
+  image: grafana/grafana:8.0.7
+  name: grafana
+steps:
+- commands:
+  - sleep 5
+  - make testacc-oss
+  environment:
+    GRAFANA_AUTH: admin:admin
+    GRAFANA_ORG_ID: 1
+    GRAFANA_URL: http://grafana:3000
+  image: grafana/build-container:1.4.7
+  name: tests
+trigger:
+  branch:
+  - master
+  event:
+  - pull_request
+  - push
+type: docker
+workspace:
+  path: /drone/terraform-provider-grafana
+---
+kind: pipeline
+name: 'oss tests: 7.5.12'
+platform:
+  arch: amd64
+  os: linux
+services:
+- environment:
+    GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
+  image: grafana/grafana:7.5.12
+  name: grafana
+steps:
+- commands:
+  - sleep 5
+  - make testacc-oss
+  environment:
+    GRAFANA_AUTH: admin:admin
+    GRAFANA_ORG_ID: 1
+    GRAFANA_URL: http://grafana:3000
+  image: grafana/build-container:1.4.7
+  name: tests
+trigger:
+  branch:
+  - master
+  event:
+  - pull_request
+  - push
+type: docker
+workspace:
+  path: /drone/terraform-provider-grafana
+---
 kind: signature
-hmac: 309ebe722ec79c0757942e8b3abc29ff11f472844c9a9bff8231d8c7c20616ed
+hmac: c710188d53795a80712963ca786c78eab20e0891e1f392138fcd86a8c579529a
 
 ...
