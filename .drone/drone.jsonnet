@@ -1,6 +1,6 @@
 local grafanaVersions = ['8.3.3', '8.2.7', '8.1.8', '8.0.7', '7.5.12'];
 local images = {
-  go: 'golang:1.16-alpine',
+  go: 'golang:1.16',
   lint: 'golangci/golangci-lint',
   grafana(version): 'grafana/grafana:' + version,
 };
@@ -57,7 +57,6 @@ local pipeline(name, steps, services=[]) = {
         name: 'check for drift',
         image: images.go,
         commands: [
-          'apk add git',
           'go generate',
           'gitstatus="$(git status --porcelain)"',
           'if [ -n "$gitstatus" ]; then',
@@ -77,7 +76,6 @@ local pipeline(name, steps, services=[]) = {
         name: 'tests',
         image: images.go,
         commands: [
-          'apk add make',
           'make testacc-cloud',
         ],
         environment: {
@@ -101,7 +99,6 @@ local pipeline(name, steps, services=[]) = {
         name: 'tests',
         image: images.go,
         commands: [
-          'apk add make',
           'sleep 5',  // https://docs.drone.io/pipeline/docker/syntax/services/#initialization
           'make testacc-oss',
         ],
