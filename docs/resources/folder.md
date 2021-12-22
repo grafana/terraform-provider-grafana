@@ -33,7 +33,7 @@ resource "grafana_dashboard" "metrics" {
 
 ### Read-Only
 
-- **id** (String) unique identifier for this folder.
+- **id** (String) Unique internal identifier.
 - **uid** (String) Unique identifier.
 
 ## Import
