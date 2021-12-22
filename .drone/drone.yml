@@ -9,7 +9,7 @@ steps:
 - commands:
   - golangci-lint --version
   - golangci-lint run ./...
-  image: grafana/build-container:1.4.7
+  image: golangci/golangci-lint
   name: lint
 trigger:
   branch:
@@ -65,7 +65,7 @@ steps:
     GRAFANA_SM_ACCESS_TOKEN:
       from_secret: grafana-sm-token
     GRAFANA_URL: https://terraformprovidergrafana.grafana.net/
-  image: grafana/build-container:1.4.7
+  image: golang:1.16-alpine
   name: tests
 trigger:
   branch:
@@ -107,7 +107,7 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
-  image: grafana/build-container:1.4.7
+  image: golang:1.16-alpine
   name: tests
 trigger:
   branch:
@@ -137,7 +137,7 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
-  image: grafana/build-container:1.4.7
+  image: golang:1.16-alpine
   name: tests
 trigger:
   branch:
@@ -167,7 +167,7 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
-  image: grafana/build-container:1.4.7
+  image: golang:1.16-alpine
   name: tests
 trigger:
   branch:
@@ -197,7 +197,7 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
-  image: grafana/build-container:1.4.7
+  image: golang:1.16-alpine
   name: tests
 trigger:
   branch:
@@ -227,7 +227,7 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
-  image: grafana/build-container:1.4.7
+  image: golang:1.16-alpine
   name: tests
 trigger:
   branch:
@@ -240,6 +240,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: c710188d53795a80712963ca786c78eab20e0891e1f392138fcd86a8c579529a
+hmac: 8f748dc874c458b7f301fd6ebbc26fd5ce5c6ce6d877c0fe3cc2c705b21395dc
 
 ...
