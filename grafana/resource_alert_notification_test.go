@@ -186,6 +186,9 @@ resource "grafana_alert_notification" "test" {
 			"uploadImage" = "false"
 			"autoResolve" = "true"
 		}
+	secure_settings = {
+		 "foo" = "true"
+	}
 }
 `
 
