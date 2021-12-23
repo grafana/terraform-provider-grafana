@@ -224,14 +224,10 @@ func makeAlertNotification(_ context.Context, d *schema.ResourceData) (*gapi.Ale
 	secureSettings := map[string]interface{}{}
 	for k, v := range d.Get("secure_settings").(map[string]interface{}) {
 		strVal, ok := v.(string)
-		switch {
-		case ok && strVal == "true":
-			secureSettings[k] = true
-		case ok && strVal == "false":
-			secureSettings[k] = false
-		default:
-			secureSettings[k] = v
+		if !ok {
+			return nil, errors.New("secure_settings must be a map of string")
 		}
+		secureSettings[k] = strVal
 	}
 
 	sendReminder := d.Get("send_reminder").(bool)
