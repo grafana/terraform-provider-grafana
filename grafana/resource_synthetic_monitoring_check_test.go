@@ -199,3 +199,43 @@ func TestAccResourceSyntheticMonitoringCheck_tcp(t *testing.T) {
 		},
 	})
 }
+
+func TestAccResourceSyntheticMonitoringCheck_traceroute(t *testing.T) {
+	CheckCloudTestsEnabled(t)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheckCloud(t) },
+		ProviderFactories: testAccProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_check/traceroute_basic.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.traceroute", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.traceroute", "tenant_id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "job", "Traceroute defaults"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "target", "grafana.com"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "probes.0", "1"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "labels.foo", "bar"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "settings.0.traceroute.0.max_hops", "64"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "settings.0.traceroute.0.max_unknown_hops", "15"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "settings.0.traceroute.0.ptr_lookup", "true"),
+				),
+			},
+			{
+				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_check/traceroute_complex.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.traceroute", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.traceroute", "tenant_id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "job", "Traceroute complex"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "target", "grafana.net"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "probes.0", "2"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "probes.1", "3"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "labels.foo", "baz"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "settings.0.traceroute.0.max_hops", "25"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "settings.0.traceroute.0.max_unknown_hops", "10"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "settings.0.traceroute.0.ptr_lookup", "false"),
+				),
+			},
+		},
+	})
+}

@@ -93,6 +93,13 @@ var (
 				MaxItems:    1,
 				Elem:        syntheticMonitoringCheckSettingsTCP,
 			},
+			"traceroute": {
+				Description: "Settings for traceroute check. The target must be a valid hostname or IP address",
+				Type:        schema.TypeSet,
+				Optional:    true,
+				MaxItems:    1,
+				Elem:        syntheticMonitoringCheckSettingsTraceroute,
+			},
 		},
 	}
 
@@ -391,6 +398,29 @@ var (
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
+			},
+		},
+	}
+
+	syntheticMonitoringCheckSettingsTraceroute = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"max_hops": {
+				Description: "Maximum TTL for the trace",
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     64,
+			},
+			"max_unknown_hops": {
+				Description: "Maximum number of hosts to travers that give no response",
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     15,
+			},
+			"ptr_lookup": {
+				Description: "Reverse lookup hostnames from IP addresses",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
 			},
 		},
 	}
@@ -700,6 +730,20 @@ func resourceSyntheticMonitoringCheckRead(ctx context.Context, d *schema.Resourc
 		settings.Add(map[string]interface{}{
 			"tcp": tcp,
 		})
+	case chk.Settings.Traceroute != nil:
+		traceroute := schema.NewSet(
+			schema.HashResource(syntheticMonitoringCheckSettingsTraceroute),
+			[]interface{}{},
+		)
+
+		traceroute.Add(map[string]interface{}{
+			"max_hops":         int(chk.Settings.Traceroute.MaxHops),
+			"max_unknown_hops": int(chk.Settings.Traceroute.MaxUnknownHops),
+			"ptr_lookup":       chk.Settings.Traceroute.PtrLookup,
+		})
+		settings.Add(map[string]interface{}{
+			"traceroute": traceroute,
+		})
 	}
 
 	d.Set("settings", settings)
@@ -896,6 +940,16 @@ func makeCheckSettings(settings map[string]interface{}) sm.CheckSettings {
 					StartTLS: qr.(map[string]interface{})["start_tls"].(bool),
 				})
 			}
+		}
+	}
+
+	traceroute := settings["traceroute"].(*schema.Set).List()
+	if len(traceroute) > 0 {
+		t := traceroute[0].(map[string]interface{})
+		cs.Traceroute = &sm.TracerouteSettings{
+			MaxHops:        int64(t["max_hops"].(int)),
+			MaxUnknownHops: int64(t["max_unknown_hops"].(int)),
+			PtrLookup:      t["ptr_lookup"].(bool),
 		}
 	}
 
