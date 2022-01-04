@@ -413,7 +413,7 @@ resource "grafana_synthetic_monitoring_check" "traceroute" {
 
 - **job** (String) Name used for job label.
 - **probes** (Set of Number) List of probe location IDs where this target will be checked from.
-- **settings** (Block Set, Min: 1, Max: 1) Check settings. (see [below for nested schema](#nestedblock--settings))
+- **settings** (Block Set, Min: 1, Max: 1) Check settings. Should contain exactly one nested block. (see [below for nested schema](#nestedblock--settings))
 - **target** (String) Hostname to ping.
 
 ### Optional

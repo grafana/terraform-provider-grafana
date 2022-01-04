@@ -523,7 +523,7 @@ multiple checks for a single endpoint to check different capabilities.
 				},
 			},
 			"settings": {
-				Description: "Check settings.",
+				Description: "Check settings. Should contain exactly one nested block.",
 				Type:        schema.TypeSet,
 				Required:    true,
 				MaxItems:    1,
