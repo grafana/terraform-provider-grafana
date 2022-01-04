@@ -239,3 +239,76 @@ func TestAccResourceSyntheticMonitoringCheck_traceroute(t *testing.T) {
 		},
 	})
 }
+
+func TestAccResourceSyntheticMonitoringCheck_noSettings(t *testing.T) {
+	CheckCloudTestsEnabled(t)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheckCloud(t) },
+		ProviderFactories: testAccProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceSyntheticMonitoringCheck_noSettings,
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile("at least one check setting must be defined"),
+			},
+		},
+	})
+}
+
+func TestAccResourceSyntheticMonitoringCheck_multiple(t *testing.T) {
+	CheckCloudTestsEnabled(t)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheckCloud(t) },
+		ProviderFactories: testAccProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceSyntheticMonitoringCheck_multiple,
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile("exactly one check setting must be defined, got 2"),
+			},
+		},
+	})
+}
+
+const testAccResourceSyntheticMonitoringCheck_noSettings = `
+data "grafana_synthetic_monitoring_probes" "main" {}
+
+resource "grafana_synthetic_monitoring_check" "no_settings" {
+  job       = "No Settings"
+  target    = "grafana.com"
+  enabled   = false
+  frequency = 120000
+  timeout   = 30000
+  probes = [
+    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
+  ]
+  labels = {
+    foo = "bar"
+  }
+  settings {
+
+  }
+}`
+
+const testAccResourceSyntheticMonitoringCheck_multiple = `
+data "grafana_synthetic_monitoring_probes" "main" {}
+
+resource "grafana_synthetic_monitoring_check" "multiple" {
+  job       = "No Settings"
+  target    = "grafana.com"
+  enabled   = false
+  frequency = 120000
+  timeout   = 30000
+  probes = [
+    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
+  ]
+  labels = {
+    foo = "bar"
+  }
+  settings {
+	traceroute {}
+	http {}
+  }
+}`

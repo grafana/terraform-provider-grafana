@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -446,6 +447,7 @@ multiple checks for a single endpoint to check different capabilities.
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+		CustomizeDiff: resourceSyntheticMonitoringCheckCustomizeDiff,
 
 		Schema: map[string]*schema.Schema{
 			"id": {
@@ -521,7 +523,7 @@ multiple checks for a single endpoint to check different capabilities.
 				},
 			},
 			"settings": {
-				Description: "Check settings.",
+				Description: "Check settings. Should contain exactly one nested block.",
 				Type:        schema.TypeSet,
 				Required:    true,
 				MaxItems:    1,
@@ -954,4 +956,27 @@ func makeCheckSettings(settings map[string]interface{}) sm.CheckSettings {
 	}
 
 	return cs
+}
+
+// Check if the user provider exactly one setting
+// Ideally, we'd use `ExactlyOneOf` here but it doesn't support TypeSet.
+// Also, TypeSet doesn't support ValidateFunc.
+// To maintain backwards compatibility, we do a custom validation in the CustomizeDiff function.
+func resourceSyntheticMonitoringCheckCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, meta interface{}) error {
+	settingsList := diff.Get("settings").(*schema.Set).List()
+	if len(settingsList) == 0 {
+		return fmt.Errorf("at least one check setting must be defined")
+	}
+	settings := settingsList[0].(map[string]interface{})
+
+	count := 0
+	for k := range syntheticMonitoringCheckSettings.Schema {
+		count += len(settings[k].(*schema.Set).List())
+	}
+
+	if count != 1 {
+		return fmt.Errorf("exactly one check setting must be defined, got %d", count)
+	}
+
+	return nil
 }
