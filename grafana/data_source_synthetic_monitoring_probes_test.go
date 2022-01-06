@@ -19,6 +19,18 @@ func TestAccDataSourceSyntheticMonitoringProbes(t *testing.T) {
 					resource.TestCheckResourceAttr("data.grafana_synthetic_monitoring_probes.main", "probes.Atlanta", "1"),
 				),
 			},
+			{
+				Config: testAccExample(t, "data-sources/grafana_synthetic_monitoring_probes/data-source.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.grafana_synthetic_monitoring_probes.main", "probes.Seol", "9"),
+				),
+			},
+			{
+				Config: testAccExample(t, "data-sources/grafana_synthetic_monitoring_probes/data-source.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckNoResourceAttr("data.grafana_synthetic_monitoring_probes.not_deprecated", "probes.Seol"),
+				),
+			},
 		},
 	})
 }
