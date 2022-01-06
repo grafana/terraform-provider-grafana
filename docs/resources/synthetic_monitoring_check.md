@@ -614,4 +614,10 @@ Optional:
 - **max_unknown_hops** (Number) Maximum number of hosts to travers that give no response Defaults to `15`.
 - **ptr_lookup** (Boolean) Reverse lookup hostnames from IP addresses Defaults to `true`.
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_synthetic_monitoring_check.check {{check-id}}
+```
