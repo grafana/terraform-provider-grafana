@@ -7,8 +7,8 @@ resource "grafana_synthetic_monitoring_check" "traceroute" {
   frequency = 120000
   timeout   = 30000
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Chicago,
-    data.grafana_synthetic_monitoring_probes.main.probes.LosAngeles,
+    data.grafana_synthetic_monitoring_probes.main.probes.Frankfurt,
+    data.grafana_synthetic_monitoring_probes.main.probes.London,
   ]
   labels = {
     foo = "baz"
