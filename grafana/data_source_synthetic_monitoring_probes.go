@@ -16,7 +16,7 @@ func dataSourceSyntheticMonitoringProbes() *schema.Resource {
 				Type:        schema.TypeBool,
 				Description: "If true, only probes that are not deprecated will be returned.",
 				Optional:    true,
-				Default:     false,
+				Default:     true,
 			},
 			"probes": {
 				Description: "Map of probes with their names as keys and IDs as values.",
