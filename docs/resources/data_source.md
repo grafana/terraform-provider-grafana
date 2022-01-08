@@ -88,6 +88,7 @@ resource "grafana_data_source" "stackdriver" {
 - **basic_auth_password** (String, Sensitive) Basic auth password. Defaults to ``.
 - **basic_auth_username** (String) Basic auth username. Defaults to ``.
 - **database_name** (String) (Required by some data source types) The name of the database to use on the selected data source server. Defaults to ``.
+- **http_headers** (Map of String, Sensitive) Custom HTTP headers
 - **id** (String) The ID of this resource.
 - **is_default** (Boolean) Whether to set the data source as default. This should only be `true` to a single data source. Defaults to `false`.
 - **json_data** (Block List) (Required by some data source types) (see [below for nested schema](#nestedblock--json_data))
