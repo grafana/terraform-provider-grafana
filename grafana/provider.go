@@ -21,8 +21,9 @@ import (
 )
 
 var (
-	idRegexp  = regexp.MustCompile(`^\d+$`)
-	uidRegexp = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
+	idRegexp    = regexp.MustCompile(`^\d+$`)
+	uidRegexp   = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
+	emailRegexp = regexp.MustCompile(`.+\@.+\..+`)
 )
 
 func init() {
@@ -117,6 +118,7 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_folder_permission":       ResourceFolderPermission(),
 				"grafana_organization":            ResourceOrganization(),
 				"grafana_playlist":                ResourcePlaylist(),
+				"grafana_report":                  ResourceReport(),
 				"grafana_role":                    ResourceRole(),
 				"grafana_team":                    ResourceTeam(),
 				"grafana_team_preferences":        ResourceTeamPreferences(),
