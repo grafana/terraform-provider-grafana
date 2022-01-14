@@ -109,17 +109,13 @@ func resourceSyntheticMonitoringProbeCreate(ctx context.Context, d *schema.Resou
 
 func resourceSyntheticMonitoringProbeRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client).smapi
-	var diags diag.Diagnostics
-	prbs, err := c.ListProbes(ctx)
+	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	var prb sm.Probe
-	for _, p := range prbs {
-		if strconv.FormatInt(p.Id, 10) == d.Id() {
-			prb = p
-			break
-		}
+	prb, err := c.GetProbe(ctx, id)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	d.Set("tenant_id", prb.TenantId)
@@ -138,7 +134,7 @@ func resourceSyntheticMonitoringProbeRead(ctx context.Context, d *schema.Resourc
 		d.Set("labels", labels)
 	}
 
-	return diags
+	return nil
 }
 
 func resourceSyntheticMonitoringProbeUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
