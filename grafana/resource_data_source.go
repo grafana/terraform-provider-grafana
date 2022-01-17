@@ -152,6 +152,11 @@ source selected (via the 'type' argument).
 								return diags
 							},
 						},
+						"github_url": {
+							Type:				 schema.TypeString,
+							Optional: 	 true,
+							Description: "(Github) Github URL",
+						},
 						"graphite_version": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -310,10 +315,16 @@ source selected (via the 'type' argument).
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"access_key": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Sensitive:   true,
-							Description: "(CloudWatch) The access key to use to access the data source.",
+							Type:         schema.TypeString,
+							Optional:     true,
+							Sensitive:    true,
+							Description:  "(CloudWatch) The access key to use to access the data source.",
+						},
+						"access_token": {
+							Type: 				schema.TypeString,
+							Optional: 		true,
+							Sensitive: 		true,
+							Description: 	"(Github) The access token to use to access the data source",
 						},
 						"basic_auth_password": {
 							Type:        schema.TypeString,
