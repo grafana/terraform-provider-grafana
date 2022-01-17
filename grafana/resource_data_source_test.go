@@ -317,6 +317,27 @@ func TestAccDataSource_basic(t *testing.T) {
 				"secure_json_data.0.private_key":  "-----BEGIN PRIVATE KEY-----\nprivate-key\n-----END PRIVATE KEY-----\n",
 			},
 		},
+		{
+			resource: "grafana_data_source.github",
+			config: `
+			resource "grafana_data_source" "github" {
+				type = "github"
+				name = "github"
+				json_data {
+					github_url = "https://github.com"
+				}
+				secure_json_data {
+					access_token = "token for github"
+				}
+			}
+			`,
+			attrChecks: map[string]string{
+				"type":                            "github",
+				"name":                            "github",
+				"json_data.0.github_url":          "https://github.com",
+				"secure_json_data.0.access_token": "token for github",
+			},
+		},
 	}
 
 	// Iterate over the provided configurations for datasources
