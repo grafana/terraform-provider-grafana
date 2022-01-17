@@ -113,6 +113,7 @@ Optional:
 - **default_region** (String) (CloudWatch) The default region for the data source.
 - **encrypt** (String) (MSSQL) Connection SSL encryption handling: 'disable', 'false' or 'true'.
 - **es_version** (String) (Elasticsearch) Elasticsearch semantic version (Grafana v8.0+).
+- **github_url** (String) (Github) Github URL
 - **graphite_version** (String) (Graphite) Graphite version.
 - **http_method** (String) (Prometheus) HTTP method to use for making requests.
 - **interval** (String) (Elasticsearch) Index date time format. nil(No Pattern), 'Hourly', 'Daily', 'Weekly', 'Monthly' or 'Yearly'.
@@ -148,6 +149,7 @@ Optional:
 Optional:
 
 - **access_key** (String, Sensitive) (CloudWatch) The access key to use to access the data source.
+- **access_token** (String, Sensitive) (Github) The access token to use to access the data source
 - **basic_auth_password** (String, Sensitive) (All) Password to use for basic authentication.
 - **password** (String, Sensitive) (All) Password to use for authentication.
 - **private_key** (String, Sensitive) (Stackdriver) The service account key `private_key` to use to access the data source.
