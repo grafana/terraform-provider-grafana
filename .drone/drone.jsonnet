@@ -15,6 +15,7 @@ local secret(name, vaultPath, vaultKey) = {
 
   fromSecret:: { from_secret: name },
 };
+local cloudApiKey = secret('grafana-cloud-api-key', 'infra/data/ci/terraform-provider-grafana/cloud', 'cloud-api-key');
 local apiToken = secret('grafana-api-token', 'infra/data/ci/terraform-provider-grafana/cloud', 'api-key');
 local smToken = secret('grafana-sm-token', 'infra/data/ci/terraform-provider-grafana/cloud', 'sm-access-token');
 
@@ -81,6 +82,7 @@ local pipeline(name, steps, services=[]) = {
         environment: {
           GRAFANA_URL: 'https://terraformprovidergrafana.grafana.net/',
           GRAFANA_AUTH: apiToken.fromSecret,
+          GRAFANA_CLOUD_API_KEY: cloudApiKey.fromSecret,
           GRAFANA_SM_ACCESS_TOKEN: smToken.fromSecret,
           GRAFANA_ORG_ID: 1,
         },
