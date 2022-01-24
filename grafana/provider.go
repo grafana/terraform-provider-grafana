@@ -124,7 +124,7 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_team_preferences":        ResourceTeamPreferences(),
 				"grafana_team_external_group":     ResourceTeamExternalGroup(),
 				"grafana_user":                    ResourceUser(),
-				"grafana_stack":                   ResourceStack(),
+				"grafana_cloud_stack":             ResourceStack(),
 
 				// Synthetic Monitoring
 				"grafana_synthetic_monitoring_check": resourceSyntheticMonitoringCheck(),

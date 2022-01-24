@@ -2,10 +2,13 @@ package grafana
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"path"
 	"strconv"
 	"strings"
 
+	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -29,8 +32,8 @@ func ResourceStack() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"stack_id": {
-				Type:        schema.TypeInt,
+			"id": {
+				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The stack id assigned to this stack by Grafana.",
 			},
@@ -52,14 +55,25 @@ Subdomain that the Grafana instance will be available at (i.e. setting slug to �
 available at “https://<stack_slug>.grafana.net".`,
 			},
 			"region_slug": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Region slug to assign to this stack.",
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Description: `Region slug to assign to this stack.
+Chaning region will destroy the existing stack and create a new one in the desired region`,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					// Only acceptable regions are eu and us
+					if value != "eu" && value != "us" {
+						errors = append(errors, fmt.Errorf("region '%s' is not supported. Only 'eu' and 'us' are currently supported", value))
+					}
+					return
+				},
 			},
 			"url": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "URL of the Grafana instance.",
+				Optional:    true,
+				Description: "Custom URL for the Grafana instance. Must have a CNAME setup to point to `.grafana.net` before creating the stack",
 			},
 			"org_id": {
 				Type:        schema.TypeInt,
@@ -81,55 +95,55 @@ available at “https://<stack_slug>.grafana.net".`,
 				Computed:    true,
 				Description: "Status of the stack.",
 			},
-			"cluster_id": {
+			"prometheus_user_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
-				Description: "Cluster id to assign to this stack.",
+				Description: "Promehteus user ID. Used for e.g. remote_write.",
 			},
-			"cluster_name": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Cluster name assigned to this stack.",
-			},
-			"cluster_slug": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Cluster slug assigned to this stack.",
-			},
-			"prom_id": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "Id of the instance that is used as a health monitor.",
-			},
-			"prom_url": {
+			"prometheus_url": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Prometheus url for this instance.",
 			},
-			"prom_name": {
+			"prometheus_name": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Prometheus name for this instance.",
 			},
-			"prom_status": {
-				Type:        schema.TypeBool,
+			"prometheus_remote_endpoint": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Use this URL to query hosted metrics data e.g. Prometheus data source in Grafana",
+			},
+			"prometheus_remote_write_endpoint": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Use this URL to send prometheus metrics to Grafana cloud",
+			},
+			"prometheus_status": {
+				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Prometheus status for this instance.",
 			},
-			"graphite_url": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Graphite url for this instance.",
-			},
-			"graphite_name": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Graphite name for this instance.",
-			},
-			"region_id": {
+			"alertmanager_user_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
-				Description: "Region id to assign to this stack.",
+				Description: "User ID of the Alertmanager instance configured for this stack.",
+			},
+			"alertmanager_name": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Name of the Alertmanager instance configured for this stack.",
+			},
+			"alertmanager_url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Base URL of the Alertmanager instance configured for this stack.",
+			},
+			"alertmanager_status": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Status of the Alertmanager instance configured for this stack.",
 			},
 		},
 	}
@@ -137,13 +151,17 @@ available at “https://<stack_slug>.grafana.net".`,
 
 func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
-	name := d.Get("name").(string)
-	slug := d.Get("slug").(string)
-	region := d.Get("region_slug").(string)
 
-	stackID, err := client.NewStack(name, slug, region)
+	stack := &gapi.CreateStackInput{
+		Name:   d.Get("name").(string),
+		Slug:   d.Get("slug").(string),
+		URL:    d.Get("url").(string),
+		Region: d.Get("region_slug").(string),
+	}
+
+	stackID, err := client.NewStack(stack)
 	if err != nil && err.Error() == "409 Conflict" {
-		return diag.Errorf("Error: A Grafana stack with the name '%s' already exists.", name)
+		return diag.Errorf("Error: A Grafana stack with the name '%s' already exists.", stack.Name)
 	}
 
 	if err != nil {
@@ -151,6 +169,41 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.SetId(strconv.FormatInt(stackID, 10))
+
+	return ReadStack(ctx, d, meta)
+}
+
+func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
+	stackID, _ := strconv.ParseInt(d.Id(), 10, 64)
+
+	// The underlying API olnly allows to update the name and description.
+	allowed_changes := []string{"name", "description", "slug"}
+	if d.HasChangesExcept(allowed_changes...) {
+		return diag.Errorf("Error: Only name, slug and description can be updated.")
+	}
+
+	if d.HasChange("name") || d.HasChange("description") || d.HasChanges("slug") {
+		stack := &gapi.UpdateStackInput{
+			Name:        d.Get("name").(string),
+			Slug:        d.Get("slug").(string),
+			Description: d.Get("description").(string),
+		}
+		err := client.UpdateStack(stackID, stack)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	return ReadStack(ctx, d, meta)
+}
+
+func DeleteStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
+	slug := d.Get("slug").(string)
+	if err := client.DeleteStack(slug); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return diag.Diagnostics{}
 }
@@ -174,57 +227,7 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(stack.ID, 10))
-	d.Set("name", stack.Name)
-	d.Set("slug", stack.Slug)
-	d.Set("org_id", stack.OrgID)
-	d.Set("org_slug", stack.OrgSlug)
-	d.Set("org_name", stack.OrgName)
-	d.Set("url", stack.URL)
-	d.Set("status", stack.Status)
-	d.Set("cluster_id", stack.ClusterID)
-	d.Set("cluster_name", stack.ClusterName)
-	d.Set("cluster_slug", stack.ClusterSlug)
-	d.Set("prom_id", stack.HmInstancePromID)
-	d.Set("prom_url", stack.HmInstancePromURL)
-	d.Set("prom_name", stack.HmInstancePromName)
-	d.Set("prom_status", stack.HmInstancePromStatus)
-	d.Set("graphite_url", stack.HmInstanceGraphiteURL)
-	d.Set("graphite_name", stack.HmInstanceGraphiteName)
-	d.Set("region_id", stack.RegionID)
-	d.Set("region_slug", stack.RegionSlug)
-
-	return nil
-}
-
-func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client).gapi
-	stackID, _ := strconv.ParseInt(d.Id(), 10, 64)
-
-	// The underlying API olnly allows to update the name and description.
-	allowed_changes := []string{"name", "description"}
-	if d.HasChangesExcept(allowed_changes...) {
-		return diag.Errorf("Error: Only name and description can be updated.")
-	}
-
-	if d.HasChange("name") || d.HasChange("description") {
-		name := d.Get("name").(string)
-		description := d.Get("description").(string)
-		err := client.UpdateStack(stackID, name, description)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-	}
-
-	return diag.Diagnostics{}
-}
-
-func DeleteStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client).gapi
-	slug := d.Get("slug").(string)
-	if err := client.DeleteStack(slug); err != nil {
-		return diag.FromErr(err)
-	}
+	FlattenStack(d, stack)
 
 	return diag.Diagnostics{}
 }
@@ -240,4 +243,30 @@ func ExistsStack(d *schema.ResourceData, meta interface{}) (bool, error) {
 		return false, err
 	}
 	return true, err
+}
+
+func FlattenStack(d *schema.ResourceData, stack gapi.Stack) {
+	d.Set("namesdfsdsfddf", stack.Name)
+	d.Set("slug", stack.Slug)
+	d.Set("url", stack.URL)
+	d.Set("status", stack.Status)
+	d.Set("region_slug", stack.RegionSlug)
+	d.Set("description", stack.Description)
+
+	d.Set("org_id", stack.OrgID)
+	d.Set("org_slug", stack.OrgSlug)
+	d.Set("org_name", stack.OrgName)
+
+	d.Set("prometheus_user_id", stack.HmInstancePromID)
+	d.Set("prometheus_url", stack.HmInstancePromURL)
+	d.Set("prometheus_name", stack.HmInstancePromName)
+	d.Set("prometheus_remote_endpoint", path.Join(stack.HmInstancePromURL, "api/prom"))
+	d.Set("prometheus_remote_write_endpoint", path.Join(stack.HmInstancePromURL, "api/prom/push"))
+	d.Set("prometheus_status", stack.HmInstancePromStatus)
+
+	d.Set("alertmanager_user_id", stack.AmInstanceID)
+	d.Set("alertmanager_name", stack.AmInstanceName)
+	d.Set("alertmanager_url", stack.AmInstanceURL)
+	d.Set("alertmanager_status", stack.AmInstanceStatus)
+
 }
