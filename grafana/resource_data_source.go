@@ -556,7 +556,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		ClientEmail:                d.Get("json_data.0.client_email").(string),
 		ConnMaxLifetime:            int64(d.Get("json_data.0.conn_max_lifetime").(int)),
 		CustomMetricsNamespaces:    d.Get("json_data.0.custom_metrics_namespaces").(string),
-		Database:                   d.Get("json_data.0.output_location").(string),
+		Database:                   d.Get("json_data.0.database").(string),
 		DefaultProject:             d.Get("json_data.0.default_project").(string),
 		DefaultRegion:              d.Get("json_data.0.default_region").(string),
 		Encrypt:                    d.Get("json_data.0.encrypt").(string),
