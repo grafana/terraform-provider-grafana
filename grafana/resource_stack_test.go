@@ -13,6 +13,9 @@ import (
 func TestResourceStack_Basic(t *testing.T) {
 	CheckCloudTestsEnabled(t)
 	var stack gapi.Stack
+	stackName := "grafanacloudstack-test"
+	stackSlug := "grafanacloudstack-test"
+	stackDescription := "This is a test stack"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -20,22 +23,22 @@ func TestResourceStack_Basic(t *testing.T) {
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStackConfig_basic,
+				Config: testAccStackConfigBasic(stackName, stackSlug),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
 					resource.TestMatchResourceAttr("grafana_cloud_stack.test", "id", idRegexp),
 					resource.TestCheckResourceAttrSet("grafanacloud_stack.test", "id"),
-					resource.TestCheckResourceAttr("grafanacloud_stack.test", "name", "terraform-acc-test"),
-					resource.TestCheckResourceAttr("grafanacloud_stack.test", "slug", "terraform-acc-test"),
+					resource.TestCheckResourceAttr("grafanacloud_stack.test", "name", stackName),
+					resource.TestCheckResourceAttr("grafanacloud_stack.test", "slug", stackSlug),
 				),
 			},
 			{
-				Config: testAccStackConfig_updateName,
+				Config: testAccStackConfigUpdate(stackName, stackSlug, stackDescription),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
-					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "name", "terraform-acc-test-update"),
-					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "sllug", "terraform-acc-test-slug"),
-					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "description", "test description"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "name", stackName),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "sllug", stackSlug),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "description", stackDescription),
 				),
 			},
 		},
@@ -85,16 +88,21 @@ func testAccStackCheckDestroy(a *gapi.Stack) resource.TestCheckFunc {
 	}
 }
 
-const testAccStackConfig_basic = `
-resource "grafana_cloud_stack" "test" {
-  name  = "terraform-acc-test"
-  slug = "terraform-acc-test
+func testAccStackConfigBasic(name string, slug string) string {
+	return fmt.Sprintf(`
+	resource "grafana_cloud_stack" "test" {
+		name  = "%s"
+		slug  = "%s"
+	  }
+	`, name, slug)
 }
-`
-const testAccStackConfig_updateName = `
-resource "grafana_cloud_stack" "test" {
-  name    = "terraform-acc-test-update"
-  slug = "terraform-acc-test-slug"
-  description = "test description"
+
+func testAccStackConfigUpdate(name string, slug string, description string) string {
+	return fmt.Sprintf(`
+	resource "grafana_cloud_stack" "test" {
+		name        = "%s"
+		slug        = "%s"
+		description = "%s"
+	  }
+	`, name, slug, description)
 }
-`
