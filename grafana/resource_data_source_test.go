@@ -160,6 +160,7 @@ func TestAccDataSource_basic(t *testing.T) {
 					auth_type                 = "keys"
 					assume_role_arn           = "arn:aws:sts::*:assumed-role/*/*"
 					custom_metrics_namespaces = "foo"
+					external_id               = "abc123"
 				}
 				secure_json_data {
 					access_key = "123"
@@ -174,6 +175,7 @@ func TestAccDataSource_basic(t *testing.T) {
 				"json_data.0.auth_type":                 "keys",
 				"json_data.0.assume_role_arn":           "arn:aws:sts::*:assumed-role/*/*",
 				"json_data.0.custom_metrics_namespaces": "foo",
+				"json_data.0.external_id":               "abc123",
 				"secure_json_data.0.access_key":         "123",
 				"secure_json_data.0.secret_key":         "456",
 			},
@@ -348,6 +350,7 @@ func TestAccDataSource_basic(t *testing.T) {
 					default_region            = "us-east-1"
 					auth_type                 = "keys"
 					assume_role_arn           = "arn:aws:sts::*:assumed-role/*/*"
+					external_id               = "abc123"
 					catalog                   = "my-catalog"
 					workgroup                 = "my-workgroup"
 					database                  = "my-database"
@@ -365,6 +368,7 @@ func TestAccDataSource_basic(t *testing.T) {
 				"json_data.0.default_region":    "us-east-1",
 				"json_data.0.auth_type":         "keys",
 				"json_data.0.assume_role_arn":   "arn:aws:sts::*:assumed-role/*/*",
+				"json_data.0.external_id":       "abc123",
 				"json_data.0.catalog":           "my-catalog",
 				"json_data.0.workgroup":         "my-workgroup",
 				"json_data.0.database":          "my-database",

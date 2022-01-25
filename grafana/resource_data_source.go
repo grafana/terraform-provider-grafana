@@ -162,6 +162,11 @@ source selected (via the 'type' argument).
 								return diags
 							},
 						},
+						"external_id": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(CloudWatch, Athena) If you are assuming a role in another account, that has been created with an external ID, specify the external ID here.",
+						},
 						"github_url": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -561,6 +566,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		DefaultRegion:              d.Get("json_data.0.default_region").(string),
 		Encrypt:                    d.Get("json_data.0.encrypt").(string),
 		EsVersion:                  d.Get("json_data.0.es_version").(string),
+		ExternalID:                 d.Get("json_data.0.external_id").(string),
 		GraphiteVersion:            d.Get("json_data.0.graphite_version").(string),
 		HTTPMethod:                 d.Get("json_data.0.http_method").(string),
 		Interval:                   d.Get("json_data.0.interval").(string),
