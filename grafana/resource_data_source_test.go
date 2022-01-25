@@ -348,10 +348,10 @@ func TestAccDataSource_basic(t *testing.T) {
 					default_region            = "us-east-1"
 					auth_type                 = "keys"
 					assume_role_arn           = "arn:aws:sts::*:assumed-role/*/*"
-					catalog					  = "my-catalog"
-					workgroup 				  = "my-workgroup"
-					database				  = "my-database"
-					output_location			  = "s3://my-bucket"
+					catalog                   = "my-catalog"
+					workgroup                 = "my-workgroup"
+					database                  = "my-database"
+					output_location           = "s3://my-bucket"
 				}
 				secure_json_data {
 					access_key = "123"
