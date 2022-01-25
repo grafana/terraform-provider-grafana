@@ -552,11 +552,11 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		AssumeRoleArn:              d.Get("json_data.0.assume_role_arn").(string),
 		AuthType:                   d.Get("json_data.0.auth_type").(string),
 		AuthenticationType:         d.Get("json_data.0.authentication_type").(string),
-		Catalog:					d.Get("json_data.0.catalog").(string),
+		Catalog:                    d.Get("json_data.0.catalog").(string),
 		ClientEmail:                d.Get("json_data.0.client_email").(string),
 		ConnMaxLifetime:            int64(d.Get("json_data.0.conn_max_lifetime").(int)),
 		CustomMetricsNamespaces:    d.Get("json_data.0.custom_metrics_namespaces").(string),
-		Database:					d.Get("json_data.0.output_location").(string),
+		Database:                   d.Get("json_data.0.output_location").(string),
 		DefaultProject:             d.Get("json_data.0.default_project").(string),
 		DefaultRegion:              d.Get("json_data.0.default_region").(string),
 		Encrypt:                    d.Get("json_data.0.encrypt").(string),
@@ -569,7 +569,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		MaxConcurrentShardRequests: int64(d.Get("json_data.0.max_concurrent_shard_requests").(int)),
 		MaxIdleConns:               int64(d.Get("json_data.0.max_idle_conns").(int)),
 		MaxOpenConns:               int64(d.Get("json_data.0.max_open_conns").(int)),
-		OutputLocation:				d.Get("json_data.0.output_location").(string),
+		OutputLocation:             d.Get("json_data.0.output_location").(string),
 		PostgresVersion:            int64(d.Get("json_data.0.postgres_version").(int)),
 		Profile:                    d.Get("json_data.0.profile").(string),
 		QueryTimeout:               d.Get("json_data.0.query_timeout").(string),
@@ -589,7 +589,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		TokenURI:                   d.Get("json_data.0.token_uri").(string),
 		TsdbResolution:             d.Get("json_data.0.tsdb_resolution").(string),
 		TsdbVersion:                d.Get("json_data.0.tsdb_version").(string),
-		Workgroup:					d.Get("json_data.0.workgroup").(string),
+		Workgroup:                  d.Get("json_data.0.workgroup").(string),
 	}
 }
 
