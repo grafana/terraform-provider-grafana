@@ -338,6 +338,41 @@ func TestAccDataSource_basic(t *testing.T) {
 				"secure_json_data.0.access_token": "token for github",
 			},
 		},
+		{
+			resource: "grafana_data_source.athena",
+			config: `
+			resource "grafana_data_source" "athena" {
+				type = "athena"
+				name = "athena"
+				json_data {
+					default_region            = "us-east-1"
+					auth_type                 = "keys"
+					assume_role_arn           = "arn:aws:sts::*:assumed-role/*/*"
+					catalog					  = "my-catalog"
+					workgroup 				  = "my-workgroup"
+					database				  = "my-database"
+					output_location			  = "s3://my-bucket"
+				}
+				secure_json_data {
+					access_key = "123"
+					secret_key = "456"
+				}
+			}
+			`,
+			attrChecks: map[string]string{
+				"type":                                  "athena",
+				"name":                                  "athena",
+				"json_data.0.default_region":            "us-east-1",
+				"json_data.0.auth_type":                 "keys",
+				"json_data.0.assume_role_arn":           "arn:aws:sts::*:assumed-role/*/*",
+				"json_data.0.catalog":					 "my-catalog",
+				"json_data.0.workgroup":				 "my-workgroup",
+				"json_data.0.database":					 "my-database",
+				"json_data.0.output_location":			 "s3://my-bucket",
+				"secure_json_data.0.access_key":         "123",
+				"secure_json_data.0.secret_key":         "456",
+			},
+		},
 	}
 
 	// Iterate over the provided configurations for datasources
