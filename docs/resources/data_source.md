@@ -103,14 +103,16 @@ resource "grafana_data_source" "stackdriver" {
 
 Optional:
 
-- **assume_role_arn** (String) (CloudWatch) The ARN of the role to be assumed by Grafana when using the CloudWatch data source.
-- **auth_type** (String) (CloudWatch) The authentication type used to access the data source.
+- **assume_role_arn** (String) (CloudWatch, Athena) The ARN of the role to be assumed by Grafana when using the CloudWatch or Athena data source.
+- **auth_type** (String) (CloudWatch, Athena) The authentication type used to access the data source.
 - **authentication_type** (String) (Stackdriver) The authentication type: `jwt` or `gce`.
+- **catalog** (String) (Athena) Athena catalog.
 - **client_email** (String) (Stackdriver) Service account email address.
 - **conn_max_lifetime** (Number) (MySQL, PostgreSQL, and MSSQL) Maximum amount of time in seconds a connection may be reused (Grafana v5.4+).
 - **custom_metrics_namespaces** (String) (CloudWatch) A comma-separated list of custom namespaces to be queried by the CloudWatch data source.
+- **database** (String) (Athena) Name of the database within the catalog.
 - **default_project** (String) (Stackdriver) The default project for the data source.
-- **default_region** (String) (CloudWatch) The default region for the data source.
+- **default_region** (String) (CloudWatch, Athena) The default region for the data source.
 - **encrypt** (String) (MSSQL) Connection SSL encryption handling: 'disable', 'false' or 'true'.
 - **es_version** (String) (Elasticsearch) Elasticsearch semantic version (Grafana v8.0+).
 - **github_url** (String) (Github) Github URL
@@ -122,8 +124,9 @@ Optional:
 - **max_concurrent_shard_requests** (Number) (Elasticsearch) Maximum number of concurrent shard requests.
 - **max_idle_conns** (Number) (MySQL, PostgreSQL and MSSQL) Maximum number of connections in the idle connection pool (Grafana v5.4+).
 - **max_open_conns** (Number) (MySQL, PostgreSQL and MSSQL) Maximum number of open connections to the database (Grafana v5.4+).
+- **output_location** (String) (Athena) AWS S3 bucket to store execution outputs. If not specified, the default query result location from the Workgroup configuration will be used.
 - **postgres_version** (Number) (PostgreSQL) Postgres version as a number (903/904/905/906/1000) meaning v9.3, v9.4, etc.
-- **profile** (String) (CloudWatch) The credentials profile name to use when authentication type is set as 'Credentials file'.
+- **profile** (String) (CloudWatch, Athena) The credentials profile name to use when authentication type is set as 'Credentials file'.
 - **query_timeout** (String) (Prometheus) Timeout for queries made to the Prometheus data source in seconds.
 - **sigv4_assume_role_arn** (String) (Elasticsearch and Prometheus) Specifies the ARN of an IAM role to assume.
 - **sigv4_auth** (Boolean) (Elasticsearch and Prometheus) Enable usage of SigV4.
@@ -141,6 +144,7 @@ Optional:
 - **token_uri** (String) (Stackdriver) The token URI used, provided in the service account key.
 - **tsdb_resolution** (String) (OpenTSDB) Resolution.
 - **tsdb_version** (String) (OpenTSDB) Version.
+- **workgroup** (String) (Athena) Workgroup to use.
 
 
 <a id="nestedblock--secure_json_data"></a>
@@ -148,12 +152,12 @@ Optional:
 
 Optional:
 
-- **access_key** (String, Sensitive) (CloudWatch) The access key to use to access the data source.
+- **access_key** (String, Sensitive) (CloudWatch, Athena) The access key to use to access the data source.
 - **access_token** (String, Sensitive) (Github) The access token to use to access the data source
 - **basic_auth_password** (String, Sensitive) (All) Password to use for basic authentication.
 - **password** (String, Sensitive) (All) Password to use for authentication.
 - **private_key** (String, Sensitive) (Stackdriver) The service account key `private_key` to use to access the data source.
-- **secret_key** (String, Sensitive) (CloudWatch) The secret key to use to access the data source.
+- **secret_key** (String, Sensitive) (CloudWatch, Athena) The secret key to use to access the data source.
 - **sigv4_access_key** (String, Sensitive) (Elasticsearch and Prometheus) SigV4 access key. Required when using 'keys' auth provider.
 - **sigv4_secret_key** (String, Sensitive) (Elasticsearch and Prometheus) SigV4 secret key. Required when using 'keys' auth provider.
 - **tls_ca_cert** (String, Sensitive) (All) CA cert for out going requests.
