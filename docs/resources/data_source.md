@@ -115,6 +115,7 @@ Optional:
 - **default_region** (String) (CloudWatch, Athena) The default region for the data source.
 - **encrypt** (String) (MSSQL) Connection SSL encryption handling: 'disable', 'false' or 'true'.
 - **es_version** (String) (Elasticsearch) Elasticsearch semantic version (Grafana v8.0+).
+- **external_id** (String) (CloudWatch, Athena) If you are assuming a role in another account, that has been created with an external ID, specify the external ID here.
 - **github_url** (String) (Github) Github URL
 - **graphite_version** (String) (Graphite) Graphite version.
 - **http_method** (String) (Prometheus) HTTP method to use for making requests.
