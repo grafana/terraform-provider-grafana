@@ -82,7 +82,6 @@ func testAccPreCheck(t *testing.T) {
 // testAccPreCheckCloud should be called by cloud acceptance tests
 func testAccPreCheckCloud(t *testing.T) {
 	testAccPreCheckEnv = append(testAccPreCheckEnv, "GRAFANA_SM_ACCESS_TOKEN")
-	testAccPreCheckEnv = append(testAccPreCheckEnv, "GRAFANA_CLOUD_API_KEY")
 	testAccPreCheck(t)
 }
 
