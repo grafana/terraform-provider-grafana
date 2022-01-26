@@ -12,6 +12,9 @@ testacc-enterprise:
 testacc-cloud:
 	TF_ACC_CLOUD=true make testacc
 
+testacc-cloud-stack:
+	TF_ACC_CLOUD_STACK=true make testacc
+
 testacc-docker:
 	GRAFANA_VERSION=$(GRAFANA_VERSION) \
 		docker-compose \

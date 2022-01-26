@@ -8,7 +8,7 @@ import (
 )
 
 func TestAccDatasourceStack(t *testing.T) {
-	CheckCloudTestsEnabled(t)
+	CheckCloudStackTestsEnabled(t)
 
 	var stack gapi.Stack
 	checks := []resource.TestCheckFunc{
@@ -25,7 +25,7 @@ func TestAccDatasourceStack(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { testAccPreCheckCloudStack(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
