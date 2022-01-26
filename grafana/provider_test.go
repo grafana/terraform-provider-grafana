@@ -83,6 +83,13 @@ func testAccPreCheck(t *testing.T) {
 // testAccPreCheckCloud should be called by cloud acceptance tests
 func testAccPreCheckCloud(t *testing.T) {
 	testAccPreCheckEnv = append(testAccPreCheckEnv, "GRAFANA_SM_ACCESS_TOKEN")
+	testAccPreCheckEnv = append(testAccPreCheckEnv, "GRAFANA_CLOUD_API_KEY")
+	testAccPreCheck(t)
+}
+
+// testAccPreCheckCloudStack should be called by cloud stack acceptance tests
+func testAccPreCheckCloudStack(t *testing.T) {
+	testAccPreCheckEnv = append(testAccPreCheckEnv, "GRAFANA_CLOUD_API_KEY")
 	testAccPreCheck(t)
 }
 
@@ -135,6 +142,13 @@ func CheckCloudTestsEnabled(t *testing.T) {
 	t.Helper()
 	if !accTestsEnabled(t, "TF_ACC_CLOUD") {
 		t.Skip("TF_ACC_CLOUD must be set to a truthy value for Cloud acceptance tests")
+	}
+}
+
+func CheckCloudStackTestsEnabled(t *testing.T) {
+	t.Helper()
+	if !accTestsEnabled(t, "TF_ACC_CLOUD_STACK") {
+		t.Skip("TF_ACC_CLOUD_STACK must be set to a truthy value for Cloud acceptance tests")
 	}
 }
 
