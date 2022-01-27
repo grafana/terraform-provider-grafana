@@ -144,7 +144,7 @@ func makeMLJob(d *schema.ResourceData, meta interface{}) mlapi.Job {
 		Name:              d.Get("name").(string),
 		Metric:            d.Get("metric").(string),
 		Description:       d.Get("description").(string),
-		GrafanaURL:        meta.(*client).url,
+		GrafanaURL:        meta.(*client).gapiURL,
 		DatasourceID:      uint(d.Get("datasource_id").(int)),
 		DatasourceType:    d.Get("datasource_type").(string),
 		QueryParams:       d.Get("query_params").(map[string]interface{}),
