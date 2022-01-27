@@ -17,6 +17,7 @@ resource "grafana_library_panel" "test-computed" {
   model_json    = jsonencode({
     title       = "computed-uid"
     description = "test computed UID",
+    type        = "test",
     tags        = ["${grafana_library_panel.test.uid}"],
   })
 }
