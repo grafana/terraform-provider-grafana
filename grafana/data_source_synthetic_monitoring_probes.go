@@ -12,6 +12,12 @@ func dataSourceSyntheticMonitoringProbes() *schema.Resource {
 		Description: "Data source for retrieving all probes.",
 		ReadContext: dataSourceSyntheticMonitoringProbesRead,
 		Schema: map[string]*schema.Schema{
+			"filter_deprecated": {
+				Type:        schema.TypeBool,
+				Description: "If true, only probes that are not deprecated will be returned.",
+				Optional:    true,
+				Default:     true,
+			},
 			"probes": {
 				Description: "Map of probes with their names as keys and IDs as values.",
 				Type:        schema.TypeMap,
@@ -34,7 +40,9 @@ func dataSourceSyntheticMonitoringProbesRead(ctx context.Context, d *schema.Reso
 
 	probes := make(map[string]interface{}, len(prbs))
 	for _, p := range prbs {
-		probes[p.Name] = p.Id
+		if !p.Deprecated || !d.Get("filter_deprecated").(bool) {
+			probes[p.Name] = p.Id
+		}
 	}
 
 	d.SetId("probes")

@@ -16,12 +16,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/machine-learning-go-client/mlapi"
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
 )
 
 var (
-	idRegexp  = regexp.MustCompile(`^\d+$`)
-	uidRegexp = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
+	idRegexp    = regexp.MustCompile(`^\d+$`)
+	uidRegexp   = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
+	emailRegexp = regexp.MustCompile(`.+\@.+\..+`)
 )
 
 func init() {
@@ -117,6 +119,7 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_library_panel":           ResourceLibraryPanel(),
 				"grafana_organization":            ResourceOrganization(),
 				"grafana_playlist":                ResourcePlaylist(),
+				"grafana_report":                  ResourceReport(),
 				"grafana_role":                    ResourceRole(),
 				"grafana_team":                    ResourceTeam(),
 				"grafana_team_preferences":        ResourceTeamPreferences(),
@@ -126,6 +129,9 @@ func Provider(version string) func() *schema.Provider {
 				// Synthetic Monitoring
 				"grafana_synthetic_monitoring_check": resourceSyntheticMonitoringCheck(),
 				"grafana_synthetic_monitoring_probe": resourceSyntheticMonitoringProbe(),
+
+				// Machine Learning
+				"grafana_machine_learning_job": resourceMachineLearningJob(),
 			},
 
 			DataSourcesMap: map[string]*schema.Resource{
@@ -148,6 +154,8 @@ func Provider(version string) func() *schema.Provider {
 type client struct {
 	gapi  *gapi.Client
 	smapi *smapi.Client
+	mlapi *mlapi.Client
+	url   string
 }
 
 func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
@@ -187,6 +195,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			transport.TLSClientConfig.InsecureSkipVerify = true
 		}
 
+		c.url = d.Get("url").(string)
 		cli.Transport = logging.NewTransport("Grafana", transport)
 		cfg := gapi.Config{
 			Client:     cli,
@@ -198,12 +207,29 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		} else {
 			cfg.APIKey = auth[0]
 		}
-		gclient, err := gapi.New(d.Get("url").(string), cfg)
+		gclient, err := gapi.New(c.url, cfg)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
 
 		c.gapi = gclient
+
+		mlcfg := mlapi.Config{
+			BasicAuth:   cfg.BasicAuth,
+			BearerToken: cfg.APIKey,
+			Client:      cli,
+			NumRetries:  d.Get("retries").(int),
+		}
+		mlURL := c.url
+		if !strings.HasSuffix(c.url, "/") {
+			mlURL += "/"
+		}
+		mlURL += "api/plugins/grafana-ml-app/resources"
+		mlclient, err := mlapi.New(mlURL, mlcfg)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+		c.mlapi = mlclient
 
 		smToken := d.Get("sm_access_token").(string)
 		smURL := d.Get("sm_url").(string)

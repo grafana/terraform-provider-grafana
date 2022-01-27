@@ -54,8 +54,8 @@ resource "grafana_synthetic_monitoring_check" "dns" {
   target  = "grafana.net"
   enabled = false
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Chicago,
-    data.grafana_synthetic_monitoring_probes.main.probes.LosAngeles,
+    data.grafana_synthetic_monitoring_probes.main.probes.Frankfurt,
+    data.grafana_synthetic_monitoring_probes.main.probes.London,
   ]
   labels = {
     foo = "baz"
@@ -249,8 +249,8 @@ resource "grafana_synthetic_monitoring_check" "ping" {
   target  = "grafana.net"
   enabled = false
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Chicago,
-    data.grafana_synthetic_monitoring_probes.main.probes.LosAngeles,
+    data.grafana_synthetic_monitoring_probes.main.probes.Frankfurt,
+    data.grafana_synthetic_monitoring_probes.main.probes.London,
   ]
   labels = {
     foo = "baz"
@@ -296,8 +296,8 @@ resource "grafana_synthetic_monitoring_check" "tcp" {
   target  = "grafana.com:443"
   enabled = false
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Chicago,
-    data.grafana_synthetic_monitoring_probes.main.probes.LosAngeles,
+    data.grafana_synthetic_monitoring_probes.main.probes.Frankfurt,
+    data.grafana_synthetic_monitoring_probes.main.probes.London,
   ]
   labels = {
     foo = "baz"
@@ -390,8 +390,8 @@ resource "grafana_synthetic_monitoring_check" "traceroute" {
   frequency = 120000
   timeout   = 30000
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Chicago,
-    data.grafana_synthetic_monitoring_probes.main.probes.LosAngeles,
+    data.grafana_synthetic_monitoring_probes.main.probes.Frankfurt,
+    data.grafana_synthetic_monitoring_probes.main.probes.London,
   ]
   labels = {
     foo = "baz"
@@ -614,4 +614,10 @@ Optional:
 - **max_unknown_hops** (Number) Maximum number of hosts to travers that give no response Defaults to `15`.
 - **ptr_lookup** (Boolean) Reverse lookup hostnames from IP addresses Defaults to `true`.
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_synthetic_monitoring_check.check {{check-id}}
+```

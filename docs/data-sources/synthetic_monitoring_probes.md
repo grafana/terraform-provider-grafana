@@ -21,6 +21,7 @@ data "grafana_synthetic_monitoring_probes" "main" {}
 
 ### Optional
 
+- **filter_deprecated** (Boolean) If true, only probes that are not deprecated will be returned. Defaults to `true`.
 - **id** (String) The ID of this resource.
 
 ### Read-Only

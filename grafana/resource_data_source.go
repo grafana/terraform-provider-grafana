@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"regexp"
 	"strconv"
@@ -62,6 +63,15 @@ source selected (via the 'type' argument).
 				Default:     "",
 				Description: "(Required by some data source types) The name of the database to use on the selected data source server.",
 			},
+			"http_headers": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "Custom HTTP headers",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 			"is_default": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -83,17 +93,22 @@ source selected (via the 'type' argument).
 						"assume_role_arn": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(CloudWatch) The ARN of the role to be assumed by Grafana when using the CloudWatch data source.",
+							Description: "(CloudWatch, Athena) The ARN of the role to be assumed by Grafana when using the CloudWatch or Athena data source.",
 						},
 						"auth_type": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(CloudWatch) The authentication type used to access the data source.",
+							Description: "(CloudWatch, Athena) The authentication type used to access the data source.",
 						},
 						"authentication_type": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: "(Stackdriver) The authentication type: `jwt` or `gce`.",
+						},
+						"catalog": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Athena) Athena catalog.",
 						},
 						"client_email": {
 							Type:        schema.TypeString,
@@ -110,6 +125,11 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Description: "(CloudWatch) A comma-separated list of custom namespaces to be queried by the CloudWatch data source.",
 						},
+						"database": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Athena) Name of the database within the catalog.",
+						},
 						"default_project": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -118,7 +138,7 @@ source selected (via the 'type' argument).
 						"default_region": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(CloudWatch) The default region for the data source.",
+							Description: "(CloudWatch, Athena) The default region for the data source.",
 						},
 						"encrypt": {
 							Type:        schema.TypeString,
@@ -141,6 +161,16 @@ source selected (via the 'type' argument).
 								}
 								return diags
 							},
+						},
+						"external_id": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(CloudWatch, Athena) If you are assuming a role in another account, that has been created with an external ID, specify the external ID here.",
+						},
+						"github_url": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Github) Github URL",
 						},
 						"graphite_version": {
 							Type:        schema.TypeString,
@@ -182,6 +212,11 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Description: "(MySQL, PostgreSQL and MSSQL) Maximum number of open connections to the database (Grafana v5.4+).",
 						},
+						"output_location": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Athena) AWS S3 bucket to store execution outputs. If not specified, the default query result location from the Workgroup configuration will be used.",
+						},
 						"postgres_version": {
 							Type:        schema.TypeInt,
 							Optional:    true,
@@ -190,7 +225,7 @@ source selected (via the 'type' argument).
 						"profile": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(CloudWatch) The credentials profile name to use when authentication type is set as 'Credentials file'.",
+							Description: "(CloudWatch, Athena) The credentials profile name to use when authentication type is set as 'Credentials file'.",
 						},
 						"query_timeout": {
 							Type:        schema.TypeString,
@@ -277,6 +312,11 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Description: "(OpenTSDB) Version.",
 						},
+						"workgroup": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Athena) Workgroup to use.",
+						},
 					},
 				},
 			},
@@ -303,7 +343,13 @@ source selected (via the 'type' argument).
 							Type:        schema.TypeString,
 							Optional:    true,
 							Sensitive:   true,
-							Description: "(CloudWatch) The access key to use to access the data source.",
+							Description: "(CloudWatch, Athena) The access key to use to access the data source.",
+						},
+						"access_token": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Sensitive:   true,
+							Description: "(Github) The access token to use to access the data source",
 						},
 						"basic_auth_password": {
 							Type:        schema.TypeString,
@@ -327,7 +373,7 @@ source selected (via the 'type' argument).
 							Type:        schema.TypeString,
 							Optional:    true,
 							Sensitive:   true,
-							Description: "(CloudWatch) The secret key to use to access the data source.",
+							Description: "(CloudWatch, Athena) The secret key to use to access the data source.",
 						},
 						"sigv4_access_key": {
 							Type:        schema.TypeString,
@@ -481,6 +527,11 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 		id, err = strconv.ParseInt(idStr, 10, 64)
 	}
 
+	httpHeaders := make(map[string]string)
+	for key, value := range d.Get("http_headers").(map[string]interface{}) {
+		httpHeaders[key] = fmt.Sprintf("%v", value)
+	}
+
 	return &gapi.DataSource{
 		ID:                id,
 		Name:              d.Get("name").(string),
@@ -495,6 +546,7 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 		BasicAuthUser:     d.Get("basic_auth_username").(string),
 		BasicAuthPassword: d.Get("basic_auth_password").(string),
 		UID:               d.Get("uid").(string),
+		HTTPHeaders:       httpHeaders,
 		JSONData:          makeJSONData(d),
 		SecureJSONData:    makeSecureJSONData(d),
 	}, err
@@ -505,13 +557,16 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		AssumeRoleArn:              d.Get("json_data.0.assume_role_arn").(string),
 		AuthType:                   d.Get("json_data.0.auth_type").(string),
 		AuthenticationType:         d.Get("json_data.0.authentication_type").(string),
+		Catalog:                    d.Get("json_data.0.catalog").(string),
 		ClientEmail:                d.Get("json_data.0.client_email").(string),
 		ConnMaxLifetime:            int64(d.Get("json_data.0.conn_max_lifetime").(int)),
 		CustomMetricsNamespaces:    d.Get("json_data.0.custom_metrics_namespaces").(string),
+		Database:                   d.Get("json_data.0.database").(string),
 		DefaultProject:             d.Get("json_data.0.default_project").(string),
 		DefaultRegion:              d.Get("json_data.0.default_region").(string),
 		Encrypt:                    d.Get("json_data.0.encrypt").(string),
 		EsVersion:                  d.Get("json_data.0.es_version").(string),
+		ExternalID:                 d.Get("json_data.0.external_id").(string),
 		GraphiteVersion:            d.Get("json_data.0.graphite_version").(string),
 		HTTPMethod:                 d.Get("json_data.0.http_method").(string),
 		Interval:                   d.Get("json_data.0.interval").(string),
@@ -520,6 +575,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		MaxConcurrentShardRequests: int64(d.Get("json_data.0.max_concurrent_shard_requests").(int)),
 		MaxIdleConns:               int64(d.Get("json_data.0.max_idle_conns").(int)),
 		MaxOpenConns:               int64(d.Get("json_data.0.max_open_conns").(int)),
+		OutputLocation:             d.Get("json_data.0.output_location").(string),
 		PostgresVersion:            int64(d.Get("json_data.0.postgres_version").(int)),
 		Profile:                    d.Get("json_data.0.profile").(string),
 		QueryTimeout:               d.Get("json_data.0.query_timeout").(string),
@@ -539,6 +595,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		TokenURI:                   d.Get("json_data.0.token_uri").(string),
 		TsdbResolution:             d.Get("json_data.0.tsdb_resolution").(string),
 		TsdbVersion:                d.Get("json_data.0.tsdb_version").(string),
+		Workgroup:                  d.Get("json_data.0.workgroup").(string),
 	}
 }
 

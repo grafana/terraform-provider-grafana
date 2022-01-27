@@ -54,10 +54,8 @@ description: |-
 
 {{ .SchemaMarkdown | trimspace }}
 
-{{ if .HasImport -}}
 ## Import
 
 Import is supported using the following syntax:
 
-{{ printf "{{codefile \"shell\" %q}}" .ImportFile }}
-{{- end }}
+{{ codefile "shell" "examples/resources/grafana_synthetic_monitoring_check/import.sh" }}

@@ -547,17 +547,13 @@ func resourceSyntheticMonitoringCheckCreate(ctx context.Context, d *schema.Resou
 
 func resourceSyntheticMonitoringCheckRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client).smapi
-	var diags diag.Diagnostics
-	chks, err := c.ListChecks(ctx)
+	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	var chk sm.Check
-	for _, c := range chks {
-		if strconv.FormatInt(c.Id, 10) == d.Id() {
-			chk = c
-			break
-		}
+	chk, err := c.GetCheck(ctx, id)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	d.Set("tenant_id", chk.TenantId)
@@ -750,7 +746,7 @@ func resourceSyntheticMonitoringCheckRead(ctx context.Context, d *schema.Resourc
 
 	d.Set("settings", settings)
 
-	return diags
+	return nil
 }
 
 func resourceSyntheticMonitoringCheckUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
