@@ -4,13 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	gapi "github.com/justinTM/grafana-api-golang-client"
+	gapi "github.com/grafana/grafana-api-golang-client"
 )
 
 func ResourceLibraryPanel() *schema.Resource {
@@ -33,35 +32,79 @@ Manages Grafana library panels.
 
 		Schema: map[string]*schema.Schema{
 			"uid": {
-				Type:        	schema.TypeString,
-				Computed: 	 	true,
-				Description: 	"The unique identifier (UID) of a library panel uniquely identifies library panels between multiple Grafana installs. " +
+				Type:     schema.TypeString,
+				Computed: true,
+				Description: "The unique identifier (UID) of a library panel uniquely identifies library panels between multiple Grafana installs. " +
 					"It’s automatically generated unless you specify it during library panel creation." +
 					"The UID provides consistent URLs for accessing library panels and when syncing library panels between multiple Grafana installs.",
 			},
 			"panel_id": {
-				Type:        	schema.TypeInt,
-				Computed:    	true,
-				Description: 	"The numeric ID of the library panel computed by Grafana.",
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The numeric ID of the library panel computed by Grafana.",
+			},
+			"org_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The numeric ID of the library panel computed by Grafana.",
+			},
+			"folder_id": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "ID of the folder where the library panel is stored.",
 			},
 			"name": {
-				Type:     	 	schema.TypeString,
-				Required:    	true,
-				Description: 	"Name of the library panel.",
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Name of the library panel.",
 			},
-			"folder": {
-				Type:        	schema.TypeInt,
-				Required:    	true,
-				ForceNew:    	true,
-				Description: 	"ID of the folder where the library panel is stored.",
+			"description": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Description of the library panel.",
 			},
-			"config_json": {
+			"type": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Type of the library panel (eg. text).",
+			},
+			"model_json": {
 				Type:         schema.TypeString,
 				Required:     true,
-				StateFunc:    normalizeLibraryPanelConfigJSON,
-				ValidateFunc: validateLibraryPanelConfigJSON,
+				StateFunc:    normalizeLibraryPanelModelJSON,
+				ValidateFunc: validateLibraryPanelModelJSON,
 				Description:  "The JSON model for the library panel.",
 			},
+			"version": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "Version of the library panel.",
+			},
+			"folder_name": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Name of the folder containing the library panel.",
+			},
+			"folder_uid": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Unique ID (UID) of the folder containing the library panel.",
+			},
+			"created": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Unique ID (UID) of the folder containing the library panel.",
+			},
+			"updated": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Unique ID (UID) of the folder containing the library panel.",
+			},
+			// "connected_dashboards": {
+			// 	Type:     	 	schema.TypeList,
+			// 	Computed:    	true,
+			// 	Description: 	"Unique ID (UID) of the folder containing the library panel.",
+			// },
 		},
 	}
 }
@@ -81,14 +124,15 @@ func CreateLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interf
 func ReadLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 	uid := d.Id()
+
 	panel, err := client.LibraryPanelByUID(uid)
 	var diags diag.Diagnostics
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Warning,
-				Summary:  fmt.Sprintf("Dashboard %q is in state, but no longer exists in grafana", uid),
-				Detail:   fmt.Sprintf("%q will be recreated when you apply", uid),
+				Summary:  fmt.Sprintf("Library Panel %q is in state, but no longer exists in grafana", panel.Name),
+				Detail:   fmt.Sprintf("%q will be recreated when you apply", panel.Name),
 			})
 			d.SetId("")
 			return diags
@@ -97,48 +141,40 @@ func ReadLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 		}
 	}
 
-	d.SetId(panel.Model["uid"].(string))
-	d.Set("uid", panel.Model["uid"].(string))
-	d.Set("panel_id", panel.Id)
+	modelJSONBytes, err := json.Marshal(panel.Model)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	remotePanelJSON, err := unmarshalLibraryPanelModelJSON(string(modelJSONBytes))
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	modelJSON := normalizeLibraryPanelModelJSON(remotePanelJSON)
+
+	d.SetId(panel.UID)
+	d.Set("uid", panel.UID)
+	d.Set("panel_id", panel.ID)
+	d.Set("org_id", panel.OrgID)
+	d.Set("folder_id", panel.Folder)
+	d.Set("description", panel.Description)
+	d.Set("type", panel.Type)
 	d.Set("name", panel.Name)
-	d.Set("folder", panel.Folder)
-
-	configJSONBytes, err := json.Marshal(panel.Model)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	remotePanelJSON, err := unmarshalLibraryPanelConfigJSON(string(configJSONBytes))
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	// If `uid` is not set in configuration, we need to delete it from the
-	// library panel JSON we just read from the Grafana API. This is so it does not
-	// create a diff. We can assume the uid was randomly generated by Grafana or
-	// it was removed after library panel creation. In any case, the user doesn't
-	// care to manage it.
-	if configJSON := d.Get("config_json").(string); configJSON != "" {
-		configuredPanelJSON, err := unmarshalLibraryPanelConfigJSON(configJSON)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		if _, ok := configuredPanelJSON["uid"].(string); !ok {
-			delete(remotePanelJSON, "uid")
-		}
-	}
-
-	configJSON := normalizeLibraryPanelConfigJSON(remotePanelJSON)
-	d.Set("config_json", configJSON)
+	d.Set("model_json", modelJSON)
+	d.Set("version", panel.Version)
+	d.Set("folder_name", panel.Meta.FolderName)
+	d.Set("folder_uid", panel.Meta.FolderUID)
+	d.Set("created", panel.Meta.Created.String())
+	d.Set("updated", panel.Meta.Updated.String())
 
 	return diags
 }
 
 func UpdateLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
+	uid := d.Id()
 	panel := makeLibraryPanel(d)
-	panel.Model["id"] = d.Get("panel_id").(int)
-	panel.Overwrite = true
-	resp, err := client.NewLibraryPanel(panel)
+
+	resp, err := client.PatchLibraryPanel(uid, panel)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -150,7 +186,7 @@ func UpdateLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interf
 func DeleteLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 	uid := d.Id()
-	err := client.DeleteLibraryPanelByUID(uid)
+	_, err := client.DeleteLibraryPanel(uid)
 	var diags diag.Diagnostics
 	if err != nil && !strings.HasPrefix(err.Error(), "status: 404") {
 		return diag.FromErr(err)
@@ -159,67 +195,66 @@ func DeleteLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func makeLibraryPanel(d *schema.ResourceData) gapi.LibraryPanel {
+	modelJSON := d.Get("model_json").(string)
+	panelJSON, err := unmarshalLibraryPanelModelJSON(modelJSON)
+
 	panel := gapi.LibraryPanel{
-		Kind: 1  // library panels are 1, library variables are 2
-		Folder: int64(d.Get("folder").(int)),
-		Name: int64(d.Get("name").(int)),
+		UID:    d.Get("uid").(string),
+		Name:   d.Get("name").(string),
+		Folder: int64(d.Get("folder_id").(int)),
+		Model:  panelJSON,
 	}
-	configJSON := d.Get("config_json").(string)
-	panelJSON, err := unmarshalLibraryPanelConfigJSON(configJSON)
 	if err != nil {
 		return panel
 	}
-	delete(panelJSON, "id")
-	delete(panelJSON, "version")
-	panel.Model = panelJSON
 	return panel
 }
 
-// unmarshalLibraryPanelConfigJSON is a convenience func for unmarshalling
-// `config_json` field.
-func unmarshalLibraryPanelConfigJSON(configJSON string) (map[string]interface{}, error) {
-	panelJSON := map[string]interface{}{}
-	err := json.Unmarshal([]byte(configJSON), &panelJSON)
+// unmarshalLibraryPanelModelJSON is a convenience func for unmarshalling
+// `model_json` field.
+func unmarshalLibraryPanelModelJSON(modelJSON string) (map[string]interface{}, error) {
+	unmarshalledJSON := map[string]interface{}{}
+	err := json.Unmarshal([]byte(modelJSON), &unmarshalledJSON)
 	if err != nil {
 		return nil, err
 	}
-	return panelJSON, nil
+	return unmarshalledJSON, nil
 }
 
-// validateLibraryPanelConfigJSON is the ValidateFunc for `config_json`. It
+// validateLibraryPanelModelJSON is the ValidateFunc for `model_json`. It
 // ensures its value is valid JSON.
-func validateLibraryPanelConfigJSON(config interface{}, k string) ([]string, []error) {
-	configJSON := config.(string)
-	configMap := map[string]interface{}{}
-	err := json.Unmarshal([]byte(configJSON), &configMap)
+func validateLibraryPanelModelJSON(model interface{}, k string) ([]string, []error) {
+	modelJSON := model.(string)
+	modelMap := map[string]interface{}{}
+	err := json.Unmarshal([]byte(modelJSON), &modelMap)
 	if err != nil {
 		return nil, []error{err}
 	}
 	return nil, nil
 }
 
-// normalizeLibraryPanelConfigJSON is the StateFunc for the `config_json` field.
-//
-// It removes the following fields:
-//
-// * `id`:      an auto-incrementing ID Grafana assigns to library panels upon
-//              creation. We cannot know this before creation and therefore it cannot
-//              be managed in code.
-// * `version`: is incremented by Grafana each time a library panel changes.
-func normalizeLibraryPanelConfigJSON(config interface{}) string {
-	var panelJSON map[string]interface{}
+// normalizeLibraryPanelModelJSON is the StateFunc for the `model_json` field.
+func normalizeLibraryPanelModelJSON(config interface{}) string {
+	var modelJSON map[string]interface{}
 	switch c := config.(type) {
 	case map[string]interface{}:
-		panelJSON = c
+		modelJSON = c
 	case string:
 		var err error
-		panelJSON, err = unmarshalLibraryPanelConfigJSON(c)
+		modelJSON, err = unmarshalLibraryPanelModelJSON(c)
 		if err != nil {
 			return c
 		}
 	}
-	delete(panelJSON, "id")
-	delete(panelJSON, "version")
-	j, _ := json.Marshal(panelJSON)
+
+	// replace nil with empty string in JSON
+	// API will always return model JSON with description and type
+	if _, ok := modelJSON["description"]; !ok {
+		modelJSON["description"] = ""
+	}
+	if _, ok := modelJSON["type"]; !ok {
+		modelJSON["type"] = ""
+	}
+	j, _ := json.Marshal(modelJSON)
 	return string(j)
 }
