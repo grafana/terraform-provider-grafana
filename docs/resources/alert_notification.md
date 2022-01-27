@@ -47,4 +47,10 @@ resource "grafana_alert_notification" "email_someteam" {
 - **settings** (Map of String) Additional settings, for full reference see [Grafana HTTP API documentation](https://grafana.com/docs/grafana/latest/http_api/alerting_notification_channels/).
 - **uid** (String) Unique identifier. If unset, this will be automatically generated.
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_alert_notification.alert_notification_name {{alert_notification_id}}
+```

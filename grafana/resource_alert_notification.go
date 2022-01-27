@@ -29,6 +29,9 @@ func ResourceAlertNotification() *schema.Resource {
 		UpdateContext: UpdateAlertNotification,
 		DeleteContext: DeleteAlertNotification,
 		ReadContext:   ReadAlertNotification,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"type": {
