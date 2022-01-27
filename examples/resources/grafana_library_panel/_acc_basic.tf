@@ -7,7 +7,6 @@ resource "grafana_library_panel" "test" {
   folder_id   = 0
   model_json  = jsonencode({
     title     = "basic",
-    type      = "dash-db",
     version   = 34,
   })
 }
