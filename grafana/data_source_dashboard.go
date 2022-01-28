@@ -53,10 +53,12 @@ func DatasourceDashboard() *schema.Resource {
 				Computed:    true,
 				Description: "Whether or not the Grafana dashboard is starred. Starred Dashboards will show up on your own Home Dashboard by default, and are a convenient way to mark Dashboards that you’re interested in.",
 			},
-			"model_json": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The uid of the Grafana dashboard.",
+			"config_json": {
+				Type:         schema.TypeString,
+				Computed:     true,
+				StateFunc:    normalizeDashboardConfigJSON,
+				ValidateFunc: validateDashboardConfigJSON,
+				Description:  "The complete dashboard model JSON.",
 			},
 		},
 	}
