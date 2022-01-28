@@ -122,12 +122,12 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta i
 		}
 	}
 
-	dashboardId := int64(dashboard.Model["id"].(float64))
+	dashboardID := int64(dashboard.Model["id"].(float64))
 	version := int64(dashboard.Model["version"].(float64))
 
 	d.SetId(uid)
 	ReadDashboard(ctx, d, meta)
-	d.Set("dashboard_id", dashboardId)
+	d.Set("dashboard_id", dashboardID)
 	d.Set("version", version)
 	d.Set("title", dashboard.Model["title"].(string))
 	d.Set("is_starred", dashboard.Meta.IsStarred)
