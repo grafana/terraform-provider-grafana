@@ -86,13 +86,11 @@ func findDashboardWithID(client *gapi.Client, id int64) (*gapi.FolderDashboardSe
 func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
 	var dashboard *gapi.Dashboard
-
 	client := meta.(*client).gapi
-	id := d.Get("dashboard_id").(int)
-	uid := d.Get("uid").(string)
-	version := d.Get("version").(int)
 
 	// get UID from ID if specified
+	id := d.Get("dashboard_id").(int)
+	uid := d.Get("uid").(string)
 	switch {
 	case (id < 1 && uid == ""):
 		return diag.FromErr(fmt.Errorf("must specify either dashboard id or uid"))
@@ -109,16 +107,13 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta i
 	}
 
 	// TODO implement dashboard versions
-	switch {
-	// case version < 0:
-	// 	return diag.FromErr(fmt.Errorf("must specify version >= 0, not %q", version))
-	case version > 0:
+	if version := d.Get("version").(int); version > 0 {
 		panic("dashboard version not implemented")
 		// dashboard, err = client.DashboardGetByVersion(uid, version)
 		// if err != nil {
 		// 	return diag.FromErr(err)
 		// }
-	default:
+	} else {
 		dashboard, err = client.DashboardByUID(uid)
 		if err != nil {
 			return diag.FromErr(err)
