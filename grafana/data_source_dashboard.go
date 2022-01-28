@@ -23,13 +23,13 @@ func DatasourceDashboard() *schema.Resource {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     -1,
-				Description: "The numerical ID of the Grafana dashboard.",
+				Description: "The numerical ID of the Grafana dashboard. Specify either this or `uid`.",
 			},
 			"uid": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "",
-				Description: "The uid of the Grafana dashboard.",
+				Description: "The uid of the Grafana dashboard. Specify either this or `dashboard_uid`.",
 			},
 			"version": {
 				Type:        schema.TypeInt,
