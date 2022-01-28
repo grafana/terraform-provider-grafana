@@ -1,7 +1,6 @@
 resource "grafana_dashboard" "test" {
   config_json      = jsonencode({
     id             = 12345,
-    uid            = null,
     title          = "Production Overview",
     tags           = [ "templated" ],
     timezone       = "browser",
