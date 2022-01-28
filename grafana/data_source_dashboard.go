@@ -120,17 +120,9 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta i
 		}
 	}
 
-	d.SetId(dashboard.Model["uid"].(string))
-	d.Set("uid", dashboard.Model["uid"].(string))
-	modelJSON, err := json.Marshal(dashboard.Model)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.Set("model_json", string(modelJSON))
-	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
+	d.SetId(uid)
+	ReadDashboard(ctx, d, meta)
 	d.Set("title", dashboard.Model["title"].(string))
-	d.Set("version", int64(dashboard.Model["version"].(float64)))
-	d.Set("folder_id", dashboard.Meta.Folder)
 	d.Set("is_starred", dashboard.Meta.IsStarred)
 
 	return nil
