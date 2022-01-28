@@ -55,7 +55,6 @@ func DatasourceDashboard() *schema.Resource {
 			"config_json": {
 				Type:         schema.TypeString,
 				Computed:     true,
-				StateFunc:    normalizeDashboardConfigJSON,
 				ValidateFunc: validateDashboardConfigJSON,
 				Description:  "The complete dashboard model JSON.",
 			},
