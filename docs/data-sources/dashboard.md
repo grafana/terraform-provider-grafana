@@ -18,7 +18,6 @@ description: |-
 resource "grafana_dashboard" "test" {
   config_json      = jsonencode({
     id             = 12345,
-    uid            = null,
     title          = "Production Overview",
     tags           = [ "templated" ],
     timezone       = "browser",
@@ -42,16 +41,17 @@ data "grafana_dashboard" "from_uid" {
 
 ### Optional
 
-- **dashboard_id** (Number) The numerical ID of the Grafana dashboard.
+- **dashboard_id** (Number) The numerical ID of the Grafana dashboard. Specify either this or `uid`. Defaults to `-1`.
 - **id** (String) The ID of this resource.
-- **uid** (String) The uid of the Grafana dashboard.
-- **version** (Number) The numerical version of the Grafana dashboard. Set to 0 or omit to get the latest version
+- **uid** (String) The uid of the Grafana dashboard. Specify either this or `dashboard_uid`. Defaults to ``.
+- **version** (Number) The numerical version of the Grafana dashboard. Set to 0 or omit to get the latest version Defaults to `0`.
 
 ### Read-Only
 
-- **folder_id** (Number) The numerical ID of the folder where the Grafana dashboard is found.
+- **config_json** (String) The complete dashboard model JSON.
+- **folder** (Number) The numerical ID of the folder where the Grafana dashboard is found.
 - **is_starred** (Boolean) Whether or not the Grafana dashboard is starred. Starred Dashboards will show up on your own Home Dashboard by default, and are a convenient way to mark Dashboards that you’re interested in.
-- **model_json** (String) The uid of the Grafana dashboard.
+- **slug** (String) The complete dashboard model JSON.
 - **title** (String) The title of the Grafana dashboard.
 
 

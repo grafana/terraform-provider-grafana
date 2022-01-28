@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -23,19 +22,19 @@ func DatasourceDashboard() *schema.Resource {
 			"dashboard_id": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Computed:    true,
-				Description: "The numerical ID of the Grafana dashboard.",
+				Default:     -1,
+				Description: "The numerical ID of the Grafana dashboard. Specify either this or `uid`.",
 			},
 			"uid": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
-				Description: "The uid of the Grafana dashboard.",
+				Default:     "",
+				Description: "The uid of the Grafana dashboard. Specify either this or `dashboard_uid`.",
 			},
 			"version": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Computed:    true,
+				Default:     0,
 				Description: "The numerical version of the Grafana dashboard. Set to 0 or omit to get the latest version",
 			},
 			"title": {
@@ -43,7 +42,7 @@ func DatasourceDashboard() *schema.Resource {
 				Computed:    true,
 				Description: "The title of the Grafana dashboard.",
 			},
-			"folder_id": {
+			"folder": {
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "The numerical ID of the folder where the Grafana dashboard is found.",
@@ -53,10 +52,15 @@ func DatasourceDashboard() *schema.Resource {
 				Computed:    true,
 				Description: "Whether or not the Grafana dashboard is starred. Starred Dashboards will show up on your own Home Dashboard by default, and are a convenient way to mark Dashboards that you’re interested in.",
 			},
-			"model_json": {
+			"config_json": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The uid of the Grafana dashboard.",
+				Description: "The complete dashboard model JSON.",
+			},
+			"slug": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The complete dashboard model JSON.",
 			},
 		},
 	}
@@ -84,13 +88,11 @@ func findDashboardWithID(client *gapi.Client, id int64) (*gapi.FolderDashboardSe
 func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
 	var dashboard *gapi.Dashboard
-
 	client := meta.(*client).gapi
-	id := d.Get("dashboard_id").(int)
-	uid := d.Get("uid").(string)
-	version := d.Get("version").(int)
 
 	// get UID from ID if specified
+	id := d.Get("dashboard_id").(int)
+	uid := d.Get("uid").(string)
 	switch {
 	case (id < 1 && uid == ""):
 		return diag.FromErr(fmt.Errorf("must specify either dashboard id or uid"))
@@ -107,33 +109,27 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta i
 	}
 
 	// TODO implement dashboard versions
-	switch {
-	case version < 0:
-		return diag.FromErr(fmt.Errorf("must specify version >= 0, not %q", version))
-	case version > 0:
+	if version := d.Get("version").(int); version > 0 {
 		panic("dashboard version not implemented")
 		// dashboard, err = client.DashboardGetByVersion(uid, version)
 		// if err != nil {
 		// 	return diag.FromErr(err)
 		// }
-	default:
+	} else {
 		dashboard, err = client.DashboardByUID(uid)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 	}
 
-	d.SetId(dashboard.Model["uid"].(string))
-	d.Set("uid", dashboard.Model["uid"].(string))
-	modelJSON, err := json.Marshal(dashboard.Model)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.Set("model_json", string(modelJSON))
-	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
+	dashboardID := int64(dashboard.Model["id"].(float64))
+	version := int64(dashboard.Model["version"].(float64))
+
+	d.SetId(uid)
+	ReadDashboard(ctx, d, meta)
+	d.Set("dashboard_id", dashboardID)
+	d.Set("version", version)
 	d.Set("title", dashboard.Model["title"].(string))
-	d.Set("version", int64(dashboard.Model["version"].(float64)))
-	d.Set("folder_id", dashboard.Meta.Folder)
 	d.Set("is_starred", dashboard.Meta.IsStarred)
 
 	return nil
