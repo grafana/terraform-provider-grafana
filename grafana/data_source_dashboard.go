@@ -23,19 +23,19 @@ func DatasourceDashboard() *schema.Resource {
 			"dashboard_id": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Computed:    true,
+				Default:     -1,
 				Description: "The numerical ID of the Grafana dashboard.",
 			},
 			"uid": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
+				Default:     "",
 				Description: "The uid of the Grafana dashboard.",
 			},
 			"version": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Computed:    true,
+				Default:     0,
 				Description: "The numerical version of the Grafana dashboard. Set to 0 or omit to get the latest version",
 			},
 			"title": {
@@ -108,8 +108,8 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta i
 
 	// TODO implement dashboard versions
 	switch {
-	case version < 0:
-		return diag.FromErr(fmt.Errorf("must specify version >= 0, not %q", version))
+	// case version < 0:
+	// 	return diag.FromErr(fmt.Errorf("must specify version >= 0, not %q", version))
 	case version > 0:
 		panic("dashboard version not implemented")
 		// dashboard, err = client.DashboardGetByVersion(uid, version)
