@@ -150,7 +150,7 @@ Chaning region will destroy the existing stack and create a new one in the desir
 }
 
 func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client).gapi
+	client := meta.(*client).gcloudapi
 
 	stack := &gapi.CreateStackInput{
 		Name:   d.Get("name").(string),
