@@ -108,6 +108,7 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
+    GRAFANA_VERSION: 8.3.3
   image: golang:1.16
   name: tests
 trigger:
@@ -138,6 +139,7 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
+    GRAFANA_VERSION: 8.2.7
   image: golang:1.16
   name: tests
 trigger:
@@ -168,6 +170,7 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
+    GRAFANA_VERSION: 8.1.8
   image: golang:1.16
   name: tests
 trigger:
@@ -198,6 +201,7 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
+    GRAFANA_VERSION: 8.0.7
   image: golang:1.16
   name: tests
 trigger:
@@ -228,6 +232,7 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
+    GRAFANA_VERSION: 7.5.12
   image: golang:1.16
   name: tests
 trigger:
@@ -241,6 +246,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: ba529b1d151988f76e6b2f3be2b7da92877b62c205172ed799499ab9a3c461f2
+hmac: 3aa0d8e999b723753e800c9db22f793729847df3e246bdb40052266956af8833
 
 ...

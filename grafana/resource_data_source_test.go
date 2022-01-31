@@ -13,6 +13,7 @@ import (
 
 func TestAccDataSource_basic(t *testing.T) {
 	CheckOSSTestsEnabled(t)
+	CheckOSSTestsSemver(t, ">=8.0.0")
 
 	var dataSource gapi.DataSource
 
