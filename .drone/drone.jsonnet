@@ -90,6 +90,7 @@ local pipeline(name, steps, services=[]) = {
     ]
   ),
 
+  cloudApiKey,
   apiToken,
   smToken,
 ] +

@@ -79,6 +79,12 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 get:
+  name: cloud-api-key
+  path: infra/data/ci/terraform-provider-grafana/cloud
+kind: secret
+name: grafana-cloud-api-key
+---
+get:
   name: api-key
   path: infra/data/ci/terraform-provider-grafana/cloud
 kind: secret
@@ -246,6 +252,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: 3aa0d8e999b723753e800c9db22f793729847df3e246bdb40052266956af8833
+hmac: 21722dfbb237f702dd2e062347c7adfeb8a15a7cf103670928142a975d743d33
 
 ...
