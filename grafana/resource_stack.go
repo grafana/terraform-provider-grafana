@@ -2,16 +2,19 @@ package grafana
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
+
+var stackSlugRegex = regexp.MustCompile("^[a-z0-9]+$")
 
 func ResourceStack() *schema.Resource {
 	return &schema.Resource{
@@ -53,21 +56,15 @@ func ResourceStack() *schema.Resource {
 				Description: `
 Subdomain that the Grafana instance will be available at (i.e. setting slug to “<stack_slug>” will make the instance
 available at “https://<stack_slug>.grafana.net".`,
+				ValidateFunc: validation.StringMatch(stackSlugRegex, "must be a lowercase alphanumeric string"),
 			},
 			"region_slug": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Description: `Region slug to assign to this stack.
-Chaning region will destroy the existing stack and create a new one in the desired region`,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					// Only acceptable regions are eu and us
-					if value != "eu" && value != "us" {
-						errors = append(errors, fmt.Errorf("region '%s' is not supported. Only 'eu' and 'us' are currently supported", value))
-					}
-					return
-				},
+Changing region will destroy the existing stack and create a new one in the desired region`,
+				ValidateFunc: validation.StringInSlice([]string{"au", "eu", "us"}, false),
 			},
 			"url": {
 				Type:        schema.TypeString,
