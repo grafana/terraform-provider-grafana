@@ -37,7 +37,7 @@ func TestResourceStack_Basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "name", stackName),
-					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "sllug", stackSlug),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "slug", stackSlug),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "description", stackDescription),
 				),
 			},
