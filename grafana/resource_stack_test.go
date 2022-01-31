@@ -1,7 +1,10 @@
 package grafana
 
 import (
+	"crypto/rand"
 	"fmt"
+	"math/big"
+
 	"strconv"
 	"testing"
 
@@ -10,11 +13,17 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+const (
+	// CharSetAlphaNum is the alphanumeric character set for use with
+	// RandStringFromCharSet
+	CharSetAlphaNum = "abcdefghijklmnopqrstuvwxyz012346789"
+)
+
 func TestResourceStack_Basic(t *testing.T) {
 	CheckCloudTestsEnabled(t)
 	var stack gapi.Stack
-	stackName := "gcloudstacktest"
-	stackSlug := "gcloudstacktest"
+	stackName, _ := RandStringFromCharSet(10, CharSetAlphaNum)
+	stackSlug := stackName
 	stackDescription := "This is a test stack"
 
 	resource.Test(t, resource.TestCase{
@@ -105,4 +114,20 @@ func testAccStackConfigUpdate(name string, slug string, description string) stri
 		description = "%s"
 	  }
 	`, name, slug, description)
+}
+
+// RandStringFromCharSet generates a random string by selecting characters from
+// the charset provided
+func RandStringFromCharSet(strlen int, charSet string) (string, error) {
+	result := make([]byte, strlen)
+
+	for i := 0; i < strlen; i++ {
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(charSet))))
+		if err != nil {
+			return "", err
+		}
+		result[i] = charSet[num.Int64()]
+	}
+
+	return string(result), nil
 }
