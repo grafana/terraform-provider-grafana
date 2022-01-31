@@ -59,7 +59,9 @@ steps:
   - make testacc-cloud
   environment:
     GRAFANA_AUTH:
-      from_secret: grafana-api-token    
+      from_secret: grafana-api-token
+    GRAFANA_CLOUD_API_KEY:
+      from_secret: grafana-cloud-api-key
     GRAFANA_ORG_ID: 1
     GRAFANA_SM_ACCESS_TOKEN:
       from_secret: grafana-sm-token
@@ -87,38 +89,6 @@ get:
   path: infra/data/ci/terraform-provider-grafana/cloud
 kind: secret
 name: grafana-sm-token
----
-kind: pipeline
-name: cloud stack tests
-platform:
-  arch: amd64
-  os: linux
-services: []
-steps:
-- commands:
-  - make testacc-cloud-stack
-  environment:
-    GRAFANA_AUTH:
-      from_secret: grafana-cloud-api-key
-    GRAFANA_ORG_ID: 1
-    GRAFANA_URL: https://grafana.com
-  image: golang:1.16
-  name: tests
-trigger:
-  branch:
-  - master
-  event:
-  - pull_request
-  - push
-type: docker
-workspace:
-  path: /drone/terraform-provider-grafana
----
-get:
-  name: cloud-api-key
-  path: infra/data/ci/terraform-provider-grafana/cloud
-kind: secret
-name: grafana-cloud-api-key
 ---
 kind: pipeline
 name: 'oss tests: 8.3.3'

@@ -127,13 +127,6 @@ func CheckCloudTestsEnabled(t *testing.T) {
 	}
 }
 
-func CheckCloudStackTestsEnabled(t *testing.T) {
-	t.Helper()
-	if !accTestsEnabled(t, "TF_ACC_CLOUD_STACK") {
-		t.Skip("TF_ACC_CLOUD_STACK must be set to a truthy value for Cloud acceptance tests")
-	}
-}
-
 func CheckEnterpriseTestsEnabled(t *testing.T) {
 	t.Helper()
 	if !accTestsEnabled(t, "TF_ACC_ENTERPRISE") {
