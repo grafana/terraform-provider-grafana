@@ -13,8 +13,8 @@ import (
 func TestResourceStack_Basic(t *testing.T) {
 	CheckCloudTestsEnabled(t)
 	var stack gapi.Stack
-	stackName := "grafanacloudstacktest"
-	stackSlug := "grafanacloudstacktest"
+	stackName := "gcloudstacktest"
+	stackSlug := "gcloudstacktest"
 	stackDescription := "This is a test stack"
 
 	resource.Test(t, resource.TestCase{
