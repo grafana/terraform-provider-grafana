@@ -42,7 +42,7 @@ resource "grafana_library_panel" "test" {
 
 ### Read-Only
 
-- **created** (String) Unique ID (UID) of the folder containing the library panel.
+- **created** (String) Timestamp when the library panel was created.
 - **description** (String) Description of the library panel.
 - **folder_name** (String) Name of the folder containing the library panel.
 - **folder_uid** (String) Unique ID (UID) of the folder containing the library panel.
@@ -50,7 +50,7 @@ resource "grafana_library_panel" "test" {
 - **panel_id** (Number) The numeric ID of the library panel computed by Grafana.
 - **type** (String) Type of the library panel (eg. text).
 - **uid** (String) The unique identifier (UID) of a library panel uniquely identifies library panels between multiple Grafana installs. It’s automatically generated unless you specify it during library panel creation.The UID provides consistent URLs for accessing library panels and when syncing library panels between multiple Grafana installs.
-- **updated** (String) Unique ID (UID) of the folder containing the library panel.
+- **updated** (String) Timestamp when the library panel was last modified.
 - **version** (Number) Version of the library panel.
 
 ## Import
