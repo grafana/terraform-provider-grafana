@@ -11,14 +11,14 @@ import (
 )
 
 func TestResourceStack_Basic(t *testing.T) {
-	CheckCloudStackTestsEnabled(t)
+	CheckCloudTestsEnabled(t)
 	var stack gapi.Stack
 	stackName := "grafanacloudstack-test"
 	stackSlug := "grafanacloudstack-test"
 	stackDescription := "This is a test stack"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheckCloudStack(t) },
+		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
