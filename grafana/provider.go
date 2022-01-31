@@ -120,13 +120,6 @@ func Provider(version string) func() *schema.Provider {
 					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_SM_URL", "https://synthetic-monitoring-api.grafana.net"),
 					Description: "Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable.",
 				},
-				"grafana-cloud-api-key": {
-					Type:        schema.TypeString,
-					Optional:    true,
-					Sensitive:   true,
-					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_CLOUD_API_KEY", nil),
-					Description: "A Grafana cloud admin api key. This is used to create new stacks. May alternatively be set via the `GRAFANA_CLOUD_API_KEY` environment variable.",
-				},
 			},
 
 			ResourcesMap: map[string]*schema.Resource{
