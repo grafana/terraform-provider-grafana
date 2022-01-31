@@ -18,7 +18,7 @@ func TestResourceStack_Basic(t *testing.T) {
 	stackDescription := "This is a test stack"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { testAccPreCheckCloudStack(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
