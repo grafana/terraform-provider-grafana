@@ -34,6 +34,7 @@ Manages Grafana library panels.
 			"uid": {
 				Type:     schema.TypeString,
 				Computed: true,
+				Optional: true,
 				Description: "The unique identifier (UID) of a library panel uniquely identifies library panels between multiple Grafana installs. " +
 					"It’s automatically generated unless you specify it during library panel creation." +
 					"The UID provides consistent URLs for accessing library panels and when syncing library panels between multiple Grafana installs.",
