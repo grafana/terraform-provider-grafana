@@ -3,7 +3,6 @@ package grafana
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -19,18 +18,20 @@ func DatasourceLibraryPanel() *schema.Resource {
 		ReadContext: dataSourceLibraryPanelRead,
 		Schema: map[string]*schema.Schema{
 			"uid": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ExactlyOneOf: []string{"uid", "name"},
 				Description: "The unique identifier (UID) of a library panel uniquely identifies library panels between multiple Grafana installs. " +
 					"It’s automatically generated unless you specify it during library panel creation." +
 					"The UID provides consistent URLs for accessing library panels and when syncing library panels between multiple Grafana installs.",
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				Description: "Name of the library panel.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ExactlyOneOf: []string{"uid", "name"},
+				Description:  "Name of the library panel.",
 			},
 			"panel_id": {
 				Type:        schema.TypeInt,
@@ -109,17 +110,10 @@ func dataSourceLibraryPanelRead(ctx context.Context, d *schema.ResourceData, met
 	var err error
 
 	// get UID from ID if specified
-	switch {
-	case (name == "" && uid == ""):
-		return diag.FromErr(fmt.Errorf("must specify either library panel name or uid"))
-	case (name != "" && uid != ""):
-		return diag.FromErr(fmt.Errorf("must specify either library panel name or uid, but not both"))
-	case (name != ""):
+	if name != "" {
 		panel, err = client.LibraryPanelByName(name)
-	case (uid != ""):
+	} else {
 		panel, err = client.LibraryPanelByUID(uid)
-	default:
-		break
 	}
 
 	if err != nil {
