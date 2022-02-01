@@ -1,29 +1,22 @@
 package grafana
 
 import (
-	"crypto/rand"
 	"fmt"
-	"math/big"
 
 	"strconv"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-const (
-	// CharSetAlphaNum is the alphanumeric character set for use with
-	// RandStringFromCharSet
-	CharSetAlphaNum = "abcdefghijklmnopqrstuvwxyz012346789"
-)
-
 func TestResourceStack_Basic(t *testing.T) {
 	CheckCloudTestsEnabled(t)
+
 	var stack gapi.Stack
-	stackName, _ := RandStringFromCharSet(10, CharSetAlphaNum)
-	stackSlug := stackName
+	resourceName := GetRandomStackName()
 	stackDescription := "This is a test stack"
 
 	resource.Test(t, resource.TestCase{
@@ -32,21 +25,21 @@ func TestResourceStack_Basic(t *testing.T) {
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccStackConfigBasic(stackName, stackSlug),
+				Config: testAccStackConfigBasic(resourceName, resourceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
 					resource.TestMatchResourceAttr("grafana_cloud_stack.test", "id", idRegexp),
-					resource.TestCheckResourceAttrSet("grafanacloud_stack.test", "id"),
-					resource.TestCheckResourceAttr("grafanacloud_stack.test", "name", stackName),
-					resource.TestCheckResourceAttr("grafanacloud_stack.test", "slug", stackSlug),
+					resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "id"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "name", resourceName),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "slug", resourceName),
 				),
 			},
 			{
-				Config: testAccStackConfigUpdate(stackName, stackSlug, stackDescription),
+				Config: testAccStackConfigUpdate(resourceName+"new", resourceName, stackDescription),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
-					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "name", stackName),
-					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "slug", stackSlug),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "name", resourceName+"new"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "slug", resourceName),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "description", stackDescription),
 				),
 			},
@@ -69,13 +62,13 @@ func testAccStackCheckExists(rn string, a *gapi.Stack) resource.TestCheckFunc {
 			return fmt.Errorf("resource id is malformed")
 		}
 
-		client := testAccProvider.Meta().(*client).gapi
-		stackID, err := client.StackByID(id)
+		client := testAccProvider.Meta().(*client).gcloudapi
+		stack, err := client.StackByID(id)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
 		}
 
-		*a = stackID
+		*a = stack
 
 		return nil
 	}
@@ -83,13 +76,9 @@ func testAccStackCheckExists(rn string, a *gapi.Stack) resource.TestCheckFunc {
 
 func testAccStackCheckDestroy(a *gapi.Stack) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*client).gapi
-		stack, err := client.StackByID(a.ID)
-		if err == nil {
-			return err
-		}
-
-		if stack.Name != "" || stack.Status != "deleted" {
+		client := testAccProvider.Meta().(*client).gcloudapi
+		stack, err := client.StackBySlug(a.Slug)
+		if err == nil && stack.Name != "" {
 			return fmt.Errorf("stack `%s` with ID `%d` still exists after destroy", stack.Name, stack.ID)
 		}
 
@@ -102,6 +91,7 @@ func testAccStackConfigBasic(name string, slug string) string {
 	resource "grafana_cloud_stack" "test" {
 		name  = "%s"
 		slug  = "%s"
+		region_slug = "eu"
 	  }
 	`, name, slug)
 }
@@ -109,25 +99,15 @@ func testAccStackConfigBasic(name string, slug string) string {
 func testAccStackConfigUpdate(name string, slug string, description string) string {
 	return fmt.Sprintf(`
 	resource "grafana_cloud_stack" "test" {
-		name        = "%s"
-		slug        = "%s"
+		name  = "%s"
+		slug  = "%s"
+		region_slug = "eu"
 		description = "%s"
 	  }
 	`, name, slug, description)
 }
 
-// RandStringFromCharSet generates a random string by selecting characters from
-// the charset provided
-func RandStringFromCharSet(strlen int, charSet string) (string, error) {
-	result := make([]byte, strlen)
-
-	for i := 0; i < strlen; i++ {
-		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(charSet))))
-		if err != nil {
-			return "", err
-		}
-		result[i] = charSet[num.Int64()]
-	}
-
-	return string(result), nil
+// Prefix a character as stack name can't start with a number
+func GetRandomStackName() string {
+	return "s" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 }

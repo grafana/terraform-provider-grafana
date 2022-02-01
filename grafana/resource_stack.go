@@ -171,7 +171,7 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 }
 
 func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client).gapi
+	client := meta.(*client).gcloudapi
 	stackID, _ := strconv.ParseInt(d.Id(), 10, 64)
 
 	// The underlying API olnly allows to update the name and description.
@@ -196,7 +196,7 @@ func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 }
 
 func DeleteStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client).gapi
+	client := meta.(*client).gcloudapi
 	slug := d.Get("slug").(string)
 	if err := client.DeleteStack(slug); err != nil {
 		return diag.FromErr(err)
@@ -206,7 +206,7 @@ func DeleteStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 }
 
 func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client).gapi
+	client := meta.(*client).gcloudapi
 
 	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)
@@ -230,7 +230,7 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 }
 
 func ExistsStack(d *schema.ResourceData, meta interface{}) (bool, error) {
-	client := meta.(*client).gapi
+	client := meta.(*client).gcloudapi
 	stackID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	_, err := client.StackByID(stackID)
 	if err != nil && strings.HasPrefix(err.Error(), "status: 404") {
