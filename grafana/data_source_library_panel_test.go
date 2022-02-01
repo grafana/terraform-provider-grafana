@@ -1,12 +1,10 @@
 package grafana
 
 import (
-	"fmt"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccDatasourceLibraryPanelFromName(t *testing.T) {
@@ -48,34 +46,4 @@ func TestAccDatasourceLibraryPanelFromName(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccLibraryPanelCheckExists(rn string, panel *gapi.LibraryPanel) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[rn]
-		if !ok {
-			return fmt.Errorf("resource not found: %s", rn)
-		}
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("resource id not set")
-		}
-		client := testAccProvider.Meta().(*client).gapi
-		gotLibraryPanel, err := client.LibraryPanelByUID(rs.Primary.ID)
-		if err != nil {
-			return fmt.Errorf("error getting panel: %s", err)
-		}
-		*panel = *gotLibraryPanel
-		return nil
-	}
-}
-
-func testAccLibraryPanelCheckDestroy(panel *gapi.LibraryPanel) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*client).gapi
-		_, err := client.LibraryPanelByUID(panel.UID)
-		if err == nil {
-			return fmt.Errorf("panel still exists")
-		}
-		return nil
-	}
 }
