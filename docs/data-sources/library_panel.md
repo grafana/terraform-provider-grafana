@@ -34,7 +34,7 @@ resource "grafana_library_panel" "test" {
 # add libraryPanel object to each panel before creating dashboard.
 # Grafana will link panels to dashboards using uid and name when creating the dashboard.
 locals {
-  panels = [ for this_p in grafana_library_panel.test : merge(this_p, {
+  panels = [ for this_p in grafana_library_panel.test : merge(jsondecode(this_p), {
     libraryPanel = {
       uid        = this_p.id
       name       = this_p.name } }) ]
