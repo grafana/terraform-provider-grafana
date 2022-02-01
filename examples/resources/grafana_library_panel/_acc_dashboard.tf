@@ -13,9 +13,9 @@ resource "grafana_dashboard" "test" {
   message          = "inital commit."
   config_json      = jsonencode({
     id             = 12345,
-    panels         = [ merge(jsondecode(grafana_library_panel.test_dashboard.model_json), {
+    panels         = [ merge(jsondecode(grafana_library_panel.test.model_json), {
       libraryPanel = {
-        uid        = grafana_library_panel.test_dashboard.id } }) ]
+        uid        = grafana_library_panel.test.id } }) ]
     title          = "Production Overview",
     tags           = [ "templated" ],
     timezone       = "browser",
