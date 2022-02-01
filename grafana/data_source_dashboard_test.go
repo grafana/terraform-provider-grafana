@@ -47,7 +47,7 @@ func TestAccDatasourceDashboardBasicID(t *testing.T) {
 	})
 }
 
-func TestAccDatasourceDashboardBasicUID(t *testing.T) {
+func TestAccDatasourceDashboardBadExactlyOneOf(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 
 	var dashboard gapi.Dashboard
@@ -58,7 +58,7 @@ func TestAccDatasourceDashboardBasicUID(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccExample(t, "data-sources/grafana_dashboard/bad-ExactlyOneOf.tf"),
-				ExpectError: regexp.MustCompile(".*one of.*must be specified.*"),
+				ExpectError: regexp.MustCompile(".*only one of.*can be specified.*"),
 			},
 		},
 	})
