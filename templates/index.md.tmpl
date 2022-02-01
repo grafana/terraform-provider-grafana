@@ -18,10 +18,16 @@ The Grafana provider provides configuration management resources for
 
 ## Authentication
 
+One, or many, of the following authentication settings must be set. Each authentication setting allows a subset of resources to be used
+
 ### `auth`
 
 This can be a Grafana API key, basic auth `username:password`, or a
 [Grafana API key](https://grafana.com/docs/grafana/latest/http_api/create-api-tokens-for-org/).
+
+### `cloud_api_key`
+
+An API key created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/cloud-portal/create-api-key/).
 
 ### `sm_access_token`
 

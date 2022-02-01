@@ -42,17 +42,19 @@ func Provider(version string) func() *schema.Provider {
 		p := &schema.Provider{
 			Schema: map[string]*schema.Schema{
 				"url": {
-					Type:        schema.TypeString,
-					Required:    true,
-					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_URL", nil),
-					Description: "The root URL of a Grafana server. May alternatively be set via the `GRAFANA_URL` environment variable.",
+					Type:         schema.TypeString,
+					Optional:     true,
+					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_URL", nil),
+					RequiredWith: []string{"auth"},
+					Description:  "The root URL of a Grafana server. May alternatively be set via the `GRAFANA_URL` environment variable.",
 				},
 				"auth": {
-					Type:        schema.TypeString,
-					Required:    true,
-					Sensitive:   true,
-					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_AUTH", nil),
-					Description: "API token or basic auth username:password. May alternatively be set via the `GRAFANA_AUTH` environment variable.",
+					Type:         schema.TypeString,
+					Optional:     true,
+					Sensitive:    true,
+					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_AUTH", nil),
+					Description:  "API token or basic auth username:password. May alternatively be set via the `GRAFANA_AUTH` environment variable.",
+					AtLeastOneOf: []string{"auth", "cloud_api_key", "sm_access_token"},
 				},
 				"retries": {
 					Type:        schema.TypeInt,
@@ -90,6 +92,21 @@ func Provider(version string) func() *schema.Provider {
 					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_INSECURE_SKIP_VERIFY", nil),
 					Description: "Skip TLS certificate verification. May alternatively be set via the `GRAFANA_INSECURE_SKIP_VERIFY` environment variable.",
 				},
+
+				"cloud_api_key": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Sensitive:   true,
+					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_CLOUD_API_KEY", nil),
+					Description: "API key for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_API_KEY` environment variable.",
+				},
+				"cloud_api_url": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_CLOUD_API_URL", "https://grafana.com"),
+					Description: "Grafana Cloud's API URL. May alternatively be set via the `GRAFANA_CLOUD_API_URL` environment variable.",
+				},
+
 				"sm_access_token": {
 					Type:        schema.TypeString,
 					Optional:    true,
@@ -116,6 +133,7 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_data_source_permission":  ResourceDatasourcePermission(),
 				"grafana_folder":                  ResourceFolder(),
 				"grafana_folder_permission":       ResourceFolderPermission(),
+				"grafana_library_panel":           ResourceLibraryPanel(),
 				"grafana_organization":            ResourceOrganization(),
 				"grafana_playlist":                ResourcePlaylist(),
 				"grafana_report":                  ResourceReport(),
@@ -152,89 +170,120 @@ func Provider(version string) func() *schema.Provider {
 }
 
 type client struct {
-	gapi  *gapi.Client
-	smapi *smapi.Client
-	mlapi *mlapi.Client
-	url   string
+	gapiURL   string
+	gapi      *gapi.Client
+	gcloudapi *gapi.Client
+	smapi     *smapi.Client
+	mlapi     *mlapi.Client
 }
 
 func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
-		var diags diag.Diagnostics
+		var (
+			cfg   *gapi.Config
+			diags diag.Diagnostics
+			err   error
+		)
 		p.UserAgent("terraform-provider-grafana", version)
 
 		c := &client{}
 
-		auth := strings.SplitN(d.Get("auth").(string), ":", 2)
-		cli := cleanhttp.DefaultClient()
-		transport := cleanhttp.DefaultTransport()
-		transport.TLSClientConfig = &tls.Config{}
-
-		// TLS Config
-		tlsKey := d.Get("tls_key").(string)
-		tlsCert := d.Get("tls_cert").(string)
-		caCert := d.Get("ca_cert").(string)
-		insecure := d.Get("insecure_skip_verify").(bool)
-		if caCert != "" {
-			ca, err := ioutil.ReadFile(caCert)
-			if err != nil {
-				return nil, diag.FromErr(err)
-			}
-			pool := x509.NewCertPool()
-			pool.AppendCertsFromPEM(ca)
-			transport.TLSClientConfig.RootCAs = pool
-		}
-		if tlsKey != "" && tlsCert != "" {
-			cert, err := tls.LoadX509KeyPair(tlsCert, tlsKey)
-			if err != nil {
-				return nil, diag.FromErr(err)
-			}
-			transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
-		}
-		if insecure {
-			transport.TLSClientConfig.InsecureSkipVerify = true
-		}
-
-		c.url = d.Get("url").(string)
-		cli.Transport = logging.NewTransport("Grafana", transport)
-		cfg := gapi.Config{
-			Client:     cli,
-			NumRetries: d.Get("retries").(int),
-			OrgID:      int64(d.Get("org_id").(int)),
-		}
-		if len(auth) == 2 {
-			cfg.BasicAuth = url.UserPassword(auth[0], auth[1])
-		} else {
-			cfg.APIKey = auth[0]
-		}
-		gclient, err := gapi.New(c.url, cfg)
+		c.gapiURL, cfg, c.gapi, err = createGrafanaClient(d)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
-
-		c.gapi = gclient
-
-		mlcfg := mlapi.Config{
-			BasicAuth:   cfg.BasicAuth,
-			BearerToken: cfg.APIKey,
-			Client:      cli,
-			NumRetries:  d.Get("retries").(int),
-		}
-		mlURL := c.url
-		if !strings.HasSuffix(c.url, "/") {
-			mlURL += "/"
-		}
-		mlURL += "api/plugins/grafana-ml-app/resources"
-		mlclient, err := mlapi.New(mlURL, mlcfg)
+		c.gcloudapi, err = createCloudClient(d)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
-		c.mlapi = mlclient
-
-		smToken := d.Get("sm_access_token").(string)
-		smURL := d.Get("sm_url").(string)
-		c.smapi = smapi.NewClient(smURL, smToken, nil)
+		c.mlapi, err = createMLClient(c.gapiURL, cfg)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+		c.smapi = createSMClient(d)
 
 		return c, diags
 	}
+}
+
+func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Client, error) {
+	auth := strings.SplitN(d.Get("auth").(string), ":", 2)
+	cli := cleanhttp.DefaultClient()
+	transport := cleanhttp.DefaultTransport()
+	transport.TLSClientConfig = &tls.Config{}
+
+	// TLS Config
+	tlsKey := d.Get("tls_key").(string)
+	tlsCert := d.Get("tls_cert").(string)
+	caCert := d.Get("ca_cert").(string)
+	insecure := d.Get("insecure_skip_verify").(bool)
+	if caCert != "" {
+		ca, err := ioutil.ReadFile(caCert)
+		if err != nil {
+			return "", nil, nil, err
+		}
+		pool := x509.NewCertPool()
+		pool.AppendCertsFromPEM(ca)
+		transport.TLSClientConfig.RootCAs = pool
+	}
+	if tlsKey != "" && tlsCert != "" {
+		cert, err := tls.LoadX509KeyPair(tlsCert, tlsKey)
+		if err != nil {
+			return "", nil, nil, err
+		}
+		transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
+	}
+	if insecure {
+		transport.TLSClientConfig.InsecureSkipVerify = true
+	}
+
+	apiURL := d.Get("url").(string)
+	cli.Transport = logging.NewTransport("Grafana", transport)
+	cfg := gapi.Config{
+		Client:     cli,
+		NumRetries: d.Get("retries").(int),
+		OrgID:      int64(d.Get("org_id").(int)),
+	}
+	if len(auth) == 2 {
+		cfg.BasicAuth = url.UserPassword(auth[0], auth[1])
+	} else {
+		cfg.APIKey = auth[0]
+	}
+	gclient, err := gapi.New(apiURL, cfg)
+	if err != nil {
+		return "", nil, nil, err
+	}
+	return apiURL, &cfg, gclient, nil
+}
+
+func createMLClient(url string, grafanaCfg *gapi.Config) (*mlapi.Client, error) {
+	mlcfg := mlapi.Config{
+		BasicAuth:   grafanaCfg.BasicAuth,
+		BearerToken: grafanaCfg.APIKey,
+		Client:      grafanaCfg.Client,
+		NumRetries:  grafanaCfg.NumRetries,
+	}
+	mlURL := url
+	if !strings.HasSuffix(mlURL, "/") {
+		mlURL += "/"
+	}
+	mlURL += "api/plugins/grafana-ml-app/resources"
+	mlclient, err := mlapi.New(mlURL, mlcfg)
+	if err != nil {
+		return nil, err
+	}
+	return mlclient, nil
+}
+
+func createCloudClient(d *schema.ResourceData) (*gapi.Client, error) {
+	cfg := gapi.Config{
+		APIKey: d.Get("cloud_api_key").(string),
+	}
+	return gapi.New(d.Get("cloud_api_url").(string), cfg)
+}
+
+func createSMClient(d *schema.ResourceData) *smapi.Client {
+	smToken := d.Get("sm_access_token").(string)
+	smURL := d.Get("sm_url").(string)
+	return smapi.NewClient(smURL, smToken, nil)
 }
