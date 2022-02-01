@@ -22,7 +22,6 @@ func DatasourceDashboard() *schema.Resource {
 			"dashboard_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				Computed:     true,
 				Default:      -1,
 				ExactlyOneOf: []string{"dashboard_id", "uid"},
 				Description:  "The numerical ID of the Grafana dashboard. Specify either this or `uid`.",
@@ -30,7 +29,6 @@ func DatasourceDashboard() *schema.Resource {
 			"uid": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Computed:     true,
 				Default:      "",
 				ExactlyOneOf: []string{"dashboard_id", "uid"},
 				Description:  "The uid of the Grafana dashboard. Specify either this or `dashboard_id`.",
