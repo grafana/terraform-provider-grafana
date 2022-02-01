@@ -14,4 +14,4 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.10.1
 )
 
-replace github.com/grafana/grafana-api-golang-client v0.2.4 => github.com/snyk/grafana-api-golang-client v0.2.4-0.20220124164506-00c52c0e70b4
+replace github.com/grafana/grafana-api-golang-client v0.2.5 => github.com/snyk/grafana-api-golang-client v0.2.4-0.20220201152457-0fff9a0f6d6a
