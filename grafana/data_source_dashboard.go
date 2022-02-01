@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -33,6 +34,11 @@ func DatasourceDashboard() *schema.Resource {
 				ExactlyOneOf: []string{"dashboard_id", "uid"},
 				Description:  "The uid of the Grafana dashboard. Specify either this or `dashboard_id`.",
 			},
+			"config_json": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The complete dashboard model JSON.",
+			},
 			"version": {
 				Type:        schema.TypeInt,
 				Computed:    true,
@@ -52,11 +58,6 @@ func DatasourceDashboard() *schema.Resource {
 				Type:        schema.TypeBool,
 				Computed:    true,
 				Description: "Whether or not the Grafana dashboard is starred. Starred Dashboards will show up on your own Home Dashboard by default, and are a convenient way to mark Dashboards that you’re interested in.",
-			},
-			"config_json": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The complete dashboard model JSON.",
 			},
 			"slug": {
 				Type:        schema.TypeString,
@@ -101,15 +102,24 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta i
 		uid = res.UID
 	}
 
-	dashboardID := int64(dashboard.Model["id"].(float64))
-	version := int64(dashboard.Model["version"].(float64))
+	dashboard, err := client.DashboardByUID(uid)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	d.SetId(uid)
-	ReadDashboard(ctx, d, meta)
-	d.Set("dashboard_id", dashboardID)
-	d.Set("version", version)
+	d.Set("uid", dashboard.Model["uid"].(string))
+	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
+	configJSONBytes, err := json.Marshal(dashboard.Model)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.Set("config_json", string(configJSONBytes))
+	d.Set("version", int64(dashboard.Model["version"].(float64)))
 	d.Set("title", dashboard.Model["title"].(string))
+	d.Set("folder", dashboard.Folder)
 	d.Set("is_starred", dashboard.Meta.IsStarred)
+	d.Set("slug", dashboard.Meta.Slug)
 
 	return nil
 }
