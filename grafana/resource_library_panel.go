@@ -183,11 +183,10 @@ func DeleteLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interf
 	client := meta.(*client).gapi
 	uid := d.Id()
 	_, err := client.DeleteLibraryPanel(uid)
-	var diags diag.Diagnostics
-	if err != nil && !strings.HasPrefix(err.Error(), "status: 404") {
+	if err != nil {
 		return diag.FromErr(err)
 	}
-	return diags
+	return nil
 }
 
 func makeLibraryPanel(d *schema.ResourceData) gapi.LibraryPanel {
