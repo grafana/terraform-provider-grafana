@@ -118,7 +118,7 @@ func TestAccLibraryPanel_dashboard(t *testing.T) {
 					testAccLibraryPanelCheckExists("grafana_library_panel.dashboard", &panel),
 					testAccDashboardCheckExists("grafana_dashboard.library_panel", &dashboard),
 					resource.TestCheckResourceAttr(
-						"grafana_library_panel.dashboard", "model_json", `{"gridPos": {"h": 8,"w": 12 }, "id": 1}`,
+						"grafana_library_panel.dashboard", "config_json", `{"gridPos": {"h": 8,"w": 12 }, "id": 1}`,
 					),
 				),
 			},
