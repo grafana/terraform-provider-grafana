@@ -101,11 +101,6 @@ Manages Grafana library panels.
 				Computed:    true,
 				Description: "Timestamp when the library panel was last modified.",
 			},
-			// "connected_dashboards": {
-			// 	Type:     	 	schema.TypeList,
-			// 	Computed:    	true,
-			// 	Description: 	"Unique ID (UID) of the folder containing the library panel.",
-			// },
 		},
 	}
 }
