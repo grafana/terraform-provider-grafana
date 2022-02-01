@@ -9,7 +9,7 @@ resource "grafana_library_panel" "dashboard" {
 }
 
 # make a dashboard wth a library panel
-resource "grafana_dashboard" "library_panel" {
+resource "grafana_dashboard" "test" {
   message          = "inital commit."
   config_json      = jsonencode({
     id             = 12345
