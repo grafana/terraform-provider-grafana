@@ -11,6 +11,6 @@ resource "grafana_dashboard" "test_bad_inputs" {
 }
 
 data "grafana_dashboard" "bad_from_uid_id" {
-  uid           = grafana_dashboard.test.id
-  dashboard_id  = grafana_dashboard.test.dashboard_id
+  uid           = grafana_dashboard.test_bad_inputs.id
+  dashboard_id  = grafana_dashboard.test_bad_inputs.dashboard_id
 }
