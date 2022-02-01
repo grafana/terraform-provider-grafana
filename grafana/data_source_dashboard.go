@@ -37,9 +37,8 @@ func DatasourceDashboard() *schema.Resource {
 			},
 			"version": {
 				Type:        schema.TypeInt,
-				Optional:    true,
-				Default:     0,
-				Description: "The numerical version of the Grafana dashboard. Set to 0 or omit to get the latest version",
+				Computed:    true,
+				Description: "The numerical version of the Grafana dashboard.",
 			},
 			"title": {
 				Type:        schema.TypeString,
@@ -90,40 +89,18 @@ func findDashboardWithID(client *gapi.Client, id int64) (*gapi.FolderDashboardSe
 }
 
 func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var err error
 	var dashboard *gapi.Dashboard
 	client := meta.(*client).gapi
 
 	// get UID from ID if specified
 	id := d.Get("dashboard_id").(int)
 	uid := d.Get("uid").(string)
-	switch {
-	case (id < 1 && uid == ""):
-		return diag.FromErr(fmt.Errorf("must specify either dashboard id or uid"))
-	case (id > 0 && uid != ""):
-		return diag.FromErr(fmt.Errorf("must specify either dashboard id or uid, but not both"))
-	case (id > 0):
+	if id > 0 {
 		res, err := findDashboardWithID(client, int64(id))
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		uid = res.UID
-	default:
-		break
-	}
-
-	// TODO implement dashboard versions
-	if version := d.Get("version").(int); version > 0 {
-		panic("dashboard version not implemented")
-		// dashboard, err = client.DashboardGetByVersion(uid, version)
-		// if err != nil {
-		// 	return diag.FromErr(err)
-		// }
-	} else {
-		dashboard, err = client.DashboardByUID(uid)
-		if err != nil {
-			return diag.FromErr(err)
-		}
 	}
 
 	dashboardID := int64(dashboard.Model["id"].(float64))
