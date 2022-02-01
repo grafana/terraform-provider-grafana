@@ -457,6 +457,8 @@ github.com/gorilla/mux v1.7.3/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2z
 github.com/gorilla/websocket v0.0.0-20170926233335-4201258b820c/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
 github.com/grafana/grafana-api-golang-client v0.2.4 h1:d4CH/rcjaCctStA9RMneoTxVRHvGPAs4X+j4TiQgg68=
 github.com/grafana/grafana-api-golang-client v0.2.4/go.mod h1:24W29gPe9yl0/3A9X624TPkAOR8DpHno490cPwnkv8E=
+github.com/grafana/grafana-api-golang-client v0.2.5 h1:rZhy+0r/B/zV9gZ6BHAHY73JOi1DgVUegghF54yLn/M=
+github.com/grafana/grafana-api-golang-client v0.2.5/go.mod h1:24W29gPe9yl0/3A9X624TPkAOR8DpHno490cPwnkv8E=
 github.com/grafana/machine-learning-go-client v0.1.1 h1:Gw6cX8xAd6IVF2LApkXOIdBK8Gzz07B3jQPukecw7fc=
 github.com/grafana/machine-learning-go-client v0.1.1/go.mod h1:QFfZz8NkqVF8++skjkKQXJEZfpCYd8S0yTWJUpsLLTA=
 github.com/grafana/synthetic-monitoring-agent v0.5.0/go.mod h1:oC2+OFrK7WHqrDmilaa8eNNjyB2fMRk7DCj3Z/b/TrA=
