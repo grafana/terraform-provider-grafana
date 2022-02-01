@@ -97,6 +97,7 @@ func DatasourceLibraryPanel() *schema.Resource {
 				Type:        schema.TypeList,
 				Computed:    true,
 				Description: "Numerical IDs of Grafana dashboards containing the library panel.",
+				Elem:        &schema.Schema{Type: schema.TypeInt},
 			},
 		},
 	}
