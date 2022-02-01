@@ -225,9 +225,7 @@ func unmarshalLibraryPanelModelJSON(modelJSON string) (map[string]interface{}, e
 // ensures its value is valid JSON.
 func validateLibraryPanelModelJSON(model interface{}, k string) ([]string, []error) {
 	modelJSON := model.(string)
-	modelMap := map[string]interface{}{}
-	err := json.Unmarshal([]byte(modelJSON), &modelMap)
-	if err != nil {
+	if _, err := unmarshalLibraryPanelModelJSON(modelJSON); err != nil {
 		return nil, []error{err}
 	}
 	return nil, nil
