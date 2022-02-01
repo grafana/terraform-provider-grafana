@@ -100,29 +100,6 @@ func TestAccLibraryPanel_folder(t *testing.T) {
 	})
 }
 
-func TestAccLibraryPanel_dashboard(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=8.0.0")
-
-	var panel gapi.LibraryPanel
-	var dashboard gapi.Dashboard
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccLibraryPanelDashboardCheckDestroy(&panel, &dashboard),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccExample(t, "resources/grafana_library_panel/_acc_dashboard.tf"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccLibraryPanelCheckExists("grafana_library_panel.test_dashboard", &panel),
-					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-				),
-			},
-		},
-	})
-}
-
 func testAccLibraryPanelCheckExists(rn string, panel *gapi.LibraryPanel) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
@@ -172,21 +149,6 @@ func testAccLibraryPanelFolderCheckDestroy(panel *gapi.LibraryPanel, folder *gap
 		folder, err = client.Folder(folder.ID)
 		if err == nil {
 			return fmt.Errorf("the following folder still exists: %s", folder.Title)
-		}
-		return nil
-	}
-}
-
-func testAccLibraryPanelDashboardCheckDestroy(panel *gapi.LibraryPanel, dashboard *gapi.Dashboard) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*client).gapi
-		_, err := client.LibraryPanelByUID(panel.UID)
-		if err == nil {
-			return fmt.Errorf("panel still exists")
-		}
-		dashboard, err = client.DashboardByUID(dashboard.Model["uid"].(string))
-		if err == nil {
-			return fmt.Errorf("the following dashboard still exists: %s", dashboard.Model["title"].(string))
 		}
 		return nil
 	}
