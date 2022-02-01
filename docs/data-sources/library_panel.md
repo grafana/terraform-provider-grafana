@@ -18,9 +18,11 @@ resource "grafana_library_panel" "test" {
   name       = "test name"
   model_json = jsonencode({
     gridPos  = {
-      h      = 8,
-      w      = 12 },
+      h      = 8
+      w      = 12 }
     id       = 1
+    # if not set, Grafana v8.0/v8.1 will error "inconsistent final plan" in dashboard resource
+    title    = "test name"
   })
 }
 
@@ -65,7 +67,7 @@ resource "grafana_dashboard" "test" {
 ### Read-Only
 
 - **created** (String) Unique ID (UID) of the folder containing the library panel.
-- **dashboard_ids** (List of String) Numerical IDs of Grafana dashboards containing the library panel.
+- **dashboard_ids** (List of Number) Numerical IDs of Grafana dashboards containing the library panel.
 - **description** (String) Description of the library panel.
 - **folder_id** (Number) ID of the folder where the library panel is stored.
 - **folder_name** (String) Name of the folder containing the library panel.
