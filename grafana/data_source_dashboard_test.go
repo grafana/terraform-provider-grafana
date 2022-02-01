@@ -50,11 +50,9 @@ func TestAccDatasourceDashboardBasicID(t *testing.T) {
 func TestAccDatasourceDashboardBadExactlyOneOf(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 
-	var dashboard gapi.Dashboard
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccExample(t, "data-sources/grafana_dashboard/bad-ExactlyOneOf.tf"),
