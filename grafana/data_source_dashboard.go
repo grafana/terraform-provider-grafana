@@ -29,7 +29,7 @@ func DatasourceDashboard() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "",
-				Description: "The uid of the Grafana dashboard. Specify either this or `dashboard_uid`.",
+				Description: "The uid of the Grafana dashboard. Specify either this or `dashboard_id`.",
 			},
 			"version": {
 				Type:        schema.TypeInt,
