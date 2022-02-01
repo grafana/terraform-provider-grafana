@@ -1,12 +1,7 @@
-provider "grafana" {
-  url  = "http://enverus.grafana.net/"
-  auth = "eyJrIjoiNmFyaUR1YzFZbkRkMFdPZkNKM0hyN01odFAyaDdNcU8iLCJuIjoib25wcmVtLWltcG9ydC1kYXNoYm9hcmRzIiwiaWQiOjF9"
-}
-
 resource "grafana_library_panel" "test" {
   for_each    = {
-    1 = { gridPos = {h = 8, w = 12}, id = 1, title = "test name 1", type = "text" },
-    2 = { gridPos = {h = 8, w = 12}, id = 2, title = "test name 2", type = "text" }, }
+    "1" = { gridPos = {h = 8, w = 12}, id = 1, title = "test name 1", type = "text" },
+    "2" = { gridPos = {h = 8, w = 12}, id = 2, title = "test name 2", type = "text" }, }
 
   name        = each.value.title
   model_json  = jsonencode(each.value)
