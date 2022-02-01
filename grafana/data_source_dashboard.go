@@ -63,7 +63,7 @@ func DatasourceDashboard() *schema.Resource {
 			"slug": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "The complete dashboard model JSON.",
+				Description: "URL slug of the dashboard (deprecated).",
 			},
 		},
 	}
