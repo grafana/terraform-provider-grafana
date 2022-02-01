@@ -51,6 +51,7 @@ func TestAccLibraryPanel_basic(t *testing.T) {
 
 func TestAccLibraryPanel_computed_config(t *testing.T) {
 	CheckOSSTestsEnabled(t)
+	CheckOSSTestsSemver(t, ">=8.0.0")
 
 	var panel gapi.LibraryPanel
 
@@ -73,6 +74,7 @@ func TestAccLibraryPanel_computed_config(t *testing.T) {
 
 func TestAccLibraryPanel_folder(t *testing.T) {
 	CheckOSSTestsEnabled(t)
+	CheckOSSTestsSemver(t, ">=8.0.0")
 
 	var panel gapi.LibraryPanel
 	var folder gapi.Folder
