@@ -9,6 +9,7 @@ import (
 
 func TestAccDatasourceLibraryPanelFromName(t *testing.T) {
 	CheckOSSTestsEnabled(t)
+	CheckOSSTestsSemver(t, ">=8.0.0")
 
 	var panel gapi.LibraryPanel
 	var dashboard gapi.Dashboard
