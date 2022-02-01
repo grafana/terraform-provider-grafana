@@ -43,8 +43,7 @@ data "grafana_dashboard" "from_uid" {
 
 - **dashboard_id** (Number) The numerical ID of the Grafana dashboard. Specify either this or `uid`. Defaults to `-1`.
 - **id** (String) The ID of this resource.
-- **uid** (String) The uid of the Grafana dashboard. Specify either this or `dashboard_uid`. Defaults to ``.
-- **version** (Number) The numerical version of the Grafana dashboard. Set to 0 or omit to get the latest version Defaults to `0`.
+- **uid** (String) The uid of the Grafana dashboard. Specify either this or `dashboard_id`. Defaults to ``.
 
 ### Read-Only
 
@@ -53,5 +52,6 @@ data "grafana_dashboard" "from_uid" {
 - **is_starred** (Boolean) Whether or not the Grafana dashboard is starred. Starred Dashboards will show up on your own Home Dashboard by default, and are a convenient way to mark Dashboards that you’re interested in.
 - **slug** (String) The complete dashboard model JSON.
 - **title** (String) The title of the Grafana dashboard.
+- **version** (Number) The numerical version of the Grafana dashboard.
 
 
