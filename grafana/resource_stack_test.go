@@ -2,6 +2,8 @@ package grafana
 
 import (
 	"fmt"
+	"strings"
+	"time"
 
 	"strconv"
 	"testing"
@@ -15,12 +17,17 @@ import (
 func TestResourceStack_Basic(t *testing.T) {
 	CheckCloudTestsEnabled(t)
 
+	prefix := "tfresourcetest"
+
 	var stack gapi.Stack
-	resourceName := GetRandomStackName()
+	resourceName := GetRandomStackName(prefix)
 	stackDescription := "This is a test stack"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheckCloudStack(t) },
+		PreCheck: func() {
+			testAccPreCheckCloudStack(t)
+			testAccDeleteExistingStacks(t, prefix)
+		},
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
@@ -41,10 +48,34 @@ func TestResourceStack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "name", resourceName+"new"),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "slug", resourceName),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "description", stackDescription),
+
+					// TODO: Check how we can remove this sleep
+					// Sometimes the stack is not ready to be deleted at the end of the test
+					func(s *terraform.State) error {
+						time.Sleep(time.Second * 15)
+						return nil
+					},
 				),
 			},
 		},
 	})
+}
+
+func testAccDeleteExistingStacks(t *testing.T, prefix string) {
+	client := testAccProvider.Meta().(*client).gcloudapi
+	resp, err := client.Stacks()
+	if err != nil {
+		t.Error(err)
+	}
+
+	for _, stack := range resp.Items {
+		if strings.HasPrefix(stack.Name, prefix) {
+			err := client.DeleteStack(stack.Slug)
+			if err != nil {
+				t.Error(err)
+			}
+		}
+	}
 }
 
 func testAccStackCheckExists(rn string, a *gapi.Stack) resource.TestCheckFunc {
@@ -108,6 +139,6 @@ func testAccStackConfigUpdate(name string, slug string, description string) stri
 }
 
 // Prefix a character as stack name can't start with a number
-func GetRandomStackName() string {
-	return "s" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+func GetRandomStackName(prefix string) string {
+	return prefix + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 }
