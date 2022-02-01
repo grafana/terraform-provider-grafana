@@ -20,16 +20,20 @@ func DatasourceDashboard() *schema.Resource {
 		ReadContext: dataSourceDashboardRead,
 		Schema: map[string]*schema.Schema{
 			"dashboard_id": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Default:     -1,
-				Description: "The numerical ID of the Grafana dashboard. Specify either this or `uid`.",
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Computed:     true,
+				Default:      -1,
+				ExactlyOneOf: []string{"dashboard_id", "uid"},
+				Description:  "The numerical ID of the Grafana dashboard. Specify either this or `uid`.",
 			},
 			"uid": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "",
-				Description: "The uid of the Grafana dashboard. Specify either this or `dashboard_uid`.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Default:      "",
+				ExactlyOneOf: []string{"dashboard_id", "uid"},
+				Description:  "The uid of the Grafana dashboard. Specify either this or `dashboard_id`.",
 			},
 			"version": {
 				Type:        schema.TypeInt,
