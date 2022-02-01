@@ -115,11 +115,8 @@ func TestAccLibraryPanel_dashboard(t *testing.T) {
 			{
 				Config: testAccExample(t, "resources/grafana_library_panel/_acc_dashboard.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccLibraryPanelCheckExists("grafana_library_panel.dashboard", &panel),
-					testAccDashboardCheckExists("grafana_dashboard.library_panel", &dashboard),
-					resource.TestCheckResourceAttr(
-						"grafana_library_panel.dashboard", "config_json", `{"gridPos": {"h": 8,"w": 12 }, "id": 1}`,
-					),
+					testAccLibraryPanelCheckExists("grafana_library_panel.test_dashboard", &panel),
+					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 				),
 			},
 		},
