@@ -3,18 +3,25 @@ package grafana
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccDataSourceStack_Basic(t *testing.T) {
 	CheckCloudTestsEnabled(t)
 
-	resourceName := GetRandomStackName()
+	prefix := "tfdatatest"
+
+	resourceName := GetRandomStackName(prefix)
 	var stack gapi.Stack
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheckCloudStack(t) },
+		PreCheck: func() {
+			testAccPreCheckCloudStack(t)
+			testAccDeleteExistingStacks(t, prefix)
+		},
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
@@ -28,6 +35,13 @@ func TestAccDataSourceStack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "prometheus_url"),
 					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "prometheus_user_id"),
 					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "alertmanager_user_id"),
+
+					// TODO: Check how we can remove this sleep
+					// Sometimes the stack is not ready to be deleted at the end of the test
+					func(s *terraform.State) error {
+						time.Sleep(time.Second * 15)
+						return nil
+					},
 				),
 			},
 		},

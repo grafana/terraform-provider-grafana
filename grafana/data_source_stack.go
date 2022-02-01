@@ -119,7 +119,7 @@ available at “https://<stack_slug>.grafana.net".`,
 }
 
 func datasourceStackRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client).gapi
+	client := meta.(*client).gcloudapi
 
 	var diags diag.Diagnostics
 
