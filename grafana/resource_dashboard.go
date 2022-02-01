@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -264,7 +263,6 @@ func makeDashboard(d *schema.ResourceData) gapi.Dashboard {
 		Message:   d.Get("message").(string),
 	}
 	configJSON := d.Get("config_json").(string)
-	log.Printf("[INFO] configJSON: %#v", configJSON)
 	dashboardJSON, err := unmarshalDashboardConfigJSON(configJSON)
 	if err != nil {
 		return dashboard
