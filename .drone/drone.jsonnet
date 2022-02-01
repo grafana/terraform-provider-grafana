@@ -90,6 +90,7 @@ local pipeline(name, steps, services=[]) = {
     ]
   ),
 
+  cloudApiKey,
   apiToken,
   smToken,
 ] +
@@ -107,6 +108,7 @@ local pipeline(name, steps, services=[]) = {
         environment: {
           GRAFANA_URL: 'http://grafana:3000',
           GRAFANA_AUTH: 'admin:admin',
+          GRAFANA_VERSION: version,
           GRAFANA_ORG_ID: 1,
         },
       },

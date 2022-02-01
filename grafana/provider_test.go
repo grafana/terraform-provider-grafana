@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -111,6 +112,22 @@ func CheckOSSTestsEnabled(t *testing.T) {
 	t.Helper()
 	if !accTestsEnabled(t, "TF_ACC_OSS") {
 		t.Skip("TF_ACC_OSS must be set to a truthy value for OSS acceptance tests")
+	}
+}
+
+func CheckOSSTestsSemver(t *testing.T, semverConstraint string) {
+	t.Helper()
+
+	versionStr := os.Getenv("GRAFANA_VERSION")
+	if semverConstraint != "" && versionStr != "" {
+		version := semver.MustParse(versionStr)
+		c, err := semver.NewConstraint(semverConstraint)
+		if err != nil {
+			t.Fatalf("invalid constraint %s: %v", semverConstraint, err)
+		}
+		if !c.Check(version) {
+			t.Skipf("skipping test for Grafana version `%s`, constraint `%s`", versionStr, semverConstraint)
+		}
 	}
 }
 
