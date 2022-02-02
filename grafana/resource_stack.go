@@ -21,7 +21,6 @@ func ResourceStack() *schema.Resource {
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana-cloud/reference/cloud-api/#stacks/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/stack/)
 `,
 
 		CreateContext: CreateStack,
