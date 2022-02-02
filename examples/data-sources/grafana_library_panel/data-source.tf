@@ -1,4 +1,4 @@
-resource "grafana_library_panel" "test" {
+resource "grafana_library_panel" "test_datasource" {
   name       = "test name"
   folder_id  = 0
   model_json = jsonencode({
@@ -16,5 +16,5 @@ resource "grafana_library_panel" "test" {
 } */
 
 data "grafana_library_panel" "from_uid" {
-  uid = grafana_library_panel.test.id
+  uid = grafana_library_panel.test_datasource.id
 }
