@@ -102,8 +102,20 @@ func ReadBuiltInRole(ctx context.Context, d *schema.ResourceData, meta interface
 		return nil
 	}
 
+	stateRoles, configRoles, err := collectRoles(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	roles := make([]interface{}, 0)
 	for _, br := range brRole {
+		// It is possible on the server side there are roles assigned to the built-in role which were never in Terraform state,
+		// and are not now in the current configuration. To prevent unintended behaviour, such as destroying remove resources,
+		// the following check ensures to only consider roles which are either in the state or in the config.
+		_, isInState := stateRoles[br.UID]
+		_, isInConfig := configRoles[br.UID]
+		if !isInState && !isInConfig {
+			continue
+		}
 		rm := map[string]interface{}{
 			"uid":    br.UID,
 			"global": br.Global,
