@@ -2,9 +2,7 @@ package grafana
 
 import (
 	"context"
-	"encoding/json"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -106,42 +104,26 @@ func DatasourceLibraryPanel() *schema.Resource {
 func dataSourceLibraryPanelRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 	uid := d.Get("uid").(string)
-	name := d.Get("name").(string)
-	var panel *gapi.LibraryPanel
 	var err error
 
+	d.SetId(uid)
+	ReadLibraryPanel(ctx, d, meta)
+
 	// get UID from ID if specified
-	if name != "" {
-		panel, err = client.LibraryPanelByName(name)
-	} else {
-		panel, err = client.LibraryPanelByUID(uid)
-	}
+	// var panel *gapi.LibraryPanel
+	// name := d.Get("name").(string)
+	// if name != "" {
+	// 	panel, err = client.LibraryPanelByName(name)
+	// } else {
+	// 	d.SetId(uid)
+	// 	ReadLibraryPanel(ctx, d, meta)
+	// }
 
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(panel.UID)
-	modelJSON, err := json.Marshal(panel.Model)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.Set("model_json", string(modelJSON))
-	d.Set("uid", panel.UID)
-	d.Set("title", panel.Model["title"].(string))
-	d.Set("name", panel.Name)
-	d.Set("panel_id", panel.ID)
-	d.Set("org_id", panel.OrgID)
-	d.Set("folder_id", panel.Folder)
-	d.Set("description", panel.Description)
-	d.Set("type", panel.Type)
-	d.Set("version", panel.Version)
-	d.Set("folder_name", panel.Meta.FolderName)
-	d.Set("folder_uid", panel.Meta.FolderUID)
-	d.Set("created", panel.Meta.Created.String())
-	d.Set("updated", panel.Meta.Updated.String())
-
-	connections, err := client.LibraryPanelConnections(panel.UID)
+	connections, err := client.LibraryPanelConnections(uid)
 	if err != nil {
 		return diag.FromErr(err)
 	}
