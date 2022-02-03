@@ -221,7 +221,7 @@ func testAccBuiltInRoleAssignmentCheckDestroy(brAssignments *map[string][]*gapi.
 		}
 
 		if preservedRoleUIDs != nil {
-			for br, _ := range *brAssignments {
+			for br := range *brAssignments {
 				err := checkAssignmentsExists(bra[br], preservedRoleUIDs...)
 				if err != nil {
 					return fmt.Errorf("assignments were entirely destroyed, but expected to have roles with UID %v assigned to %s built-in role", preservedRoleUIDs, br)
@@ -230,7 +230,7 @@ func testAccBuiltInRoleAssignmentCheckDestroy(brAssignments *map[string][]*gapi.
 		}
 
 		if destroyedUIDs != nil {
-			for br, _ := range *brAssignments {
+			for br := range *brAssignments {
 				err := checkAssignmentsDoNotExist(bra[br], destroyedUIDs...)
 				if err != nil {
 					return fmt.Errorf("assignments were supped to destroyed, but have roles with UID %v assigned to %s built-in role", destroyedUIDs, br)
