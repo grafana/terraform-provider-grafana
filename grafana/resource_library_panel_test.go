@@ -114,7 +114,7 @@ func TestAccLibraryPanel_dashboard(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Test library panel is connected to dashboard
-				Config: testAccExample(t, "resources/grafana_library_panel/_acc_dashboard.tf"),
+				Config: testAccExample(t, "data-sources/grafana_library_panel/data-source.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccLibraryPanelCheckExists("grafana_library_panel.dashboard", &panel),
 					testAccDashboardCheckExists("grafana_dashboard.with_library_panel", &dashboard),
