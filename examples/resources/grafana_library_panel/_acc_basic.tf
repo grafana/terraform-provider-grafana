@@ -3,10 +3,10 @@
 # computed fields.
 #
 resource "grafana_library_panel" "test" {
-  name        = "basic"
-  folder_id   = 0
-  model_json  = jsonencode({
-    title     = "basic",
-    version   = 34,
+  name      = "basic"
+  folder_id = 0
+  model_json = jsonencode({
+    title   = "basic",
+    version = 34,
   })
 }

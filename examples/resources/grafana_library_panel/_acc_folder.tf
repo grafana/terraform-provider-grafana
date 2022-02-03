@@ -3,11 +3,11 @@ resource "grafana_folder" "test_folder" {
 }
 
 resource "grafana_library_panel" "test_folder" {
-  name          = "test-folder"
-  folder_id     = grafana_folder.test_folder.id
-  model_json    = jsonencode({
-    title       = "test-folder",
-    id          = 12,
-    version     = 43,
+  name      = "test-folder"
+  folder_id = grafana_folder.test_folder.id
+  model_json = jsonencode({
+    title   = "test-folder",
+    id      = 12,
+    version = 43,
   })
 }
