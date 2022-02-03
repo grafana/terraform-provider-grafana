@@ -16,10 +16,10 @@ var (
 	libraryPanel = &schema.Resource{
 
 		Description: `
-		Manages Grafana library panels.
+Manages Grafana library panels.
 
-		* [Official documentation](https://grafana.com/docs/grafana/latest/panels/panel-library/)
-		* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/library_element/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/panels/panel-library/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/library_element/)
 `,
 
 		CreateContext: CreateLibraryPanel,
