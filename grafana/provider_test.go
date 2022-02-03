@@ -86,6 +86,12 @@ func testAccPreCheckCloud(t *testing.T) {
 	testAccPreCheck(t)
 }
 
+// testAccPreCheckCloudStack should be called by cloud stack acceptance tests
+func testAccPreCheckCloudStack(t *testing.T) {
+	testAccPreCheckEnv = append(testAccPreCheckEnv, "GRAFANA_CLOUD_API_KEY")
+	testAccPreCheck(t)
+}
+
 // testAccExample returns an example config from the examples directory.
 // Examples are used for both documentation and acceptance tests.
 func testAccExample(t *testing.T, path string) string {
