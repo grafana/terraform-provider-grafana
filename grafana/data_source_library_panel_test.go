@@ -7,15 +7,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDatasourceLibraryPanelFromName(t *testing.T) {
+func TestAccDatasourceLibraryPanel(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 	CheckOSSTestsSemver(t, ">=8.0.0")
 
 	var panel gapi.LibraryPanel
-	var dashboard gapi.Dashboard
+	// var dashboard gapi.Dashboard
 	checks := []resource.TestCheckFunc{
-		testAccLibraryPanelCheckExists("grafana_library_panel.test", &panel),
-		testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
+		testAccLibraryPanelCheckExists("grafana_library_panel.test_datasource", &panel),
+		// testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 		// resource.TestCheckResourceAttr(
 		// 	"data.grafana_library_panel.from_name", "name", "test name",
 		// ),
