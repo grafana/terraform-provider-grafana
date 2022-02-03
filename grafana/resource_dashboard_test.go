@@ -225,6 +225,7 @@ func Test_normalizeDashboardConfigJSON(t *testing.T) {
 
 	d := "New Dashboard"
 	expected := fmt.Sprintf("{\"title\":\"%s\"}", d)
+	expectedPanel := fmt.Sprintf("{\"panels\":[{\"libraryPanel\":{\"name\":\"%s\",\"uid\":\"%s\",\"description\":\"%s\"}}]}", "test", "test", "test")
 
 	tests := []struct {
 		name string
@@ -255,6 +256,16 @@ func Test_normalizeDashboardConfigJSON(t *testing.T) {
 			name: "Bad json is ignored",
 			args: args{config: "74D93920-ED26–11E3-AC10–0800200C9A66"},
 			want: "74D93920-ED26–11E3-AC10–0800200C9A66",
+		},
+		{
+			name: "panels[].libraryPanel.!<name|uid> is removed",
+			args: args{config: map[string][]map[string]map[string]interface{}{
+				"panels": {{
+					"libraryPanel": {
+						"name":        "testing",
+						"uid":         "testing",
+						"description": "testing"}}}}},
+			want: expectedPanel,
 		},
 	}
 	for _, tt := range tests {
