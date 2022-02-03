@@ -20,16 +20,10 @@ func TestAccDatasourceLibraryPanel(t *testing.T) {
 			"data.grafana_library_panel.from_name", "name", "test name",
 		),
 		resource.TestMatchResourceAttr(
-			"data.grafana_library_panel.from_name", "id", idRegexp,
-		),
-		resource.TestMatchResourceAttr(
 			"data.grafana_library_panel.from_name", "uid", uidRegexp,
 		),
 		resource.TestCheckResourceAttr(
 			"data.grafana_library_panel.from_uid", "name", "test name",
-		),
-		resource.TestMatchResourceAttr(
-			"data.grafana_library_panel.from_uid", "id", idRegexp,
 		),
 		resource.TestMatchResourceAttr(
 			"data.grafana_library_panel.from_uid", "uid", uidRegexp,
