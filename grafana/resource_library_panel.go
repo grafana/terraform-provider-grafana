@@ -181,7 +181,6 @@ func ReadLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 	for _, connection := range *connections {
 		dashboardIds = append(dashboardIds, connection.DashboardID)
 	}
-	// // return diag.Errorf("%#v", dashboardIds)
 	d.Set("dashboard_ids", dashboardIds)
 
 	return diags
