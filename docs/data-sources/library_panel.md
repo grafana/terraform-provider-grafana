@@ -3,26 +3,35 @@
 page_title: "grafana_library_panel Data Source - terraform-provider-grafana"
 subcategory: ""
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/panels/panel-library/HTTP API https://grafana.com/docs/grafana/latest/http_api/library_element/#library-element-api
+  Data source for retrieving a single library panel by name or uid.
 ---
 
 # grafana_library_panel (Data Source)
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/panels/panel-library/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/library_element/#library-element-api)
+Data source for retrieving a single library panel by name or uid.
 
 ## Example Usage
 
 ```terraform
-resource "grafana_library_panel" "test" {
-  name       = "test name"
-  model_json = jsonencode({
-    gridPos  = {
+//resource "grafana_library_panel" "test_datasource" {
+  //name       = "test name"
+  //folder_id  = 0
+  //model_json = jsonencode({
+    /* gridPos  = {
       h      = 8
       w      = 12 }
     id       = 1
     # if not set, Grafana v8.0/v8.1 will error "inconsistent final plan" in dashboard resource
-    title    = "test name"
+    title    = "test name" */
+  //})
+//}
+
+resource "grafana_library_panel" "test" {
+  name        = "basic"
+  folder_id   = 0
+  model_json  = jsonencode({
+    title     = "basic",
+    version   = 34,
   })
 }
 
@@ -46,8 +55,7 @@ data "grafana_library_panel" "from_uid" {
 
 ### Read-Only
 
-- **created** (String) Unique ID (UID) of the folder containing the library panel.
-- **dashboard_ids** (List of Number) Numerical IDs of Grafana dashboards containing the library panel.
+- **created** (String) Timestamp when the library panel was created.
 - **description** (String) Description of the library panel.
 - **folder_id** (Number) ID of the folder where the library panel is stored.
 - **folder_name** (String) Name of the folder containing the library panel.
@@ -55,9 +63,8 @@ data "grafana_library_panel" "from_uid" {
 - **model_json** (String) The JSON model for the library panel.
 - **org_id** (Number) The numeric ID of the library panel computed by Grafana.
 - **panel_id** (Number) The numeric ID of the library panel computed by Grafana.
-- **title** (String) Title of the library panel.
 - **type** (String) Type of the library panel (eg. text).
-- **updated** (String) Unique ID (UID) of the folder containing the library panel.
+- **updated** (String) Timestamp when the library panel was last modified.
 - **version** (Number) Version of the library panel.
 
 
