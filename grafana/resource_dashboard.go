@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -320,15 +321,18 @@ func normalizeDashboardConfigJSON(config interface{}) string {
 	// similarly to uid removal above, remove any attributes panels[].libraryPanel.*
 	// from the dashboard JSON other than "name" or "uid".
 	if panelsJSON, ok := dashboardJSON["panels"].([]map[string]interface{}); ok {
+		log.Printf("FOUND PANELS IN DASHBOARD")
 		for _, thisPanelJSON := range panelsJSON {
 			if thisPanelLibraryPanelJSON, ok := thisPanelJSON["libraryPanel"].(map[string]interface{}); ok {
-				for thisKey, _ := range thisPanelLibraryPanelJSON {
+				log.Printf("FOUND libraryPanel IN DASHBOARD")
+				for thisKey := range thisPanelLibraryPanelJSON {
 					switch thisKey {
 					case "name":
 						continue
 					case "uid":
 						continue
 					default:
+						log.Printf("DELETING %s IN DASHBOARD", thisKey)
 						delete(thisPanelLibraryPanelJSON, thisKey)
 					}
 				}
