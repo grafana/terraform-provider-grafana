@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/tidwall/sjson"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 )
@@ -317,27 +318,26 @@ func normalizeDashboardConfigJSON(config interface{}) string {
 		}
 	}
 
+	configJSONBytes, _ := json.Marshal(dashboardJSON)
+
 	// similarly to uid removal above, remove any attributes panels[].libraryPanel.*
 	// from the dashboard JSON other than "name" or "uid".
 	if panelsJSON, ok := dashboardJSON["panels"]; ok {
-		newPanels := []map[string]map[string]interface{}{}
-		for _, thisPanel := range panelsJSON.([]map[string]map[string]interface{}) {
-			if thisPanelLibraryPanelJSON, ok := thisPanel["libraryPanel"]; ok {
-				for thisKey := range thisPanelLibraryPanelJSON {
+		for i, thisPanel := range panelsJSON.([]interface{}) {
+			if thisPanelLibraryPanelJSON, ok := thisPanel.(map[string]interface{})["libraryPanel"]; ok {
+				for thisKey := range thisPanelLibraryPanelJSON.(map[string]interface{}) {
 					switch thisKey {
 					case "name":
 						continue
 					case "uid":
 						continue
 					default:
-						delete(thisPanelLibraryPanelJSON, thisKey)
+						delete(thisPanelLibraryPanelJSON.(map[string]interface{}), thisKey)
 					}
 				}
-				thisPanel["libraryPanel"] = thisPanelLibraryPanelJSON
+				sjson.SetBytes(configJSONBytes, fmt.Sprintf("panels.%d.libraryPanel", i), thisPanelLibraryPanelJSON)
 			}
-			newPanels = append(newPanels, thisPanel)
 		}
-		dashboardJSON["panels"] = newPanels
 	}
 
 	delete(dashboardJSON, "id")
