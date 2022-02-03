@@ -223,6 +223,19 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 		if _, ok := configuredDashJSON["uid"].(string); !ok {
 			delete(remoteDashJSON, "uid")
 		}
+
+		// similarly to below, remove any attributes panels[].libraryPanel.*
+		// from the remote dashboard JSON not "name" or "uid".
+		if remotePanelsJSON, ok := remoteDashJSON["panels"].([]map[string]interface{}); ok {
+			for _, remotePanelJSON := range remotePanelsJSON {
+				if remoteLibraryPanelJSON, ok := remotePanelJSON["libraryPanel"].(map[string]interface{}); ok {
+					remoteLibraryPanelJSON = map[string]interface{}{
+						"name": remoteLibraryPanelJSON["name"],
+						"uid":  remoteLibraryPanelJSON["uid"],
+					}
+				}
+			}
+		}
 	}
 
 	configJSON := normalizeDashboardConfigJSON(remoteDashJSON)
