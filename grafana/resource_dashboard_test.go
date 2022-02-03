@@ -225,7 +225,7 @@ func Test_normalizeDashboardConfigJSON(t *testing.T) {
 
 	d := "New Dashboard"
 	expected := fmt.Sprintf("{\"title\":\"%s\"}", d)
-	expectedPanel := fmt.Sprintf("{\"panels\":[{\"libraryPanel\":{\"name\":\"%s\",\"uid\":\"%s\",\"description\":\"%s\"}}]}", "test", "test", "test")
+	expectedPanel := fmt.Sprintf("{\"panels\":[{\"libraryPanel\":{\"name\":\"%s\",\"uid\":\"%s\"}}]}", "test", "test")
 
 	tests := []struct {
 		name string
