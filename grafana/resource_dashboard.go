@@ -338,11 +338,9 @@ func normalizeDashboardConfigJSON(config interface{}) string {
 				}
 				sjson.SetBytes(configJSONBytes, fmt.Sprintf("panels.%d.libraryPanel", i), thisPanelLibraryPanelJSON)
 			}
-			// Grafana will populate ID's of panels, so delete them to avoid diff.
-			if _, ok := thisPanel.(map[string]interface{})["id"]; ok {
-				sjson.DeleteBytes(configJSONBytes, fmt.Sprintf("panels.%d.id", i))
-			}
 		}
+		// Grafana will populate ID's of panels, so delete them to avoid diff.
+		sjson.DeleteBytes(configJSONBytes, "panels.#.id")
 	}
 
 	delete(dashboardJSON, "id")
