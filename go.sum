@@ -614,6 +614,8 @@ github.com/julienschmidt/httprouter v1.3.0/go.mod h1:JR6WtHb+2LUe8TCKY3cZOxFyyO8
 github.com/jung-kurt/gofpdf v1.0.3-0.20190309125859-24315acbbda5/go.mod h1:7Id9E/uU8ce6rXgefFLlgrJj/GYY22cpxn+r32jIOes=
 github.com/justinTM/grafana-api-golang-client v0.2.2-0.20220203032434-45cb3dd00523 h1:zA63ssd7IHdUHAeA8TscamcqDjjan1EK4eIXOkrYCtk=
 github.com/justinTM/grafana-api-golang-client v0.2.2-0.20220203032434-45cb3dd00523/go.mod h1:O2n2bso8hW3eWnH1DJAepH05bFeYTaCnFzfzXiXhTgU=
+github.com/justinTM/grafana-api-golang-client v0.2.2-0.20220203033248-b89448800226 h1:FhyQUiXMWxCqn4yXk9LWRswZinmTCTt1iVqJ0qITscM=
+github.com/justinTM/grafana-api-golang-client v0.2.2-0.20220203033248-b89448800226/go.mod h1:O2n2bso8hW3eWnH1DJAepH05bFeYTaCnFzfzXiXhTgU=
 github.com/jwilder/encoding v0.0.0-20170811194829-b4e1701a28ef/go.mod h1:Ct9fl0F6iIOGgxJ5npU/IUOhOhqlVrGjyIZc8/MagT0=
 github.com/karrick/godirwalk v1.8.0/go.mod h1:H5KPZjojv4lE+QYImBI8xVtrBRgYrIVsaRPx4tDPEn4=
 github.com/karrick/godirwalk v1.10.3/go.mod h1:RoGL9dQei4vP9ilrpETWE8CLOZ1kiN0LhBygSwrAsHA=
