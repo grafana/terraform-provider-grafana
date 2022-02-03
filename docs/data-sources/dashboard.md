@@ -16,14 +16,14 @@ description: |-
 
 ```terraform
 resource "grafana_dashboard" "test" {
-  config_json      = jsonencode({
-    id             = 12345,
-    title          = "Production Overview",
-    tags           = [ "templated" ],
-    timezone       = "browser",
-    schemaVersion  = 16,
-    version        = 0,
-    refresh        = "25s"
+  config_json = jsonencode({
+    id            = 12345,
+    title         = "Production Overview",
+    tags          = ["templated"],
+    timezone      = "browser",
+    schemaVersion = 16,
+    version       = 0,
+    refresh       = "25s"
   })
 }
 
