@@ -9,12 +9,11 @@ import (
 
 func DatasourceLibraryPanel() *schema.Resource {
 	probeSchema := datasourceSchemaFromResourceSchema(libraryPanel.Schema)
-	probeSchema["uid"].Required = true
-	probeSchema["uid"].Computed = false
-	// delete(probeSchema, "name")
-	// probeSchema["name"].Optional = true
-	// probeSchema["uid"].ExactlyOneOf = []string{"uid", "name"}
-	// probeSchema["name"].ExactlyOneOf = []string{"uid", "name"}
+	probeSchema["uid"].Optional = true
+	// probeSchema["uid"].Computed = false
+	probeSchema["name"].Optional = true
+	probeSchema["uid"].ExactlyOneOf = []string{"uid", "name"}
+	probeSchema["name"].ExactlyOneOf = []string{"uid", "name"}
 
 	return &schema.Resource{
 		Description: "Data source for retrieving a single library panel by name or uid.",
@@ -115,26 +114,21 @@ func DatasourceLibraryPanel() *schema.Resource {
 }
 
 func dataSourceLibraryPanelRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// client := meta.(*client).gapi
+	client := meta.(*client).gapi
 	uid := d.Get("uid").(string)
-	// var err error
+
+	// get UID from name if specified
+	name := d.Get("name").(string)
+	if name != "" {
+		panel, err := client.LibraryPanelByName(name)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		uid = panel.UID
+	}
 
 	d.SetId(uid)
 	ReadLibraryPanel(ctx, d, meta)
-
-	// get UID from ID if specified
-	// var panel *gapi.LibraryPanel
-	// name := d.Get("name").(string)
-	// if name != "" {
-	// 	panel, err = client.LibraryPanelByName(name)
-	// } else {
-	// 	d.SetId(uid)
-	// 	ReadLibraryPanel(ctx, d, meta)
-	// }
-
-	// if err != nil {
-	// 	return diag.FromErr(err)
-	// }
 
 	// connections, err := client.LibraryPanelConnections(uid)
 	// if err != nil {

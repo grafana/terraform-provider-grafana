@@ -20,9 +20,9 @@ resource "grafana_library_panel" "test" {
   })
 }
 
-/* data "grafana_library_panel" "from_name" {
+data "grafana_library_panel" "from_name" {
   name = grafana_library_panel.test.name
-} */
+}
 
 data "grafana_library_panel" "from_uid" {
   uid = grafana_library_panel.test.id
