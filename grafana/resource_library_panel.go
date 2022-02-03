@@ -177,7 +177,7 @@ func ReadLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 		return diag.FromErr(err)
 	}
 
-	dashboardIds := []int64{}
+	dashboardIds := make)[]int64, 0, len(*connections))
 	for _, connection := range *connections {
 		dashboardIds = append(dashboardIds, connection.DashboardID)
 	}
