@@ -38,5 +38,5 @@ data "grafana_library_panel" "connected_to_dashboard" {
 }
 
 data "grafana_dashboard" "from_library_panel_connection" {
-  id = data.grafana_library_panel.connected_to_dashboard.dashboard_ids[0]
+  dashboard_id = data.grafana_library_panel.connected_to_dashboard.dashboard_ids[0]
 }
