@@ -15,7 +15,6 @@ func TestAccDatasourceLibraryPanel(t *testing.T) {
 	// var dashboard gapi.Dashboard
 	checks := []resource.TestCheckFunc{
 		testAccLibraryPanelCheckExists("grafana_library_panel.test", &panel),
-		// testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 		resource.TestCheckResourceAttr(
 			"data.grafana_library_panel.from_name", "name", "test name",
 		),
