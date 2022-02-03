@@ -8,17 +8,21 @@ import (
 )
 
 func DatasourceLibraryPanel() *schema.Resource {
-	probeSchema := datasourceSchemaFromResourceSchema(libraryPanel.Schema)
-	probeSchema["uid"].Optional = true
-	// probeSchema["uid"].Computed = false
-	probeSchema["name"].Optional = true
-	probeSchema["uid"].ExactlyOneOf = []string{"uid", "name"}
-	probeSchema["name"].ExactlyOneOf = []string{"uid", "name"}
+	panelSchema := datasourceSchemaFromResourceSchema(libraryPanel.Schema)
+	panelSchema["uid"].Optional = true
+	// panelSchema["uid"].Computed = false
+	panelSchema["name"].Optional = true
+	panelSchema["uid"].ExactlyOneOf = []string{"uid", "name"}
+	panelSchema["name"].ExactlyOneOf = []string{"uid", "name"}
+	// panelSchema["dashboard_ids"].Type = schema.TypeList
+	// panelSchema["dashboard_ids"].Computed = true
+	// panelSchema["dashboard_ids"].Description = "Numerical IDs of Grafana dashboards containing the library panel."
+	// panelSchema["dashboard_ids"].Elem = &schema.Schema{Type: schema.TypeInt}
 
 	return &schema.Resource{
 		Description: "Data source for retrieving a single library panel by name or uid.",
 		ReadContext: dataSourceLibraryPanelRead,
-		Schema:      probeSchema,
+		Schema:      panelSchema,
 	}
 	// 	return &schema.Resource{
 	// 		Description: `
@@ -130,17 +134,17 @@ func dataSourceLibraryPanelRead(ctx context.Context, d *schema.ResourceData, met
 	d.SetId(uid)
 	ReadLibraryPanel(ctx, d, meta)
 
-	// connections, err := client.LibraryPanelConnections(uid)
-	// if err != nil {
-	// 	return diag.FromErr(err)
-	// }
+	connections, err := client.LibraryPanelConnections(uid)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
-	// dashboardIds := []int64{}
-	// for _, connection := range *connections {
-	// 	dashboardIds = append(dashboardIds, connection.DashboardID)
-	// }
+	dashboardIds := []int64{}
+	for _, connection := range *connections {
+		dashboardIds = append(dashboardIds, connection.DashboardID)
+	}
 	// // return diag.Errorf("%#v", dashboardIds)
-	// d.Set("dashboard_ids", dashboardIds)
+	d.Set("dashboard_ids", dashboardIds)
 
 	return nil
 }

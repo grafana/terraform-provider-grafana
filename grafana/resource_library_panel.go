@@ -101,6 +101,12 @@ Manages Grafana library panels.
 				Computed:    true,
 				Description: "Timestamp when the library panel was last modified.",
 			},
+			"dashboard_ids": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "Numerical IDs of Grafana dashboards containing the library panel.",
+				Elem:        &schema.Schema{Type: schema.TypeInt},
+			},
 		},
 	}
 )
@@ -165,6 +171,18 @@ func ReadLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 	d.Set("folder_uid", panel.Meta.FolderUID)
 	d.Set("created", panel.Meta.Created.String())
 	d.Set("updated", panel.Meta.Updated.String())
+
+	connections, err := client.LibraryPanelConnections(uid)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	dashboardIds := []int64{}
+	for _, connection := range *connections {
+		dashboardIds = append(dashboardIds, connection.DashboardID)
+	}
+	// // return diag.Errorf("%#v", dashboardIds)
+	d.Set("dashboard_ids", dashboardIds)
 
 	return diags
 }
