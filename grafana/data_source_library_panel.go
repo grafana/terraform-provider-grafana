@@ -12,7 +12,7 @@ func DatasourceLibraryPanel() *schema.Resource {
 	probeSchema["uid"].Optional = true
 	delete(probeSchema, "name")
 	// probeSchema["name"].Optional = true
-	probeSchema["uid"].ExactlyOneOf = []string{"uid", "name"}
+	// probeSchema["uid"].ExactlyOneOf = []string{"uid", "name"}
 	// probeSchema["name"].ExactlyOneOf = []string{"uid", "name"}
 
 	return &schema.Resource{
