@@ -455,8 +455,6 @@ github.com/gorilla/context v1.1.1/go.mod h1:kBGZzfjB9CEq2AlWe17Uuf7NDRt0dE0s8S51
 github.com/gorilla/mux v1.6.2/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
 github.com/gorilla/mux v1.7.3/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
 github.com/gorilla/websocket v0.0.0-20170926233335-4201258b820c/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
-github.com/grafana/grafana-api-golang-client v0.2.6 h1:/S9vz8gwwxURnQwU/SDgFl4JaX0PTGNrszBKKeOunF4=
-github.com/grafana/grafana-api-golang-client v0.2.6/go.mod h1:24W29gPe9yl0/3A9X624TPkAOR8DpHno490cPwnkv8E=
 github.com/grafana/machine-learning-go-client v0.1.1 h1:Gw6cX8xAd6IVF2LApkXOIdBK8Gzz07B3jQPukecw7fc=
 github.com/grafana/machine-learning-go-client v0.1.1/go.mod h1:QFfZz8NkqVF8++skjkKQXJEZfpCYd8S0yTWJUpsLLTA=
 github.com/grafana/synthetic-monitoring-agent v0.5.0/go.mod h1:oC2+OFrK7WHqrDmilaa8eNNjyB2fMRk7DCj3Z/b/TrA=
@@ -612,8 +610,6 @@ github.com/jtolds/gls v4.20.0+incompatible/go.mod h1:QJZ7F/aHp+rZTRtaJ1ow/lLfFfV
 github.com/julienschmidt/httprouter v1.2.0/go.mod h1:SYymIcj16QtmaHHD7aYtjjsJG7VTCxuUUipMqKk8s4w=
 github.com/julienschmidt/httprouter v1.3.0/go.mod h1:JR6WtHb+2LUe8TCKY3cZOxFyyO8IZAc4RVcycCCAKdM=
 github.com/jung-kurt/gofpdf v1.0.3-0.20190309125859-24315acbbda5/go.mod h1:7Id9E/uU8ce6rXgefFLlgrJj/GYY22cpxn+r32jIOes=
-github.com/justinTM/grafana-api-golang-client v0.2.2-0.20220203032434-45cb3dd00523 h1:zA63ssd7IHdUHAeA8TscamcqDjjan1EK4eIXOkrYCtk=
-github.com/justinTM/grafana-api-golang-client v0.2.2-0.20220203032434-45cb3dd00523/go.mod h1:O2n2bso8hW3eWnH1DJAepH05bFeYTaCnFzfzXiXhTgU=
 github.com/justinTM/grafana-api-golang-client v0.2.2-0.20220203033248-b89448800226 h1:FhyQUiXMWxCqn4yXk9LWRswZinmTCTt1iVqJ0qITscM=
 github.com/justinTM/grafana-api-golang-client v0.2.2-0.20220203033248-b89448800226/go.mod h1:O2n2bso8hW3eWnH1DJAepH05bFeYTaCnFzfzXiXhTgU=
 github.com/jwilder/encoding v0.0.0-20170811194829-b4e1701a28ef/go.mod h1:Ct9fl0F6iIOGgxJ5npU/IUOhOhqlVrGjyIZc8/MagT0=
