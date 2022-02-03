@@ -322,9 +322,15 @@ func normalizeDashboardConfigJSON(config interface{}) string {
 	if panelsJSON, ok := dashboardJSON["panels"].([]map[string]interface{}); ok {
 		for _, thisPanelJSON := range panelsJSON {
 			if thisPanelLibraryPanelJSON, ok := thisPanelJSON["libraryPanel"].(map[string]interface{}); ok {
-				thisPanelLibraryPanelJSON = map[string]interface{}{
-					"name": thisPanelLibraryPanelJSON["name"],
-					"uid":  thisPanelLibraryPanelJSON["uid"],
+				for thisKey, _ := range thisPanelLibraryPanelJSON {
+					switch thisKey {
+					case "name":
+						continue
+					case "uid":
+						continue
+					default:
+						delete(thisPanelLibraryPanelJSON, thisKey)
+					}
 				}
 			}
 		}
