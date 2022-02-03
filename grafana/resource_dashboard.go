@@ -318,10 +318,11 @@ func normalizeDashboardConfigJSON(config interface{}) string {
 		}
 	}
 
+	configJSONBytes, _ := json.Marshal(dashboardJSON)
+
 	// similarly to uid removal above, remove any attributes panels[].libraryPanel.*
 	// from the dashboard JSON other than "name" or "uid".
 	// Grafana will populate all other libraryPanel attributes, so delete them to avoid diff.
-	configJSONBytes, _ := json.Marshal(dashboardJSON)
 	if panelsJSON, ok := dashboardJSON["panels"]; ok {
 		for i, thisPanel := range panelsJSON.([]interface{}) {
 			if thisPanelLibraryPanelJSON, ok := thisPanel.(map[string]interface{})["libraryPanel"]; ok {
@@ -344,7 +345,6 @@ func normalizeDashboardConfigJSON(config interface{}) string {
 		}
 	}
 
-	dashboardJSON, _ = unmarshalDashboardConfigJSON(string(configJSONBytes))
 	delete(dashboardJSON, "id")
 	delete(dashboardJSON, "version")
 	j, _ := json.Marshal(dashboardJSON)
