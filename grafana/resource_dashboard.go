@@ -223,19 +223,6 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 		if _, ok := configuredDashJSON["uid"].(string); !ok {
 			delete(remoteDashJSON, "uid")
 		}
-
-		// similarly to below, remove any attributes panels[].libraryPanel.*
-		// from the remote dashboard JSON not "name" or "uid".
-		if remotePanelsJSON, ok := remoteDashJSON["panels"].([]map[string]interface{}); ok {
-			for _, remotePanelJSON := range remotePanelsJSON {
-				if remoteLibraryPanelJSON, ok := remotePanelJSON["libraryPanel"].(map[string]interface{}); ok {
-					remoteLibraryPanelJSON = map[string]interface{}{
-						"name": remoteLibraryPanelJSON["name"],
-						"uid":  remoteLibraryPanelJSON["uid"],
-					}
-				}
-			}
-		}
 	}
 
 	configJSON := normalizeDashboardConfigJSON(remoteDashJSON)
@@ -329,6 +316,20 @@ func normalizeDashboardConfigJSON(config interface{}) string {
 			return c
 		}
 	}
+
+	// similarly to uid removal above, remove any attributes panels[].libraryPanel.*
+	// from the dashboard JSON other than "name" or "uid".
+	if panelsJSON, ok := dashboardJSON["panels"].([]map[string]interface{}); ok {
+		for _, thisPanelJSON := range panelsJSON {
+			if thisPanelLibraryPanelJSON, ok := thisPanelJSON["libraryPanel"].(map[string]interface{}); ok {
+				thisPanelLibraryPanelJSON = map[string]interface{}{
+					"name": thisPanelLibraryPanelJSON["name"],
+					"uid":  thisPanelLibraryPanelJSON["uid"],
+				}
+			}
+		}
+	}
+
 	delete(dashboardJSON, "id")
 	delete(dashboardJSON, "version")
 	j, _ := json.Marshal(dashboardJSON)
