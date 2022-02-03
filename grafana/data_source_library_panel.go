@@ -9,8 +9,8 @@ import (
 
 func DatasourceLibraryPanel() *schema.Resource {
 	probeSchema := datasourceSchemaFromResourceSchema(libraryPanel.Schema)
-	probeSchema["uid"].Optional = true
-	delete(probeSchema, "name")
+	probeSchema["uid"].Required = true
+	// delete(probeSchema, "name")
 	// probeSchema["name"].Optional = true
 	// probeSchema["uid"].ExactlyOneOf = []string{"uid", "name"}
 	// probeSchema["name"].ExactlyOneOf = []string{"uid", "name"}
