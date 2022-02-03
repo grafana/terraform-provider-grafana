@@ -2,8 +2,9 @@ resource "grafana_library_panel" "test" {
   name        = "test name"
   folder_id   = 0
   model_json  = jsonencode({
-    title     = "test name",
-    version   = 34,
+    title     = "test name"
+    type      = "text"
+    version   = 0
   })
 }
 
