@@ -293,6 +293,29 @@ func TestAccDataSource_basic(t *testing.T) {
 			},
 		},
 		{
+			resource: "grafana_data_source.sentry",
+			config: `
+			resource "grafana_data_source" "sentry" {
+			    type = "sentry"
+			    name = "sentry"
+			    json_data {
+			        url = "https://sentry.io"
+			        orgSlug = "grafanalabs"
+			    }
+			    secure_json_data {
+			        authToken = "abc123"
+			    }
+			}
+			`,
+			attrChecks: map[string]string{
+				"type":                          "sentry",
+				"name":                          "sentry",
+				"json_data.0.url":               "https://sentry.io",
+				"json_data.0.org_slug":          "grafanalabs",
+				"secure_json_data.0.auth_token": "abc123",
+			},
+		},
+		{
 			resource: "grafana_data_source.stackdriver",
 			config: `
 			resource "grafana_data_source" "stackdriver" {

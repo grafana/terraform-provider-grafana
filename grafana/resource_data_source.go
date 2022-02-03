@@ -212,6 +212,11 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Description: "(MySQL, PostgreSQL and MSSQL) Maximum number of open connections to the database (Grafana v5.4+).",
 						},
+						"orgSlug": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Sentry) Organization slug.",
+						},
 						"output_location": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -350,6 +355,12 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Sensitive:   true,
 							Description: "(Github) The access token to use to access the data source",
+						},
+						"authToken": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Sensitive:   true,
+							Description: "(Sentry) Authorization token.",
 						},
 						"basic_auth_password": {
 							Type:        schema.TypeString,
