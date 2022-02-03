@@ -2,9 +2,9 @@
 #
 # it a point to ensure explicit changes to `uid` are noticed.
 resource "grafana_library_panel" "test" {
-  name          = "basic_update_uid"
-  folder_id     = 0
-  model_json    = jsonencode({
+  name      = "basic_update_uid"
+  folder_id = 0
+  model_json = jsonencode({
     description = "basic_update_uid",
   })
 }
