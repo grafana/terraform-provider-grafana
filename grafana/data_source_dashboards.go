@@ -67,9 +67,9 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		thisId := int64(thisDashboard.Model["id"].(float64))
-		thisUid := thisDashboard.Model["uid"].(string)
-		dashboards[thisUid] = thisId
+		thisID := int64(thisDashboard.Model["id"].(float64))
+		thisUID := thisDashboard.Model["uid"].(string)
+		dashboards[thisUID] = thisID
 	}
 
 	d.Set("dashboards", dashboards)
