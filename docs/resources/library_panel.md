@@ -44,6 +44,7 @@ resource "grafana_library_panel" "test" {
 ### Read-Only
 
 - **created** (String) Timestamp when the library panel was created.
+- **dashboard_ids** (List of Number) Numerical IDs of Grafana dashboards containing the library panel.
 - **description** (String) Description of the library panel.
 - **folder_name** (String) Name of the folder containing the library panel.
 - **folder_uid** (String) Unique ID (UID) of the folder containing the library panel.

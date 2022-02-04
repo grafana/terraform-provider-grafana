@@ -100,6 +100,31 @@ func TestAccLibraryPanel_folder(t *testing.T) {
 	})
 }
 
+func TestAccLibraryPanel_dashboard(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+	CheckOSSTestsSemver(t, ">=8.0.0")
+
+	var panel gapi.LibraryPanel
+	var dashboard gapi.Dashboard
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccLibraryPanelCheckDestroy(&panel),
+		Steps: []resource.TestStep{
+			{
+				// Test library panel is connected to dashboard
+				Config: testAccExample(t, "data-sources/grafana_library_panel/data-source.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccLibraryPanelCheckExists("grafana_library_panel.dashboard", &panel),
+					testAccDashboardCheckExists("grafana_dashboard.with_library_panel", &dashboard),
+					testAccDashboardCheckExists("data.grafana_dashboard.from_library_panel_connection", &dashboard),
+				),
+			},
+		},
+	})
+}
+
 func testAccLibraryPanelCheckExists(rn string, panel *gapi.LibraryPanel) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]

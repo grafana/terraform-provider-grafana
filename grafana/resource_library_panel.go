@@ -12,8 +12,8 @@ import (
 	gapi "github.com/grafana/grafana-api-golang-client"
 )
 
-func ResourceLibraryPanel() *schema.Resource {
-	return &schema.Resource{
+var (
+	libraryPanel = &schema.Resource{
 
 		Description: `
 Manages Grafana library panels.
@@ -101,8 +101,18 @@ Manages Grafana library panels.
 				Computed:    true,
 				Description: "Timestamp when the library panel was last modified.",
 			},
+			"dashboard_ids": {
+				Type:        schema.TypeList,
+				Computed:    true,
+				Description: "Numerical IDs of Grafana dashboards containing the library panel.",
+				Elem:        &schema.Schema{Type: schema.TypeInt},
+			},
 		},
 	}
+)
+
+func ResourceLibraryPanel() *schema.Resource {
+	return libraryPanel
 }
 
 func CreateLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -161,6 +171,17 @@ func ReadLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 	d.Set("folder_uid", panel.Meta.FolderUID)
 	d.Set("created", panel.Meta.Created.String())
 	d.Set("updated", panel.Meta.Updated.String())
+
+	connections, err := client.LibraryPanelConnections(uid)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	dashboardIds := make([]int64, 0, len(*connections))
+	for _, connection := range *connections {
+		dashboardIds = append(dashboardIds, connection.DashboardID)
+	}
+	d.Set("dashboard_ids", dashboardIds)
 
 	return diags
 }
