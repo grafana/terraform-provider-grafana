@@ -23,7 +23,7 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
-				Description: "Numerical IDs of Grafana folders containing dashboards. Specify to filter for dashboards by folder, or leave blank to get all dashboards.",
+				Description: `Numerical IDs of Grafana folders containing dashboards. Specify to filter for dashboards by folder (eg. [0] for General folder), or leave blank to get all dashboards in all folders.`,
 				Elem:        &schema.Schema{Type: schema.TypeInt},
 			},
 			"tags": {
