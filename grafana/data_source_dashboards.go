@@ -89,6 +89,7 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 		d.Set("folder_ids", folders)
 	}
 	d.Set("dashboards", dashboards)
+	d.SetId("dashboards")
 
 	return nil
 }
