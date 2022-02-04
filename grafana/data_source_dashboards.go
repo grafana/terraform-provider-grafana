@@ -26,6 +26,12 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 				Description: "Numerical IDs of Grafana folders containing dashboards. Specify to filter for dashboards by folder, or leave blank to get all dashboards.",
 				Elem:        &schema.Schema{Type: schema.TypeInt},
 			},
+			"tags": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: `List of string Grafana dashboard tags to search for, eg. ["prod"]. Used only as search input, i.e., attribute value will remain unchanged.`,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
 			"dashboards": {
 				Type:        schema.TypeMap,
 				Computed:    true,
@@ -59,14 +65,19 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 		"type":  "dash-db",
 	}
 
-	// search for dashboards in specified folders
-	folderIds := d.Get("folder_ids").([]interface{})
-	if len(folderIds) > 0 {
-		folderIdsJSON, err := json.Marshal(folderIds)
-		if err != nil {
-			return diag.FromErr(err)
+	// add tags and folder IDs from attributes to dashboard search parameters
+	for thisParamKey, thisListAttributeName := range map[string]string{
+		"folderIds": "folder_ids",
+		"tag":       "tags",
+	} {
+		list := d.Get(thisListAttributeName).([]interface{})
+		if len(list) > 0 {
+			listJSON, err := json.Marshal(list)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			params[thisParamKey] = string(listJSON)
 		}
-		params["folderIds"] = string(folderIdsJSON)
 	}
 
 	results, err := client.FolderDashboardSearch(params)
