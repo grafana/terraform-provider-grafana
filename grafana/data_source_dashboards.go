@@ -42,18 +42,6 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 					Elem:        &schema.Schema{Type: schema.TypeString},
 				},
 			},
-			"ids": {
-				Type:        schema.TypeList,
-				Computed:    true,
-				Description: "List of numerical Grafana dashboard IDs.",
-				Elem:        &schema.Schema{Type: schema.TypeInt},
-			},
-			"uids": {
-				Type:        schema.TypeList,
-				Computed:    true,
-				Description: "List of string Grafana dashboard unique identifiers (UIDs).",
-				Elem:        &schema.Schema{Type: schema.TypeString},
-			},
 		},
 	}
 }
@@ -102,9 +90,6 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	d.Set("dashboards", dashboards)
-	d.Set("folder_ids", folders)
-	d.Set("ids", dashboardIDs)
-	d.Set("uids", dashboardUIDs)
 
 	return nil
 }
