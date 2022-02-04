@@ -75,13 +75,9 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 
 	// make list of string dashboard UIDs (as values) mapped to each int folder ID (as keys)
 	dashboards := make(map[int64][]string, len(results))
-	dashboardIDs := make([]int64, len(results))
-	dashboardUIDs := make([]string, len(results))
-	for i, thisResult := range results {
+	for _, thisResult := range results {
 		thisFolderID := int64(thisResult.FolderID)
 		dashboards[thisFolderID] = append(dashboards[thisFolderID], thisResult.UID)
-		dashboardIDs[i] = int64(thisResult.ID)
-		dashboardUIDs[i] = thisResult.UID
 	}
 
 	// only set folder_ids if user did not specify, as re-ordered list may cause diff
