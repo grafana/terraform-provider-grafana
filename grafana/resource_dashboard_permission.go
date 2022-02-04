@@ -94,14 +94,14 @@ func UpdateDashboardPermissions(ctx context.Context, d *schema.ResourceData, met
 		permissionList.Items = append(permissionList.Items, &permissionItem)
 	}
 
-	dashboardId := int64(d.Get("dashboard_id").(int))
+	dashboardID := int64(d.Get("dashboard_id").(int))
 
-	err := client.UpdateDashboardPermissions(dashboardId, &permissionList)
+	err := client.UpdateDashboardPermissions(dashboardID, &permissionList)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(dashboardId, 10))
+	d.SetId(strconv.FormatInt(dashboardID, 10))
 
 	return ReadDashboardPermissions(ctx, d, meta)
 }
@@ -109,12 +109,12 @@ func UpdateDashboardPermissions(ctx context.Context, d *schema.ResourceData, met
 func ReadDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	dashboardId := int64(d.Get("dashboard_id").(int))
+	dashboardID := int64(d.Get("dashboard_id").(int))
 
-	dashboardPermissions, err := client.DashboardPermissions(dashboardId)
+	dashboardPermissions, err := client.DashboardPermissions(dashboardID)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing dashboard permissions %d from state because it no longer exists in grafana", dashboardId)
+			log.Printf("[WARN] removing dashboard permissions %d from state because it no longer exists in grafana", dashboardID)
 			d.SetId("")
 			return nil
 		}
@@ -143,15 +143,15 @@ func ReadDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta 
 }
 
 func DeleteDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	//since permissions are tied to dashboards, we can't really delete the permissions.
-	//we will simply remove all permissions, leaving a dashboard that only an admin can access.
-	//if for some reason the parent dashboard doesn't exist, we'll just ignore the error
+	// since permissions are tied to dashboards, we can't really delete the permissions.
+	// we will simply remove all permissions, leaving a dashboard that only an admin can access.
+	// if for some reason the parent dashboard doesn't exist, we'll just ignore the error
 	client := meta.(*client).gapi
 
-	dashboardId := int64(d.Get("dashboard_id").(int))
+	dashboardID := int64(d.Get("dashboard_id").(int))
 	emptyPermissions := gapi.PermissionItems{}
 
-	err := client.UpdateDashboardPermissions(dashboardId, &emptyPermissions)
+	err := client.UpdateDashboardPermissions(dashboardID, &emptyPermissions)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
 			d.SetId("")

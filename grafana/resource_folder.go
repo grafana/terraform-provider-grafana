@@ -3,7 +3,6 @@ package grafana
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -33,7 +32,13 @@ func ResourceFolder() *schema.Resource {
 				Computed:    true,
 				Description: "Unique identifier.",
 			},
-
+			"id": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Required:    false,
+				Optional:    false,
+				Description: "Unique internal identifier.",
+			},
 			"title": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -96,17 +101,6 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 	}
 
 	return diag.Diagnostics{}
-}
-
-func prepareFolderModel(configJSON string) map[string]interface{} {
-	configMap := map[string]interface{}{}
-	err := json.Unmarshal([]byte(configJSON), &configMap)
-	if err != nil {
-		// The validate function should've taken care of this.
-		panic(fmt.Errorf("Invalid JSON got into prepare func"))
-	}
-
-	return configMap
 }
 
 func ValidateFolderConfigJSON(configI interface{}, k string) ([]string, []error) {

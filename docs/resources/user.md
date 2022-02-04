@@ -43,6 +43,10 @@ resource "grafana_user" "staff" {
 - **login** (String) The username for the Grafana user.
 - **name** (String) The display name for the Grafana user.
 
+### Read-Only
+
+- **user_id** (Number) The numerical ID of the Grafana user.
+
 ## Import
 
 Import is supported using the following syntax:

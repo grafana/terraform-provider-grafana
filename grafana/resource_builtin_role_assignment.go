@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 
@@ -77,10 +76,10 @@ func updateAssignments(d *schema.ResourceData, meta interface{}) diag.Diagnostic
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	//compile the list of differences between current state and config
+	// compile the list of differences between current state and config
 	changes := roleChanges(stateRoles, configRoles)
 	brName := d.Get("builtin_role").(string)
-	//now we can make the corresponding updates so current state matches config
+	// now we can make the corresponding updates so current state matches config
 	if err := createOrRemove(meta, brName, changes); err != nil {
 		return diag.FromErr(err)
 	}
@@ -103,8 +102,20 @@ func ReadBuiltInRole(ctx context.Context, d *schema.ResourceData, meta interface
 		return nil
 	}
 
+	stateRoles, configRoles, err := collectRoles(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	roles := make([]interface{}, 0)
 	for _, br := range brRole {
+		// It is possible that in the server side there are roles assigned to the built-in role which were never in Terraform state,
+		// and are not in the current configuration. The following check ensures that we only consider roles which are either in the state or in the config.
+		// This prevents unintended behaviour, such as destroying the assignments which were never managed by Terraform.
+		_, isInState := stateRoles[br.UID]
+		_, isInConfig := configRoles[br.UID]
+		if !isInState && !isInConfig {
+			continue
+		}
 		rm := map[string]interface{}{
 			"uid":    br.UID,
 			"global": br.Global,
@@ -183,9 +194,8 @@ func roleChanges(rolesInState, rolesInConfig map[string]bool) []RoleChange {
 }
 
 func collectRoles(d *schema.ResourceData) (map[string]bool, map[string]bool, error) {
-
 	errFn := func(uid string) error {
-		return errors.New(fmt.Sprintf("Error: Role '%s' cannot be specified multiple times.", uid))
+		return fmt.Errorf("error: Role '%s' cannot be specified multiple times", uid)
 	}
 
 	rolesFn := func(roles interface{}) (map[string]bool, error) {
@@ -226,7 +236,7 @@ func createOrRemove(meta interface{}, name string, changes []RoleChange) error {
 			err = client.DeleteBuiltInRoleAssignment(br)
 		}
 		if err != nil {
-			return errors.New(fmt.Sprintf("Error with %s %v", name, err))
+			return fmt.Errorf("error with %s %w", name, err)
 		}
 	}
 	return nil

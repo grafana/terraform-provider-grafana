@@ -33,6 +33,7 @@ resource "grafana_dashboard" "metrics" {
 
 - **folder** (Number) The id of the folder to save the dashboard in.
 - **id** (String) The ID of this resource.
+- **message** (String) Set a commit message for the version history.
 - **overwrite** (Boolean) Set to true if you want to overwrite existing dashboard with newer version, same dashboard title in folder or same dashboard uid.
 - **config_json_sha256** (Boolean) Set to true if you want to save only the sha256sum instead of complete dashboard model JSON in the tfstate.
 

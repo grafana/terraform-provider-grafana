@@ -29,6 +29,11 @@ does not currently work with API Tokens. You must use basic auth.
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
+			"user_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: "The numerical ID of the Grafana user.",
+			},
 			"email": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -92,6 +97,7 @@ func ReadUser(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	d.Set("user_id", user.ID)
 	d.Set("email", user.Email)
 	d.Set("name", user.Name)
 	d.Set("login", user.Login)
@@ -145,8 +151,8 @@ func DeleteUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 
 func ExistsUser(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(*client).gapi
-	userId, _ := strconv.ParseInt(d.Id(), 10, 64)
-	_, err := client.User(userId)
+	userID, _ := strconv.ParseInt(d.Id(), 10, 64)
+	_, err := client.User(userID)
 	if err != nil {
 		return false, err
 	}

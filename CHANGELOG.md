@@ -1,5 +1,201 @@
 # Changelog
 
+## [v1.18.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.18.0) (2022-01-10)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.17.0...v1.18.0)
+
+**Implemented enhancements:**
+
+- Test on all currently supported Grafana versions [\#318](https://github.com/grafana/terraform-provider-grafana/issues/318)
+- Custom HTTP headers for datasources [\#191](https://github.com/grafana/terraform-provider-grafana/issues/191)
+- \[feature request\] allow to insecure ssl connections [\#67](https://github.com/grafana/terraform-provider-grafana/issues/67)
+
+**Fixed bugs:**
+
+- Error: Plugin did not respond with grafana\_synthetic\_monitoring\_check.all [\#326](https://github.com/grafana/terraform-provider-grafana/issues/326)
+-  terraform-provider-grafana\_v1.17.0 plugin crashed! [\#316](https://github.com/grafana/terraform-provider-grafana/issues/316)
+- Missing URL Protocol Scheme check in newer versions - now provider is crashing [\#301](https://github.com/grafana/terraform-provider-grafana/issues/301)
+- Go panic: interface conversion with secure\_settings attribute during grafana\_alert\_notification ressource creation [\#280](https://github.com/grafana/terraform-provider-grafana/issues/280)
+- Failed to install provider [\#272](https://github.com/grafana/terraform-provider-grafana/issues/272)
+- grafana-provider v1.13.0 + terraform 1.0.2 seems incompatible [\#240](https://github.com/grafana/terraform-provider-grafana/issues/240)
+- Terraform not able to destroy resources in order to recreate them after Grafana folder name change [\#85](https://github.com/grafana/terraform-provider-grafana/issues/85)
+- Grafana 5 datasource for variables/templating/panels are not assigned [\#19](https://github.com/grafana/terraform-provider-grafana/issues/19)
+- Fix folder ID documentation [\#319](https://github.com/grafana/terraform-provider-grafana/pull/319) ([inkel](https://github.com/inkel))
+
+**Closed issues:**
+
+- Grafana provider does not allow to add settings to the alert notification [\#89](https://github.com/grafana/terraform-provider-grafana/issues/89)
+- Error: Arguments must not be quoted [\#70](https://github.com/grafana/terraform-provider-grafana/issues/70)
+- Cannot create/delete multiple dashboards resources at once [\#64](https://github.com/grafana/terraform-provider-grafana/issues/64)
+
+**Merged pull requests:**
+
+- Add import to the SM check documentation [\#333](https://github.com/grafana/terraform-provider-grafana/pull/333) ([julienduchesne](https://github.com/julienduchesne))
+- Synthetic Monitoring: Allow filtering out deprecated probes [\#332](https://github.com/grafana/terraform-provider-grafana/pull/332) ([julienduchesne](https://github.com/julienduchesne))
+- Resource to manage machine learning jobs [\#330](https://github.com/grafana/terraform-provider-grafana/pull/330) ([csmarchbanks](https://github.com/csmarchbanks))
+- Validate that there's exactly one SM check setting [\#329](https://github.com/grafana/terraform-provider-grafana/pull/329) ([julienduchesne](https://github.com/julienduchesne))
+- add traceroute checktype to synthetic\_monitoring\_check resource [\#327](https://github.com/grafana/terraform-provider-grafana/pull/327) ([rdubrock](https://github.com/rdubrock))
+- Bump github.com/hashicorp/terraform-plugin-sdk/v2 from 2.10.0 to 2.10.1 [\#325](https://github.com/grafana/terraform-provider-grafana/pull/325) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump client to correctly handle configuration errors [\#324](https://github.com/grafana/terraform-provider-grafana/pull/324) ([julienduchesne](https://github.com/julienduchesne))
+- Make secure\_settings always pass values as string [\#322](https://github.com/grafana/terraform-provider-grafana/pull/322) ([inkel](https://github.com/inkel))
+- Run OSS tests on all currently supported versions [\#321](https://github.com/grafana/terraform-provider-grafana/pull/321) ([julienduchesne](https://github.com/julienduchesne))
+- Add a CODEOWNERS file [\#320](https://github.com/grafana/terraform-provider-grafana/pull/320) ([inkel](https://github.com/inkel))
+- datasource: add http headers support [\#261](https://github.com/grafana/terraform-provider-grafana/pull/261) ([guyguy333](https://github.com/guyguy333))
+
+## [v1.17.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.17.0) (2021-12-20)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.16.0...v1.17.0)
+
+**Implemented enhancements:**
+
+- Enable data\_source uid output to address grafana 3.x dashboard changes [\#304](https://github.com/grafana/terraform-provider-grafana/issues/304)
+- \[Feature Request\] Support teams, admin users, users  [\#51](https://github.com/grafana/terraform-provider-grafana/issues/51)
+- \[Feature Request\] Manage Grafana playlists through Terraform [\#25](https://github.com/grafana/terraform-provider-grafana/issues/25)
+
+**Closed issues:**
+
+- Grafana Dashboard doesn't support folder\_id and org\_id [\#31](https://github.com/grafana/terraform-provider-grafana/issues/31)
+
+**Merged pull requests:**
+
+- Add UID to datasource reosurce and test [\#315](https://github.com/grafana/terraform-provider-grafana/pull/315) ([wanieldilson](https://github.com/wanieldilson))
+- Testing: Consistent uid and id regexes [\#313](https://github.com/grafana/terraform-provider-grafana/pull/313) ([julienduchesne](https://github.com/julienduchesne))
+- Feature: data source folder [\#312](https://github.com/grafana/terraform-provider-grafana/pull/312) ([julienduchesne](https://github.com/julienduchesne))
+- Skip tests instead of using build tags [\#311](https://github.com/grafana/terraform-provider-grafana/pull/311) ([julienduchesne](https://github.com/julienduchesne))
+- Bump github.com/hashicorp/terraform-plugin-sdk/v2 from 2.9.0 to 2.10.0 [\#310](https://github.com/grafana/terraform-provider-grafana/pull/310) ([dependabot[bot]](https://github.com/apps/dependabot))
+- add message to dashboard creation [\#306](https://github.com/grafana/terraform-provider-grafana/pull/306) ([justinTM](https://github.com/justinTM))
+- Bump github.com/grafana/synthetic-monitoring-agent from 0.3.3 to 0.4.1 [\#302](https://github.com/grafana/terraform-provider-grafana/pull/302) ([dependabot[bot]](https://github.com/apps/dependabot))
+- feat: new resource `grafana\_playlist` [\#264](https://github.com/grafana/terraform-provider-grafana/pull/264) ([anGie44](https://github.com/anGie44))
+
+## [v1.16.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.16.0) (2021-11-24)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.15.0...v1.16.0)
+
+**Implemented enhancements:**
+
+- CI for Cloud Acceptance Tests [\#226](https://github.com/grafana/terraform-provider-grafana/issues/226)
+- New feature: datasource permissions [\#205](https://github.com/grafana/terraform-provider-grafana/issues/205)
+- Support management of API Keys. [\#143](https://github.com/grafana/terraform-provider-grafana/issues/143)
+
+**Merged pull requests:**
+
+- docs: Print out the files that are out of sync [\#298](https://github.com/grafana/terraform-provider-grafana/pull/298) ([julienduchesne](https://github.com/julienduchesne))
+- Update the grafana version to 8.2.5 in tests [\#297](https://github.com/grafana/terraform-provider-grafana/pull/297) ([julienduchesne](https://github.com/julienduchesne))
+- Check for docs drift [\#296](https://github.com/grafana/terraform-provider-grafana/pull/296) ([julienduchesne](https://github.com/julienduchesne))
+- Api key support [\#295](https://github.com/grafana/terraform-provider-grafana/pull/295) ([baloo](https://github.com/baloo))
+- Run cloud tests in CI [\#293](https://github.com/grafana/terraform-provider-grafana/pull/293) ([julienduchesne](https://github.com/julienduchesne))
+- Bump github.com/hashicorp/terraform-plugin-sdk/v2 from 2.8.0 to 2.9.0 [\#292](https://github.com/grafana/terraform-provider-grafana/pull/292) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Add `grafana\_data\_source\_permission` resource [\#289](https://github.com/grafana/terraform-provider-grafana/pull/289) ([julienduchesne](https://github.com/julienduchesne))
+- Bump github.com/grafana/synthetic-monitoring-agent from 0.0.24 to 0.3.3 [\#288](https://github.com/grafana/terraform-provider-grafana/pull/288) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump github.com/grafana/synthetic-monitoring-api-go-client from 0.0.2 to 0.3.0 [\#282](https://github.com/grafana/terraform-provider-grafana/pull/282) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [v1.15.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.15.0) (2021-11-19)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.14.0...v1.15.0)
+
+**Fixed bugs:**
+
+- Provider should retry on HTTP Error 503 [\#250](https://github.com/grafana/terraform-provider-grafana/issues/250)
+- Sync Terraform state with Grafana backend [\#43](https://github.com/grafana/terraform-provider-grafana/issues/43)
+
+**Merged pull requests:**
+
+- Add new datasource: `grafana\_user` [\#291](https://github.com/grafana/terraform-provider-grafana/pull/291) ([julienduchesne](https://github.com/julienduchesne))
+- Add support for importing probe auth\_token [\#290](https://github.com/grafana/terraform-provider-grafana/pull/290) ([mem](https://github.com/mem))
+- Bump github.com/hashicorp/terraform-plugin-docs from 0.5.0 to 0.5.1 [\#287](https://github.com/grafana/terraform-provider-grafana/pull/287) ([dependabot[bot]](https://github.com/apps/dependabot))
+- grafana/provider.go: set NumRetries [\#284](https://github.com/grafana/terraform-provider-grafana/pull/284) ([flokli](https://github.com/flokli))
+- Bump github.com/hashicorp/terraform-plugin-sdk/v2 from 2.7.0 to 2.8.0 [\#271](https://github.com/grafana/terraform-provider-grafana/pull/271) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump github.com/hashicorp/terraform-plugin-docs from 0.4.0 to 0.5.0 [\#268](https://github.com/grafana/terraform-provider-grafana/pull/268) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [v1.14.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.14.0) (2021-10-05)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.13.4...v1.14.0)
+
+**Fixed bugs:**
+
+- Plan crashes when undetermined resource used in templated JSON [\#246](https://github.com/grafana/terraform-provider-grafana/issues/246)
+
+**Merged pull requests:**
+
+- SM: update api url and link to SM API docs [\#277](https://github.com/grafana/terraform-provider-grafana/pull/277) ([electron0zero](https://github.com/electron0zero))
+- Update Elasticsearch version to be string in grafana\_data\_source resource [\#267](https://github.com/grafana/terraform-provider-grafana/pull/267) ([vtorosyan](https://github.com/vtorosyan))
+
+## [v1.13.4](https://github.com/grafana/terraform-provider-grafana/tree/v1.13.4) (2021-08-13)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.13.3...v1.13.4)
+
+**Implemented enhancements:**
+
+- Use golangci-lint in Drone Pipelines [\#255](https://github.com/grafana/terraform-provider-grafana/pull/255) ([trotttrotttrott](https://github.com/trotttrotttrott))
+
+**Merged pull requests:**
+
+- Reword docs about Synthetic Monitoring public config [\#254](https://github.com/grafana/terraform-provider-grafana/pull/254) ([electron0zero](https://github.com/electron0zero))
+- Crash when config\_json will be known after apply \#246 [\#248](https://github.com/grafana/terraform-provider-grafana/pull/248) ([jnahelou](https://github.com/jnahelou))
+
+## [v1.13.3](https://github.com/grafana/terraform-provider-grafana/tree/v1.13.3) (2021-07-26)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.13.2...v1.13.3)
+
+**Implemented enhancements:**
+
+- sigV4Auth support for prometheus data source [\#193](https://github.com/grafana/terraform-provider-grafana/issues/193)
+
+**Fixed bugs:**
+
+- rpc error: code = Unavailable desc = transport is closing / rpc error: code = Canceled desc = context canceled [\#249](https://github.com/grafana/terraform-provider-grafana/issues/249)
+- Plan crashes  [\#245](https://github.com/grafana/terraform-provider-grafana/issues/245)
+
+**Closed issues:**
+
+- Error creating teams with token [\#146](https://github.com/grafana/terraform-provider-grafana/issues/146)
+
+**Merged pull requests:**
+
+- adds Sigv4 support  [\#247](https://github.com/grafana/terraform-provider-grafana/pull/247) ([mhausenblas](https://github.com/mhausenblas))
+
+## [v1.13.2](https://github.com/grafana/terraform-provider-grafana/tree/v1.13.2) (2021-07-20)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.13.1...v1.13.2)
+
+**Implemented enhancements:**
+
+- New feature: team sync/external group resource [\#206](https://github.com/grafana/terraform-provider-grafana/issues/206)
+- Team Resource Refactoring [\#244](https://github.com/grafana/terraform-provider-grafana/pull/244) ([trotttrotttrott](https://github.com/trotttrotttrott))
+
+## [v1.13.1](https://github.com/grafana/terraform-provider-grafana/tree/v1.13.1) (2021-07-09)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.13.0...v1.13.1)
+
+**Merged pull requests:**
+
+- Make sm\_url configurable [\#242](https://github.com/grafana/terraform-provider-grafana/pull/242) ([captncraig](https://github.com/captncraig))
+- Sign Drone's configuration YAML file [\#239](https://github.com/grafana/terraform-provider-grafana/pull/239) ([julienduchesne](https://github.com/julienduchesne))
+
+## [v1.13.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.13.0) (2021-07-01)
+
+[Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.12.0...v1.13.0)
+
+**Implemented enhancements:**
+
+- Make settings in Alert Notification Resource non-sensitive [\#220](https://github.com/grafana/terraform-provider-grafana/issues/220)
+- Add Synthetic monitoring resource [\#198](https://github.com/grafana/terraform-provider-grafana/issues/198)
+- Add auth\_token to resource\_synthetic\_monitoring\_probe [\#235](https://github.com/grafana/terraform-provider-grafana/pull/235) ([trotttrotttrott](https://github.com/trotttrotttrott))
+- Synthetic Monitoring Probe and Check Resources and Data Sources [\#228](https://github.com/grafana/terraform-provider-grafana/pull/228) ([trotttrotttrott](https://github.com/trotttrotttrott))
+
+**Fixed bugs:**
+
+- Fix Acceptance Tests: terraform-json 0.12.0 [\#231](https://github.com/grafana/terraform-provider-grafana/pull/231) ([trotttrotttrott](https://github.com/trotttrotttrott))
+
+**Merged pull requests:**
+
+- Synthetic Monitoring Resource Fixes [\#237](https://github.com/grafana/terraform-provider-grafana/pull/237) ([trotttrotttrott](https://github.com/trotttrotttrott))
+- hashicorp/terraform-plugin-sdk/v2 v2.7.0 [\#233](https://github.com/grafana/terraform-provider-grafana/pull/233) ([trotttrotttrott](https://github.com/trotttrotttrott))
+- Generate docs for grafana\_team\_external\_group [\#230](https://github.com/grafana/terraform-provider-grafana/pull/230) ([trotttrotttrott](https://github.com/trotttrotttrott))
+- fix!: make alert\_notification settings nonsensitive [\#225](https://github.com/grafana/terraform-provider-grafana/pull/225) ([thor](https://github.com/thor))
+- add support of team external group [\#221](https://github.com/grafana/terraform-provider-grafana/pull/221) ([fgouteroux](https://github.com/fgouteroux))
+- Dashboard Resource Works with Grafana 8 [\#217](https://github.com/grafana/terraform-provider-grafana/pull/217) ([trotttrotttrott](https://github.com/trotttrotttrott))
+
 ## [v1.12.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.12.0) (2021-06-22)
 
 [Full Changelog](https://github.com/grafana/terraform-provider-grafana/compare/v1.11.0...v1.12.0)
@@ -27,7 +223,6 @@
 
 **Merged pull requests:**
 
-- Dashboard Resource Works with Grafana 8 [\#217](https://github.com/grafana/terraform-provider-grafana/pull/217) ([trotttrotttrott](https://github.com/trotttrotttrott))
 - Remove Vendor Directory [\#215](https://github.com/grafana/terraform-provider-grafana/pull/215) ([trotttrotttrott](https://github.com/trotttrotttrott))
 - Allow to overwrite while creating dashboard from terraform [\#214](https://github.com/grafana/terraform-provider-grafana/pull/214) ([szemek](https://github.com/szemek))
 - typo in grafana\_dashboard\_permission docs [\#211](https://github.com/grafana/terraform-provider-grafana/pull/211) ([rssnyder](https://github.com/rssnyder))
@@ -141,7 +336,6 @@
 - Add support for dashboard permissions [\#150](https://github.com/grafana/terraform-provider-grafana/pull/150) ([pascal-hofmann](https://github.com/pascal-hofmann))
 - Updated dead link in documentation - data\_sources [\#149](https://github.com/grafana/terraform-provider-grafana/pull/149) ([WilliamDahlen](https://github.com/WilliamDahlen))
 - Do not delete dashboard uid fields [\#136](https://github.com/grafana/terraform-provider-grafana/pull/136) ([gw0](https://github.com/gw0))
-- Add organization id to the provider. [\#110](https://github.com/grafana/terraform-provider-grafana/pull/110) ([medains](https://github.com/medains))
 
 ## [v1.7.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.7.0) (2020-11-06)
 
@@ -194,6 +388,7 @@
 - Update From Grafana Fork [\#122](https://github.com/grafana/terraform-provider-grafana/pull/122) ([trotttrotttrott](https://github.com/trotttrotttrott))
 - Adding team resource functionality [\#120](https://github.com/grafana/terraform-provider-grafana/pull/120) ([jonathan-dorsey](https://github.com/jonathan-dorsey))
 - Settings is an argument not a block [\#114](https://github.com/grafana/terraform-provider-grafana/pull/114) ([Arola1982](https://github.com/Arola1982))
+- Add organization id to the provider. [\#110](https://github.com/grafana/terraform-provider-grafana/pull/110) ([medains](https://github.com/medains))
 - Update link to documentation [\#99](https://github.com/grafana/terraform-provider-grafana/pull/99) ([tonglil](https://github.com/tonglil))
 - Fix build, use -mod=readonly [\#98](https://github.com/grafana/terraform-provider-grafana/pull/98) ([tonglil](https://github.com/tonglil))
 - Allow alert notification reminder to be turned on [\#94](https://github.com/grafana/terraform-provider-grafana/pull/94) ([jvshahid](https://github.com/jvshahid))
@@ -203,7 +398,6 @@
 - Mark secret\_key in secure\_json\_data as sensitive [\#78](https://github.com/grafana/terraform-provider-grafana/pull/78) ([Infra-Red](https://github.com/Infra-Red))
 - deps: Bump nytm/go-grafana-api to 0.2.0 [\#75](https://github.com/grafana/terraform-provider-grafana/pull/75) ([radeksimko](https://github.com/radeksimko))
 - Argument names must not be quoted [\#73](https://github.com/grafana/terraform-provider-grafana/pull/73) ([tomweston](https://github.com/tomweston))
-- Provider logging [\#46](https://github.com/grafana/terraform-provider-grafana/pull/46) ([radeksimko](https://github.com/radeksimko))
 - Update slack alert notification example usage [\#45](https://github.com/grafana/terraform-provider-grafana/pull/45) ([alex-stiff](https://github.com/alex-stiff))
 
 ## [v1.5.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.5.0) (2019-06-26)
@@ -248,6 +442,7 @@
 
 **Merged pull requests:**
 
+- Provider logging [\#46](https://github.com/grafana/terraform-provider-grafana/pull/46) ([radeksimko](https://github.com/radeksimko))
 - support boolean settings for alert notifications [\#37](https://github.com/grafana/terraform-provider-grafana/pull/37) ([DanCech](https://github.com/DanCech))
 - Add support for creating folders and creating dashboards inside folders [\#36](https://github.com/grafana/terraform-provider-grafana/pull/36) ([goraxe](https://github.com/goraxe))
 - Add missing quotes in grafana\_organization docs [\#32](https://github.com/grafana/terraform-provider-grafana/pull/32) ([illagrenan](https://github.com/illagrenan))
@@ -291,7 +486,6 @@
 
 **Merged pull requests:**
 
-- Update readme and add a shortcut to running grafana locally [\#20](https://github.com/grafana/terraform-provider-grafana/pull/20) ([pearkes](https://github.com/pearkes))
 - data\_source: make URL field optional [\#18](https://github.com/grafana/terraform-provider-grafana/pull/18) ([pearkes](https://github.com/pearkes))
 
 ## [v1.0.1](https://github.com/grafana/terraform-provider-grafana/tree/v1.0.1) (2018-01-12)
@@ -304,6 +498,7 @@
 
 **Merged pull requests:**
 
+- Update readme and add a shortcut to running grafana locally [\#20](https://github.com/grafana/terraform-provider-grafana/pull/20) ([pearkes](https://github.com/pearkes))
 - Updated vendored go-grafana-api client. [\#9](https://github.com/grafana/terraform-provider-grafana/pull/9) ([sl1pm4t](https://github.com/sl1pm4t))
 
 ## [v1.0.0](https://github.com/grafana/terraform-provider-grafana/tree/v1.0.0) (2017-10-23)

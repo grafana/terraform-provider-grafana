@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"testing"
 
@@ -12,6 +11,8 @@ import (
 )
 
 func TestAccTeam_basic(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var team gapi.Team
 
 	resource.Test(t, resource.TestCase{
@@ -30,7 +31,7 @@ func TestAccTeam_basic(t *testing.T) {
 						"grafana_team.test", "email", "teamEmail@example.com",
 					),
 					resource.TestMatchResourceAttr(
-						"grafana_team.test", "id", regexp.MustCompile(`\d+`),
+						"grafana_team.test", "id", idRegexp,
 					),
 				),
 			},
@@ -51,6 +52,8 @@ func TestAccTeam_basic(t *testing.T) {
 }
 
 func TestAccTeam_Members(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var team gapi.Team
 
 	resource.Test(t, resource.TestCase{
@@ -89,6 +92,7 @@ func TestAccTeam_Members(t *testing.T) {
 	})
 }
 
+//nolint:unparam // `rn` always receives `"grafana_team.test"`
 func testAccTeamCheckExists(rn string, a *gapi.Team) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
@@ -99,8 +103,7 @@ func testAccTeamCheckExists(rn string, a *gapi.Team) resource.TestCheckFunc {
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource id not set")
 		}
-		tmp, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
-		id := int64(tmp)
+		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
 		if err != nil {
 			return fmt.Errorf("resource id is malformed")
 		}

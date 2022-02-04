@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"fmt"
-	"regexp"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -12,6 +11,8 @@ import (
 )
 
 func TestAccDashboard_basic(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var dashboard gapi.Dashboard
 
 	resource.Test(t, resource.TestCase{
@@ -59,15 +60,18 @@ func TestAccDashboard_basic(t *testing.T) {
 			},
 			{
 				// Importing matches the state of the previous step.
-				ResourceName:      "grafana_dashboard.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "grafana_dashboard.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"message"},
 			},
 		},
 	})
 }
 
 func TestAccDashboard_uid_unset(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var dashboard gapi.Dashboard
 
 	resource.Test(t, resource.TestCase{
@@ -110,7 +114,31 @@ func TestAccDashboard_uid_unset(t *testing.T) {
 	})
 }
 
+func TestAccDashboard_computed_config(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
+	var dashboard gapi.Dashboard
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
+		Steps: []resource.TestStep{
+			{
+				// Test resource creation.
+				Config: testAccExample(t, "resources/grafana_dashboard/_acc_computed.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
+					testAccDashboardCheckExists("grafana_dashboard.test-computed", &dashboard),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDashboard_folder(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var dashboard gapi.Dashboard
 	var folder gapi.Folder
 
@@ -123,11 +151,12 @@ func TestAccDashboard_folder(t *testing.T) {
 				Config: testAccExample(t, "resources/grafana_dashboard/_acc_folder.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test_folder", &dashboard),
+					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
 					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
 					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "folder"),
 					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", "folder"),
 					resource.TestMatchResourceAttr(
-						"grafana_dashboard.test_folder", "folder", regexp.MustCompile(`\d+`),
+						"grafana_dashboard.test_folder", "folder", idRegexp,
 					),
 				),
 			},
@@ -181,10 +210,58 @@ func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.
 		if err == nil {
 			return fmt.Errorf("dashboard still exists")
 		}
-		_, err = client.Folder(folder.ID)
+		folder, err = client.Folder(folder.ID)
 		if err == nil {
-			return fmt.Errorf("folder still exists")
+			return fmt.Errorf("the following folder still exists: %s", folder.Title)
 		}
 		return nil
+	}
+}
+
+func Test_normalizeDashboardConfigJSON(t *testing.T) {
+	type args struct {
+		config interface{}
+	}
+
+	d := "New Dashboard"
+	expected := fmt.Sprintf("{\"title\":\"%s\"}", d)
+
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "String dashboard is valid",
+			args: args{config: fmt.Sprintf("{\"title\":\"%s\"}", d)},
+			want: expected,
+		},
+		{
+			name: "Map dashboard is valid",
+			args: args{config: map[string]interface{}{"title": d}},
+			want: expected,
+		},
+		{
+			name: "Version is removed",
+			args: args{config: map[string]interface{}{"title": d, "version": 10}},
+			want: expected,
+		},
+		{
+			name: "Id is removed",
+			args: args{config: map[string]interface{}{"title": d, "id": 10}},
+			want: expected,
+		},
+		{
+			name: "Bad json is ignored",
+			args: args{config: "74D93920-ED26–11E3-AC10–0800200C9A66"},
+			want: "74D93920-ED26–11E3-AC10–0800200C9A66",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := normalizeDashboardConfigJSON(tt.args.config); got != tt.want {
+				t.Errorf("normalizeDashboardConfigJSON() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

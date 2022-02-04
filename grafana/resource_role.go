@@ -182,6 +182,7 @@ func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		r := gapi.Role{
 			UID:         d.Id(),
 			Name:        d.Get("name").(string),
+			Global:      d.Get("global").(bool),
 			Description: desc,
 			Version:     int64(d.Get("version").(int)),
 			Permissions: permissions(d),

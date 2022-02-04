@@ -3,7 +3,6 @@ package grafana
 import (
 	"context"
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -15,7 +14,7 @@ import (
 )
 
 type OrgUser struct {
-	Id    int64
+	ID    int64
 	Email string
 	Role  string
 }
@@ -129,14 +128,14 @@ Grafana unless 'create_users' is set to true.
 func CreateOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 	name := d.Get("name").(string)
-	orgId, err := client.NewOrg(name)
+	orgID, err := client.NewOrg(name)
 	if err != nil && err.Error() == "409 Conflict" {
 		return diag.Errorf("Error: A Grafana Organization with the name '%s' already exists.", name)
 	}
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(strconv.FormatInt(orgId, 10))
+	d.SetId(strconv.FormatInt(orgID, 10))
 	if err = UpdateUsers(d, meta); err != nil {
 		return diag.FromErr(err)
 	}
@@ -146,8 +145,8 @@ func CreateOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 
 func ReadOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
-	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
-	resp, err := client.Org(orgId)
+	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
+	resp, err := client.Org(orgID)
 	if err != nil && strings.HasPrefix(err.Error(), "status: 404") {
 		log.Printf("[WARN] removing organization %s from state because it no longer exists in grafana", d.Id())
 		d.SetId("")
@@ -165,10 +164,10 @@ func ReadOrganization(ctx context.Context, d *schema.ResourceData, meta interfac
 
 func UpdateOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
-	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
+	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	if d.HasChange("name") {
 		name := d.Get("name").(string)
-		err := client.UpdateOrg(orgId, name)
+		err := client.UpdateOrg(orgID, name)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -182,8 +181,8 @@ func UpdateOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 
 func DeleteOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
-	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
-	if err := client.DeleteOrg(orgId); err != nil {
+	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
+	if err := client.DeleteOrg(orgID); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -192,8 +191,8 @@ func DeleteOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 
 func ExistsOrganization(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(*client).gapi
-	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
-	_, err := client.Org(orgId)
+	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
+	_, err := client.Org(orgID)
 	if err != nil && err.Error() == "404 Not Found" {
 		return false, nil
 	}
@@ -205,8 +204,8 @@ func ExistsOrganization(d *schema.ResourceData, meta interface{}) (bool, error) 
 
 func ReadUsers(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*client).gapi
-	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
-	orgUsers, err := client.OrgUsers(orgId)
+	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
+	orgUsers, err := client.OrgUsers(orgID)
 	if err != nil {
 		return err
 	}
@@ -229,12 +228,12 @@ func UpdateUsers(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	changes := changes(stateUsers, configUsers)
-	orgId, _ := strconv.ParseInt(d.Id(), 10, 64)
+	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	changes, err = addIdsToChanges(d, meta, changes)
 	if err != nil {
 		return err
 	}
-	return applyChanges(meta, orgId, changes)
+	return applyChanges(meta, orgID, changes)
 }
 
 func collectUsers(d *schema.ResourceData) (map[string]OrgUser, map[string]OrgUser, error) {
@@ -248,7 +247,7 @@ func collectUsers(d *schema.ResourceData) (map[string]OrgUser, map[string]OrgUse
 			email := u.(string)
 			// Sanity check that a user isn't specified twice within an organization
 			if _, ok := stateUsers[email]; ok {
-				return nil, nil, errors.New(fmt.Sprintf("Error: User '%s' cannot be specified multiple times.", email))
+				return nil, nil, fmt.Errorf("error: User '%s' cannot be specified multiple times", email)
 			}
 			stateUsers[email] = OrgUser{0, email, roleName}
 		}
@@ -256,7 +255,7 @@ func collectUsers(d *schema.ResourceData) (map[string]OrgUser, map[string]OrgUse
 			email := u.(string)
 			// Sanity check that a user isn't specified twice within an organization
 			if _, ok := configUsers[email]; ok {
-				return nil, nil, errors.New(fmt.Sprintf("Error: User '%s' cannot be specified multiple times.", email))
+				return nil, nil, fmt.Errorf("error: User '%s' cannot be specified multiple times", email)
 			}
 			configUsers[email] = OrgUser{0, email, roleName}
 		}
@@ -304,7 +303,7 @@ func addIdsToChanges(d *schema.ResourceData, meta interface{}, changes []UserCha
 	for _, change := range changes {
 		id, ok := gUserMap[change.User.Email]
 		if !ok && !create {
-			return nil, errors.New(fmt.Sprintf("Error adding user %s. User does not exist in Grafana.", change.User.Email))
+			return nil, fmt.Errorf("error adding user %s. User does not exist in Grafana", change.User.Email)
 		}
 		if !ok && create {
 			id, err = createUser(meta, change.User.Email)
@@ -312,7 +311,7 @@ func addIdsToChanges(d *schema.ResourceData, meta interface{}, changes []UserCha
 				return nil, err
 			}
 		}
-		change.User.Id = id
+		change.User.ID = id
 		output = append(output, change)
 	}
 	return output, nil
@@ -340,18 +339,18 @@ func createUser(meta interface{}, user string) (int64, error) {
 	return id, err
 }
 
-func applyChanges(meta interface{}, orgId int64, changes []UserChange) error {
+func applyChanges(meta interface{}, orgID int64, changes []UserChange) error {
 	var err error
 	client := meta.(*client).gapi
 	for _, change := range changes {
 		u := change.User
 		switch change.Type {
 		case Add:
-			err = client.AddOrgUser(orgId, u.Email, u.Role)
+			err = client.AddOrgUser(orgID, u.Email, u.Role)
 		case Update:
-			err = client.UpdateOrgUser(orgId, u.Id, u.Role)
+			err = client.UpdateOrgUser(orgID, u.ID, u.Role)
 		case Remove:
-			err = client.RemoveOrgUser(orgId, u.Id)
+			err = client.RemoveOrgUser(orgID, u.ID)
 		}
 		if err != nil && !strings.HasPrefix(err.Error(), "status: 409") {
 			return err

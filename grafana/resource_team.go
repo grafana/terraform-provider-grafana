@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -87,6 +86,7 @@ func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	}
 
 	d.SetId(strconv.FormatInt(teamID, 10))
+	d.Set("team_id", teamID)
 	if err = UpdateMembers(d, meta); err != nil {
 		return diag.FromErr(err)
 	}
@@ -107,7 +107,9 @@ func ReadTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 		return diag.FromErr(err)
 	}
 	d.Set("name", resp.Name)
-	d.Set("email", resp.Email)
+	if resp.Email != "" {
+		d.Set("email", resp.Email)
+	}
 	if err := ReadMembers(d, meta); err != nil {
 		return diag.FromErr(err)
 	}
@@ -176,15 +178,15 @@ func UpdateMembers(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	//compile the list of differences between current state and config
+	// compile the list of differences between current state and config
 	changes := memberChanges(stateMembers, configMembers)
-	//retrieves the corresponding user IDs based on the email provided
+	// retrieves the corresponding user IDs based on the email provided
 	changes, err = addMemberIdsToChanges(meta, changes)
 	if err != nil {
 		return err
 	}
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	//now we can make the corresponding updates so current state matches config
+	// now we can make the corresponding updates so current state matches config
 	return applyMemberChanges(meta, teamID, changes)
 }
 
@@ -197,7 +199,7 @@ func collectMembers(d *schema.ResourceData) (map[string]TeamMember, map[string]T
 		login := u.(string)
 		// Sanity check that a member isn't specified twice within a team
 		if _, ok := stateMembers[login]; ok {
-			return nil, nil, errors.New(fmt.Sprintf("Error: Team Member '%s' cannot be specified multiple times.", login))
+			return nil, nil, fmt.Errorf("error: Team Member '%s' cannot be specified multiple times", login)
 		}
 		stateMembers[login] = TeamMember{0, login}
 	}
@@ -205,7 +207,7 @@ func collectMembers(d *schema.ResourceData) (map[string]TeamMember, map[string]T
 		login := u.(string)
 		// Sanity check that a member isn't specified twice within a team
 		if _, ok := configMembers[login]; ok {
-			return nil, nil, errors.New(fmt.Sprintf("Error: Team Member '%s' cannot be specified multiple times.", login))
+			return nil, nil, fmt.Errorf("error: Team Member '%s' cannot be specified multiple times", login)
 		}
 		configMembers[login] = TeamMember{0, login}
 	}
@@ -236,19 +238,19 @@ func memberChanges(stateMembers, configMembers map[string]TeamMember) []MemberCh
 func addMemberIdsToChanges(meta interface{}, changes []MemberChange) ([]MemberChange, error) {
 	client := meta.(*client).gapi
 	gUserMap := make(map[string]int64)
-	gUsers, err := client.Users()
+	gUsers, err := client.OrgUsersCurrent()
 	if err != nil {
 		return nil, err
 	}
 	for _, u := range gUsers {
-		gUserMap[u.Email] = u.ID
+		gUserMap[u.Email] = u.UserID
 	}
 	var output []MemberChange
 
 	for _, change := range changes {
 		id, ok := gUserMap[change.Member.Email]
 		if !ok {
-			return nil, errors.New(fmt.Sprintf("Error adding user %s. User does not exist in Grafana.", change.Member.Email))
+			return nil, fmt.Errorf("error adding user %s. User does not exist in Grafana", change.Member.Email)
 		}
 
 		change.Member.ID = id
@@ -257,16 +259,16 @@ func addMemberIdsToChanges(meta interface{}, changes []MemberChange) ([]MemberCh
 	return output, nil
 }
 
-func applyMemberChanges(meta interface{}, teamId int64, changes []MemberChange) error {
+func applyMemberChanges(meta interface{}, teamID int64, changes []MemberChange) error {
 	var err error
 	client := meta.(*client).gapi
 	for _, change := range changes {
 		u := change.Member
 		switch change.Type {
 		case AddMember:
-			err = client.AddTeamMember(teamId, u.ID)
+			err = client.AddTeamMember(teamID, u.ID)
 		case RemoveMember:
-			err = client.RemoveMemberFromTeam(teamId, u.ID)
+			err = client.RemoveMemberFromTeam(teamID, u.ID)
 		}
 		if err != nil {
 			return err

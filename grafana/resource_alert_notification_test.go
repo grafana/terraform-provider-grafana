@@ -13,6 +13,8 @@ import (
 )
 
 func TestAccAlertNotification_basic(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var alertNotification gapi.AlertNotification
 
 	resource.Test(t, resource.TestCase{
@@ -29,7 +31,7 @@ func TestAccAlertNotification_basic(t *testing.T) {
 						"grafana_alert_notification.test", "type", "email",
 					),
 					resource.TestMatchResourceAttr(
-						"grafana_alert_notification.test", "id", regexp.MustCompile(`\d+`),
+						"grafana_alert_notification.test", "id", idRegexp,
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_alert_notification.test", "send_reminder", "true",
@@ -50,6 +52,8 @@ func TestAccAlertNotification_basic(t *testing.T) {
 }
 
 func TestAccAlertNotification_disableResolveMessage(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var alertNotification gapi.AlertNotification
 
 	resource.Test(t, resource.TestCase{
@@ -66,7 +70,7 @@ func TestAccAlertNotification_disableResolveMessage(t *testing.T) {
 						"grafana_alert_notification.test", "type", "email",
 					),
 					resource.TestMatchResourceAttr(
-						"grafana_alert_notification.test", "id", regexp.MustCompile(`\d+`),
+						"grafana_alert_notification.test", "id", idRegexp,
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_alert_notification.test", "send_reminder", "true",
@@ -86,7 +90,9 @@ func TestAccAlertNotification_disableResolveMessage(t *testing.T) {
 	})
 }
 
-func TestAccAlertNotification_invalid_frequence(t *testing.T) {
+func TestAccAlertNotification_invalid_frequency(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var alertNotification gapi.AlertNotification
 
 	resource.Test(t, resource.TestCase{
@@ -102,7 +108,9 @@ func TestAccAlertNotification_invalid_frequence(t *testing.T) {
 	})
 }
 
-func TestAccAlertNotification_reminder_no_frequence(t *testing.T) {
+func TestAccAlertNotification_reminder_no_frequency(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var alertNotification gapi.AlertNotification
 
 	resource.Test(t, resource.TestCase{
@@ -178,6 +186,9 @@ resource "grafana_alert_notification" "test" {
 			"uploadImage" = "false"
 			"autoResolve" = "true"
 		}
+	secure_settings = {
+		 "foo" = "true"
+	}
 }
 `
 

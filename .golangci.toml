@@ -1,0 +1,58 @@
+[run]
+timeout = "10m"
+build-tags = [
+  "cloud",
+  "enterprise",
+]
+
+[linters-settings.golint]
+min-confidence = 3
+
+[linters-settings.goconst]
+min-len = 5
+min-occurrences = 5
+
+[linters]
+disable-all = true
+enable = [
+  "bodyclose",
+  "deadcode",
+  "depguard",
+  "dogsled",
+  "goconst",
+  "gocritic",
+  "goimports",
+  "golint",
+  "goprintffuncname",
+  "gosec",
+  "gosimple",
+  "govet",
+  "ineffassign",
+  "misspell",
+  "nakedret",
+  "rowserrcheck",
+  "exportloopref",
+  "staticcheck",
+  "structcheck",
+  "stylecheck",
+  "typecheck",
+  "unconvert",
+  "unused",
+  "varcheck",
+  "whitespace",
+  "gocyclo",
+  "unparam",
+]
+
+[[issues.exclude-rules]]
+linters = ["stylecheck"]
+path = "_test.go"
+text = "ST1003: should not use underscores in Go names;"
+
+[[issues.exclude-rules]]
+linters = ["gocritic"]
+text = "deprecatedComment: the proper format is `Deprecated: <text>`"
+
+[[issues.exclude-rules]]
+linters = ["gosec"]
+text = "G402: TLS MinVersion too low."

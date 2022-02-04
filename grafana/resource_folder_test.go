@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"testing"
 
@@ -13,6 +12,8 @@ import (
 )
 
 func TestAccFolder_basic(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
 	var folder gapi.Folder
 
 	resource.Test(t, resource.TestCase{
@@ -25,10 +26,10 @@ func TestAccFolder_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
 					resource.TestMatchResourceAttr(
-						"grafana_folder.test_folder", "id", regexp.MustCompile(`\d+`),
+						"grafana_folder.test_folder", "id", idRegexp,
 					),
 					resource.TestMatchResourceAttr(
-						"grafana_folder.test_folder", "uid", regexp.MustCompile(`\w+`),
+						"grafana_folder.test_folder", "uid", uidRegexp,
 					),
 				),
 			},
@@ -69,15 +70,6 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 		*folder = *gotFolder
 
 		return nil
-	}
-}
-
-func testAccFolderDisappear(folder *gapi.Folder) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		// At this point testAccFolderCheckExists should have been called and
-		// folder should have been populated
-		client := testAccProvider.Meta().(*client).gapi
-		return client.DeleteFolder((*folder).UID)
 	}
 }
 

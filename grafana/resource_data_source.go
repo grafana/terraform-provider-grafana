@@ -2,10 +2,13 @@ package grafana
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -60,11 +63,26 @@ source selected (via the 'type' argument).
 				Default:     "",
 				Description: "(Required by some data source types) The name of the database to use on the selected data source server.",
 			},
+			"http_headers": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "Custom HTTP headers",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 			"is_default": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
 				Description: "Whether to set the data source as default. This should only be `true` to a single data source.",
+			},
+			"uid": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "Unique identifier. If unset, this will be automatically generated.",
 			},
 			"json_data": {
 				Type:        schema.TypeList,
@@ -75,17 +93,22 @@ source selected (via the 'type' argument).
 						"assume_role_arn": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(CloudWatch) The ARN of the role to be assumed by Grafana when using the CloudWatch data source.",
+							Description: "(CloudWatch, Athena) The ARN of the role to be assumed by Grafana when using the CloudWatch or Athena data source.",
 						},
 						"auth_type": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(CloudWatch) The authentication type used to access the data source.",
+							Description: "(CloudWatch, Athena) The authentication type used to access the data source.",
 						},
 						"authentication_type": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: "(Stackdriver) The authentication type: `jwt` or `gce`.",
+						},
+						"catalog": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Athena) Athena catalog.",
 						},
 						"client_email": {
 							Type:        schema.TypeString,
@@ -102,6 +125,11 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Description: "(CloudWatch) A comma-separated list of custom namespaces to be queried by the CloudWatch data source.",
 						},
+						"database": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Athena) Name of the database within the catalog.",
+						},
 						"default_project": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -110,7 +138,7 @@ source selected (via the 'type' argument).
 						"default_region": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(CloudWatch) The default region for the data source.",
+							Description: "(CloudWatch, Athena) The default region for the data source.",
 						},
 						"encrypt": {
 							Type:        schema.TypeString,
@@ -118,9 +146,31 @@ source selected (via the 'type' argument).
 							Description: "(MSSQL) Connection SSL encryption handling: 'disable', 'false' or 'true'.",
 						},
 						"es_version": {
-							Type:        schema.TypeInt,
+							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(Elasticsearch) Elasticsearch version as a number (2/5/56/60/70).",
+							Description: "(Elasticsearch) Elasticsearch semantic version (Grafana v8.0+).",
+							ValidateDiagFunc: func(v interface{}, p cty.Path) diag.Diagnostics {
+								var diags diag.Diagnostics
+								r := regexp.MustCompile(`^\d+\.\d+\.\d+$`)
+								if !r.MatchString(v.(string)) {
+									diags = append(diags, diag.Diagnostic{
+										Severity: diag.Warning,
+										Summary:  "Expected semantic version",
+										Detail:   "As of Grafana 8.0, the Elasticsearch plugin expects es_version to be set as a semantic version (E.g. 7.0.0, 7.6.1).",
+									})
+								}
+								return diags
+							},
+						},
+						"external_id": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(CloudWatch, Athena) If you are assuming a role in another account, that has been created with an external ID, specify the external ID here.",
+						},
+						"github_url": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Github) Github URL",
 						},
 						"graphite_version": {
 							Type:        schema.TypeString,
@@ -162,6 +212,11 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Description: "(MySQL, PostgreSQL and MSSQL) Maximum number of open connections to the database (Grafana v5.4+).",
 						},
+						"output_location": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Athena) AWS S3 bucket to store execution outputs. If not specified, the default query result location from the Workgroup configuration will be used.",
+						},
 						"postgres_version": {
 							Type:        schema.TypeInt,
 							Optional:    true,
@@ -170,12 +225,42 @@ source selected (via the 'type' argument).
 						"profile": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(CloudWatch) The credentials profile name to use when authentication type is set as 'Credentials file'.",
+							Description: "(CloudWatch, Athena) The credentials profile name to use when authentication type is set as 'Credentials file'.",
 						},
 						"query_timeout": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: "(Prometheus) Timeout for queries made to the Prometheus data source in seconds.",
+						},
+						"sigv4_assume_role_arn": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Elasticsearch and Prometheus) Specifies the ARN of an IAM role to assume.",
+						},
+						"sigv4_auth": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "(Elasticsearch and Prometheus) Enable usage of SigV4.",
+						},
+						"sigv4_auth_type": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Elasticsearch and Prometheus) The Sigv4 authentication provider to use: 'default', 'credentials' or 'keys' (AMG: 'workspace-iam-role').",
+						},
+						"sigv4_external_id": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Elasticsearch and Prometheus) When assuming a role in another account use this external ID.",
+						},
+						"sigv4_profile": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Elasticsearch and Prometheus) Credentials profile name, leave blank for default.",
+						},
+						"sigv4_region": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Elasticsearch and Prometheus) AWS region to use for Sigv4.",
 						},
 						"ssl_mode": {
 							Type:        schema.TypeString,
@@ -227,6 +312,11 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Description: "(OpenTSDB) Version.",
 						},
+						"workgroup": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Athena) Workgroup to use.",
+						},
 					},
 				},
 			},
@@ -253,7 +343,13 @@ source selected (via the 'type' argument).
 							Type:        schema.TypeString,
 							Optional:    true,
 							Sensitive:   true,
-							Description: "(CloudWatch) The access key to use to access the data source.",
+							Description: "(CloudWatch, Athena) The access key to use to access the data source.",
+						},
+						"access_token": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Sensitive:   true,
+							Description: "(Github) The access token to use to access the data source",
 						},
 						"basic_auth_password": {
 							Type:        schema.TypeString,
@@ -277,7 +373,19 @@ source selected (via the 'type' argument).
 							Type:        schema.TypeString,
 							Optional:    true,
 							Sensitive:   true,
-							Description: "(CloudWatch) The secret key to use to access the data source.",
+							Description: "(CloudWatch, Athena) The secret key to use to access the data source.",
+						},
+						"sigv4_access_key": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Sensitive:   true,
+							Description: "(Elasticsearch and Prometheus) SigV4 access key. Required when using 'keys' auth provider.",
+						},
+						"sigv4_secret_key": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Sensitive:   true,
+							Description: "(Elasticsearch and Prometheus) SigV4 secret key. Required when using 'keys' auth provider.",
 						},
 						"tls_ca_cert": {
 							Type:        schema.TypeString,
@@ -377,16 +485,19 @@ func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{
 
 	d.SetId(strconv.FormatInt(dataSource.ID, 10))
 	d.Set("access_mode", dataSource.Access)
-	d.Set("basic_auth_enabled", dataSource.BasicAuth)
-	d.Set("basic_auth_username", dataSource.BasicAuthUser)
-	d.Set("basic_auth_password", dataSource.BasicAuthPassword)
 	d.Set("database_name", dataSource.Database)
 	d.Set("is_default", dataSource.IsDefault)
 	d.Set("name", dataSource.Name)
-	d.Set("password", dataSource.Password)
 	d.Set("type", dataSource.Type)
 	d.Set("url", dataSource.URL)
 	d.Set("username", dataSource.User)
+	d.Set("uid", dataSource.UID)
+
+	// TODO: these fields should be migrated to SecureJSONData.
+	d.Set("basic_auth_enabled", dataSource.BasicAuth)
+	d.Set("basic_auth_username", dataSource.BasicAuthUser)     //nolint:staticcheck // deprecated
+	d.Set("basic_auth_password", dataSource.BasicAuthPassword) //nolint:staticcheck // deprecated
+	d.Set("password", dataSource.Password)                     //nolint:staticcheck // deprecated
 
 	return nil
 }
@@ -416,6 +527,11 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 		id, err = strconv.ParseInt(idStr, 10, 64)
 	}
 
+	httpHeaders := make(map[string]string)
+	for key, value := range d.Get("http_headers").(map[string]interface{}) {
+		httpHeaders[key] = fmt.Sprintf("%v", value)
+	}
+
 	return &gapi.DataSource{
 		ID:                id,
 		Name:              d.Get("name").(string),
@@ -429,6 +545,8 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 		BasicAuth:         d.Get("basic_auth_enabled").(bool),
 		BasicAuthUser:     d.Get("basic_auth_username").(string),
 		BasicAuthPassword: d.Get("basic_auth_password").(string),
+		UID:               d.Get("uid").(string),
+		HTTPHeaders:       httpHeaders,
 		JSONData:          makeJSONData(d),
 		SecureJSONData:    makeSecureJSONData(d),
 	}, err
@@ -439,13 +557,16 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		AssumeRoleArn:              d.Get("json_data.0.assume_role_arn").(string),
 		AuthType:                   d.Get("json_data.0.auth_type").(string),
 		AuthenticationType:         d.Get("json_data.0.authentication_type").(string),
+		Catalog:                    d.Get("json_data.0.catalog").(string),
 		ClientEmail:                d.Get("json_data.0.client_email").(string),
 		ConnMaxLifetime:            int64(d.Get("json_data.0.conn_max_lifetime").(int)),
 		CustomMetricsNamespaces:    d.Get("json_data.0.custom_metrics_namespaces").(string),
+		Database:                   d.Get("json_data.0.database").(string),
 		DefaultProject:             d.Get("json_data.0.default_project").(string),
 		DefaultRegion:              d.Get("json_data.0.default_region").(string),
 		Encrypt:                    d.Get("json_data.0.encrypt").(string),
-		EsVersion:                  int64(d.Get("json_data.0.es_version").(int)),
+		EsVersion:                  d.Get("json_data.0.es_version").(string),
+		ExternalID:                 d.Get("json_data.0.external_id").(string),
 		GraphiteVersion:            d.Get("json_data.0.graphite_version").(string),
 		HTTPMethod:                 d.Get("json_data.0.http_method").(string),
 		Interval:                   d.Get("json_data.0.interval").(string),
@@ -454,9 +575,16 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		MaxConcurrentShardRequests: int64(d.Get("json_data.0.max_concurrent_shard_requests").(int)),
 		MaxIdleConns:               int64(d.Get("json_data.0.max_idle_conns").(int)),
 		MaxOpenConns:               int64(d.Get("json_data.0.max_open_conns").(int)),
+		OutputLocation:             d.Get("json_data.0.output_location").(string),
 		PostgresVersion:            int64(d.Get("json_data.0.postgres_version").(int)),
 		Profile:                    d.Get("json_data.0.profile").(string),
 		QueryTimeout:               d.Get("json_data.0.query_timeout").(string),
+		SigV4AssumeRoleArn:         d.Get("json_data.0.sigv4_assume_role_arn").(string),
+		SigV4Auth:                  d.Get("json_data.0.sigv4_auth").(bool),
+		SigV4AuthType:              d.Get("json_data.0.sigv4_auth_type").(string),
+		SigV4ExternalID:            d.Get("json_data.0.sigv4_external_id").(string),
+		SigV4Profile:               d.Get("json_data.0.sigv4_profile").(string),
+		SigV4Region:                d.Get("json_data.0.sigv4_region").(string),
 		Sslmode:                    d.Get("json_data.0.ssl_mode").(string),
 		Timescaledb:                d.Get("json_data.0.timescaledb").(bool),
 		TimeField:                  d.Get("json_data.0.time_field").(string),
@@ -467,6 +595,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		TokenURI:                   d.Get("json_data.0.token_uri").(string),
 		TsdbResolution:             d.Get("json_data.0.tsdb_resolution").(string),
 		TsdbVersion:                d.Get("json_data.0.tsdb_version").(string),
+		Workgroup:                  d.Get("json_data.0.workgroup").(string),
 	}
 }
 
@@ -477,6 +606,8 @@ func makeSecureJSONData(d *schema.ResourceData) gapi.SecureJSONData {
 		Password:          d.Get("secure_json_data.0.password").(string),
 		PrivateKey:        d.Get("secure_json_data.0.private_key").(string),
 		SecretKey:         d.Get("secure_json_data.0.secret_key").(string),
+		SigV4AccessKey:    d.Get("secure_json_data.0.sigv4_access_key").(string),
+		SigV4SecretKey:    d.Get("secure_json_data.0.sigv4_secret_key").(string),
 		TLSCACert:         d.Get("secure_json_data.0.tls_ca_cert").(string),
 		TLSClientCert:     d.Get("secure_json_data.0.tls_client_cert").(string),
 		TLSClientKey:      d.Get("secure_json_data.0.tls_client_key").(string),
