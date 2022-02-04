@@ -84,11 +84,14 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 		dashboardUIDs[i] = thisResult.UID
 	}
 
-	var folders []int64
-	for thisFolderID := range dashboards {
-		folders = append(folders, thisFolderID)
+	// only set folder_ids if user did not specify, as re-ordered list may cause diff
+	if _, ok := d.GetOk("folder_ids"); !ok {
+		var folders []int64
+		for thisFolderID := range dashboards {
+			folders = append(folders, thisFolderID)
+		}
+		d.Set("folder_ids", folders)
 	}
-
 	d.Set("dashboards", dashboards)
 
 	return nil
