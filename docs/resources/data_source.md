@@ -125,7 +125,7 @@ Optional:
 - **max_concurrent_shard_requests** (Number) (Elasticsearch) Maximum number of concurrent shard requests.
 - **max_idle_conns** (Number) (MySQL, PostgreSQL and MSSQL) Maximum number of connections in the idle connection pool (Grafana v5.4+).
 - **max_open_conns** (Number) (MySQL, PostgreSQL and MSSQL) Maximum number of open connections to the database (Grafana v5.4+).
-- **orgSlug** (String) (Sentry) Organization slug.
+- **org_slug** (String) (Sentry) Organization slug.
 - **output_location** (String) (Athena) AWS S3 bucket to store execution outputs. If not specified, the default query result location from the Workgroup configuration will be used.
 - **postgres_version** (Number) (PostgreSQL) Postgres version as a number (903/904/905/906/1000) meaning v9.3, v9.4, etc.
 - **profile** (String) (CloudWatch, Athena) The credentials profile name to use when authentication type is set as 'Credentials file'.
@@ -156,7 +156,7 @@ Optional:
 
 - **access_key** (String, Sensitive) (CloudWatch, Athena) The access key to use to access the data source.
 - **access_token** (String, Sensitive) (Github) The access token to use to access the data source
-- **authToken** (String, Sensitive) (Sentry) Authorization token.
+- **auth_token** (String, Sensitive) (Sentry) Authorization token.
 - **basic_auth_password** (String, Sensitive) (All) Password to use for basic authentication.
 - **password** (String, Sensitive) (All) Password to use for authentication.
 - **private_key** (String, Sensitive) (Stackdriver) The service account key `private_key` to use to access the data source.
