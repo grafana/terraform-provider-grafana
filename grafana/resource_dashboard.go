@@ -9,7 +9,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/tidwall/sjson"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 )
@@ -318,37 +317,25 @@ func normalizeDashboardConfigJSON(config interface{}) string {
 		}
 	}
 
-	configJSONBytes, _ := json.Marshal(dashboardJSON)
+	delete(dashboardJSON, "id")
+	delete(dashboardJSON, "version")
 
 	// similarly to uid removal above, remove any attributes panels[].libraryPanel.*
 	// from the dashboard JSON other than "name" or "uid".
 	// Grafana will populate all other libraryPanel attributes, so delete them to avoid diff.
-	if panelsJSON, ok := dashboardJSON["panels"]; ok {
-		for i, thisPanel := range panelsJSON.([]interface{}) {
-			if thisPanelLibraryPanelJSON, ok := thisPanel.(map[string]interface{})["libraryPanel"]; ok {
-				for thisKey := range thisPanelLibraryPanelJSON.(map[string]interface{}) {
-					switch thisKey {
-					case "name":
-						continue
-					case "uid":
-						continue
-					default:
-						delete(thisPanelLibraryPanelJSON.(map[string]interface{}), thisKey)
-					}
+	panels := dashboardJSON["panels"].([]interface{})
+	for _, panel := range panels {
+		panelMap := panel.(map[string]interface{})
+		delete(panelMap, "id")
+		if libraryPanel, ok := panelMap["libraryPanel"].(map[string]interface{}); ok {
+			for k := range libraryPanel {
+				if k != "name" && k != "uid" {
+					delete(libraryPanel, k)
 				}
-				configJSONBytes, _ = sjson.SetBytes(configJSONBytes, fmt.Sprintf("panels.%d.libraryPanel", i), thisPanelLibraryPanelJSON)
-			}
-			// Grafana will populate ID's of panels, so delete them to avoid diff.
-			if _, ok := thisPanel.(map[string]interface{})["id"]; ok {
-				delete(thisPanel.(map[string]interface{}), "id")
-				configJSONBytes, _ = sjson.SetBytes(configJSONBytes, fmt.Sprintf("panels.%d", i), thisPanel)
 			}
 		}
 	}
 
-	dashboardJSON, _ = unmarshalDashboardConfigJSON(string(configJSONBytes))
-	delete(dashboardJSON, "id")
-	delete(dashboardJSON, "version")
 	j, _ := json.Marshal(dashboardJSON)
 	return string(j)
 }
