@@ -23,10 +23,10 @@ resource "grafana_folder" "test" {
 }
 
 resource "grafana_dashboard" "test1" {
-  folder = 0
+  folder = 0  // General folder
   config_json = jsonencode({
     title         = "Production Overview 1",
-    tags          = ["templated"],
+    tags          = ["dev"],
     timezone      = "browser",
     schemaVersion = 16,
   })
@@ -36,7 +36,7 @@ resource "grafana_dashboard" "test2" {
   folder = grafana_folder.test.id
   config_json = jsonencode({
     title         = "Production Overview 2",
-    tags          = ["templated"],
+    tags          = ["prod"],
     timezone      = "browser",
     schemaVersion = 16,
   })
@@ -44,6 +44,10 @@ resource "grafana_dashboard" "test2" {
 
 data "grafana_dashboards" "with_folder_id" {
   folder_ids = [grafana_folder.test.id]
+}
+
+data "grafana_dashboards" "with_tags" {
+  tags = ["prod"]
 }
 
 data "grafana_dashboards" "all" {
@@ -55,13 +59,12 @@ data "grafana_dashboards" "all" {
 
 ### Optional
 
-- **folder_ids** (List of Number) Numerical IDs of Grafana folders containing dashboards. Specify to filter for dashboards by folder, or leave blank to get all dashboards.
+- **folder_ids** (List of Number) Numerical IDs of Grafana folders containing dashboards. Specify to filter for dashboards by folder (eg. `[0]` for General folder), or leave blank to get all dashboards in all folders.
 - **id** (String) The ID of this resource.
+- **tags** (List of String) List of string Grafana dashboard tags to search for, eg. `["prod"]`. Used only as search input, i.e., attribute value will remain unchanged.
 
 ### Read-Only
 
-- **dashboards** (Map of List of String) Map of Grafana dashboard unique identifiers (list of string UIDs as values) to folder IDs (integers as keys).
-- **ids** (List of Number) List of numerical Grafana dashboard IDs.
-- **uids** (List of String) List of string Grafana dashboard unique identifiers (UIDs).
+- **dashboards** (Map of List of String) Map of Grafana dashboard unique identifiers (list of string UIDs as values) to folder IDs (integers as keys), eg. `{0 = ["cIBgcSjkk"]}`.
 
 
