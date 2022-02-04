@@ -300,10 +300,10 @@ func TestAccDataSource_basic(t *testing.T) {
 			    name = "sentry"
 			    json_data {
 			        url = "https://sentry.io"
-			        orgSlug = "grafanalabs"
+			        org_slug = "grafanalabs"
 			    }
 			    secure_json_data {
-			        authToken = "abc123"
+			        auth_token = "abc123"
 			    }
 			}
 			`,
