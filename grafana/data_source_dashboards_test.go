@@ -20,13 +20,10 @@ func TestAccDataSourceDashboardsAllAndByFolderID(t *testing.T) {
 		testAccFolderCheckExists("grafana_folder.test", &folder),
 		// make sure only one dashboard in one folder when specifying folder
 		resource.TestCheckResourceAttr("data.grafana_dashboards.with_folder_id", "dashboards.%", "1"),
-		resource.TestCheckResourceAttr("data.grafana_dashboards.with_folder_id", "folder_ids.#", "1"),
 		// make sure exactly two dashboards in two folders when omitting folder_ids
 		resource.TestCheckResourceAttr("data.grafana_dashboards.all", "dashboards.%", "2"),
-		resource.TestCheckResourceAttr("data.grafana_dashboards.all", "folder_ids.#", "2"),
 		// make sure only one dashboard in one folder when specifying tags
 		resource.TestCheckResourceAttr("data.grafana_dashboards.with_tags", "dashboards.%", "1"),
-		resource.TestCheckResourceAttr("data.grafana_dashboards.with_tags", "folder_ids.#", "1"),
 	}
 
 	resource.Test(t, resource.TestCase{
