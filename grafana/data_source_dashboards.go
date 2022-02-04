@@ -47,7 +47,7 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	// search for dashboards in specified folders
-	folderIds := d.Get("folder_ids").([]int)
+	folderIds := d.Get("folder_ids").([]interface{})
 	if len(folderIds) > 0 {
 		folderIdsJSON, err := json.Marshal(folderIds)
 		if err != nil {
