@@ -75,7 +75,7 @@ Manages Grafana dashboards.
 				Type:     schema.TypeBool,
 				Optional: true,
 				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
-					if val.(bool) == true {
+					if val.(bool) {
 						os.Setenv("GRAFANA_CONFIG_JSON_SHA256", "yes")
 					}
 					return
@@ -239,7 +239,7 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	}
 
 	configJSON := normalizeDashboardConfigJSON(remoteDashJSON)
-	if d.Get("config_json_sha256").(bool) == true {
+	if d.Get("config_json_sha256").(bool) {
 		configHash := sha256.Sum256([]byte(configJSON))
 		d.Set("config_json", string(configHash[:]))
 	} else {
@@ -337,9 +337,9 @@ func normalizeDashboardConfigJSON(config interface{}) string {
 	delete(dashboardJSON, "id")
 	delete(dashboardJSON, "version")
 	j, _ := json.Marshal(dashboardJSON)
-	sha256_store := os.Getenv("GRAFANA_CONFIG_JSON_SHA256")
-	if sha256_store == "yes" {
-		configHash := sha256.Sum256([]byte(j))
+	sha256Store := os.Getenv("GRAFANA_CONFIG_JSON_SHA256")
+	if sha256Store == "yes" {
+		configHash := sha256.Sum256(j)
 		return string(configHash[:])
 	} else {
 		return string(j)
