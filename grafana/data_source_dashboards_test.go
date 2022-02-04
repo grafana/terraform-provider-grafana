@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDataSourceDashboardsAll(t *testing.T) {
+func TestAccDataSourceDashboardsAllAndByFolderID(t *testing.T) {
 	CheckCloudTestsEnabled(t)
 
 	var dashboard1 gapi.Dashboard
