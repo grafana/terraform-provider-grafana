@@ -47,6 +47,7 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 
 func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
+	var diags diag.Diagnostics
 	d.SetId("dashboards")
 	params := map[string]string{
 		"limit": "5000",
@@ -81,5 +82,5 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 
 	d.Set("dashboards", dashboards)
 
-	return nil
+	return diags
 }
