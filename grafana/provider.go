@@ -155,6 +155,7 @@ func Provider(version string) func() *schema.Provider {
 			DataSourcesMap: map[string]*schema.Resource{
 				// Grafana
 				"grafana_dashboard":   DatasourceDashboard(),
+				"grafana_dashboards":  DatasourceDashboards(),
 				"grafana_folder":      DatasourceFolder(),
 				"grafana_user":        DatasourceUser(),
 				"grafana_cloud_stack": DataSourceStack(),
