@@ -6,10 +6,10 @@ resource "grafana_dashboard" "test1" {
   folder = 0  // General folder
   config_json = jsonencode({
     id            = 12345
-    title         = "Production Overview 1",
-    tags          = ["dev"],
-    timezone      = "browser",
-    schemaVersion = 16,
+    title         = "Production Overview 1"
+    tags          = ["dev"]
+    timezone      = "browser"
+    schemaVersion = 16
   })
 }
 
@@ -17,10 +17,10 @@ resource "grafana_dashboard" "test2" {
   folder = grafana_folder.test.id
   config_json = jsonencode({
     id            = 23456
-    title         = "Production Overview 2",
-    tags          = ["prod"],
-    timezone      = "browser",
-    schemaVersion = 16,
+    title         = "Production Overview 2"
+    tags          = ["prod"]
+    timezone      = "browser"
+    schemaVersion = 16
   })
 }
 
