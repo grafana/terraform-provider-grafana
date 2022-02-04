@@ -22,7 +22,6 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 			"folder_ids": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Computed:    true,
 				Description: "Numerical IDs of Grafana folders containing dashboards. Specify to filter for dashboards by folder (eg. `[0]` for General folder), or leave blank to get all dashboards in all folders.",
 				Elem:        &schema.Schema{Type: schema.TypeInt},
 			},
@@ -35,7 +34,7 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 			"dashboards": {
 				Type:        schema.TypeMap,
 				Computed:    true,
-				Description: "Map of Grafana dashboard unique identifiers (list of string UIDs as values) to folder IDs (integers as keys), eg. `{0 = [\"cIBgcSjkk\"]}`.",
+				Description: "Map of Grafana dashboard unique identifiers (list of string UIDs as values) to folder UIDs (strings as keys), eg. `{\"folderuid1\" = [\"cIBgcSjkk\"]}`.",
 				Elem: &schema.Schema{
 					Type:        schema.TypeList,
 					Description: "List of string dashboard UIDs.",
@@ -73,21 +72,12 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 		return diag.FromErr(err)
 	}
 
-	// make list of string dashboard UIDs (as values) mapped to each int folder ID (as keys)
-	dashboards := make(map[int64][]string, len(results))
+	// make list of string dashboard UIDs (as values) mapped to each string folder UID (as keys)
+	dashboards := make(map[string][]string, len(results))
 	for _, thisResult := range results {
-		thisFolderID := int64(thisResult.FolderID)
-		dashboards[thisFolderID] = append(dashboards[thisFolderID], thisResult.UID)
+		dashboards[thisResult.FolderUID] = append(dashboards[thisResult.FolderUID], thisResult.UID)
 	}
 
-	// only set folder_ids if user did not specify, as re-ordered list may cause diff
-	if _, ok := d.GetOk("folder_ids"); !ok {
-		var folders []int64
-		for thisFolderID := range dashboards {
-			folders = append(folders, thisFolderID)
-		}
-		d.Set("folder_ids", folders)
-	}
 	d.Set("dashboards", dashboards)
 	d.SetId("dashboards")
 

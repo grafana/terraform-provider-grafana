@@ -65,6 +65,6 @@ data "grafana_dashboards" "all" {
 
 ### Read-Only
 
-- **dashboards** (Map of List of String) Map of Grafana dashboard unique identifiers (list of string UIDs as values) to folder IDs (integers as keys), eg. `{0 = ["cIBgcSjkk"]}`.
+- **dashboards** (Map of List of String) Map of Grafana dashboard unique identifiers (list of string UIDs as values) to folder UIDs (strings as keys), eg. `{"folderuid1" = ["cIBgcSjkk"]}`.
 
 
