@@ -32,5 +32,5 @@ data "grafana_dashboards" "with_tags" {
   tags = ["prod"]
 }
 
-data "grafana_dashboards" "all" {
-}
+# data "grafana_dashboards" "all" {
+# }
