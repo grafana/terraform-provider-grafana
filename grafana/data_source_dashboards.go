@@ -3,7 +3,7 @@ package grafana
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"math/rand"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -76,12 +76,22 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 
 	// make list of string dashboard UIDs (as values) mapped to each string folder UID (as keys)
 	dashboards := make(map[string][]string, len(results))
-	for _, thisResult := range results {
-		dashboards[thisResult.FolderUID] = append(dashboards[thisResult.FolderUID], thisResult.UID)
+	for _, result := range results {
+		dashboards[result.FolderUID] = append(dashboards[result.FolderUID], result.UID)
 	}
 
-	d.SetId(fmt.Sprintf("dashboards-%d", len(results)))
+	d.SetId(RandomString(12))
 	d.Set("dashboards", dashboards)
 
 	return diags
+}
+
+func RandomString(n int) string {
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+	s := make([]rune, n)
+	for i := range s {
+		s[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(s)
 }
