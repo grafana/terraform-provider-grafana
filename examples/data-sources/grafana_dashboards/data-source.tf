@@ -28,10 +28,9 @@ resource "grafana_dashboard" "test2" {
   folder_ids = [grafana_folder.test.id]
 } */
 
-/*
 data "grafana_dashboards" "with_tags" {
   tags = ["prod"]
-} */
+}
 
 data "grafana_dashboards" "all" {
 }
