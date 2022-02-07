@@ -6,9 +6,9 @@
 
 [![Build Status](https://drone.grafana.net/api/badges/grafana/terraform-provider-grafana/status.svg)](https://drone.grafana.net/grafana/terraform-provider-grafana)
 
-- Grafana website: https://grafana.com
-- Grafana Cloud website: https://grafana.com/products/cloud/
-- Provider Documentation: https://registry.terraform.io/providers/grafana/grafana/latest/docs
+- Grafana website: <https://grafana.com>
+- Grafana Cloud website: <https://grafana.com/products/cloud/>
+- Provider Documentation: <https://registry.terraform.io/providers/grafana/grafana/latest/docs>
 - Grafana Chat: [Grafana #terraform Slack channel](https://grafana.slack.com/archives/C017MUCFJUT)
 
 ## Requirements
@@ -65,49 +65,28 @@ Documentation is generated with
 [tfplugindocs](https://github.com/hashicorp/terraform-plugin-docs). Generated
 files are in `docs/` and should not be updated manually. They are derived from:
 
-* Schema `Description` fields in the provider Go code.
-* [examples/](./examples)
-* [templates/](./templates)
+- Schema `Description` fields in the provider Go code.
+- [examples/](./examples)
+- [templates/](./templates)
 
 Use `go generate` to update generated docs.
 
 ## Releasing
 
 Builds and releases are automated with GitHub Actions and
-[GoReleaser](https://github.com/goreleaser/goreleaser/). The changelog is
-managed with
-[github-changelog-generator](https://github.com/github-changelog-generator/github-changelog-generator).
+[GoReleaser](https://github.com/goreleaser/goreleaser/).
 
 Currently there are a few manual steps to this:
 
-1. Update the changelog:
-
-   ```sh
-   RELEASE_VERSION=v... \
-   CHANGELOG_GITHUB_TOKEN=... \
-   make changelog
-   ```
-
-   This will commit the changelog locally.
-
-2. Review generated changelog and push:
-
-   View the committed changelog with `git show`. If all is well `git push origin
-   master`.
-
-3. Kick off the release:
+1. Kick off the release:
 
    ```sh
    RELEASE_VERSION=v... \
    make release
    ```
 
-   Once the command exits, you can monitor the rest of the process on the
-   [Actions
-   UI](https://github.com/grafana/terraform-provider-grafana/actions?query=workflow%3Arelease).
-
-4. Publish release:
+2. Publish release:
 
    The Action creates the release, but leaves it in "draft" state. Open it up in
    a [browser](https://github.com/grafana/terraform-provider-grafana/releases)
-   and if all looks well, mash the publish button.
+   and if all looks well, click the `Auto-generate release notes` button and mash the publish button.
