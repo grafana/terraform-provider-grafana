@@ -212,6 +212,11 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Description: "(MySQL, PostgreSQL and MSSQL) Maximum number of open connections to the database (Grafana v5.4+).",
 						},
+						"org_slug": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Sentry) Organization slug.",
+						},
 						"output_location": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -350,6 +355,12 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Sensitive:   true,
 							Description: "(Github) The access token to use to access the data source",
+						},
+						"auth_token": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Sensitive:   true,
+							Description: "(Sentry) Authorization token.",
 						},
 						"basic_auth_password": {
 							Type:        schema.TypeString,
@@ -575,6 +586,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		MaxConcurrentShardRequests: int64(d.Get("json_data.0.max_concurrent_shard_requests").(int)),
 		MaxIdleConns:               int64(d.Get("json_data.0.max_idle_conns").(int)),
 		MaxOpenConns:               int64(d.Get("json_data.0.max_open_conns").(int)),
+		OrgSlug:                    d.Get("json_data.0.org_slug").(string),
 		OutputLocation:             d.Get("json_data.0.output_location").(string),
 		PostgresVersion:            int64(d.Get("json_data.0.postgres_version").(int)),
 		Profile:                    d.Get("json_data.0.profile").(string),
@@ -602,6 +614,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 func makeSecureJSONData(d *schema.ResourceData) gapi.SecureJSONData {
 	return gapi.SecureJSONData{
 		AccessKey:         d.Get("secure_json_data.0.access_key").(string),
+		AuthToken:         d.Get("secure_json_data.0.auth_token").(string),
 		BasicAuthPassword: d.Get("secure_json_data.0.basic_auth_password").(string),
 		Password:          d.Get("secure_json_data.0.password").(string),
 		PrivateKey:        d.Get("secure_json_data.0.private_key").(string),
