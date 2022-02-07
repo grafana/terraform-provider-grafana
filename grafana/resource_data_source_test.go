@@ -298,8 +298,8 @@ func TestAccDataSource_basic(t *testing.T) {
 			resource "grafana_data_source" "sentry" {
 			    type = "sentry"
 			    name = "sentry"
+                url  = "https://sentry.io"
 			    json_data {
-			        url = "https://sentry.io"
 			        org_slug = "grafanalabs"
 			    }
 			    secure_json_data {
@@ -310,7 +310,7 @@ func TestAccDataSource_basic(t *testing.T) {
 			attrChecks: map[string]string{
 				"type":                          "sentry",
 				"name":                          "sentry",
-				"json_data.0.url":               "https://sentry.io",
+				"url":                           "https://sentry.io",
 				"json_data.0.org_slug":          "grafanalabs",
 				"secure_json_data.0.auth_token": "abc123",
 			},
