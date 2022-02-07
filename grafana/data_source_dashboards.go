@@ -80,7 +80,7 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 		dashboards[result.FolderUID] = append(dashboards[result.FolderUID], result.UID)
 	}
 
-	d.SetId(RandomString(12))
+	d.SetId("dashboards")
 	d.Set("dashboards", dashboards)
 
 	return diags
