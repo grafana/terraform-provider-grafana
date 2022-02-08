@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -59,7 +58,7 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 	var diags diag.Diagnostics
-	params := map[string]string{
+	params := map[string]interface{}{
 		"limit": "5000",
 		"type":  "dash-db",
 	}
@@ -71,11 +70,7 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 		"tag":       "tags",
 	} {
 		if list, ok := d.GetOk(thisListAttributeName); ok {
-			listJSON, err := json.Marshal(list.([]interface{}))
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			params[thisParamKey] = string(listJSON)
+			params[thisParamKey] = list.([]interface{})
 			resourceId += fmt.Sprintf("-%s", thisListAttributeName)
 		}
 	}
