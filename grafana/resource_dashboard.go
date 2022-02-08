@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -133,9 +134,9 @@ func resourceDashboardV0() *schema.Resource {
 func resourceDashboardStateUpgradeV0(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
 	client := meta.(*client).gapi
 	dashboardID := int64(rawState["dashboard_id"].(float64))
-	params := map[string]interface{}{
-		"type":         "dash-db",
-		"dashboardIds": strconv.FormatInt(dashboardID, 10),
+	params := url.Values{
+		"type":         {"dash-db"},
+		"dashboardIds": {strconv.FormatInt(dashboardID, 10)},
 	}
 	resp, err := client.FolderDashboardSearch(params)
 	if err != nil {

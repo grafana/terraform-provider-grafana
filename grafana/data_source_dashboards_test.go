@@ -21,14 +21,15 @@ func TestAccDataSourceDashboardsAllAndByFolderID(t *testing.T) {
 		// resource.TestCheckResourceAttr("data.grafana_dashboards.with_folder_id", "dashboards.%", "1"),
 		// make sure exactly two dashboards in two folders when omitting folder_ids
 		// resource.TestCheckResourceAttr("data.grafana_dashboards.all", "dashboards.%", "2"),
-		resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids", "dashboards.#", "1"),
-		resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids", "id", "dashboards-folder_ids"),
-		resource.TestCheckResourceAttr("data.grafana_dashboards.tags", "id", "dashboards-tags"),
-		resource.TestCheckResourceAttr("data.grafana_dashboards.tags", "dashboards.#", "1"),
-		resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids_tags", "id", "dashboards-folder_ids-tags"),
-		resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids_tags", "dashboards.#", "1"),
-		resource.TestCheckResourceAttr("data.grafana_dashboards.all", "dashboards.#", "2"),
 		resource.TestCheckResourceAttr("data.grafana_dashboards.all", "id", "dashboards"),
+		resource.TestCheckResourceAttr("data.grafana_dashboards.tags", "id", "dashboards-tags"),
+		resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids", "id", "dashboards-folder_ids"),
+		resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids_tags", "id", "dashboards-folder_ids-tags"),
+		resource.TestCheckResourceAttrSet("data.grafana_dashboards.all", "dashboards"),
+		resource.TestCheckResourceAttr("data.grafana_dashboards.tags", "dashboards.#", "1"),
+		resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids", "dashboards.#", "1"),
+		resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids_tags", "dashboards.#", "1"),
+
 		// make sure only one dashboard in one folder when specifying tags
 		// resource.TestCheckResourceAttr("data.grafana_dashboards.with_tags", "dashboards.%", "1"),
 	}

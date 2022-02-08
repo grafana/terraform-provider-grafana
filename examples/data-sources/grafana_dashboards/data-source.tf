@@ -1,5 +1,5 @@
 resource "grafana_folder" "test" {
-  title = "test folder 1"
+  title = "test folder data_source_dashboards"
 }
 
 resource "grafana_dashboard" "test1" {
@@ -18,7 +18,7 @@ resource "grafana_dashboard" "test2" {
   config_json = jsonencode({
     id            = 23456
     title         = "Production Overview 2"
-    tags          = ["prod"]
+    tags          = ["data_source_dashboards"]
     timezone      = "browser"
     schemaVersion = 16
   })
@@ -29,12 +29,12 @@ data "grafana_dashboards" "folder_ids" {
 }
 
 data "grafana_dashboards" "tags" {
-  tags = ["prod"]
+  tags = ["data_source_dashboards"]
 }
 
 data "grafana_dashboards" "folder_ids_tags" {
   folder_ids = [grafana_folder.test.id]
-  tags       = ["prod"]
+  tags       = ["data_source_dashboards"]
 }
 
 data "grafana_dashboards" "all" {

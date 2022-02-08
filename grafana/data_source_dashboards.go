@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -58,21 +59,25 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 	var diags diag.Diagnostics
-	params := map[string]interface{}{
-		"limit": "5000",
-		"type":  "dash-db",
+	params := url.Values{
+		"limit": {"5000"},
+		"type":  {"dash-db"},
 	}
 
 	// add tags and folder IDs from attributes to dashboard search parameters
 	resourceId := "dashboards"
-	for thisParamKey, thisListAttributeName := range map[string]string{
-		"folderIds": "folder_ids",
-		"tag":       "tags",
-	} {
-		if list, ok := d.GetOk(thisListAttributeName); ok {
-			params[thisParamKey] = list.([]interface{})
-			resourceId += fmt.Sprintf("-%s", thisListAttributeName)
+	if list, ok := d.GetOk("folder_ids"); ok {
+		for _, elem := range list.([]interface{}) {
+			params.Add("folderIds", fmt.Sprint(elem))
 		}
+		resourceId += "-folder_ids"
+	}
+
+	if list, ok := d.GetOk("tags"); ok {
+		for _, elem := range list.([]interface{}) {
+			params.Add("tag", fmt.Sprint(elem))
+		}
+		resourceId += "-tags"
 	}
 
 	results, err := client.FolderDashboardSearch(params)
