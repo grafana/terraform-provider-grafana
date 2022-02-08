@@ -3,7 +3,7 @@ package grafana
 import (
 	"context"
 	"encoding/json"
-	"math/rand"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -33,13 +33,23 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"dashboards": {
-				Type:        schema.TypeMap,
-				Computed:    true,
-				Description: "Map of Grafana dashboard unique identifiers (list of string UIDs as values) to folder UIDs (strings as keys), eg. `{\"folderuid1\" = [\"cIBgcSjkk\"]}`.",
-				Elem: &schema.Schema{
-					Type:        schema.TypeList,
-					Description: "List of string dashboard UIDs.",
-					Elem:        &schema.Schema{Type: schema.TypeString},
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"title": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"uid": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"folder_title": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
 				},
 			},
 		},
@@ -55,17 +65,18 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	// add tags and folder IDs from attributes to dashboard search parameters
+	resourceId := "dashboards"
 	for thisParamKey, thisListAttributeName := range map[string]string{
 		"folderIds": "folder_ids",
 		"tag":       "tags",
 	} {
-		list := d.Get(thisListAttributeName).([]interface{})
-		if len(list) > 0 {
-			listJSON, err := json.Marshal(list)
+		if list, ok := d.GetOk(thisListAttributeName); ok {
+			listJSON, err := json.Marshal(list.([]interface{}))
 			if err != nil {
 				return diag.FromErr(err)
 			}
 			params[thisParamKey] = string(listJSON)
+			resourceId += fmt.Sprintf("-%s", thisListAttributeName)
 		}
 	}
 
@@ -74,24 +85,19 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 		return diag.FromErr(err)
 	}
 
-	// make list of string dashboard UIDs (as values) mapped to each string folder UID (as keys)
-	dashboards := make(map[string][]string, len(results))
-	for _, result := range results {
-		dashboards[result.FolderUID] = append(dashboards[result.FolderUID], result.UID)
+	dashboards := make([]map[string]interface{}, len(results))
+	for i, result := range results {
+		dashboards[i] = map[string]interface{}{
+			"title":        result.Title,
+			"uid":          result.UID,
+			"folder_title": result.FolderTitle,
+		}
 	}
 
-	d.SetId("dashboards")
-	d.Set("dashboards", dashboards)
+	d.SetId(resourceId)
+	if err := d.Set("dashboards", dashboards); err != nil {
+		return diag.Errorf("error setting dashboards attribute: %s", err)
+	}
 
 	return diags
-}
-
-func RandomString(n int) string {
-	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-
-	s := make([]rune, n)
-	for i := range s {
-		s[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(s)
 }

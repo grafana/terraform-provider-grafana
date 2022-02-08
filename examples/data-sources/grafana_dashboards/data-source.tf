@@ -24,13 +24,18 @@ resource "grafana_dashboard" "test2" {
   })
 }
 
-/* data "grafana_dashboards" "with_folder_id" {
+data "grafana_dashboards" "folder_ids" {
   folder_ids = [grafana_folder.test.id]
-} */
-/* 
-data "grafana_dashboards" "with_tags" {
+}
+
+data "grafana_dashboards" "tags" {
   tags = ["prod"]
-} */
+}
+
+data "grafana_dashboards" "folder_ids_tags" {
+  folder_ids = [grafana_folder.test.id]
+  tags       = ["prod"]
+}
 
 data "grafana_dashboards" "all" {
 }
