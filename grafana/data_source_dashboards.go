@@ -65,19 +65,19 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	// add tags and folder IDs from attributes to dashboard search parameters
-	resourceId := "dashboards"
+	resourceID := "dashboards"
 	if list, ok := d.GetOk("folder_ids"); ok {
 		for _, elem := range list.([]interface{}) {
 			params.Add("folderIds", fmt.Sprint(elem))
 		}
-		resourceId += "-folder_ids"
+		resourceID += "-folder_ids"
 	}
 
 	if list, ok := d.GetOk("tags"); ok {
 		for _, elem := range list.([]interface{}) {
 			params.Add("tag", fmt.Sprint(elem))
 		}
-		resourceId += "-tags"
+		resourceID += "-tags"
 	}
 
 	results, err := client.FolderDashboardSearch(params)
@@ -94,7 +94,7 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 		}
 	}
 
-	d.SetId(resourceId)
+	d.SetId(resourceID)
 	if err := d.Set("dashboards", dashboards); err != nil {
 		return diag.Errorf("error setting dashboards attribute: %s", err)
 	}
