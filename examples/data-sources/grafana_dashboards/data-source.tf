@@ -2,9 +2,6 @@ resource "grafana_folder" "data_source_dashboards" {
   title = "test folder data_source_dashboards"
 }
 
-data "grafana_dashboards" "all" {
-}
-
 // retrieve dashboards by tags, folderIDs, or both
 resource "grafana_dashboard" "data_source_dashboards1" {
   folder = grafana_folder.data_source_dashboards.id
@@ -42,6 +39,13 @@ resource "grafana_dashboard" "data_source_dashboards2" {
 }
 
 // use depends_on to wait for dashboard resource to be created before searching
+data "grafana_dashboards" "all" {
+  depends_on = [
+    grafana_dashboard.data_source_dashboards1,
+    grafana_dashboard.data_source_dashboards2
+  ]
+}
+
 data "grafana_dashboards" "general_folder" {
   folder_ids = [0]
   depends_on = [grafana_dashboard.data_source_dashboards2]
