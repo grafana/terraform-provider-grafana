@@ -22,6 +22,14 @@ resource "grafana_folder" "data_source_dashboards" {
   title = "test folder data_source_dashboards"
 }
 
+// get all dashboards and then retrieve the JSON model
+data "grafana_dashboards" "all" {
+}
+
+data "grafana_dashboard" "from_data_source" {
+  uid = data.grafana_dashboards.all.dashboards[0].uid
+}
+
 // retrieve dashboards by tags, folderIDs, or both
 resource "grafana_dashboard" "data_source_dashboards1" {
   folder = grafana_folder.data_source_dashboards.id
@@ -56,18 +64,6 @@ resource "grafana_dashboard" "data_source_dashboards2" {
     timezone      = "browser"
     schemaVersion = 16
   })
-}
-
-// use depends_on to wait for dashboard resource to be created before searching
-data "grafana_dashboards" "all" {
-  depends_on = [
-    grafana_dashboard.data_source_dashboards1,
-    grafana_dashboard.data_source_dashboards2
-  ]
-}
-
-data "grafana_dashboard" "from_data_source" {
-  uid = data.grafana_dashboards.all.dashboards[0].uid
 }
 ```
 
