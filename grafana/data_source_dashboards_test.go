@@ -25,11 +25,10 @@ func TestAccDataSourceDashboardsAllAndByFolderID(t *testing.T) {
 		resource.TestCheckResourceAttr("data.grafana_dashboards.tags", "id", "dashboards-tags"),
 		resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids", "id", "dashboards-folder_ids"),
 		resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids_tags", "id", "dashboards-folder_ids-tags"),
-		resource.TestCheckResourceAttrSet("data.grafana_dashboards.all", "dashboards"),
-		resource.TestCheckResourceAttrSet("data.grafana_dashboards.general_folder", "dashboards"),
 		resource.TestCheckResourceAttr("data.grafana_dashboards.tags", "dashboards.#", "1"),
 		resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids", "dashboards.#", "1"),
 		resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids_tags", "dashboards.#", "1"),
+		resource.TestCheckResourceAttrSet("data.grafana_dashboard.from_data_source", "config_json"),
 
 		// make sure only one dashboard in one folder when specifying tags
 		// resource.TestCheckResourceAttr("data.grafana_dashboards.with_tags", "dashboards.%", "1"),
