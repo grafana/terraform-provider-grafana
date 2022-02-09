@@ -18,42 +18,53 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 ## Example Usage
 
 ```terraform
-resource "grafana_folder" "test" {
-  title = "test folder 1"
+resource "grafana_folder" "data_source_dashboards" {
+  title = "test folder data_source_dashboards"
 }
 
-resource "grafana_dashboard" "test1" {
-  folder = 0  // General folder
+data "grafana_dashboards" "all" {
+}
+
+// retrieve dashboards by tags, folderIDs, or both
+resource "grafana_dashboard" "data_source_dashboards1" {
+  folder = grafana_folder.data_source_dashboards.id
   config_json = jsonencode({
-    id            = 12345
-    title         = "Production Overview 1"
-    tags          = ["dev"]
+    id            = 23456
+    title         = "data_source_dashboards 1"
+    tags          = ["data_source_dashboards"]
     timezone      = "browser"
     schemaVersion = 16
   })
 }
 
-resource "grafana_dashboard" "test2" {
-  folder = grafana_folder.test.id
+data "grafana_dashboards" "tags" {
+  tags = jsondecode(grafana_dashboard.data_source_dashboards1.config_json)["tags"]
+}
+
+data "grafana_dashboards" "folder_ids" {
+  folder_ids = [grafana_dashboard.data_source_dashboards1.folder]
+}
+
+data "grafana_dashboards" "folder_ids_tags" {
+  folder_ids = [grafana_dashboard.data_source_dashboards1.folder]
+  tags       = jsondecode(grafana_dashboard.data_source_dashboards1.config_json)["tags"]
+}
+
+resource "grafana_dashboard" "data_source_dashboards2" {
+  folder = 0 // General folder
   config_json = jsonencode({
     id            = 23456
-    title         = "Production Overview 2"
+    title         = "data_source_dashboards 2"
     tags          = ["prod"]
     timezone      = "browser"
     schemaVersion = 16
   })
 }
 
-data "grafana_dashboards" "with_folder_id" {
-  folder_ids = [grafana_folder.test.id]
-}
-
-/*
-data "grafana_dashboards" "with_tags" {
-  tags = ["prod"]
-} */
-
-data "grafana_dashboards" "all" {
+// use depends_on to wait for dashboard resource to be created before searching
+data "grafana_dashboards" "general_folder" {
+  folder_ids = [0]
+  depends_on = [grafana_dashboard.data_source_dashboards2]
 }
 ```
 
@@ -68,6 +79,15 @@ data "grafana_dashboards" "all" {
 
 ### Read-Only
 
-- **dashboards** (Map of List of String) Map of Grafana dashboard unique identifiers (list of string UIDs as values) to folder UIDs (strings as keys), eg. `{"folderuid1" = ["cIBgcSjkk"]}`.
+- **dashboards** (List of Object) (see [below for nested schema](#nestedatt--dashboards))
+
+<a id="nestedatt--dashboards"></a>
+### Nested Schema for `dashboards`
+
+Read-Only:
+
+- **folder_title** (String)
+- **title** (String)
+- **uid** (String)
 
 

@@ -79,6 +79,7 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 		}
 		resourceID += "-tags"
 	}
+	d.SetId(resourceID)
 
 	results, err := client.FolderDashboardSearch(params)
 	if err != nil {
@@ -94,7 +95,6 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 		}
 	}
 
-	d.SetId(resourceID)
 	if err := d.Set("dashboards", dashboards); err != nil {
 		return diag.Errorf("error setting dashboards attribute: %s", err)
 	}
