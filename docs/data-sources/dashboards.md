@@ -66,9 +66,8 @@ data "grafana_dashboards" "all" {
   ]
 }
 
-data "grafana_dashboards" "general_folder" {
-  folder_ids = [0]
-  depends_on = [grafana_dashboard.data_source_dashboards2]
+data "grafana_dashboard" "from_data_source" {
+  uid = data.grafana_dashboards.all.dashboards[0].uid
 }
 ```
 
