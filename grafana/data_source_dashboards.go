@@ -86,10 +86,6 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 		return diag.FromErr(err)
 	}
 
-	if len(results) < 1 {
-		panic(fmt.Errorf("empty results of dashboard search. params = %#v", params))
-	}
-
 	dashboards := make([]map[string]interface{}, len(results))
 	for i, result := range results {
 		dashboards[i] = map[string]interface{}{
@@ -102,16 +98,6 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 	if err := d.Set("dashboards", dashboards); err != nil {
 		return diag.Errorf("error setting dashboards attribute: %s", err)
 	}
-
-	// if folderIDs := params.Get("folderIds"); folderIDs == "" {
-	// 	if tags := params.Get("tag"); tags == "" {
-	// 		panic(fmt.Errorf("results of dashboard search. params = %#v \n results = %#v", params, results))
-	// 	}
-	// }
-
-	// if dashs, ok := d.GetOk("dashboards"); ok {
-	// 	panic(fmt.Errorf("dashboards attr = %#v", dashs))
-	// }
 
 	return diags
 }
