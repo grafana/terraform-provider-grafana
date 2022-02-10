@@ -28,6 +28,22 @@ resource "grafana_data_source" "influxdb" {
   database_name = influxdb_database.metrics.name
 }
 
+resource "grafana_data_source" "flux" {
+  type         = "influxdb"
+  name         = "influx"
+  url          = "http://influxdb.example.net:8086/"
+  http_headers = {
+    Authorization = "Token sdkfjsdjflkdsjflksjdklfjslkdfjdksljfldksjsflkj"
+  }
+  json_data {
+    default_bucket        = "telegraf"
+    organization          = "organization"
+    tls_auth              = false
+    tls_auth_with_ca_cert = false
+    version               = "Flux"
+  }
+}
+
 resource "grafana_data_source" "cloudwatch" {
   type = "cloudwatch"
   name = "cw-example"
