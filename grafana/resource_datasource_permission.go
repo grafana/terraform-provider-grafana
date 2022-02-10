@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	gapi "github.com/albeego/grafana-api-golang-client"
 )
 
 func ResourceDatasourcePermission() *schema.Resource {

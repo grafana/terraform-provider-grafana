@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	gapi "github.com/albeego/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )

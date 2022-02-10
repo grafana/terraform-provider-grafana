@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	gapi "github.com/albeego/grafana-api-golang-client"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -95,6 +95,40 @@ func TestAccDataSource_basic(t *testing.T) {
 				"password":                  "pass",
 				"url":                       "http://acc-test.invalid/",
 				"json_data.0.time_interval": "60s",
+			},
+		},
+		{
+			resource: "grafana_data_source.influx",
+			config: `
+			resource "grafana_data_source" "influx" {
+				type         = "influx"
+				name         = "influx"
+				url          = "http://acc-test.invalid/"
+                access       = "proxy"
+			    http_headers {
+				    "Authorization" = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblVzZSIsImV4cCI6MTY0NDUwNjM3MywiaWF0IjoxNjQ0NTA2MzczfQ.FyYlVnMgzcP3CoNCHf2GFW49Ng_wLQsrXrUdSNGiShU"
+			    }
+				json_data {
+					defaultBucket     = "telegraf"
+					organization      = "organization"
+					tlsAuth           = false
+					tlsAuthWithCACert = false
+					version           = "Flux"
+				}
+			}
+			`,
+			attrChecks: map[string]string{
+				"type":                                "influx",
+				"name":                                "influx",
+				"url":                                 "http://acc-test.invalid/",
+				"access":                              "proxy",
+				"json_data.0.defaultBucket":           "telegraf",
+				"json_data.0.organization":            "organization",
+				"json_data.0.tls_auth":                "false",
+				"json_data.0.tls_auth_with_ca_cert":   "false",
+				"json_data.0.version":                 "Flux",
+				"json_data.0.httpHeaderName1":         "Authorization",
+				"secure_json_data.0.httpHeaderValue1": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblVzZSIsImV4cCI6MTY0NDUwNjM3MywiaWF0IjoxNjQ0NTA2MzczfQ.FyYlVnMgzcP3CoNCHf2GFW49Ng_wLQsrXrUdSNGiShU",
 			},
 		},
 		{

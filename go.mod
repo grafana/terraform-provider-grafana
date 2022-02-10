@@ -1,10 +1,10 @@
-module github.com/grafana/terraform-provider-grafana
+module github.com/albeego/terraform-provider-grafana
 
 go 1.16
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
-	github.com/grafana/grafana-api-golang-client v0.3.0
+	github.com/albeego/grafana-api-golang-client v0.3.2
 	github.com/grafana/machine-learning-go-client v0.1.1
 	github.com/grafana/synthetic-monitoring-agent v0.6.2
 	github.com/grafana/synthetic-monitoring-api-go-client v0.5.1
