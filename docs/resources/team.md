@@ -34,7 +34,7 @@ resource "grafana_team" "test-team" {
 
 - **email** (String) An email address for the team.
 - **id** (String) The ID of this resource.
-- **members** (List of String) A list of email addresses corresponding to users who should be given membership
+- **members** (Set of String) A set of email addresses corresponding to users who should be given membership
 to the team. Note: users specified here must already exist in Grafana.
 
 ### Read-Only
