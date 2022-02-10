@@ -35,6 +35,7 @@ func ResourceTeam() *schema.Resource {
 * [Official documentation](https://grafana.com/docs/grafana/latest/manage-users/manage-teams/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/http_api/team/)
 `,
+
 		CreateContext: CreateTeam,
 		ReadContext:   ReadTeam,
 		UpdateContext: UpdateTeam,
@@ -67,7 +68,7 @@ func ResourceTeam() *schema.Resource {
 					Type: schema.TypeString,
 				},
 				Description: `
-A list of email addresses corresponding to users who should be given membership
+A set of email addresses corresponding to users who should be given membership
 to the team. Note: users specified here must already exist in Grafana.
 `,
 			},
