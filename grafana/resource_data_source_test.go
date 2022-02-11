@@ -117,7 +117,7 @@ func TestAccDataSource_basic(t *testing.T) {
 			}
 			`,
 			attrChecks: map[string]string{
-				"type":                              "influx",
+				"type":                              "influxdb",
 				"name":                              "influx",
 				"url":                               "http://acc-test.invalid/",
 				"json_data.0.default_bucket":        "telegraf",
@@ -125,7 +125,7 @@ func TestAccDataSource_basic(t *testing.T) {
 				"json_data.0.tls_auth":              "false",
 				"json_data.0.tls_auth_with_ca_cert": "false",
 				"json_data.0.version":               "Flux",
-				"http_headers.Authorization":        "Bearer eyJhbGciOiJIUzI1NiJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblVzZSIsImV4cCI6MTY0NDUwNjM3MywiaWF0IjoxNjQ0NTA2MzczfQ.FyYlVnMgzcP3CoNCHf2GFW49Ng_wLQsrXrUdSNGiShU",
+				"http_headers.Authorization":        "Token sdkfjsdjflkdsjflksjdklfjslkdfjdksljfldksjsflkj",
 			},
 			additionalChecks: []resource.TestCheckFunc{
 				func(s *terraform.State) error {
