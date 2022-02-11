@@ -130,6 +130,11 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Description: "(Athena) Name of the database within the catalog.",
 						},
+						"default_bucket": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(InfluxDB) The default bucket for the data source.",
+						},
 						"default_project": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -211,6 +216,11 @@ source selected (via the 'type' argument).
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Description: "(MySQL, PostgreSQL and MSSQL) Maximum number of open connections to the database (Grafana v5.4+).",
+						},
+						"organization": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(InfluxDB) An organization is a workspace for a group of users. All dashboards, tasks, buckets, members, etc., belong to an organization.",
 						},
 						"org_slug": {
 							Type:        schema.TypeString,
@@ -316,6 +326,11 @@ source selected (via the 'type' argument).
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: "(OpenTSDB) Version.",
+						},
+						"version": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(InfluxDB) InfluxQL or Flux.",
 						},
 						"workgroup": {
 							Type:        schema.TypeString,
@@ -573,6 +588,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		ConnMaxLifetime:            int64(d.Get("json_data.0.conn_max_lifetime").(int)),
 		CustomMetricsNamespaces:    d.Get("json_data.0.custom_metrics_namespaces").(string),
 		Database:                   d.Get("json_data.0.database").(string),
+		DefaultBucket:              d.Get("json_data.0.default_bucket").(string),
 		DefaultProject:             d.Get("json_data.0.default_project").(string),
 		DefaultRegion:              d.Get("json_data.0.default_region").(string),
 		Encrypt:                    d.Get("json_data.0.encrypt").(string),
@@ -586,6 +602,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		MaxConcurrentShardRequests: int64(d.Get("json_data.0.max_concurrent_shard_requests").(int)),
 		MaxIdleConns:               int64(d.Get("json_data.0.max_idle_conns").(int)),
 		MaxOpenConns:               int64(d.Get("json_data.0.max_open_conns").(int)),
+		Organization:               d.Get("json_data.0.organization").(string),
 		OrgSlug:                    d.Get("json_data.0.org_slug").(string),
 		OutputLocation:             d.Get("json_data.0.output_location").(string),
 		PostgresVersion:            int64(d.Get("json_data.0.postgres_version").(int)),
@@ -607,6 +624,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		TokenURI:                   d.Get("json_data.0.token_uri").(string),
 		TsdbResolution:             d.Get("json_data.0.tsdb_resolution").(string),
 		TsdbVersion:                d.Get("json_data.0.tsdb_version").(string),
+		Version:                    d.Get("json_data.0.version").(string),
 		Workgroup:                  d.Get("json_data.0.workgroup").(string),
 	}
 }

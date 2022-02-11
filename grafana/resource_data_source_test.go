@@ -98,6 +98,52 @@ func TestAccDataSource_basic(t *testing.T) {
 			},
 		},
 		{
+			resource: "grafana_data_source.influx",
+			config: `
+			resource "grafana_data_source" "influx" {
+				type         = "influxdb"
+				name         = "influx"
+				url          = "http://acc-test.invalid/"
+			    http_headers = {
+				    Authorization = "Token sdkfjsdjflkdsjflksjdklfjslkdfjdksljfldksjsflkj"
+			    }
+				json_data {
+					default_bucket        = "telegraf"
+					organization          = "organization"
+					tls_auth              = false
+					tls_auth_with_ca_cert = false
+					version               = "Flux"
+				}
+			}
+			`,
+			attrChecks: map[string]string{
+				"type":                              "influxdb",
+				"name":                              "influx",
+				"url":                               "http://acc-test.invalid/",
+				"json_data.0.default_bucket":        "telegraf",
+				"json_data.0.organization":          "organization",
+				"json_data.0.tls_auth":              "false",
+				"json_data.0.tls_auth_with_ca_cert": "false",
+				"json_data.0.version":               "Flux",
+				"http_headers.Authorization":        "Token sdkfjsdjflkdsjflksjdklfjslkdfjdksljfldksjsflkj",
+			},
+			additionalChecks: []resource.TestCheckFunc{
+				func(s *terraform.State) error {
+					if dataSource.Name != "influx" {
+						return fmt.Errorf("bad name: %s", dataSource.Name)
+					}
+					if len(dataSource.HTTPHeaders) != 1 {
+						return fmt.Errorf("expected 1 http header, got %d", len(dataSource.HTTPHeaders))
+					}
+
+					if _, ok := dataSource.HTTPHeaders["Authorization"]; !ok {
+						return fmt.Errorf("http header header1 not found")
+					}
+					return nil
+				},
+			},
+		},
+		{
 			resource: "grafana_data_source.elasticsearch",
 			config: `
 			resource "grafana_data_source" "elasticsearch" {

@@ -111,6 +111,7 @@ Optional:
 - **conn_max_lifetime** (Number) (MySQL, PostgreSQL, and MSSQL) Maximum amount of time in seconds a connection may be reused (Grafana v5.4+).
 - **custom_metrics_namespaces** (String) (CloudWatch) A comma-separated list of custom namespaces to be queried by the CloudWatch data source.
 - **database** (String) (Athena) Name of the database within the catalog.
+- **default_bucket** (String) (InfluxDB) The default bucket for the data source.
 - **default_project** (String) (Stackdriver) The default project for the data source.
 - **default_region** (String) (CloudWatch, Athena) The default region for the data source.
 - **encrypt** (String) (MSSQL) Connection SSL encryption handling: 'disable', 'false' or 'true'.
@@ -126,6 +127,7 @@ Optional:
 - **max_idle_conns** (Number) (MySQL, PostgreSQL and MSSQL) Maximum number of connections in the idle connection pool (Grafana v5.4+).
 - **max_open_conns** (Number) (MySQL, PostgreSQL and MSSQL) Maximum number of open connections to the database (Grafana v5.4+).
 - **org_slug** (String) (Sentry) Organization slug.
+- **organization** (String) (InfluxDB) An organization is a workspace for a group of users. All dashboards, tasks, buckets, members, etc., belong to an organization.
 - **output_location** (String) (Athena) AWS S3 bucket to store execution outputs. If not specified, the default query result location from the Workgroup configuration will be used.
 - **postgres_version** (Number) (PostgreSQL) Postgres version as a number (903/904/905/906/1000) meaning v9.3, v9.4, etc.
 - **profile** (String) (CloudWatch, Athena) The credentials profile name to use when authentication type is set as 'Credentials file'.
@@ -146,6 +148,7 @@ Optional:
 - **token_uri** (String) (Stackdriver) The token URI used, provided in the service account key.
 - **tsdb_resolution** (String) (OpenTSDB) Resolution.
 - **tsdb_version** (String) (OpenTSDB) Version.
+- **version** (String) (InfluxDB) InfluxQL or Flux.
 - **workgroup** (String) (Athena) Workgroup to use.
 
 
