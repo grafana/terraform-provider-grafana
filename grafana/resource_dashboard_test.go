@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	gapi "github.com/albeego/grafana-api-golang-client"
+	gapi "github.com/grafana/grafana-api-golang-client"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
