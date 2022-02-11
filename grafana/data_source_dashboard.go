@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strconv"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -70,11 +71,10 @@ func DatasourceDashboard() *schema.Resource {
 
 // search dashboards by ID
 func findDashboardWithID(client *gapi.Client, id int64) (*gapi.FolderDashboardSearchResponse, error) {
-	params := map[string]string{
-		"type":         "dash-db",
-		"dashboardIds": strconv.FormatInt(id, 10),
-	}
-	resp, err := client.FolderDashboardSearch(params)
+	query := url.Values{}
+	query.Add("type", "dash-db")
+	query.Add("dashboardIds", strconv.FormatInt(id, 10))
+	resp, err := client.FolderDashboardSearch(query)
 	if err != nil {
 		return nil, err
 	}
