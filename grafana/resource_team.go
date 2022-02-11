@@ -62,13 +62,13 @@ func ResourceTeam() *schema.Resource {
 				Description: "An email address for the team.",
 			},
 			"members": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 				Description: `
-A list of email addresses corresponding to users who should be given membership
+A set of email addresses corresponding to users who should be given membership
 to the team. Note: users specified here must already exist in Grafana.
 `,
 			},
@@ -195,7 +195,7 @@ func collectMembers(d *schema.ResourceData) (map[string]TeamMember, map[string]T
 
 	// Get the lists of team members read in from Grafana state (old) and configured (new)
 	state, config := d.GetChange("members")
-	for _, u := range state.([]interface{}) {
+	for _, u := range state.(*schema.Set).List() {
 		login := u.(string)
 		// Sanity check that a member isn't specified twice within a team
 		if _, ok := stateMembers[login]; ok {
@@ -203,7 +203,7 @@ func collectMembers(d *schema.ResourceData) (map[string]TeamMember, map[string]T
 		}
 		stateMembers[login] = TeamMember{0, login}
 	}
-	for _, u := range config.([]interface{}) {
+	for _, u := range config.(*schema.Set).List() {
 		login := u.(string)
 		// Sanity check that a member isn't specified twice within a team
 		if _, ok := configMembers[login]; ok {
