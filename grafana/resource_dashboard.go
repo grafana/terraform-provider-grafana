@@ -134,18 +134,18 @@ func resourceDashboardV0() *schema.Resource {
 func resourceDashboardStateUpgradeV0(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
 	client := meta.(*client).gapi
 	dashboardID := int64(rawState["dashboard_id"].(float64))
-	params := url.Values{
+	query := url.Values{
 		"type":         {"dash-db"},
 		"dashboardIds": {strconv.FormatInt(dashboardID, 10)},
 	}
-	resp, err := client.FolderDashboardSearch(params)
+	resp, err := client.FolderDashboardSearch(query)
 	if err != nil {
-		return nil, fmt.Errorf("error attempting to migrate state. Grafana returned an error while searching for dashboard with ID %s: %s", params.Get("dashboardIds"), err)
+		return nil, fmt.Errorf("error attempting to migrate state. Grafana returned an error while searching for dashboard with ID %s: %s", query.Get("dashboardIds"), err)
 	}
 	switch {
 	case len(resp) > 1:
 		// Search endpoint returned multiple dashboards. This is not likely.
-		return nil, fmt.Errorf("error attempting to migrate state. Many dashboards returned by Grafana while searching for dashboard with ID, %s", params.Get("dashboardIds"))
+		return nil, fmt.Errorf("error attempting to migrate state. Many dashboards returned by Grafana while searching for dashboard with ID, %s", query.Get("dashboardIds"))
 	case len(resp) == 0:
 		// Dashboard does not exist. Let Terraform recreate it.
 		return rawState, nil
