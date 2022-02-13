@@ -154,12 +154,13 @@ func Provider(version string) func() *schema.Provider {
 
 			DataSourcesMap: map[string]*schema.Resource{
 				// Grafana
-				"grafana_dashboard":     DatasourceDashboard(),
-				"grafana_dashboards":    DatasourceDashboards(),
-				"grafana_folder":        DatasourceFolder(),
-				"grafana_library_panel": DatasourceLibraryPanel(),
-				"grafana_user":          DatasourceUser(),
-				"grafana_cloud_stack":   DataSourceStack(),
+				"grafana_dashboard":      DatasourceDashboard(),
+				"grafana_dashboards":     DatasourceDashboards(),
+				"grafana_folder":         DatasourceFolder(),
+				"grafana_library_panel":  DatasourceLibraryPanel(),
+				"grafana_library_panels": DatasourceLibraryPanels(),
+				"grafana_user":           DatasourceUser(),
+				"grafana_cloud_stack":    DataSourceStack(),
 
 				// Synthetic Monitoring
 				"grafana_synthetic_monitoring_probe":  dataSourceSyntheticMonitoringProbe(),
