@@ -8,7 +8,7 @@ import (
 
 func TestAccDatasourceLibraryPanels(t *testing.T) {
 	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=8.0.0")
+	CheckOSSTestsSemver(t, ">=8.2.0")
 
 	checks := []resource.TestCheckFunc{
 		resource.TestCheckResourceAttrSet(

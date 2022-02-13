@@ -3,17 +3,16 @@
 page_title: "grafana_library_panels Data Source - terraform-provider-grafana"
 subcategory: ""
 description: |-
-  Datasource for retrieving all library panels.
-  Official documentation https://grafana.com/docs/grafana/latest/dashboards/Folder/Dashboard Search HTTP API https://grafana.com/docs/grafana/latest/http_api/folder_dashboard_search/Dashboard HTTP API https://grafana.com/docs/grafana/latest/http_api/dashboard/
+  Datasource for retrieving all library panels. Requires Grafana version 8.2+.
+  Official documentation https://grafana.com/docs/grafana/latest/panels/panel-library/HTTP API https://grafana.com/docs/grafana/latest/http_api/library_element/
 ---
 
 # grafana_library_panels (Data Source)
 
-Datasource for retrieving all library panels.
+Datasource for retrieving all library panels. Requires Grafana version 8.2+.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
-* [Folder/Dashboard Search HTTP API](https://grafana.com/docs/grafana/latest/http_api/folder_dashboard_search/)
-* [Dashboard HTTP API](https://grafana.com/docs/grafana/latest/http_api/dashboard/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/panels/panel-library/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/library_element/)
 
 ## Example Usage
 
