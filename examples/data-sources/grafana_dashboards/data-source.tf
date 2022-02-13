@@ -49,3 +49,12 @@ data "grafana_dashboards" "all" {
 data "grafana_dashboard" "from_data_source" {
   uid = data.grafana_dashboards.all.dashboards[0].uid
 }
+
+// get only one result
+data "grafana_dashboards" "limit_one" {
+  limit = 1
+  depends_on = [
+    grafana_dashboard.data_source_dashboards1,
+    grafana_dashboard.data_source_dashboards2
+  ]
+}

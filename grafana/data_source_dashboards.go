@@ -29,6 +29,12 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 				Description: "Numerical IDs of Grafana folders containing dashboards. Specify to filter for dashboards by folder (eg. `[0]` for General folder), or leave blank to get all dashboards in all folders.",
 				Elem:        &schema.Schema{Type: schema.TypeInt},
 			},
+			"limit": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     5000,
+				Description: "Maximum number of dashboard search results to return.",
+			},
 			"tags": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -79,7 +85,7 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 	client := meta.(*client).gapi
 	var diags diag.Diagnostics
 	params := url.Values{
-		"limit": {"5000"},
+		"limit": {fmt.Sprint(d.Get("limit"))},
 		"type":  {"dash-db"},
 	}
 
