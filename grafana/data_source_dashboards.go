@@ -2,8 +2,11 @@ package grafana
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"net/url"
+	"sort"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -56,6 +59,22 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 	}
 }
 
+func hashDashboardSearchParameters(params map[string][]string) string {
+	// hash a sorted slice of all string parameters and corresponding values
+	hashOut := sha256.New()
+
+	var paramsList []string
+	for key, vals := range params {
+		paramsList = append(paramsList, key)
+		paramsList = append(paramsList, vals...)
+	}
+
+	sort.Strings(paramsList)
+	hashIn := strings.Join(paramsList[:], "")
+	hashOut.Write([]byte(hashIn))
+	return fmt.Sprintf("%x", hashOut.Sum(nil))[0:23]
+}
+
 func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 	var diags diag.Diagnostics
@@ -65,21 +84,19 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	// add tags and folder IDs from attributes to dashboard search parameters
-	resourceID := "dashboards"
 	if list, ok := d.GetOk("folder_ids"); ok {
 		for _, elem := range list.([]interface{}) {
 			params.Add("folderIds", fmt.Sprint(elem))
 		}
-		resourceID += "-folder_ids"
 	}
 
 	if list, ok := d.GetOk("tags"); ok {
 		for _, elem := range list.([]interface{}) {
 			params.Add("tag", fmt.Sprint(elem))
 		}
-		resourceID += "-tags"
 	}
-	d.SetId(resourceID)
+
+	d.SetId(hashDashboardSearchParameters(params))
 
 	results, err := client.FolderDashboardSearch(params)
 	if err != nil {

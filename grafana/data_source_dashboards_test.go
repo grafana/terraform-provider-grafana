@@ -1,6 +1,7 @@
 package grafana
 
 import (
+	"net/url"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -9,11 +10,18 @@ import (
 func TestAccDataSourceDashboardsAllAndByFolderID(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 
+	params := url.Values{
+		"limit": {"5000"},
+		"type":  {"dash-db"},
+	}
+	idAll := hashDashboardSearchParameters(params)
+
+	params["tag"] = []string{"data_source_dashboards"}
+	idTags := hashDashboardSearchParameters(params)
+
 	checks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttr("data.grafana_dashboards.all", "id", "dashboards"),
-		resource.TestCheckResourceAttr("data.grafana_dashboards.tags", "id", "dashboards-tags"),
-		resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids", "id", "dashboards-folder_ids"),
-		resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids_tags", "id", "dashboards-folder_ids-tags"),
+		resource.TestCheckResourceAttr("data.grafana_dashboards.all", "id", idAll),
+		resource.TestCheckResourceAttr("data.grafana_dashboards.tags", "id", idTags),
 		resource.TestCheckResourceAttr("data.grafana_dashboards.tags", "dashboards.#", "1"),
 		resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids", "dashboards.#", "1"),
 		resource.TestCheckResourceAttr("data.grafana_dashboards.folder_ids_tags", "dashboards.#", "1"),
