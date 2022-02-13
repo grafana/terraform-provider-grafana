@@ -115,7 +115,7 @@ func hashDashboardSearchParameters(params map[string][]string) string {
 	}
 
 	sort.Strings(paramsList)
-	hashIn := strings.Join(paramsList[:], "")
+	hashIn := strings.Join(paramsList, "")
 	hashOut.Write([]byte(hashIn))
 	return fmt.Sprintf("%x", hashOut.Sum(nil))[0:23]
 }
