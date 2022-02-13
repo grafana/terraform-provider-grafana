@@ -69,10 +69,31 @@ func TestAccTeam_Members(t *testing.T) {
 						"grafana_team.test", "name", "terraform-acc-test",
 					),
 					resource.TestCheckResourceAttr(
-						"grafana_team.test", "members.#", "1",
+						"grafana_team.test", "members.#", "2",
 					),
 					resource.TestCheckResourceAttr(
-						"grafana_team.test", "members.0", "john.doe@example.com",
+						"grafana_team.test", "members.0", "test-team-1@example.com",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_team.test", "members.1", "test-team-2@example.com",
+					),
+				),
+			},
+			{
+				Config: testAccTeamConfig_memberReorder,
+				Check: resource.ComposeTestCheckFunc(
+					testAccTeamCheckExists("grafana_team.test", &team),
+					resource.TestCheckResourceAttr(
+						"grafana_team.test", "name", "terraform-acc-test",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_team.test", "members.#", "2",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_team.test", "members.0", "test-team-1@example.com",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_team.test", "members.1", "test-team-2@example.com",
 					),
 				),
 			},
@@ -143,16 +164,47 @@ resource "grafana_team" "test" {
   email   = "teamEmailUpdate@example.com"
 }
 `
-const testAccTeamConfig_memberAdd = `
+const testAccTeam_users = `
+resource "grafana_user" "user_one" {
+	email    = "test-team-1@example.com"
+	name     = "Team Test User 1"
+	login    = "test-team-1"
+	password = "my-password"
+	is_admin = false
+}
+
+resource "grafana_user" "user_two" {
+	email    = "test-team-2@example.com"
+	name     = "Team Test User 2"
+	login    = "test-team-2"
+	password = "my-password"
+	is_admin = false
+}
+`
+
+const testAccTeamConfig_memberAdd = testAccTeam_users + `
 resource "grafana_team" "test" {
   name    = "terraform-acc-test"
   email   = "teamEmail@example.com"
   members = [
-    "john.doe@example.com",
+	grafana_user.user_one.email,
+	grafana_user.user_two.email,
   ]
 }
 `
-const testAccTeamConfig_memberRemove = `
+
+const testAccTeamConfig_memberReorder = testAccTeam_users + `
+resource "grafana_team" "test" {
+  name    = "terraform-acc-test"
+  email   = "teamEmail@example.com"
+  members = [
+	grafana_user.user_two.email,
+	grafana_user.user_one.email,
+	]
+}
+`
+
+const testAccTeamConfig_memberRemove = testAccTeam_users + `
 resource "grafana_team" "test" {
   name    = "terraform-acc-test"
   email   = "teamEmail@example.com"
