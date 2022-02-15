@@ -28,7 +28,6 @@ func DatasourceFolder() *schema.Resource {
 			"id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				Computed:     true,
 				ExactlyOneOf: []string{"title", "id", "uid"},
 				Default:      -1,
 				Description:  "The numerical ID of the Grafana folder.",
