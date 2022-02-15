@@ -1,8 +1,8 @@
-resource "grafana_folder" "data_source_folders" {
+resource "grafana_folder" "data_source_folders1" {
   title = "data_source_folders1"
 }
 
-resource "grafana_folder" "data_source_folders" {
+resource "grafana_folder" "data_source_folders2" {
   title = "data_source_folders2"
 }
 
