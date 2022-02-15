@@ -12,3 +12,8 @@ data "grafana_folders" "all" {
 data "grafana_folders" "one" {
   limit = 1
 }
+
+// test to make sure it worked
+data "grafana_folder" "test" {
+  uid = data.grafana_folders.all["data_source_folders1"].uid
+}

@@ -18,11 +18,11 @@ Datasource for retrieving all Grafana folders.
 ## Example Usage
 
 ```terraform
-resource "grafana_folder" "data_source_folders" {
+resource "grafana_folder" "data_source_folders1" {
   title = "data_source_folders1"
 }
 
-resource "grafana_folder" "data_source_folders" {
+resource "grafana_folder" "data_source_folders2" {
   title = "data_source_folders2"
 }
 
@@ -31,6 +31,11 @@ data "grafana_folders" "all" {
 
 data "grafana_folders" "one" {
   limit = 1
+}
+
+// test to make sure it worked
+data "grafana_folder" "test" {
+  uid = data.grafana_folders.all["data_source_folders1"].uid
 }
 ```
 
@@ -44,15 +49,6 @@ data "grafana_folders" "one" {
 
 ### Read-Only
 
-- **folders** (List of Object) (see [below for nested schema](#nestedatt--folders))
-
-<a id="nestedatt--folders"></a>
-### Nested Schema for `folders`
-
-Read-Only:
-
-- **id** (Number)
-- **title** (String)
-- **uid** (String)
+- **folders** (Map of String)
 
 
