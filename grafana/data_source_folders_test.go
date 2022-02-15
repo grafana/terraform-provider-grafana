@@ -8,7 +8,6 @@ import (
 
 func TestAccDatasourceFolders(t *testing.T) {
 	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=8.0.0")
 
 	checks := []resource.TestCheckFunc{
 		resource.TestCheckResourceAttr("data.grafana_folders.one", "folders.%", "1"),
