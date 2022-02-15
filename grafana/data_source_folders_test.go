@@ -11,7 +11,8 @@ func TestAccDatasourceFolders(t *testing.T) {
 	CheckOSSTestsSemver(t, ">=8.0.0")
 
 	checks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttr("data.grafana_folders.one", "folders.#", "1"),
+		resource.TestCheckResourceAttrSet("data.grafana_folders.all", "folders.data_source_folders1"),
+		resource.TestCheckResourceAttr("data.grafana_folders.one", "folders.%", "1"),
 	}
 
 	resource.Test(t, resource.TestCase{

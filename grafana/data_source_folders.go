@@ -30,24 +30,9 @@ Datasource for retrieving all Grafana folders.
 				Description: "Maximum number of folders to return.",
 			},
 			"folders": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeMap,
 				Computed: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"title": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"uid": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"id": {
-							Type:     schema.TypeInt,
-							Computed: true,
-						},
-					},
-				},
+				Elem:     schema.TypeString,
 			},
 		},
 	}
@@ -84,13 +69,9 @@ func dataSourceReadFolders(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 
-	folders := make([]map[string]interface{}, len(results))
-	for i, result := range results {
-		folders[i] = map[string]interface{}{
-			"title": result.Title,
-			"uid":   result.UID,
-			"id":    result.ID,
-		}
+	folders := make(map[string]interface{}, len(results))
+	for _, result := range results {
+		folders[result.Title] = result.UID
 	}
 
 	if err := d.Set("folders", folders); err != nil {
