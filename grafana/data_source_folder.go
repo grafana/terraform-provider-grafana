@@ -19,19 +19,26 @@ func DatasourceFolder() *schema.Resource {
 		ReadContext: dataSourceFolderRead,
 		Schema: map[string]*schema.Schema{
 			"title": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the Grafana folder.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ExactlyOneOf: []string{"title", "id", "uid"},
+				Description:  "The name of the Grafana folder.",
 			},
 			"id": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "The numerical ID of the Grafana folder.",
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Computed:     true,
+				ExactlyOneOf: []string{"title", "id", "uid"},
+				Default:      -1,
+				Description:  "The numerical ID of the Grafana folder.",
 			},
 			"uid": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The uid of the Grafana folder.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ExactlyOneOf: []string{"title", "id", "uid"},
+				Description:  "The unique identifier (uid) of the Grafana folder.",
 			},
 		},
 	}
@@ -54,8 +61,20 @@ func findFolderWithTitle(client *gapi.Client, title string) (*gapi.Folder, error
 
 func dataSourceFolderRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
-	title := d.Get("title").(string)
-	folder, err := findFolderWithTitle(client, title)
+	var folder *gapi.Folder
+	var err error
+
+	if title := d.Get("title").(string); title != "" {
+		folder, err = findFolderWithTitle(client, title)
+	}
+
+	if uid := d.Get("uid").(string); uid != "" {
+		folder, err = client.FolderByUID(uid)
+	}
+
+	if id := int64(d.Get("id").(int)); id != -1 {
+		folder, err = client.Folder(id)
+	}
 
 	if err != nil {
 		return diag.FromErr(err)
