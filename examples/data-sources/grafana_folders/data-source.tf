@@ -15,5 +15,5 @@ data "grafana_folders" "one" {
 
 // test to make sure it worked
 data "grafana_folder" "test" {
-  uid = data.grafana_folders.all["data_source_folders1"].uid
+  uid = data.grafana_folders.all.folders["data_source_folders1"]
 }
