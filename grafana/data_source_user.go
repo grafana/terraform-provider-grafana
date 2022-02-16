@@ -72,6 +72,7 @@ func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	d.SetId(fmt.Sprintf("%d", user.ID))
+	d.Set("user_id", user.ID)
 	d.Set("email", user.Email)
 	d.Set("name", user.Name)
 	d.Set("login", user.Login)
