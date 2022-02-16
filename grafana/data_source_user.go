@@ -15,7 +15,7 @@ func DatasourceUser() *schema.Resource {
 * [Official documentation](https://grafana.com/docs/grafana/latest/manage-users/server-admin/server-admin-manage-users/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/http_api/user/)
 
-This resource uses Grafana's admin APIs for creating and updating users which
+This data source uses Grafana's admin APIs for reading users which
 does not currently work with API Tokens. You must use basic auth.
 `,
 		ReadContext: dataSourceUserRead,
