@@ -16,6 +16,9 @@ func TestAccDatasourceUser(t *testing.T) {
 	}
 	for _, rName := range []string{"from_email", "from_login", "from_id"} {
 		checks = append(checks,
+			resource.TestMatchResourceAttr(
+				"data.grafana_user."+rName, "user_id", idRegexp,
+			),
 			resource.TestCheckResourceAttr(
 				"data.grafana_user."+rName, "email", "test.datasource@example.com",
 			),
