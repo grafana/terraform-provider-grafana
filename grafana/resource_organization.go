@@ -140,7 +140,7 @@ func CreateOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 		return diag.FromErr(err)
 	}
 
-	return diag.Diagnostics{}
+	return ReadOrganization(ctx, d, meta)
 }
 
 func ReadOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -155,6 +155,7 @@ func ReadOrganization(ctx context.Context, d *schema.ResourceData, meta interfac
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	d.Set("org_id", resp.ID)
 	d.Set("name", resp.Name)
 	if err := ReadUsers(d, meta); err != nil {
 		return diag.FromErr(err)

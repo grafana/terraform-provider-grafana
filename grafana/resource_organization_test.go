@@ -28,6 +28,9 @@ func TestAccOrganization_basic(t *testing.T) {
 						"grafana_organization.test", "name", "terraform-acc-test",
 					),
 					resource.TestMatchResourceAttr(
+						"grafana_organization.test", "org_id", idRegexp,
+					),
+					resource.TestMatchResourceAttr(
 						"grafana_organization.test", "id", idRegexp,
 					),
 				),
