@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
+	"os"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/go-cleanhttp"
@@ -124,6 +126,12 @@ func Provider(version string) func() *schema.Provider {
 					Description:  "Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable.",
 					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 				},
+				"store_dashboard_sha256": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_STORE_DASHBOARD_SHA256", false),
+					Description: "Set to true if you want to save only the sha256sum instead of complete dashboard model JSON in the tfstate.",
+				},
 			},
 
 			ResourcesMap: map[string]*schema.Resource{
@@ -209,6 +217,9 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			return nil, diag.FromErr(err)
 		}
 		c.smapi = createSMClient(d)
+
+		// Set env var as it is needed in the resource_dashboard config_json statefunc to compare diff
+		os.Setenv("GRAFANA_STORE_DASHBOARD_SHA256", strconv.FormatBool(d.Get("store_dashboard_sha256").(bool)))
 
 		return c, diags
 	}
