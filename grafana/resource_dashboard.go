@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -348,7 +347,6 @@ func normalizeDashboardConfigJSON(config interface{}) string {
 
 	j, _ := json.Marshal(dashboardJSON)
 
-	storeDashboardSHA256, _ := strconv.ParseBool(os.Getenv("GRAFANA_STORE_DASHBOARD_SHA256"))
 	if storeDashboardSHA256 {
 		configHash := sha256.Sum256(j)
 		return fmt.Sprintf("%x", configHash[:])

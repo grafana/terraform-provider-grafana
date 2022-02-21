@@ -7,9 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
-	"os"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/hashicorp/go-cleanhttp"
@@ -27,6 +25,7 @@ var (
 	idRegexp    = regexp.MustCompile(`^\d+$`)
 	uidRegexp   = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
 	emailRegexp = regexp.MustCompile(`.+\@.+\..+`)
+	storeDashboardSHA256 bool
 )
 
 func init() {
@@ -218,8 +217,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		}
 		c.smapi = createSMClient(d)
 
-		// Set env var as it is needed in the resource_dashboard config_json statefunc to compare diff
-		os.Setenv("GRAFANA_STORE_DASHBOARD_SHA256", strconv.FormatBool(d.Get("store_dashboard_sha256").(bool)))
+		storeDashboardSHA256 = d.Get("store_dashboard_sha256").(bool)
 
 		return c, diags
 	}
