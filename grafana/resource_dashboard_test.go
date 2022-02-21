@@ -3,6 +3,7 @@ package grafana
 import (
 	"fmt"
 	"testing"
+	"crypto/sha256"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 
@@ -265,6 +266,36 @@ func Test_normalizeDashboardConfigJSON(t *testing.T) {
 			name: "panels[].libraryPanel.!<name|uid> is removed",
 			args: args{config: givenPanels},
 			want: expectedPanels,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := normalizeDashboardConfigJSON(tt.args.config); got != tt.want {
+				t.Errorf("normalizeDashboardConfigJSON() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_storeDashboardSHA256(t *testing.T) {
+	type args struct {
+		config interface{}
+	}
+
+	storeDashboardSHA256 = true
+	d := "New Dashboard"
+	expectedSHA256 := sha256.Sum256([]byte(fmt.Sprintf("{\"title\":\"%s\"}", d)))
+	expectedSHA256String := fmt.Sprintf("%x", expectedSHA256[:])
+
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "String dashboard is a sha256",
+			args: args{config: fmt.Sprintf("{\"title\":\"%s\"}", d)},
+			want: expectedSHA256String,
 		},
 	}
 	for _, tt := range tests {
