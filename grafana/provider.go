@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/machine-learning-go-client/mlapi"
@@ -47,6 +48,7 @@ func Provider(version string) func() *schema.Provider {
 					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_URL", nil),
 					RequiredWith: []string{"auth"},
 					Description:  "The root URL of a Grafana server. May alternatively be set via the `GRAFANA_URL` environment variable.",
+					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 				},
 				"auth": {
 					Type:         schema.TypeString,
@@ -101,10 +103,11 @@ func Provider(version string) func() *schema.Provider {
 					Description: "API key for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_API_KEY` environment variable.",
 				},
 				"cloud_api_url": {
-					Type:        schema.TypeString,
-					Optional:    true,
-					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_CLOUD_API_URL", "https://grafana.com"),
-					Description: "Grafana Cloud's API URL. May alternatively be set via the `GRAFANA_CLOUD_API_URL` environment variable.",
+					Type:         schema.TypeString,
+					Optional:     true,
+					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_CLOUD_API_URL", "https://grafana.com"),
+					Description:  "Grafana Cloud's API URL. May alternatively be set via the `GRAFANA_CLOUD_API_URL` environment variable.",
+					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 				},
 
 				"sm_access_token": {
@@ -115,10 +118,11 @@ func Provider(version string) func() *schema.Provider {
 					Description: "A Synthetic Monitoring access token. May alternatively be set via the `GRAFANA_SM_ACCESS_TOKEN` environment variable.",
 				},
 				"sm_url": {
-					Type:        schema.TypeString,
-					Optional:    true,
-					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_SM_URL", "https://synthetic-monitoring-api.grafana.net"),
-					Description: "Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable.",
+					Type:         schema.TypeString,
+					Optional:     true,
+					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_SM_URL", "https://synthetic-monitoring-api.grafana.net"),
+					Description:  "Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable.",
+					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 				},
 			},
 
