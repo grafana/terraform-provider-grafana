@@ -114,6 +114,7 @@ Optional:
 - **default_bucket** (String) (InfluxDB) The default bucket for the data source.
 - **default_project** (String) (Stackdriver) The default project for the data source.
 - **default_region** (String) (CloudWatch, Athena) The default region for the data source.
+- **derived_field** (Block List) (Loki) See https://grafana.com/docs/grafana/latest/datasources/loki/#derived-fields (see [below for nested schema](#nestedblock--json_data--derived_field))
 - **encrypt** (String) (MSSQL) Connection SSL encryption handling: 'disable', 'false' or 'true'.
 - **es_version** (String) (Elasticsearch) Elasticsearch semantic version (Grafana v8.0+).
 - **external_id** (String) (CloudWatch, Athena) If you are assuming a role in another account, that has been created with an external ID, specify the external ID here.
@@ -125,6 +126,7 @@ Optional:
 - **log_message_field** (String) (Elasticsearch) Which field should be used as the log message.
 - **max_concurrent_shard_requests** (Number) (Elasticsearch) Maximum number of concurrent shard requests.
 - **max_idle_conns** (Number) (MySQL, PostgreSQL and MSSQL) Maximum number of connections in the idle connection pool (Grafana v5.4+).
+- **max_lines** (Number) (Loki) Upper limit for the number of log lines returned by Loki
 - **max_open_conns** (Number) (MySQL, PostgreSQL and MSSQL) Maximum number of open connections to the database (Grafana v5.4+).
 - **org_slug** (String) (Sentry) Organization slug.
 - **organization** (String) (InfluxDB) An organization is a workspace for a group of users. All dashboards, tasks, buckets, members, etc., belong to an organization.
@@ -146,10 +148,21 @@ Optional:
 - **tls_auth_with_ca_cert** (Boolean) (All) Enable TLS authentication using CA cert.
 - **tls_skip_verify** (Boolean) (All) Controls whether a client verifies the server’s certificate chain and host name.
 - **token_uri** (String) (Stackdriver) The token URI used, provided in the service account key.
-- **tsdb_resolution** (String) (OpenTSDB) Resolution.
-- **tsdb_version** (String) (OpenTSDB) Version.
+- **tsdb_resolution** (Number) (OpenTSDB) Resolution.
+- **tsdb_version** (Number) (OpenTSDB) Version.
 - **version** (String) (InfluxDB) InfluxQL or Flux.
 - **workgroup** (String) (Athena) Workgroup to use.
+
+<a id="nestedblock--json_data--derived_field"></a>
+### Nested Schema for `json_data.derived_field`
+
+Optional:
+
+- **datasource_uid** (String)
+- **matcher_regex** (String)
+- **name** (String)
+- **url** (String)
+
 
 
 <a id="nestedblock--secure_json_data"></a>
