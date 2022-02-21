@@ -31,6 +31,24 @@ source selected (via the 'type' argument).
 		DeleteContext: DeleteDataSource,
 		ReadContext:   ReadDataSource,
 
+		// Import either by ID or UID
+		Importer: &schema.ResourceImporter{
+			StateContext: func(c context.Context, rd *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				_, err := strconv.ParseInt(rd.Id(), 10, 64)
+				if err != nil {
+					// If the ID is not a number, then it may be a UID
+					client := meta.(*client).gapi
+					ds, err := client.DataSourceByUID(rd.Id())
+					if err != nil {
+						return nil, fmt.Errorf("failed to find datasource by ID or UID '%s': %w", rd.Id(), err)
+					}
+					rd.SetId(strconv.FormatInt(ds.ID, 10))
+
+				}
+				return []*schema.ResourceData{rd}, nil
+			},
+		},
+
 		Schema: map[string]*schema.Schema{
 			"access_mode": {
 				Type:        schema.TypeString,
