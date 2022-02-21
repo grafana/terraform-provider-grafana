@@ -23,6 +23,61 @@ func TestAccDataSource_basic(t *testing.T) {
 		additionalChecks []resource.TestCheckFunc
 	}{
 		{
+			resource: "grafana_data_source.loki",
+			config: `
+		resource "grafana_data_source" "tempo" {
+			name = "Tempo Linked to Loki"
+			type = "tempo"
+		}
+
+		resource "grafana_data_source" "loki" {
+			type                = "loki"
+			name                = "loki"
+			url                 = "http://acc-test.invalid/"
+			json_data {
+				max_lines = 2022
+
+				derived_field {
+					name = "WithoutDatasource"
+					matcher_regex = "(?:traceID|trace_id)=(\\w+)"
+					url = "example.com/$${__value.raw}"
+				}
+
+				derived_field {
+					name = "WithDatasource"
+					matcher_regex = "(?:traceID|trace_id)=(\\w+)"
+					url = "$${__value.raw}"
+					datasource_uid = grafana_data_source.tempo.uid
+				}
+			}
+		}
+		`,
+			attrChecks: map[string]string{
+				"type":                             "loki",
+				"name":                             "loki",
+				"url":                              "http://acc-test.invalid/",
+				"json_data.0.max_lines":            "2022",
+				"json_data.0.derived_field.0.name": "WithoutDatasource",
+				"json_data.0.derived_field.0.matcher_regex": "(?:traceID|trace_id)=(\\w+)",
+				"json_data.0.derived_field.0.url":           "example.com/${__value.raw}",
+				"json_data.0.derived_field.1.name":          "WithDatasource",
+				"json_data.0.derived_field.1.matcher_regex": "(?:traceID|trace_id)=(\\w+)",
+				"json_data.0.derived_field.1.url":           "${__value.raw}",
+			},
+			additionalChecks: []resource.TestCheckFunc{
+				func(s *terraform.State) error {
+					// Check datasource IDs
+					if dataSource.JSONData.DerivedFields[0].DatasourceUID != "" {
+						return fmt.Errorf("expected empty datasource_uid")
+					}
+					if !uidRegexp.MatchString(dataSource.JSONData.DerivedFields[1].DatasourceUID) {
+						return fmt.Errorf("expected valid datasource_uid")
+					}
+					return nil
+				},
+			},
+		},
+		{
 			resource: "grafana_data_source.testdata",
 			config: `
 		resource "grafana_data_source" "testdata" {
