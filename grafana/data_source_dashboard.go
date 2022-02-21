@@ -71,10 +71,11 @@ func DatasourceDashboard() *schema.Resource {
 
 // search dashboards by ID
 func findDashboardWithID(client *gapi.Client, id int64) (*gapi.FolderDashboardSearchResponse, error) {
-	query := url.Values{}
-	query.Add("type", "dash-db")
-	query.Add("dashboardIds", strconv.FormatInt(id, 10))
-	resp, err := client.FolderDashboardSearch(query)
+	params := url.Values{
+		"type":         {"dash-db"},
+		"dashboardIds": {strconv.FormatInt(id, 10)},
+	}
+	resp, err := client.FolderDashboardSearch(params)
 	if err != nil {
 		return nil, err
 	}
