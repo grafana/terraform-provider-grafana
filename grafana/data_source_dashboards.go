@@ -78,7 +78,7 @@ func hashDashboardSearchParameters(params map[string][]string) string {
 	sort.Strings(paramsList)
 	hashIn := strings.Join(paramsList, "")
 	hashOut.Write([]byte(hashIn))
-	return fmt.Sprintf("%x", hashOut.Sum(nil))[0:23]
+	return fmt.Sprintf("%x", hashOut.Sum(nil))[:23]
 }
 
 func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
