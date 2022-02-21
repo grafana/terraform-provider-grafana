@@ -146,8 +146,8 @@ Optional:
 - **tls_auth_with_ca_cert** (Boolean) (All) Enable TLS authentication using CA cert.
 - **tls_skip_verify** (Boolean) (All) Controls whether a client verifies the server’s certificate chain and host name.
 - **token_uri** (String) (Stackdriver) The token URI used, provided in the service account key.
-- **tsdb_resolution** (String) (OpenTSDB) Resolution.
-- **tsdb_version** (String) (OpenTSDB) Version.
+- **tsdb_resolution** (Number) (OpenTSDB) Resolution.
+- **tsdb_version** (Number) (OpenTSDB) Version.
 - **version** (String) (InfluxDB) InfluxQL or Flux.
 - **workgroup** (String) (Athena) Workgroup to use.
 
