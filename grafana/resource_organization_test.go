@@ -44,6 +44,22 @@ func TestAccOrganization_basic(t *testing.T) {
 					),
 				),
 			},
+			{
+				ResourceName:            "grafana_organization.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"admins", "admin_user", "create_users"}, // Users are imported explicitly (with create_users == false)
+				ImportStateCheck: func(s []*terraform.InstanceState) error {
+					if len(s) != 1 {
+						return fmt.Errorf("expected 1 state: %#v", s)
+					}
+					admin := s[0].Attributes["admins.0"]
+					if admin != "admin@localhost" {
+						return fmt.Errorf("expected admin@localhost: %s", admin)
+					}
+					return nil
+				},
+			},
 		},
 	})
 }
@@ -167,6 +183,12 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 						"grafana_organization.test", "viewers.#",
 					),
 				),
+			},
+			{
+				ResourceName:            "grafana_organization.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"admin_user", "create_user"}, // These are provider-side attributes and aren't returned by the API
 			},
 		},
 	})

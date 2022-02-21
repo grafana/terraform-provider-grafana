@@ -47,6 +47,11 @@ func TestAccTeam_basic(t *testing.T) {
 					),
 				),
 			},
+			{
+				ResourceName:      "grafana_team.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
@@ -96,6 +101,12 @@ func TestAccTeam_Members(t *testing.T) {
 						"grafana_team.test", "members.1", "test-team-2@example.com",
 					),
 				),
+			},
+			// Test the import with members
+			{
+				ResourceName:      "grafana_team.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 			{
 				Config: testAccTeamConfig_memberRemove,
