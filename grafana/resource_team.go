@@ -106,6 +106,7 @@ func ReadTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	d.Set("team_id", teamID)
 	d.Set("name", resp.Name)
 	if resp.Email != "" {
 		d.Set("email", resp.Email)

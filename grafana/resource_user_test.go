@@ -62,6 +62,12 @@ func TestAccUser_basic(t *testing.T) {
 					),
 				),
 			},
+			{
+				ResourceName:            "grafana_user.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"password"},
+			},
 		},
 	})
 }
