@@ -183,4 +183,11 @@ Optional:
 - **tls_client_cert** (String, Sensitive) (All) TLS Client cert for outgoing requests.
 - **tls_client_key** (String, Sensitive) (All) TLS Client key for outgoing requests.
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_data_source.by_integer_id {{datasource id}}
+terraform import grafana_data_source.by_uid {{datasource uid}}
+```

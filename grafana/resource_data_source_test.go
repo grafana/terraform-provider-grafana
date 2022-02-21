@@ -540,6 +540,27 @@ func TestAccDataSource_basic(t *testing.T) {
 						append(checks, test.additionalChecks...)...,
 					),
 				},
+				// Test import using ID
+				{
+					ResourceName: test.resource,
+					ImportState:  true,
+				},
+				// Test import using UID
+				{
+					ResourceName: test.resource,
+					ImportState:  true,
+					ImportStateIdFunc: func(s *terraform.State) (string, error) {
+						rs, ok := s.RootModule().Resources[test.resource]
+						if !ok {
+							return "", fmt.Errorf("resource not found: %s", test.resource)
+						}
+
+						if rs.Primary.ID == "" {
+							return "", fmt.Errorf("resource id not set")
+						}
+						return rs.Primary.Attributes["uid"], nil
+					},
+				},
 			},
 		})
 	}
