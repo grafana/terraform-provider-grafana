@@ -145,6 +145,31 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Description: "(CloudWatch, Athena) The default region for the data source.",
 						},
+						"derived_field": {
+							Type: schema.TypeList,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"name": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+									"matcher_regex": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+									"url": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+									"datasource_uid": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
+							},
+							Optional:    true,
+							Description: "(Loki) See https://grafana.com/docs/grafana/latest/datasources/loki/#derived-fields",
+						},
 						"encrypt": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -211,6 +236,11 @@ source selected (via the 'type' argument).
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Description: "(MySQL, PostgreSQL and MSSQL) Maximum number of connections in the idle connection pool (Grafana v5.4+).",
+						},
+						"max_lines": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Description: "(Loki) Upper limit for the number of log lines returned by Loki ",
 						},
 						"max_open_conns": {
 							Type:        schema.TypeInt,
@@ -579,6 +609,17 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 }
 
 func makeJSONData(d *schema.ResourceData) gapi.JSONData {
+	var derivedFields []gapi.LokiDerivedField
+	for _, field := range d.Get("json_data.0.derived_field").([]interface{}) {
+		derivedField := field.(map[string]interface{})
+		derivedFields = append(derivedFields, gapi.LokiDerivedField{
+			Name:          derivedField["name"].(string),
+			MatcherRegex:  derivedField["matcher_regex"].(string),
+			URL:           derivedField["url"].(string),
+			DatasourceUID: derivedField["datasource_uid"].(string),
+		})
+	}
+
 	return gapi.JSONData{
 		AssumeRoleArn:              d.Get("json_data.0.assume_role_arn").(string),
 		AuthType:                   d.Get("json_data.0.auth_type").(string),
@@ -591,6 +632,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		DefaultBucket:              d.Get("json_data.0.default_bucket").(string),
 		DefaultProject:             d.Get("json_data.0.default_project").(string),
 		DefaultRegion:              d.Get("json_data.0.default_region").(string),
+		DerivedFields:              derivedFields,
 		Encrypt:                    d.Get("json_data.0.encrypt").(string),
 		EsVersion:                  d.Get("json_data.0.es_version").(string),
 		ExternalID:                 d.Get("json_data.0.external_id").(string),
@@ -601,6 +643,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		LogMessageField:            d.Get("json_data.0.log_message_field").(string),
 		MaxConcurrentShardRequests: int64(d.Get("json_data.0.max_concurrent_shard_requests").(int)),
 		MaxIdleConns:               int64(d.Get("json_data.0.max_idle_conns").(int)),
+		MaxLines:                   d.Get("json_data.0.max_lines").(int),
 		MaxOpenConns:               int64(d.Get("json_data.0.max_open_conns").(int)),
 		Organization:               d.Get("json_data.0.organization").(string),
 		OrgSlug:                    d.Get("json_data.0.org_slug").(string),
