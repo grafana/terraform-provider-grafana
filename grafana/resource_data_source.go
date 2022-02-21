@@ -43,7 +43,6 @@ source selected (via the 'type' argument).
 						return nil, fmt.Errorf("failed to find datasource by ID or UID '%s': %w", rd.Id(), err)
 					}
 					rd.SetId(strconv.FormatInt(ds.ID, 10))
-
 				}
 				return []*schema.ResourceData{rd}, nil
 			},
