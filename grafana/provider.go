@@ -22,9 +22,9 @@ import (
 )
 
 var (
-	idRegexp    = regexp.MustCompile(`^\d+$`)
-	uidRegexp   = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
-	emailRegexp = regexp.MustCompile(`.+\@.+\..+`)
+	idRegexp             = regexp.MustCompile(`^\d+$`)
+	uidRegexp            = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
+	emailRegexp          = regexp.MustCompile(`.+\@.+\..+`)
 	storeDashboardSHA256 bool
 )
 
