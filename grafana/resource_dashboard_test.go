@@ -278,6 +278,9 @@ func Test_normalizeDashboardConfigJSON(t *testing.T) {
 }
 
 func Test_storeDashboardSHA256(t *testing.T) {
+	defer func() {
+		storeDashboardSHA256 = false
+	}()
 	type args struct {
 		config interface{}
 	}
@@ -305,4 +308,46 @@ func Test_storeDashboardSHA256(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAccDashboard_isSHA256_stored(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
+	var dashboard gapi.Dashboard
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
+		Steps: []resource.TestStep{
+			{
+				// Test resource creation.
+				Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic_sha256.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccDashboardCheckExists("grafana_dashboard.test_sha256", &dashboard),
+					resource.TestCheckResourceAttr("grafana_dashboard.test_sha256", "uid", "basic"),
+					// fadbc115a19bfd7962d8f8d749d22c20d0a44043d390048bf94b698776d9f7f1
+					// is the sha256 of config_json
+					// {"title":"Terraform Acceptance Test","uid":"basic"}
+					resource.TestCheckResourceAttr(
+						"grafana_dashboard.test_sha256", "config_json", "fadbc115a19bfd7962d8f8d749d22c20d0a44043d390048bf94b698776d9f7f1",
+					),
+				),
+			},
+			{
+				// Updates title.
+				Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic_sha256_update.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccDashboardCheckExists("grafana_dashboard.test_sha256", &dashboard),
+					resource.TestCheckResourceAttr("grafana_dashboard.test_sha256", "uid", "basic"),
+					// 4b24291e35e8856770dfdcc0685be9d3b999947ca0b07fc75337a8c099b20fa5
+					// is the sha256 of config_json
+					// {"title":"Terraform Acceptance Test Updated","uid":"basic"}
+					resource.TestCheckResourceAttr(
+						"grafana_dashboard.test_sha256", "config_json", "4b24291e35e8856770dfdcc0685be9d3b999947ca0b07fc75337a8c099b20fa5",
+					),
+				),
+			},
+		},
+	})
 }
