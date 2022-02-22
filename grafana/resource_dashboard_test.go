@@ -2,8 +2,8 @@ package grafana
 
 import (
 	"fmt"
+	"os"
 	"testing"
-	"crypto/sha256"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 
@@ -16,58 +16,74 @@ func TestAccDashboard_basic(t *testing.T) {
 
 	var dashboard gapi.Dashboard
 
-	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
-		Steps: []resource.TestStep{
-			{
-				// Test resource creation.
-				Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic.tf"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-					resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic"),
-					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic"),
-					resource.TestCheckResourceAttr(
-						"grafana_dashboard.test", "config_json", `{"title":"Terraform Acceptance Test","uid":"basic"}`,
-					),
-				),
-			},
-			{
-				// Updates title.
-				Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic_update.tf"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-					resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic"),
-					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic"),
-					resource.TestCheckResourceAttr(
-						"grafana_dashboard.test", "config_json", `{"title":"Updated Title","uid":"basic"}`,
-					),
-				),
-			},
-			{
-				// Updates uid.
-				// uid is removed from `config_json` before writing it to state so it's
-				// important to ensure changing it triggers an update of `config_json`.
-				Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic_update_uid.tf"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-					resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic-update"),
-					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic-update"),
-					resource.TestCheckResourceAttr(
-						"grafana_dashboard.test", "config_json", `{"title":"Updated Title","uid":"basic-update"}`,
-					),
-				),
-			},
-			{
-				// Importing matches the state of the previous step.
-				ResourceName:            "grafana_dashboard.test",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"message"},
-			},
-		},
-	})
+	for _, useSHA256 := range []bool{false, true} {
+		t.Run(fmt.Sprintf("useSHA256=%t", useSHA256), func(t *testing.T) {
+			os.Setenv("GRAFANA_STORE_DASHBOARD_SHA256", fmt.Sprintf("%t", useSHA256))
+			defer os.Unsetenv("GRAFANA_STORE_DASHBOARD_SHA256")
+
+			expectedInitialConfig := `{"title":"Terraform Acceptance Test","uid":"basic"}`
+			expectedUpdatedTitleConfig := `{"title":"Updated Title","uid":"basic"}`
+			expectedUpdatedUidConfig := `{"title":"Updated Title","uid":"basic-update"}`
+			if useSHA256 {
+				expectedInitialConfig = "fadbc115a19bfd7962d8f8d749d22c20d0a44043d390048bf94b698776d9f7f1"
+				expectedUpdatedTitleConfig = "4669abda43a4a6d6ae9ecaa19f8508faf4095682b679da0b5ce4176aa9171ab2"
+				expectedUpdatedUidConfig = "2934e80938a672bd09d8e56385159a1bf8176e2a2ef549437f200d82ff398bfb"
+			}
+
+			resource.Test(t, resource.TestCase{
+				PreCheck:          func() { testAccPreCheck(t) },
+				ProviderFactories: testAccProviderFactories,
+				CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
+				Steps: []resource.TestStep{
+					{
+						// Test resource creation.
+						Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic.tf"),
+						Check: resource.ComposeTestCheckFunc(
+							testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic"),
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic"),
+							resource.TestCheckResourceAttr(
+								"grafana_dashboard.test", "config_json", expectedInitialConfig,
+							),
+						),
+					},
+					{
+						// Updates title.
+						Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic_update.tf"),
+						Check: resource.ComposeTestCheckFunc(
+							testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic"),
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic"),
+							resource.TestCheckResourceAttr(
+								"grafana_dashboard.test", "config_json", expectedUpdatedTitleConfig,
+							),
+						),
+					},
+					{
+						// Updates uid.
+						// uid is removed from `config_json` before writing it to state so it's
+						// important to ensure changing it triggers an update of `config_json`.
+						Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic_update_uid.tf"),
+						Check: resource.ComposeTestCheckFunc(
+							testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic-update"),
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic-update"),
+							resource.TestCheckResourceAttr(
+								"grafana_dashboard.test", "config_json", expectedUpdatedUidConfig,
+							),
+						),
+					},
+					{
+						// Importing matches the state of the previous step.
+						ResourceName:            "grafana_dashboard.test",
+						ImportState:             true,
+						ImportStateVerify:       true,
+						ImportStateVerifyIgnore: []string{"message"},
+					},
+				},
+			})
+		})
+	}
 }
 
 func TestAccDashboard_uid_unset(t *testing.T) {
@@ -275,79 +291,4 @@ func Test_normalizeDashboardConfigJSON(t *testing.T) {
 			}
 		})
 	}
-}
-
-func Test_storeDashboardSHA256(t *testing.T) {
-	defer func() {
-		storeDashboardSHA256 = false
-	}()
-	type args struct {
-		config interface{}
-	}
-
-	storeDashboardSHA256 = true
-	d := "New Dashboard"
-	expectedSHA256 := sha256.Sum256([]byte(fmt.Sprintf("{\"title\":\"%s\"}", d)))
-	expectedSHA256String := fmt.Sprintf("%x", expectedSHA256[:])
-
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "String dashboard is a sha256",
-			args: args{config: fmt.Sprintf("{\"title\":\"%s\"}", d)},
-			want: expectedSHA256String,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := normalizeDashboardConfigJSON(tt.args.config); got != tt.want {
-				t.Errorf("normalizeDashboardConfigJSON() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestAccDashboard_isSHA256_stored(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-
-	var dashboard gapi.Dashboard
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
-		Steps: []resource.TestStep{
-			{
-				// Test resource creation.
-				Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic_sha256.tf"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccDashboardCheckExists("grafana_dashboard.test_sha256", &dashboard),
-					resource.TestCheckResourceAttr("grafana_dashboard.test_sha256", "uid", "basic"),
-					// fadbc115a19bfd7962d8f8d749d22c20d0a44043d390048bf94b698776d9f7f1
-					// is the sha256 of config_json
-					// {"title":"Terraform Acceptance Test","uid":"basic"}
-					resource.TestCheckResourceAttr(
-						"grafana_dashboard.test_sha256", "config_json", "fadbc115a19bfd7962d8f8d749d22c20d0a44043d390048bf94b698776d9f7f1",
-					),
-				),
-			},
-			{
-				// Updates title.
-				Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic_sha256_update.tf"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccDashboardCheckExists("grafana_dashboard.test_sha256", &dashboard),
-					resource.TestCheckResourceAttr("grafana_dashboard.test_sha256", "uid", "basic"),
-					// 4b24291e35e8856770dfdcc0685be9d3b999947ca0b07fc75337a8c099b20fa5
-					// is the sha256 of config_json
-					// {"title":"Terraform Acceptance Test Updated","uid":"basic"}
-					resource.TestCheckResourceAttr(
-						"grafana_dashboard.test_sha256", "config_json", "4b24291e35e8856770dfdcc0685be9d3b999947ca0b07fc75337a8c099b20fa5",
-					),
-				),
-			},
-		},
-	})
 }
