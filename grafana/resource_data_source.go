@@ -26,10 +26,12 @@ The required arguments for this resource vary depending on the type of data
 source selected (via the 'type' argument).
 `,
 
-		CreateContext: CreateDataSource,
-		UpdateContext: UpdateDataSource,
-		DeleteContext: DeleteDataSource,
-		ReadContext:   ReadDataSource,
+		CreateContext:  CreateDataSource,
+		UpdateContext:  UpdateDataSource,
+		DeleteContext:  DeleteDataSource,
+		ReadContext:    ReadDataSource,
+		StateUpgraders: []schema.StateUpgrader{resourceDataSourceV0Upgrader},
+		SchemaVersion:  1,
 
 		// Import either by ID or UID
 		Importer: &schema.ResourceImporter{
@@ -703,4 +705,60 @@ func makeSecureJSONData(d *schema.ResourceData) gapi.SecureJSONData {
 		TLSClientCert:     d.Get("secure_json_data.0.tls_client_cert").(string),
 		TLSClientKey:      d.Get("secure_json_data.0.tls_client_key").(string),
 	}
+}
+
+// TSDB Version and Resolution used to be strings, but now are integers.
+func resourceDataSourceV0Schema() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"json_data": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"tsdb_resolution": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Description: "(OpenTSDB) Resolution.",
+						},
+						"tsdb_version": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Description: "(OpenTSDB) Version.",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+var resourceDataSourceV0Upgrader = schema.StateUpgrader{
+	Version: 0,
+	Type:    resourceDataSourceV0Schema().CoreConfigSchema().ImpliedType(),
+	Upgrade: func(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
+		convertToInt := func(m map[string]interface{}, key string) {
+			if value, hasValue := m[key]; hasValue {
+				m[key] = 0
+				if valueStr, ok := value.(string); ok {
+					if valueInt, err := strconv.Atoi(valueStr); err == nil {
+						m[key] = valueInt
+					}
+				}
+			}
+		}
+
+		var jsonData map[string]interface{}
+		if jsonDataList, ok := rawState["json_data"].([]interface{}); ok && len(jsonDataList) > 0 {
+			jsonData = jsonDataList[0].(map[string]interface{})
+		} else if jsonDataMap, ok := rawState["json_data"].(map[string]interface{}); ok {
+			jsonData = jsonDataMap
+		}
+		if jsonData != nil {
+			convertToInt(jsonData, "tsdb_version")
+			convertToInt(jsonData, "tsdb_resolution")
+		}
+
+		return rawState, nil
+	},
 }
