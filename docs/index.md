@@ -33,6 +33,7 @@ provider "grafana" {
 - **retries** (Number) The amount of retries to use for Grafana API calls. May alternatively be set via the `GRAFANA_RETRIES` environment variable.
 - **sm_access_token** (String, Sensitive) A Synthetic Monitoring access token. May alternatively be set via the `GRAFANA_SM_ACCESS_TOKEN` environment variable.
 - **sm_url** (String) Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable.
+- **store_dashboard_sha256** (Boolean) Set to true if you want to save only the sha256sum instead of complete dashboard model JSON in the tfstate.
 - **tls_cert** (String) Client TLS certificate file to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.
 - **tls_key** (String) Client TLS key file to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.
 - **url** (String) The root URL of a Grafana server. May alternatively be set via the `GRAFANA_URL` environment variable.

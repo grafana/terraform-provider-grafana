@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -15,58 +16,74 @@ func TestAccDashboard_basic(t *testing.T) {
 
 	var dashboard gapi.Dashboard
 
-	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
-		Steps: []resource.TestStep{
-			{
-				// Test resource creation.
-				Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic.tf"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-					resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic"),
-					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic"),
-					resource.TestCheckResourceAttr(
-						"grafana_dashboard.test", "config_json", `{"title":"Terraform Acceptance Test","uid":"basic"}`,
-					),
-				),
-			},
-			{
-				// Updates title.
-				Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic_update.tf"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-					resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic"),
-					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic"),
-					resource.TestCheckResourceAttr(
-						"grafana_dashboard.test", "config_json", `{"title":"Updated Title","uid":"basic"}`,
-					),
-				),
-			},
-			{
-				// Updates uid.
-				// uid is removed from `config_json` before writing it to state so it's
-				// important to ensure changing it triggers an update of `config_json`.
-				Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic_update_uid.tf"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-					resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic-update"),
-					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic-update"),
-					resource.TestCheckResourceAttr(
-						"grafana_dashboard.test", "config_json", `{"title":"Updated Title","uid":"basic-update"}`,
-					),
-				),
-			},
-			{
-				// Importing matches the state of the previous step.
-				ResourceName:            "grafana_dashboard.test",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"message"},
-			},
-		},
-	})
+	for _, useSHA256 := range []bool{false, true} {
+		t.Run(fmt.Sprintf("useSHA256=%t", useSHA256), func(t *testing.T) {
+			os.Setenv("GRAFANA_STORE_DASHBOARD_SHA256", fmt.Sprintf("%t", useSHA256))
+			defer os.Unsetenv("GRAFANA_STORE_DASHBOARD_SHA256")
+
+			expectedInitialConfig := `{"title":"Terraform Acceptance Test","uid":"basic"}`
+			expectedUpdatedTitleConfig := `{"title":"Updated Title","uid":"basic"}`
+			expectedUpdatedUIDConfig := `{"title":"Updated Title","uid":"basic-update"}`
+			if useSHA256 {
+				expectedInitialConfig = "fadbc115a19bfd7962d8f8d749d22c20d0a44043d390048bf94b698776d9f7f1"
+				expectedUpdatedTitleConfig = "4669abda43a4a6d6ae9ecaa19f8508faf4095682b679da0b5ce4176aa9171ab2"
+				expectedUpdatedUIDConfig = "2934e80938a672bd09d8e56385159a1bf8176e2a2ef549437f200d82ff398bfb"
+			}
+
+			resource.Test(t, resource.TestCase{
+				PreCheck:          func() { testAccPreCheck(t) },
+				ProviderFactories: testAccProviderFactories,
+				CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
+				Steps: []resource.TestStep{
+					{
+						// Test resource creation.
+						Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic.tf"),
+						Check: resource.ComposeTestCheckFunc(
+							testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic"),
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic"),
+							resource.TestCheckResourceAttr(
+								"grafana_dashboard.test", "config_json", expectedInitialConfig,
+							),
+						),
+					},
+					{
+						// Updates title.
+						Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic_update.tf"),
+						Check: resource.ComposeTestCheckFunc(
+							testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic"),
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic"),
+							resource.TestCheckResourceAttr(
+								"grafana_dashboard.test", "config_json", expectedUpdatedTitleConfig,
+							),
+						),
+					},
+					{
+						// Updates uid.
+						// uid is removed from `config_json` before writing it to state so it's
+						// important to ensure changing it triggers an update of `config_json`.
+						Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic_update_uid.tf"),
+						Check: resource.ComposeTestCheckFunc(
+							testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic-update"),
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic-update"),
+							resource.TestCheckResourceAttr(
+								"grafana_dashboard.test", "config_json", expectedUpdatedUIDConfig,
+							),
+						),
+					},
+					{
+						// Importing matches the state of the previous step.
+						ResourceName:            "grafana_dashboard.test",
+						ImportState:             true,
+						ImportStateVerify:       true,
+						ImportStateVerifyIgnore: []string{"message"},
+					},
+				},
+			})
+		})
+	}
 }
 
 func TestAccDashboard_uid_unset(t *testing.T) {

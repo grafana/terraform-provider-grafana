@@ -22,9 +22,11 @@ import (
 )
 
 var (
-	idRegexp    = regexp.MustCompile(`^\d+$`)
-	uidRegexp   = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
-	emailRegexp = regexp.MustCompile(`.+\@.+\..+`)
+	idRegexp             = regexp.MustCompile(`^\d+$`)
+	uidRegexp            = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
+	emailRegexp          = regexp.MustCompile(`.+\@.+\..+`)
+	sha256Regexp         = regexp.MustCompile(`^[A-Fa-f0-9]{64}$`)
+	storeDashboardSHA256 bool
 )
 
 func init() {
@@ -124,6 +126,12 @@ func Provider(version string) func() *schema.Provider {
 					Description:  "Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable.",
 					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 				},
+				"store_dashboard_sha256": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_STORE_DASHBOARD_SHA256", false),
+					Description: "Set to true if you want to save only the sha256sum instead of complete dashboard model JSON in the tfstate.",
+				},
 			},
 
 			ResourcesMap: map[string]*schema.Resource{
@@ -209,6 +217,8 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			return nil, diag.FromErr(err)
 		}
 		c.smapi = createSMClient(d)
+
+		storeDashboardSHA256 = d.Get("store_dashboard_sha256").(bool)
 
 		return c, diags
 	}
