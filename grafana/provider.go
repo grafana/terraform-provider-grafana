@@ -25,6 +25,7 @@ var (
 	idRegexp             = regexp.MustCompile(`^\d+$`)
 	uidRegexp            = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
 	emailRegexp          = regexp.MustCompile(`.+\@.+\..+`)
+	sha256Regexp         = regexp.MustCompile(`^[A-Fa-f0-9]{64}$`)
 	storeDashboardSHA256 bool
 )
 
