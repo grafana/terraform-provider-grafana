@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"testing"
 
@@ -562,6 +563,133 @@ func TestAccDataSource_basic(t *testing.T) {
 					},
 				},
 			},
+		})
+	}
+}
+
+func TestDatasourceMigrationV0(t *testing.T) {
+	cases := []struct {
+		name     string
+		state    map[string]interface{}
+		expected map[string]interface{}
+	}{
+		{
+			name: "no json data",
+			state: map[string]interface{}{
+				"name": "test",
+				"type": "prometheus",
+			},
+			expected: map[string]interface{}{
+				"name": "test",
+				"type": "prometheus",
+			},
+		},
+		{
+			name: "no tsdb fields",
+			state: map[string]interface{}{
+				"name": "test",
+				"type": "prometheus",
+				"json_data": []map[string]interface{}{
+					{
+						"url": "http://localhost:9090",
+					},
+				},
+			},
+			expected: map[string]interface{}{
+				"name": "test",
+				"type": "prometheus",
+				"json_data": []map[string]interface{}{
+					{
+						"url": "http://localhost:9090",
+					},
+				},
+			},
+		},
+		{
+			name: "nil or empty tsdb fields",
+			state: map[string]interface{}{
+				"name": "test",
+				"type": "test",
+				"json_data": []map[string]interface{}{
+					{
+						"tsdb_version":    "",
+						"tsdb_resolution": nil,
+						"url":             "http://localhost:9090",
+					},
+				},
+			},
+			expected: map[string]interface{}{
+				"name": "test",
+				"type": "test",
+				"json_data": []map[string]interface{}{
+					{
+						"tsdb_version":    0,
+						"tsdb_resolution": 0,
+						"url":             "http://localhost:9090",
+					},
+				},
+			},
+		},
+		{
+			name: "already int",
+			state: map[string]interface{}{
+				"name": "test",
+				"type": "test",
+				"json_data": []map[string]interface{}{
+					{
+						"tsdb_version":    0,
+						"tsdb_resolution": 2,
+						"url":             "http://localhost:9090",
+					},
+				},
+			},
+			expected: map[string]interface{}{
+				"name": "test",
+				"type": "test",
+				"json_data": []map[string]interface{}{
+					{
+						"tsdb_version":    0,
+						"tsdb_resolution": 2,
+						"url":             "http://localhost:9090",
+					},
+				},
+			},
+		},
+		{
+			name: "migration",
+			state: map[string]interface{}{
+				"name": "test",
+				"type": "test",
+				"json_data": []map[string]interface{}{
+					{
+						"tsdb_version":    "0",
+						"tsdb_resolution": "2",
+						"url":             "http://localhost:9090",
+					},
+				},
+			},
+			expected: map[string]interface{}{
+				"name": "test",
+				"type": "test",
+				"json_data": []map[string]interface{}{
+					{
+						"tsdb_version":    0,
+						"tsdb_resolution": 2,
+						"url":             "http://localhost:9090",
+					},
+				},
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := resourceDataSourceV0Upgrader.Upgrade(nil, tc.expected, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(actual, tc.expected) {
+				t.Errorf("Expected %#v, got %#v", tc.expected, actual)
+			}
 		})
 	}
 }
