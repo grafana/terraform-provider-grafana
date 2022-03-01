@@ -28,6 +28,7 @@ provider "grafana" {
 - **ca_cert** (String) Certificate CA bundle to use to verify the Grafana server's certificate. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.
 - **cloud_api_key** (String, Sensitive) API key for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_API_KEY` environment variable.
 - **cloud_api_url** (String) Grafana Cloud's API URL. May alternatively be set via the `GRAFANA_CLOUD_API_URL` environment variable.
+- **http_headers** (Map of String, Sensitive) Optional. HTTP headers mapping keys to values used for accessing the Grafana API. May alternatively be set via the `GRAFANA_HTTP_HEADERS` environment variable in JSON format.
 - **insecure_skip_verify** (Boolean) Skip TLS certificate verification. May alternatively be set via the `GRAFANA_INSECURE_SKIP_VERIFY` environment variable.
 - **org_id** (Number) The organization id to operate on within grafana. May alternatively be set via the `GRAFANA_ORG_ID` environment variable.
 - **retries** (Number) The amount of retries to use for Grafana API calls. May alternatively be set via the `GRAFANA_RETRIES` environment variable.

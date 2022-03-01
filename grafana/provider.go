@@ -4,9 +4,11 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 
@@ -59,6 +61,13 @@ func Provider(version string) func() *schema.Provider {
 					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_AUTH", nil),
 					Description:  "API token or basic auth username:password. May alternatively be set via the `GRAFANA_AUTH` environment variable.",
 					AtLeastOneOf: []string{"auth", "cloud_api_key", "sm_access_token"},
+				},
+				"http_headers": {
+					Type:        schema.TypeMap,
+					Optional:    true,
+					Sensitive:   true,
+					DefaultFunc: JSONEnvDefaultFunc("GRAFANA_HTTP_HEADERS", nil),
+					Description: "Optional. HTTP headers mapping keys to values used for accessing the Grafana API. May alternatively be set via the `GRAFANA_HTTP_HEADERS` environment variable in JSON format.",
 				},
 				"retries": {
 					Type:        schema.TypeInt,
@@ -267,6 +276,29 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 	} else {
 		cfg.APIKey = auth[0]
 	}
+
+	headersMap := d.Get("http_headers").(map[string]interface{})
+	if headersMap != nil && len(headersMap) == 0 {
+		// Workaround for a bug when DefaultFunc returns a schema.TypeMap
+		headersMapAbs, err := JSONEnvDefaultFunc("GRAFANA_HTTP_HEADERS", nil)()
+		if err != nil {
+			return "", nil, nil, err
+		}
+		if headersMapAbs != nil {
+			headersMap = headersMapAbs.(map[string]interface{})
+		}
+	}
+	if headersMap != nil {
+		// Convert headers from map[string]interface{} to map[string]string
+		headers := make(map[string]string)
+		for k, v := range headersMap {
+			if v, ok := v.(string); ok {
+				headers[k] = v
+			}
+		}
+		cfg.HTTPHeaders = headers
+	}
+
 	gclient, err := gapi.New(apiURL, cfg)
 	if err != nil {
 		return "", nil, nil, err
@@ -304,4 +336,21 @@ func createSMClient(d *schema.ResourceData) *smapi.Client {
 	smToken := d.Get("sm_access_token").(string)
 	smURL := d.Get("sm_url").(string)
 	return smapi.NewClient(smURL, smToken, nil)
+}
+
+// JSONEnvDefaultFunc is a helper function that parses the given environment
+// variable as a JSON object, or returns the default value otherwise.
+func JSONEnvDefaultFunc(k string, dv interface{}) schema.SchemaDefaultFunc {
+	return func() (interface{}, error) {
+		if valStr := os.Getenv(k); valStr != "" {
+			var valObj map[string]interface{}
+			err := json.Unmarshal([]byte(valStr), &valObj)
+			if err != nil {
+				return nil, err
+			}
+			return valObj, nil
+		}
+
+		return dv, nil
+	}
 }
