@@ -66,7 +66,7 @@ func Provider(version string) func() *schema.Provider {
 					Type:        schema.TypeMap,
 					Optional:    true,
 					Sensitive:   true,
-					DefaultFunc: JSONEnvDefaultFunc("GRAFANA_HTTP_HEADERS", nil),
+					Elem:        &schema.Schema{Type: schema.TypeString},
 					Description: "Optional. HTTP headers mapping keys to values used for accessing the Grafana API. May alternatively be set via the `GRAFANA_HTTP_HEADERS` environment variable in JSON format.",
 				},
 				"retries": {
@@ -195,17 +195,17 @@ func Provider(version string) func() *schema.Provider {
 }
 
 type client struct {
-	gapiURL   string
-	gapi      *gapi.Client
-	gcloudapi *gapi.Client
-	smapi     *smapi.Client
-	mlapi     *mlapi.Client
+	gapiURL    string
+	gapi       *gapi.Client
+	gapiConfig *gapi.Config
+	gcloudapi  *gapi.Client
+	smapi      *smapi.Client
+	mlapi      *mlapi.Client
 }
 
 func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 		var (
-			cfg   *gapi.Config
 			diags diag.Diagnostics
 			err   error
 		)
@@ -213,7 +213,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 
 		c := &client{}
 
-		c.gapiURL, cfg, c.gapi, err = createGrafanaClient(d)
+		c.gapiURL, c.gapiConfig, c.gapi, err = createGrafanaClient(d)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
@@ -221,7 +221,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
-		c.mlapi, err = createMLClient(c.gapiURL, cfg)
+		c.mlapi, err = createMLClient(c.gapiURL, c.gapiConfig)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
@@ -279,17 +279,14 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 
 	headersMap := d.Get("http_headers").(map[string]interface{})
 	if headersMap != nil && len(headersMap) == 0 {
-		// Workaround for a bug when DefaultFunc returns a schema.TypeMap
-		headersMapAbs, err := JSONEnvDefaultFunc("GRAFANA_HTTP_HEADERS", nil)()
+		// We cannot use a DefaultFunc because they do not work on maps
+		var err error
+		headersMap, err = getJSONMap("GRAFANA_HTTP_HEADERS")
 		if err != nil {
-			return "", nil, nil, err
-		}
-		if headersMapAbs != nil {
-			headersMap = headersMapAbs.(map[string]interface{})
+			return "", nil, nil, fmt.Errorf("invalid http_headers config: %w", err)
 		}
 	}
-	if headersMap != nil {
-		// Convert headers from map[string]interface{} to map[string]string
+	if len(headersMap) > 0 {
 		headers := make(map[string]string)
 		for k, v := range headersMap {
 			if v, ok := v.(string); ok {
@@ -338,19 +335,16 @@ func createSMClient(d *schema.ResourceData) *smapi.Client {
 	return smapi.NewClient(smURL, smToken, nil)
 }
 
-// JSONEnvDefaultFunc is a helper function that parses the given environment
-// variable as a JSON object, or returns the default value otherwise.
-func JSONEnvDefaultFunc(k string, dv interface{}) schema.SchemaDefaultFunc {
-	return func() (interface{}, error) {
-		if valStr := os.Getenv(k); valStr != "" {
-			var valObj map[string]interface{}
-			err := json.Unmarshal([]byte(valStr), &valObj)
-			if err != nil {
-				return nil, err
-			}
-			return valObj, nil
+// getJSONMap is a helper function that parses the given environment variable as a JSON object
+func getJSONMap(k string) (map[string]interface{}, error) {
+	if valStr := os.Getenv(k); valStr != "" {
+		var valObj map[string]interface{}
+		err := json.Unmarshal([]byte(valStr), &valObj)
+		if err != nil {
+			return nil, err
 		}
-
-		return dv, nil
+		return valObj, nil
 	}
+	return nil, nil
+
 }

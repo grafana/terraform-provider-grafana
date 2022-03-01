@@ -49,6 +49,27 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: pipeline
+name: unit tests
+platform:
+  arch: amd64
+  os: linux
+services: []
+steps:
+- commands:
+  - go test ./...
+  image: golang:1.16
+  name: tests
+trigger:
+  branch:
+  - master
+  event:
+  - pull_request
+  - push
+type: docker
+workspace:
+  path: /drone/terraform-provider-grafana
+---
+kind: pipeline
 name: cloud tests
 platform:
   arch: amd64
@@ -252,6 +273,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: 21722dfbb237f702dd2e062347c7adfeb8a15a7cf103670928142a975d743d33
+hmac: da6ac4bfbcd28b5ba91a57b10128a0bae335bf46b1bc0ca08ea59326eae3ed16
 
 ...

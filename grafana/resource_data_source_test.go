@@ -568,6 +568,8 @@ func TestAccDataSource_basic(t *testing.T) {
 }
 
 func TestDatasourceMigrationV0(t *testing.T) {
+	IsUnitTest(t)
+
 	cases := []struct {
 		name     string
 		state    map[string]interface{}

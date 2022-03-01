@@ -71,6 +71,19 @@ local pipeline(name, steps, services=[]) = {
   ),
 
   pipeline(
+    'unit tests',
+    steps=[
+      {
+        name: 'tests',
+        image: images.go,
+        commands: [
+          'go test ./...',
+        ],
+      },
+    ]
+  ),
+
+  pipeline(
     'cloud tests',
     steps=[
       {
