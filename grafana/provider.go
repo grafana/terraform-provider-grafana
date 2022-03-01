@@ -346,5 +346,4 @@ func getJSONMap(k string) (map[string]interface{}, error) {
 		return valObj, nil
 	}
 	return nil, nil
-
 }

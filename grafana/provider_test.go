@@ -181,7 +181,6 @@ func TestProviderConfigure(t *testing.T) {
 				},
 				Steps: []resource.TestStep{test},
 			})
-
 		})
 	}
 }
