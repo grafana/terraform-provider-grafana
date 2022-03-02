@@ -48,5 +48,5 @@ resource "grafana_dashboard" "metrics" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_dashboard.dashboard_name {{dashboard_slug}}
+terraform import grafana_dashboard.dashboard_name {{dashboard_uid}}
 ```
