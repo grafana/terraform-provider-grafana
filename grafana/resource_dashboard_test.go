@@ -236,6 +236,8 @@ func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.
 }
 
 func Test_normalizeDashboardConfigJSON(t *testing.T) {
+	IsUnitTest(t)
+
 	type args struct {
 		config interface{}
 	}
