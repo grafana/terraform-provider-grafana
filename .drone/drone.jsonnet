@@ -1,4 +1,4 @@
-local grafanaVersions = ['8.3.3', '8.2.7', '8.1.8', '8.0.7', '7.5.12'];
+local grafanaVersions = ['8.4.3', '8.3.5', '8.2.7', '8.1.8', '7.5.15'];
 local images = {
   go: 'golang:1.16',
   lint: 'golangci/golangci-lint',
@@ -101,7 +101,9 @@ local pipeline(name, steps, services=[]) = {
         },
       },
     ]
-  ),
+  ) + {
+    concurrency: { limit: 1 },
+  },
 
   cloudApiKey,
   apiToken,
