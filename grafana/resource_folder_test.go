@@ -15,13 +15,13 @@ func TestAccFolder_basic(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 
 	var folder gapi.Folder
-	var folderWithUid gapi.Folder
+	var folderWithUID gapi.Folder
 
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccFolderCheckDestroy(&folder),
-			testAccFolderCheckDestroy(&folderWithUid),
+			testAccFolderCheckDestroy(&folderWithUID),
 		),
 		Steps: []resource.TestStep{
 			{
@@ -32,7 +32,7 @@ func TestAccFolder_basic(t *testing.T) {
 					resource.TestMatchResourceAttr("grafana_folder.test_folder", "uid", uidRegexp),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder", "title", "Terraform Test Folder"),
 
-					testAccFolderCheckExists("grafana_folder.test_folder_with_uid", &folderWithUid),
+					testAccFolderCheckExists("grafana_folder.test_folder_with_uid", &folderWithUID),
 					resource.TestMatchResourceAttr("grafana_folder.test_folder_with_uid", "id", idRegexp),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "uid", "test-folder-uid"),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "title", "Terraform Test Folder With UID"),
