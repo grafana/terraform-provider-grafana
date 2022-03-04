@@ -31,10 +31,13 @@ resource "grafana_dashboard" "metrics" {
 
 - **title** (String) The title of the folder.
 
+### Optional
+
+- **uid** (String) Unique identifier.
+
 ### Read-Only
 
 - **id** (String) Unique internal identifier.
-- **uid** (String) Unique identifier.
 
 ## Import
 

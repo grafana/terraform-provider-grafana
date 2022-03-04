@@ -24,12 +24,24 @@ func TestAccFolder_basic(t *testing.T) {
 				Config: testAccFolderConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
-					resource.TestMatchResourceAttr(
-						"grafana_folder.test_folder", "id", idRegexp,
-					),
-					resource.TestMatchResourceAttr(
-						"grafana_folder.test_folder", "uid", uidRegexp,
-					),
+					resource.TestMatchResourceAttr("grafana_folder.test_folder", "id", idRegexp),
+					resource.TestMatchResourceAttr("grafana_folder.test_folder", "uid", uidRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.test_folder", "title", "Terraform Acceptance Test Folder"),
+				),
+			},
+			{
+				ResourceName:      "grafana_folder.test_folder",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Same test with UID explicitely set
+			{
+				Config: testAccFolderConfig_withUID,
+				Check: resource.ComposeTestCheckFunc(
+					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
+					resource.TestMatchResourceAttr("grafana_folder.test_folder", "id", idRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.test_folder", "uid", "test-folder-uid"),
+					resource.TestCheckResourceAttr("grafana_folder.test_folder", "title", "Terraform Acceptance Test Folder"),
 				),
 			},
 			{
@@ -85,6 +97,13 @@ func testAccFolderCheckDestroy(folder *gapi.Folder) resource.TestCheckFunc {
 
 const testAccFolderConfig_basic = `
 resource "grafana_folder" "test_folder" {
+    title = "Terraform Acceptance Test Folder"
+}
+`
+
+const testAccFolderConfig_withUID = `
+resource "grafana_folder" "test_folder" {
+	uid   = "test-folder-uid"
     title = "Terraform Acceptance Test Folder"
 }
 `

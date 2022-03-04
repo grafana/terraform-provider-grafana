@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -27,17 +28,17 @@ func ResourceFolder() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"uid": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Unique identifier.",
-			},
 			"id": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Required:    false,
-				Optional:    false,
 				Description: "Unique internal identifier.",
+			},
+			"uid": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Unique identifier.",
 			},
 			"title": {
 				Type:        schema.TypeString,
@@ -52,15 +53,21 @@ func ResourceFolder() *schema.Resource {
 func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	model := d.Get("title").(string)
-
-	resp, err := client.NewFolder(model)
+	var resp gapi.Folder
+	var err error
+	title := d.Get("title").(string)
+	if uid, ok := d.GetOk("uid"); ok {
+		resp, err = client.NewFolder(title, uid.(string))
+	} else {
+		resp, err = client.NewFolder(title)
+	}
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	id := strconv.FormatInt(resp.ID, 10)
 	d.SetId(id)
+	d.Set("id", id)
 	d.Set("uid", resp.UID)
 	d.Set("title", resp.Title)
 
