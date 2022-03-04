@@ -7,10 +7,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DataSourceStack() *schema.Resource {
+func DatasourceCloudStack() *schema.Resource {
 	return &schema.Resource{
 		Description: "Data source for Grafana Stack",
-		ReadContext: datasourceStackRead,
+		ReadContext: datasourceCloudStackRead,
 		Schema: map[string]*schema.Schema{
 			"id": {
 				Type:        schema.TypeString,
@@ -118,7 +118,7 @@ available at “https://<stack_slug>.grafana.net".`,
 	}
 }
 
-func datasourceStackRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func datasourceCloudStackRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gcloudapi
 
 	var diags diag.Diagnostics

@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestResourceStack_Basic(t *testing.T) {
+func TestResourceCloudStack_Basic(t *testing.T) {
 	CheckCloudTestsEnabled(t)
 
 	prefix := "tfresourcetest"

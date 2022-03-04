@@ -16,7 +16,7 @@ import (
 
 var stackSlugRegex = regexp.MustCompile("^[a-z][a-z0-9]+$")
 
-func ResourceStack() *schema.Resource {
+func ResourceCloudStack() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
