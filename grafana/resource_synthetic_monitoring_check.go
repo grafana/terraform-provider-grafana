@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	sm "github.com/grafana/synthetic-monitoring-agent/pkg/pb/synthetic_monitoring"
 )
@@ -473,9 +474,10 @@ multiple checks for a single endpoint to check different capabilities.
 			"frequency": {
 				Description: "How often the check runs in milliseconds (the value is not truly a \"frequency\" but a \"period\"). " +
 					"The minimum acceptable value is 1 second (1000 ms), and the maximum is 120 seconds (120000 ms).",
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  60000,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      60000,
+				ValidateFunc: validation.IntBetween(1000, 120000),
 			},
 			"timeout": {
 				Description: "Specifies the maximum running time for the check in milliseconds. " +
