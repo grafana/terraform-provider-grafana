@@ -163,7 +163,9 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_team_preferences":        ResourceTeamPreferences(),
 				"grafana_team_external_group":     ResourceTeamExternalGroup(),
 				"grafana_user":                    ResourceUser(),
-				"grafana_cloud_stack":             ResourceStack(),
+
+				// Cloud
+				"grafana_cloud_stack": ResourceCloudStack(),
 
 				// Synthetic Monitoring
 				"grafana_synthetic_monitoring_check": resourceSyntheticMonitoringCheck(),
@@ -180,7 +182,9 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_folder":        DatasourceFolder(),
 				"grafana_library_panel": DatasourceLibraryPanel(),
 				"grafana_user":          DatasourceUser(),
-				"grafana_cloud_stack":   DataSourceStack(),
+
+				// Cloud
+				"grafana_cloud_stack": DatasourceCloudStack(),
 
 				// Synthetic Monitoring
 				"grafana_synthetic_monitoring_probe":  dataSourceSyntheticMonitoringProbe(),

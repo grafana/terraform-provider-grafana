@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestAccDataSourceStack_Basic(t *testing.T) {
+func TestAccDatasourceCloudStack_Basic(t *testing.T) {
 	CheckCloudTestsEnabled(t)
 
 	prefix := "tfdatatest"
@@ -26,7 +26,7 @@ func TestAccDataSourceStack_Basic(t *testing.T) {
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDataSourceStackConfig(resourceName),
+				Config: testAccDatasourceCloudStackConfig(resourceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
 					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "id"),
@@ -48,7 +48,7 @@ func TestAccDataSourceStack_Basic(t *testing.T) {
 	})
 }
 
-func testAccDataSourceStackConfig(resourceName string) string {
+func testAccDatasourceCloudStackConfig(resourceName string) string {
 	return fmt.Sprintf(`
 resource "grafana_cloud_stack" "test" {
   name = "%s"
