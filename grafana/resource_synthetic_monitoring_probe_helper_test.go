@@ -8,7 +8,7 @@ import (
 )
 
 func TestImportProbeStateWithToken(t *testing.T) {
-	CheckCloudTestsEnabled(t)
+	CheckCloudInstanceTestsEnabled(t)
 
 	testcases := map[string]struct {
 		input             string

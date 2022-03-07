@@ -15,7 +15,7 @@ import (
 )
 
 func TestResourceCloudStack_Basic(t *testing.T) {
-	CheckCloudTestsEnabled(t)
+	CheckCloudAPITestsEnabled(t)
 
 	prefix := "tfresourcetest"
 
@@ -25,7 +25,7 @@ func TestResourceCloudStack_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckCloudStack(t)
+			testAccPreCheck(t)
 			testAccDeleteExistingStacks(t, prefix)
 		},
 		ProviderFactories: testAccProviderFactories,

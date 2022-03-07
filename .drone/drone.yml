@@ -72,19 +72,43 @@ workspace:
 concurrency:
   limit: 1
 kind: pipeline
-name: cloud tests
+name: cloud api tests
 platform:
   arch: amd64
   os: linux
 services: []
 steps:
 - commands:
-  - make testacc-cloud
+  - make testacc-cloud-api
+  environment:
+    GRAFANA_CLOUD_API_KEY:
+      from_secret: grafana-cloud-api-key
+  image: golang:1.17
+  name: tests
+trigger:
+  branch:
+  - master
+  event:
+  - pull_request
+  - push
+type: docker
+workspace:
+  path: /drone/terraform-provider-grafana
+---
+concurrency:
+  limit: 1
+kind: pipeline
+name: cloud instance tests
+platform:
+  arch: amd64
+  os: linux
+services: []
+steps:
+- commands:
+  - make testacc-cloud-instance
   environment:
     GRAFANA_AUTH:
       from_secret: grafana-api-token
-    GRAFANA_CLOUD_API_KEY:
-      from_secret: grafana-cloud-api-key
     GRAFANA_ORG_ID: 1
     GRAFANA_SM_ACCESS_TOKEN:
       from_secret: grafana-sm-token
@@ -275,6 +299,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: af159720377f6a89c2f30c9ac98a010fea321064b6b250aa34fc9c761cf115e1
+hmac: 087ea63b283558d4c10e0dd0f3bf2a0dc9ff352d090c4b1f5852659f9c29aeef
 
 ...

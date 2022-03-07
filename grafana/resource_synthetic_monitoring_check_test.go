@@ -8,10 +8,10 @@ import (
 )
 
 func TestAccResourceSyntheticMonitoringCheck_dns(t *testing.T) {
-	CheckCloudTestsEnabled(t)
+	CheckCloudInstanceTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheckCloud(t) },
+		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -60,10 +60,10 @@ func TestAccResourceSyntheticMonitoringCheck_dns(t *testing.T) {
 }
 
 func TestAccResourceSyntheticMonitoringCheck_http(t *testing.T) {
-	CheckCloudTestsEnabled(t)
+	CheckCloudInstanceTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheckCloud(t) },
+		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -117,10 +117,10 @@ func TestAccResourceSyntheticMonitoringCheck_http(t *testing.T) {
 }
 
 func TestAccResourceSyntheticMonitoringCheck_ping(t *testing.T) {
-	CheckCloudTestsEnabled(t)
+	CheckCloudInstanceTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheckCloud(t) },
+		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -155,10 +155,10 @@ func TestAccResourceSyntheticMonitoringCheck_ping(t *testing.T) {
 }
 
 func TestAccResourceSyntheticMonitoringCheck_tcp(t *testing.T) {
-	CheckCloudTestsEnabled(t)
+	CheckCloudInstanceTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheckCloud(t) },
+		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -201,10 +201,10 @@ func TestAccResourceSyntheticMonitoringCheck_tcp(t *testing.T) {
 }
 
 func TestAccResourceSyntheticMonitoringCheck_traceroute(t *testing.T) {
-	CheckCloudTestsEnabled(t)
+	CheckCloudInstanceTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheckCloud(t) },
+		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -241,10 +241,10 @@ func TestAccResourceSyntheticMonitoringCheck_traceroute(t *testing.T) {
 }
 
 func TestAccResourceSyntheticMonitoringCheck_noSettings(t *testing.T) {
-	CheckCloudTestsEnabled(t)
+	CheckCloudInstanceTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheckCloud(t) },
+		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -257,10 +257,10 @@ func TestAccResourceSyntheticMonitoringCheck_noSettings(t *testing.T) {
 }
 
 func TestAccResourceSyntheticMonitoringCheck_multiple(t *testing.T) {
-	CheckCloudTestsEnabled(t)
+	CheckCloudInstanceTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheckCloud(t) },
+		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{

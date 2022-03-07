@@ -11,7 +11,7 @@ import (
 )
 
 func TestAccDatasourceCloudStack_Basic(t *testing.T) {
-	CheckCloudTestsEnabled(t)
+	CheckCloudAPITestsEnabled(t)
 
 	prefix := "tfdatatest"
 
@@ -19,7 +19,7 @@ func TestAccDatasourceCloudStack_Basic(t *testing.T) {
 	var stack gapi.Stack
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheckCloudStack(t)
+			testAccPreCheck(t)
 			testAccDeleteExistingStacks(t, prefix)
 		},
 		ProviderFactories: testAccProviderFactories,

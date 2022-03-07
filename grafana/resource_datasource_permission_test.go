@@ -10,7 +10,7 @@ import (
 )
 
 func TestAccDatasourcePermission_basic(t *testing.T) {
-	CheckCloudTestsEnabled(t)
+	CheckCloudInstanceTestsEnabled(t)
 
 	datasourceID := int64(-1)
 
