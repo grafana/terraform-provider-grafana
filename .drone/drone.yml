@@ -36,7 +36,7 @@ steps:
   - '  echo "docs are out of sync, run \"go generate\""'
   - '  exit 1'
   - fi
-  image: golang:1.16
+  image: golang:1.17
   name: check for drift
 trigger:
   branch:
@@ -57,7 +57,7 @@ services: []
 steps:
 - commands:
   - go test ./...
-  image: golang:1.16
+  image: golang:1.17
   name: tests
 trigger:
   branch:
@@ -89,7 +89,7 @@ steps:
     GRAFANA_SM_ACCESS_TOKEN:
       from_secret: grafana-sm-token
     GRAFANA_URL: https://terraformprovidergrafana.grafana.net/
-  image: golang:1.16
+  image: golang:1.17
   name: tests
 trigger:
   branch:
@@ -138,7 +138,7 @@ steps:
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 8.4.3
-  image: golang:1.16
+  image: golang:1.17
   name: tests
 trigger:
   branch:
@@ -169,7 +169,7 @@ steps:
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 8.3.5
-  image: golang:1.16
+  image: golang:1.17
   name: tests
 trigger:
   branch:
@@ -200,7 +200,7 @@ steps:
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 8.2.7
-  image: golang:1.16
+  image: golang:1.17
   name: tests
 trigger:
   branch:
@@ -231,7 +231,7 @@ steps:
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 8.1.8
-  image: golang:1.16
+  image: golang:1.17
   name: tests
 trigger:
   branch:
@@ -262,7 +262,7 @@ steps:
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 7.5.15
-  image: golang:1.16
+  image: golang:1.17
   name: tests
 trigger:
   branch:
@@ -275,6 +275,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: c38c84f5d0d69205afba5a641ff418a50bf9991cace102a7e607735db92fd0b1
+hmac: af159720377f6a89c2f30c9ac98a010fea321064b6b250aa34fc9c761cf115e1
 
 ...

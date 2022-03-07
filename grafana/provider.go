@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"regexp"
@@ -249,7 +248,7 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 	caCert := d.Get("ca_cert").(string)
 	insecure := d.Get("insecure_skip_verify").(bool)
 	if caCert != "" {
-		ca, err := ioutil.ReadFile(caCert)
+		ca, err := os.ReadFile(caCert)
 		if err != nil {
 			return "", nil, nil, err
 		}

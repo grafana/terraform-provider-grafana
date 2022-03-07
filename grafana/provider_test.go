@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"strconv"
@@ -229,7 +228,7 @@ func testAccPreCheckCloudStack(t *testing.T) {
 // testAccExample returns an example config from the examples directory.
 // Examples are used for both documentation and acceptance tests.
 func testAccExample(t *testing.T, path string) string {
-	example, err := ioutil.ReadFile("../examples/" + path)
+	example, err := os.ReadFile("../examples/" + path)
 	if err != nil {
 		t.Fatal(err)
 	}
