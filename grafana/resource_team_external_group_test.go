@@ -15,7 +15,6 @@ func TestAccTeamExternalGroup_basic(t *testing.T) {
 	teamID := int64(-1)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccTeamExternalGroupCheckDestroy(),
 		Steps: []resource.TestStep{

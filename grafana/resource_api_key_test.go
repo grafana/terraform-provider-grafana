@@ -28,7 +28,6 @@ func TestAccGrafanaAuthKey(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccGrafanaAuthKeyCheckDestroy,
 		Steps: []resource.TestStep{

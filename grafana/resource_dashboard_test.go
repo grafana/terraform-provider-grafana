@@ -31,7 +31,6 @@ func TestAccDashboard_basic(t *testing.T) {
 			}
 
 			resource.Test(t, resource.TestCase{
-				PreCheck:          func() { testAccPreCheck(t) },
 				ProviderFactories: testAccProviderFactories,
 				CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
 				Steps: []resource.TestStep{
@@ -92,7 +91,6 @@ func TestAccDashboard_uid_unset(t *testing.T) {
 	var dashboard gapi.Dashboard
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
 		Steps: []resource.TestStep{
@@ -137,7 +135,6 @@ func TestAccDashboard_computed_config(t *testing.T) {
 	var dashboard gapi.Dashboard
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
 		Steps: []resource.TestStep{
@@ -160,7 +157,6 @@ func TestAccDashboard_folder(t *testing.T) {
 	var folder gapi.Folder
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccDashboardFolderCheckDestroy(&dashboard, &folder),
 		Steps: []resource.TestStep{

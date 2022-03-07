@@ -15,7 +15,6 @@ func TestAccDatasourcePermission_basic(t *testing.T) {
 	datasourceID := int64(-1)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{

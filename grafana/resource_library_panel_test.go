@@ -17,7 +17,6 @@ func TestAccLibraryPanel_basic(t *testing.T) {
 	var panel gapi.LibraryPanel
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccLibraryPanelCheckDestroy(&panel),
 		Steps: []resource.TestStep{
@@ -56,7 +55,6 @@ func TestAccLibraryPanel_computed_config(t *testing.T) {
 	var panel gapi.LibraryPanel
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccLibraryPanelCheckDestroy(&panel),
 		Steps: []resource.TestStep{
@@ -80,7 +78,6 @@ func TestAccLibraryPanel_folder(t *testing.T) {
 	var folder gapi.Folder
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccLibraryPanelFolderCheckDestroy(&panel, &folder),
 		Steps: []resource.TestStep{
@@ -108,7 +105,6 @@ func TestAccLibraryPanel_dashboard(t *testing.T) {
 	var dashboard gapi.Dashboard
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccLibraryPanelCheckDestroy(&panel),
 		Steps: []resource.TestStep{

@@ -20,7 +20,6 @@ func TestAccPlaylist_basic(t *testing.T) {
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccPlaylistDestroy,
 		Steps: []resource.TestStep{
@@ -57,7 +56,6 @@ func TestAccPlaylist_update(t *testing.T) {
 	updatedName := "updated name"
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccPlaylistDestroy,
 		Steps: []resource.TestStep{
@@ -97,7 +95,6 @@ func TestAccPlaylist_disappears(t *testing.T) {
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccPlaylistDestroy,
 		Steps: []resource.TestStep{

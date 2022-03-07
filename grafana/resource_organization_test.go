@@ -16,7 +16,6 @@ func TestAccOrganization_basic(t *testing.T) {
 	var org gapi.Org
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{
@@ -70,7 +69,6 @@ func TestAccOrganization_users(t *testing.T) {
 	var org gapi.Org
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{
@@ -138,7 +136,6 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 	var org gapi.Org
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{

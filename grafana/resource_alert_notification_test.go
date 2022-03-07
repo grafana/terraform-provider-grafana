@@ -18,7 +18,6 @@ func TestAccAlertNotification_basic(t *testing.T) {
 	var alertNotification gapi.AlertNotification
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
@@ -57,7 +56,6 @@ func TestAccAlertNotification_disableResolveMessage(t *testing.T) {
 	var alertNotification gapi.AlertNotification
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
@@ -96,7 +94,6 @@ func TestAccAlertNotification_invalid_frequency(t *testing.T) {
 	var alertNotification gapi.AlertNotification
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
@@ -114,7 +111,6 @@ func TestAccAlertNotification_reminder_no_frequency(t *testing.T) {
 	var alertNotification gapi.AlertNotification
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{

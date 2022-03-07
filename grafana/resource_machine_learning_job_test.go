@@ -16,7 +16,6 @@ func TestAccResourceMachineLearningJob(t *testing.T) {
 
 	var job mlapi.Job
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccMLJobCheckDestroy(&job),
 		Steps: []resource.TestStep{
@@ -108,7 +107,6 @@ func TestAccResourceInvalidMachineLearningJob(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{

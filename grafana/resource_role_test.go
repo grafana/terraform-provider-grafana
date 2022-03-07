@@ -16,7 +16,6 @@ func TestAccRole(t *testing.T) {
 	var role gapi.Role
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccRoleCheckDestroy(&role),
 		Steps: []resource.TestStep{
