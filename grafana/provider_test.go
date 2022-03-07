@@ -222,7 +222,7 @@ func accTestsEnabled(t *testing.T, envVarName string) bool {
 	return enabled
 }
 
-func checkEnvVarsSet(t *testing.T, envVars []string) {
+func checkEnvVarsSet(t *testing.T, envVars ...string) {
 	t.Helper()
 
 	for _, envVar := range envVars {
@@ -248,11 +248,11 @@ func CheckOSSTestsEnabled(t *testing.T) {
 		t.Skip("TF_ACC_OSS must be set to a truthy value for OSS acceptance tests")
 	}
 
-	checkEnvVarsSet(t, []string{
+	checkEnvVarsSet(t,
 		"GRAFANA_URL",
 		"GRAFANA_AUTH",
 		"GRAFANA_ORG_ID",
-	})
+	)
 }
 
 // CheckOSSTestsSemver allows to skip tests that are not supported by the Grafana OSS version
@@ -280,9 +280,7 @@ func CheckCloudAPITestsEnabled(t *testing.T) {
 		t.Skip("TF_ACC_CLOUD_API must be set to a truthy value for Cloud API acceptance tests")
 	}
 
-	checkEnvVarsSet(t, []string{
-		"GRAFANA_CLOUD_API_KEY",
-	})
+	checkEnvVarsSet(t, "GRAFANA_CLOUD_API_KEY")
 }
 
 // CheckCloudInstanceTestsEnabled checks if tests that run on cloud instances are enabled. This should be the first line of any test that tests Grafana Cloud Pro features
@@ -293,12 +291,12 @@ func CheckCloudInstanceTestsEnabled(t *testing.T) {
 		t.Skip("TF_ACC_CLOUD_INSTANCE must be set to a truthy value for Cloud instance acceptance tests")
 	}
 
-	checkEnvVarsSet(t, []string{
+	checkEnvVarsSet(t,
 		"GRAFANA_URL",
 		"GRAFANA_AUTH",
 		"GRAFANA_ORG_ID",
 		"GRAFANA_SM_ACCESS_TOKEN",
-	})
+	)
 }
 
 // CheckEnterpriseTestsEnabled checks if the enterprise tests are enabled. This should be the first line of any test that tests Grafana Enterprise features
@@ -309,9 +307,9 @@ func CheckEnterpriseTestsEnabled(t *testing.T) {
 		t.Skip("TF_ACC_ENTERPRISE must be set to a truthy value for Enterprise acceptance tests")
 	}
 
-	checkEnvVarsSet(t, []string{
+	checkEnvVarsSet(t,
 		"GRAFANA_URL",
 		"GRAFANA_AUTH",
 		"GRAFANA_ORG_ID",
-	})
+	)
 }
