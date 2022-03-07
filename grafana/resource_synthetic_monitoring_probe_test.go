@@ -10,7 +10,6 @@ func TestAccResourceSyntheticMonitoringProbe(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{

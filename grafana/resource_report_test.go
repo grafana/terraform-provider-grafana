@@ -16,7 +16,6 @@ func TestAccResourceReport(t *testing.T) {
 	var report gapi.Report
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccReportCheckDestroy(&report),
 		Steps: []resource.TestStep{

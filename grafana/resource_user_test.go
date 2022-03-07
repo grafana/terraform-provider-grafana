@@ -16,7 +16,6 @@ func TestAccUser_basic(t *testing.T) {
 
 	var user gapi.User
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccUserCheckDestroy(&user),
 		Steps: []resource.TestStep{

@@ -16,7 +16,6 @@ func TestAccTeam_basic(t *testing.T) {
 	var team gapi.Team
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccTeamCheckDestroy(&team),
 		Steps: []resource.TestStep{
@@ -62,7 +61,6 @@ func TestAccTeam_Members(t *testing.T) {
 	var team gapi.Team
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccTeamCheckDestroy(&team),
 		Steps: []resource.TestStep{

@@ -15,7 +15,6 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 	dashboardID := int64(-1)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccDashboardPermissionCheckDestroy(),
 		Steps: []resource.TestStep{

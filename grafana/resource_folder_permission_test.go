@@ -14,7 +14,6 @@ func TestAccFolderPermission_basic(t *testing.T) {
 	folderUID := "uninitialized"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccFolderPermissionCheckDestroy(),
 		Steps: []resource.TestStep{

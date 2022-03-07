@@ -35,7 +35,6 @@ func TestAccDatasourceDashboardBasicID(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
 		Steps: []resource.TestStep{
@@ -51,7 +50,6 @@ func TestAccDatasourceDashboardBadExactlyOneOf(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{

@@ -11,7 +11,6 @@ func TestAccTeamPreferences_basic(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccTeamPreferencesCheckDestroy(),
 		Steps: []resource.TestStep{

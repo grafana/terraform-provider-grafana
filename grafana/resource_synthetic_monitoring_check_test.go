@@ -11,7 +11,6 @@ func TestAccResourceSyntheticMonitoringCheck_dns(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -63,7 +62,6 @@ func TestAccResourceSyntheticMonitoringCheck_http(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -120,7 +118,6 @@ func TestAccResourceSyntheticMonitoringCheck_ping(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -158,7 +155,6 @@ func TestAccResourceSyntheticMonitoringCheck_tcp(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -204,7 +200,6 @@ func TestAccResourceSyntheticMonitoringCheck_traceroute(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -244,7 +239,6 @@ func TestAccResourceSyntheticMonitoringCheck_noSettings(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -260,7 +254,6 @@ func TestAccResourceSyntheticMonitoringCheck_multiple(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{

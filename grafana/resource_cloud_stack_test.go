@@ -25,7 +25,6 @@ func TestResourceCloudStack_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccPreCheck(t)
 			testAccDeleteExistingStacks(t, prefix)
 		},
 		ProviderFactories: testAccProviderFactories,

@@ -23,15 +23,9 @@ var testAccProviderFactories map[string]func() (*schema.Provider, error)
 // This Provider can be used in testing code for API calls without requiring
 // the use of saving and referencing specific ProviderFactories instances.
 //
-// testAccPreCheck(t) must be called before using this provider instance.
+// It is configured within the accTestsEnabled function (if acceptance tests are enabled)
+// testAccProviderConfigure is used to make sure that we only configure the provider once
 var testAccProvider *schema.Provider
-
-// testAccProviderConfigure ensures that testAccProvider is only configured once.
-//
-// The testAccPreCheck(t) function is invoked for every test and this prevents
-// extraneous reconfiguration to the same values each time. However, this does
-// not prevent reconfiguration that may happen should the address of
-// testAccProvider be errantly reused in ProviderFactories.
 var testAccProviderConfigure sync.Once
 
 func init() {
@@ -184,22 +178,6 @@ func TestProviderConfigure(t *testing.T) {
 	}
 }
 
-// testAccPreCheck verifies required provider testing configuration. It should
-// be present in every acceptance test.
-//
-// These verifications and configuration are preferred at this level to prevent
-// provider developers from experiencing less clear errors for every test.
-func testAccPreCheck(t *testing.T) {
-	testAccProviderConfigure.Do(func() {
-		// Since we are outside the scope of the Terraform configuration we must
-		// call Configure() to properly initialize the provider configuration.
-		err := testAccProvider.Configure(context.Background(), terraform.NewResourceConfigRaw(nil))
-		if err != nil {
-			t.Fatal(err)
-		}
-	})
-}
-
 // testAccExample returns an example config from the examples directory.
 // Examples are used for both documentation and acceptance tests.
 func testAccExample(t *testing.T, path string) string {
@@ -219,6 +197,19 @@ func accTestsEnabled(t *testing.T, envVarName string) bool {
 	if err != nil {
 		t.Fatalf("%s must be set to a boolean value", envVarName)
 	}
+
+	// If any acceptance tests are enabled, the test provider must be configured
+	if enabled {
+		testAccProviderConfigure.Do(func() {
+			// Since we are outside the scope of the Terraform configuration we must
+			// call Configure() to properly initialize the provider configuration.
+			err := testAccProvider.Configure(context.Background(), terraform.NewResourceConfigRaw(nil))
+			if err != nil {
+				t.Fatalf("failed to configure provider: %v", err)
+			}
+		})
+	}
+
 	return enabled
 }
 
@@ -252,6 +243,7 @@ func CheckOSSTestsEnabled(t *testing.T) {
 		"GRAFANA_URL",
 		"GRAFANA_AUTH",
 		"GRAFANA_ORG_ID",
+		"GRAFANA_VERSION",
 	)
 }
 
