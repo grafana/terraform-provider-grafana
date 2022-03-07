@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"strconv"
+	"time"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -39,6 +40,13 @@ Manages Grafana API Keys.
 				Optional: true,
 				ForceNew: true,
 			},
+			"cloud_stack_slug": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "If set, the API key will be created for the given Cloud stack. This can be used to bootstrap a management API key for a new stack. **Note**: This requires a cloud token to be configured.",
+			},
+
 			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -61,7 +69,12 @@ func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	role := d.Get("role").(string)
 	ttl := d.Get("seconds_to_live").(int)
 
-	c := m.(*client).gapi
+	c, cleanup, err := getClientForAPIKeyManagement(d, m)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	defer cleanup()
+
 	request := gapi.CreateAPIKeyRequest{Name: name, Role: role, SecondsToLive: int64(ttl)}
 	response, err := c.CreateAPIKey(request)
 	if err != nil {
@@ -76,7 +89,12 @@ func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 }
 
 func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c := m.(*client).gapi
+	c, cleanup, err := getClientForAPIKeyManagement(d, m)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	defer cleanup()
+
 	response, err := c.GetAPIKeys(true)
 	if err != nil {
 		return diag.FromErr(err)
@@ -112,11 +130,27 @@ func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	c := m.(*client).gapi
+	c, cleanup, err := getClientForAPIKeyManagement(d, m)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	defer cleanup()
+
 	_, err = c.DeleteAPIKey(id)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	return nil
+}
+
+func getClientForAPIKeyManagement(d *schema.ResourceData, m interface{}) (c *gapi.Client, cleanup func() error, err error) {
+	c = m.(*client).gapi
+	cleanup = func() error { return nil }
+	if cloudStackSlug, ok := d.GetOk("cloud_stack_slug"); ok && cloudStackSlug.(string) != "" {
+		cloudClient := m.(*client).gcloudapi
+		c, cleanup, err = cloudClient.CreateTemporaryStackGrafanaClient(cloudStackSlug.(string), "terraform-temp-", 60*time.Second)
+	}
+
+	return
 }
