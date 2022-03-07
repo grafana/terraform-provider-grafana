@@ -11,12 +11,12 @@ import (
 )
 
 func TestAccResourceReport(t *testing.T) {
-	CheckCloudTestsEnabled(t)
+	CheckCloudInstanceTestsEnabled(t)
 
 	var report gapi.Report
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheckCloud(t) },
+		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccReportCheckDestroy(&report),
 		Steps: []resource.TestStep{

@@ -7,10 +7,10 @@ import (
 )
 
 func TestAccDataSourceSyntheticMonitoringProbe(t *testing.T) {
-	CheckCloudTestsEnabled(t)
+	CheckCloudInstanceTestsEnabled(t)
 
-	resource.UnitTest(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheckCloud(t) },
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{

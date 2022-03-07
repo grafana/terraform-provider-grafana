@@ -184,25 +184,12 @@ func TestProviderConfigure(t *testing.T) {
 	}
 }
 
-// testAccPreCheckEnv contains all environment variables that must be present
-// for acceptance tests to run. These are checked in testAccPreCheck.
-var testAccPreCheckEnv = []string{
-	"GRAFANA_URL",
-	"GRAFANA_AUTH",
-	"GRAFANA_ORG_ID",
-}
-
 // testAccPreCheck verifies required provider testing configuration. It should
 // be present in every acceptance test.
 //
 // These verifications and configuration are preferred at this level to prevent
 // provider developers from experiencing less clear errors for every test.
 func testAccPreCheck(t *testing.T) {
-	for _, e := range testAccPreCheckEnv {
-		if v := os.Getenv(e); v == "" {
-			t.Fatal(e + " must be set for acceptance tests")
-		}
-	}
 	testAccProviderConfigure.Do(func() {
 		// Since we are outside the scope of the Terraform configuration we must
 		// call Configure() to properly initialize the provider configuration.
@@ -211,18 +198,6 @@ func testAccPreCheck(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
-}
-
-// testAccPreCheckCloud should be called by cloud acceptance tests
-func testAccPreCheckCloud(t *testing.T) {
-	testAccPreCheckEnv = append(testAccPreCheckEnv, "GRAFANA_SM_ACCESS_TOKEN")
-	testAccPreCheck(t)
-}
-
-// testAccPreCheckCloudStack should be called by cloud stack acceptance tests
-func testAccPreCheckCloudStack(t *testing.T) {
-	testAccPreCheckEnv = append(testAccPreCheckEnv, "GRAFANA_CLOUD_API_KEY")
-	testAccPreCheck(t)
 }
 
 // testAccExample returns an example config from the examples directory.
@@ -247,6 +222,16 @@ func accTestsEnabled(t *testing.T, envVarName string) bool {
 	return enabled
 }
 
+func checkEnvVarsSet(t *testing.T, envVars ...string) {
+	t.Helper()
+
+	for _, envVar := range envVars {
+		if os.Getenv(envVar) == "" {
+			t.Fatalf("%s must be set", envVar)
+		}
+	}
+}
+
 func IsUnitTest(t *testing.T) {
 	t.Helper()
 
@@ -255,13 +240,22 @@ func IsUnitTest(t *testing.T) {
 	}
 }
 
+// CheckOSSTestsEnabled checks if the OSS acceptance tests are enabled. This should be the first line of any test that uses Grafana OSS features only
 func CheckOSSTestsEnabled(t *testing.T) {
 	t.Helper()
+
 	if !accTestsEnabled(t, "TF_ACC_OSS") {
 		t.Skip("TF_ACC_OSS must be set to a truthy value for OSS acceptance tests")
 	}
+
+	checkEnvVarsSet(t,
+		"GRAFANA_URL",
+		"GRAFANA_AUTH",
+		"GRAFANA_ORG_ID",
+	)
 }
 
+// CheckOSSTestsSemver allows to skip tests that are not supported by the Grafana OSS version
 func CheckOSSTestsSemver(t *testing.T, semverConstraint string) {
 	t.Helper()
 
@@ -278,16 +272,44 @@ func CheckOSSTestsSemver(t *testing.T, semverConstraint string) {
 	}
 }
 
-func CheckCloudTestsEnabled(t *testing.T) {
+// CheckCloudTestsEnabled checks if the cloud tests are enabled. This should be the first line of any test that tests Cloud API features
+func CheckCloudAPITestsEnabled(t *testing.T) {
 	t.Helper()
-	if !accTestsEnabled(t, "TF_ACC_CLOUD") {
-		t.Skip("TF_ACC_CLOUD must be set to a truthy value for Cloud acceptance tests")
+
+	if !accTestsEnabled(t, "TF_ACC_CLOUD_API") {
+		t.Skip("TF_ACC_CLOUD_API must be set to a truthy value for Cloud API acceptance tests")
 	}
+
+	checkEnvVarsSet(t, "GRAFANA_CLOUD_API_KEY")
 }
 
+// CheckCloudInstanceTestsEnabled checks if tests that run on cloud instances are enabled. This should be the first line of any test that tests Grafana Cloud Pro features
+func CheckCloudInstanceTestsEnabled(t *testing.T) {
+	t.Helper()
+
+	if !accTestsEnabled(t, "TF_ACC_CLOUD_INSTANCE") {
+		t.Skip("TF_ACC_CLOUD_INSTANCE must be set to a truthy value for Cloud instance acceptance tests")
+	}
+
+	checkEnvVarsSet(t,
+		"GRAFANA_URL",
+		"GRAFANA_AUTH",
+		"GRAFANA_ORG_ID",
+		"GRAFANA_SM_ACCESS_TOKEN",
+	)
+}
+
+// CheckEnterpriseTestsEnabled checks if the enterprise tests are enabled. This should be the first line of any test that tests Grafana Enterprise features
 func CheckEnterpriseTestsEnabled(t *testing.T) {
 	t.Helper()
+
 	if !accTestsEnabled(t, "TF_ACC_ENTERPRISE") {
 		t.Skip("TF_ACC_ENTERPRISE must be set to a truthy value for Enterprise acceptance tests")
 	}
+
+	checkEnvVarsSet(t,
+		"GRAFANA_URL",
+		"GRAFANA_AUTH",
+		"GRAFANA_ORG_ID",
+	)
 }

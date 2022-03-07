@@ -12,11 +12,11 @@ import (
 )
 
 func TestAccResourceMachineLearningJob(t *testing.T) {
-	CheckCloudTestsEnabled(t)
+	CheckCloudInstanceTestsEnabled(t)
 
 	var job mlapi.Job
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheckCloud(t) },
+		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccMLJobCheckDestroy(&job),
 		Steps: []resource.TestStep{
@@ -105,10 +105,10 @@ resource "grafana_machine_learning_job" "invalid" {
 `
 
 func TestAccResourceInvalidMachineLearningJob(t *testing.T) {
-	CheckCloudTestsEnabled(t)
+	CheckCloudInstanceTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheckCloud(t) },
+		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{

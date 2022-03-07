@@ -84,18 +84,35 @@ local pipeline(name, steps, services=[]) = {
   ),
 
   pipeline(
-    'cloud tests',
+    'cloud api tests',
     steps=[
       {
         name: 'tests',
         image: images.go,
         commands: [
-          'make testacc-cloud',
+          'make testacc-cloud-api',
+        ],
+        environment: {
+          GRAFANA_CLOUD_API_KEY: cloudApiKey.fromSecret,
+        },
+      },
+    ]
+  ) + {
+    concurrency: { limit: 1 },
+  },
+
+  pipeline(
+    'cloud instance tests',
+    steps=[
+      {
+        name: 'tests',
+        image: images.go,
+        commands: [
+          'make testacc-cloud-instance',
         ],
         environment: {
           GRAFANA_URL: 'https://terraformprovidergrafana.grafana.net/',
           GRAFANA_AUTH: apiToken.fromSecret,
-          GRAFANA_CLOUD_API_KEY: cloudApiKey.fromSecret,
           GRAFANA_SM_ACCESS_TOKEN: smToken.fromSecret,
           GRAFANA_ORG_ID: 1,
         },

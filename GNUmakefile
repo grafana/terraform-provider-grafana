@@ -3,14 +3,21 @@ GRAFANA_VERSION ?= 8.4.3
 testacc:
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
 
+# Test OSS features
 testacc-oss: 
 	TF_ACC_OSS=true make testacc
 
+# Test Enterprise features
 testacc-enterprise:
 	TF_ACC_ENTERPRISE=true make testacc
 
-testacc-cloud:
-	TF_ACC_CLOUD=true make testacc
+# Test Cloud API features
+testacc-cloud-api:
+	TF_ACC_CLOUD_API=true make testacc
+
+# Test Cloud instance features (ex: Machine Learning and Synthetic Monitoring)
+testacc-cloud-instance:
+	TF_ACC_CLOUD_INSTANCE=true make testacc
 
 testacc-docker:
 	GRAFANA_VERSION=$(GRAFANA_VERSION) \
