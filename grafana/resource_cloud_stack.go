@@ -2,14 +2,19 @@ package grafana
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
+	"net/http"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -70,6 +75,12 @@ Changing region will destroy the existing stack and create a new one in the desi
 				Computed:    true,
 				Optional:    true,
 				Description: "Custom URL for the Grafana instance. Must have a CNAME setup to point to `.grafana.net` before creating the stack",
+			},
+			"wait_for_readiness": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: "Whether to wait for readiness of the stack after creating it. The check is a HEAD request to the stack URL (Grafana instance).",
 			},
 			"org_id": {
 				Type:        schema.TypeInt,
@@ -166,7 +177,11 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 
 	d.SetId(strconv.FormatInt(stackID, 10))
 
-	return ReadStack(ctx, d, meta)
+	if diag := ReadStack(ctx, d, meta); diag != nil {
+		return diag
+	}
+
+	return waitForStackReadiness(ctx, d)
 }
 
 func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -191,7 +206,11 @@ func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 		}
 	}
 
-	return ReadStack(ctx, d, meta)
+	if diag := ReadStack(ctx, d, meta); diag != nil {
+		return diag
+	}
+
+	return waitForStackReadiness(ctx, d)
 }
 
 func DeleteStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -201,7 +220,7 @@ func DeleteStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 		return diag.FromErr(err)
 	}
 
-	return diag.Diagnostics{}
+	return nil
 }
 
 func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -225,7 +244,7 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 
 	FlattenStack(d, stack)
 
-	return diag.Diagnostics{}
+	return nil
 }
 
 func ExistsStack(d *schema.ResourceData, meta interface{}) (bool, error) {
@@ -267,4 +286,33 @@ func FlattenStack(d *schema.ResourceData, stack gapi.Stack) {
 	d.Set("alertmanager_name", stack.AmInstanceName)
 	d.Set("alertmanager_url", stack.AmInstanceURL)
 	d.Set("alertmanager_status", stack.AmInstanceStatus)
+}
+
+// waitForStackReadiness retries until the stack is ready, verified by querying the Grafana URL
+func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Diagnostics {
+	if wait := d.Get("wait_for_readiness").(bool); !wait {
+		return nil
+	}
+
+	err := resource.RetryContext(ctx, 2*time.Minute, func() *resource.RetryError {
+		req, err := http.NewRequestWithContext(ctx, http.MethodHead, d.Get("url").(string), nil)
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != 200 {
+			return resource.RetryableError(errors.New("stack is not ready yet"))
+		}
+
+		return nil
+	})
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("error waiting for stack to be ready: %w", err))
+	}
+
+	return nil
 }

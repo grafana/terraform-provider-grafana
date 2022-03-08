@@ -3,7 +3,6 @@ package grafana
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"strconv"
 	"testing"
@@ -47,13 +46,6 @@ func TestResourceCloudStack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "name", resourceName+"new"),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "slug", resourceName),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "description", stackDescription),
-
-					// TODO: Check how we can remove this sleep
-					// Sometimes the stack is not ready to be deleted at the end of the test
-					func(s *terraform.State) error {
-						time.Sleep(time.Second * 15)
-						return nil
-					},
 				),
 			},
 		},
