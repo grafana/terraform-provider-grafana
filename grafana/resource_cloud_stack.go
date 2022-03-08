@@ -80,7 +80,7 @@ Changing region will destroy the existing stack and create a new one in the desi
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     true,
-				Description: "Whether to wait for readiness of the stack after creating it. The check is a simple GET request to the stack URL (Grafana instance).",
+				Description: "Whether to wait for readiness of the stack after creating it. The check is a HEAD request to the stack URL (Grafana instance).",
 			},
 			"org_id": {
 				Type:        schema.TypeInt,
@@ -295,7 +295,11 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 	}
 
 	err := resource.RetryContext(ctx, 2*time.Minute, func() *resource.RetryError {
-		resp, err := http.Head(d.Get("url").(string))
+		req, err := http.NewRequestWithContext(ctx, http.MethodHead, d.Get("url").(string), nil)
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			return resource.NonRetryableError(err)
 		}
@@ -307,7 +311,7 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 		return nil
 	})
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("error waiting for stack to be ready: %s", err))
+		return diag.FromErr(fmt.Errorf("error waiting for stack to be ready: %w", err))
 	}
 
 	return nil
