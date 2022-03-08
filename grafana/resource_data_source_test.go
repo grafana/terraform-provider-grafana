@@ -448,7 +448,7 @@ func TestAccDataSource_basic(t *testing.T) {
 			resource: "grafana_data_source.github",
 			config: `
 			resource "grafana_data_source" "github" {
-				type = "github"
+				type = "grafana-github-datasource"
 				name = "github"
 				json_data {
 					github_url = "https://github.com"
