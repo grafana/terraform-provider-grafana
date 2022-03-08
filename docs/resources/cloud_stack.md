@@ -36,6 +36,7 @@ available at “https://<stack_slug>.grafana.net".
 - **region_slug** (String) Region slug to assign to this stack.
 Changing region will destroy the existing stack and create a new one in the desired region
 - **url** (String) Custom URL for the Grafana instance. Must have a CNAME setup to point to `.grafana.net` before creating the stack
+- **wait_for_readiness** (Boolean) Whether to wait for readiness of the stack after creating it. The check is a simple GET request to the stack URL (Grafana instance). Defaults to `true`.
 
 ### Read-Only
 
