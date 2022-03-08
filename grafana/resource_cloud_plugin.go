@@ -18,17 +18,20 @@ Manages Grafana Cloud Plugin Installations.
 			"stack_slug": {
 				Description: "The stack id to which the plugin should be installed.",
 				Type:        schema.TypeString,
-				Optional:    false,
+				Required:    true,
+				ForceNew:    true,
 			},
 			"slug": {
 				Description: "Slug of the plugin to be installed.",
 				Type:        schema.TypeString,
-				Optional:    false,
+				Required:    true,
+				ForceNew:    true,
 			},
 			"version": {
 				Description: "Version of the plugin to be installed.",
 				Type:        schema.TypeString,
-				Optional:    false,
+				Required:    true,
+				ForceNew:    true,
 			},
 		},
 		CreateContext: resourceCloudPluginInstallationCreate,

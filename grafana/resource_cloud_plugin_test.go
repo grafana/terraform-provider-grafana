@@ -11,7 +11,7 @@ import (
 )
 
 func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
-	CheckCloudTestsEnabled(t)
+	CheckCloudAPITestsEnabled(t)
 
 	var stack gapi.Stack
 	prefix := "tfplugininstallationtest"
@@ -25,10 +25,10 @@ func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGrafanaCloudPluginInstallation(slug, "some-plugin", "1.2.3"),
+				Config: testAccGrafanaCloudPluginInstallation(slug, "aws-datasource-provisioner-app", "1.7.0"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
-					testAccGrafanaCloudPluginInstallationCheckFields("grafana_cloud_plugin_installation.management", "slug", "some-plugin", "1.2.3"),
+					testAccGrafanaCloudPluginInstallationCheckFields("grafana_cloud_plugin_installation.management", slug, "aws-datasource-provisioner-app", "1.7.0"),
 
 					// TODO: Check how we can remove this sleep
 					// Sometimes the stack is not ready to be deleted at the end of the test
@@ -79,9 +79,9 @@ func testAccGrafanaAuthKeyCheckDestroyCloud(s *terraform.State) error {
 
 func testAccGrafanaCloudPluginInstallation(stackSlug, name, version string) string {
 	return fmt.Sprintf(`
- 		resource "grafana_cloud_plugin_installation" "foo" {
+ 		resource "grafana_cloud_plugin_installation" "installation" {
  			stack_slug = "%s"
-			name       = "%s"
+			slug       = "%s"
  			version    = "%s"
  		}
 	`, stackSlug, name, version)
