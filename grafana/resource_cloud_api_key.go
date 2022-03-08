@@ -93,6 +93,7 @@ func resourceCloudAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta i
 			break
 		}
 	}
+	d.Set("cloud_org_slug", org)
 
 	return nil
 }

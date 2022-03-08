@@ -42,9 +42,10 @@ func TestAccCloudApiKey_Basic(t *testing.T) {
 						),
 					},
 					{
-						ResourceName:      "grafana_cloud_api_key.test",
-						ImportState:       true,
-						ImportStateVerify: true,
+						ResourceName:            "grafana_cloud_api_key.test",
+						ImportState:             true,
+						ImportStateVerify:       true,
+						ImportStateVerifyIgnore: []string{"key"},
 					},
 				},
 			})
