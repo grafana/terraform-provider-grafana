@@ -12,10 +12,82 @@ The Grafana provider provides configuration management resources for
 
 ## Example Usage
 
+### Creating a Grafana provider
+
 ```terraform
 provider "grafana" {
   url  = "http://grafana.example.com/"
   auth = var.grafana_auth
+}
+```
+
+### Creating a Grafana organization provider (on-premise)
+
+```terraform
+// Step 1: Create an organization
+provider "grafana" {
+  alias = "base"
+  url   = "http://grafana.example.com/"
+  auth  = var.grafana_auth
+}
+
+resource "grafana_organization" "my_org" {
+  provider = grafana.base
+  name     = "my_org"
+}
+
+// Step 2: Create resources within the organization
+provider "grafana" {
+  alias  = "my_org"
+  url    = "http://grafana.example.com/"
+  auth   = var.grafana_auth
+  org_id = grafana_organization.my_org.org_id
+}
+
+resource "grafana_folder" "my_folder" {
+  provider = grafana.my_org
+
+  title = "Test Folder"
+}
+```
+
+### Creating a Grafana Cloud stack provider
+
+```terraform
+// Step 1: Create a stack
+provider "grafana" {
+  alias         = "cloud"
+  cloud_api_key = "my-token"
+}
+
+resource "grafana_cloud_stack" "my_stack" {
+  provider = grafana.cloud
+
+  name        = "myteststack"
+  slug        = "myteststack"
+  region_slug = "us"
+}
+
+resource "grafana_api_key" "management" {
+  provider = grafana.cloud
+
+  cloud_stack_slug = grafana_cloud_stack.my_stack.slug
+  name             = "management-key"
+  role             = "Admin"
+}
+
+// Step 2: Create resources within the stack
+provider "grafana" {
+  alias = "my_stack"
+
+  url  = grafana_cloud_stack.my_stack.url
+  auth = grafana_api_key.management.key
+}
+
+resource "grafana_folder" "my_folder" {
+  provider = grafana.my_stack
+
+  title = "Test Folder"
 }
 ```
 
