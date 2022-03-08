@@ -10,11 +10,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
+func TestAccResourceCloudPluginInstallation(t *testing.T) {
 	CheckCloudAPITestsEnabled(t)
 
 	var stack gapi.Stack
-	prefix := "tfplugininstallationtest"
+	prefix := "tfpl"
 	slug := GetRandomStackName(prefix)
 
 	resource.Test(t, resource.TestCase{
@@ -22,8 +22,13 @@ func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
 			testAccDeleteExistingStacks(t, prefix)
 		},
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
+			{
+				Config: testAccStackConfigBasic(slug, slug),
+				Check: resource.ComposeTestCheckFunc(
+					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
+				),
+			},
 			{
 				Config: testAccGrafanaCloudPluginInstallation(slug, "aws-datasource-provisioner-app", "1.7.0"),
 				Check: resource.ComposeTestCheckFunc(
@@ -37,10 +42,6 @@ func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
 						return nil
 					},
 				),
-			},
-			{
-				Config: testAccStackConfigBasic(slug, slug),
-				Check:  testAccGrafanaAuthKeyCheckDestroyCloud,
 			},
 		},
 	})
