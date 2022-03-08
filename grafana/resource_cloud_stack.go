@@ -299,6 +299,7 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 		if err != nil {
 			return resource.NonRetryableError(err)
 		}
+		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
 			return resource.RetryableError(errors.New("stack is not ready yet"))
 		}
