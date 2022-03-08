@@ -25,7 +25,7 @@ func TestAccCloudApiKey_Basic(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.role, func(t *testing.T) {
-			resourceName := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+			resourceName := "zzztest-" + acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 			resource.Test(t, resource.TestCase{
 				ProviderFactories: testAccProviderFactories,
@@ -40,6 +40,11 @@ func TestAccCloudApiKey_Basic(t *testing.T) {
 							resource.TestCheckResourceAttr("grafana_cloud_api_key.test", "name", resourceName),
 							resource.TestCheckResourceAttr("grafana_cloud_api_key.test", "role", tt.role),
 						),
+					},
+					{
+						ResourceName:      "grafana_cloud_api_key.test",
+						ImportState:       true,
+						ImportStateVerify: true,
 					},
 				},
 			})
@@ -65,7 +70,7 @@ func testAccCheckCloudAPIKeyExists(resourceName string) resource.TestCheckFunc {
 		}
 
 		for _, apiKey := range res.Items {
-			if apiKey.Name == rs.Primary.ID {
+			if apiKey.Name == rs.Primary.Attributes["name"] {
 				return nil
 			}
 		}
@@ -88,7 +93,7 @@ func testAccCheckCloudAPIKeyDestroy(s *terraform.State) error {
 		}
 
 		for _, apiKey := range res.Items {
-			if apiKey.Name == rs.Primary.ID {
+			if apiKey.Name == rs.Primary.Attributes["name"] {
 				return fmt.Errorf("resource `%s` still exists via API", name)
 			}
 		}

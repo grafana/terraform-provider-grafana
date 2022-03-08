@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -20,12 +21,11 @@ func ResourceCloudAPIKey() *schema.Resource {
 		CreateContext: resourceCloudAPIKeyCreate,
 		ReadContext:   resourceCloudAPIKeyRead,
 		DeleteContext: resourceCloudAPIKeyDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
+
 		Schema: map[string]*schema.Schema{
-			"id": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "ID of the API key.",
-			},
 			"cloud_org_slug": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -42,7 +42,7 @@ func ResourceCloudAPIKey() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				Description:  fmt.Sprintf("Role of the API key. Might be one of %s. See https://grafana.com/docs/grafana-cloud/api/#create-api-key for details.", cloudAPIKeyRoles),
+				Description:  fmt.Sprintf("Role of the API key. Should be one of %s. See https://grafana.com/docs/grafana-cloud/api/#create-api-key for details.", cloudAPIKeyRoles),
 				ValidateFunc: validation.StringInSlice(cloudAPIKeyRoles, false),
 			},
 			"key": {
@@ -62,15 +62,15 @@ func resourceCloudAPIKeyCreate(ctx context.Context, d *schema.ResourceData, meta
 		Name: d.Get("name").(string),
 		Role: d.Get("role").(string),
 	}
+	org := d.Get("cloud_org_slug").(string)
 
-	resp, err := c.CreateCloudAPIKey(d.Get("cloud_org_slug").(string), req)
+	resp, err := c.CreateCloudAPIKey(org, req)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.Set("key", resp.Token)
-	d.SetId(resp.Name)
-	d.Set("id", resp.Name)
+	d.SetId(org + "-" + resp.Name)
 
 	return resourceCloudAPIKeyRead(ctx, d, meta)
 }
@@ -78,13 +78,16 @@ func resourceCloudAPIKeyCreate(ctx context.Context, d *schema.ResourceData, meta
 func resourceCloudAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client).gcloudapi
 
-	resp, err := c.ListCloudAPIKeys(d.Get("cloud_org_slug").(string))
+	splitID := strings.SplitN(d.Id(), "-", 2)
+	org, name := splitID[0], splitID[1]
+
+	resp, err := c.ListCloudAPIKeys(org)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	for _, apiKey := range resp.Items {
-		if apiKey.Name == d.Id() {
+		if apiKey.Name == name {
 			d.Set("name", apiKey.Name)
 			d.Set("role", apiKey.Role)
 			break
@@ -97,7 +100,7 @@ func resourceCloudAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta i
 func resourceCloudAPIKeyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client).gcloudapi
 
-	if err := c.DeleteCloudAPIKey(d.Get("cloud_org_slug").(string), d.Id()); err != nil {
+	if err := c.DeleteCloudAPIKey(d.Get("cloud_org_slug").(string), d.Get("name").(string)); err != nil {
 		return diag.FromErr(err)
 	}
 
