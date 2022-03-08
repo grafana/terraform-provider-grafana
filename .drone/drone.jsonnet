@@ -94,6 +94,7 @@ local pipeline(name, steps, services=[]) = {
         ],
         environment: {
           GRAFANA_CLOUD_API_KEY: cloudApiKey.fromSecret,
+          GRAFANA_CLOUD_ORG: 'terraformprovidergrafana',
         },
       },
     ]

@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
-	github.com/grafana/grafana-api-golang-client v0.4.2
+	github.com/grafana/grafana-api-golang-client v0.4.3-0.20220308144753-c9a0ad76d305
 	github.com/grafana/machine-learning-go-client v0.1.1
 	github.com/grafana/synthetic-monitoring-agent v0.7.0
 	github.com/grafana/synthetic-monitoring-api-go-client v0.6.0
