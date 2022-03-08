@@ -146,6 +146,7 @@ Optional:
 - **timescaledb** (Boolean) (PostgreSQL) Enable usage of TimescaleDB extension.
 - **tls_auth** (Boolean) (All) Enable TLS authentication using client cert configured in secure json data.
 - **tls_auth_with_ca_cert** (Boolean) (All) Enable TLS authentication using CA cert.
+- **tls_configuration_method** (String) (All) SSL Certificate configuration, either by ‘file-path’ or ‘file-content’.
 - **tls_skip_verify** (Boolean) (All) Controls whether a client verifies the server’s certificate chain and host name.
 - **token_uri** (String) (Stackdriver) The token URI used, provided in the service account key.
 - **tsdb_resolution** (Number) (OpenTSDB) Resolution.
