@@ -412,13 +412,13 @@ source selected (via the 'type' argument).
 							Type:        schema.TypeString,
 							Optional:    true,
 							Sensitive:   true,
-							Description: "(CloudWatch, Athena) The access key to use to access the data source.",
+							Description: "(CloudWatch, Athena) The access key used to access the data source.",
 						},
 						"access_token": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Sensitive:   true,
-							Description: "(Github) The access token to use to access the data source",
+							Description: "(Github) The access token used to access the data source.",
 						},
 						"auth_token": {
 							Type:        schema.TypeString,
