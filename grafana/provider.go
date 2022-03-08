@@ -164,7 +164,7 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_user":                    ResourceUser(),
 
 				// Cloud
-				"grafana_cloud_api_key": ResourceCloudApiKey(),
+				"grafana_cloud_api_key": ResourceCloudAPIKey(),
 				"grafana_cloud_stack":   ResourceCloudStack(),
 
 				// Synthetic Monitoring

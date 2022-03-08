@@ -10,16 +10,16 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var cloudApiKeyRoles = []string{"Viewer", "Editor", "Admin", "MetricsPublisher", "PluginPublisher"}
+var cloudAPIKeyRoles = []string{"Viewer", "Editor", "Admin", "MetricsPublisher", "PluginPublisher"}
 
-func ResourceCloudApiKey() *schema.Resource {
+func ResourceCloudAPIKey() *schema.Resource {
 	return &schema.Resource{
 		Description: `Manages a single API key on the Grafana Cloud portal (on the organization level)
 * [API documentation](https://grafana.com/docs/grafana-cloud/reference/cloud-api/#api-keys)
 `,
-		CreateContext: resourceCloudApiKeyCreate,
-		ReadContext:   resourceCloudApiKeyRead,
-		DeleteContext: resourceCloudApiKeyDelete,
+		CreateContext: resourceCloudAPIKeyCreate,
+		ReadContext:   resourceCloudAPIKeyRead,
+		DeleteContext: resourceCloudAPIKeyDelete,
 		Schema: map[string]*schema.Schema{
 			"id": {
 				Type:        schema.TypeString,
@@ -42,8 +42,8 @@ func ResourceCloudApiKey() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				Description:  fmt.Sprintf("Role of the API key. Might be one of %s. See https://grafana.com/docs/grafana-cloud/api/#create-api-key for details.", cloudApiKeyRoles),
-				ValidateFunc: validation.StringInSlice(cloudApiKeyRoles, false),
+				Description:  fmt.Sprintf("Role of the API key. Might be one of %s. See https://grafana.com/docs/grafana-cloud/api/#create-api-key for details.", cloudAPIKeyRoles),
+				ValidateFunc: validation.StringInSlice(cloudAPIKeyRoles, false),
 			},
 			"key": {
 				Type:        schema.TypeString,
@@ -55,7 +55,7 @@ func ResourceCloudApiKey() *schema.Resource {
 	}
 }
 
-func resourceCloudApiKeyCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceCloudAPIKeyCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client).gcloudapi
 
 	req := &gapi.CreateCloudAPIKeyInput{
@@ -72,10 +72,10 @@ func resourceCloudApiKeyCreate(ctx context.Context, d *schema.ResourceData, meta
 	d.SetId(resp.Name)
 	d.Set("id", resp.Name)
 
-	return resourceCloudApiKeyRead(ctx, d, meta)
+	return resourceCloudAPIKeyRead(ctx, d, meta)
 }
 
-func resourceCloudApiKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceCloudAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client).gcloudapi
 
 	resp, err := c.ListCloudAPIKeys(d.Get("cloud_org_slug").(string))
@@ -94,7 +94,7 @@ func resourceCloudApiKeyRead(ctx context.Context, d *schema.ResourceData, meta i
 	return nil
 }
 
-func resourceCloudApiKeyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceCloudAPIKeyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client).gcloudapi
 
 	if err := c.DeleteCloudAPIKey(d.Get("cloud_org_slug").(string), d.Id()); err != nil {
