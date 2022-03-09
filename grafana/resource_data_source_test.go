@@ -453,8 +453,8 @@ func TestAccDataSource_basic(t *testing.T) {
 				json_data {
 					githubUrl = "https://github.com"
 				}
-				secure_json_data {
-					access_token = "token for github"
+				secureJsonData {
+					accessToken = "token for github"
 				}
 			}
 			`,
@@ -462,7 +462,7 @@ func TestAccDataSource_basic(t *testing.T) {
 				"type":                            "github",
 				"name":                            "github",
 				"json_data.0.githubUrl":          "https://github.com",
-				"secure_json_data.0.access_token": "token for github",
+				"secureJsonData.0.accessToken": "token for github",
 			},
 		},
 		{
