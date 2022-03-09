@@ -55,13 +55,6 @@ func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
 					testAccGrafanaAuthKeyCheckFields("grafana_api_key.management", "management-key", "Admin", false),
-
-					// TODO: Check how we can remove this sleep
-					// Sometimes the stack is not ready to be deleted at the end of the test
-					func(s *terraform.State) error {
-						time.Sleep(time.Second * 15)
-						return nil
-					},
 				),
 			},
 			{
