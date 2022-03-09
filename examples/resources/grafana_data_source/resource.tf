@@ -50,3 +50,16 @@ resource "grafana_data_source" "stackdriver" {
     private_key = "-----BEGIN PRIVATE KEY-----\nprivate-key\n-----END PRIVATE KEY-----\n"
   }
 }
+
+resource "grafana_data_source" "github" {
+  type = "grafana-github-datasource"
+  name = "github"
+  
+  json_data {
+    githubUrl = "https://github.com"
+  }
+  
+  secureJsonData {
+    accessToken = "ghp_access_token_abcdeghijklmnopqrstuvwxyz"
+  }
+}
