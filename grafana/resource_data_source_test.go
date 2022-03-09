@@ -451,7 +451,7 @@ func TestAccDataSource_basic(t *testing.T) {
 				type = "grafana-github-datasource"
 				name = "github"
 				json_data {
-					github_url = "https://github.com"
+					githubUrl = "https://github.com"
 				}
 				secure_json_data {
 					access_token = "token for github"
@@ -461,7 +461,7 @@ func TestAccDataSource_basic(t *testing.T) {
 			attrChecks: map[string]string{
 				"type":                            "github",
 				"name":                            "github",
-				"json_data.0.github_url":          "https://github.com",
+				"json_data.0.githubUrl":          "https://github.com",
 				"secure_json_data.0.access_token": "token for github",
 			},
 		},
