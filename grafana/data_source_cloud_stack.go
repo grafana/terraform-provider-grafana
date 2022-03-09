@@ -114,6 +114,22 @@ available at “https://<stack_slug>.grafana.net".`,
 				Computed:    true,
 				Description: "Status of the Alertmanager instance configured for this stack.",
 			},
+			"logs_user_id": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"logs_name": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"logs_url": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"logs_status": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
