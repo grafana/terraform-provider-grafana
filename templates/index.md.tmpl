@@ -12,7 +12,17 @@ The Grafana provider provides configuration management resources for
 
 ## Example Usage
 
+### Creating a Grafana provider
+
 {{ tffile "examples/provider/provider.tf" }}
+
+### Creating a Grafana organization provider (on-premise)
+
+{{ tffile "examples/provider/provider-organization.tf" }}
+
+### Creating a Grafana Cloud stack provider
+
+{{ tffile "examples/provider/provider-cloud.tf" }}
 
 {{ .SchemaMarkdown | trimspace }}
 
