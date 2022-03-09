@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 )
@@ -356,6 +357,12 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Description: "(All) Enable TLS authentication using CA cert.",
 						},
+						"tls_configuration_method": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							Description:  "(All) SSL Certificate configuration, either by ‘file-path’ or ‘file-content’.",
+							ValidateFunc: validation.StringInSlice([]string{"file-path", "file-content"}, false),
+						},
 						"tls_skip_verify": {
 							Type:        schema.TypeBool,
 							Optional:    true,
@@ -682,6 +689,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		TimeInterval:               d.Get("json_data.0.time_interval").(string),
 		TLSAuth:                    d.Get("json_data.0.tls_auth").(bool),
 		TLSAuthWithCACert:          d.Get("json_data.0.tls_auth_with_ca_cert").(bool),
+		TLSConfigurationMethod:     d.Get("json_data.0.tls_configuration_method").(string),
 		TLSSkipVerify:              d.Get("json_data.0.tls_skip_verify").(bool),
 		TokenURI:                   d.Get("json_data.0.token_uri").(string),
 		TsdbResolution:             int64(d.Get("json_data.0.tsdb_resolution").(int)),
