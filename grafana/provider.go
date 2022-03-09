@@ -183,7 +183,8 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_user":          DatasourceUser(),
 
 				// Cloud
-				"grafana_cloud_stack": DatasourceCloudStack(),
+				"grafana_cloud_region": DatasourceCloudRegion(),
+				"grafana_cloud_stack":  DatasourceCloudStack(),
 
 				// Synthetic Monitoring
 				"grafana_synthetic_monitoring_probe":  dataSourceSyntheticMonitoringProbe(),
