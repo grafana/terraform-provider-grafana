@@ -14,7 +14,7 @@ func TestAccResourceCloudPluginInstallation(t *testing.T) {
 	CheckCloudAPITestsEnabled(t)
 
 	var stack gapi.Stack
-	prefix := "tfpl"
+	prefix := "terraformplugin"
 	slug := GetRandomStackName(prefix)
 
 	resource.Test(t, resource.TestCase{
@@ -32,7 +32,6 @@ func TestAccResourceCloudPluginInstallation(t *testing.T) {
 			{
 				Config: testAccGrafanaCloudPluginInstallation(slug, "aws-datasource-provisioner-app", "1.7.0"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
 					testAccGrafanaCloudPluginInstallationCheckFields("grafana_cloud_plugin_installation.management", slug, "aws-datasource-provisioner-app", "1.7.0"),
 
 					// TODO: Check how we can remove this sleep
@@ -72,10 +71,6 @@ func testAccGrafanaCloudPluginInstallationCheckFields(n string, stackSlug string
 
 		return nil
 	}
-}
-
-func testAccGrafanaAuthKeyCheckDestroyCloud(s *terraform.State) error {
-	return nil //errors.New("")
 }
 
 func testAccGrafanaCloudPluginInstallation(stackSlug, name, version string) string {

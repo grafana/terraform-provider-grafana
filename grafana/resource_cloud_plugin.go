@@ -57,6 +57,11 @@ func resourceCloudPluginInstallationCreate(ctx context.Context, d *schema.Resour
 		return diag.FromErr(err)
 	}
 
+	// TODO (Matthew Nolf): Set ID
+	d.SetId("234")
+	d.Set("slug", pluginSlug)
+	d.Set("version", pluginVersion)
+
 	return nil
 }
 
