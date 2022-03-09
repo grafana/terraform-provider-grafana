@@ -41,6 +41,10 @@ available at “https://<stack_slug>.grafana.net".
 - **alertmanager_user_id** (Number) User ID of the Alertmanager instance configured for this stack.
 - **description** (String) Description of stack.
 - **id** (String) The stack id assigned to this stack by Grafana.
+- **logs_name** (String)
+- **logs_status** (String)
+- **logs_url** (String)
+- **logs_user_id** (Number)
 - **name** (String) Name of stack. Conventionally matches the url of the instance (e.g. “<stack_slug>.grafana.net”).
 - **org_id** (Number) Organization id to assign to this stack.
 - **org_name** (String) Organization name to assign to this stack.
