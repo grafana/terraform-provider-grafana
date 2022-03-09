@@ -83,6 +83,7 @@ steps:
   environment:
     GRAFANA_CLOUD_API_KEY:
       from_secret: grafana-cloud-api-key
+    GRAFANA_CLOUD_ORG: terraformprovidergrafana
   image: golang:1.17
   name: tests
 trigger:
@@ -299,6 +300,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: 087ea63b283558d4c10e0dd0f3bf2a0dc9ff352d090c4b1f5852659f9c29aeef
+hmac: 7b059c8a8d75e11b8d0dc6643b5590761dacc5c419b778766960d748d4629546
 
 ...
