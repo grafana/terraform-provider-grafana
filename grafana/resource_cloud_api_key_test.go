@@ -11,6 +11,7 @@ import (
 )
 
 func TestAccCloudApiKey_Basic(t *testing.T) {
+	t.Parallel()
 	CheckCloudAPITestsEnabled(t)
 
 	var tests = []struct {

@@ -9,6 +9,7 @@ import (
 )
 
 func TestAccSyntheticMonitoringInstallation(t *testing.T) {
+	t.Parallel()
 	CheckCloudAPITestsEnabled(t)
 
 	var stack gapi.Stack

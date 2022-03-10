@@ -258,6 +258,12 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 		return diag.FromErr(err)
 	}
 
+	if stack.Status == "deleted" {
+		log.Printf("[WARN] removing stack %s from state because it was deleted outside of Terraform", stack.Name)
+		d.SetId("")
+		return nil
+	}
+
 	FlattenStack(d, stack)
 
 	return nil

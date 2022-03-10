@@ -14,6 +14,7 @@ import (
 )
 
 func TestResourceCloudStack_Basic(t *testing.T) {
+	t.Parallel()
 	CheckCloudAPITestsEnabled(t)
 
 	prefix := "tfresourcetest"
@@ -34,18 +35,35 @@ func TestResourceCloudStack_Basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
 					resource.TestMatchResourceAttr("grafana_cloud_stack.test", "id", idRegexp),
-					resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "id"),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "name", resourceName),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "slug", resourceName),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
+				),
+			},
+			{
+				// Delete the stack outside of the test and make sure it is recreated
+				// Terraform should detect that it's gone and recreate it (status should be active at all times)
+				PreConfig: func() {
+					testAccDeleteExistingStacks(t, prefix)
+				},
+				Config: testAccStackConfigBasic(resourceName, resourceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
+					resource.TestMatchResourceAttr("grafana_cloud_stack.test", "id", idRegexp),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "name", resourceName),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "slug", resourceName),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
 				),
 			},
 			{
 				Config: testAccStackConfigUpdate(resourceName+"new", resourceName, stackDescription),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
+					resource.TestMatchResourceAttr("grafana_cloud_stack.test", "id", idRegexp),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "name", resourceName+"new"),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "slug", resourceName),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "description", stackDescription),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
 				),
 			},
 		},
