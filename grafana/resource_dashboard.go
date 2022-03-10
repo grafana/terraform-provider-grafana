@@ -269,9 +269,13 @@ func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 }
 
 func makeDashboard(d *schema.ResourceData) (gapi.Dashboard, error) {
-	parsedFolder, err := strconv.ParseInt(d.Get("folder").(string), 10, 64)
-	if err != nil {
-		return gapi.Dashboard{}, fmt.Errorf("error parsing folder: %s", err)
+	var parsedFolder int64 = 0
+	var err error
+	if folderStr := d.Get("folder").(string); folderStr != "" {
+		parsedFolder, err = strconv.ParseInt(d.Get("folder").(string), 10, 64)
+		if err != nil {
+			return gapi.Dashboard{}, fmt.Errorf("error parsing folder: %s", err)
+		}
 	}
 
 	dashboard := gapi.Dashboard{
