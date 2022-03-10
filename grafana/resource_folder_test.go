@@ -15,25 +15,36 @@ func TestAccFolder_basic(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 
 	var folder gapi.Folder
+	var folderWithUID gapi.Folder
 
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccFolderCheckDestroy(&folder),
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			testAccFolderCheckDestroy(&folder),
+			testAccFolderCheckDestroy(&folderWithUID),
+		),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFolderConfig_basic,
+				Config: testAccExample(t, "resources/grafana_folder/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
-					resource.TestMatchResourceAttr(
-						"grafana_folder.test_folder", "id", idRegexp,
-					),
-					resource.TestMatchResourceAttr(
-						"grafana_folder.test_folder", "uid", uidRegexp,
-					),
+					resource.TestMatchResourceAttr("grafana_folder.test_folder", "id", idRegexp),
+					resource.TestMatchResourceAttr("grafana_folder.test_folder", "uid", uidRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.test_folder", "title", "Terraform Test Folder"),
+
+					testAccFolderCheckExists("grafana_folder.test_folder_with_uid", &folderWithUID),
+					resource.TestMatchResourceAttr("grafana_folder.test_folder_with_uid", "id", idRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "uid", "test-folder-uid"),
+					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "title", "Terraform Test Folder With UID"),
 				),
 			},
 			{
 				ResourceName:      "grafana_folder.test_folder",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				ResourceName:      "grafana_folder.test_folder_with_uid",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -82,9 +93,3 @@ func testAccFolderCheckDestroy(folder *gapi.Folder) resource.TestCheckFunc {
 		return nil
 	}
 }
-
-const testAccFolderConfig_basic = `
-resource "grafana_folder" "test_folder" {
-    title = "Terraform Acceptance Test Folder"
-}
-`
