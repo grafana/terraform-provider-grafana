@@ -63,9 +63,11 @@ Manages Grafana dashboards.
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				Default:      "0",
 				Description:  "The id of the folder to save the dashboard in. This attribute is a string to reflect the type of the folder's id.",
 				ValidateFunc: validation.StringMatch(idRegexp, "must be a valid folder id"),
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return old == "0" && new == "" || old == "" && new == "0"
+				},
 			},
 			"config_json": {
 				Type:         schema.TypeString,
@@ -205,9 +207,13 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	d.SetId(dashboard.Model["uid"].(string))
 	d.Set("uid", dashboard.Model["uid"].(string))
 	d.Set("slug", dashboard.Meta.Slug)
-	d.Set("folder", strconv.FormatInt(dashboard.Folder, 10))
 	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
 	d.Set("version", int64(dashboard.Model["version"].(float64)))
+	if dashboard.Folder > 0 {
+		d.Set("folder", strconv.FormatInt(dashboard.Folder, 10))
+	} else {
+		d.Set("folder", "")
+	}
 
 	configJSONBytes, err := json.Marshal(dashboard.Model)
 	if err != nil {
