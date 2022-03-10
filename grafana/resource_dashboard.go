@@ -63,6 +63,7 @@ Manages Grafana dashboards.
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
+				Default:      "0",
 				Description:  "The id of the folder to save the dashboard in. This attribute is a string to reflect the type of the folder's id.",
 				ValidateFunc: validation.StringMatch(idRegexp, "must be a valid folder id"),
 			},
