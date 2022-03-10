@@ -90,7 +90,5 @@ func resourceCloudPluginInstallationDelete(ctx context.Context, d *schema.Resour
 		return diag.FromErr(err)
 	}
 
-	d.SetId("")
-
 	return nil
 }
