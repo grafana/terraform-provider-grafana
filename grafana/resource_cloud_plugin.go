@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -38,10 +39,9 @@ Manages Grafana Cloud Plugin Installations.
 		ReadContext:   resourceCloudPluginInstallationRead,
 		UpdateContext: nil,
 		DeleteContext: resourceCloudPluginInstallationDelete,
-		// TODO: Need an ID
-		//Importer: &schema.ResourceImporter{
-		//	StateContext: schema.ImportStatePassthroughContext,
-		//},
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 	}
 }
 
@@ -52,15 +52,12 @@ func resourceCloudPluginInstallationCreate(ctx context.Context, d *schema.Resour
 	pluginSlug := d.Get("slug").(string)
 	pluginVersion := d.Get("version").(string)
 
-	err := client.InstallCloudPlugin(stackSlug, pluginSlug, pluginVersion)
+	installation, err := client.InstallCloudPlugin(stackSlug, pluginSlug, pluginVersion)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	// TODO (Matthew Nolf): Set ID
-	d.SetId("234")
-	d.Set("slug", pluginSlug)
-	d.Set("version", pluginVersion)
+	d.SetId(strconv.Itoa(installation.ID))
 
 	return nil
 }
@@ -71,13 +68,13 @@ func resourceCloudPluginInstallationRead(ctx context.Context, d *schema.Resource
 	stackSlug := d.Get("stack_slug").(string)
 	pluginSlug := d.Get("slug").(string)
 
-	ok, err := client.IsCloudPluginInstalled(stackSlug, pluginSlug)
+	installation, err := client.GetCloudPluginInstallation(stackSlug, pluginSlug)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	_ = d.Set("installed", ok)
-	_ = d.Set("slug", pluginSlug)
+	_ = d.Set("slug", installation.PluginSlug)
+	_ = d.Set("version", installation.Version)
 
 	return nil
 }
@@ -92,6 +89,8 @@ func resourceCloudPluginInstallationDelete(ctx context.Context, d *schema.Resour
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	d.SetId("")
 
 	return nil
 }
