@@ -204,7 +204,7 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	d.SetId(dashboard.Model["uid"].(string))
 	d.Set("uid", dashboard.Model["uid"].(string))
 	d.Set("slug", dashboard.Meta.Slug)
-	d.Set("folder", dashboard.Folder)
+	d.Set("folder", strconv.FormatInt(dashboard.Folder, 10))
 	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
 	d.Set("version", int64(dashboard.Model["version"].(float64)))
 
