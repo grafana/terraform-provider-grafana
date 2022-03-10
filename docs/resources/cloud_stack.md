@@ -45,6 +45,10 @@ Changing region will destroy the existing stack and create a new one in the desi
 - **alertmanager_url** (String) Base URL of the Alertmanager instance configured for this stack.
 - **alertmanager_user_id** (Number) User ID of the Alertmanager instance configured for this stack.
 - **id** (String) The stack id assigned to this stack by Grafana.
+- **logs_name** (String)
+- **logs_status** (String)
+- **logs_url** (String)
+- **logs_user_id** (Number)
 - **org_id** (Number) Organization id to assign to this stack.
 - **org_name** (String) Organization name to assign to this stack.
 - **org_slug** (String) Organization slug to assign to this stack.

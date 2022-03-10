@@ -168,8 +168,9 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_cloud_stack":   ResourceCloudStack(),
 
 				// Synthetic Monitoring
-				"grafana_synthetic_monitoring_check": resourceSyntheticMonitoringCheck(),
-				"grafana_synthetic_monitoring_probe": resourceSyntheticMonitoringProbe(),
+				"grafana_synthetic_monitoring_check":        resourceSyntheticMonitoringCheck(),
+				"grafana_synthetic_monitoring_probe":        resourceSyntheticMonitoringProbe(),
+				"grafana_synthetic_monitoring_installation": ResourceSyntheticMonitoringInstallation(),
 
 				// Machine Learning
 				"grafana_machine_learning_job": resourceMachineLearningJob(),
@@ -203,8 +204,11 @@ type client struct {
 	gapi       *gapi.Client
 	gapiConfig *gapi.Config
 	gcloudapi  *gapi.Client
-	smapi      *smapi.Client
-	mlapi      *mlapi.Client
+
+	smapi *smapi.Client
+	smURL string
+
+	mlapi *mlapi.Client
 }
 
 func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
@@ -229,7 +233,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
-		c.smapi = createSMClient(d)
+		c.smURL, c.smapi = createSMClient(d)
 
 		storeDashboardSHA256 = d.Get("store_dashboard_sha256").(bool)
 
@@ -333,10 +337,10 @@ func createCloudClient(d *schema.ResourceData) (*gapi.Client, error) {
 	return gapi.New(d.Get("cloud_api_url").(string), cfg)
 }
 
-func createSMClient(d *schema.ResourceData) *smapi.Client {
+func createSMClient(d *schema.ResourceData) (string, *smapi.Client) {
 	smToken := d.Get("sm_access_token").(string)
 	smURL := d.Get("sm_url").(string)
-	return smapi.NewClient(smURL, smToken, nil)
+	return smURL, smapi.NewClient(smURL, smToken, nil)
 }
 
 // getJSONMap is a helper function that parses the given environment variable as a JSON object

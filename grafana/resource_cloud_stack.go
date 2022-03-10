@@ -152,6 +152,22 @@ Changing region will destroy the existing stack and create a new one in the desi
 				Computed:    true,
 				Description: "Status of the Alertmanager instance configured for this stack.",
 			},
+			"logs_user_id": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"logs_name": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"logs_url": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"logs_status": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -281,6 +297,11 @@ func FlattenStack(d *schema.ResourceData, stack gapi.Stack) {
 	d.Set("prometheus_remote_endpoint", path.Join(stack.HmInstancePromURL, "api/prom"))
 	d.Set("prometheus_remote_write_endpoint", path.Join(stack.HmInstancePromURL, "api/prom/push"))
 	d.Set("prometheus_status", stack.HmInstancePromStatus)
+
+	d.Set("logs_user_id", stack.HlInstanceID)
+	d.Set("logs_url", stack.HlInstanceURL)
+	d.Set("logs_name", stack.HlInstanceName)
+	d.Set("logs_status", stack.HlInstanceStatus)
 
 	d.Set("alertmanager_user_id", stack.AmInstanceID)
 	d.Set("alertmanager_name", stack.AmInstanceName)
