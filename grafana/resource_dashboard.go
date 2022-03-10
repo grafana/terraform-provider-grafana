@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 )
@@ -59,10 +60,14 @@ Manages Grafana dashboards.
 					"so that previous versions of your dashboard are not lost.",
 			},
 			"folder": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				ForceNew:    true,
-				Description: "The id of the folder to save the dashboard in.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				Description:  "The id of the folder to save the dashboard in. This attribute is a string to reflect the type of the folder's id.",
+				ValidateFunc: validation.StringMatch(idRegexp, "must be a valid folder id"),
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return old == "0" && new == "" || old == "" && new == "0"
+				},
 			},
 			"config_json": {
 				Type:         schema.TypeString,
@@ -167,7 +172,10 @@ func resourceDashboardStateUpgradeV0(ctx context.Context, rawState map[string]in
 
 func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
-	dashboard := makeDashboard(d)
+	dashboard, err := makeDashboard(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	resp, err := client.NewDashboard(dashboard)
 	if err != nil {
 		return diag.FromErr(err)
@@ -199,9 +207,13 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	d.SetId(dashboard.Model["uid"].(string))
 	d.Set("uid", dashboard.Model["uid"].(string))
 	d.Set("slug", dashboard.Meta.Slug)
-	d.Set("folder", dashboard.Folder)
 	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
 	d.Set("version", int64(dashboard.Model["version"].(float64)))
+	if dashboard.Folder > 0 {
+		d.Set("folder", strconv.FormatInt(dashboard.Folder, 10))
+	} else {
+		d.Set("folder", "")
+	}
 
 	configJSONBytes, err := json.Marshal(dashboard.Model)
 	if err != nil {
@@ -237,7 +249,10 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 
 func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
-	dashboard := makeDashboard(d)
+	dashboard, err := makeDashboard(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	dashboard.Model["id"] = d.Get("dashboard_id").(int)
 	dashboard.Overwrite = true
 	resp, err := client.NewDashboard(dashboard)
@@ -260,21 +275,30 @@ func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 	return diags
 }
 
-func makeDashboard(d *schema.ResourceData) gapi.Dashboard {
+func makeDashboard(d *schema.ResourceData) (gapi.Dashboard, error) {
+	var parsedFolder int64 = 0
+	var err error
+	if folderStr := d.Get("folder").(string); folderStr != "" {
+		parsedFolder, err = strconv.ParseInt(d.Get("folder").(string), 10, 64)
+		if err != nil {
+			return gapi.Dashboard{}, fmt.Errorf("error parsing folder: %s", err)
+		}
+	}
+
 	dashboard := gapi.Dashboard{
-		Folder:    int64(d.Get("folder").(int)),
+		Folder:    parsedFolder,
 		Overwrite: d.Get("overwrite").(bool),
 		Message:   d.Get("message").(string),
 	}
 	configJSON := d.Get("config_json").(string)
 	dashboardJSON, err := unmarshalDashboardConfigJSON(configJSON)
 	if err != nil {
-		return dashboard
+		return dashboard, err
 	}
 	delete(dashboardJSON, "id")
 	delete(dashboardJSON, "version")
 	dashboard.Model = dashboardJSON
-	return dashboard
+	return dashboard, nil
 }
 
 // unmarshalDashboardConfigJSON is a convenience func for unmarshalling
