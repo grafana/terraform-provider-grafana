@@ -103,8 +103,8 @@ provider "grafana" {
 resource "grafana_cloud_stack" "sm_stack" {
   provider = grafana.cloud
 
-  name        = "<StackName>"
-  slug        = "<stackslug>"
+  name        = "<stack-name>"
+  slug        = "<stack-slug>"
   region_slug = "us"
 }
 
@@ -114,7 +114,7 @@ resource "grafana_cloud_api_key" "metrics_publish" {
 
   name           = "MetricsPublisherForSM"
   role           = "MetricsPublisher"
-  cloud_org_slug = "<orgslug>"
+  cloud_org_slug = "<org-slug>"
 }
 
 resource "grafana_synthetic_monitoring_installation" "sm_stack" {
