@@ -29,6 +29,9 @@ func cloneResourceSchemaForDatasource(r *schema.Resource, updates map[string]*sc
 		clone[k].Optional = false
 		clone[k].Required = false
 		clone[k].Default = nil
+		clone[k].StateFunc = nil
+		clone[k].DiffSuppressFunc = nil
+		clone[k].ValidateFunc = nil
 	}
 	for k, v := range updates {
 		clone[k] = v
