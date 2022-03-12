@@ -168,12 +168,12 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_cloud_stack":   ResourceCloudStack(),
 
 				// Synthetic Monitoring
-				"grafana_synthetic_monitoring_check":        resourceSyntheticMonitoringCheck(),
-				"grafana_synthetic_monitoring_probe":        resourceSyntheticMonitoringProbe(),
+				"grafana_synthetic_monitoring_check":        ResourceSyntheticMonitoringCheck(),
+				"grafana_synthetic_monitoring_probe":        ResourceSyntheticMonitoringProbe(),
 				"grafana_synthetic_monitoring_installation": ResourceSyntheticMonitoringInstallation(),
 
 				// Machine Learning
-				"grafana_machine_learning_job": resourceMachineLearningJob(),
+				"grafana_machine_learning_job": ResourceMachineLearningJob(),
 			},
 
 			DataSourcesMap: map[string]*schema.Resource{
@@ -188,8 +188,8 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_cloud_stack": DatasourceCloudStack(),
 
 				// Synthetic Monitoring
-				"grafana_synthetic_monitoring_probe":  dataSourceSyntheticMonitoringProbe(),
-				"grafana_synthetic_monitoring_probes": dataSourceSyntheticMonitoringProbes(),
+				"grafana_synthetic_monitoring_probe":  DatasourceSyntheticMonitoringProbe(),
+				"grafana_synthetic_monitoring_probes": DatasourceSyntheticMonitoringProbes(),
 			},
 		}
 

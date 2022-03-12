@@ -10,8 +10,8 @@ import (
 	"github.com/grafana/machine-learning-go-client/mlapi"
 )
 
-var (
-	machineLearningJob = &schema.Resource{
+func ResourceMachineLearningJob() *schema.Resource {
+	return &schema.Resource{
 
 		Description: `
 A job defines the queries and model parameters for a machine learning task.
@@ -81,10 +81,6 @@ A job defines the queries and model parameters for a machine learning task.
 			},
 		},
 	}
-)
-
-func resourceMachineLearningJob() *schema.Resource {
-	return machineLearningJob
 }
 
 func resourceMachineLearningJobCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

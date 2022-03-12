@@ -13,8 +13,8 @@ import (
 	sm "github.com/grafana/synthetic-monitoring-agent/pkg/pb/synthetic_monitoring"
 )
 
-var (
-	syntheticMonitoringProbe = &schema.Resource{
+func ResourceSyntheticMonitoringProbe() *schema.Resource {
+	return &schema.Resource{
 
 		Description: `
 Besides the public probes run by Grafana Labs, you can also install your
@@ -88,10 +88,6 @@ Grafana Synthetic Monitoring Agent.
 			},
 		},
 	}
-)
-
-func resourceSyntheticMonitoringProbe() *schema.Resource {
-	return syntheticMonitoringProbe
 }
 
 func resourceSyntheticMonitoringProbeCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

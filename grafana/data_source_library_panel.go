@@ -8,16 +8,21 @@ import (
 )
 
 func DatasourceLibraryPanel() *schema.Resource {
-	panelSchema := datasourceSchemaFromResourceSchema(libraryPanel.Schema)
-	panelSchema["uid"].Optional = true
-	panelSchema["name"].Optional = true
-	panelSchema["uid"].ExactlyOneOf = []string{"uid", "name"}
-	panelSchema["name"].ExactlyOneOf = []string{"uid", "name"}
-
 	return &schema.Resource{
 		Description: "Data source for retrieving a single library panel by name or uid.",
 		ReadContext: dataSourceLibraryPanelRead,
-		Schema:      panelSchema,
+		Schema: cloneResourceSchemaForDatasource(ResourceLibraryPanel(), map[string]*schema.Schema{
+			"name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Name of the library panel.",
+			},
+			"uid": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The unique identifier (UID) of the library panel.",
+			},
+		}),
 	}
 }
 

@@ -428,7 +428,7 @@ var (
 	}
 )
 
-func resourceSyntheticMonitoringCheck() *schema.Resource {
+func ResourceSyntheticMonitoringCheck() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `

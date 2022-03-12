@@ -90,7 +90,7 @@ data "grafana_dashboard" "from_library_panel_connection" {
 
 - **id** (String) The ID of this resource.
 - **name** (String) Name of the library panel.
-- **uid** (String) The unique identifier (UID) of a library panel uniquely identifies library panels between multiple Grafana installs. It’s automatically generated unless you specify it during library panel creation.The UID provides consistent URLs for accessing library panels and when syncing library panels between multiple Grafana installs.
+- **uid** (String) The unique identifier (UID) of the library panel.
 
 ### Read-Only
 
