@@ -44,7 +44,6 @@ func ResourceOrganization() *schema.Resource {
 		ReadContext:   ReadOrganization,
 		UpdateContext: UpdateOrganization,
 		DeleteContext: DeleteOrganization,
-		Exists:        ExistsOrganization,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -188,19 +187,6 @@ func DeleteOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	return diag.Diagnostics{}
-}
-
-func ExistsOrganization(d *schema.ResourceData, meta interface{}) (bool, error) {
-	client := meta.(*client).gapi
-	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	_, err := client.Org(orgID)
-	if err != nil && err.Error() == "404 Not Found" {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	return true, err
 }
 
 func ReadUsers(d *schema.ResourceData, meta interface{}) error {

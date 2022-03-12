@@ -24,7 +24,6 @@ does not currently work with API Tokens. You must use basic auth.
 		ReadContext:   ReadUser,
 		UpdateContext: UpdateUser,
 		DeleteContext: DeleteUser,
-		Exists:        ExistsUser,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -147,14 +146,4 @@ func DeleteUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	}
 
 	return diag.Diagnostics{}
-}
-
-func ExistsUser(d *schema.ResourceData, meta interface{}) (bool, error) {
-	client := meta.(*client).gapi
-	userID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	_, err := client.User(userID)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
 }

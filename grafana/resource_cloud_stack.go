@@ -31,7 +31,6 @@ func ResourceCloudStack() *schema.Resource {
 		CreateContext: CreateStack,
 		UpdateContext: UpdateStack,
 		DeleteContext: DeleteStack,
-		Exists:        ExistsStack,
 		ReadContext:   ReadStack,
 
 		Importer: &schema.ResourceImporter{
@@ -267,19 +266,6 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 	FlattenStack(d, stack)
 
 	return nil
-}
-
-func ExistsStack(d *schema.ResourceData, meta interface{}) (bool, error) {
-	client := meta.(*client).gcloudapi
-	stackID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	_, err := client.StackByID(stackID)
-	if err != nil && strings.HasPrefix(err.Error(), "status: 404") {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	return true, err
 }
 
 func FlattenStack(d *schema.ResourceData, stack gapi.Stack) {
