@@ -37,6 +37,7 @@ func TestAccGrafanaAuthKey(t *testing.T) {
 }
 
 func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
+	t.Parallel()
 	CheckCloudAPITestsEnabled(t)
 
 	var stack gapi.Stack

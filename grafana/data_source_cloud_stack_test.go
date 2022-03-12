@@ -9,6 +9,7 @@ import (
 )
 
 func TestAccDatasourceCloudStack_Basic(t *testing.T) {
+	t.Parallel()
 	CheckCloudAPITestsEnabled(t)
 
 	prefix := "tfdatatest"
