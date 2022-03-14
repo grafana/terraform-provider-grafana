@@ -34,10 +34,11 @@ func cloneResourceSchemaForDatasource(r *schema.Resource, updates map[string]*sc
 		clone[k].ValidateFunc = nil
 	}
 	for k, v := range updates {
-		clone[k] = v
 		if v == nil {
 			delete(clone, k)
-		}
+		} else {
+			clone[k] = v
+		}		
 	}
 	return clone
 }
