@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func dataSourceSyntheticMonitoringProbes() *schema.Resource {
+func DatasourceSyntheticMonitoringProbes() *schema.Resource {
 	return &schema.Resource{
 		Description: "Data source for retrieving all probes.",
 		ReadContext: dataSourceSyntheticMonitoringProbesRead,

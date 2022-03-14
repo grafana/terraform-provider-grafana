@@ -40,7 +40,7 @@ func TestImportProbeStateWithToken(t *testing.T) {
 
 	for name, tc := range testcases {
 		t.Run(name, func(t *testing.T) {
-			d := schema.TestResourceDataRaw(t, syntheticMonitoringProbe.Schema, nil)
+			d := schema.TestResourceDataRaw(t, ResourceSyntheticMonitoringProbe().Schema, nil)
 			d.SetId(tc.input)
 
 			res, err := importProbeStateWithToken(context.Background(), d, nil)

@@ -12,8 +12,8 @@ import (
 	gapi "github.com/grafana/grafana-api-golang-client"
 )
 
-var (
-	libraryPanel = &schema.Resource{
+func ResourceLibraryPanel() *schema.Resource {
+	return &schema.Resource{
 
 		Description: `
 Manages Grafana library panels.
@@ -109,10 +109,6 @@ Manages Grafana library panels.
 			},
 		},
 	}
-)
-
-func ResourceLibraryPanel() *schema.Resource {
-	return libraryPanel
 }
 
 func CreateLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

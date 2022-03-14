@@ -10,15 +10,18 @@ import (
 	sm "github.com/grafana/synthetic-monitoring-agent/pkg/pb/synthetic_monitoring"
 )
 
-func dataSourceSyntheticMonitoringProbe() *schema.Resource {
-	probeSchema := datasourceSchemaFromResourceSchema(syntheticMonitoringProbe.Schema)
-	addRequiredFieldsToSchema(probeSchema, "name")
-	delete(probeSchema, "auth_token")
-
+func DatasourceSyntheticMonitoringProbe() *schema.Resource {
 	return &schema.Resource{
 		Description: "Data source for retrieving a single probe by name.",
 		ReadContext: dataSourceSyntheticMonitoringProbeRead,
-		Schema:      probeSchema,
+		Schema: cloneResourceSchemaForDatasource(ResourceSyntheticMonitoringProbe(), map[string]*schema.Schema{
+			"name": {
+				Description: "Name of the probe.",
+				Type:        schema.TypeString,
+				Required:    true,
+			},
+			"auth_token": nil,
+		}),
 	}
 }
 
