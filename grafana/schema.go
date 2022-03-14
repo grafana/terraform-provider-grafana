@@ -38,7 +38,7 @@ func cloneResourceSchemaForDatasource(r *schema.Resource, updates map[string]*sc
 			delete(clone, k)
 		} else {
 			clone[k] = v
-		}		
+		}
 	}
 	return clone
 }
