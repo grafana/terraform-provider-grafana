@@ -40,7 +40,6 @@ func ResourceTeam() *schema.Resource {
 		ReadContext:   ReadTeam,
 		UpdateContext: UpdateTeam,
 		DeleteContext: DeleteTeam,
-		Exists:        ExistsTeam,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -143,19 +142,6 @@ func DeleteTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	}
 
 	return diag.Diagnostics{}
-}
-
-func ExistsTeam(d *schema.ResourceData, meta interface{}) (bool, error) {
-	client := meta.(*client).gapi
-	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	_, err := client.Team(teamID)
-	if err != nil && strings.HasPrefix(err.Error(), "status: 404") {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	return true, err
 }
 
 func ReadMembers(d *schema.ResourceData, meta interface{}) error {
