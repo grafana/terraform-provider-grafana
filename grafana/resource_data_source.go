@@ -419,13 +419,13 @@ source selected (via the 'type' argument).
 							Type:        schema.TypeString,
 							Optional:    true,
 							Sensitive:   true,
-							Description: "(CloudWatch, Athena) The access key to use to access the data source.",
+							Description: "(CloudWatch, Athena) The access key used to access the data source.",
 						},
 						"access_token": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Sensitive:   true,
-							Description: "(Github) The access token to use to access the data source",
+							Description: "(Github) The access token used to access the data source.",
 						},
 						"auth_token": {
 							Type:        schema.TypeString,
@@ -662,6 +662,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		Encrypt:                    d.Get("json_data.0.encrypt").(string),
 		EsVersion:                  d.Get("json_data.0.es_version").(string),
 		ExternalID:                 d.Get("json_data.0.external_id").(string),
+		GitHubURL:                  d.Get("json_data.0.github_url").(string),
 		GraphiteVersion:            d.Get("json_data.0.graphite_version").(string),
 		HTTPMethod:                 d.Get("json_data.0.http_method").(string),
 		Interval:                   d.Get("json_data.0.interval").(string),
@@ -702,6 +703,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 func makeSecureJSONData(d *schema.ResourceData) gapi.SecureJSONData {
 	return gapi.SecureJSONData{
 		AccessKey:         d.Get("secure_json_data.0.access_key").(string),
+		AccessToken:       d.Get("secure_json_data.0.access_token").(string),
 		AuthToken:         d.Get("secure_json_data.0.auth_token").(string),
 		BasicAuthPassword: d.Get("secure_json_data.0.basic_auth_password").(string),
 		Password:          d.Get("secure_json_data.0.password").(string),

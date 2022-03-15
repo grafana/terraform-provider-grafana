@@ -398,9 +398,9 @@ func TestAccDataSource_basic(t *testing.T) {
 			resource: "grafana_data_source.sentry",
 			config: `
 			resource "grafana_data_source" "sentry" {
-			    type = "sentry"
+			    type = "grafana-sentry-datasource"
 			    name = "sentry"
-                url  = "https://sentry.io"
+		        url  = "https://sentry.io"
 			    json_data {
 			        org_slug = "grafanalabs"
 			    }
@@ -410,7 +410,7 @@ func TestAccDataSource_basic(t *testing.T) {
 			}
 			`,
 			attrChecks: map[string]string{
-				"type":                          "sentry",
+				"type":                          "grafana-sentry-datasource",
 				"name":                          "sentry",
 				"url":                           "https://sentry.io",
 				"json_data.0.org_slug":          "grafanalabs",
@@ -448,10 +448,10 @@ func TestAccDataSource_basic(t *testing.T) {
 			resource: "grafana_data_source.github",
 			config: `
 			resource "grafana_data_source" "github" {
-				type = "github"
+				type = "grafana-github-datasource"
 				name = "github"
 				json_data {
-					github_url = "https://github.com"
+					github_url = "https://test-github.com"
 				}
 				secure_json_data {
 					access_token = "token for github"
@@ -459,17 +459,25 @@ func TestAccDataSource_basic(t *testing.T) {
 			}
 			`,
 			attrChecks: map[string]string{
-				"type":                            "github",
+				"type":                            "grafana-github-datasource",
 				"name":                            "github",
-				"json_data.0.github_url":          "https://github.com",
+				"json_data.0.github_url":          "https://test-github.com",
 				"secure_json_data.0.access_token": "token for github",
+			},
+			additionalChecks: []resource.TestCheckFunc{
+				func(s *terraform.State) error {
+					if dataSource.JSONData.GitHubURL != "https://test-github.com" {
+						return fmt.Errorf("bad github_url: %s. Expected: %s", dataSource.JSONData.GitHubURL, "https://test-github.com")
+					}
+					return nil
+				},
 			},
 		},
 		{
 			resource: "grafana_data_source.athena",
 			config: `
 			resource "grafana_data_source" "athena" {
-				type = "athena"
+				type = "grafana-athena-datasource"
 				name = "athena"
 				json_data {
 					default_region            = "us-east-1"
@@ -488,7 +496,7 @@ func TestAccDataSource_basic(t *testing.T) {
 			}
 			`,
 			attrChecks: map[string]string{
-				"type":                          "athena",
+				"type":                          "grafana-athena-datasource",
 				"name":                          "athena",
 				"json_data.0.default_region":    "us-east-1",
 				"json_data.0.auth_type":         "keys",
