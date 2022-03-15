@@ -451,18 +451,18 @@ func TestAccDataSource_basic(t *testing.T) {
 				type = "grafana-github-datasource"
 				name = "github"
 				json_data {
-					githubUrl = "https://github.com"
+					github_url = "https://github.com"
 				}
-				secureJsonData {
+				secure_json_data {
 					accessToken = "token for github"
 				}
 			}
 			`,
 			attrChecks: map[string]string{
-				"type":                            "grafana-github-datasource",
-				"name":                            "github",
-				"json_data.0.githubUrl":           "https://github.com",
-				"secureJsonData.0.accessToken":    "token for github",
+				"type":                           "grafana-github-datasource",
+				"name":                           "github",
+				"json_data.0.github_url":         "https://github.com",
+				"secure_json_data.0.accessToken": "token for github",
 			},
 		},
 		{
