@@ -171,8 +171,8 @@ Optional:
 
 Optional:
 
-- **access_key** (String, Sensitive) (CloudWatch, Athena) The access key to use to access the data source.
-- **access_token** (String, Sensitive) (Github) The access token to use to access the data source
+- **access_key** (String, Sensitive) (CloudWatch, Athena) The access key used to access the data source.
+- **access_token** (String, Sensitive) (Github) The access token used to access the data source.
 - **auth_token** (String, Sensitive) (Sentry) Authorization token.
 - **basic_auth_password** (String, Sensitive) (All) Password to use for basic authentication.
 - **password** (String, Sensitive) (All) Password to use for authentication.
