@@ -48,6 +48,7 @@ resource "grafana_folder" "test_folder_with_uid" {
 ### Read-Only
 
 - **id** (String) Unique internal identifier.
+- **url** (String) The full URL of the folder.
 
 ## Import
 

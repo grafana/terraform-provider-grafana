@@ -16,6 +16,7 @@ description: |-
 ```terraform
 resource "grafana_folder" "test" {
   title = "test-folder"
+  uid   = "test-ds-folder-uid"
 }
 
 data "grafana_folder" "from_title" {
@@ -34,5 +35,6 @@ data "grafana_folder" "from_title" {
 
 - **id** (Number) The numerical ID of the Grafana folder.
 - **uid** (String) The uid of the Grafana folder.
+- **url** (String) The full URL of the folder.
 
 
