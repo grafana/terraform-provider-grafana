@@ -3,6 +3,7 @@ package grafana
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -41,6 +42,7 @@ func TestAccDashboard_basic(t *testing.T) {
 							testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic"),
 							resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic"),
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "url", strings.TrimRight(os.Getenv("GRAFANA_URL"), "/")+"/d/basic/terraform-acceptance-test"),
 							resource.TestCheckResourceAttr(
 								"grafana_dashboard.test", "config_json", expectedInitialConfig,
 							),
@@ -67,6 +69,7 @@ func TestAccDashboard_basic(t *testing.T) {
 							testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic-update"),
 							resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic-update"),
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "url", strings.TrimRight(os.Getenv("GRAFANA_URL"), "/")+"/d/basic-update/updated-title"),
 							resource.TestCheckResourceAttr(
 								"grafana_dashboard.test", "config_json", expectedUpdatedUIDConfig,
 							),

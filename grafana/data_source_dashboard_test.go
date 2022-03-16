@@ -1,7 +1,9 @@
 package grafana
 
 import (
+	"os"
 	"regexp"
+	"strings"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -29,8 +31,11 @@ func TestAccDatasourceDashboardBasicID(t *testing.T) {
 		resource.TestMatchResourceAttr(
 			"data.grafana_dashboard.from_uid", "dashboard_id", idRegexp,
 		),
-		resource.TestMatchResourceAttr(
-			"data.grafana_dashboard.from_uid", "uid", uidRegexp,
+		resource.TestCheckResourceAttr(
+			"data.grafana_dashboard.from_uid", "uid", "test-ds-dashboard-uid",
+		),
+		resource.TestCheckResourceAttr(
+			"data.grafana_dashboard.from_uid", "url", strings.TrimRight(os.Getenv("GRAFANA_URL"), "/")+"/d/test-ds-dashboard-uid/production-overview",
 		),
 	}
 

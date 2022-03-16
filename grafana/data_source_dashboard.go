@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -65,6 +66,11 @@ func DatasourceDashboard() *schema.Resource {
 				Computed:    true,
 				Description: "URL slug of the dashboard (deprecated).",
 			},
+			"url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The full URL of the dashboard.",
+			},
 		},
 	}
 }
@@ -89,6 +95,7 @@ func findDashboardWithID(client *gapi.Client, id int64) (*gapi.FolderDashboardSe
 }
 
 func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	gapiURL := meta.(*client).gapiURL
 	var dashboard *gapi.Dashboard
 	client := meta.(*client).gapi
 
@@ -121,6 +128,7 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta i
 	d.Set("folder", dashboard.Folder)
 	d.Set("is_starred", dashboard.Meta.IsStarred)
 	d.Set("slug", dashboard.Meta.Slug)
+	d.Set("url", strings.TrimRight(gapiURL, "/")+dashboard.Meta.URL)
 
 	return nil
 }

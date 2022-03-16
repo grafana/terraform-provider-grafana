@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -33,6 +34,11 @@ func DatasourceFolder() *schema.Resource {
 				Computed:    true,
 				Description: "The uid of the Grafana folder.",
 			},
+			"url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The full URL of the folder.",
+			},
 		},
 	}
 }
@@ -45,7 +51,8 @@ func findFolderWithTitle(client *gapi.Client, title string) (*gapi.Folder, error
 
 	for _, f := range folders {
 		if f.Title == title {
-			return &f, nil
+			// Query the folder by ID, that API has additional information
+			return client.Folder(f.ID)
 		}
 	}
 
@@ -53,6 +60,7 @@ func findFolderWithTitle(client *gapi.Client, title string) (*gapi.Folder, error
 }
 
 func dataSourceFolderRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	gapiURL := meta.(*client).gapiURL
 	client := meta.(*client).gapi
 	title := d.Get("title").(string)
 	folder, err := findFolderWithTitle(client, title)
@@ -65,6 +73,7 @@ func dataSourceFolderRead(ctx context.Context, d *schema.ResourceData, meta inte
 	d.SetId(id)
 	d.Set("uid", folder.UID)
 	d.Set("title", folder.Title)
+	d.Set("url", strings.TrimRight(gapiURL, "/")+folder.URL)
 
 	return nil
 }

@@ -46,6 +46,11 @@ func ResourceFolder() *schema.Resource {
 				ForceNew:    true,
 				Description: "The title of the folder.",
 			},
+			"url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The full URL of the folder.",
+			},
 		},
 	}
 }
@@ -75,6 +80,7 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 }
 
 func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	gapiURL := meta.(*client).gapiURL
 	client := meta.(*client).gapi
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -96,6 +102,7 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	d.SetId(strconv.FormatInt(folder.ID, 10))
 	d.Set("title", folder.Title)
 	d.Set("uid", folder.UID)
+	d.Set("url", strings.TrimRight(gapiURL, "/")+folder.URL)
 
 	return nil
 }
