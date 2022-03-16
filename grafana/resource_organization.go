@@ -289,6 +289,10 @@ func addIdsToChanges(d *schema.ResourceData, meta interface{}, changes []UserCha
 	create := d.Get("create_users").(bool)
 	for _, change := range changes {
 		id, ok := gUserMap[change.User.Email]
+		if !ok && change.Type == Remove {
+			log.Printf("[WARN] can't remove user %s from organization %s because it no longer exists in grafana", change.User.Email, d.Id())
+			continue
+		}
 		if !ok && !create {
 			return nil, fmt.Errorf("error adding user %s. User does not exist in Grafana", change.User.Email)
 		}
