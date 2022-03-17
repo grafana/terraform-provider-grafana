@@ -1,6 +1,8 @@
 package grafana
 
 import (
+	"os"
+	"strings"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -19,8 +21,11 @@ func TestAccDatasourceFolder(t *testing.T) {
 		resource.TestMatchResourceAttr(
 			"data.grafana_folder.from_title", "id", idRegexp,
 		),
-		resource.TestMatchResourceAttr(
-			"data.grafana_folder.from_title", "uid", uidRegexp,
+		resource.TestCheckResourceAttr(
+			"data.grafana_folder.from_title", "uid", "test-ds-folder-uid",
+		),
+		resource.TestCheckResourceAttr(
+			"data.grafana_folder.from_title", "url", strings.TrimRight(os.Getenv("GRAFANA_URL"), "/")+"/dashboards/f/test-ds-folder-uid/test-folder",
 		),
 	}
 

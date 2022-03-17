@@ -40,7 +40,8 @@ resource "grafana_dashboard" "metrics" {
 
 - **dashboard_id** (Number) The numeric ID of the dashboard computed by Grafana.
 - **slug** (String, Deprecated) URL friendly version of the dashboard title. This field is deprecated, please use `uid` instead.
-- **uid** (String) The unique identifier of a dashboard. This is used to construct its URL. It’s automatically generated if not provided when creating a dashboard. The uid allows having consistent URLs for accessing dashboards and when syncing dashboards between multiple Grafana installs.
+- **uid** (String) The unique identifier of a dashboard. This is used to construct its URL. It's automatically generated if not provided when creating a dashboard. The uid allows having consistent URLs for accessing dashboards and when syncing dashboards between multiple Grafana installs.
+- **url** (String) The full URL of the dashboard.
 - **version** (Number) Whenever you save a version of your dashboard, a copy of that version is saved so that previous versions of your dashboard are not lost.
 
 ## Import

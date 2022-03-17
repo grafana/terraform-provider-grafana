@@ -39,7 +39,7 @@ Manages Grafana dashboards.
 				Type:     schema.TypeString,
 				Computed: true,
 				Description: "The unique identifier of a dashboard. This is used to construct its URL. " +
-					"It’s automatically generated if not provided when creating a dashboard. " +
+					"It's automatically generated if not provided when creating a dashboard. " +
 					"The uid allows having consistent URLs for accessing dashboards and when syncing dashboards between multiple Grafana installs. ",
 			},
 			"slug": {
@@ -52,6 +52,11 @@ Manages Grafana dashboards.
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "The numeric ID of the dashboard computed by Grafana.",
+			},
+			"url": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The full URL of the dashboard.",
 			},
 			"version": {
 				Type:     schema.TypeInt,
@@ -186,6 +191,7 @@ func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 }
 
 func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	gapiURL := meta.(*client).gapiURL
 	client := meta.(*client).gapi
 	uid := d.Id()
 	dashboard, err := client.DashboardByUID(uid)
@@ -209,6 +215,7 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	d.Set("slug", dashboard.Meta.Slug)
 	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
 	d.Set("version", int64(dashboard.Model["version"].(float64)))
+	d.Set("url", strings.TrimRight(gapiURL, "/")+dashboard.Meta.URL)
 	if dashboard.Folder > 0 {
 		d.Set("folder", strconv.FormatInt(dashboard.Folder, 10))
 	} else {

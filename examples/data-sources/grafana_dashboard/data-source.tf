@@ -1,6 +1,7 @@
 resource "grafana_dashboard" "test" {
   config_json = jsonencode({
     id            = 12345,
+    uid           = "test-ds-dashboard-uid"
     title         = "Production Overview",
     tags          = ["templated"],
     timezone      = "browser",
@@ -15,5 +16,8 @@ data "grafana_dashboard" "from_id" {
 }
 
 data "grafana_dashboard" "from_uid" {
-  uid = grafana_dashboard.test.id
+  depends_on = [
+    grafana_dashboard.test
+  ]
+  uid = "test-ds-dashboard-uid"
 }

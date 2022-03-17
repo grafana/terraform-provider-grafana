@@ -18,6 +18,7 @@ description: |-
 resource "grafana_dashboard" "test" {
   config_json = jsonencode({
     id            = 12345,
+    uid           = "test-ds-dashboard-uid"
     title         = "Production Overview",
     tags          = ["templated"],
     timezone      = "browser",
@@ -32,7 +33,10 @@ data "grafana_dashboard" "from_id" {
 }
 
 data "grafana_dashboard" "from_uid" {
-  uid = grafana_dashboard.test.id
+  depends_on = [
+    grafana_dashboard.test
+  ]
+  uid = "test-ds-dashboard-uid"
 }
 ```
 
@@ -52,6 +56,7 @@ data "grafana_dashboard" "from_uid" {
 - **is_starred** (Boolean) Whether or not the Grafana dashboard is starred. Starred Dashboards will show up on your own Home Dashboard by default, and are a convenient way to mark Dashboards that you’re interested in.
 - **slug** (String) URL slug of the dashboard (deprecated).
 - **title** (String) The title of the Grafana dashboard.
+- **url** (String) The full URL of the dashboard.
 - **version** (Number) The numerical version of the Grafana dashboard.
 
 

@@ -2,7 +2,9 @@ package grafana
 
 import (
 	"fmt"
+	"os"
 	"strconv"
+	"strings"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -36,6 +38,7 @@ func TestAccFolder_basic(t *testing.T) {
 					resource.TestMatchResourceAttr("grafana_folder.test_folder_with_uid", "id", idRegexp),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "uid", "test-folder-uid"),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "title", "Terraform Test Folder With UID"),
+					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "url", strings.TrimRight(os.Getenv("GRAFANA_URL"), "/")+"/dashboards/f/test-folder-uid/terraform-test-folder-with-uid"),
 				),
 			},
 			{
