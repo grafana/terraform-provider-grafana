@@ -191,6 +191,43 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 	})
 }
 
+func TestAccOrganization_externalUser(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
+	var org gapi.Org
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccOrganizationConfig_externalUser,
+				Check: resource.ComposeTestCheckFunc(
+					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					resource.TestCheckResourceAttr("grafana_organization.test", "name", "terraform-acc-test-external-user"),
+					resource.TestCheckResourceAttr("grafana_organization.test", "admins.#", "1"),
+					resource.TestCheckResourceAttr("grafana_organization.test", "admins.0", "external-user@example.com"),
+					resource.TestCheckNoResourceAttr("grafana_organization.test", "editors.#"),
+					resource.TestCheckNoResourceAttr("grafana_organization.test", "viewers.#"),
+				),
+			},
+			// Removing the external user from Grafana and the organization should succeed (bugfix)
+			// Both operations are done from state, so Terraform would try to delete the user reference in the organization
+			//   after the user no longer existed. This would fail, so the org user update is now skipped in that case
+			{
+				Config: testAccOrganizationConfig_externalUserRemoved,
+				Check: resource.ComposeTestCheckFunc(
+					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					resource.TestCheckResourceAttr("grafana_organization.test", "name", "terraform-acc-test-external-user"),
+					resource.TestCheckNoResourceAttr("grafana_organization.test", "admins.#"),
+					resource.TestCheckNoResourceAttr("grafana_organization.test", "editors.#"),
+					resource.TestCheckNoResourceAttr("grafana_organization.test", "viewers.#"),
+				),
+			},
+		},
+	})
+}
+
 //nolint:unparam // `rn` always receives `"grafana_organization.test"`
 func testAccOrganizationCheckExists(rn string, a *gapi.Org) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -288,5 +325,31 @@ resource "grafana_organization" "test" {
         "admin@localhost",
         "john.doe@example.com"
     ]
+}
+`
+
+const testAccOrganizationConfig_externalUser = `
+resource "grafana_user" "external" {
+	name     = "external"
+	email    = "external-user@example.com"
+	login    = "external-user"
+	password = "password"
+
+}
+
+resource "grafana_organization" "test" {
+    name = "terraform-acc-test-external-user"
+    create_users = false
+    admins = [
+        grafana_user.external.email
+    ]
+}
+`
+
+const testAccOrganizationConfig_externalUserRemoved = `
+resource "grafana_organization" "test" {
+    name = "terraform-acc-test-external-user"
+    create_users = false
+    admins = []
 }
 `
