@@ -33,19 +33,19 @@ resource "grafana_user" "staff" {
 
 ### Required
 
-- **email** (String) The email address of the Grafana user.
-- **password** (String, Sensitive) The password for the Grafana user.
+- `email` (String) The email address of the Grafana user.
+- `password` (String, Sensitive) The password for the Grafana user.
 
 ### Optional
 
-- **id** (String) The ID of this resource.
-- **is_admin** (Boolean) Whether to make user an admin. Defaults to `false`.
-- **login** (String) The username for the Grafana user.
-- **name** (String) The display name for the Grafana user.
+- `id` (String) The ID of this resource.
+- `is_admin` (Boolean) Whether to make user an admin. Defaults to `false`.
+- `login` (String) The username for the Grafana user.
+- `name` (String) The display name for the Grafana user.
 
 ### Read-Only
 
-- **user_id** (Number) The numerical ID of the Grafana user.
+- `user_id` (Number) The numerical ID of the Grafana user.
 
 ## Import
 

@@ -50,23 +50,23 @@ resource "grafana_data_source_permission" "fooPermissions" {
 
 ### Required
 
-- **datasource_id** (Number) ID of the datasource to apply permissions to.
-- **permissions** (Block Set, Min: 1) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))
+- `datasource_id` (Number) ID of the datasource to apply permissions to.
+- `permissions` (Block Set, Min: 1) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))
 
 ### Optional
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.
 
 <a id="nestedblock--permissions"></a>
 ### Nested Schema for `permissions`
 
 Required:
 
-- **permission** (String) Permission to associate with item. Must be `Query`.
+- `permission` (String) Permission to associate with item. Must be `Query`.
 
 Optional:
 
-- **team_id** (Number) ID of the team to manage permissions for. Defaults to `0`.
-- **user_id** (Number) ID of the user to manage permissions for. Defaults to `0`.
+- `team_id` (Number) ID of the team to manage permissions for. Defaults to `0`.
+- `user_id` (Number) ID of the user to manage permissions for. Defaults to `0`.
 
 

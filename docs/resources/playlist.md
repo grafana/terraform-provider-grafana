@@ -19,33 +19,33 @@ description: |-
 
 ### Required
 
-- **interval** (String)
-- **item** (Block Set, Min: 1) (see [below for nested schema](#nestedblock--item))
-- **name** (String) The name of the playlist.
+- `interval` (String)
+- `item` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--item))
+- `name` (String) The name of the playlist.
 
 ### Optional
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.
 
 ### Read-Only
 
-- **org_id** (String)
+- `org_id` (String)
 
 <a id="nestedblock--item"></a>
 ### Nested Schema for `item`
 
 Required:
 
-- **order** (Number)
-- **title** (String)
+- `order` (Number)
+- `title` (String)
 
 Optional:
 
-- **type** (String)
-- **value** (String)
+- `type` (String)
+- `value` (String)
 
 Read-Only:
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.
 
 

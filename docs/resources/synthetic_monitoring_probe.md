@@ -38,21 +38,21 @@ resource "grafana_synthetic_monitoring_probe" "main" {
 
 ### Required
 
-- **latitude** (Number) Latitude coordinates.
-- **longitude** (Number) Longitude coordinates.
-- **name** (String) Name of the probe.
-- **region** (String) Region of the probe.
+- `latitude` (Number) Latitude coordinates.
+- `longitude` (Number) Longitude coordinates.
+- `name` (String) Name of the probe.
+- `region` (String) Region of the probe.
 
 ### Optional
 
-- **labels** (Map of String) Custom labels to be included with collected metrics and logs.
-- **public** (Boolean) Public probes are run by Grafana Labs and can be used by all users. Only Grafana Labs managed public probes will be set to `true`. Defaults to `false`.
+- `labels` (Map of String) Custom labels to be included with collected metrics and logs.
+- `public` (Boolean) Public probes are run by Grafana Labs and can be used by all users. Only Grafana Labs managed public probes will be set to `true`. Defaults to `false`.
 
 ### Read-Only
 
-- **auth_token** (String, Sensitive) The probe authentication token. Your probe must use this to authenticate with Grafana Cloud.
-- **id** (String) The ID of the probe.
-- **tenant_id** (Number) The tenant ID of the probe.
+- `auth_token` (String, Sensitive) The probe authentication token. Your probe must use this to authenticate with Grafana Cloud.
+- `id` (String) The ID of the probe.
+- `tenant_id` (Number) The tenant ID of the probe.
 
 ## Import
 

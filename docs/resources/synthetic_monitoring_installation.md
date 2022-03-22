@@ -46,17 +46,17 @@ resource "grafana_synthetic_monitoring_installation" "sm_stack" {
 
 ### Required
 
-- **logs_instance_id** (Number) The ID of the logs instance to install SM on (stack's `logs_user_id` attribute).
-- **metrics_instance_id** (Number) The ID of the metrics instance to install SM on (stack's `prometheus_user_id` attribute).
-- **metrics_publisher_key** (String, Sensitive) The Cloud API Key with the `MetricsPublisher` role used to publish metrics to the SM API
-- **stack_id** (Number) The ID of the stack to install SM on.
+- `logs_instance_id` (Number) The ID of the logs instance to install SM on (stack's `logs_user_id` attribute).
+- `metrics_instance_id` (Number) The ID of the metrics instance to install SM on (stack's `prometheus_user_id` attribute).
+- `metrics_publisher_key` (String, Sensitive) The Cloud API Key with the `MetricsPublisher` role used to publish metrics to the SM API
+- `stack_id` (Number) The ID of the stack to install SM on.
 
 ### Optional
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.
 
 ### Read-Only
 
-- **sm_access_token** (String) Generated token to access the SM API.
+- `sm_access_token` (String) Generated token to access the SM API.
 
 

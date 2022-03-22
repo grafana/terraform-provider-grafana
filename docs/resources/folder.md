@@ -39,16 +39,16 @@ resource "grafana_folder" "test_folder_with_uid" {
 
 ### Required
 
-- **title** (String) The title of the folder.
+- `title` (String) The title of the folder.
 
 ### Optional
 
-- **uid** (String) Unique identifier.
+- `uid` (String) Unique identifier.
 
 ### Read-Only
 
-- **id** (String) Unique internal identifier.
-- **url** (String) The full URL of the folder.
+- `id` (String) Unique internal identifier.
+- `url` (String) The full URL of the folder.
 
 ## Import
 

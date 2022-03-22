@@ -78,91 +78,91 @@ resource "grafana_data_source" "stackdriver" {
 
 ### Required
 
-- **name** (String) A unique name for the data source.
-- **type** (String) The data source type. Must be one of the supported data source keywords.
+- `name` (String) A unique name for the data source.
+- `type` (String) The data source type. Must be one of the supported data source keywords.
 
 ### Optional
 
-- **access_mode** (String) The method by which Grafana will access the data source: `proxy` or `direct`. Defaults to `proxy`.
-- **basic_auth_enabled** (Boolean) Whether to enable basic auth for the data source. Defaults to `false`.
-- **basic_auth_password** (String, Sensitive) Basic auth password. Defaults to ``.
-- **basic_auth_username** (String) Basic auth username. Defaults to ``.
-- **database_name** (String) (Required by some data source types) The name of the database to use on the selected data source server. Defaults to ``.
-- **http_headers** (Map of String, Sensitive) Custom HTTP headers
-- **id** (String) The ID of this resource.
-- **is_default** (Boolean) Whether to set the data source as default. This should only be `true` to a single data source. Defaults to `false`.
-- **json_data** (Block List) (Required by some data source types) (see [below for nested schema](#nestedblock--json_data))
-- **password** (String, Sensitive) (Required by some data source types) The password to use to authenticate to the data source. Defaults to ``.
-- **secure_json_data** (Block List) (see [below for nested schema](#nestedblock--secure_json_data))
-- **uid** (String) Unique identifier. If unset, this will be automatically generated.
-- **url** (String) The URL for the data source. The type of URL required varies depending on the chosen data source type.
-- **username** (String) (Required by some data source types) The username to use to authenticate to the data source. Defaults to ``.
+- `access_mode` (String) The method by which Grafana will access the data source: `proxy` or `direct`. Defaults to `proxy`.
+- `basic_auth_enabled` (Boolean) Whether to enable basic auth for the data source. Defaults to `false`.
+- `basic_auth_password` (String, Sensitive) Basic auth password. Defaults to ``.
+- `basic_auth_username` (String) Basic auth username. Defaults to ``.
+- `database_name` (String) (Required by some data source types) The name of the database to use on the selected data source server. Defaults to ``.
+- `http_headers` (Map of String, Sensitive) Custom HTTP headers
+- `id` (String) The ID of this resource.
+- `is_default` (Boolean) Whether to set the data source as default. This should only be `true` to a single data source. Defaults to `false`.
+- `json_data` (Block List) (Required by some data source types) (see [below for nested schema](#nestedblock--json_data))
+- `password` (String, Sensitive) (Required by some data source types) The password to use to authenticate to the data source. Defaults to ``.
+- `secure_json_data` (Block List) (see [below for nested schema](#nestedblock--secure_json_data))
+- `uid` (String) Unique identifier. If unset, this will be automatically generated.
+- `url` (String) The URL for the data source. The type of URL required varies depending on the chosen data source type.
+- `username` (String) (Required by some data source types) The username to use to authenticate to the data source. Defaults to ``.
 
 <a id="nestedblock--json_data"></a>
 ### Nested Schema for `json_data`
 
 Optional:
 
-- **assume_role_arn** (String) (CloudWatch, Athena) The ARN of the role to be assumed by Grafana when using the CloudWatch or Athena data source.
-- **auth_type** (String) (CloudWatch, Athena) The authentication type used to access the data source.
-- **authentication_type** (String) (Stackdriver) The authentication type: `jwt` or `gce`.
-- **catalog** (String) (Athena) Athena catalog.
-- **client_email** (String) (Stackdriver) Service account email address.
-- **conn_max_lifetime** (Number) (MySQL, PostgreSQL, and MSSQL) Maximum amount of time in seconds a connection may be reused (Grafana v5.4+).
-- **custom_metrics_namespaces** (String) (CloudWatch) A comma-separated list of custom namespaces to be queried by the CloudWatch data source.
-- **database** (String) (Athena) Name of the database within the catalog.
-- **default_bucket** (String) (InfluxDB) The default bucket for the data source.
-- **default_project** (String) (Stackdriver) The default project for the data source.
-- **default_region** (String) (CloudWatch, Athena) The default region for the data source.
-- **derived_field** (Block List) (Loki) See https://grafana.com/docs/grafana/latest/datasources/loki/#derived-fields (see [below for nested schema](#nestedblock--json_data--derived_field))
-- **encrypt** (String) (MSSQL) Connection SSL encryption handling: 'disable', 'false' or 'true'.
-- **es_version** (String) (Elasticsearch) Elasticsearch semantic version (Grafana v8.0+).
-- **external_id** (String) (CloudWatch, Athena) If you are assuming a role in another account, that has been created with an external ID, specify the external ID here.
-- **github_url** (String) (Github) Github URL
-- **graphite_version** (String) (Graphite) Graphite version.
-- **http_method** (String) (Prometheus) HTTP method to use for making requests.
-- **interval** (String) (Elasticsearch) Index date time format. nil(No Pattern), 'Hourly', 'Daily', 'Weekly', 'Monthly' or 'Yearly'.
-- **log_level_field** (String) (Elasticsearch) Which field should be used to indicate the priority of the log message.
-- **log_message_field** (String) (Elasticsearch) Which field should be used as the log message.
-- **max_concurrent_shard_requests** (Number) (Elasticsearch) Maximum number of concurrent shard requests.
-- **max_idle_conns** (Number) (MySQL, PostgreSQL and MSSQL) Maximum number of connections in the idle connection pool (Grafana v5.4+).
-- **max_lines** (Number) (Loki) Upper limit for the number of log lines returned by Loki
-- **max_open_conns** (Number) (MySQL, PostgreSQL and MSSQL) Maximum number of open connections to the database (Grafana v5.4+).
-- **org_slug** (String) (Sentry) Organization slug.
-- **organization** (String) (InfluxDB) An organization is a workspace for a group of users. All dashboards, tasks, buckets, members, etc., belong to an organization.
-- **output_location** (String) (Athena) AWS S3 bucket to store execution outputs. If not specified, the default query result location from the Workgroup configuration will be used.
-- **postgres_version** (Number) (PostgreSQL) Postgres version as a number (903/904/905/906/1000) meaning v9.3, v9.4, etc.
-- **profile** (String) (CloudWatch, Athena) The credentials profile name to use when authentication type is set as 'Credentials file'.
-- **query_timeout** (String) (Prometheus) Timeout for queries made to the Prometheus data source in seconds.
-- **sigv4_assume_role_arn** (String) (Elasticsearch and Prometheus) Specifies the ARN of an IAM role to assume.
-- **sigv4_auth** (Boolean) (Elasticsearch and Prometheus) Enable usage of SigV4.
-- **sigv4_auth_type** (String) (Elasticsearch and Prometheus) The Sigv4 authentication provider to use: 'default', 'credentials' or 'keys' (AMG: 'workspace-iam-role').
-- **sigv4_external_id** (String) (Elasticsearch and Prometheus) When assuming a role in another account use this external ID.
-- **sigv4_profile** (String) (Elasticsearch and Prometheus) Credentials profile name, leave blank for default.
-- **sigv4_region** (String) (Elasticsearch and Prometheus) AWS region to use for Sigv4.
-- **ssl_mode** (String) (PostgreSQL) SSLmode. 'disable', 'require', 'verify-ca' or 'verify-full'.
-- **time_field** (String) (Elasticsearch) Which field that should be used as timestamp.
-- **time_interval** (String) (Prometheus, Elasticsearch, InfluxDB, MySQL, PostgreSQL, and MSSQL) Lowest interval/step value that should be used for this data source.
-- **timescaledb** (Boolean) (PostgreSQL) Enable usage of TimescaleDB extension.
-- **tls_auth** (Boolean) (All) Enable TLS authentication using client cert configured in secure json data.
-- **tls_auth_with_ca_cert** (Boolean) (All) Enable TLS authentication using CA cert.
-- **tls_configuration_method** (String) (All) SSL Certificate configuration, either by ‘file-path’ or ‘file-content’.
-- **tls_skip_verify** (Boolean) (All) Controls whether a client verifies the server’s certificate chain and host name.
-- **token_uri** (String) (Stackdriver) The token URI used, provided in the service account key.
-- **tsdb_resolution** (Number) (OpenTSDB) Resolution.
-- **tsdb_version** (Number) (OpenTSDB) Version.
-- **version** (String) (InfluxDB) InfluxQL or Flux.
-- **workgroup** (String) (Athena) Workgroup to use.
+- `assume_role_arn` (String) (CloudWatch, Athena) The ARN of the role to be assumed by Grafana when using the CloudWatch or Athena data source.
+- `auth_type` (String) (CloudWatch, Athena) The authentication type used to access the data source.
+- `authentication_type` (String) (Stackdriver) The authentication type: `jwt` or `gce`.
+- `catalog` (String) (Athena) Athena catalog.
+- `client_email` (String) (Stackdriver) Service account email address.
+- `conn_max_lifetime` (Number) (MySQL, PostgreSQL, and MSSQL) Maximum amount of time in seconds a connection may be reused (Grafana v5.4+).
+- `custom_metrics_namespaces` (String) (CloudWatch) A comma-separated list of custom namespaces to be queried by the CloudWatch data source.
+- `database` (String) (Athena) Name of the database within the catalog.
+- `default_bucket` (String) (InfluxDB) The default bucket for the data source.
+- `default_project` (String) (Stackdriver) The default project for the data source.
+- `default_region` (String) (CloudWatch, Athena) The default region for the data source.
+- `derived_field` (Block List) (Loki) See https://grafana.com/docs/grafana/latest/datasources/loki/#derived-fields (see [below for nested schema](#nestedblock--json_data--derived_field))
+- `encrypt` (String) (MSSQL) Connection SSL encryption handling: 'disable', 'false' or 'true'.
+- `es_version` (String) (Elasticsearch) Elasticsearch semantic version (Grafana v8.0+).
+- `external_id` (String) (CloudWatch, Athena) If you are assuming a role in another account, that has been created with an external ID, specify the external ID here.
+- `github_url` (String) (Github) Github URL
+- `graphite_version` (String) (Graphite) Graphite version.
+- `http_method` (String) (Prometheus) HTTP method to use for making requests.
+- `interval` (String) (Elasticsearch) Index date time format. nil(No Pattern), 'Hourly', 'Daily', 'Weekly', 'Monthly' or 'Yearly'.
+- `log_level_field` (String) (Elasticsearch) Which field should be used to indicate the priority of the log message.
+- `log_message_field` (String) (Elasticsearch) Which field should be used as the log message.
+- `max_concurrent_shard_requests` (Number) (Elasticsearch) Maximum number of concurrent shard requests.
+- `max_idle_conns` (Number) (MySQL, PostgreSQL and MSSQL) Maximum number of connections in the idle connection pool (Grafana v5.4+).
+- `max_lines` (Number) (Loki) Upper limit for the number of log lines returned by Loki
+- `max_open_conns` (Number) (MySQL, PostgreSQL and MSSQL) Maximum number of open connections to the database (Grafana v5.4+).
+- `org_slug` (String) (Sentry) Organization slug.
+- `organization` (String) (InfluxDB) An organization is a workspace for a group of users. All dashboards, tasks, buckets, members, etc., belong to an organization.
+- `output_location` (String) (Athena) AWS S3 bucket to store execution outputs. If not specified, the default query result location from the Workgroup configuration will be used.
+- `postgres_version` (Number) (PostgreSQL) Postgres version as a number (903/904/905/906/1000) meaning v9.3, v9.4, etc.
+- `profile` (String) (CloudWatch, Athena) The credentials profile name to use when authentication type is set as 'Credentials file'.
+- `query_timeout` (String) (Prometheus) Timeout for queries made to the Prometheus data source in seconds.
+- `sigv4_assume_role_arn` (String) (Elasticsearch and Prometheus) Specifies the ARN of an IAM role to assume.
+- `sigv4_auth` (Boolean) (Elasticsearch and Prometheus) Enable usage of SigV4.
+- `sigv4_auth_type` (String) (Elasticsearch and Prometheus) The Sigv4 authentication provider to use: 'default', 'credentials' or 'keys' (AMG: 'workspace-iam-role').
+- `sigv4_external_id` (String) (Elasticsearch and Prometheus) When assuming a role in another account use this external ID.
+- `sigv4_profile` (String) (Elasticsearch and Prometheus) Credentials profile name, leave blank for default.
+- `sigv4_region` (String) (Elasticsearch and Prometheus) AWS region to use for Sigv4.
+- `ssl_mode` (String) (PostgreSQL) SSLmode. 'disable', 'require', 'verify-ca' or 'verify-full'.
+- `time_field` (String) (Elasticsearch) Which field that should be used as timestamp.
+- `time_interval` (String) (Prometheus, Elasticsearch, InfluxDB, MySQL, PostgreSQL, and MSSQL) Lowest interval/step value that should be used for this data source.
+- `timescaledb` (Boolean) (PostgreSQL) Enable usage of TimescaleDB extension.
+- `tls_auth` (Boolean) (All) Enable TLS authentication using client cert configured in secure json data.
+- `tls_auth_with_ca_cert` (Boolean) (All) Enable TLS authentication using CA cert.
+- `tls_configuration_method` (String) (All) SSL Certificate configuration, either by ‘file-path’ or ‘file-content’.
+- `tls_skip_verify` (Boolean) (All) Controls whether a client verifies the server’s certificate chain and host name.
+- `token_uri` (String) (Stackdriver) The token URI used, provided in the service account key.
+- `tsdb_resolution` (Number) (OpenTSDB) Resolution.
+- `tsdb_version` (Number) (OpenTSDB) Version.
+- `version` (String) (InfluxDB) InfluxQL or Flux.
+- `workgroup` (String) (Athena) Workgroup to use.
 
 <a id="nestedblock--json_data--derived_field"></a>
 ### Nested Schema for `json_data.derived_field`
 
 Optional:
 
-- **datasource_uid** (String)
-- **matcher_regex** (String)
-- **name** (String)
-- **url** (String)
+- `datasource_uid` (String)
+- `matcher_regex` (String)
+- `name` (String)
+- `url` (String)
 
 
 
@@ -171,18 +171,18 @@ Optional:
 
 Optional:
 
-- **access_key** (String, Sensitive) (CloudWatch, Athena) The access key used to access the data source.
-- **access_token** (String, Sensitive) (Github) The access token used to access the data source.
-- **auth_token** (String, Sensitive) (Sentry) Authorization token.
-- **basic_auth_password** (String, Sensitive) (All) Password to use for basic authentication.
-- **password** (String, Sensitive) (All) Password to use for authentication.
-- **private_key** (String, Sensitive) (Stackdriver) The service account key `private_key` to use to access the data source.
-- **secret_key** (String, Sensitive) (CloudWatch, Athena) The secret key to use to access the data source.
-- **sigv4_access_key** (String, Sensitive) (Elasticsearch and Prometheus) SigV4 access key. Required when using 'keys' auth provider.
-- **sigv4_secret_key** (String, Sensitive) (Elasticsearch and Prometheus) SigV4 secret key. Required when using 'keys' auth provider.
-- **tls_ca_cert** (String, Sensitive) (All) CA cert for out going requests.
-- **tls_client_cert** (String, Sensitive) (All) TLS Client cert for outgoing requests.
-- **tls_client_key** (String, Sensitive) (All) TLS Client key for outgoing requests.
+- `access_key` (String, Sensitive) (CloudWatch, Athena) The access key used to access the data source.
+- `access_token` (String, Sensitive) (Github) The access token used to access the data source.
+- `auth_token` (String, Sensitive) (Sentry) Authorization token.
+- `basic_auth_password` (String, Sensitive) (All) Password to use for basic authentication.
+- `password` (String, Sensitive) (All) Password to use for authentication.
+- `private_key` (String, Sensitive) (Stackdriver) The service account key `private_key` to use to access the data source.
+- `secret_key` (String, Sensitive) (CloudWatch, Athena) The secret key to use to access the data source.
+- `sigv4_access_key` (String, Sensitive) (Elasticsearch and Prometheus) SigV4 access key. Required when using 'keys' auth provider.
+- `sigv4_secret_key` (String, Sensitive) (Elasticsearch and Prometheus) SigV4 secret key. Required when using 'keys' auth provider.
+- `tls_ca_cert` (String, Sensitive) (All) CA cert for out going requests.
+- `tls_client_cert` (String, Sensitive) (All) TLS Client cert for outgoing requests.
+- `tls_client_key` (String, Sensitive) (All) TLS Client key for outgoing requests.
 
 ## Import
 

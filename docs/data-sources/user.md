@@ -45,14 +45,14 @@ data "grafana_user" "from_login" {
 
 ### Optional
 
-- **email** (String) The email address of the Grafana user. Defaults to ``.
-- **id** (String) The ID of this resource.
-- **login** (String) The username for the Grafana user. Defaults to ``.
-- **user_id** (Number) The numerical ID of the Grafana user. Defaults to `-1`.
+- `email` (String) The email address of the Grafana user. Defaults to ``.
+- `id` (String) The ID of this resource.
+- `login` (String) The username for the Grafana user. Defaults to ``.
+- `user_id` (Number) The numerical ID of the Grafana user. Defaults to `-1`.
 
 ### Read-Only
 
-- **is_admin** (Boolean) Whether the user is an admin.
-- **name** (String) The display name for the Grafana user.
+- `is_admin` (Boolean) Whether the user is an admin.
+- `name` (String) The display name for the Grafana user.
 
 

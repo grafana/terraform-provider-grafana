@@ -162,20 +162,20 @@ resource "grafana_synthetic_monitoring_check" "ping" {
 
 ### Optional
 
-- **auth** (String, Sensitive) API token or basic auth username:password. May alternatively be set via the `GRAFANA_AUTH` environment variable.
-- **ca_cert** (String) Certificate CA bundle to use to verify the Grafana server's certificate. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.
-- **cloud_api_key** (String, Sensitive) API key for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_API_KEY` environment variable.
-- **cloud_api_url** (String) Grafana Cloud's API URL. May alternatively be set via the `GRAFANA_CLOUD_API_URL` environment variable.
-- **http_headers** (Map of String, Sensitive) Optional. HTTP headers mapping keys to values used for accessing the Grafana API. May alternatively be set via the `GRAFANA_HTTP_HEADERS` environment variable in JSON format.
-- **insecure_skip_verify** (Boolean) Skip TLS certificate verification. May alternatively be set via the `GRAFANA_INSECURE_SKIP_VERIFY` environment variable.
-- **org_id** (Number) The organization id to operate on within grafana. May alternatively be set via the `GRAFANA_ORG_ID` environment variable.
-- **retries** (Number) The amount of retries to use for Grafana API calls. May alternatively be set via the `GRAFANA_RETRIES` environment variable.
-- **sm_access_token** (String, Sensitive) A Synthetic Monitoring access token. May alternatively be set via the `GRAFANA_SM_ACCESS_TOKEN` environment variable.
-- **sm_url** (String) Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable.
-- **store_dashboard_sha256** (Boolean) Set to true if you want to save only the sha256sum instead of complete dashboard model JSON in the tfstate.
-- **tls_cert** (String) Client TLS certificate file to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.
-- **tls_key** (String) Client TLS key file to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.
-- **url** (String) The root URL of a Grafana server. May alternatively be set via the `GRAFANA_URL` environment variable.
+- `auth` (String, Sensitive) API token or basic auth username:password. May alternatively be set via the `GRAFANA_AUTH` environment variable.
+- `ca_cert` (String) Certificate CA bundle to use to verify the Grafana server's certificate. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.
+- `cloud_api_key` (String, Sensitive) API key for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_API_KEY` environment variable.
+- `cloud_api_url` (String) Grafana Cloud's API URL. May alternatively be set via the `GRAFANA_CLOUD_API_URL` environment variable.
+- `http_headers` (Map of String, Sensitive) Optional. HTTP headers mapping keys to values used for accessing the Grafana API. May alternatively be set via the `GRAFANA_HTTP_HEADERS` environment variable in JSON format.
+- `insecure_skip_verify` (Boolean) Skip TLS certificate verification. May alternatively be set via the `GRAFANA_INSECURE_SKIP_VERIFY` environment variable.
+- `org_id` (Number) The organization id to operate on within grafana. May alternatively be set via the `GRAFANA_ORG_ID` environment variable.
+- `retries` (Number) The amount of retries to use for Grafana API calls. May alternatively be set via the `GRAFANA_RETRIES` environment variable.
+- `sm_access_token` (String, Sensitive) A Synthetic Monitoring access token. May alternatively be set via the `GRAFANA_SM_ACCESS_TOKEN` environment variable.
+- `sm_url` (String) Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable.
+- `store_dashboard_sha256` (Boolean) Set to true if you want to save only the sha256sum instead of complete dashboard model JSON in the tfstate.
+- `tls_cert` (String) Client TLS certificate file to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.
+- `tls_key` (String) Client TLS key file to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.
+- `url` (String) The root URL of a Grafana server. May alternatively be set via the `GRAFANA_URL` environment variable.
 
 ## Authentication
 

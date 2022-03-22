@@ -45,18 +45,18 @@ data "grafana_dashboard" "from_uid" {
 
 ### Optional
 
-- **dashboard_id** (Number) The numerical ID of the Grafana dashboard. Specify either this or `uid`. Defaults to `-1`.
-- **id** (String) The ID of this resource.
-- **uid** (String) The uid of the Grafana dashboard. Specify either this or `dashboard_id`. Defaults to ``.
+- `dashboard_id` (Number) The numerical ID of the Grafana dashboard. Specify either this or `uid`. Defaults to `-1`.
+- `id` (String) The ID of this resource.
+- `uid` (String) The uid of the Grafana dashboard. Specify either this or `dashboard_id`. Defaults to ``.
 
 ### Read-Only
 
-- **config_json** (String) The complete dashboard model JSON.
-- **folder** (Number) The numerical ID of the folder where the Grafana dashboard is found.
-- **is_starred** (Boolean) Whether or not the Grafana dashboard is starred. Starred Dashboards will show up on your own Home Dashboard by default, and are a convenient way to mark Dashboards that you’re interested in.
-- **slug** (String) URL slug of the dashboard (deprecated).
-- **title** (String) The title of the Grafana dashboard.
-- **url** (String) The full URL of the dashboard.
-- **version** (Number) The numerical version of the Grafana dashboard.
+- `config_json` (String) The complete dashboard model JSON.
+- `folder` (Number) The numerical ID of the folder where the Grafana dashboard is found.
+- `is_starred` (Boolean) Whether or not the Grafana dashboard is starred. Starred Dashboards will show up on your own Home Dashboard by default, and are a convenient way to mark Dashboards that you’re interested in.
+- `slug` (String) URL slug of the dashboard (deprecated).
+- `title` (String) The title of the Grafana dashboard.
+- `url` (String) The full URL of the dashboard.
+- `version` (Number) The numerical version of the Grafana dashboard.
 
 
