@@ -88,23 +88,23 @@ data "grafana_dashboard" "from_library_panel_connection" {
 
 ### Optional
 
-- **id** (String) The ID of this resource.
-- **name** (String) Name of the library panel.
-- **uid** (String) The unique identifier (UID) of the library panel.
+- `id` (String) The ID of this resource.
+- `name` (String) Name of the library panel.
+- `uid` (String) The unique identifier (UID) of the library panel.
 
 ### Read-Only
 
-- **created** (String) Timestamp when the library panel was created.
-- **dashboard_ids** (List of Number) Numerical IDs of Grafana dashboards containing the library panel.
-- **description** (String) Description of the library panel.
-- **folder_id** (Number) ID of the folder where the library panel is stored.
-- **folder_name** (String) Name of the folder containing the library panel.
-- **folder_uid** (String) Unique ID (UID) of the folder containing the library panel.
-- **model_json** (String) The JSON model for the library panel.
-- **org_id** (Number) The numeric ID of the library panel computed by Grafana.
-- **panel_id** (Number) The numeric ID of the library panel computed by Grafana.
-- **type** (String) Type of the library panel (eg. text).
-- **updated** (String) Timestamp when the library panel was last modified.
-- **version** (Number) Version of the library panel.
+- `created` (String) Timestamp when the library panel was created.
+- `dashboard_ids` (List of Number) Numerical IDs of Grafana dashboards containing the library panel.
+- `description` (String) Description of the library panel.
+- `folder_id` (Number) ID of the folder where the library panel is stored.
+- `folder_name` (String) Name of the folder containing the library panel.
+- `folder_uid` (String) Unique ID (UID) of the folder containing the library panel.
+- `model_json` (String) The JSON model for the library panel.
+- `org_id` (Number) The numeric ID of the library panel computed by Grafana.
+- `panel_id` (Number) The numeric ID of the library panel computed by Grafana.
+- `type` (String) Type of the library panel (eg. text).
+- `updated` (String) Timestamp when the library panel was last modified.
+- `version` (Number) Version of the library panel.
 
 

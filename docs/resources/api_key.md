@@ -43,18 +43,18 @@ output "api_key_bar" {
 
 ### Required
 
-- **name** (String)
-- **role** (String)
+- `name` (String)
+- `role` (String)
 
 ### Optional
 
-- **cloud_stack_slug** (String) If set, the API key will be created for the given Cloud stack. This can be used to bootstrap a management API key for a new stack. **Note**: This requires a cloud token to be configured.
-- **seconds_to_live** (Number)
+- `cloud_stack_slug` (String) If set, the API key will be created for the given Cloud stack. This can be used to bootstrap a management API key for a new stack. **Note**: This requires a cloud token to be configured.
+- `seconds_to_live` (Number)
 
 ### Read-Only
 
-- **expiration** (String)
-- **id** (String) The ID of this resource.
-- **key** (String, Sensitive)
+- `expiration` (String)
+- `id` (String) The ID of this resource.
+- `key` (String, Sensitive)
 
 

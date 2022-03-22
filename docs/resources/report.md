@@ -42,39 +42,39 @@ resource "grafana_report" "test" {
 
 ### Required
 
-- **dashboard_id** (Number) Dashboard to be sent in the report.
-- **name** (String) Name of the report.
-- **recipients** (List of String) List of recipients of the report.
-- **schedule** (Block List, Min: 1, Max: 1) Schedule of the report. (see [below for nested schema](#nestedblock--schedule))
+- `dashboard_id` (Number) Dashboard to be sent in the report.
+- `name` (String) Name of the report.
+- `recipients` (List of String) List of recipients of the report.
+- `schedule` (Block List, Min: 1, Max: 1) Schedule of the report. (see [below for nested schema](#nestedblock--schedule))
 
 ### Optional
 
-- **include_dashboard_link** (Boolean) Whether to include a link to the dashboard in the report. Defaults to `true`.
-- **include_table_csv** (Boolean) Whether to include a CSV file of table panel data. Defaults to `false`.
-- **layout** (String) Layout of the report. `simple` or `grid` Defaults to `grid`.
-- **message** (String) Message to be sent in the report.
-- **orientation** (String) Orientation of the report. `landscape` or `portrait` Defaults to `landscape`.
-- **reply_to** (String) Reply-to email address of the report.
-- **time_range** (Block List, Max: 1) Time range of the report. (see [below for nested schema](#nestedblock--time_range))
+- `include_dashboard_link` (Boolean) Whether to include a link to the dashboard in the report. Defaults to `true`.
+- `include_table_csv` (Boolean) Whether to include a CSV file of table panel data. Defaults to `false`.
+- `layout` (String) Layout of the report. `simple` or `grid` Defaults to `grid`.
+- `message` (String) Message to be sent in the report.
+- `orientation` (String) Orientation of the report. `landscape` or `portrait` Defaults to `landscape`.
+- `reply_to` (String) Reply-to email address of the report.
+- `time_range` (Block List, Max: 1) Time range of the report. (see [below for nested schema](#nestedblock--time_range))
 
 ### Read-Only
 
-- **id** (String) Generated identifier of the report.
+- `id` (String) Generated identifier of the report.
 
 <a id="nestedblock--schedule"></a>
 ### Nested Schema for `schedule`
 
 Required:
 
-- **frequency** (String) Frequency of the report. One of `never`, `once`, `hourly`, `daily`, `weekly`, `monthly` or `custom`.
+- `frequency` (String) Frequency of the report. One of `never`, `once`, `hourly`, `daily`, `weekly`, `monthly` or `custom`.
 
 Optional:
 
-- **custom_interval** (String) Custom interval of the report.
+- `custom_interval` (String) Custom interval of the report.
 **Note:** This field is only available when frequency is set to `custom`.
-- **end_time** (String) End time of the report. If empty, the report will be sent indefinitely (according to frequency). Note that times will be saved as UTC in Grafana.
-- **start_time** (String) Start time of the report. If empty, the start date will be set to the creation time. Note that times will be saved as UTC in Grafana.
-- **workdays_only** (Boolean) Whether to send the report only on work days. Defaults to `false`.
+- `end_time` (String) End time of the report. If empty, the report will be sent indefinitely (according to frequency). Note that times will be saved as UTC in Grafana.
+- `start_time` (String) Start time of the report. If empty, the start date will be set to the creation time. Note that times will be saved as UTC in Grafana.
+- `workdays_only` (Boolean) Whether to send the report only on work days. Defaults to `false`.
 
 
 <a id="nestedblock--time_range"></a>
@@ -82,7 +82,7 @@ Optional:
 
 Optional:
 
-- **from** (String) Start of the time range.
-- **to** (String) End of the time range.
+- `from` (String) Start of the time range.
+- `to` (String) End of the time range.
 
 

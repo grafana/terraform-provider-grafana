@@ -27,17 +27,17 @@ resource "grafana_cloud_api_key" "test" {
 
 ### Required
 
-- **cloud_org_slug** (String) The slug of the organization to create the API key in. This is the same slug as the organization name in the URL.
-- **name** (String) Name of the API key.
-- **role** (String) Role of the API key. Should be one of [Viewer Editor Admin MetricsPublisher PluginPublisher]. See https://grafana.com/docs/grafana-cloud/api/#create-api-key for details.
+- `cloud_org_slug` (String) The slug of the organization to create the API key in. This is the same slug as the organization name in the URL.
+- `name` (String) Name of the API key.
+- `role` (String) Role of the API key. Should be one of [Viewer Editor Admin MetricsPublisher PluginPublisher]. See https://grafana.com/docs/grafana-cloud/api/#create-api-key for details.
 
 ### Optional
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.
 
 ### Read-Only
 
-- **key** (String, Sensitive) The generated API key.
+- `key` (String, Sensitive) The generated API key.
 
 ## Import
 

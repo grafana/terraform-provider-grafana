@@ -48,24 +48,24 @@ resource "grafana_folder_permission" "collectionPermission" {
 
 ### Required
 
-- **folder_uid** (String) The UID of the folder.
-- **permissions** (Block Set, Min: 1) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))
+- `folder_uid` (String) The UID of the folder.
+- `permissions` (Block Set, Min: 1) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))
 
 ### Optional
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.
 
 <a id="nestedblock--permissions"></a>
 ### Nested Schema for `permissions`
 
 Required:
 
-- **permission** (String) Permission to associate with item. Must be one of `View`, `Edit`, or `Admin`.
+- `permission` (String) Permission to associate with item. Must be one of `View`, `Edit`, or `Admin`.
 
 Optional:
 
-- **role** (String) Manage permissions for `Viewer` or `Editor` roles.
-- **team_id** (Number) ID of the team to manage permissions for. Defaults to `0`.
-- **user_id** (Number) ID of the user to manage permissions for. Defaults to `0`.
+- `role` (String) Manage permissions for `Viewer` or `Editor` roles.
+- `team_id` (Number) ID of the team to manage permissions for. Defaults to `0`.
+- `user_id` (Number) ID of the user to manage permissions for. Defaults to `0`.
 
 

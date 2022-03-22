@@ -28,12 +28,12 @@ resource "grafana_team_external_group" "test-team-group" {
 
 ### Required
 
-- **groups** (Set of String) The team external groups list
-- **team_id** (Number) The Team ID
+- `groups` (Set of String) The team external groups list
+- `team_id` (Number) The Team ID
 
 ### Optional
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.
 
 ## Import
 
