@@ -23,6 +23,7 @@ func ResourceFolder() *schema.Resource {
 		CreateContext: CreateFolder,
 		DeleteContext: DeleteFolder,
 		ReadContext:   ReadFolder,
+		UpdateContext: UpdateFolder,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -37,13 +38,11 @@ func ResourceFolder() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Optional:    true,
-				ForceNew:    true,
 				Description: "Unique identifier.",
 			},
 			"title": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The title of the folder.",
 			},
 			"url": {
@@ -75,6 +74,18 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 	d.Set("id", id)
 	d.Set("uid", resp.UID)
 	d.Set("title", resp.Title)
+
+	return ReadFolder(ctx, d, meta)
+}
+
+func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
+
+	oldUID, newUID := d.GetChange("uid")
+
+	if err := client.UpdateFolder(oldUID.(string), d.Get("title").(string), newUID.(string)); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return ReadFolder(ctx, d, meta)
 }
