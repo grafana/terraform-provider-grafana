@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"fmt"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -50,13 +49,9 @@ func testAccCloudPluginInstallationCheckExists(rn string, stackSlug string, plug
 		}
 
 		client := testAccProvider.Meta().(*client).gcloudapi
-		actualInstallation, err := client.GetCloudPluginInstallation(stackSlug, pluginSlug)
+		_, err := client.GetCloudPluginInstallation(stackSlug, pluginSlug)
 		if err != nil {
 			return fmt.Errorf("error getting installation: %s", err)
-		}
-
-		if strconv.Itoa(actualInstallation.ID) != rs.Primary.ID {
-			return fmt.Errorf("resource id does not match")
 		}
 
 		return nil
