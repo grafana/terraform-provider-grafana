@@ -192,7 +192,7 @@ func testAccExample(t *testing.T, path string) string {
 func testAccExampleWithReplace(t *testing.T, path string, replaceMap map[string]string) string {
 	example := testAccExample(t, path)
 	for k, v := range replaceMap {
-		example = strings.Replace(example, k, v, -1)
+		example = strings.ReplaceAll(example, k, v)
 	}
 	return example
 }
