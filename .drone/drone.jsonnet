@@ -1,6 +1,6 @@
-local grafanaVersions = ['8.4.3', '8.3.5', '8.2.7', '8.1.8', '7.5.15'];
+local grafanaVersions = ['8.4.4', '8.3.7', '8.2.7', '8.1.8', '7.5.15'];
 local images = {
-  go: 'golang:1.17',
+  go: 'golang:1.18',
   lint: 'golangci/golangci-lint',
   grafana(version): 'grafana/grafana:' + version,
 };

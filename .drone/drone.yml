@@ -36,7 +36,7 @@ steps:
   - '  echo "docs are out of sync, run \"go generate\""'
   - '  exit 1'
   - fi
-  image: golang:1.17
+  image: golang:1.18
   name: check for drift
 trigger:
   branch:
@@ -57,7 +57,7 @@ services: []
 steps:
 - commands:
   - go test ./...
-  image: golang:1.17
+  image: golang:1.18
   name: tests
 trigger:
   branch:
@@ -84,7 +84,7 @@ steps:
     GRAFANA_CLOUD_API_KEY:
       from_secret: grafana-cloud-api-key
     GRAFANA_CLOUD_ORG: terraformprovidergrafana
-  image: golang:1.17
+  image: golang:1.18
   name: tests
 trigger:
   branch:
@@ -114,7 +114,7 @@ steps:
     GRAFANA_SM_ACCESS_TOKEN:
       from_secret: grafana-sm-token
     GRAFANA_URL: https://terraformprovidergrafana.grafana.net/
-  image: golang:1.17
+  image: golang:1.18
   name: tests
 trigger:
   branch:
@@ -145,14 +145,14 @@ kind: secret
 name: grafana-sm-token
 ---
 kind: pipeline
-name: 'oss tests: 8.4.3'
+name: 'oss tests: 8.4.4'
 platform:
   arch: amd64
   os: linux
 services:
 - environment:
     GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
-  image: grafana/grafana:8.4.3
+  image: grafana/grafana:8.4.4
   name: grafana
 steps:
 - commands:
@@ -162,8 +162,8 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
-    GRAFANA_VERSION: 8.4.3
-  image: golang:1.17
+    GRAFANA_VERSION: 8.4.4
+  image: golang:1.18
   name: tests
 trigger:
   branch:
@@ -176,14 +176,14 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: pipeline
-name: 'oss tests: 8.3.5'
+name: 'oss tests: 8.3.7'
 platform:
   arch: amd64
   os: linux
 services:
 - environment:
     GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
-  image: grafana/grafana:8.3.5
+  image: grafana/grafana:8.3.7
   name: grafana
 steps:
 - commands:
@@ -193,8 +193,8 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
-    GRAFANA_VERSION: 8.3.5
-  image: golang:1.17
+    GRAFANA_VERSION: 8.3.7
+  image: golang:1.18
   name: tests
 trigger:
   branch:
@@ -225,7 +225,7 @@ steps:
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 8.2.7
-  image: golang:1.17
+  image: golang:1.18
   name: tests
 trigger:
   branch:
@@ -256,7 +256,7 @@ steps:
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 8.1.8
-  image: golang:1.17
+  image: golang:1.18
   name: tests
 trigger:
   branch:
@@ -287,7 +287,7 @@ steps:
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 7.5.15
-  image: golang:1.17
+  image: golang:1.18
   name: tests
 trigger:
   branch:
@@ -300,6 +300,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: 7b059c8a8d75e11b8d0dc6643b5590761dacc5c419b778766960d748d4629546
+hmac: fb944ed34626806208f6ad39935f7d01bf1de4e6ee696f779c2b8b8f4233189b
 
 ...
