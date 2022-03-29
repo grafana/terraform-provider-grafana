@@ -51,8 +51,40 @@ func TestAccFolder_basic(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
+			// Change the title of one folder, change the UID of the other. They shouldn't change IDs (the folder doesn't have to be recreated)
+			{
+				Config: testAccExampleWithReplace(t, "resources/grafana_folder/resource.tf", map[string]string{
+					"Terraform Test Folder": "Terraform Test Folder Updated",
+					"test-folder-uid":       "test-folder-uid-other",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccFolderIDDidntChange("grafana_folder.test_folder", &folder),
+					resource.TestMatchResourceAttr("grafana_folder.test_folder", "id", idRegexp),
+					resource.TestMatchResourceAttr("grafana_folder.test_folder", "uid", uidRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.test_folder", "title", "Terraform Test Folder Updated"),
+
+					testAccFolderIDDidntChange("grafana_folder.test_folder_with_uid", &folderWithUID),
+					resource.TestMatchResourceAttr("grafana_folder.test_folder_with_uid", "id", idRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "uid", "test-folder-uid-other"),
+					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "title", "Terraform Test Folder Updated With UID"),
+				),
+			},
 		},
 	})
+}
+
+func testAccFolderIDDidntChange(rn string, folder *gapi.Folder) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		oldID := strconv.FormatInt(folder.ID, 10)
+		newFolder, ok := s.RootModule().Resources[rn]
+		if !ok {
+			return fmt.Errorf("folder not found: %s", rn)
+		}
+		if newFolder.Primary.ID != oldID {
+			return fmt.Errorf("folder id has changed: %s -> %s", oldID, newFolder.Primary.ID)
+		}
+		return nil
+	}
 }
 
 func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheckFunc {

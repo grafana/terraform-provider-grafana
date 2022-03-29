@@ -188,6 +188,15 @@ func testAccExample(t *testing.T, path string) string {
 	return string(example)
 }
 
+// testAccExampleWithReplace works like testAccExample, but replaces strings in the example.
+func testAccExampleWithReplace(t *testing.T, path string, replaceMap map[string]string) string {
+	example := testAccExample(t, path)
+	for k, v := range replaceMap {
+		example = strings.Replace(example, k, v, -1)
+	}
+	return example
+}
+
 func accTestsEnabled(t *testing.T, envVarName string) bool {
 	v, ok := os.LookupEnv(envVarName)
 	if !ok {
