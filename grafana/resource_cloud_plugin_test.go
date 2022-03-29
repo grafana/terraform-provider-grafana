@@ -28,6 +28,11 @@ func TestAccResourceCloudPluginInstallation(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation", "slug", "aws-datasource-provisioner-app"),
 					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation", "version", "1.7.0")),
 			},
+			{
+				ResourceName:      "grafana_cloud_plugin_installation.test-installation",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 		CheckDestroy: testAccCloudPluginInstallationDestroy(pluginSlug, pluginVersion),
 	})

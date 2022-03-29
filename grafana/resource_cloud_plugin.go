@@ -2,7 +2,8 @@ package grafana
 
 import (
 	"context"
-	"strconv"
+	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -52,12 +53,12 @@ func resourceCloudPluginInstallationCreate(ctx context.Context, d *schema.Resour
 	pluginSlug := d.Get("slug").(string)
 	pluginVersion := d.Get("version").(string)
 
-	installation, err := client.InstallCloudPlugin(stackSlug, pluginSlug, pluginVersion)
+	_, err := client.InstallCloudPlugin(stackSlug, pluginSlug, pluginVersion)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.Itoa(installation.ID))
+	d.SetId(stackSlug + "_" + pluginSlug)
 
 	return nil
 }
@@ -65,16 +66,23 @@ func resourceCloudPluginInstallationCreate(ctx context.Context, d *schema.Resour
 func resourceCloudPluginInstallationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gcloudapi
 
-	stackSlug := d.Get("stack_slug").(string)
-	pluginSlug := d.Get("slug").(string)
+	splitID := strings.SplitN(d.Id(), "_", 2)
+	stackSlug, pluginSlug := splitID[0], splitID[1]
 
 	installation, err := client.GetCloudPluginInstallation(stackSlug, pluginSlug)
 	if err != nil {
+		if strings.HasPrefix(err.Error(), "status: 404") {
+			log.Printf("[WARN] removing plugin %s from state because it no longer exists in stack %s", pluginSlug, stackSlug)
+			d.SetId("")
+			return nil
+		}
+
 		return diag.FromErr(err)
 	}
 
-	_ = d.Set("slug", installation.PluginSlug)
-	_ = d.Set("version", installation.Version)
+	d.Set("stack_slug", installation.InstanceSlug)
+	d.Set("slug", installation.PluginSlug)
+	d.Set("version", installation.Version)
 
 	return nil
 }
@@ -82,13 +90,10 @@ func resourceCloudPluginInstallationRead(ctx context.Context, d *schema.Resource
 func resourceCloudPluginInstallationDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gcloudapi
 
-	stackSlug := d.Get("stack_slug").(string)
-	pluginSlug := d.Get("slug").(string)
+	splitID := strings.SplitN(d.Id(), "_", 2)
+	stackSlug, pluginSlug := splitID[0], splitID[1]
 
 	err := client.UninstallCloudPlugin(stackSlug, pluginSlug)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
-	return nil
+	return diag.FromErr(err)
 }

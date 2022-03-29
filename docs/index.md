@@ -235,12 +235,3 @@ Finally, go back to your stack page, and go to "Details" for Loki to get
 ```http
 https://grafana.com/orgs/<org-slug>/hosted-logs/<logs-instance-id>
 ```
-
-### Installing a plugin
-```terraform
-resource "grafana_cloud_plugin_installation" "test" {
-  stack_slug = "stackname"
-  slug       = "some-plugin"
-  version    = "1.2.3"
-}
-```
