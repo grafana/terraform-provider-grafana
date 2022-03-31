@@ -80,6 +80,8 @@ Changing region will destroy the existing stack and create a new one in the desi
 				Optional:    true,
 				Default:     true,
 				Description: "Whether to wait for readiness of the stack after creating it. The check is a HEAD request to the stack URL (Grafana instance).",
+				// // Always suppress diff, we don't care about this field, it is only used at creation time.
+				// DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool { return true },
 			},
 			"org_id": {
 				Type:        schema.TypeInt,

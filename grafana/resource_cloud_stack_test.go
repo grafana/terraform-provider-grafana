@@ -55,6 +55,7 @@ func TestResourceCloudStack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
 				),
 			},
+
 			{
 				Config: testAccStackConfigUpdate(resourceName+"new", resourceName, stackDescription),
 				Check: resource.ComposeTestCheckFunc(
@@ -65,6 +66,11 @@ func TestResourceCloudStack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "description", stackDescription),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
 				),
+			},
+			{
+				ResourceName:      "grafana_cloud_stack.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
