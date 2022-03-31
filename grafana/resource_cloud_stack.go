@@ -268,7 +268,7 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 
 	FlattenStack(d, stack)
 	// Always set the wait attribute to true after creation
-	// It no longer matters
+	// It no longer matters and this will prevent drift if the stack was imported
 	d.Set("wait_for_readiness", true)
 
 	return nil
