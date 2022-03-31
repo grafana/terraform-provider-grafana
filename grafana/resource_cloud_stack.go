@@ -80,6 +80,9 @@ Changing region will destroy the existing stack and create a new one in the desi
 				Optional:    true,
 				Default:     true,
 				Description: "Whether to wait for readiness of the stack after creating it. The check is a HEAD request to the stack URL (Grafana instance).",
+				// Suppress the diff if the new value is "false" because this attribute is only used at creation-time
+				// If the diff is suppress for a "true" value, the attribute cannot be read at all
+				DiffSuppressFunc: func(_, _, newValue string, _ *schema.ResourceData) bool { return newValue == "false" },
 			},
 			"org_id": {
 				Type:        schema.TypeInt,
@@ -264,6 +267,9 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 	}
 
 	FlattenStack(d, stack)
+	// Always set the wait attribute to true after creation
+	// It no longer matters and this will prevent drift if the stack was imported
+	d.Set("wait_for_readiness", true)
 
 	return nil
 }

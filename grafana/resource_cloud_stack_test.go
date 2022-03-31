@@ -66,6 +66,11 @@ func TestResourceCloudStack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
 				),
 			},
+			{
+				ResourceName:      "grafana_cloud_stack.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
