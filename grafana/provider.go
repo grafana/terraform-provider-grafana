@@ -147,7 +147,7 @@ func Provider(version string) func() *schema.Provider {
 					Optional:    true,
 					Sensitive:   true,
 					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_AMIXR_ACCESS_TOKEN", nil),
-					Description: "A Synthetic Monitoring access token. May alternatively be set via the `GRAFANA_SM_ACCESS_TOKEN` environment variable.",
+					Description: "An Amixr access token. May alternatively be set via the `GRAFANA_AMIXR_ACCESS_TOKEN` environment variable.",
 				},
 				"amixr_url": {
 					Type:         schema.TypeString,
