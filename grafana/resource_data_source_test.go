@@ -510,6 +510,32 @@ func TestAccDataSource_basic(t *testing.T) {
 				"secure_json_data.0.secret_key": "456",
 			},
 		},
+		{
+			resource: "grafana_data_source.azure",
+			config: `
+			resource "grafana_data_source" "azure" {
+				type = "grafana-azure-monitor-datasource"
+				name = "azure"
+				json_data {
+					client_id = "lorem-ipsum"
+					cloud_name = "azuremonitor"
+					subscription_id = "lorem-ipsum"
+					tenant_id = "lorem-ipsum"
+				}
+				secure_json_data {
+					client_secret = "lorem-ipsum"
+				}
+			}
+			`,
+			attrChecks: map[string]string{
+				"type":                        "grafana-azure-monitor-datasource",
+				"name":                        "azure",
+				"json_data.0.client_id":       "lorem-ipsum",
+				"json_data.0.cloud_name":      "azuremonitor",
+				"json_data.0.subscription_id": "lorem-ipsum",
+				"json_data.0.tenant_id":       "lorem-ipsum",
+			},
+		},
 	}
 
 	// Iterate over the provided configurations for datasources

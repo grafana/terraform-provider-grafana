@@ -135,6 +135,16 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Description: "(Stackdriver) Service account email address.",
 						},
+						"client_id": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Azure Monitor) The service account client id.",
+						},
+						"cloud_name": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Azure Monitor) The cloud name.",
+						},
 						"conn_max_lifetime": {
 							Type:        schema.TypeInt,
 							Optional:    true,
@@ -332,6 +342,16 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Description: "(PostgreSQL) SSLmode. 'disable', 'require', 'verify-ca' or 'verify-full'.",
 						},
+						"subscription_id": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Azure Monitor) The subscription id",
+						},
+						"tenant_id": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Azure Monitor) Service account tenant ID.",
+						},
 						"timescaledb": {
 							Type:        schema.TypeBool,
 							Optional:    true,
@@ -438,6 +458,12 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Sensitive:   true,
 							Description: "(All) Password to use for basic authentication.",
+						},
+						"client_secret": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Sensitive:   true,
+							Description: "(Azure Monitor) Client secret for authentication.",
 						},
 						"password": {
 							Type:        schema.TypeString,
@@ -652,6 +678,8 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		AuthenticationType:         d.Get("json_data.0.authentication_type").(string),
 		Catalog:                    d.Get("json_data.0.catalog").(string),
 		ClientEmail:                d.Get("json_data.0.client_email").(string),
+		ClientID:                   d.Get("json_data.0.client_id").(string),
+		CloudName:                  d.Get("json_data.0.cloud_name").(string),
 		ConnMaxLifetime:            int64(d.Get("json_data.0.conn_max_lifetime").(int)),
 		CustomMetricsNamespaces:    d.Get("json_data.0.custom_metrics_namespaces").(string),
 		Database:                   d.Get("json_data.0.database").(string),
@@ -685,6 +713,8 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		SigV4Profile:               d.Get("json_data.0.sigv4_profile").(string),
 		SigV4Region:                d.Get("json_data.0.sigv4_region").(string),
 		Sslmode:                    d.Get("json_data.0.ssl_mode").(string),
+		SubscriptionID:             d.Get("json_data.0.subscription_id").(string),
+		TenantID:                   d.Get("json_data.0.tenant_id").(string),
 		Timescaledb:                d.Get("json_data.0.timescaledb").(bool),
 		TimeField:                  d.Get("json_data.0.time_field").(string),
 		TimeInterval:               d.Get("json_data.0.time_interval").(string),
@@ -706,6 +736,7 @@ func makeSecureJSONData(d *schema.ResourceData) gapi.SecureJSONData {
 		AccessToken:       d.Get("secure_json_data.0.access_token").(string),
 		AuthToken:         d.Get("secure_json_data.0.auth_token").(string),
 		BasicAuthPassword: d.Get("secure_json_data.0.basic_auth_password").(string),
+		ClientSecret:      d.Get("secure_json_data.0.client_secret").(string),
 		Password:          d.Get("secure_json_data.0.password").(string),
 		PrivateKey:        d.Get("secure_json_data.0.private_key").(string),
 		SecretKey:         d.Get("secure_json_data.0.secret_key").(string),

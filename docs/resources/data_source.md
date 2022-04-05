@@ -108,6 +108,8 @@ Optional:
 - `authentication_type` (String) (Stackdriver) The authentication type: `jwt` or `gce`.
 - `catalog` (String) (Athena) Athena catalog.
 - `client_email` (String) (Stackdriver) Service account email address.
+- `client_id` (String) (Azure Monitor) The service account client id.
+- `cloud_name` (String) (Azure Monitor) The cloud name.
 - `conn_max_lifetime` (Number) (MySQL, PostgreSQL, and MSSQL) Maximum amount of time in seconds a connection may be reused (Grafana v5.4+).
 - `custom_metrics_namespaces` (String) (CloudWatch) A comma-separated list of custom namespaces to be queried by the CloudWatch data source.
 - `database` (String) (Athena) Name of the database within the catalog.
@@ -141,6 +143,8 @@ Optional:
 - `sigv4_profile` (String) (Elasticsearch and Prometheus) Credentials profile name, leave blank for default.
 - `sigv4_region` (String) (Elasticsearch and Prometheus) AWS region to use for Sigv4.
 - `ssl_mode` (String) (PostgreSQL) SSLmode. 'disable', 'require', 'verify-ca' or 'verify-full'.
+- `subscription_id` (String) (Azure Monitor) The subscription id
+- `tenant_id` (String) (Azure Monitor) Service account tenant ID.
 - `time_field` (String) (Elasticsearch) Which field that should be used as timestamp.
 - `time_interval` (String) (Prometheus, Elasticsearch, InfluxDB, MySQL, PostgreSQL, and MSSQL) Lowest interval/step value that should be used for this data source.
 - `timescaledb` (Boolean) (PostgreSQL) Enable usage of TimescaleDB extension.
@@ -175,6 +179,7 @@ Optional:
 - `access_token` (String, Sensitive) (Github) The access token used to access the data source.
 - `auth_token` (String, Sensitive) (Sentry) Authorization token.
 - `basic_auth_password` (String, Sensitive) (All) Password to use for basic authentication.
+- `client_secret` (String, Sensitive) (Azure Monitor) Client secret for authentication.
 - `password` (String, Sensitive) (All) Password to use for authentication.
 - `private_key` (String, Sensitive) (Stackdriver) The service account key `private_key` to use to access the data source.
 - `secret_key` (String, Sensitive) (CloudWatch, Athena) The secret key to use to access the data source.
