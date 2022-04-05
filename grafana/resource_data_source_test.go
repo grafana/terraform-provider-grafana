@@ -514,62 +514,64 @@ func TestAccDataSource_basic(t *testing.T) {
 
 	// Iterate over the provided configurations for datasources
 	for _, test := range resourceTests {
-		// Always check that the resource was created and that `id` is a number
-		checks := []resource.TestCheckFunc{
-			testAccDataSourceCheckExists(test.resource, &dataSource),
-			resource.TestMatchResourceAttr(
-				test.resource,
-				"id",
-				idRegexp,
-			),
-			resource.TestMatchResourceAttr(
-				test.resource,
-				"uid",
-				uidRegexp,
-			),
-		}
+		t.Run(test.resource, func(t *testing.T) {
+			// Always check that the resource was created and that `id` is a number
+			checks := []resource.TestCheckFunc{
+				testAccDataSourceCheckExists(test.resource, &dataSource),
+				resource.TestMatchResourceAttr(
+					test.resource,
+					"id",
+					idRegexp,
+				),
+				resource.TestMatchResourceAttr(
+					test.resource,
+					"uid",
+					uidRegexp,
+				),
+			}
 
-		// Add custom checks for specified attribute values
-		for attr, value := range test.attrChecks {
-			checks = append(checks, resource.TestCheckResourceAttr(
-				test.resource,
-				attr,
-				value,
-			))
-		}
+			// Add custom checks for specified attribute values
+			for attr, value := range test.attrChecks {
+				checks = append(checks, resource.TestCheckResourceAttr(
+					test.resource,
+					attr,
+					value,
+				))
+			}
 
-		resource.Test(t, resource.TestCase{
-			ProviderFactories: testAccProviderFactories,
-			CheckDestroy:      testAccDataSourceCheckDestroy(&dataSource),
-			Steps: []resource.TestStep{
-				{
-					Config: test.config,
-					Check: resource.ComposeAggregateTestCheckFunc(
-						append(checks, test.additionalChecks...)...,
-					),
-				},
-				// Test import using ID
-				{
-					ResourceName: test.resource,
-					ImportState:  true,
-				},
-				// Test import using UID
-				{
-					ResourceName: test.resource,
-					ImportState:  true,
-					ImportStateIdFunc: func(s *terraform.State) (string, error) {
-						rs, ok := s.RootModule().Resources[test.resource]
-						if !ok {
-							return "", fmt.Errorf("resource not found: %s", test.resource)
-						}
+			resource.Test(t, resource.TestCase{
+				ProviderFactories: testAccProviderFactories,
+				CheckDestroy:      testAccDataSourceCheckDestroy(&dataSource),
+				Steps: []resource.TestStep{
+					{
+						Config: test.config,
+						Check: resource.ComposeAggregateTestCheckFunc(
+							append(checks, test.additionalChecks...)...,
+						),
+					},
+					// Test import using ID
+					{
+						ResourceName: test.resource,
+						ImportState:  true,
+					},
+					// Test import using UID
+					{
+						ResourceName: test.resource,
+						ImportState:  true,
+						ImportStateIdFunc: func(s *terraform.State) (string, error) {
+							rs, ok := s.RootModule().Resources[test.resource]
+							if !ok {
+								return "", fmt.Errorf("resource not found: %s", test.resource)
+							}
 
-						if rs.Primary.ID == "" {
-							return "", fmt.Errorf("resource id not set")
-						}
-						return rs.Primary.Attributes["uid"], nil
+							if rs.Primary.ID == "" {
+								return "", fmt.Errorf("resource id not set")
+							}
+							return rs.Primary.Attributes["uid"], nil
+						},
 					},
 				},
-			},
+			})
 		})
 	}
 }
