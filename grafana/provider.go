@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	aapi "github.com/grafana/amixr-api-go-client"
+	amixrAPI "github.com/grafana/amixr-api-go-client"
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
@@ -153,7 +153,7 @@ func Provider(version string) func() *schema.Provider {
 					Type:         schema.TypeString,
 					Optional:     true,
 					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_AMIXR_URL", "https://synthetic-monitoring-api.grafana.net"),
-					Description:  "Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable.",
+					Description:  "An Amixr backend address. May alternatively be set via the `GRAFANA_AMIXR_URL` environment variable.",
 					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 				},
 			},
@@ -244,7 +244,7 @@ type client struct {
 
 	mlapi *mlapi.Client
 
-	aapi *aapi.Client
+	amixrAPI *amixrAPI.Client
 }
 
 func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
@@ -271,7 +271,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		}
 		c.smURL, c.smapi = createSMClient(d)
 
-		c.aapi, err = createAClient(d)
+		c.amixrAPI, err = createAClient(d)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
@@ -384,10 +384,10 @@ func createSMClient(d *schema.ResourceData) (string, *smapi.Client) {
 	return smURL, smapi.NewClient(smURL, smToken, nil)
 }
 
-func createAClient(d *schema.ResourceData) (*aapi.Client, error) {
+func createAClient(d *schema.ResourceData) (*amixrAPI.Client, error) {
 	aToken := d.Get("amixr_access_token").(string)
 	base_url := d.Get("amixr_url").(string)
-	aclient, err := aapi.New(base_url, aToken)
+	aclient, err := amixrAPI.New(base_url, aToken)
 	if err != nil {
 		return nil, err
 	}

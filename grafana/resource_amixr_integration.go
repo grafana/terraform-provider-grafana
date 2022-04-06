@@ -1,7 +1,7 @@
 package grafana
 
 import (
-	aapi "github.com/grafana/amixr-api-go-client"
+	amixrAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"log"
@@ -41,10 +41,10 @@ func ResourceAmixrIntegration() *schema.Resource {
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/)
 `,
 
-		Create: resourceIntegrationCreate,
-		Read:   resourceIntegrationRead,
-		Update: resourceIntegrationUpdate,
-		Delete: resourceIntegrationDelete,
+		Create: resourceAmixrIntegrationCreate,
+		Read:   resourceAmixrIntegrationRead,
+		Update: resourceAmixrIntegrationUpdate,
+		Delete: resourceAmixrIntegrationDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -147,15 +147,15 @@ func ResourceAmixrIntegration() *schema.Resource {
 	}
 }
 
-func resourceIntegrationCreate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).aapi
+func resourceAmixrIntegrationCreate(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).amixrAPI
 
 	teamIdData := d.Get("team_id").(string)
 	nameData := d.Get("name").(string)
 	typeData := d.Get("type").(string)
 	templatesData := d.Get("templates").([]interface{})
 
-	createOptions := &aapi.CreateIntegrationOptions{
+	createOptions := &amixrAPI.CreateIntegrationOptions{
 		TeamId:    teamIdData,
 		Name:      nameData,
 		Type:      typeData,
@@ -169,17 +169,17 @@ func resourceIntegrationCreate(d *schema.ResourceData, m interface{}) error {
 
 	d.SetId(integration.ID)
 
-	return resourceIntegrationRead(d, m)
+	return resourceAmixrIntegrationRead(d, m)
 }
 
-func resourceIntegrationUpdate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).aapi
+func resourceAmixrIntegrationUpdate(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).amixrAPI
 
 	nameData := d.Get("name").(string)
 	templateData := d.Get("templates").([]interface{})
 	defaultRouteData := d.Get("default_route").([]interface{})
 
-	updateOptions := &aapi.UpdateIntegrationOptions{
+	updateOptions := &amixrAPI.UpdateIntegrationOptions{
 		Name:         nameData,
 		Templates:    expandTemplates(templateData),
 		DefaultRoute: expandDefaultRoute(defaultRouteData),
@@ -192,13 +192,13 @@ func resourceIntegrationUpdate(d *schema.ResourceData, m interface{}) error {
 
 	d.SetId(integration.ID)
 
-	return resourceIntegrationRead(d, m)
+	return resourceAmixrIntegrationRead(d, m)
 }
 
-func resourceIntegrationRead(d *schema.ResourceData, m interface{}) error {
+func resourceAmixrIntegrationRead(d *schema.ResourceData, m interface{}) error {
 
-	client := m.(*client).aapi
-	options := &aapi.GetIntegrationOptions{}
+	client := m.(*client).amixrAPI
+	options := &amixrAPI.GetIntegrationOptions{}
 	integration, _, err := client.Integrations.GetIntegration(d.Id(), options)
 	if err != nil {
 		return err
@@ -214,11 +214,11 @@ func resourceIntegrationRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceIntegrationDelete(d *schema.ResourceData, m interface{}) error {
+func resourceAmixrIntegrationDelete(d *schema.ResourceData, m interface{}) error {
 	log.Printf("[DEBUG] delete amixr integration")
 
-	client := m.(*client).aapi
-	options := &aapi.DeleteIntegrationOptions{}
+	client := m.(*client).amixrAPI
+	options := &amixrAPI.DeleteIntegrationOptions{}
 	_, err := client.Integrations.DeleteIntegration(d.Id(), options)
 	if err != nil {
 		return err
@@ -229,7 +229,7 @@ func resourceIntegrationDelete(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func flattenRouteSlack(in *aapi.SlackRoute) []map[string]interface{} {
+func flattenRouteSlack(in *amixrAPI.SlackRoute) []map[string]interface{} {
 	slack := make([]map[string]interface{}, 0, 1)
 
 	out := make(map[string]interface{})
@@ -241,8 +241,8 @@ func flattenRouteSlack(in *aapi.SlackRoute) []map[string]interface{} {
 	return slack
 }
 
-func expandRouteSlack(in []interface{}) *aapi.SlackRoute {
-	slackRoute := aapi.SlackRoute{}
+func expandRouteSlack(in []interface{}) *amixrAPI.SlackRoute {
+	slackRoute := amixrAPI.SlackRoute{}
 
 	for _, r := range in {
 		inputMap := r.(map[string]interface{})
@@ -256,7 +256,7 @@ func expandRouteSlack(in []interface{}) *aapi.SlackRoute {
 
 }
 
-func flattenTemplates(in *aapi.Templates) []map[string]interface{} {
+func flattenTemplates(in *amixrAPI.Templates) []map[string]interface{} {
 	templates := make([]map[string]interface{}, 0, 1)
 	out := make(map[string]interface{})
 
@@ -290,7 +290,7 @@ func flattenTemplates(in *aapi.Templates) []map[string]interface{} {
 	return templates
 }
 
-func flattenSlackTemplate(in *aapi.SlackTemplate) []map[string]interface{} {
+func flattenSlackTemplate(in *amixrAPI.SlackTemplate) []map[string]interface{} {
 	slackTemplates := make([]map[string]interface{}, 0, 1)
 
 	add := false
@@ -317,9 +317,9 @@ func flattenSlackTemplate(in *aapi.SlackTemplate) []map[string]interface{} {
 	return slackTemplates
 }
 
-func expandTemplates(input []interface{}) *aapi.Templates {
+func expandTemplates(input []interface{}) *amixrAPI.Templates {
 
-	templates := aapi.Templates{}
+	templates := amixrAPI.Templates{}
 
 	for _, r := range input {
 		inputMap := r.(map[string]interface{})
@@ -340,9 +340,9 @@ func expandTemplates(input []interface{}) *aapi.Templates {
 	return &templates
 }
 
-func expandSlackTemplate(in []interface{}) *aapi.SlackTemplate {
+func expandSlackTemplate(in []interface{}) *amixrAPI.SlackTemplate {
 
-	slackTemplate := aapi.SlackTemplate{}
+	slackTemplate := amixrAPI.SlackTemplate{}
 	for _, r := range in {
 		inputMap := r.(map[string]interface{})
 		if inputMap["title"] != "" {
@@ -361,7 +361,7 @@ func expandSlackTemplate(in []interface{}) *aapi.SlackTemplate {
 	return &slackTemplate
 }
 
-func flattenDefaultRoute(in *aapi.DefaultRoute) []map[string]interface{} {
+func flattenDefaultRoute(in *amixrAPI.DefaultRoute) []map[string]interface{} {
 	defaultRoute := make([]map[string]interface{}, 0, 1)
 	out := make(map[string]interface{})
 	out["id"] = in.ID
@@ -372,8 +372,8 @@ func flattenDefaultRoute(in *aapi.DefaultRoute) []map[string]interface{} {
 	return defaultRoute
 }
 
-func expandDefaultRoute(input []interface{}) *aapi.DefaultRoute {
-	defaultRoute := aapi.DefaultRoute{}
+func expandDefaultRoute(input []interface{}) *amixrAPI.DefaultRoute {
+	defaultRoute := amixrAPI.DefaultRoute{}
 
 	for _, r := range input {
 		inputMap := r.(map[string]interface{})
