@@ -123,6 +123,7 @@ Optional:
 - `github_url` (String) (Github) Github URL
 - `graphite_version` (String) (Graphite) Graphite version.
 - `http_method` (String) (Prometheus) HTTP method to use for making requests.
+- `implementation` (String) (Alertmanager) Implementation of Alertmanager. Either 'cortex' or 'prometheus'
 - `interval` (String) (Elasticsearch) Index date time format. nil(No Pattern), 'Hourly', 'Daily', 'Weekly', 'Monthly' or 'Yearly'.
 - `log_level_field` (String) (Elasticsearch) Which field should be used to indicate the priority of the log message.
 - `log_message_field` (String) (Elasticsearch) Which field should be used as the log message.

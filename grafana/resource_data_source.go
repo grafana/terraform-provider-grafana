@@ -247,6 +247,11 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Description: "(Elasticsearch) Index date time format. nil(No Pattern), 'Hourly', 'Daily', 'Weekly', 'Monthly' or 'Yearly'.",
 						},
+						"implementation": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Alertmanager) Implementation of Alertmanager. Either 'cortex' or 'prometheus'",
+						},
 						"log_level_field": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -694,6 +699,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		GraphiteVersion:            d.Get("json_data.0.graphite_version").(string),
 		HTTPMethod:                 d.Get("json_data.0.http_method").(string),
 		Interval:                   d.Get("json_data.0.interval").(string),
+		Implementation:             d.Get("json_data.0.implementation").(string),
 		LogLevelField:              d.Get("json_data.0.log_level_field").(string),
 		LogMessageField:            d.Get("json_data.0.log_message_field").(string),
 		MaxConcurrentShardRequests: int64(d.Get("json_data.0.max_concurrent_shard_requests").(int)),
