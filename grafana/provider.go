@@ -152,7 +152,7 @@ func Provider(version string) func() *schema.Provider {
 				"amixr_url": {
 					Type:         schema.TypeString,
 					Optional:     true,
-					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_AMIXR_URL", "https://synthetic-monitoring-api.grafana.net"),
+					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_AMIXR_URL", nil),
 					Description:  "An Amixr backend address. May alternatively be set via the `GRAFANA_AMIXR_URL` environment variable.",
 					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 				},
@@ -193,12 +193,12 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_machine_learning_job": ResourceMachineLearningJob(),
 
 				// Amixr
-				"grafana_amixr_integration": ResourceAmixrIntegration(),
-				//"grafan_amixr_escalation_chain": ResourceEscalationChain(),
-				//"grafan_amixr_escalation":       ResourceEscalation(),
-				//"grafan_amixr_route":            ResourceRoute(),
-				//"grafan_amixr_on_call_shift":    ResourceOnCallShift(),
-				//"grafan_amixr_schedule":         ResourceSchedule(),
+				"grafana_amixr_integration":     ResourceAmixrIntegration(),
+				"grafana_amixr_route":           ResourceAmixrRoute(),
+				"grafan_amixr_escalation_chain": ResourceAmixrEscalationChain(),
+				"grafana_amixr_escalation":      ResourceAmixrEscalation(),
+				"grafana_amixr_on_call_shift":   ResourceAmixrOnCallShift(),
+				"grafana_amixr_schedule":        ResourceAmixrSchedule(),
 			},
 
 			DataSourcesMap: map[string]*schema.Resource{
