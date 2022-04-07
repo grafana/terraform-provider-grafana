@@ -217,13 +217,13 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_synthetic_monitoring_probes": DatasourceSyntheticMonitoringProbes(),
 
 				// Amixr
-				//"grafana_amixr_user":             DataSourceAmixrUser(),
-				//"grafana_amixr_escalation_chain": DataSourceEscalationChain(),
-				//"grafana_amixr_schedule":         DataSourceAmixrSchedule(),
-				//"grafana_amixr_slack_channel":    DataSourceAmixrSlackChannel(),
-				//"grafana_amixr_action":           DataSourceAmixrAction(),
-				//"grafana_amixr_user_group":       DataSourceAmixrUserGroup(),
-				//"grafana_amixr_team":             DataSourceAmixrTeam(),
+				"grafana_amixr_user":             DataSourceAmixrUser(),
+				"grafana_amixr_escalation_chain": DataSourceEscalationChain(),
+				"grafana_amixr_schedule":         DataSourceAmixrSchedule(),
+				"grafana_amixr_slack_channel":    DataSourceAmixrSlackChannel(),
+				"grafana_amixr_action":           DataSourceAmixrAction(),
+				"grafana_amixr_user_group":       DataSourceAmixrUserGroup(),
+				"grafana_amixr_team":             DataSourceAmixrTeam(),
 			},
 		}
 
