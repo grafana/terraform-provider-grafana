@@ -15,7 +15,6 @@ var scheduleTypeOptions = []string{
 func ResourceAmixrSchedule() *schema.Resource {
 	return &schema.Resource{
 		Description: `
-* [Official documentation](https://grafana.com/docs/grafana-cloud/oncall/integrations/)
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/schedules/)
 `,
 		Create: resourceScheduleCreate,

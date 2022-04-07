@@ -2,7 +2,7 @@ package grafana
 
 import (
 	"fmt"
-	aapi "github.com/grafana/amixr-api-go-client"
+	amixrAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -168,7 +168,7 @@ func resourceAmixrOnCallShiftCreate(d *schema.ResourceData, m interface{}) error
 	startData := d.Get("start").(string)
 	durationData := d.Get("duration").(int)
 
-	createOptions := &aapi.CreateOnCallShiftOptions{
+	createOptions := &amixrAPI.CreateOnCallShiftOptions{
 		TeamId:   teamIdData,
 		Type:     typeData,
 		Name:     nameData,
@@ -290,7 +290,7 @@ func resourceAmixrOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error
 	startData := d.Get("start").(string)
 	durationData := d.Get("duration").(int)
 
-	updateOptions := &aapi.UpdateOnCallShiftOptions{
+	updateOptions := &amixrAPI.UpdateOnCallShiftOptions{
 		Type:     typeData,
 		Name:     nameData,
 		Start:    startData,
@@ -406,7 +406,7 @@ func resourceAmixrOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error
 func resourceAmixrOnCallShiftRead(d *schema.ResourceData, m interface{}) error {
 
 	client := m.(*client).amixrAPI
-	options := &aapi.GetOnCallShiftOptions{}
+	options := &amixrAPI.GetOnCallShiftOptions{}
 	onCallShift, _, err := client.OnCallShifts.GetOnCallShift(d.Id(), options)
 
 	if err != nil {
@@ -435,7 +435,7 @@ func resourceAmixrOnCallShiftRead(d *schema.ResourceData, m interface{}) error {
 
 func resourceAmixrOnCallShiftDelete(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
-	options := &aapi.DeleteOnCallShiftOptions{}
+	options := &amixrAPI.DeleteOnCallShiftOptions{}
 	_, err := client.OnCallShifts.DeleteOnCallShift(d.Id(), options)
 	if err != nil {
 		return err
