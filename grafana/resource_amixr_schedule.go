@@ -5,6 +5,8 @@ import (
 	amixrAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"log"
+	"net/http"
 )
 
 var scheduleTypeOptions = []string{
@@ -212,10 +214,15 @@ func resourceScheduleRead(d *schema.ResourceData, m interface{}) error {
 
 	client := m.(*client).amixrAPI
 	options := &amixrAPI.GetScheduleOptions{}
-	schedule, _, err := client.Schedules.GetSchedule(d.Id(), options)
+	schedule, r, err := client.Schedules.GetSchedule(d.Id(), options)
 
 	if err != nil {
-		return err
+		if r.StatusCode != http.StatusNotFound {
+			return err
+		}
+		log.Printf("[WARN] removing schedule %s from state because it no longer exists", d.Get("name").(string))
+		d.SetId("")
+		return nil
 	}
 
 	d.Set("name", schedule.Name)

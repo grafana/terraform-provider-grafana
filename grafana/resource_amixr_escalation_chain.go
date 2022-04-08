@@ -3,6 +3,8 @@ package grafana
 import (
 	amixrAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"log"
+	"net/http"
 )
 
 func ResourceAmixrEscalationChain() *schema.Resource {
@@ -57,9 +59,14 @@ func resourceAmixrEscalationChainCreate(d *schema.ResourceData, m interface{}) e
 func resourceAmixrEscalationChainRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
 
-	escalationChain, _, err := client.EscalationChains.GetEscalationChain(d.Id(), &amixrAPI.GetEscalationChainOptions{})
+	escalationChain, r, err := client.EscalationChains.GetEscalationChain(d.Id(), &amixrAPI.GetEscalationChainOptions{})
 	if err != nil {
-		return err
+		if r.StatusCode != http.StatusNotFound {
+			return err
+		}
+		log.Printf("[WARN] removing escalation chain %s from state because it no longer exists", d.Get("name").(string))
+		d.SetId("")
+		return nil
 	}
 
 	d.Set("name", escalationChain.Name)

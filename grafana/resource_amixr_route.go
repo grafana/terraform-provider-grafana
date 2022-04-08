@@ -3,6 +3,8 @@ package grafana
 import (
 	amixrAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"log"
+	"net/http"
 )
 
 func ResourceAmixrRoute() *schema.Resource {
@@ -90,9 +92,14 @@ func resourceAmixrRouteCreate(d *schema.ResourceData, m interface{}) error {
 func resourceAmixrRouteRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
 
-	route, _, err := client.Routes.GetRoute(d.Id(), &amixrAPI.GetRouteOptions{})
+	route, r, err := client.Routes.GetRoute(d.Id(), &amixrAPI.GetRouteOptions{})
 	if err != nil {
-		return err
+		if r.StatusCode != http.StatusNotFound {
+			return err
+		}
+		log.Printf("[WARN] removing route %s from state because it no longer exists", d.Id())
+		d.SetId("")
+		return nil
 	}
 
 	d.Set("integration_id", route.IntegrationId)

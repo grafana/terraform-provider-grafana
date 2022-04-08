@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"log"
+	"net/http"
 )
 
 var integrationTypes = []string{
@@ -199,9 +200,14 @@ func resourceAmixrIntegrationRead(d *schema.ResourceData, m interface{}) error {
 
 	client := m.(*client).amixrAPI
 	options := &amixrAPI.GetIntegrationOptions{}
-	integration, _, err := client.Integrations.GetIntegration(d.Id(), options)
+	integration, r, err := client.Integrations.GetIntegration(d.Id(), options)
 	if err != nil {
-		return err
+		if r.StatusCode != http.StatusNotFound {
+			return err
+		}
+		log.Printf("[WARN] removing integreation %s from state because it no longer exists", d.Get("name").(string))
+		d.SetId("")
+		return nil
 	}
 
 	d.Set("team_id", integration.TeamId)

@@ -5,6 +5,8 @@ import (
 	amixrAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"log"
+	"net/http"
 )
 
 var escalationOptions = []string{
@@ -298,9 +300,14 @@ func resourceEscalationCreate(d *schema.ResourceData, m interface{}) error {
 func resourceEscalationRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
 
-	escalation, _, err := client.Escalations.GetEscalation(d.Id(), &amixrAPI.GetEscalationOptions{})
+	escalation, r, err := client.Escalations.GetEscalation(d.Id(), &amixrAPI.GetEscalationOptions{})
 	if err != nil {
-		return err
+		if r.StatusCode != http.StatusNotFound {
+			return err
+		}
+		log.Printf("[WARN] removing escalation %s from state because it no longer exists", d.Id())
+		d.SetId("")
+		return nil
 	}
 
 	d.Set("escalation_chain_id", escalation.EscalationChainId)

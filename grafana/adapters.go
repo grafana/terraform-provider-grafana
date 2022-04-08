@@ -52,14 +52,13 @@ func int32SliceToSet(src []int32) *schema.Set {
 	return schema.NewSet(schema.HashInt, int32SliceToIntList(src))
 }
 
-func listOfSetsToStringSlice(listSet []*schema.Set) [][]string {
-	ret := [][]string{}
-
+func listOfSetsToStringSlice(listSet []interface{}) [][]string {
+	var ret [][]string
 	if listSet == nil {
 		return ret
 	}
 	for _, set := range listSet {
-		ret = append(ret, setToStringSlice(set))
+		ret = append(ret, setToStringSlice(set.(*schema.Set)))
 	}
 	return ret
 }

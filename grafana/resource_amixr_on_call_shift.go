@@ -5,6 +5,8 @@ import (
 	amixrAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"log"
+	"net/http"
 )
 
 var onCallShiftTypeOptions = []string{
@@ -253,7 +255,7 @@ func resourceAmixrOnCallShiftCreate(d *schema.ResourceData, m interface{}) error
 	rollingUsersData, rollingUsersOk := d.GetOk("rolling_users")
 	if rollingUsersOk {
 		if typeData == "rolling_users" {
-			rollingUsersDataSlice := listOfSetsToStringSlice(rollingUsersData.([]*schema.Set))
+			rollingUsersDataSlice := listOfSetsToStringSlice(rollingUsersData.([]interface{}))
 			createOptions.RollingUsers = &rollingUsersDataSlice
 		} else {
 			return fmt.Errorf("`rolling_users` can not be set with type: %s, use `users` field instead", typeData)
@@ -380,7 +382,7 @@ func resourceAmixrOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error
 	rollingUsersData, rollingUsersOk := d.GetOk("rolling_users")
 	if rollingUsersOk {
 		if typeData == "rolling_users" {
-			rollingUsersDataSlice := listOfSetsToStringSlice(rollingUsersData.([]*schema.Set))
+			rollingUsersDataSlice := listOfSetsToStringSlice(rollingUsersData.([]interface{}))
 			updateOptions.RollingUsers = &rollingUsersDataSlice
 		} else {
 			return fmt.Errorf("`rolling_users` can not be set with type: %s, use `users` field instead", typeData)
@@ -407,10 +409,15 @@ func resourceAmixrOnCallShiftRead(d *schema.ResourceData, m interface{}) error {
 
 	client := m.(*client).amixrAPI
 	options := &amixrAPI.GetOnCallShiftOptions{}
-	onCallShift, _, err := client.OnCallShifts.GetOnCallShift(d.Id(), options)
+	onCallShift, r, err := client.OnCallShifts.GetOnCallShift(d.Id(), options)
 
 	if err != nil {
-		return err
+		if r.StatusCode != http.StatusNotFound {
+			return err
+		}
+		log.Printf("[WARN] removing on-call shift %s from state because it no longer exists", d.Id())
+		d.SetId("")
+		return nil
 	}
 
 	d.Set("team_id", onCallShift.TeamId)
