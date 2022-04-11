@@ -114,6 +114,8 @@ steps:
     GRAFANA_SM_ACCESS_TOKEN:
       from_secret: grafana-sm-token
     GRAFANA_URL: https://terraformprovidergrafana.grafana.net/
+    GRAFANA_AMIXR_ACCESS_TOKEN:
+      from_secret: grafana-amixr-access-token
   image: golang:1.18
   name: tests
 trigger:
@@ -143,6 +145,12 @@ get:
   path: infra/data/ci/terraform-provider-grafana/cloud
 kind: secret
 name: grafana-sm-token
+---
+get:
+  name: amixr-access-token
+  path: infra/data/ci/terraform-provider-grafana/cloud
+kind: secret
+name: grafana-amixr-token
 ---
 kind: pipeline
 name: 'oss tests: 8.5.0'
