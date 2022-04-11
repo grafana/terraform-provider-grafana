@@ -162,6 +162,8 @@ resource "grafana_synthetic_monitoring_check" "ping" {
 
 ### Optional
 
+- `amixr_access_token` (String, Sensitive) An Amixr access token. May alternatively be set via the `GRAFANA_AMIXR_ACCESS_TOKEN` environment variable.
+- `amixr_url` (String) An Amixr backend address. May alternatively be set via the `GRAFANA_AMIXR_URL` environment variable.
 - `auth` (String, Sensitive) API token or basic auth username:password. May alternatively be set via the `GRAFANA_AUTH` environment variable.
 - `ca_cert` (String) Certificate CA bundle to use to verify the Grafana server's certificate. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.
 - `cloud_api_key` (String, Sensitive) API key for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_API_KEY` environment variable.

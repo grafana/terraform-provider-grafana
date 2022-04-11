@@ -9,10 +9,14 @@ import (
 	"net/http"
 )
 
+var rollingUsers = "rolling_users"
+var recurrentEvent = "recurrent_event"
+var singleEvent = "single_event"
+
 var onCallShiftTypeOptions = []string{
-	"rolling_users",
-	"recurrent_event",
-	"single_event",
+	rollingUsers,
+	recurrentEvent,
+	singleEvent,
 }
 
 var onCallShiftFrequencyOptions = []string{
@@ -184,7 +188,7 @@ func resourceAmixrOnCallShiftCreate(d *schema.ResourceData, m interface{}) error
 
 	frequencyData, frequencyOk := d.GetOk("frequency")
 	if frequencyOk {
-		if typeData != "single_event" {
+		if typeData != singleEvent {
 			f := frequencyData.(string)
 			createOptions.Frequency = &f
 		} else {
@@ -194,7 +198,7 @@ func resourceAmixrOnCallShiftCreate(d *schema.ResourceData, m interface{}) error
 
 	usersData, usersDataOk := d.GetOk("users")
 	if usersDataOk {
-		if typeData != "rolling_users" {
+		if typeData != rollingUsers {
 			usersDataSlice := setToStringSlice(usersData.(*schema.Set))
 			createOptions.Users = &usersDataSlice
 		} else {
@@ -204,7 +208,7 @@ func resourceAmixrOnCallShiftCreate(d *schema.ResourceData, m interface{}) error
 
 	intervalData, intervalOk := d.GetOk("interval")
 	if intervalOk {
-		if typeData != "single_event" {
+		if typeData != singleEvent {
 			i := intervalData.(int)
 			createOptions.Interval = &i
 		} else {
@@ -214,7 +218,7 @@ func resourceAmixrOnCallShiftCreate(d *schema.ResourceData, m interface{}) error
 
 	weekStartData, weekStartOk := d.GetOk("week_start")
 	if weekStartOk {
-		if typeData != "single_event" {
+		if typeData != singleEvent {
 			w := weekStartData.(string)
 			createOptions.WeekStart = &w
 		} else {
@@ -224,7 +228,7 @@ func resourceAmixrOnCallShiftCreate(d *schema.ResourceData, m interface{}) error
 
 	byDayData, byDayOk := d.GetOk("by_day")
 	if byDayOk {
-		if typeData != "single_event" {
+		if typeData != singleEvent {
 			byDayDataSlice := setToStringSlice(byDayData.(*schema.Set))
 			createOptions.ByDay = &byDayDataSlice
 		} else {
@@ -234,7 +238,7 @@ func resourceAmixrOnCallShiftCreate(d *schema.ResourceData, m interface{}) error
 
 	byMonthData, byMonthOk := d.GetOk("by_month")
 	if byMonthOk {
-		if typeData != "single_event" {
+		if typeData != singleEvent {
 			byMonthDataSlice := setToIntSlice(byMonthData.(*schema.Set))
 			createOptions.ByMonth = &byMonthDataSlice
 		} else {
@@ -244,7 +248,7 @@ func resourceAmixrOnCallShiftCreate(d *schema.ResourceData, m interface{}) error
 
 	byMonthdayData, byMonthdayOk := d.GetOk("by_monthday")
 	if byMonthdayOk {
-		if typeData != "single_event" {
+		if typeData != singleEvent {
 			byMonthdayDataSlice := setToIntSlice(byMonthdayData.(*schema.Set))
 			createOptions.ByMonthday = &byMonthdayDataSlice
 		} else {
@@ -252,9 +256,9 @@ func resourceAmixrOnCallShiftCreate(d *schema.ResourceData, m interface{}) error
 		}
 	}
 
-	rollingUsersData, rollingUsersOk := d.GetOk("rolling_users")
+	rollingUsersData, rollingUsersOk := d.GetOk(rollingUsers)
 	if rollingUsersOk {
-		if typeData == "rolling_users" {
+		if typeData == rollingUsers {
 			rollingUsersDataSlice := listOfSetsToStringSlice(rollingUsersData.([]interface{}))
 			createOptions.RollingUsers = &rollingUsersDataSlice
 		} else {
@@ -268,7 +272,7 @@ func resourceAmixrOnCallShiftCreate(d *schema.ResourceData, m interface{}) error
 		createOptions.TimeZone = &tz
 	}
 
-	if typeData == "rolling_users" {
+	if typeData == rollingUsers {
 		startRotationFromUserIndexData := d.Get("start_rotation_from_user_index")
 		i := startRotationFromUserIndexData.(int)
 		createOptions.StartRotationFromUserIndex = &i
@@ -305,7 +309,7 @@ func resourceAmixrOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error
 
 	frequencyData, frequencyOk := d.GetOk("frequency")
 	if frequencyOk {
-		if typeData != "single_event" {
+		if typeData != singleEvent {
 			f := frequencyData.(string)
 			updateOptions.Frequency = &f
 		} else {
@@ -315,7 +319,7 @@ func resourceAmixrOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error
 
 	usersData, usersDataOk := d.GetOk("users")
 	if usersDataOk {
-		if typeData != "rolling_users" {
+		if typeData != rollingUsers {
 			usersDataSlice := setToStringSlice(usersData.(*schema.Set))
 			updateOptions.Users = &usersDataSlice
 		} else {
@@ -325,7 +329,7 @@ func resourceAmixrOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error
 
 	intervalData, intervalOk := d.GetOk("interval")
 	if intervalOk {
-		if typeData != "single_event" {
+		if typeData != singleEvent {
 			i := intervalData.(int)
 			updateOptions.Interval = &i
 		} else {
@@ -335,7 +339,7 @@ func resourceAmixrOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error
 
 	weekStartData, weekStartOk := d.GetOk("week_start")
 	if weekStartOk {
-		if typeData != "single_event" {
+		if typeData != singleEvent {
 			w := weekStartData.(string)
 			updateOptions.WeekStart = &w
 		} else {
@@ -345,7 +349,7 @@ func resourceAmixrOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error
 
 	byDayData, byDayOk := d.GetOk("by_day")
 	if byDayOk {
-		if typeData != "single_event" {
+		if typeData != singleEvent {
 			byDayDataSlice := setToStringSlice(byDayData.(*schema.Set))
 			updateOptions.ByDay = &byDayDataSlice
 		} else {
@@ -355,7 +359,7 @@ func resourceAmixrOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error
 
 	byMonthData, byMonthOk := d.GetOk("by_month")
 	if byMonthOk {
-		if typeData != "single_event" {
+		if typeData != singleEvent {
 			byMonthDataSlice := setToIntSlice(byMonthData.(*schema.Set))
 			updateOptions.ByMonth = &byMonthDataSlice
 		} else {
@@ -365,7 +369,7 @@ func resourceAmixrOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error
 
 	byMonthDayData, byMonthDayOk := d.GetOk("by_monthday")
 	if byMonthDayOk {
-		if typeData != "single_event" {
+		if typeData != singleEvent {
 			byMonthDayData := setToIntSlice(byMonthDayData.(*schema.Set))
 			updateOptions.ByMonthday = &byMonthDayData
 		} else {
@@ -379,9 +383,9 @@ func resourceAmixrOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error
 		updateOptions.TimeZone = &tz
 	}
 
-	rollingUsersData, rollingUsersOk := d.GetOk("rolling_users")
+	rollingUsersData, rollingUsersOk := d.GetOk(rollingUsers)
 	if rollingUsersOk {
-		if typeData == "rolling_users" {
+		if typeData == rollingUsers {
 			rollingUsersDataSlice := listOfSetsToStringSlice(rollingUsersData.([]interface{}))
 			updateOptions.RollingUsers = &rollingUsersDataSlice
 		} else {
@@ -389,7 +393,7 @@ func resourceAmixrOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error
 		}
 	}
 
-	if typeData == "rolling_users" {
+	if typeData == rollingUsers {
 		startRotationFromUserIndexData := d.Get("start_rotation_from_user_index")
 		i := startRotationFromUserIndexData.(int)
 		updateOptions.StartRotationFromUserIndex = &i
@@ -406,7 +410,6 @@ func resourceAmixrOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error
 }
 
 func resourceAmixrOnCallShiftRead(d *schema.ResourceData, m interface{}) error {
-
 	client := m.(*client).amixrAPI
 	options := &amixrAPI.GetOnCallShiftOptions{}
 	onCallShift, r, err := client.OnCallShifts.GetOnCallShift(d.Id(), options)

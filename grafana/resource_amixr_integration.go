@@ -197,7 +197,6 @@ func resourceAmixrIntegrationUpdate(d *schema.ResourceData, m interface{}) error
 }
 
 func resourceAmixrIntegrationRead(d *schema.ResourceData, m interface{}) error {
-
 	client := m.(*client).amixrAPI
 	options := &amixrAPI.GetIntegrationOptions{}
 	integration, r, err := client.Integrations.GetIntegration(d.Id(), options)
@@ -259,7 +258,6 @@ func expandRouteSlack(in []interface{}) *amixrAPI.SlackRoute {
 	}
 
 	return &slackRoute
-
 }
 
 func flattenTemplates(in *amixrAPI.Templates) []map[string]interface{} {
@@ -279,7 +277,6 @@ func flattenTemplates(in *amixrAPI.Templates) []map[string]interface{} {
 	if in.ResolveSignal != nil {
 		out["resolve_signal"] = in.ResolveSignal
 		add = true
-
 	}
 	if in.Slack != nil {
 		flattenSlackTemplate := flattenSlackTemplate(in.Slack)
@@ -324,7 +321,6 @@ func flattenSlackTemplate(in *amixrAPI.SlackTemplate) []map[string]interface{} {
 }
 
 func expandTemplates(input []interface{}) *amixrAPI.Templates {
-
 	templates := amixrAPI.Templates{}
 
 	for _, r := range input {
@@ -347,7 +343,6 @@ func expandTemplates(input []interface{}) *amixrAPI.Templates {
 }
 
 func expandSlackTemplate(in []interface{}) *amixrAPI.SlackTemplate {
-
 	slackTemplate := amixrAPI.SlackTemplate{}
 	for _, r := range in {
 		inputMap := r.(map[string]interface{})

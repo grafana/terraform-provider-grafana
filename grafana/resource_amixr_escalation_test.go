@@ -44,7 +44,6 @@ func testAccCheckAmixrEscalationResourceDestroy(s *terraform.State) error {
 		if _, _, err := client.Escalations.GetEscalation(r.Primary.ID, &amixrAPI.GetEscalationOptions{}); err == nil {
 			return fmt.Errorf("Escalation still exists")
 		}
-
 	}
 	return nil
 }

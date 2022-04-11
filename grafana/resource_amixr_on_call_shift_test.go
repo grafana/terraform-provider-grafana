@@ -40,7 +40,6 @@ func testAccCheckAmixrOnCallShiftResourceDestroy(s *terraform.State) error {
 		if _, _, err := client.OnCallShifts.GetOnCallShift(r.Primary.ID, &amixrAPI.GetOnCallShiftOptions{}); err == nil {
 			return fmt.Errorf("OnCallShift still exists")
 		}
-
 	}
 	return nil
 }

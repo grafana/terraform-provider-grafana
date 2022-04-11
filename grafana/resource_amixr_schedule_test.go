@@ -39,7 +39,6 @@ func testAccCheckAmixrScheduleResourceDestroy(s *terraform.State) error {
 		if _, _, err := client.Schedules.GetSchedule(r.Primary.ID, &amixrAPI.GetScheduleOptions{}); err == nil {
 			return fmt.Errorf("Schedule still exists")
 		}
-
 	}
 	return nil
 }

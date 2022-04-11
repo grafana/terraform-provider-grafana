@@ -40,7 +40,6 @@ func testAccCheckAmixrRouteResourceDestroy(s *terraform.State) error {
 		if _, _, err := client.Routes.GetRoute(r.Primary.ID, &amixrAPI.GetRouteOptions{}); err == nil {
 			return fmt.Errorf("Route still exists")
 		}
-
 	}
 	return nil
 }

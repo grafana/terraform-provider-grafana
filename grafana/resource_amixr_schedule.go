@@ -92,7 +92,6 @@ func ResourceAmixrSchedule() *schema.Resource {
 }
 
 func resourceScheduleCreate(d *schema.ResourceData, m interface{}) error {
-
 	client := m.(*client).amixrAPI
 
 	nameData := d.Get("name").(string)
@@ -153,7 +152,6 @@ func resourceScheduleCreate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceScheduleUpdate(d *schema.ResourceData, m interface{}) error {
-
 	client := m.(*client).amixrAPI
 
 	nameData := d.Get("name").(string)
@@ -211,7 +209,6 @@ func resourceScheduleUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceScheduleRead(d *schema.ResourceData, m interface{}) error {
-
 	client := m.(*client).amixrAPI
 	options := &amixrAPI.GetScheduleOptions{}
 	schedule, r, err := client.Schedules.GetSchedule(d.Id(), options)
@@ -238,7 +235,6 @@ func resourceScheduleRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceScheduleDelete(d *schema.ResourceData, m interface{}) error {
-
 	client := m.(*client).amixrAPI
 	options := &amixrAPI.DeleteScheduleOptions{}
 	_, err := client.Schedules.DeleteSchedule(d.Id(), options)
