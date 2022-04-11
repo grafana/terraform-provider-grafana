@@ -152,7 +152,7 @@ func Provider(version string) func() *schema.Provider {
 				"amixr_url": {
 					Type:         schema.TypeString,
 					Optional:     true,
-					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_AMIXR_URL", nil),
+					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_AMIXR_URL", "https://a-ops-us-east-0.grafana.net"),
 					Description:  "An Amixr backend address. May alternatively be set via the `GRAFANA_AMIXR_URL` environment variable.",
 					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 				},
@@ -193,12 +193,12 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_machine_learning_job": ResourceMachineLearningJob(),
 
 				// Amixr
-				"grafana_amixr_integration":     ResourceAmixrIntegration(),
-				"grafana_amixr_route":           ResourceAmixrRoute(),
-				"grafan_amixr_escalation_chain": ResourceAmixrEscalationChain(),
-				"grafana_amixr_escalation":      ResourceAmixrEscalation(),
-				"grafana_amixr_on_call_shift":   ResourceAmixrOnCallShift(),
-				"grafana_amixr_schedule":        ResourceAmixrSchedule(),
+				"grafana_amixr_integration":      ResourceAmixrIntegration(),
+				"grafana_amixr_route":            ResourceAmixrRoute(),
+				"grafana_amixr_escalation_chain": ResourceAmixrEscalationChain(),
+				"grafana_amixr_escalation":       ResourceAmixrEscalation(),
+				"grafana_amixr_on_call_shift":    ResourceAmixrOnCallShift(),
+				"grafana_amixr_schedule":         ResourceAmixrSchedule(),
 			},
 
 			DataSourcesMap: map[string]*schema.Resource{
@@ -270,8 +270,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			return nil, diag.FromErr(err)
 		}
 		c.smURL, c.smapi = createSMClient(d)
-
-		c.amixrAPI, err = createAClient(d)
+		c.amixrAPI, err = createAmixrClient(d)
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
@@ -384,7 +383,7 @@ func createSMClient(d *schema.ResourceData) (string, *smapi.Client) {
 	return smURL, smapi.NewClient(smURL, smToken, nil)
 }
 
-func createAClient(d *schema.ResourceData) (*amixrAPI.Client, error) {
+func createAmixrClient(d *schema.ResourceData) (*amixrAPI.Client, error) {
 	aToken := d.Get("amixr_access_token").(string)
 	base_url := d.Get("amixr_url").(string)
 	aclient, err := amixrAPI.New(base_url, aToken)
