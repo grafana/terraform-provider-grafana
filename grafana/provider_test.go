@@ -297,6 +297,7 @@ func CheckCloudInstanceTestsEnabled(t *testing.T) {
 		"GRAFANA_AUTH",
 		"GRAFANA_ORG_ID",
 		"GRAFANA_SM_ACCESS_TOKEN",
+		"GRAFANA_AMIXR_ACCESS_TOKEN",
 	)
 }
 
