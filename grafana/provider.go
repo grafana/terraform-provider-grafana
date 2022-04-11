@@ -152,7 +152,7 @@ func Provider(version string) func() *schema.Provider {
 				"amixr_url": {
 					Type:         schema.TypeString,
 					Optional:     true,
-					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_AMIXR_URL", "https://a-ops-us-east-0.grafana.net"),
+					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_AMIXR_URL", "https://a-ops-us-east-0.grafana.net/"),
 					Description:  "An Amixr backend address. May alternatively be set via the `GRAFANA_AMIXR_URL` environment variable.",
 					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 				},
