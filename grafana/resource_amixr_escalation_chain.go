@@ -1,10 +1,11 @@
 package grafana
 
 import (
-	amixrAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"log"
 	"net/http"
+
+	amixrAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func ResourceAmixrEscalationChain() *schema.Resource {

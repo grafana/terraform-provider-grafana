@@ -2,10 +2,10 @@ package grafana
 
 import (
 	"fmt"
-	amixrAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"testing"
 
+	amixrAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )

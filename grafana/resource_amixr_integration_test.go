@@ -2,9 +2,9 @@ package grafana
 
 import (
 	"fmt"
-	amixrAPI "github.com/grafana/amixr-api-go-client"
 	"testing"
 
+	amixrAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -43,7 +43,6 @@ func testAccCheckAmixrIntegrationResourceDestroy(s *terraform.State) error {
 		if _, _, err := client.Integrations.GetIntegration(r.Primary.ID, &amixrAPI.GetIntegrationOptions{}); err == nil {
 			return fmt.Errorf("integration still exists")
 		}
-
 	}
 	return nil
 }

@@ -2,11 +2,12 @@ package grafana
 
 import (
 	"fmt"
+	"log"
+	"net/http"
+
 	amixrAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"log"
-	"net/http"
 )
 
 var escalationOptions = []string{

@@ -1,11 +1,12 @@
 package grafana
 
 import (
+	"log"
+	"net/http"
+
 	amixrAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"log"
-	"net/http"
 )
 
 var integrationTypes = []string{
