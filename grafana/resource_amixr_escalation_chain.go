@@ -61,12 +61,12 @@ func resourceAmixrEscalationChainRead(d *schema.ResourceData, m interface{}) err
 
 	escalationChain, r, err := client.EscalationChains.GetEscalationChain(d.Id(), &amixrAPI.GetEscalationChainOptions{})
 	if err != nil {
-		if r.StatusCode != http.StatusNotFound {
-			return err
+		if r != nil && r.StatusCode == http.StatusNotFound {
+			log.Printf("[WARN] removing escalation chain %s from state because it no longer exists", d.Get("name").(string))
+			d.SetId("")
+			return nil
 		}
-		log.Printf("[WARN] removing escalation chain %s from state because it no longer exists", d.Get("name").(string))
-		d.SetId("")
-		return nil
+		return err
 	}
 
 	d.Set("name", escalationChain.Name)

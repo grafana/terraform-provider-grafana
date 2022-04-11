@@ -302,12 +302,12 @@ func resourceEscalationRead(d *schema.ResourceData, m interface{}) error {
 
 	escalation, r, err := client.Escalations.GetEscalation(d.Id(), &amixrAPI.GetEscalationOptions{})
 	if err != nil {
-		if r.StatusCode != http.StatusNotFound {
-			return err
+		if r != nil && r.StatusCode == http.StatusNotFound {
+			log.Printf("[WARN] removing escalation %s from state because it no longer exists", d.Id())
+			d.SetId("")
+			return nil
 		}
-		log.Printf("[WARN] removing escalation %s from state because it no longer exists", d.Id())
-		d.SetId("")
-		return nil
+		return err
 	}
 
 	d.Set("escalation_chain_id", escalation.EscalationChainId)

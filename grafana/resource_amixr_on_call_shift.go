@@ -412,12 +412,12 @@ func resourceAmixrOnCallShiftRead(d *schema.ResourceData, m interface{}) error {
 	onCallShift, r, err := client.OnCallShifts.GetOnCallShift(d.Id(), options)
 
 	if err != nil {
-		if r.StatusCode != http.StatusNotFound {
-			return err
+		if r != nil && r.StatusCode == http.StatusNotFound {
+			log.Printf("[WARN] removing on-call shift %s from state because it no longer exists", d.Id())
+			d.SetId("")
+			return nil
 		}
-		log.Printf("[WARN] removing on-call shift %s from state because it no longer exists", d.Id())
-		d.SetId("")
-		return nil
+		return err
 	}
 
 	d.Set("team_id", onCallShift.TeamId)

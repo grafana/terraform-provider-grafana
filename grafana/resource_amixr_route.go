@@ -94,12 +94,12 @@ func resourceAmixrRouteRead(d *schema.ResourceData, m interface{}) error {
 
 	route, r, err := client.Routes.GetRoute(d.Id(), &amixrAPI.GetRouteOptions{})
 	if err != nil {
-		if r.StatusCode != http.StatusNotFound {
-			return err
+		if r != nil && r.StatusCode == http.StatusNotFound {
+			log.Printf("[WARN] removing route %s from state because it no longer exists", d.Id())
+			d.SetId("")
+			return nil
 		}
-		log.Printf("[WARN] removing route %s from state because it no longer exists", d.Id())
-		d.SetId("")
-		return nil
+		return err
 	}
 
 	d.Set("integration_id", route.IntegrationId)

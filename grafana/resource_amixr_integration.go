@@ -202,12 +202,12 @@ func resourceAmixrIntegrationRead(d *schema.ResourceData, m interface{}) error {
 	options := &amixrAPI.GetIntegrationOptions{}
 	integration, r, err := client.Integrations.GetIntegration(d.Id(), options)
 	if err != nil {
-		if r.StatusCode != http.StatusNotFound {
-			return err
+		if r != nil && r.StatusCode == http.StatusNotFound {
+			log.Printf("[WARN] removing integreation %s from state because it no longer exists", d.Get("name").(string))
+			d.SetId("")
+			return nil
 		}
-		log.Printf("[WARN] removing integreation %s from state because it no longer exists", d.Get("name").(string))
-		d.SetId("")
-		return nil
+		return err
 	}
 
 	d.Set("team_id", integration.TeamId)
