@@ -60,7 +60,7 @@ resource "grafana_amixr_escalation_chain" "test-acc-escalation-chain"{
 }
 
 resource "grafana_amixr_escalation" "test-acc-escalation" {
-	escalation_chain_id = amixr_escalation_chain.test-acc-escalation-chain.id
+	escalation_chain_id = grafana_amixr_escalation_chain.test-acc-escalation-chain.id
 	type = "%s"
 	duration = "%d"
 	position = 0

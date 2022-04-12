@@ -56,8 +56,8 @@ resource "grafana_amixr_escalation_chain" "test-acc-escalation-chain"{
 }
 
 resource "grafana_amixr_route" "test-acc-route" {
-	integration_id = amixr_integration.test-acc-integration.id
-	escalation_chain_id = amixr_escalation_chain.test-acc-escalation-chain.id
+	integration_id = grafana_amixr_integration.test-acc-integration.id
+	escalation_chain_id = grafana_amixr_escalation_chain.test-acc-escalation-chain.id
 	routing_regex = "%s"
 	position = 0
 }

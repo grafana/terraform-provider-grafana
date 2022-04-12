@@ -27,7 +27,7 @@ func TestAccDataSourceAmixrSlackChannel_Basic(t *testing.T) {
 
 func testAccDataSourceAmixrSlackChannelConfig(slackChannelName string) string {
 	return fmt.Sprintf(`
-data "grafanaamixr_slack_channel" "test-acc-slack-channel" {
+data "grafana_amixr_slack_channel" "test-acc-slack-channel" {
 	name = "%s"
 }
 `, slackChannelName)
