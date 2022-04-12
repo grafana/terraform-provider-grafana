@@ -115,7 +115,7 @@ steps:
       from_secret: grafana-sm-token
     GRAFANA_URL: https://terraformprovidergrafana.grafana.net/
     GRAFANA_AMIXR_ACCESS_TOKEN:
-      from_secret: grafana-amixr-access-token
+      from_secret: grafana-amixr-token
   image: golang:1.18
   name: tests
 trigger:
