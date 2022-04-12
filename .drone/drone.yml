@@ -108,14 +108,14 @@ steps:
 - commands:
   - make testacc-cloud-instance
   environment:
+    GRAFANA_AMIXR_ACCESS_TOKEN:
+      from_secret: grafana-amixr-token
     GRAFANA_AUTH:
       from_secret: grafana-api-token
     GRAFANA_ORG_ID: 1
     GRAFANA_SM_ACCESS_TOKEN:
       from_secret: grafana-sm-token
     GRAFANA_URL: https://terraformprovidergrafana.grafana.net/
-    GRAFANA_AMIXR_ACCESS_TOKEN:
-      from_secret: grafana-amixr-token
   image: golang:1.18
   name: tests
 trigger:
@@ -308,6 +308,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: 6ff6d080f8016b9d41ac6f560d82c5bb0ea1a267e30adbf66fd2e99b1be6b5b0
+hmac: 6a16075d4fb9dd010c14b8f1b5dfea10c5165de7fa36e43c22bf96e70f7f891d
 
 ...
