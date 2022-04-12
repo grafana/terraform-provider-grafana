@@ -24,9 +24,9 @@ func TestAccAmixrEscalation_basic(t *testing.T) {
 			{
 				Config: testAccAmixrEscalationConfig(riName, reType, reDuration),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAmixrEscalationResourceExists("amixr_escalation.test-acc-escalation"),
+					testAccCheckAmixrEscalationResourceExists("grafana_amixr_escalation.test-acc-escalation"),
 					resource.TestCheckResourceAttr(
-						"amixr_escalation.test-acc-escalation", "type", "wait",
+						"grafana_amixr_escalation.test-acc-escalation", "type", "wait",
 					),
 				),
 			},
@@ -37,7 +37,7 @@ func TestAccAmixrEscalation_basic(t *testing.T) {
 func testAccCheckAmixrEscalationResourceDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*amixrAPI.Client)
 	for _, r := range s.RootModule().Resources {
-		if r.Type != "amixr_escalation" {
+		if r.Type != "grafana_amixr_escalation" {
 			continue
 		}
 
@@ -50,16 +50,16 @@ func testAccCheckAmixrEscalationResourceDestroy(s *terraform.State) error {
 
 func testAccAmixrEscalationConfig(riName string, reType string, reDuration int) string {
 	return fmt.Sprintf(`
-resource "amixr_integration" "test-acc-integration" {
+resource "grafana_amixr_integration" "test-acc-integration" {
 	name = "%s"
 	type = "grafana"
 }
 
-resource "amixr_escalation_chain" "test-acc-escalation-chain"{
+resource "grafana_amixr_escalation_chain" "test-acc-escalation-chain"{
 	name = "acc-test"
 }
 
-resource "amixr_escalation" "test-acc-escalation" {
+resource "grafana_amixr_escalation" "test-acc-escalation" {
 	escalation_chain_id = amixr_escalation_chain.test-acc-escalation-chain.id
 	type = "%s"
 	duration = "%d"

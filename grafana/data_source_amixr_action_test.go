@@ -27,7 +27,7 @@ func TestAccDataSourceAmixrAction_Basic(t *testing.T) {
 
 func testAccDataSourceAmixrActionConfig(actionName string) string {
 	return fmt.Sprintf(`
-data "amixr_action" "test-acc-action" {
+data "grafana_amixr_action" "test-acc-action" {
 	name = "%s"
 }
 `, actionName)

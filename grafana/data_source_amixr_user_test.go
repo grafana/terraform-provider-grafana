@@ -27,7 +27,7 @@ func TestAccDataSourceAmixrUser_Basic(t *testing.T) {
 
 func testAccDataSourceAmixrUserConfig(username string) string {
 	return fmt.Sprintf(`
-data "amixr_user" "test-acc-user" {
+data "grafana_amixr_user" "test-acc-user" {
 	username = "%s"
 }
 `, username)

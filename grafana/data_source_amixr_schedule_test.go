@@ -27,7 +27,7 @@ func TestAccDataSourceAmixrSchedule_Basic(t *testing.T) {
 
 func testAccDataSourceAmixrScheduleConfig(scheduleName string) string {
 	return fmt.Sprintf(`
-data "amixr_schedule" "test-acc-schedule" {
+data "grafana_amixr_schedule" "test-acc-schedule" {
 	name = "%s"
 }
 `, scheduleName)

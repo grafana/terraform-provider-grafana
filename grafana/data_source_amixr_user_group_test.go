@@ -27,7 +27,7 @@ func TestAccDataSourceAmixrUserGroup_Basic(t *testing.T) {
 
 func testAccDataSourceAmixrUserGroupConfig(slackHandle string) string {
 	return fmt.Sprintf(`
-data "amixr_user_group" "test-acc-user-group" {
+data "grafana_amixr_user_group" "test-acc-user-group" {
 	slack_handle = "%s"
 }
 `, slackHandle)

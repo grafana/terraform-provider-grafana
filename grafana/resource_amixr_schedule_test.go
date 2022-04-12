@@ -22,7 +22,7 @@ func TestAccAmixrSchedule_basic(t *testing.T) {
 			{
 				Config: testAccAmixrScheduleConfig(scheduleName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAmixrScheduleResourceExists("amixr_schedule.test-acc-schedule"),
+					testAccCheckAmixrScheduleResourceExists("grafana_amixr_schedule.test-acc-schedule"),
 				),
 			},
 		},
@@ -32,7 +32,7 @@ func TestAccAmixrSchedule_basic(t *testing.T) {
 func testAccCheckAmixrScheduleResourceDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*amixrAPI.Client)
 	for _, r := range s.RootModule().Resources {
-		if r.Type != "amixr_schedule" {
+		if r.Type != "grafana_amixr_schedule" {
 			continue
 		}
 
@@ -45,7 +45,7 @@ func testAccCheckAmixrScheduleResourceDestroy(s *terraform.State) error {
 
 func testAccAmixrScheduleConfig(scheduleName string) string {
 	return fmt.Sprintf(`
-resource "amixr_schedule" "test-acc-schedule" {
+resource "grafana_amixr_schedule" "test-acc-schedule" {
 	name = "%s"
 	type = "calendar"
 	time_zone = "America/New_York"

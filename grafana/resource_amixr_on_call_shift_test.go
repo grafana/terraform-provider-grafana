@@ -23,7 +23,7 @@ func TestAccAmixrOnCallShift_basic(t *testing.T) {
 			{
 				Config: testAccAmixrOnCallShiftConfig(scheduleName, shiftName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAmixrOnCallShiftResourceExists("amixr_on_call_shift.test-acc-on_call_shift"),
+					testAccCheckAmixrOnCallShiftResourceExists("grafana_amixr_on_call_shift.test-acc-on_call_shift"),
 				),
 			},
 		},
@@ -33,7 +33,7 @@ func TestAccAmixrOnCallShift_basic(t *testing.T) {
 func testAccCheckAmixrOnCallShiftResourceDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*amixrAPI.Client)
 	for _, r := range s.RootModule().Resources {
-		if r.Type != "amixr_on_call_shift" {
+		if r.Type != "grafana_amixr_on_call_shift" {
 			continue
 		}
 
@@ -46,13 +46,13 @@ func testAccCheckAmixrOnCallShiftResourceDestroy(s *terraform.State) error {
 
 func testAccAmixrOnCallShiftConfig(scheduleName string, shiftName string) string {
 	return fmt.Sprintf(`
-resource "amixr_schedule" "test-acc-schedule" {
+resource "grafana_amixr_schedule" "test-acc-schedule" {
 	type = "calendar"
 	name = "%s"
 	time_zone = "UTC"
 }
 
-resource "amixr_on_call_shift" "test-acc-on_call_shift" {
+resource "grafana_amixr_on_call_shift" "test-acc-on_call_shift" {
 	name = "%s"
 	type = "recurrent_event"
 	start = "2020-09-04T16:00:00"

@@ -23,7 +23,7 @@ func TestAccAmixrRoute_basic(t *testing.T) {
 			{
 				Config: testAccAmixrRouteConfig(riName, rrRegex),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAmixrRouteResourceExists("amixr_route.test-acc-route"),
+					testAccCheckAmixrRouteResourceExists("grafana_amixr_route.test-acc-route"),
 				),
 			},
 		},
@@ -33,7 +33,7 @@ func TestAccAmixrRoute_basic(t *testing.T) {
 func testAccCheckAmixrRouteResourceDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*amixrAPI.Client)
 	for _, r := range s.RootModule().Resources {
-		if r.Type != "amixr_route" {
+		if r.Type != "grafana_amixr_route" {
 			continue
 		}
 
@@ -46,16 +46,16 @@ func testAccCheckAmixrRouteResourceDestroy(s *terraform.State) error {
 
 func testAccAmixrRouteConfig(riName string, rrRegex string) string {
 	return fmt.Sprintf(`
-resource "amixr_integration" "test-acc-integration" {
+resource "grafana_amixr_integration" "test-acc-integration" {
 	name = "%s"
 	type = "grafana"
 }
 
-resource "amixr_escalation_chain" "test-acc-escalation-chain"{
+resource "grafana_amixr_escalation_chain" "test-acc-escalation-chain"{
 	name = "acc-test"
 }
 
-resource "amixr_route" "test-acc-route" {
+resource "grafana_amixr_route" "test-acc-route" {
 	integration_id = amixr_integration.test-acc-integration.id
 	escalation_chain_id = amixr_escalation_chain.test-acc-escalation-chain.id
 	routing_regex = "%s"

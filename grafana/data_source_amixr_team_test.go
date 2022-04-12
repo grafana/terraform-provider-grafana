@@ -27,7 +27,7 @@ func TestAccDataSourceAmixrTeam_Basic(t *testing.T) {
 
 func testAccDataSourceAmixrTeamConfig(teamName string) string {
 	return fmt.Sprintf(`
-data "amixr_team" "test-acc-team" {
+data "grafana_amixr_team" "test-acc-team" {
 	name = "%s"
 }
 `, teamName)
