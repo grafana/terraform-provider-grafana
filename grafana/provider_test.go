@@ -85,7 +85,7 @@ func TestProviderConfigure(t *testing.T) {
 		{
 			name:        "no config",
 			env:         map[string]string{},
-			expectedErr: "\"auth\": one of `amixr_access_token,auth,cloud_api_key,sm_access_token must be specified",
+			expectedErr: "\"auth\": one of `amixr_access_token,auth,cloud_api_key,sm_access_token` must be specified",
 		},
 		{
 			name: "grafana config from env",
