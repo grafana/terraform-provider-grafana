@@ -270,9 +270,11 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			return nil, diag.FromErr(err)
 		}
 		c.smURL, c.smapi = createSMClient(d)
-		c.amixrAPI, err = createAmixrClient(d)
-		if err != nil {
-			return nil, diag.FromErr(err)
+		if d.Get("amixr_access_token").(string) != "" {
+			c.amixrAPI, err = createAmixrClient(d)
+			if err != nil {
+				return nil, diag.FromErr(err)
+			}
 		}
 
 		storeDashboardSHA256 = d.Get("store_dashboard_sha256").(bool)

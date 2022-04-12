@@ -1,6 +1,7 @@
 package grafana
 
 import (
+	"errors"
 	"log"
 	"net/http"
 
@@ -64,6 +65,10 @@ func ResourceAmixrRoute() *schema.Resource {
 
 func resourceAmixrRouteCreate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 
 	integrationIdData := d.Get("integration_id").(string)
 	escalationChainIdData := d.Get("escalation_chain_id").(string)
@@ -92,6 +97,10 @@ func resourceAmixrRouteCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceAmixrRouteRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 
 	route, r, err := client.Routes.GetRoute(d.Id(), &amixrAPI.GetRouteOptions{})
 	if err != nil {
@@ -114,6 +123,10 @@ func resourceAmixrRouteRead(d *schema.ResourceData, m interface{}) error {
 
 func resourceAmixrRouteUpdate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 
 	escalationChainIdData := d.Get("escalation_chain_id").(string)
 	routingRegexData := d.Get("routing_regex").(string)
@@ -139,6 +152,10 @@ func resourceAmixrRouteUpdate(d *schema.ResourceData, m interface{}) error {
 
 func resourceAmixrRouteDelete(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 
 	_, err := client.Routes.DeleteRoute(d.Id(), &amixrAPI.DeleteRouteOptions{})
 	if err != nil {

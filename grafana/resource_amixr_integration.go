@@ -1,6 +1,7 @@
 package grafana
 
 import (
+	"errors"
 	"log"
 	"net/http"
 
@@ -151,6 +152,10 @@ func ResourceAmixrIntegration() *schema.Resource {
 
 func resourceAmixrIntegrationCreate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 
 	teamIdData := d.Get("team_id").(string)
 	nameData := d.Get("name").(string)
@@ -176,6 +181,10 @@ func resourceAmixrIntegrationCreate(d *schema.ResourceData, m interface{}) error
 
 func resourceAmixrIntegrationUpdate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 
 	nameData := d.Get("name").(string)
 	templateData := d.Get("templates").([]interface{})
@@ -199,6 +208,10 @@ func resourceAmixrIntegrationUpdate(d *schema.ResourceData, m interface{}) error
 
 func resourceAmixrIntegrationRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 	options := &amixrAPI.GetIntegrationOptions{}
 	integration, r, err := client.Integrations.GetIntegration(d.Id(), options)
 	if err != nil {
@@ -224,6 +237,10 @@ func resourceAmixrIntegrationDelete(d *schema.ResourceData, m interface{}) error
 	log.Printf("[DEBUG] delete amixr integration")
 
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 	options := &amixrAPI.DeleteIntegrationOptions{}
 	_, err := client.Integrations.DeleteIntegration(d.Id(), options)
 	if err != nil {

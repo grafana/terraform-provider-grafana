@@ -1,6 +1,7 @@
 package grafana
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -168,6 +169,10 @@ func ResourceAmixrOnCallShift() *schema.Resource {
 
 func resourceAmixrOnCallShiftCreate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 
 	teamIdData := d.Get("team_id").(string)
 	typeData := d.Get("type").(string)
@@ -291,6 +296,10 @@ func resourceAmixrOnCallShiftCreate(d *schema.ResourceData, m interface{}) error
 
 func resourceAmixrOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 
 	typeData := d.Get("type").(string)
 	nameData := d.Get("name").(string)
@@ -412,6 +421,10 @@ func resourceAmixrOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error
 
 func resourceAmixrOnCallShiftRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 	options := &amixrAPI.GetOnCallShiftOptions{}
 	onCallShift, r, err := client.OnCallShifts.GetOnCallShift(d.Id(), options)
 
@@ -446,6 +459,10 @@ func resourceAmixrOnCallShiftRead(d *schema.ResourceData, m interface{}) error {
 
 func resourceAmixrOnCallShiftDelete(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 	options := &amixrAPI.DeleteOnCallShiftOptions{}
 	_, err := client.OnCallShifts.DeleteOnCallShift(d.Id(), options)
 	if err != nil {

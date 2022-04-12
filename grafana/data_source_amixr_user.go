@@ -1,6 +1,7 @@
 package grafana
 
 import (
+	"errors"
 	"fmt"
 
 	amixrAPI "github.com/grafana/amixr-api-go-client"
@@ -35,6 +36,10 @@ func DataSourceAmixrUser() *schema.Resource {
 
 func dataSourceAmixrUserRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 	options := &amixrAPI.ListUserOptions{}
 	usernameData := d.Get("username").(string)
 

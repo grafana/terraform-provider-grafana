@@ -1,6 +1,7 @@
 package grafana
 
 import (
+	"errors"
 	"fmt"
 
 	amixrAPI "github.com/grafana/amixr-api-go-client"
@@ -30,6 +31,10 @@ func DataSourceAmixrSlackChannel() *schema.Resource {
 
 func dataSourceAmixrSlackChannelRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 	options := &amixrAPI.ListSlackChannelOptions{}
 	nameData := d.Get("name").(string)
 

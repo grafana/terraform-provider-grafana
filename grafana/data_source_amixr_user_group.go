@@ -1,6 +1,7 @@
 package grafana
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
@@ -31,6 +32,10 @@ func dataSourceAmixrUserGroupRead(d *schema.ResourceData, m interface{}) error {
 	log.Printf("[DEBUG] read amixr user group")
 
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 	options := &amixrAPI.ListUserGroupOptions{}
 	slackHandleData := d.Get("slack_handle").(string)
 

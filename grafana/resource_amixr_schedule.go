@@ -1,6 +1,7 @@
 package grafana
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -94,6 +95,10 @@ func ResourceAmixrSchedule() *schema.Resource {
 
 func resourceScheduleCreate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 
 	nameData := d.Get("name").(string)
 	teamIdData := d.Get("team_id").(string)
@@ -154,6 +159,10 @@ func resourceScheduleCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceScheduleUpdate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 
 	nameData := d.Get("name").(string)
 	slackData := d.Get("slack").([]interface{})
@@ -211,6 +220,10 @@ func resourceScheduleUpdate(d *schema.ResourceData, m interface{}) error {
 
 func resourceScheduleRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 	options := &amixrAPI.GetScheduleOptions{}
 	schedule, r, err := client.Schedules.GetSchedule(d.Id(), options)
 
@@ -237,6 +250,10 @@ func resourceScheduleRead(d *schema.ResourceData, m interface{}) error {
 
 func resourceScheduleDelete(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 	options := &amixrAPI.DeleteScheduleOptions{}
 	_, err := client.Schedules.DeleteSchedule(d.Id(), options)
 	if err != nil {

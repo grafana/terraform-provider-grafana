@@ -1,6 +1,7 @@
 package grafana
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -194,6 +195,10 @@ func ResourceAmixrEscalation() *schema.Resource {
 
 func resourceEscalationCreate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 
 	escalationChainIdData := d.Get("escalation_chain_id").(string)
 
@@ -300,6 +305,10 @@ func resourceEscalationCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceEscalationRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 
 	escalation, r, err := client.Escalations.GetEscalation(d.Id(), &amixrAPI.GetEscalationOptions{})
 	if err != nil {
@@ -329,6 +338,10 @@ func resourceEscalationRead(d *schema.ResourceData, m interface{}) error {
 
 func resourceEscalationUpdate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 
 	updateOptions := &amixrAPI.UpdateEscalationOptions{
 		ManualOrder: true,
@@ -415,6 +428,10 @@ func resourceEscalationUpdate(d *schema.ResourceData, m interface{}) error {
 
 func resourceEscalationDelete(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).amixrAPI
+	if client == nil {
+		err := errors.New("amixr api client is not configured")
+		return err
+	}
 
 	_, err := client.Escalations.DeleteEscalation(d.Id(), &amixrAPI.DeleteEscalationOptions{})
 	if err != nil {
