@@ -52,6 +52,8 @@ func testAccAmixrIntegrationConfig(rName, rType string) string {
 resource "grafana_amixr_integration" "test-acc-integration" {
 	name = "%s"
 	type = "%s"
+	default_route {
+	}
 }
 `, rName, rType)
 }

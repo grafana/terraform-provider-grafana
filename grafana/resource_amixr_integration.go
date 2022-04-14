@@ -73,7 +73,7 @@ func ResourceAmixrIntegration() *schema.Resource {
 			},
 			"default_route": &schema.Schema{
 				Type:     schema.TypeList,
-				Optional: true,
+				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {

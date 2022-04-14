@@ -53,6 +53,8 @@ func testAccAmixrEscalationConfig(riName string, reType string, reDuration int) 
 resource "grafana_amixr_integration" "test-acc-integration" {
 	name = "%s"
 	type = "grafana"
+	default_route {
+	}
 }
 
 resource "grafana_amixr_escalation_chain" "test-acc-escalation-chain"{
