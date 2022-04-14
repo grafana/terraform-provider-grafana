@@ -34,7 +34,7 @@ func TestAccAmixrIntegration_basic(t *testing.T) {
 }
 
 func testAccCheckAmixrIntegrationResourceDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*amixrAPI.Client)
+	client := testAccProvider.Meta().(*client).amixrAPI
 	for _, r := range s.RootModule().Resources {
 		if r.Type != "grafana_amixr_integration" {
 			continue
@@ -66,7 +66,7 @@ func testAccCheckAmixrIntegrationResourceExists(name string) resource.TestCheckF
 			return fmt.Errorf("No Integration ID is set")
 		}
 
-		client := testAccProvider.Meta().(*amixrAPI.Client)
+		client := testAccProvider.Meta().(*client).amixrAPI
 
 		found, _, err := client.Integrations.GetIntegration(rs.Primary.ID, &amixrAPI.GetIntegrationOptions{})
 		if err != nil {

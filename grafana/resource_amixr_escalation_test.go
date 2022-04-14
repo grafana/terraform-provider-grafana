@@ -35,7 +35,7 @@ func TestAccAmixrEscalation_basic(t *testing.T) {
 }
 
 func testAccCheckAmixrEscalationResourceDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*amixrAPI.Client)
+	client := testAccProvider.Meta().(*client).amixrAPI
 	for _, r := range s.RootModule().Resources {
 		if r.Type != "grafana_amixr_escalation" {
 			continue
@@ -78,7 +78,7 @@ func testAccCheckAmixrEscalationResourceExists(name string) resource.TestCheckFu
 			return fmt.Errorf("No Escalation ID is set")
 		}
 
-		client := testAccProvider.Meta().(*amixrAPI.Client)
+		client := testAccProvider.Meta().(*client).amixrAPI
 
 		found, _, err := client.Escalations.GetEscalation(rs.Primary.ID, &amixrAPI.GetEscalationOptions{})
 		if err != nil {

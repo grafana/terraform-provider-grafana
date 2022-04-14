@@ -30,7 +30,7 @@ func TestAccAmixrSchedule_basic(t *testing.T) {
 }
 
 func testAccCheckAmixrScheduleResourceDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*amixrAPI.Client)
+	client := testAccProvider.Meta().(*client).amixrAPI
 	for _, r := range s.RootModule().Resources {
 		if r.Type != "grafana_amixr_schedule" {
 			continue
@@ -63,7 +63,7 @@ func testAccCheckAmixrScheduleResourceExists(name string) resource.TestCheckFunc
 			return fmt.Errorf("No Schedule ID is set")
 		}
 
-		client := testAccProvider.Meta().(*amixrAPI.Client)
+		client := testAccProvider.Meta().(*client).amixrAPI
 
 		found, _, err := client.Schedules.GetSchedule(rs.Primary.ID, &amixrAPI.GetScheduleOptions{})
 		if err != nil {

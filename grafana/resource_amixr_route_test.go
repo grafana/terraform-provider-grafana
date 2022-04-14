@@ -31,7 +31,7 @@ func TestAccAmixrRoute_basic(t *testing.T) {
 }
 
 func testAccCheckAmixrRouteResourceDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*amixrAPI.Client)
+	client := testAccProvider.Meta().(*client).amixrAPI
 	for _, r := range s.RootModule().Resources {
 		if r.Type != "grafana_amixr_route" {
 			continue
@@ -74,7 +74,7 @@ func testAccCheckAmixrRouteResourceExists(name string) resource.TestCheckFunc {
 			return fmt.Errorf("No Route ID is set")
 		}
 
-		client := testAccProvider.Meta().(*amixrAPI.Client)
+		client := testAccProvider.Meta().(*client).amixrAPI
 
 		found, _, err := client.Routes.GetRoute(rs.Primary.ID, &amixrAPI.GetRouteOptions{})
 		if err != nil {

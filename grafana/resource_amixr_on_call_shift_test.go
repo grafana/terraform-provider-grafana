@@ -31,7 +31,7 @@ func TestAccAmixrOnCallShift_basic(t *testing.T) {
 }
 
 func testAccCheckAmixrOnCallShiftResourceDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*amixrAPI.Client)
+	client := testAccProvider.Meta().(*client).amixrAPI
 	for _, r := range s.RootModule().Resources {
 		if r.Type != "grafana_amixr_on_call_shift" {
 			continue
@@ -76,7 +76,7 @@ func testAccCheckAmixrOnCallShiftResourceExists(name string) resource.TestCheckF
 			return fmt.Errorf("No OnCallShift ID is set")
 		}
 
-		client := testAccProvider.Meta().(*amixrAPI.Client)
+		client := testAccProvider.Meta().(*client).amixrAPI
 
 		found, _, err := client.OnCallShifts.GetOnCallShift(rs.Primary.ID, &amixrAPI.GetOnCallShiftOptions{})
 		if err != nil {
