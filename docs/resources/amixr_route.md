@@ -60,4 +60,10 @@ Required:
 
 - `channel_id` (String) Slack channel id. Alerts will be directed to this channel in Slack.
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_amixr_route.route_name {{route_id}}
+```

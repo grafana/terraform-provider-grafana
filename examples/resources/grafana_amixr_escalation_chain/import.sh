@@ -1,0 +1,1 @@
+terraform import grafana_amixr_escakation_chain.escalation_chain_name {{escalation_chain_id}}

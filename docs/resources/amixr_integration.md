@@ -81,4 +81,10 @@ Optional:
 - `message` (String) Template for Alert message.
 - `title` (String) Template for Alert title.
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_amixr_integration.integration_name {{integration_id}}
+```

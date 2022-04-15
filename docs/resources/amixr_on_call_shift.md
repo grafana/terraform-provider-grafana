@@ -38,4 +38,10 @@ description: |-
 - `users` (Set of String) The list of on-call users (for single_event and recurrent_event event type).
 - `week_start` (String) Start day of the week in iCal format. Can be MO, TU, WE, TH, FR, SA, SU
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_amixr_on_call_shift.on_call_shift_name {{on_call_shift_id}}
+```

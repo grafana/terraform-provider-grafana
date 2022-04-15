@@ -75,4 +75,10 @@ resource "grafana_amixr_escalation" "example_notify_step" {
 - `persons_to_notify_next_each_time` (Set of String) The list of ID's of users for notify_person_next_each_time type step.
 - `type` (String) The type of escalation policy. Can be wait, notify_persons, notify_person_next_each_time, notify_on_call_from_schedule, trigger_action, notify_user_group, resolve, notify_whole_channel, notify_if_time_from_to
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_amixr_escalation.escalation_name {{escalation_id}}
+```

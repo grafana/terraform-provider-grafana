@@ -31,4 +31,10 @@ resource "grafana_amixr_escalation_chain" "default" {
 - `id` (String) The ID of this resource.
 - `team_id` (String) The ID of the team.
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_amixr_escakation_chain.escalation_chain_name {{escalation_chain_id}}
+```
