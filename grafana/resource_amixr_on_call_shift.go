@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	amixrAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -21,11 +22,15 @@ var onCallShiftTypeOptions = []string{
 	singleEvent,
 }
 
+var onCallShiftTypeOptionsVerbal = strings.Join(onCallShiftTypeOptions, ", ")
+
 var onCallShiftFrequencyOptions = []string{
 	"daily",
 	"weekly",
 	"monthly",
 }
+
+var onCallShiftFrequencyOptionsVerbal = strings.Join(onCallShiftFrequencyOptions, ", ")
 
 var onCallShiftWeekDayOptions = []string{
 	"MO",
@@ -36,6 +41,8 @@ var onCallShiftWeekDayOptions = []string{
 	"SA",
 	"SU",
 }
+
+var onCallShiftWeekDayOptionsVerbal = strings.Join(onCallShiftWeekDayOptions, ", ")
 
 var sourceTerraform = 3
 
@@ -68,7 +75,7 @@ func ResourceAmixrOnCallShift() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringInSlice(onCallShiftTypeOptions, false),
-				Description:  "The shift's type.",
+				Description:  fmt.Sprintf("The shift's type. Can be %s", onCallShiftTypeOptionsVerbal),
 			},
 			"level": &schema.Schema{
 				Type:        schema.TypeInt,
@@ -79,7 +86,7 @@ func ResourceAmixrOnCallShift() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringIsNotEmpty,
-				Description:  "The start time of the on-call shift.",
+				Description:  "The start time of the on-call shift. This parameter takes a date format as yyyy-MM-dd'T'HH:mm:ss (for example \"2020-09-05T08:00:00\")",
 			},
 			"duration": &schema.Schema{
 				Type:         schema.TypeInt,
@@ -91,15 +98,15 @@ func ResourceAmixrOnCallShift() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice(onCallShiftFrequencyOptions, false),
-				Description:  "The frequency of the event.",
+				Description:  fmt.Sprintf("The frequency of the event. Can be %s", onCallShiftFrequencyOptionsVerbal),
 			},
 			"users": &schema.Schema{
 				Type: schema.TypeSet,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Optional:    true,
-				Description: "The list of on-call users.",
+				Optional: true,
+				Description: "The list of on-call users (for single_event and recurrent_event event type).	",
 			},
 			"rolling_users": &schema.Schema{
 				Type: schema.TypeList,
@@ -122,7 +129,7 @@ func ResourceAmixrOnCallShift() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice(onCallShiftWeekDayOptions, false),
-				Description:  "Start day of the week in iCal format.",
+				Description:  fmt.Sprintf("Start day of the week in iCal format. Can be %s", onCallShiftWeekDayOptionsVerbal),
 			},
 			"by_day": &schema.Schema{
 				Type: schema.TypeSet,
@@ -131,7 +138,7 @@ func ResourceAmixrOnCallShift() *schema.Resource {
 					ValidateFunc: validation.StringInSlice(onCallShiftWeekDayOptions, false),
 				},
 				Optional:    true,
-				Description: "This parameter takes a list of days in iCal format.",
+				Description: fmt.Sprintf("This parameter takes a list of days in iCal format. Can be %s", onCallShiftWeekDayOptionsVerbal),
 			},
 			"by_month": &schema.Schema{
 				Type: schema.TypeSet,
@@ -140,7 +147,7 @@ func ResourceAmixrOnCallShift() *schema.Resource {
 					ValidateFunc: validation.IntBetween(1, 12),
 				},
 				Optional:    true,
-				Description: "This parameter takes a list of months.",
+				Description: "This parameter takes a list of months. Valid values are 1 to 12",
 			},
 			"by_monthday": &schema.Schema{
 				Type: schema.TypeSet,
@@ -149,13 +156,13 @@ func ResourceAmixrOnCallShift() *schema.Resource {
 					ValidateFunc: validation.IntBetween(-31, 31),
 				},
 				Optional:    true,
-				Description: "This parameter takes a list of days of the month.",
+				Description: "This parameter takes a list of days of the month.  Valid values are 1 to 31 or -31 to -1",
 			},
 			"time_zone": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.StringIsNotEmpty,
-				Description:  "The shift's timezone.",
+				Description:  "The shift's timezone.  Overrides schedule's timezone.",
 			},
 			"start_rotation_from_user_index": &schema.Schema{
 				Type:         schema.TypeInt,

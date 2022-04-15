@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	amixrAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -22,6 +23,8 @@ var escalationOptions = []string{
 	"notify_whole_channel",
 	"notify_if_time_from_to",
 }
+
+var escalationOptionsVerbal = strings.Join(escalationOptions, ", ")
 
 var durationOptions = []int{
 	60,
@@ -61,12 +64,12 @@ func ResourceAmixrEscalation() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice(escalationOptions, false),
-				Description:  "The type of escalation policy.",
+				Description:  fmt.Sprintf("The type of escalation policy. Can be %s", escalationOptionsVerbal),
 			},
 			"important": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Will activate \"important\" personal notification rules.",
+				Description: "Will activate \"important\" personal notification rules. Actual for steps: notify_persons, notify_on_call_from_schedule and notify_user_group",
 			},
 			"duration": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -172,7 +175,7 @@ func ResourceAmixrEscalation() *schema.Resource {
 				RequiredWith: []string{
 					"notify_if_time_to",
 				},
-				Description: "The beginning of the time interval for notify_if_time_from_to type step in UTC.",
+				Description: "The beginning of the time interval for notify_if_time_from_to type step in UTC (for example 08:00:00Z).",
 			},
 			"notify_if_time_to": &schema.Schema{
 				Type:     schema.TypeString,
@@ -187,7 +190,7 @@ func ResourceAmixrEscalation() *schema.Resource {
 				RequiredWith: []string{
 					"notify_if_time_from",
 				},
-				Description: "The end of the time interval for notify_if_time_from_to type step in UTC",
+				Description: "The end of the time interval for notify_if_time_from_to type step in UTC (for example 18:00:00Z).",
 			},
 		},
 	}

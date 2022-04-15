@@ -2,8 +2,10 @@ package grafana
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	amixrAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -37,6 +39,8 @@ var integrationTypes = []string{
 	"inbound_email",
 }
 
+var integrationTypesVerbal = strings.Join(integrationTypes, ", ")
+
 func ResourceAmixrIntegration() *schema.Resource {
 	return &schema.Resource{
 		Description: `
@@ -57,19 +61,19 @@ func ResourceAmixrIntegration() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringIsNotEmpty,
-				Description:  "The name of the service integration",
+				Description:  "The name of the service integration.",
 			},
 			"team_id": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The id of the team",
+				Description: "The id of the team.",
 			},
 			"type": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringInSlice(integrationTypes, false),
 				ForceNew:     true,
-				Description:  "The type of integration",
+				Description:  fmt.Sprintf("The type of integration. Can be %s.", integrationTypesVerbal),
 			},
 			"default_route": &schema.Schema{
 				Type:     schema.TypeList,
@@ -81,8 +85,9 @@ func ResourceAmixrIntegration() *schema.Resource {
 							Computed: true,
 						},
 						"escalation_chain_id": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "The ID of the escalation chain.",
 						},
 						"slack": {
 							Type:     schema.TypeList,
@@ -90,12 +95,14 @@ func ResourceAmixrIntegration() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"channel_id": {
-										Type:     schema.TypeString,
-										Required: true,
+										Type:        schema.TypeString,
+										Required:    true,
+										Description: "Slack channel id. Alerts will be directed to this channel in Slack.",
 									},
 								},
 							},
-							MaxItems: 1,
+							Description: "Slack-specific settings for a route.",
+							MaxItems:    1,
 						},
 					},
 				},
@@ -113,29 +120,35 @@ func ResourceAmixrIntegration() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"resolve_signal": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Template for sending a signal to resolve the Incident.",
 						},
 						"grouping_key": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Template for the key by which alerts are grouped.",
 						},
 						"slack": {
-							Type:     schema.TypeList,
-							Optional: true,
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: "Templates for Slack.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"title": {
-										Type:     schema.TypeString,
-										Optional: true,
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Template for Alert title.",
 									},
 									"message": {
-										Type:     schema.TypeString,
-										Optional: true,
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Template for Alert message.",
 									},
 									"image_url": {
-										Type:     schema.TypeString,
-										Optional: true,
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Template for Alert image url.",
 									},
 								},
 							},

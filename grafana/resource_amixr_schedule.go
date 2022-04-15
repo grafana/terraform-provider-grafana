@@ -69,12 +69,14 @@ func ResourceAmixrSchedule() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"channel_id": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Slack channel id. Reminder about schedule shifts will be directed to this channel in Slack.",
 						},
 						"user_group_id": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: " Slack user group id. Members of user group will be updated when on-call users change.",
 						},
 					},
 				},

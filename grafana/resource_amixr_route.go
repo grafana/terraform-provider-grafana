@@ -51,8 +51,9 @@ func ResourceAmixrRoute() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"channel_id": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Slack channel id. Alerts will be directed to this channel in Slack.",
 						},
 					},
 				},

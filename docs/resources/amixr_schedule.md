@@ -35,7 +35,7 @@ description: |-
 
 Optional:
 
-- `channel_id` (String)
-- `user_group_id` (String)
+- `channel_id` (String) Slack channel id. Reminder about schedule shifts will be directed to this channel in Slack.
+- `user_group_id` (String) Slack user group id. Members of user group will be updated when on-call users change.
 
 
