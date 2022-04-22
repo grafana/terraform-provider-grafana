@@ -226,7 +226,7 @@ func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.
 		if err == nil {
 			return fmt.Errorf("dashboard still exists")
 		}
-		folder, err = client.Folder(folder.ID)
+		folder, err = getFolderById(client, folder.ID)
 		if err == nil {
 			return fmt.Errorf("the following folder still exists: %s", folder.Title)
 		}
