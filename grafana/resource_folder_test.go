@@ -107,8 +107,8 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 		if id == 0 {
 			return fmt.Errorf("got a folder id of 0")
 		}
-		gotFolder, err := client.Folder(id)
-		if err != nil {
+		gotFolder, err := getFolderById(client, id)
+		if err != nil || gotFolder == nil {
 			return fmt.Errorf("error getting folder: %s", err)
 		}
 

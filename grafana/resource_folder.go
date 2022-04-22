@@ -99,15 +99,14 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		return diag.FromErr(err)
 	}
 
-	folder, err := client.Folder(id)
+	folder, err := getFolderById(client, id)
 	if err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing folder %d from state because it no longer exists in grafana", id)
-			d.SetId("")
-			return nil
-		}
-
 		return diag.FromErr(err)
+	}
+	if folder == nil {
+		log.Printf("[WARN] removing folder %d from state because it no longer exists in grafana", id)
+		d.SetId("")
+		return nil
 	}
 
 	d.SetId(strconv.FormatInt(folder.ID, 10))
@@ -160,4 +159,23 @@ func NormalizeFolderConfigJSON(configI interface{}) string {
 	}
 
 	return string(ret)
+}
+
+// Hackish way to get the folder by ID.
+// TODO: Revert to using the specific folder ID GET endpoint once it's fixed
+// Broken in 8.5.0
+func getFolderById(client *gapi.Client, id int64) (*gapi.Folder, error) {
+	folders, err := client.Folders()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, folder := range folders {
+		if folder.ID == id {
+			// Need to use another API call, because the "list" call doesn't have all the info
+			return client.FolderByUID(folder.UID)
+		}
+	}
+
+	return nil, nil
 }
