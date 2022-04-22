@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"strconv"
 	"strings"
@@ -101,12 +102,13 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 
 	folder, err := getFolderById(client, id)
 	if err != nil {
+		if strings.HasPrefix(err.Error(), "status: 404") {
+			log.Printf("[WARN] removing folder %d from state because it no longer exists in grafana", id)
+			d.SetId("")
+			return nil
+		}
+
 		return diag.FromErr(err)
-	}
-	if folder == nil {
-		log.Printf("[WARN] removing folder %d from state because it no longer exists in grafana", id)
-		d.SetId("")
-		return nil
 	}
 
 	d.SetId(strconv.FormatInt(folder.ID, 10))
@@ -177,5 +179,6 @@ func getFolderById(client *gapi.Client, id int64) (*gapi.Folder, error) {
 		}
 	}
 
-	return nil, nil
+	// Replicating the error that would usually be returned by the API call on a missing folder
+	return nil, errors.New(`status: 404, body: {"message":"folder not found","status":"not-found"}`)
 }

@@ -167,7 +167,7 @@ func testAccLibraryPanelFolderCheckDestroy(panel *gapi.LibraryPanel, folder *gap
 		if err == nil {
 			return fmt.Errorf("panel still exists")
 		}
-		folder, err = client.Folder(folder.ID)
+		folder, err = getFolderById(client, folder.ID)
 		if err == nil {
 			return fmt.Errorf("the following folder still exists: %s", folder.Title)
 		}

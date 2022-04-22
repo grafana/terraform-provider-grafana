@@ -51,8 +51,8 @@ func findFolderWithTitle(client *gapi.Client, title string) (*gapi.Folder, error
 
 	for _, f := range folders {
 		if f.Title == title {
-			// Query the folder by ID, that API has additional information
-			return client.Folder(f.ID)
+			// Query the folder by UID, that API has additional information
+			return client.FolderByUID(f.UID)
 		}
 	}
 

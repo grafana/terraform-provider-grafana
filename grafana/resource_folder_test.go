@@ -108,7 +108,7 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 			return fmt.Errorf("got a folder id of 0")
 		}
 		gotFolder, err := getFolderById(client, id)
-		if err != nil || gotFolder == nil {
+		if err != nil {
 			return fmt.Errorf("error getting folder: %s", err)
 		}
 
@@ -121,7 +121,7 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 func testAccFolderCheckDestroy(folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*client).gapi
-		_, err := client.Folder(folder.ID)
+		_, err := getFolderById(client, folder.ID)
 		if err == nil {
 			return fmt.Errorf("folder still exists")
 		}
