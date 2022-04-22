@@ -13,7 +13,7 @@ func DataSourceOnCallUser() *schema.Resource {
 		Description: `
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/users/)
 `,
-		Read: dataSourceAmixrUserRead,
+		Read: dataSourceOnCallUserRead,
 		Schema: map[string]*schema.Schema{
 			"username": {
 				Type:        schema.TypeString,
@@ -34,7 +34,7 @@ func DataSourceOnCallUser() *schema.Resource {
 	}
 }
 
-func dataSourceAmixrUserRead(d *schema.ResourceData, m interface{}) error {
+func dataSourceOnCallUserRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
 		err := errors.New("Grafana OnCall api client is not configured")

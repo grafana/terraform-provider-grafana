@@ -2,14 +2,14 @@ data "grafana_oncall_user" "alex" {
   username = "alex"
 }
 
- resource "grafana_oncall_on_call_shift" "example_shift" {
-  name = "Example Shift"
-  type = "recurrent_event"
-  start = "2020-09-07T14:00:00"
-  duration = 60 * 30
-  frequency = "weekly"
-  interval = 2
-  by_day = ["MO", "FR"]
+resource "grafana_oncall_on_call_shift" "example_shift" {
+  name       = "Example Shift"
+  type       = "recurrent_event"
+  start      = "2020-09-07T14:00:00"
+  duration   = 60 * 30
+  frequency  = "weekly"
+  interval   = 2
+  by_day     = ["MO", "FR"]
   week_start = "MO"
   users = [
     data.grafana_oncall_user.alex.id
@@ -25,9 +25,9 @@ data "grafana_oncall_user" "alex" {
 data "grafana_oncall_user" "all_users" {
   // Extract flat set of all users from the all teams
   for_each = toset(flatten([
-  for team_name, username_list in local.teams : [
-    username_list
-  ]
+    for team_name, username_list in local.teams : [
+      username_list
+    ]
   ]))
   username = each.key
 }

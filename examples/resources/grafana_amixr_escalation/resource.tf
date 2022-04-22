@@ -10,7 +10,7 @@ data "grafana_oncall_user" "alex" {
 // Notify step
 resource "grafana_oncall_escalation" "example_notify_step" {
   escalation_chain_id = grafana_oncall_escalation_chain.default.id
-  type = "notify_persons"
+  type                = "notify_persons"
   persons_to_notify = [
     data.grafana_oncall_user.alex.id
   ]
@@ -20,16 +20,16 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 // Wait step
 resource "grafana_oncall_escalation" "example_notify_step" {
   escalation_chain_id = grafana_oncall_escalation_chain.default.id
-  type = "wait"
-  duration = 300
-  position = 1
+  type                = "wait"
+  duration            = 300
+  position            = 1
 }
 
 // Important step
 resource "grafana_oncall_escalation" "example_notify_step" {
   escalation_chain_id = grafana_oncall_escalation_chain.default.id
-  type = "notify_persons"
-  important = true
+  type                = "notify_persons"
+  important           = true
   persons_to_notify = [
     data.grafana_oncall_user.alex.id
   ]
