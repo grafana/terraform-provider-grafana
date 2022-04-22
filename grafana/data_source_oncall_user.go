@@ -37,8 +37,7 @@ func DataSourceOnCallUser() *schema.Resource {
 func dataSourceOnCallUserRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.ListUserOptions{}
 	usernameData := d.Get("username").(string)
@@ -46,7 +45,6 @@ func dataSourceOnCallUserRead(d *schema.ResourceData, m interface{}) error {
 	options.Username = usernameData
 
 	usersResponse, _, err := client.Users.ListUsers(options)
-
 	if err != nil {
 		return err
 	}

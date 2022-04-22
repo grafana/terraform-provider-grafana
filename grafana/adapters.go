@@ -53,10 +53,7 @@ func int32SliceToSet(src []int32) *schema.Set {
 }
 
 func listOfSetsToStringSlice(listSet []interface{}) [][]string {
-	var ret [][]string
-	if listSet == nil {
-		return ret
-	}
+	ret := make([][]string, 0, len(listSet))
 	for _, set := range listSet {
 		ret = append(ret, setToStringSlice(set.(*schema.Set)))
 	}

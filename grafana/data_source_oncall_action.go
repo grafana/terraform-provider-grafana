@@ -28,8 +28,7 @@ func DataSourceOnCallAction() *schema.Resource {
 func dataSourceOnCallActionRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.ListCustomActionOptions{}
 	nameData := d.Get("name").(string)
@@ -37,7 +36,6 @@ func dataSourceOnCallActionRead(d *schema.ResourceData, m interface{}) error {
 	options.Name = nameData
 
 	customActionsResponse, _, err := client.CustomActions.ListCustomActions(options)
-
 	if err != nil {
 		return err
 	}

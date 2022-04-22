@@ -33,8 +33,7 @@ func DataSourceOnCallSchedule() *schema.Resource {
 func dataSourceOnCallScheduleRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.ListScheduleOptions{}
 	nameData := d.Get("name").(string)
@@ -42,7 +41,6 @@ func dataSourceOnCallScheduleRead(d *schema.ResourceData, m interface{}) error {
 	options.Name = nameData
 
 	schedulesResponse, _, err := client.Schedules.ListSchedules(options)
-
 	if err != nil {
 		return err
 	}

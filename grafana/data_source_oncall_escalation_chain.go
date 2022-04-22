@@ -27,8 +27,7 @@ func DataSourceOnCallEscalationChain() *schema.Resource {
 func dataSourceEscalationChainRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.ListEscalationChainOptions{}
 	nameData := d.Get("name").(string)
@@ -36,7 +35,6 @@ func dataSourceEscalationChainRead(d *schema.ResourceData, m interface{}) error 
 	options.Name = nameData
 
 	escalationChainsResponse, _, err := client.EscalationChains.ListEscalationChains(options)
-
 	if err != nil {
 		return err
 	}

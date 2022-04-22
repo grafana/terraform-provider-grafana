@@ -98,8 +98,7 @@ func ResourceOnCallSchedule() *schema.Resource {
 func resourceScheduleCreate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 
 	nameData := d.Get("name").(string)
@@ -162,8 +161,7 @@ func resourceScheduleCreate(d *schema.ResourceData, m interface{}) error {
 func resourceScheduleUpdate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 
 	nameData := d.Get("name").(string)
@@ -223,12 +221,10 @@ func resourceScheduleUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceScheduleRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.GetScheduleOptions{}
 	schedule, r, err := client.Schedules.GetSchedule(d.Id(), options)
-
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
 			log.Printf("[WARN] removing schedule %s from state because it no longer exists", d.Get("name").(string))
@@ -253,8 +249,7 @@ func resourceScheduleRead(d *schema.ResourceData, m interface{}) error {
 func resourceScheduleDelete(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.DeleteScheduleOptions{}
 	_, err := client.Schedules.DeleteSchedule(d.Id(), options)

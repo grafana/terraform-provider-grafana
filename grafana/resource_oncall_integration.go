@@ -166,8 +166,7 @@ func ResourceOnCallIntegration() *schema.Resource {
 func ResourceOnCallIntegrationCreate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 
 	teamIdData := d.Get("team_id").(string)
@@ -195,8 +194,7 @@ func ResourceOnCallIntegrationCreate(d *schema.ResourceData, m interface{}) erro
 func ResourceOnCallIntegrationUpdate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 
 	nameData := d.Get("name").(string)
@@ -222,8 +220,7 @@ func ResourceOnCallIntegrationUpdate(d *schema.ResourceData, m interface{}) erro
 func ResourceOnCallIntegrationRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.GetIntegrationOptions{}
 	integration, r, err := client.Integrations.GetIntegration(d.Id(), options)
@@ -249,8 +246,7 @@ func ResourceOnCallIntegrationRead(d *schema.ResourceData, m interface{}) error 
 func ResourceOnCallIntegrationDelete(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.DeleteIntegrationOptions{}
 	_, err := client.Integrations.DeleteIntegration(d.Id(), options)

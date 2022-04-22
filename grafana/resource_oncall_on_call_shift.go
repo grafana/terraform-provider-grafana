@@ -177,8 +177,7 @@ func ResourceOnCallOnCallShift() *schema.Resource {
 func ResourceOnCallOnCallShiftCreate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 
 	teamIdData := d.Get("team_id").(string)
@@ -304,8 +303,7 @@ func ResourceOnCallOnCallShiftCreate(d *schema.ResourceData, m interface{}) erro
 func ResourceOnCallOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 
 	typeData := d.Get("type").(string)
@@ -429,12 +427,10 @@ func ResourceOnCallOnCallShiftUpdate(d *schema.ResourceData, m interface{}) erro
 func ResourceOnCallOnCallShiftRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.GetOnCallShiftOptions{}
 	onCallShift, r, err := client.OnCallShifts.GetOnCallShift(d.Id(), options)
-
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
 			log.Printf("[WARN] removing on-call shift %s from state because it no longer exists", d.Id())
@@ -467,8 +463,7 @@ func ResourceOnCallOnCallShiftRead(d *schema.ResourceData, m interface{}) error 
 func ResourceOnCallOnCallShiftDelete(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.DeleteOnCallShiftOptions{}
 	_, err := client.OnCallShifts.DeleteOnCallShift(d.Id(), options)

@@ -40,8 +40,7 @@ func ResourceOnCallEscalationChain() *schema.Resource {
 func ResourceOnCallEscalationChainCreate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 
 	nameData := d.Get("name").(string)
@@ -65,8 +64,7 @@ func ResourceOnCallEscalationChainCreate(d *schema.ResourceData, m interface{}) 
 func ResourceOnCallEscalationChainRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 
 	escalationChain, r, err := client.EscalationChains.GetEscalationChain(d.Id(), &onCallAPI.GetEscalationChainOptions{})
@@ -88,8 +86,7 @@ func ResourceOnCallEscalationChainRead(d *schema.ResourceData, m interface{}) er
 func ResourceOnCallEscalationChainUpdate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 
 	nameData := d.Get("name").(string)
@@ -110,8 +107,7 @@ func ResourceOnCallEscalationChainUpdate(d *schema.ResourceData, m interface{}) 
 func ResourceOnCallEscalationChainDelete(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("Grafana OnCall api client is not configured")
-		return err
+		return errors.New("Grafana OnCall api client is not configured")
 	}
 
 	_, err := client.EscalationChains.DeleteEscalationChain(d.Id(), &onCallAPI.DeleteEscalationChainOptions{})
