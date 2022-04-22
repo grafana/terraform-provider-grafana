@@ -85,7 +85,7 @@ func TestProviderConfigure(t *testing.T) {
 		{
 			name:        "no config",
 			env:         map[string]string{},
-			expectedErr: "\"auth\": one of `oncall_access_token,auth,cloud_api_key,sm_access_token` must\nbe specified",
+			expectedErr: "\"auth\": one of `auth,cloud_api_key,oncall_access_token,sm_access_token` must\nbe specified",
 		},
 		{
 			name: "grafana config from env",
