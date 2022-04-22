@@ -30,7 +30,7 @@ func DataSourceOnCallUserGroup() *schema.Resource {
 func dataSourceOnCallUserGroupRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("Grafana OnCall api client is not configured")
+		return errors.New("grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.ListUserGroupOptions{}
 	slackHandleData := d.Get("slack_handle").(string)

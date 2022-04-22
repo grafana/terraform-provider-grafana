@@ -98,7 +98,7 @@ func ResourceOnCallSchedule() *schema.Resource {
 func resourceScheduleCreate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("Grafana OnCall api client is not configured")
+		return errors.New("grafana OnCall api client is not configured")
 	}
 
 	nameData := d.Get("name").(string)
@@ -161,7 +161,7 @@ func resourceScheduleCreate(d *schema.ResourceData, m interface{}) error {
 func resourceScheduleUpdate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("Grafana OnCall api client is not configured")
+		return errors.New("grafana OnCall api client is not configured")
 	}
 
 	nameData := d.Get("name").(string)
@@ -221,7 +221,7 @@ func resourceScheduleUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceScheduleRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("Grafana OnCall api client is not configured")
+		return errors.New("grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.GetScheduleOptions{}
 	schedule, r, err := client.Schedules.GetSchedule(d.Id(), options)
@@ -249,7 +249,7 @@ func resourceScheduleRead(d *schema.ResourceData, m interface{}) error {
 func resourceScheduleDelete(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("Grafana OnCall api client is not configured")
+		return errors.New("grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.DeleteScheduleOptions{}
 	_, err := client.Schedules.DeleteSchedule(d.Id(), options)

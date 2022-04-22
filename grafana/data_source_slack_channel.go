@@ -32,7 +32,7 @@ func DataSourceOnCallSlackChannel() *schema.Resource {
 func dataSourceOnCallSlackChannelRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("Grafana OnCall api client is not configured")
+		return errors.New("grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.ListSlackChannelOptions{}
 	nameData := d.Get("name").(string)

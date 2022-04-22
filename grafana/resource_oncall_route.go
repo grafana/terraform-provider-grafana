@@ -67,7 +67,7 @@ func ResourceOnCallRoute() *schema.Resource {
 func ResourceOnCallRouteCreate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("Grafana OnCall api client is not configured")
+		return errors.New("grafana OnCall api client is not configured")
 	}
 
 	integrationIdData := d.Get("integration_id").(string)
@@ -98,7 +98,7 @@ func ResourceOnCallRouteCreate(d *schema.ResourceData, m interface{}) error {
 func ResourceOnCallRouteRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("Grafana OnCall api client is not configured")
+		return errors.New("grafana OnCall api client is not configured")
 	}
 
 	route, r, err := client.Routes.GetRoute(d.Id(), &onCallAPI.GetRouteOptions{})
@@ -123,7 +123,7 @@ func ResourceOnCallRouteRead(d *schema.ResourceData, m interface{}) error {
 func ResourceOnCallRouteUpdate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("Grafana OnCall api client is not configured")
+		return errors.New("grafana OnCall api client is not configured")
 	}
 
 	escalationChainIdData := d.Get("escalation_chain_id").(string)
@@ -151,7 +151,7 @@ func ResourceOnCallRouteUpdate(d *schema.ResourceData, m interface{}) error {
 func ResourceOnCallRouteDelete(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("Grafana OnCall api client is not configured")
+		return errors.New("grafana OnCall api client is not configured")
 	}
 
 	_, err := client.Routes.DeleteRoute(d.Id(), &onCallAPI.DeleteRouteOptions{})

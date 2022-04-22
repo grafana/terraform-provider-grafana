@@ -9,26 +9,26 @@ import (
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 )
 
-func DataSourceOnCallAction() *schema.Resource {
+func DataSourceOnCallOutgoingWebhook() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/outgoing_webhooks/)
 `,
-		Read: dataSourceOnCallActionRead,
+		Read: dataSourceOnCallOutgoingWebhookRead,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The action name.",
+				Description: "The outgoing webhook name.",
 			},
 		},
 	}
 }
 
-func dataSourceOnCallActionRead(d *schema.ResourceData, m interface{}) error {
+func dataSourceOnCallOutgoingWebhookRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("Grafana OnCall api client is not configured")
+		return errors.New("grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.ListCustomActionOptions{}
 	nameData := d.Get("name").(string)
@@ -43,7 +43,7 @@ func dataSourceOnCallActionRead(d *schema.ResourceData, m interface{}) error {
 	if len(customActionsResponse.CustomActions) == 0 {
 		return fmt.Errorf("couldn't find an action matching: %s", options.Name)
 	} else if len(customActionsResponse.CustomActions) != 1 {
-		return fmt.Errorf("more than one action found matching: %s", options.Name)
+		return fmt.Errorf("more than one outgoing webhook found matching: %s", options.Name)
 	}
 
 	custom_action := customActionsResponse.CustomActions[0]
