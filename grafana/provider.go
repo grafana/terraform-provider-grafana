@@ -221,7 +221,7 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_oncall_escalation_chain": DataSourceOnCallEscalationChain(),
 				"grafana_oncall_schedule":         DataSourceOnCallSchedule(),
 				"grafana_oncall_slack_channel":    DataSourceOnCallSlackChannel(),
-				"grafana_oncall_outgoing_webhook": DataSourceOnCallAction(),
+				"grafana_oncall_action":           DataSourceOnCallAction(),
 				"grafana_oncall_user_group":       DataSourceOnCallUserGroup(),
 				"grafana_oncall_team":             DataSourceOnCallTeam(),
 			},

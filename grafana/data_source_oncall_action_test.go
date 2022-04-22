@@ -19,7 +19,7 @@ func TestAccDataSourceOnCallAction_Basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccDataSourceOnCallActionConfig(actionName),
-				ExpectError: regexp.MustCompile(`couldn't find an outgoing webhook`),
+				ExpectError: regexp.MustCompile(`couldn't find an action`),
 			},
 		},
 	})
@@ -27,7 +27,7 @@ func TestAccDataSourceOnCallAction_Basic(t *testing.T) {
 
 func testAccDataSourceOnCallActionConfig(actionName string) string {
 	return fmt.Sprintf(`
-data "grafana_oncall_outgoing_webhook" "test-acc-action" {
+data "grafana_oncall_action" "test-acc-action" {
 	name = "%s"
 }
 `, actionName)
