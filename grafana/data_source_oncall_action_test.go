@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDataSourceAmixrAction_Basic(t *testing.T) {
+func TestAccDataSourceOnCallAction_Basic(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
 	actionName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
@@ -18,16 +18,16 @@ func TestAccDataSourceAmixrAction_Basic(t *testing.T) {
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccDataSourceAmixrActionConfig(actionName),
-				ExpectError: regexp.MustCompile(`couldn't find an action`),
+				Config:      testAccDataSourceOnCallActionConfig(actionName),
+				ExpectError: regexp.MustCompile(`couldn't find an outgoing webhook`),
 			},
 		},
 	})
 }
 
-func testAccDataSourceAmixrActionConfig(actionName string) string {
+func testAccDataSourceOnCallActionConfig(actionName string) string {
 	return fmt.Sprintf(`
-data "grafana_amixr_action" "test-acc-action" {
+data "grafana_oncall_outgoing_webhook" "test-acc-action" {
 	name = "%s"
 }
 `, actionName)

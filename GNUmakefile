@@ -1,4 +1,10 @@
 GRAFANA_VERSION ?= 8.4.4
+OS_ARCH=darwin_arm64
+BINARY=terraform-provider-${NAME}
+HOSTNAME=grafana.com
+NAMESPACE=raintank
+NAME=grafana
+VERSION=0.2.4
 
 testacc:
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
@@ -45,3 +51,11 @@ drone:
 	drone jsonnet --stream --source .drone/drone.jsonnet --target .drone/drone.yml --format
 	drone lint .drone/drone.yml
 	drone sign --save grafana/terraform-provider-grafana .drone/drone.yml
+
+build:
+	go build -o ${BINARY}
+
+install: build
+	mkdir -p ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
+	mv ${BINARY} ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
+

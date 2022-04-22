@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	amixrAPI "github.com/grafana/amixr-api-go-client"
+	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -46,15 +46,15 @@ var onCallShiftWeekDayOptionsVerbal = strings.Join(onCallShiftWeekDayOptions, ",
 
 var sourceTerraform = 3
 
-func ResourceAmixrOnCallShift() *schema.Resource {
+func ResourceOnCallOnCallShift() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/on_call_shifts/)
 `,
-		Create: resourceAmixrOnCallShiftCreate,
-		Read:   resourceAmixrOnCallShiftRead,
-		Update: resourceAmixrOnCallShiftUpdate,
-		Delete: resourceAmixrOnCallShiftDelete,
+		Create: ResourceOnCallOnCallShiftCreate,
+		Read:   ResourceOnCallOnCallShiftRead,
+		Update: ResourceOnCallOnCallShiftUpdate,
+		Delete: ResourceOnCallOnCallShiftDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -174,10 +174,10 @@ func ResourceAmixrOnCallShift() *schema.Resource {
 	}
 }
 
-func resourceAmixrOnCallShiftCreate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+func ResourceOnCallOnCallShiftCreate(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
 
@@ -187,7 +187,7 @@ func resourceAmixrOnCallShiftCreate(d *schema.ResourceData, m interface{}) error
 	startData := d.Get("start").(string)
 	durationData := d.Get("duration").(int)
 
-	createOptions := &amixrAPI.CreateOnCallShiftOptions{
+	createOptions := &onCallAPI.CreateOnCallShiftOptions{
 		TeamId:   teamIdData,
 		Type:     typeData,
 		Name:     nameData,
@@ -298,13 +298,13 @@ func resourceAmixrOnCallShiftCreate(d *schema.ResourceData, m interface{}) error
 
 	d.SetId(onCallShift.ID)
 
-	return resourceAmixrOnCallShiftRead(d, m)
+	return ResourceOnCallOnCallShiftRead(d, m)
 }
 
-func resourceAmixrOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+func ResourceOnCallOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
 
@@ -313,7 +313,7 @@ func resourceAmixrOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error
 	startData := d.Get("start").(string)
 	durationData := d.Get("duration").(int)
 
-	updateOptions := &amixrAPI.UpdateOnCallShiftOptions{
+	updateOptions := &onCallAPI.UpdateOnCallShiftOptions{
 		Type:     typeData,
 		Name:     nameData,
 		Start:    startData,
@@ -423,16 +423,16 @@ func resourceAmixrOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error
 
 	d.SetId(onCallShift.ID)
 
-	return resourceAmixrOnCallShiftRead(d, m)
+	return ResourceOnCallOnCallShiftRead(d, m)
 }
 
-func resourceAmixrOnCallShiftRead(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+func ResourceOnCallOnCallShiftRead(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
-	options := &amixrAPI.GetOnCallShiftOptions{}
+	options := &onCallAPI.GetOnCallShiftOptions{}
 	onCallShift, r, err := client.OnCallShifts.GetOnCallShift(d.Id(), options)
 
 	if err != nil {
@@ -464,13 +464,13 @@ func resourceAmixrOnCallShiftRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceAmixrOnCallShiftDelete(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+func ResourceOnCallOnCallShiftDelete(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
-	options := &amixrAPI.DeleteOnCallShiftOptions{}
+	options := &onCallAPI.DeleteOnCallShiftOptions{}
 	_, err := client.OnCallShifts.DeleteOnCallShift(d.Id(), options)
 	if err != nil {
 		return err

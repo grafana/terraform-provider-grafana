@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	amixrAPI "github.com/grafana/amixr-api-go-client"
+	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestAccAmixrOnCallShift_basic(t *testing.T) {
+func TestAccOnCallOnCallShift_basic(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
 	scheduleName := fmt.Sprintf("schedule-%s", acctest.RandString(8))
@@ -18,41 +18,41 @@ func TestAccAmixrOnCallShift_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckAmixrOnCallShiftResourceDestroy,
+		CheckDestroy:      testAccCheckOnCallOnCallShiftResourceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAmixrOnCallShiftConfig(scheduleName, shiftName),
+				Config: testAccOnCallOnCallShiftConfig(scheduleName, shiftName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAmixrOnCallShiftResourceExists("grafana_amixr_on_call_shift.test-acc-on_call_shift"),
+					testAccCheckOnCallOnCallShiftResourceExists("grafana_oncall_on_call_shift.test-acc-on_call_shift"),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckAmixrOnCallShiftResourceDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*client).amixrAPI
+func testAccCheckOnCallOnCallShiftResourceDestroy(s *terraform.State) error {
+	client := testAccProvider.Meta().(*client).onCallAPI
 	for _, r := range s.RootModule().Resources {
-		if r.Type != "grafana_amixr_on_call_shift" {
+		if r.Type != "grafana_oncall_on_call_shift" {
 			continue
 		}
 
-		if _, _, err := client.OnCallShifts.GetOnCallShift(r.Primary.ID, &amixrAPI.GetOnCallShiftOptions{}); err == nil {
+		if _, _, err := client.OnCallShifts.GetOnCallShift(r.Primary.ID, &onCallAPI.GetOnCallShiftOptions{}); err == nil {
 			return fmt.Errorf("OnCallShift still exists")
 		}
 	}
 	return nil
 }
 
-func testAccAmixrOnCallShiftConfig(scheduleName string, shiftName string) string {
+func testAccOnCallOnCallShiftConfig(scheduleName string, shiftName string) string {
 	return fmt.Sprintf(`
-resource "grafana_amixr_schedule" "test-acc-schedule" {
+resource "grafana_oncall_schedule" "test-acc-schedule" {
 	type = "calendar"
 	name = "%s"
 	time_zone = "UTC"
 }
 
-resource "grafana_amixr_on_call_shift" "test-acc-on_call_shift" {
+resource "grafana_oncall_on_call_shift" "test-acc-on_call_shift" {
 	name = "%s"
 	type = "recurrent_event"
 	start = "2020-09-04T16:00:00"
@@ -66,7 +66,7 @@ resource "grafana_amixr_on_call_shift" "test-acc-on_call_shift" {
 `, scheduleName, shiftName)
 }
 
-func testAccCheckAmixrOnCallShiftResourceExists(name string) resource.TestCheckFunc {
+func testAccCheckOnCallOnCallShiftResourceExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 		if !ok {
@@ -76,9 +76,9 @@ func testAccCheckAmixrOnCallShiftResourceExists(name string) resource.TestCheckF
 			return fmt.Errorf("No OnCallShift ID is set")
 		}
 
-		client := testAccProvider.Meta().(*client).amixrAPI
+		client := testAccProvider.Meta().(*client).onCallAPI
 
-		found, _, err := client.OnCallShifts.GetOnCallShift(rs.Primary.ID, &amixrAPI.GetOnCallShiftOptions{})
+		found, _, err := client.OnCallShifts.GetOnCallShift(rs.Primary.ID, &onCallAPI.GetOnCallShiftOptions{})
 		if err != nil {
 			return err
 		}

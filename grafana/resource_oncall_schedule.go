@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	amixrAPI "github.com/grafana/amixr-api-go-client"
+	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -16,7 +16,7 @@ var scheduleTypeOptions = []string{
 	"calendar",
 }
 
-func ResourceAmixrSchedule() *schema.Resource {
+func ResourceOnCallSchedule() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/schedules/)
@@ -96,9 +96,9 @@ func ResourceAmixrSchedule() *schema.Resource {
 }
 
 func resourceScheduleCreate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
 
@@ -107,7 +107,7 @@ func resourceScheduleCreate(d *schema.ResourceData, m interface{}) error {
 	typeData := d.Get("type").(string)
 	slackData := d.Get("slack").([]interface{})
 
-	createOptions := &amixrAPI.CreateScheduleOptions{
+	createOptions := &onCallAPI.CreateScheduleOptions{
 		TeamId: teamIdData,
 		Name:   nameData,
 		Type:   typeData,
@@ -160,9 +160,9 @@ func resourceScheduleCreate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceScheduleUpdate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
 
@@ -170,7 +170,7 @@ func resourceScheduleUpdate(d *schema.ResourceData, m interface{}) error {
 	slackData := d.Get("slack").([]interface{})
 	typeData := d.Get("type").(string)
 
-	updateOptions := &amixrAPI.UpdateScheduleOptions{
+	updateOptions := &onCallAPI.UpdateScheduleOptions{
 		Name:  nameData,
 		Slack: expandScheduleSlack(slackData),
 	}
@@ -221,12 +221,12 @@ func resourceScheduleUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceScheduleRead(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
-	options := &amixrAPI.GetScheduleOptions{}
+	options := &onCallAPI.GetScheduleOptions{}
 	schedule, r, err := client.Schedules.GetSchedule(d.Id(), options)
 
 	if err != nil {
@@ -251,12 +251,12 @@ func resourceScheduleRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceScheduleDelete(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
-	options := &amixrAPI.DeleteScheduleOptions{}
+	options := &onCallAPI.DeleteScheduleOptions{}
 	_, err := client.Schedules.DeleteSchedule(d.Id(), options)
 	if err != nil {
 		return err
@@ -267,7 +267,7 @@ func resourceScheduleDelete(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func flattenScheduleSlack(in *amixrAPI.SlackSchedule) []map[string]interface{} {
+func flattenScheduleSlack(in *onCallAPI.SlackSchedule) []map[string]interface{} {
 	slack := make([]map[string]interface{}, 0, 1)
 
 	out := make(map[string]interface{})
@@ -286,8 +286,8 @@ func flattenScheduleSlack(in *amixrAPI.SlackSchedule) []map[string]interface{} {
 	return slack
 }
 
-func expandScheduleSlack(in []interface{}) *amixrAPI.SlackSchedule {
-	slackSchedule := amixrAPI.SlackSchedule{}
+func expandScheduleSlack(in []interface{}) *onCallAPI.SlackSchedule {
+	slackSchedule := onCallAPI.SlackSchedule{}
 
 	for _, r := range in {
 		inputMap := r.(map[string]interface{})

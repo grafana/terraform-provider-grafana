@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 
-	amixrAPI "github.com/grafana/amixr-api-go-client"
+	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DataSourceEscalationChain() *schema.Resource {
+func DataSourceOnCallEscalationChain() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/escalation_chains/)
@@ -25,12 +25,12 @@ func DataSourceEscalationChain() *schema.Resource {
 }
 
 func dataSourceEscalationChainRead(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
-	options := &amixrAPI.ListEscalationChainOptions{}
+	options := &onCallAPI.ListEscalationChainOptions{}
 	nameData := d.Get("name").(string)
 
 	options.Name = nameData

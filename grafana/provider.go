@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	amixrAPI "github.com/grafana/amixr-api-go-client"
+	onCallAPI "github.com/grafana/amixr-api-go-client"
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
@@ -60,7 +60,7 @@ func Provider(version string) func() *schema.Provider {
 					Sensitive:    true,
 					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_AUTH", nil),
 					Description:  "API token or basic auth username:password. May alternatively be set via the `GRAFANA_AUTH` environment variable.",
-					AtLeastOneOf: []string{"auth", "cloud_api_key", "sm_access_token", "amixr_access_token"},
+					AtLeastOneOf: []string{"auth", "cloud_api_key", "sm_access_token", "oncall_access_token"},
 				},
 				"http_headers": {
 					Type:        schema.TypeMap,
@@ -142,18 +142,18 @@ func Provider(version string) func() *schema.Provider {
 					Description: "Set to true if you want to save only the sha256sum instead of complete dashboard model JSON in the tfstate.",
 				},
 
-				"amixr_access_token": {
+				"oncall_access_token": {
 					Type:        schema.TypeString,
 					Optional:    true,
 					Sensitive:   true,
-					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_AMIXR_ACCESS_TOKEN", nil),
-					Description: "An Amixr access token. May alternatively be set via the `GRAFANA_AMIXR_ACCESS_TOKEN` environment variable.",
+					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_ONCALL_ACCESS_TOKEN", nil),
+					Description: "A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable.",
 				},
-				"amixr_url": {
+				"oncall_url": {
 					Type:         schema.TypeString,
 					Optional:     true,
-					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_AMIXR_URL", "https://a-prod-us-central-0.grafana.net/"),
-					Description:  "An Amixr backend address. May alternatively be set via the `GRAFANA_AMIXR_URL` environment variable.",
+					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_ONCALL_URL", "https://a-prod-us-central-0.grafana.net/"),
+					Description:  "An Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable.",
 					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 				},
 			},
@@ -192,13 +192,13 @@ func Provider(version string) func() *schema.Provider {
 				// Machine Learning
 				"grafana_machine_learning_job": ResourceMachineLearningJob(),
 
-				// Amixr
-				"grafana_amixr_integration":      ResourceAmixrIntegration(),
-				"grafana_amixr_route":            ResourceAmixrRoute(),
-				"grafana_amixr_escalation_chain": ResourceAmixrEscalationChain(),
-				"grafana_amixr_escalation":       ResourceAmixrEscalation(),
-				"grafana_amixr_on_call_shift":    ResourceAmixrOnCallShift(),
-				"grafana_amixr_schedule":         ResourceAmixrSchedule(),
+				// OnCall
+				"grafana_oncall_integration":      ResourceOnCallIntegration(),
+				"grafana_oncall_route":            ResourceOnCallRoute(),
+				"grafana_oncall_escalation_chain": ResourceOnCallEscalationChain(),
+				"grafana_oncall_escalation":       ResourceOnCallEscalation(),
+				"grafana_oncall_on_call_shift":    ResourceOnCallOnCallShift(),
+				"grafana_oncall_schedule":         ResourceOnCallSchedule(),
 			},
 
 			DataSourcesMap: map[string]*schema.Resource{
@@ -216,14 +216,14 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_synthetic_monitoring_probe":  DatasourceSyntheticMonitoringProbe(),
 				"grafana_synthetic_monitoring_probes": DatasourceSyntheticMonitoringProbes(),
 
-				// Amixr
-				"grafana_amixr_user":             DataSourceAmixrUser(),
-				"grafana_amixr_escalation_chain": DataSourceEscalationChain(),
-				"grafana_amixr_schedule":         DataSourceAmixrSchedule(),
-				"grafana_amixr_slack_channel":    DataSourceAmixrSlackChannel(),
-				"grafana_amixr_action":           DataSourceAmixrAction(),
-				"grafana_amixr_user_group":       DataSourceAmixrUserGroup(),
-				"grafana_amixr_team":             DataSourceAmixrTeam(),
+				// OnCall
+				"grafana_oncall_user":             DataSourceOnCallUser(),
+				"grafana_oncall_escalation_chain": DataSourceOnCallEscalationChain(),
+				"grafana_oncall_schedule":         DataSourceOnCallSchedule(),
+				"grafana_oncall_slack_channel":    DataSourceOnCallSlackChannel(),
+				"grafana_oncall_outgoing_webhook": DataSourceOnCallAction(),
+				"grafana_oncall_user_group":       DataSourceOnCallUserGroup(),
+				"grafana_oncall_team":             DataSourceOnCallTeam(),
 			},
 		}
 
@@ -244,7 +244,7 @@ type client struct {
 
 	mlapi *mlapi.Client
 
-	amixrAPI *amixrAPI.Client
+	onCallAPI *onCallAPI.Client
 }
 
 func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
@@ -270,8 +270,8 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			return nil, diag.FromErr(err)
 		}
 		c.smURL, c.smapi = createSMClient(d)
-		if d.Get("amixr_access_token").(string) != "" {
-			c.amixrAPI, err = createAmixrClient(d)
+		if d.Get("oncall_access_token").(string) != "" {
+			c.onCallAPI, err = createOnCallClient(d)
 			if err != nil {
 				return nil, diag.FromErr(err)
 			}
@@ -385,14 +385,10 @@ func createSMClient(d *schema.ResourceData) (string, *smapi.Client) {
 	return smURL, smapi.NewClient(smURL, smToken, nil)
 }
 
-func createAmixrClient(d *schema.ResourceData) (*amixrAPI.Client, error) {
-	aToken := d.Get("amixr_access_token").(string)
-	base_url := d.Get("amixr_url").(string)
-	aclient, err := amixrAPI.New(base_url, aToken)
-	if err != nil {
-		return nil, err
-	}
-	return aclient, nil
+func createOnCallClient(d *schema.ResourceData) (*onCallAPI.Client, error) {
+	aToken := d.Get("oncall_access_token").(string)
+	base_url := d.Get("oncall_url").(string)
+	return onCallAPI.New(base_url, aToken)
 }
 
 // getJSONMap is a helper function that parses the given environment variable as a JSON object

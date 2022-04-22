@@ -4,17 +4,17 @@ import (
 	"errors"
 	"fmt"
 
-	amixrAPI "github.com/grafana/amixr-api-go-client"
+	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DataSourceAmixrSchedule() *schema.Resource {
+func DataSourceOnCallSchedule() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana-cloud/oncall/calendar-schedules/)
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/schedules/)
 `,
-		Read: dataSourceAmixrScheduleRead,
+		Read: dataSourceOnCallScheduleRead,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -30,13 +30,13 @@ func DataSourceAmixrSchedule() *schema.Resource {
 	}
 }
 
-func dataSourceAmixrScheduleRead(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+func dataSourceOnCallScheduleRead(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
-	options := &amixrAPI.ListScheduleOptions{}
+	options := &onCallAPI.ListScheduleOptions{}
 	nameData := d.Get("name").(string)
 
 	options.Name = nameData

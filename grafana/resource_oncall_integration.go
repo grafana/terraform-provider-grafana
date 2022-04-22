@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	amixrAPI "github.com/grafana/amixr-api-go-client"
+	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -41,17 +41,17 @@ var integrationTypes = []string{
 
 var integrationTypesVerbal = strings.Join(integrationTypes, ", ")
 
-func ResourceAmixrIntegration() *schema.Resource {
+func ResourceOnCallIntegration() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana-cloud/oncall/integrations/)
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/)
 `,
 
-		Create: resourceAmixrIntegrationCreate,
-		Read:   resourceAmixrIntegrationRead,
-		Update: resourceAmixrIntegrationUpdate,
-		Delete: resourceAmixrIntegrationDelete,
+		Create: ResourceOnCallIntegrationCreate,
+		Read:   ResourceOnCallIntegrationRead,
+		Update: ResourceOnCallIntegrationUpdate,
+		Delete: ResourceOnCallIntegrationDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -163,10 +163,10 @@ func ResourceAmixrIntegration() *schema.Resource {
 	}
 }
 
-func resourceAmixrIntegrationCreate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+func ResourceOnCallIntegrationCreate(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
 
@@ -175,7 +175,7 @@ func resourceAmixrIntegrationCreate(d *schema.ResourceData, m interface{}) error
 	typeData := d.Get("type").(string)
 	templatesData := d.Get("templates").([]interface{})
 
-	createOptions := &amixrAPI.CreateIntegrationOptions{
+	createOptions := &onCallAPI.CreateIntegrationOptions{
 		TeamId:    teamIdData,
 		Name:      nameData,
 		Type:      typeData,
@@ -189,13 +189,13 @@ func resourceAmixrIntegrationCreate(d *schema.ResourceData, m interface{}) error
 
 	d.SetId(integration.ID)
 
-	return resourceAmixrIntegrationRead(d, m)
+	return ResourceOnCallIntegrationRead(d, m)
 }
 
-func resourceAmixrIntegrationUpdate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+func ResourceOnCallIntegrationUpdate(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
 
@@ -203,7 +203,7 @@ func resourceAmixrIntegrationUpdate(d *schema.ResourceData, m interface{}) error
 	templateData := d.Get("templates").([]interface{})
 	defaultRouteData := d.Get("default_route").([]interface{})
 
-	updateOptions := &amixrAPI.UpdateIntegrationOptions{
+	updateOptions := &onCallAPI.UpdateIntegrationOptions{
 		Name:         nameData,
 		Templates:    expandTemplates(templateData),
 		DefaultRoute: expandDefaultRoute(defaultRouteData),
@@ -216,16 +216,16 @@ func resourceAmixrIntegrationUpdate(d *schema.ResourceData, m interface{}) error
 
 	d.SetId(integration.ID)
 
-	return resourceAmixrIntegrationRead(d, m)
+	return ResourceOnCallIntegrationRead(d, m)
 }
 
-func resourceAmixrIntegrationRead(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+func ResourceOnCallIntegrationRead(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
-	options := &amixrAPI.GetIntegrationOptions{}
+	options := &onCallAPI.GetIntegrationOptions{}
 	integration, r, err := client.Integrations.GetIntegration(d.Id(), options)
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
@@ -246,15 +246,13 @@ func resourceAmixrIntegrationRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceAmixrIntegrationDelete(d *schema.ResourceData, m interface{}) error {
-	log.Printf("[DEBUG] delete amixr integration")
-
-	client := m.(*client).amixrAPI
+func ResourceOnCallIntegrationDelete(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
-	options := &amixrAPI.DeleteIntegrationOptions{}
+	options := &onCallAPI.DeleteIntegrationOptions{}
 	_, err := client.Integrations.DeleteIntegration(d.Id(), options)
 	if err != nil {
 		return err
@@ -265,7 +263,7 @@ func resourceAmixrIntegrationDelete(d *schema.ResourceData, m interface{}) error
 	return nil
 }
 
-func flattenRouteSlack(in *amixrAPI.SlackRoute) []map[string]interface{} {
+func flattenRouteSlack(in *onCallAPI.SlackRoute) []map[string]interface{} {
 	slack := make([]map[string]interface{}, 0, 1)
 
 	out := make(map[string]interface{})
@@ -277,8 +275,8 @@ func flattenRouteSlack(in *amixrAPI.SlackRoute) []map[string]interface{} {
 	return slack
 }
 
-func expandRouteSlack(in []interface{}) *amixrAPI.SlackRoute {
-	slackRoute := amixrAPI.SlackRoute{}
+func expandRouteSlack(in []interface{}) *onCallAPI.SlackRoute {
+	slackRoute := onCallAPI.SlackRoute{}
 
 	for _, r := range in {
 		inputMap := r.(map[string]interface{})
@@ -291,7 +289,7 @@ func expandRouteSlack(in []interface{}) *amixrAPI.SlackRoute {
 	return &slackRoute
 }
 
-func flattenTemplates(in *amixrAPI.Templates) []map[string]interface{} {
+func flattenTemplates(in *onCallAPI.Templates) []map[string]interface{} {
 	templates := make([]map[string]interface{}, 0, 1)
 	out := make(map[string]interface{})
 
@@ -324,7 +322,7 @@ func flattenTemplates(in *amixrAPI.Templates) []map[string]interface{} {
 	return templates
 }
 
-func flattenSlackTemplate(in *amixrAPI.SlackTemplate) []map[string]interface{} {
+func flattenSlackTemplate(in *onCallAPI.SlackTemplate) []map[string]interface{} {
 	slackTemplates := make([]map[string]interface{}, 0, 1)
 
 	add := false
@@ -351,8 +349,8 @@ func flattenSlackTemplate(in *amixrAPI.SlackTemplate) []map[string]interface{} {
 	return slackTemplates
 }
 
-func expandTemplates(input []interface{}) *amixrAPI.Templates {
-	templates := amixrAPI.Templates{}
+func expandTemplates(input []interface{}) *onCallAPI.Templates {
+	templates := onCallAPI.Templates{}
 
 	for _, r := range input {
 		inputMap := r.(map[string]interface{})
@@ -373,8 +371,8 @@ func expandTemplates(input []interface{}) *amixrAPI.Templates {
 	return &templates
 }
 
-func expandSlackTemplate(in []interface{}) *amixrAPI.SlackTemplate {
-	slackTemplate := amixrAPI.SlackTemplate{}
+func expandSlackTemplate(in []interface{}) *onCallAPI.SlackTemplate {
+	slackTemplate := onCallAPI.SlackTemplate{}
 	for _, r := range in {
 		inputMap := r.(map[string]interface{})
 		if inputMap["title"] != "" {
@@ -393,7 +391,7 @@ func expandSlackTemplate(in []interface{}) *amixrAPI.SlackTemplate {
 	return &slackTemplate
 }
 
-func flattenDefaultRoute(in *amixrAPI.DefaultRoute) []map[string]interface{} {
+func flattenDefaultRoute(in *onCallAPI.DefaultRoute) []map[string]interface{} {
 	defaultRoute := make([]map[string]interface{}, 0, 1)
 	out := make(map[string]interface{})
 	out["id"] = in.ID
@@ -404,8 +402,8 @@ func flattenDefaultRoute(in *amixrAPI.DefaultRoute) []map[string]interface{} {
 	return defaultRoute
 }
 
-func expandDefaultRoute(input []interface{}) *amixrAPI.DefaultRoute {
-	defaultRoute := amixrAPI.DefaultRoute{}
+func expandDefaultRoute(input []interface{}) *onCallAPI.DefaultRoute {
+	defaultRoute := onCallAPI.DefaultRoute{}
 
 	for _, r := range input {
 		inputMap := r.(map[string]interface{})

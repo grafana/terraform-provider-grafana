@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	amixrAPI "github.com/grafana/amixr-api-go-client"
+	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -34,7 +34,7 @@ var durationOptions = []int{
 	3600,
 }
 
-func ResourceAmixrEscalation() *schema.Resource {
+func ResourceOnCallEscalation() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana-cloud/oncall/escalation-policies/)
@@ -197,15 +197,15 @@ func ResourceAmixrEscalation() *schema.Resource {
 }
 
 func resourceEscalationCreate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
 
 	escalationChainIdData := d.Get("escalation_chain_id").(string)
 
-	createOptions := &amixrAPI.CreateEscalationOptions{
+	createOptions := &onCallAPI.CreateEscalationOptions{
 		EscalationChainId: escalationChainIdData,
 		ManualOrder:       true,
 	}
@@ -307,13 +307,13 @@ func resourceEscalationCreate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceEscalationRead(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
 
-	escalation, r, err := client.Escalations.GetEscalation(d.Id(), &amixrAPI.GetEscalationOptions{})
+	escalation, r, err := client.Escalations.GetEscalation(d.Id(), &onCallAPI.GetEscalationOptions{})
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
 			log.Printf("[WARN] removing escalation %s from state because it no longer exists", d.Id())
@@ -340,13 +340,13 @@ func resourceEscalationRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceEscalationUpdate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
 
-	updateOptions := &amixrAPI.UpdateEscalationOptions{
+	updateOptions := &onCallAPI.UpdateEscalationOptions{
 		ManualOrder: true,
 	}
 
@@ -430,13 +430,13 @@ func resourceEscalationUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceEscalationDelete(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
 
-	_, err := client.Escalations.DeleteEscalation(d.Id(), &amixrAPI.DeleteEscalationOptions{})
+	_, err := client.Escalations.DeleteEscalation(d.Id(), &onCallAPI.DeleteEscalationOptions{})
 	if err != nil {
 		return err
 	}

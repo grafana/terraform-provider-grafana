@@ -5,19 +5,19 @@ import (
 	"log"
 	"net/http"
 
-	amixrAPI "github.com/grafana/amixr-api-go-client"
+	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceAmixrEscalationChain() *schema.Resource {
+func ResourceOnCallEscalationChain() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/escalation_chains/)
 `,
-		Create: resourceAmixrEscalationChainCreate,
-		Read:   resourceAmixrEscalationChainRead,
-		Update: resourceAmixrEscalationChainUpdate,
-		Delete: resourceAmixrEscalationChainDelete,
+		Create: ResourceOnCallEscalationChainCreate,
+		Read:   ResourceOnCallEscalationChainRead,
+		Update: ResourceOnCallEscalationChainUpdate,
+		Delete: ResourceOnCallEscalationChainDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -37,17 +37,17 @@ func ResourceAmixrEscalationChain() *schema.Resource {
 	}
 }
 
-func resourceAmixrEscalationChainCreate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+func ResourceOnCallEscalationChainCreate(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
 
 	nameData := d.Get("name").(string)
 	teamIdData := d.Get("team_id").(string)
 
-	createOptions := &amixrAPI.CreateEscalationChainOptions{
+	createOptions := &onCallAPI.CreateEscalationChainOptions{
 		Name:   nameData,
 		TeamId: teamIdData,
 	}
@@ -59,17 +59,17 @@ func resourceAmixrEscalationChainCreate(d *schema.ResourceData, m interface{}) e
 
 	d.SetId(escalationChain.ID)
 
-	return resourceAmixrEscalationChainRead(d, m)
+	return ResourceOnCallEscalationChainRead(d, m)
 }
 
-func resourceAmixrEscalationChainRead(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+func ResourceOnCallEscalationChainRead(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
 
-	escalationChain, r, err := client.EscalationChains.GetEscalationChain(d.Id(), &amixrAPI.GetEscalationChainOptions{})
+	escalationChain, r, err := client.EscalationChains.GetEscalationChain(d.Id(), &onCallAPI.GetEscalationChainOptions{})
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
 			log.Printf("[WARN] removing escalation chain %s from state because it no longer exists", d.Get("name").(string))
@@ -85,16 +85,16 @@ func resourceAmixrEscalationChainRead(d *schema.ResourceData, m interface{}) err
 	return nil
 }
 
-func resourceAmixrEscalationChainUpdate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+func ResourceOnCallEscalationChainUpdate(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
 
 	nameData := d.Get("name").(string)
 
-	updateOptions := &amixrAPI.UpdateEscalationChainOptions{
+	updateOptions := &onCallAPI.UpdateEscalationChainOptions{
 		Name: nameData,
 	}
 
@@ -104,17 +104,17 @@ func resourceAmixrEscalationChainUpdate(d *schema.ResourceData, m interface{}) e
 	}
 
 	d.SetId(escalationChain.ID)
-	return resourceAmixrEscalationChainRead(d, m)
+	return ResourceOnCallEscalationChainRead(d, m)
 }
 
-func resourceAmixrEscalationChainDelete(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+func ResourceOnCallEscalationChainDelete(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
 
-	_, err := client.EscalationChains.DeleteEscalationChain(d.Id(), &amixrAPI.DeleteEscalationChainOptions{})
+	_, err := client.EscalationChains.DeleteEscalationChain(d.Id(), &onCallAPI.DeleteEscalationChainOptions{})
 	if err != nil {
 		return err
 	}

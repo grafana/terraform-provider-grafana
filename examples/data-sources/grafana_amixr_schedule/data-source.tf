@@ -1,3 +1,3 @@
-data "grafana_amixr_schedule" "schedule" {
+data "grafana_oncall_schedule" "schedule" {
   name = "example_schedule"
 }

@@ -3,18 +3,16 @@ package grafana
 import (
 	"errors"
 	"fmt"
-	"log"
-
-	amixrAPI "github.com/grafana/amixr-api-go-client"
+	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DataSourceAmixrUserGroup() *schema.Resource {
+func DataSourceOnCallUserGroup() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/user_groups/)
 `,
-		Read: dataSourceAmixrUserGroupRead,
+		Read: dataSourceOnCallUserGroupRead,
 		Schema: map[string]*schema.Schema{
 			"slack_handle": {
 				Type:     schema.TypeString,
@@ -28,15 +26,13 @@ func DataSourceAmixrUserGroup() *schema.Resource {
 	}
 }
 
-func dataSourceAmixrUserGroupRead(d *schema.ResourceData, m interface{}) error {
-	log.Printf("[DEBUG] read amixr user group")
-
-	client := m.(*client).amixrAPI
+func dataSourceOnCallUserGroupRead(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
-	options := &amixrAPI.ListUserGroupOptions{}
+	options := &onCallAPI.ListUserGroupOptions{}
 	slackHandleData := d.Get("slack_handle").(string)
 
 	options.SlackHandle = slackHandleData

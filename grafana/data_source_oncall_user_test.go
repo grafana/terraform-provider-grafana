@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDataSourceAmixrUser_Basic(t *testing.T) {
+func TestAccDataSourceOnCallUser_Basic(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
 	username := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
@@ -18,16 +18,16 @@ func TestAccDataSourceAmixrUser_Basic(t *testing.T) {
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccDataSourceAmixrUserConfig(username),
+				Config:      testAccDataSourceOnCallUserConfig(username),
 				ExpectError: regexp.MustCompile(`couldn't find a user`),
 			},
 		},
 	})
 }
 
-func testAccDataSourceAmixrUserConfig(username string) string {
+func testAccDataSourceOnCallUserConfig(username string) string {
 	return fmt.Sprintf(`
-data "grafana_amixr_user" "test-acc-user" {
+data "grafana_oncall_user" "test-acc-user" {
 	username = "%s"
 }
 `, username)

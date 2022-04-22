@@ -1,8 +1,8 @@
-data "grafana_amixr_user" "alex" {
+data "grafana_oncall_user" "alex" {
   username = "alex"
 }
 
- resource "grafana_amixr_on_call_shift" "example_shift" {
+ resource "grafana_oncall_on_call_shift" "example_shift" {
   name = "Example Shift"
   type = "recurrent_event"
   start = "2020-09-07T14:00:00"
@@ -12,7 +12,7 @@ data "grafana_amixr_user" "alex" {
   by_day = ["MO", "FR"]
   week_start = "MO"
   users = [
-    data.grafana_amixr_user.alex.id
+    data.grafana_oncall_user.alex.id
   ]
   time_zone = "UTC"
 }
@@ -22,7 +22,7 @@ data "grafana_amixr_user" "alex" {
 ////////
 
 // Importing users
-data "grafana_amixr_user" "all_users" {
+data "grafana_oncall_user" "all_users" {
   // Extract flat set of all users from the all teams
   for_each = toset(flatten([
   for team_name, username_list in local.teams : [
@@ -45,14 +45,14 @@ locals {
       "golf@grafana.com",
     ]
   }
-  // Amixr API operates with resources ID's, so we convert emails into ID's
+  // oncall API operates with resources ID's, so we convert emails into ID's
   teams_map_of_user_id = { for team_name, username_list in local.teams : team_name => [
-  for username in username_list : lookup(data.grafana_amixr_user.all_users, username).id] }
-  users_map_by_id = { for username, amixr_user in data.grafana_amixr_user.all_users : amixr_user.id => amixr_user }
+  for username in username_list : lookup(data.grafana_oncall_user.all_users, username).id] }
+  users_map_by_id = { for username, oncall_user in data.grafana_oncall_user.all_users : oncall_user.id => oncall_user }
 }
 
 // A 12 hour shift on week days with the on-call person rotating weekly.
-resource "grafana_amixr_on_call_shift" "emea_weekday_shift" {
+resource "grafana_oncall_on_call_shift" "emea_weekday_shift" {
   name       = "EMEA Weekday Shift"
   type       = "rolling_users"
   start      = "2022-02-28T03:00:00"
@@ -68,5 +68,5 @@ resource "grafana_amixr_on_call_shift" "emea_weekday_shift" {
 }
 
 output "emea_weekday__rolling_users" {
-  value = [for k in flatten(grafana_amixr_on_call_shift.emea_weekday_shift.rolling_users) : lookup(local.users_map_by_id, k).username]
+  value = [for k in flatten(grafana_oncall_on_call_shift.emea_weekday_shift.rolling_users) : lookup(local.users_map_by_id, k).username]
 }

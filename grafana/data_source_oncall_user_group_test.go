@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDataSourceAmixrUserGroup_Basic(t *testing.T) {
+func TestAccDataSourceOnCallUserGroup_Basic(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
 	slackHandle := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
@@ -18,16 +18,16 @@ func TestAccDataSourceAmixrUserGroup_Basic(t *testing.T) {
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccDataSourceAmixrUserGroupConfig(slackHandle),
+				Config:      testAccDataSourceOnCallUserGroupConfig(slackHandle),
 				ExpectError: regexp.MustCompile(`couldn't find a user group`),
 			},
 		},
 	})
 }
 
-func testAccDataSourceAmixrUserGroupConfig(slackHandle string) string {
+func testAccDataSourceOnCallUserGroupConfig(slackHandle string) string {
 	return fmt.Sprintf(`
-data "grafana_amixr_user_group" "test-acc-user-group" {
+data "grafana_oncall_user_group" "test-acc-user-group" {
 	slack_handle = "%s"
 }
 `, slackHandle)

@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDataSourceAmixrSlackChannel_Basic(t *testing.T) {
+func TestAccDataSourceOnCallSlackChannel_Basic(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
 	slackChannelName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
@@ -18,16 +18,16 @@ func TestAccDataSourceAmixrSlackChannel_Basic(t *testing.T) {
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccDataSourceAmixrSlackChannelConfig(slackChannelName),
+				Config:      testAccDataSourceOnCallSlackChannelConfig(slackChannelName),
 				ExpectError: regexp.MustCompile(`couldn't find a slack_channel`),
 			},
 		},
 	})
 }
 
-func testAccDataSourceAmixrSlackChannelConfig(slackChannelName string) string {
+func testAccDataSourceOnCallSlackChannelConfig(slackChannelName string) string {
 	return fmt.Sprintf(`
-data "grafana_amixr_slack_channel" "test-acc-slack-channel" {
+data "grafana_oncall_slack_channel" "test-acc-slack-channel" {
 	name = "%s"
 }
 `, slackChannelName)

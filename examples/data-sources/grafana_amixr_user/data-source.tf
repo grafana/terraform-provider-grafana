@@ -1,3 +1,3 @@
-data "grafana_amixr_user" "alex" {
+data "grafana_oncall_user" "alex" {
   username = "alex"
 }

@@ -4,13 +4,13 @@ import (
 	"errors"
 	"fmt"
 
-	amixrAPI "github.com/grafana/amixr-api-go-client"
+	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DataSourceAmixrTeam() *schema.Resource {
+func DataSourceOnCallTeam() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceAmixrTeamRead,
+		Read: dataSourceOnCallTeamRead,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -29,13 +29,13 @@ func DataSourceAmixrTeam() *schema.Resource {
 	}
 }
 
-func dataSourceAmixrTeamRead(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+func dataSourceOnCallTeamRead(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
-	options := &amixrAPI.ListTeamOptions{}
+	options := &onCallAPI.ListTeamOptions{}
 	nameData := d.Get("name").(string)
 
 	options.Name = nameData

@@ -5,20 +5,20 @@ import (
 	"log"
 	"net/http"
 
-	amixrAPI "github.com/grafana/amixr-api-go-client"
+	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceAmixrRoute() *schema.Resource {
+func ResourceOnCallRoute() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana-cloud/oncall/routes/)
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/routes/)
 `,
-		Create: resourceAmixrRouteCreate,
-		Read:   resourceAmixrRouteRead,
-		Update: resourceAmixrRouteUpdate,
-		Delete: resourceAmixrRouteDelete,
+		Create: ResourceOnCallRouteCreate,
+		Read:   ResourceOnCallRouteRead,
+		Update: ResourceOnCallRouteUpdate,
+		Delete: ResourceOnCallRouteDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -64,10 +64,10 @@ func ResourceAmixrRoute() *schema.Resource {
 	}
 }
 
-func resourceAmixrRouteCreate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+func ResourceOnCallRouteCreate(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
 
@@ -77,7 +77,7 @@ func resourceAmixrRouteCreate(d *schema.ResourceData, m interface{}) error {
 	positionData := d.Get("position").(int)
 	slackData := d.Get("slack").([]interface{})
 
-	createOptions := &amixrAPI.CreateRouteOptions{
+	createOptions := &onCallAPI.CreateRouteOptions{
 		IntegrationId:     integrationIdData,
 		EscalationChainId: escalationChainIdData,
 		RoutingRegex:      routingRegexData,
@@ -93,17 +93,17 @@ func resourceAmixrRouteCreate(d *schema.ResourceData, m interface{}) error {
 
 	d.SetId(route.ID)
 
-	return resourceAmixrRouteRead(d, m)
+	return ResourceOnCallRouteRead(d, m)
 }
 
-func resourceAmixrRouteRead(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+func ResourceOnCallRouteRead(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
 
-	route, r, err := client.Routes.GetRoute(d.Id(), &amixrAPI.GetRouteOptions{})
+	route, r, err := client.Routes.GetRoute(d.Id(), &onCallAPI.GetRouteOptions{})
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
 			log.Printf("[WARN] removing route %s from state because it no longer exists", d.Id())
@@ -122,10 +122,10 @@ func resourceAmixrRouteRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceAmixrRouteUpdate(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+func ResourceOnCallRouteUpdate(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
 
@@ -134,7 +134,7 @@ func resourceAmixrRouteUpdate(d *schema.ResourceData, m interface{}) error {
 	positionData := d.Get("position").(int)
 	slackData := d.Get("slack").([]interface{})
 
-	updateOptions := &amixrAPI.UpdateRouteOptions{
+	updateOptions := &onCallAPI.UpdateRouteOptions{
 		EscalationChainId: escalationChainIdData,
 		RoutingRegex:      routingRegexData,
 		Position:          &positionData,
@@ -148,17 +148,17 @@ func resourceAmixrRouteUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	d.SetId(route.ID)
-	return resourceAmixrRouteRead(d, m)
+	return ResourceOnCallRouteRead(d, m)
 }
 
-func resourceAmixrRouteDelete(d *schema.ResourceData, m interface{}) error {
-	client := m.(*client).amixrAPI
+func ResourceOnCallRouteDelete(d *schema.ResourceData, m interface{}) error {
+	client := m.(*client).onCallAPI
 	if client == nil {
-		err := errors.New("amixr api client is not configured")
+		err := errors.New("Grafana OnCall api client is not configured")
 		return err
 	}
 
-	_, err := client.Routes.DeleteRoute(d.Id(), &amixrAPI.DeleteRouteOptions{})
+	_, err := client.Routes.DeleteRoute(d.Id(), &onCallAPI.DeleteRouteOptions{})
 	if err != nil {
 		return err
 	}

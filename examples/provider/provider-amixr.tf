@@ -15,35 +15,35 @@ resource "grafana_cloud_stack" "sm_stack" {
 
 // Step 2: Go to the Grafana OnCall in your stack and create api token in the settings tab.
 provider "grafana" {
-  auth               = "amixr_access_token"
-  alias              = "amixr"
-  amixr_access_token = "my_amixr_token"
+  auth               = "oncall_access_token"
+  alias              = "oncall"
+  oncall_access_token = "my_oncall_token"
 }
 
-data "grafana_amixr_user" "alex" {
+data "grafana_oncall_user" "alex" {
   username = "alex"
 }
 
 // Step 3: Interact with Grafana OnCall
-resource "grafana_amixr_integration" "test-acc-integration" {
-  provider = grafana.amixr
+resource "grafana_oncall_integration" "test-acc-integration" {
+  provider = grafana.oncall
   name     = "my integration"
   type     = "grafana"
   default_route {
-    escalation_chain_id = grafana_amixr_escalation_chain.default.id
+    escalation_chain_id = grafana_oncall_escalation_chain.default.id
   }
 }
 
-resource "grafana_amixr_escalation_chain" "default" {
-  provider = grafana.amixr
+resource "grafana_oncall_escalation_chain" "default" {
+  provider = grafana.oncall
   name     = "default"
 }
 
-resource "grafana_amixr_escalation" "example_notify_step" {
-  escalation_chain_id = grafana_amixr_escalation_chain.default.id
+resource "grafana_oncall_escalation" "example_notify_step" {
+  escalation_chain_id = grafana_oncall_escalation_chain.default.id
   type = "notify_persons"
   persons_to_notify = [
-    data.grafana_amixr_user.alex.id
+    data.grafana_oncall_user.alex.id
   ]
   position = 0
 }

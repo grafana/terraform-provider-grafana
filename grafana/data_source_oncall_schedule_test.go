@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDataSourceAmixrSchedule_Basic(t *testing.T) {
+func TestAccDataSourceOnCallSchedule_Basic(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
 	scheduleName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
@@ -18,16 +18,16 @@ func TestAccDataSourceAmixrSchedule_Basic(t *testing.T) {
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccDataSourceAmixrScheduleConfig(scheduleName),
+				Config:      testAccDataSourceOnCallScheduleConfig(scheduleName),
 				ExpectError: regexp.MustCompile(`couldn't find a schedule`),
 			},
 		},
 	})
 }
 
-func testAccDataSourceAmixrScheduleConfig(scheduleName string) string {
+func testAccDataSourceOnCallScheduleConfig(scheduleName string) string {
 	return fmt.Sprintf(`
-data "grafana_amixr_schedule" "test-acc-schedule" {
+data "grafana_oncall_schedule" "test-acc-schedule" {
 	name = "%s"
 }
 `, scheduleName)

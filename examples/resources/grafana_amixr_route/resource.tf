@@ -1,22 +1,22 @@
-data "grafana_amixr_slack_channel" "example_slack_channel" {
+data "grafana_oncall_slack_channel" "example_slack_channel" {
   name = "example_slack_channel"
 }
 
-data "grafana_amixr_escalation_chain" "default" {
+data "grafana_oncall_escalation_chain" "default" {
   name = "default"
 }
 
-resource "grafana_amixr_integration" "example_integration" {
+resource "grafana_oncall_integration" "example_integration" {
   name    = "Grafana Integration"
   type    = "grafana"
 }
 
-resource "amixr_route" "example_route"{
-  integration_id = grafana_amixr_integration.example_integration.id
-  escalation_chain_id = data.grafana_amixr_escalation_chain.default.id
+resource "oncall_route" "example_route"{
+  integration_id = grafana_oncall_integration.example_integration.id
+  escalation_chain_id = data.grafana_oncall_escalation_chain.default.id
   routing_regex  = "us-(east|west)"
   position       = 0
   slack {
-    channel_id = data.grafana_amixr_slack_channel.example_slack_channel.slack_id
+    channel_id = data.grafana_oncall_slack_channel.example_slack_channel.slack_id
   }
 }

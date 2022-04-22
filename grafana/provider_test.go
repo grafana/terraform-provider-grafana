@@ -85,7 +85,7 @@ func TestProviderConfigure(t *testing.T) {
 		{
 			name:        "no config",
 			env:         map[string]string{},
-			expectedErr: "\"auth\": one of `amixr_access_token,auth,cloud_api_key,sm_access_token` must\nbe specified",
+			expectedErr: "\"auth\": one of `oncall_access_token,auth,cloud_api_key,sm_access_token` must\nbe specified",
 		},
 		{
 			name: "grafana config from env",
@@ -139,9 +139,9 @@ func TestProviderConfigure(t *testing.T) {
 			},
 		},
 		{
-			name: "grafana amixr config from env",
+			name: "grafana oncall config from env",
 			env: map[string]string{
-				"GRAFANA_AMIXR_ACCESS_TOKEN": "testtest",
+				"GRAFANA_ONCALL_ACCESS_TOKEN": "testtest",
 			},
 		},
 	}
@@ -303,7 +303,7 @@ func CheckCloudInstanceTestsEnabled(t *testing.T) {
 		"GRAFANA_AUTH",
 		"GRAFANA_ORG_ID",
 		"GRAFANA_SM_ACCESS_TOKEN",
-		"GRAFANA_AMIXR_ACCESS_TOKEN",
+		"GRAFANA_ONCALL_ACCESS_TOKEN",
 	)
 }
 

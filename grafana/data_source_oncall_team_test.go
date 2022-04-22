@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDataSourceAmixrTeam_Basic(t *testing.T) {
+func TestAccDataSourceOnCallTeam_Basic(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
 	teamName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
@@ -18,16 +18,16 @@ func TestAccDataSourceAmixrTeam_Basic(t *testing.T) {
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccDataSourceAmixrTeamConfig(teamName),
+				Config:      testAccDataSourceOnCallTeamConfig(teamName),
 				ExpectError: regexp.MustCompile(`couldn't find a team`),
 			},
 		},
 	})
 }
 
-func testAccDataSourceAmixrTeamConfig(teamName string) string {
+func testAccDataSourceOnCallTeamConfig(teamName string) string {
 	return fmt.Sprintf(`
-data "grafana_amixr_team" "test-acc-team" {
+data "grafana_oncall_team" "test-acc-team" {
 	name = "%s"
 }
 `, teamName)
