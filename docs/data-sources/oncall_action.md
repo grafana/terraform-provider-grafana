@@ -13,7 +13,7 @@ description: |-
 ## Example Usage
 
 ```terraform
-data "grafana_oncall_outgoing_webhook" "example_action" {
+data "grafana_oncall_action" "example_action" {
   name = "example_action"
 }
 ```
