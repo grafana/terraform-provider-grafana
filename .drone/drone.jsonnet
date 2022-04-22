@@ -18,7 +18,7 @@ local secret(name, vaultPath, vaultKey) = {
 local cloudApiKey = secret('grafana-cloud-api-key', 'infra/data/ci/terraform-provider-grafana/cloud', 'cloud-api-key');
 local apiToken = secret('grafana-api-token', 'infra/data/ci/terraform-provider-grafana/cloud', 'api-key');
 local smToken = secret('grafana-sm-token', 'infra/data/ci/terraform-provider-grafana/cloud', 'sm-access-token');
-local amixrToken = secret('grafana-amixr-token', 'infra/data/ci/terraform-provider-grafana/cloud', 'amixr-access-token');
+local onCallToken = secret('grafana-oncall-token', 'infra/data/ci/terraform-provider-grafana/cloud', 'oncall-access-token');
 
 local pipeline(name, steps, services=[]) = {
   kind: 'pipeline',
@@ -117,7 +117,7 @@ local pipeline(name, steps, services=[]) = {
           GRAFANA_AUTH: apiToken.fromSecret,
           GRAFANA_SM_ACCESS_TOKEN: smToken.fromSecret,
           GRAFANA_ORG_ID: 1,
-          GRAFANA_AMIXR_ACCESS_TOKEN: amixrToken.fromSecret,
+          GRAFANA_ONCALL_ACCESS_TOKEN: onCallToken.fromSecret,
         },
       },
     ]
@@ -128,7 +128,7 @@ local pipeline(name, steps, services=[]) = {
   cloudApiKey,
   apiToken,
   smToken,
-  amixrToken,
+  onCallToken,
 ] +
 [
   pipeline(

@@ -108,10 +108,10 @@ steps:
 - commands:
   - make testacc-cloud-instance
   environment:
-    GRAFANA_AMIXR_ACCESS_TOKEN:
-      from_secret: grafana-amixr-token
     GRAFANA_AUTH:
       from_secret: grafana-api-token
+    GRAFANA_ONCALL_ACCESS_TOKEN:
+      from_secret: grafana-oncall-token
     GRAFANA_ORG_ID: 1
     GRAFANA_SM_ACCESS_TOKEN:
       from_secret: grafana-sm-token
@@ -147,10 +147,10 @@ kind: secret
 name: grafana-sm-token
 ---
 get:
-  name: amixr-access-token
+  name: oncall-access-token
   path: infra/data/ci/terraform-provider-grafana/cloud
 kind: secret
-name: grafana-amixr-token
+name: grafana-oncall-token
 ---
 kind: pipeline
 name: 'oss tests: 8.5.0'
@@ -308,6 +308,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: 6a16075d4fb9dd010c14b8f1b5dfea10c5165de7fa36e43c22bf96e70f7f891d
+hmac: 2525048a966617acb86ea8f67062ceed15fb03290ebfc01f2f089447dbcee09d
 
 ...
