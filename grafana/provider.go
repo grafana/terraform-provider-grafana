@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
+	onCallAPI "github.com/grafana/amixr-api-go-client"
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
@@ -59,7 +60,7 @@ func Provider(version string) func() *schema.Provider {
 					Sensitive:    true,
 					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_AUTH", nil),
 					Description:  "API token or basic auth username:password. May alternatively be set via the `GRAFANA_AUTH` environment variable.",
-					AtLeastOneOf: []string{"auth", "cloud_api_key", "sm_access_token"},
+					AtLeastOneOf: []string{"auth", "cloud_api_key", "sm_access_token", "oncall_access_token"},
 				},
 				"http_headers": {
 					Type:        schema.TypeMap,
@@ -140,6 +141,21 @@ func Provider(version string) func() *schema.Provider {
 					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_STORE_DASHBOARD_SHA256", false),
 					Description: "Set to true if you want to save only the sha256sum instead of complete dashboard model JSON in the tfstate.",
 				},
+
+				"oncall_access_token": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Sensitive:   true,
+					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_ONCALL_ACCESS_TOKEN", nil),
+					Description: "A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable.",
+				},
+				"oncall_url": {
+					Type:         schema.TypeString,
+					Optional:     true,
+					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_ONCALL_URL", "https://a-prod-us-central-0.grafana.net/"),
+					Description:  "An Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable.",
+					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
+				},
 			},
 
 			ResourcesMap: map[string]*schema.Resource{
@@ -175,6 +191,14 @@ func Provider(version string) func() *schema.Provider {
 
 				// Machine Learning
 				"grafana_machine_learning_job": ResourceMachineLearningJob(),
+
+				// OnCall
+				"grafana_oncall_integration":      ResourceOnCallIntegration(),
+				"grafana_oncall_route":            ResourceOnCallRoute(),
+				"grafana_oncall_escalation_chain": ResourceOnCallEscalationChain(),
+				"grafana_oncall_escalation":       ResourceOnCallEscalation(),
+				"grafana_oncall_on_call_shift":    ResourceOnCallOnCallShift(),
+				"grafana_oncall_schedule":         ResourceOnCallSchedule(),
 			},
 
 			DataSourcesMap: map[string]*schema.Resource{
@@ -191,6 +215,15 @@ func Provider(version string) func() *schema.Provider {
 				// Synthetic Monitoring
 				"grafana_synthetic_monitoring_probe":  DatasourceSyntheticMonitoringProbe(),
 				"grafana_synthetic_monitoring_probes": DatasourceSyntheticMonitoringProbes(),
+
+				// OnCall
+				"grafana_oncall_user":             DataSourceOnCallUser(),
+				"grafana_oncall_escalation_chain": DataSourceOnCallEscalationChain(),
+				"grafana_oncall_schedule":         DataSourceOnCallSchedule(),
+				"grafana_oncall_slack_channel":    DataSourceOnCallSlackChannel(),
+				"grafana_oncall_action":           DataSourceOnCallAction(),
+				"grafana_oncall_user_group":       DataSourceOnCallUserGroup(),
+				"grafana_oncall_team":             DataSourceOnCallTeam(),
 			},
 		}
 
@@ -210,6 +243,8 @@ type client struct {
 	smURL string
 
 	mlapi *mlapi.Client
+
+	onCallAPI *onCallAPI.Client
 }
 
 func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
@@ -235,6 +270,12 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			return nil, diag.FromErr(err)
 		}
 		c.smURL, c.smapi = createSMClient(d)
+		if d.Get("oncall_access_token").(string) != "" {
+			c.onCallAPI, err = createOnCallClient(d)
+			if err != nil {
+				return nil, diag.FromErr(err)
+			}
+		}
 
 		storeDashboardSHA256 = d.Get("store_dashboard_sha256").(bool)
 
@@ -342,6 +383,12 @@ func createSMClient(d *schema.ResourceData) (string, *smapi.Client) {
 	smToken := d.Get("sm_access_token").(string)
 	smURL := d.Get("sm_url").(string)
 	return smURL, smapi.NewClient(smURL, smToken, nil)
+}
+
+func createOnCallClient(d *schema.ResourceData) (*onCallAPI.Client, error) {
+	aToken := d.Get("oncall_access_token").(string)
+	base_url := d.Get("oncall_url").(string)
+	return onCallAPI.New(base_url, aToken)
 }
 
 // getJSONMap is a helper function that parses the given environment variable as a JSON object

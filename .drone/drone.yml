@@ -110,6 +110,8 @@ steps:
   environment:
     GRAFANA_AUTH:
       from_secret: grafana-api-token
+    GRAFANA_ONCALL_ACCESS_TOKEN:
+      from_secret: grafana-oncall-token
     GRAFANA_ORG_ID: 1
     GRAFANA_SM_ACCESS_TOKEN:
       from_secret: grafana-sm-token
@@ -143,6 +145,12 @@ get:
   path: infra/data/ci/terraform-provider-grafana/cloud
 kind: secret
 name: grafana-sm-token
+---
+get:
+  name: oncall-access-token
+  path: infra/data/ci/terraform-provider-grafana/cloud
+kind: secret
+name: grafana-oncall-token
 ---
 kind: pipeline
 name: 'oss tests: 8.5.0'
@@ -300,6 +308,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: 6ff6d080f8016b9d41ac6f560d82c5bb0ea1a267e30adbf66fd2e99b1be6b5b0
+hmac: 2525048a966617acb86ea8f67062ceed15fb03290ebfc01f2f089447dbcee09d
 
 ...

@@ -85,7 +85,7 @@ func TestProviderConfigure(t *testing.T) {
 		{
 			name:        "no config",
 			env:         map[string]string{},
-			expectedErr: "\"auth\": one of `auth,cloud_api_key,sm_access_token` must be specified",
+			expectedErr: "\"auth\": one of `auth,cloud_api_key,oncall_access_token,sm_access_token` must\nbe specified",
 		},
 		{
 			name: "grafana config from env",
@@ -136,6 +136,12 @@ func TestProviderConfigure(t *testing.T) {
 			name: "grafana sm config from env",
 			env: map[string]string{
 				"GRAFANA_SM_ACCESS_TOKEN": "testtest",
+			},
+		},
+		{
+			name: "grafana oncall config from env",
+			env: map[string]string{
+				"GRAFANA_ONCALL_ACCESS_TOKEN": "testtest",
 			},
 		},
 	}
@@ -297,6 +303,7 @@ func CheckCloudInstanceTestsEnabled(t *testing.T) {
 		"GRAFANA_AUTH",
 		"GRAFANA_ORG_ID",
 		"GRAFANA_SM_ACCESS_TOKEN",
+		"GRAFANA_ONCALL_ACCESS_TOKEN",
 	)
 }
 
