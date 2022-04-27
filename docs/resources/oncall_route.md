@@ -27,7 +27,7 @@ resource "grafana_oncall_integration" "example_integration" {
   type = "grafana"
 }
 
-resource "oncall_route" "example_route" {
+resource "grafana_oncall_route" "example_route" {
   integration_id      = grafana_oncall_integration.example_integration.id
   escalation_chain_id = data.grafana_oncall_escalation_chain.default.id
   routing_regex       = "us-(east|west)"
