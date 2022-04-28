@@ -3,12 +3,12 @@
 page_title: "grafana_team Resource - terraform-provider-grafana"
 subcategory: ""
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/manage-users/manage-teams/HTTP API https://grafana.com/docs/grafana/latest/http_api/team/
+  Official documentation https://grafana.com/docs/grafana/latest/administration/manage-users-and-permissions/manage-teams/HTTP API https://grafana.com/docs/grafana/latest/http_api/team/
 ---
 
 # grafana_team (Resource)
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/manage-users/manage-teams/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/administration/manage-users-and-permissions/manage-teams/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/http_api/team/)
 
 ## Example Usage

@@ -190,7 +190,7 @@ This can be a Grafana API key, basic auth `username:password`, or a
 
 ### `cloud_api_key`
 
-An API key created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/cloud-portal/create-api-key/).
+An API key created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/reference/create-api-key/).
 
 ### `sm_access_token`
 
@@ -208,7 +208,7 @@ curl \
 ```
 
 `GRAFANA_CLOUD_API_KEY` is an API key created on the
-[Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/cloud-portal/create-api-key/).
+[Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/reference/create-api-key/).
 It must have the `MetricsPublisher` role.
 
 `SM_API_URL` is the URL of the Synthetic Monitoring API.

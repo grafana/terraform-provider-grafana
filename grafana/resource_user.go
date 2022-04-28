@@ -15,7 +15,7 @@ func ResourceUser() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
-* [Official documentation](https://grafana.com/docs/grafana/latest/manage-users/server-admin/server-admin-manage-users/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/administration/manage-users-and-permissions/manage-server-users/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/http_api/user/)
 
 This resource uses Grafana's admin APIs for creating and updating users which

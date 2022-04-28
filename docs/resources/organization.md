@@ -3,12 +3,12 @@
 page_title: "grafana_organization Resource - terraform-provider-grafana"
 subcategory: ""
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/manage-users/server-admin/server-admin-manage-orgs/HTTP API https://grafana.com/docs/grafana/latest/http_api/org/
+  Official documentation https://grafana.com/docs/grafana/latest/administration/manage-organizations/HTTP API https://grafana.com/docs/grafana/latest/http_api/org/
 ---
 
 # grafana_organization (Resource)
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/manage-users/server-admin/server-admin-manage-orgs/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/administration/manage-organizations/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/http_api/org/)
 
 ## Example Usage

@@ -12,7 +12,6 @@ import (
 func ResourceOnCallRoute() *schema.Resource {
 	return &schema.Resource{
 		Description: `
-* [Official documentation](https://grafana.com/docs/grafana-cloud/oncall/routes/)
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/routes/)
 `,
 		Create: ResourceOnCallRouteCreate,

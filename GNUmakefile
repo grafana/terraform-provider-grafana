@@ -52,6 +52,9 @@ drone:
 	drone lint .drone/drone.yml
 	drone sign --save grafana/terraform-provider-grafana .drone/drone.yml
 
+linkcheck:
+	docker run -it --entrypoint sh -v "$$PWD:$$PWD" -w "$$PWD" python:3.9-alpine -c "pip3 install linkchecker && linkchecker --config .linkcheckerrc docs"
+
 build:
 	go build -o ${BINARY}
 
