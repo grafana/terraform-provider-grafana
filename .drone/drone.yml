@@ -38,6 +38,11 @@ steps:
   - fi
   image: golang:1.18
   name: check for drift
+- commands:
+  - pip3 install linkchecker
+  - linkchecker --config ./.linkcheckerrc docs/
+  image: python:3.9-alpine
+  name: check for broken links
 trigger:
   branch:
   - master
@@ -308,6 +313,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: 2525048a966617acb86ea8f67062ceed15fb03290ebfc01f2f089447dbcee09d
+hmac: 39c0a8d2ccf04e5464b044ebf859ff6455638cb5e40dd3ad152c5d4c4fb78862
 
 ...
