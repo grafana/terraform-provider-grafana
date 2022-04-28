@@ -1,6 +1,7 @@
 local grafanaVersions = ['8.5.0', '8.4.7', '8.3.7', '8.2.7', '7.5.15'];
 local images = {
   go: 'golang:1.18',
+  python: 'python:3.9-alpine',
   lint: 'golangci/golangci-lint',
   grafana(version): 'grafana/grafana:' + version,
 };
@@ -66,6 +67,14 @@ local pipeline(name, steps, services=[]) = {
           '  echo "docs are out of sync, run \\"go generate\\""',
           '  exit 1',
           'fi',
+        ],
+      },
+      {
+        name: 'check for broken links',
+        image: images.python,
+        commands: [
+          'pip3 install linkchecker',
+          'linkchecker --config ./.linkcheckerrc docs/',
         ],
       },
     ]

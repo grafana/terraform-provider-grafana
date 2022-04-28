@@ -1,0 +1,5 @@
+[filtering]
+checkextern=1
+
+[MarkdownCheck]
+filename_re=.*\.md
