@@ -25,7 +25,7 @@ data "grafana_oncall_user_group" "example_user_group" {
 resource "grafana_oncall_schedule" "example_schedule" {
   name               = "Example Ical Schadule"
   type               = "ical"
-  ical_url           = "https://example.com/example_ical.ics"
+  ical_url_primary   = "https://example.com/example_ical.ics"
   ical_url_overrides = "https://example.com/example_overrides_ical.ics"
   slack {
     channel_id    = data.grafana_oncall_slack_channel.example_slack_channel.slack_id
