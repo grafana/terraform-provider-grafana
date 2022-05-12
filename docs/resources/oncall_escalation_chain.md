@@ -28,8 +28,11 @@ resource "grafana_oncall_escalation_chain" "default" {
 
 ### Optional
 
-- `id` (String) The ID of this resource.
 - `team_id` (String) The ID of the team.
+
+### Read-Only
+
+- `id` (String) The ID of this resource.
 
 ## Import
 

@@ -51,12 +51,9 @@ resource "grafana_synthetic_monitoring_installation" "sm_stack" {
 - `metrics_publisher_key` (String, Sensitive) The Cloud API Key with the `MetricsPublisher` role used to publish metrics to the SM API
 - `stack_id` (Number) The ID of the stack to install SM on.
 
-### Optional
-
-- `id` (String) The ID of this resource.
-
 ### Read-Only
 
+- `id` (String) The ID of this resource.
 - `sm_access_token` (String) Generated token to access the SM API.
 
 

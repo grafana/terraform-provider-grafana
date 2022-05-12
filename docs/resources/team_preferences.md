@@ -40,8 +40,11 @@ resource "grafana_team_preferences" "team_preferences" {
 ### Optional
 
 - `home_dashboard_id` (Number) The numeric ID of the dashboard to display when a team member logs in.
-- `id` (String) The ID of this resource.
 - `theme` (String) The theme for the specified team. Available themes are `light`, `dark`, or an empty string for the default theme.
 - `timezone` (String) The timezone for the specified team. Available values are `utc`, `browser`, or an empty string for the default.
+
+### Read-Only
+
+- `id` (String) The ID of this resource.
 
 

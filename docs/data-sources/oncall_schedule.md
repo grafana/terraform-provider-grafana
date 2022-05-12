@@ -26,12 +26,9 @@ data "grafana_oncall_schedule" "schedule" {
 
 - `name` (String) The schedule name.
 
-### Optional
-
-- `id` (String) The ID of this resource.
-
 ### Read-Only
 
+- `id` (String) The ID of this resource.
 - `type` (String) The schedule type.
 
 

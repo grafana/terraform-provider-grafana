@@ -25,12 +25,9 @@ data "grafana_oncall_user_group" "example_user_group" {
 
 - `slack_handle` (String)
 
-### Optional
-
-- `id` (String) The ID of this resource.
-
 ### Read-Only
 
+- `id` (String) The ID of this resource.
 - `slack_id` (String)
 
 

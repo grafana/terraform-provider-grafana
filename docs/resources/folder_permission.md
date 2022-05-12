@@ -51,7 +51,7 @@ resource "grafana_folder_permission" "collectionPermission" {
 - `folder_uid` (String) The UID of the folder.
 - `permissions` (Block Set, Min: 1) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))
 
-### Optional
+### Read-Only
 
 - `id` (String) The ID of this resource.
 
