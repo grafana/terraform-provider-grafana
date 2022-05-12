@@ -8,6 +8,7 @@ services:
       - GRAFANA_TLS_KEY=/go/src/github.com/grafana/terraform-provider-grafana/testdata/client.key
       - GRAFANA_TLS_CERT=/go/src/github.com/grafana/terraform-provider-grafana/testdata/client.crt
       - GRAFANA_CA_CERT=/go/src/github.com/grafana/terraform-provider-grafana/testdata/ca.crt
+      - GRAFANA_VERSION
     ports:
       - 3000
     depends_on:
