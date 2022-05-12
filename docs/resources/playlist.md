@@ -23,12 +23,9 @@ description: |-
 - `item` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--item))
 - `name` (String) The name of the playlist.
 
-### Optional
-
-- `id` (String) The ID of this resource.
-
 ### Read-Only
 
+- `id` (String) The ID of this resource.
 - `org_id` (String)
 
 <a id="nestedblock--item"></a>

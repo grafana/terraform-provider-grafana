@@ -34,12 +34,12 @@ resource "grafana_oncall_integration" "test-acc-integration" {
 
 ### Optional
 
-- `id` (String) The ID of this resource.
 - `team_id` (String) The id of the team.
 - `templates` (Block List, Max: 1) Jinja2 templates for Alert payload. (see [below for nested schema](#nestedblock--templates))
 
 ### Read-Only
 
+- `id` (String) The ID of this resource.
 - `link` (String) The link for using in an integrated tool.
 
 <a id="nestedblock--default_route"></a>

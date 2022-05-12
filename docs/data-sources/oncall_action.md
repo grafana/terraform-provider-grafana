@@ -25,7 +25,7 @@ data "grafana_oncall_action" "example_action" {
 
 - `name` (String) The action name.
 
-### Optional
+### Read-Only
 
 - `id` (String) The ID of this resource.
 

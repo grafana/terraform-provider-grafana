@@ -32,13 +32,13 @@ resource "grafana_dashboard" "metrics" {
 ### Optional
 
 - `folder` (String) The id of the folder to save the dashboard in. This attribute is a string to reflect the type of the folder's id.
-- `id` (String) The ID of this resource.
 - `message` (String) Set a commit message for the version history.
 - `overwrite` (Boolean) Set to true if you want to overwrite existing dashboard with newer version, same dashboard title in folder or same dashboard uid.
 
 ### Read-Only
 
 - `dashboard_id` (Number) The numeric ID of the dashboard computed by Grafana.
+- `id` (String) The ID of this resource.
 - `slug` (String, Deprecated) URL friendly version of the dashboard title. This field is deprecated, please use `uid` instead.
 - `uid` (String) The unique identifier of a dashboard. This is used to construct its URL. It's automatically generated if not provided when creating a dashboard. The uid allows having consistent URLs for accessing dashboards and when syncing dashboards between multiple Grafana installs.
 - `url` (String) The full URL of the dashboard.

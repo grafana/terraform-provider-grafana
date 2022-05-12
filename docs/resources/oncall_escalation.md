@@ -66,7 +66,6 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 - `action_to_trigger` (String) The ID of an Action for trigger_action type step.
 - `duration` (Number) The duration of delay for wait type step.
 - `group_to_notify` (String) The ID of a User Group for notify_user_group type step.
-- `id` (String) The ID of this resource.
 - `important` (Boolean) Will activate "important" personal notification rules. Actual for steps: notify_persons, notify_on_call_from_schedule and notify_user_group
 - `notify_if_time_from` (String) The beginning of the time interval for notify_if_time_from_to type step in UTC (for example 08:00:00Z).
 - `notify_if_time_to` (String) The end of the time interval for notify_if_time_from_to type step in UTC (for example 18:00:00Z).
@@ -74,6 +73,10 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 - `persons_to_notify` (Set of String) The list of ID's of users for notify_persons type step.
 - `persons_to_notify_next_each_time` (Set of String) The list of ID's of users for notify_person_next_each_time type step.
 - `type` (String) The type of escalation policy. Can be wait, notify_persons, notify_person_next_each_time, notify_on_call_from_schedule, trigger_action, notify_user_group, resolve, notify_whole_channel, notify_if_time_from_to
+
+### Read-Only
+
+- `id` (String) The ID of this resource.
 
 ## Import
 

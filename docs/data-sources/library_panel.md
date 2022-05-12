@@ -88,7 +88,6 @@ data "grafana_dashboard" "from_library_panel_connection" {
 
 ### Optional
 
-- `id` (String) The ID of this resource.
 - `name` (String) Name of the library panel.
 - `uid` (String) The unique identifier (UID) of the library panel.
 
@@ -100,6 +99,7 @@ data "grafana_dashboard" "from_library_panel_connection" {
 - `folder_id` (Number) ID of the folder where the library panel is stored.
 - `folder_name` (String) Name of the folder containing the library panel.
 - `folder_uid` (String) Unique ID (UID) of the folder containing the library panel.
+- `id` (String) The ID of this resource.
 - `model_json` (String) The JSON model for the library panel.
 - `org_id` (Number) The numeric ID of the library panel computed by Grafana.
 - `panel_id` (Number) The numeric ID of the library panel computed by Grafana.

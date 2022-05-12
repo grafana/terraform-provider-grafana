@@ -25,12 +25,9 @@ data "grafana_oncall_slack_channel" "example_slack_channel" {
 
 - `name` (String) The Slack channel name.
 
-### Optional
-
-- `id` (String) The ID of this resource.
-
 ### Read-Only
 
+- `id` (String) The ID of this resource.
 - `slack_id` (String) The Slack ID of the channel.
 
 

@@ -25,7 +25,7 @@ data "grafana_oncall_escalation_chain" "default" {
 
 - `name` (String) The escalation chain name.
 
-### Optional
+### Read-Only
 
 - `id` (String) The ID of this resource.
 

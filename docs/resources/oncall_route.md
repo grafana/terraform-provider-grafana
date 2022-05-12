@@ -49,8 +49,11 @@ resource "grafana_oncall_route" "example_route" {
 
 ### Optional
 
-- `id` (String) The ID of this resource.
 - `slack` (Block List, Max: 1) Slack-specific settings for a route. (see [below for nested schema](#nestedblock--slack))
+
+### Read-Only
+
+- `id` (String) The ID of this resource.
 
 <a id="nestedblock--slack"></a>
 ### Nested Schema for `slack`
