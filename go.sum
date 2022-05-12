@@ -106,7 +106,6 @@ github.com/google/go-cmp v0.4.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/
 github.com/google/go-cmp v0.5.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-cmp v0.5.6/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
-github.com/google/go-cmp v0.5.7/go.mod h1:n+brtR0CgQNWTVd5ZUFpTBC8YFBDLK/h/bpaJ8/DtOE=
 github.com/google/go-cmp v0.5.8 h1:e6P7q2lk1O+qJJb4BtCQXlK8vWEO8V1ZeuEdJNOqZyg=
 github.com/google/go-cmp v0.5.8/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/google/go-querystring v1.0.0 h1:Xkwi/a1rcvNg1PPYe5vI8GbeBY/jrVuDX5ASuANWTrk=
@@ -155,8 +154,8 @@ github.com/hashicorp/go-version v1.4.0 h1:aAQzgqIrRKRa7w75CKpbBxYsmUoPjzVm1W59ca
 github.com/hashicorp/go-version v1.4.0/go.mod h1:fltr4n8CU8Ke44wwGCBoEymUuxUHl09ZGVZPK5anwXA=
 github.com/hashicorp/hc-install v0.3.2 h1:oiQdJZvXmkNcRcEOOfM5n+VTsvNjWQeOjfAoO6dKSH8=
 github.com/hashicorp/hc-install v0.3.2/go.mod h1:xMG6Tr8Fw1WFjlxH0A9v61cW15pFwgEGqEz0V4jisHs=
-github.com/hashicorp/hcl/v2 v2.11.1 h1:yTyWcXcm9XB0TEkyU/JCRU6rYy4K+mgLtzn2wlrJbcc=
-github.com/hashicorp/hcl/v2 v2.11.1/go.mod h1:FwWsfWEjyV/CMj8s/gqAuiviY72rJ1/oayI9WftqcKg=
+github.com/hashicorp/hcl/v2 v2.12.0 h1:PsYxySWpMD4KPaoJLnsHwtK5Qptvj/4Q6s0t4sUxZf4=
+github.com/hashicorp/hcl/v2 v2.12.0/go.mod h1:FwWsfWEjyV/CMj8s/gqAuiviY72rJ1/oayI9WftqcKg=
 github.com/hashicorp/logutils v1.0.0 h1:dLEQVugN8vlakKOUE3ihGLTZJRB4j+M2cdTm/ORI65Y=
 github.com/hashicorp/logutils v1.0.0/go.mod h1:QIAnNjmIWmVIIkWDTG1z5v++HQmx9WQRO+LraFDTW64=
 github.com/hashicorp/terraform-exec v0.16.1 h1:NAwZFJW2L2SaCBVZoVaH8LPImLOGbPLkSHy0IYbs2uE=
@@ -167,10 +166,10 @@ github.com/hashicorp/terraform-plugin-docs v0.7.0 h1:7XKAOYHAxghe7q4/vx468X43X9G
 github.com/hashicorp/terraform-plugin-docs v0.7.0/go.mod h1:57CICKfW7/KbW4lPhKOledyT6vu1LeAOzuvWXsVaxUE=
 github.com/hashicorp/terraform-plugin-go v0.9.0 h1:FvLY/3z4SNVatPZdoFcyrlNbCar+WyyOTv5X4Tp+WZc=
 github.com/hashicorp/terraform-plugin-go v0.9.0/go.mod h1:EawBkgjBWNf7jiKnVoyDyF39OSV+u6KUX+Y73EPj3oM=
-github.com/hashicorp/terraform-plugin-log v0.3.0 h1:NPENNOjaJSVX0f7JJTl4f/2JKRPQ7S2ZN9B4NSqq5kA=
-github.com/hashicorp/terraform-plugin-log v0.3.0/go.mod h1:EjueSP/HjlyFAsDqt+okpCPjkT4NDynAe32AeDC4vps=
-github.com/hashicorp/terraform-plugin-sdk/v2 v2.14.0 h1:GZ8NY74rxObB7QHE/JiuBW0ZEr04rlplR/TVrkgw3rw=
-github.com/hashicorp/terraform-plugin-sdk/v2 v2.14.0/go.mod h1:+m4FDQ8h1ulz7zpWtqmZn2JSZQDXUVibhUShbkQVId4=
+github.com/hashicorp/terraform-plugin-log v0.4.0 h1:F3eVnm8r2EfQCe2k9blPIiF/r2TT01SHijXnS7bujvc=
+github.com/hashicorp/terraform-plugin-log v0.4.0/go.mod h1:9KclxdunFownr4pIm1jdmwKRmE4d6HVG2c9XDq47rpg=
+github.com/hashicorp/terraform-plugin-sdk/v2 v2.16.0 h1:9fjPgCenJqnbjo95SDcbJ+YdLyEC1N35cwKWcRWhJTQ=
+github.com/hashicorp/terraform-plugin-sdk/v2 v2.16.0/go.mod h1:hLa0sTiySU/AWEgV2GxJh0/pQIqcCmm30IPja9N9lTg=
 github.com/hashicorp/terraform-registry-address v0.0.0-20210412075316-9b2996cce896 h1:1FGtlkJw87UsTMg5s8jrekrHmUPUJaMcu6ELiVhQrNw=
 github.com/hashicorp/terraform-registry-address v0.0.0-20210412075316-9b2996cce896/go.mod h1:bzBPnUIkI0RxauU8Dqo+2KrZZ28Cf48s8V6IHt3p4co=
 github.com/hashicorp/terraform-svchost v0.0.0-20200729002733-f050f53b9734 h1:HKLsbzeOsfXmKNpr3GiT18XAblV0BjCbzL8KQAMZGa0=
@@ -227,8 +226,8 @@ github.com/mitchellh/go-testing-interface v1.14.1/go.mod h1:gfgS7OtZj6MA4U1UrDRp
 github.com/mitchellh/go-wordwrap v0.0.0-20150314170334-ad45545899c7/go.mod h1:ZXFpozHsX6DPmq2I0TCekCxypsnAUbP2oI0UX1GXzOo=
 github.com/mitchellh/go-wordwrap v1.0.0 h1:6GlHJ/LTGMrIJbwgdqdl2eEH8o+Exx/0m8ir9Gns0u4=
 github.com/mitchellh/go-wordwrap v1.0.0/go.mod h1:ZXFpozHsX6DPmq2I0TCekCxypsnAUbP2oI0UX1GXzOo=
-github.com/mitchellh/mapstructure v1.4.3 h1:OVowDSCllw/YjdLkam3/sm7wEtOy59d8ndGgCcyj8cs=
-github.com/mitchellh/mapstructure v1.4.3/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
+github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
+github.com/mitchellh/mapstructure v1.5.0/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
 github.com/mitchellh/reflectwalk v1.0.0/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx0jmZXqmk4esnw=
 github.com/mitchellh/reflectwalk v1.0.2 h1:G2LzWKi524PWgd3mLHV8Y5k7s6XUvT0Gef6zxSIeXaQ=
 github.com/mitchellh/reflectwalk v1.0.2/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx0jmZXqmk4esnw=
