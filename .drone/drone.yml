@@ -9,7 +9,7 @@ steps:
 - commands:
   - golangci-lint --version
   - golangci-lint run ./...
-  image: golangci/golangci-lint
+  image: golangci/golangci-lint:v1.45
   name: lint
 trigger:
   branch:
@@ -313,6 +313,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: 39c0a8d2ccf04e5464b044ebf859ff6455638cb5e40dd3ad152c5d4c4fb78862
+hmac: 171eec7dc5357f381a1f11749be493256f117fe12977dfbb9d353966e0f8c1cf
 
 ...
