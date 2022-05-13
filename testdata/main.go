@@ -65,21 +65,13 @@ func makeCert(ca *x509.Certificate, name string) (*x509.Certificate, error) {
 
 		crt = ca
 	} else {
-		crt = &x509.Certificate{
-			BasicConstraintsValid: true,
-			Subject: pkix.Name{
-				Organization: []string{"Raintank, Inc."},
-			},
-			SerialNumber: big.NewInt(1024),
-			KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-			NotBefore:    ca.NotBefore,
-			NotAfter:     ca.NotAfter,
-			IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
-			ExtKeyUsage: []x509.ExtKeyUsage{
-				x509.ExtKeyUsageClientAuth,
-				x509.ExtKeyUsageServerAuth,
-			},
-		}
+		// copy CA data
+		crt = &x509.Certificate{}
+		*crt = *ca
+
+		// overwrite CA data that's not needed for certificates
+		crt.IsCA = false
+		crt.IPAddresses = []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback}
 	}
 
 	pk, err := rsa.GenerateKey(rand.Reader, 4096)
