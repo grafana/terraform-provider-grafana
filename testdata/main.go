@@ -69,37 +69,7 @@ func makeCA(now time.Time) (*x509.Certificate, error) {
 		return nil, fmt.Errorf("cannot create CA certificate: %w", err)
 	}
 
-	buf := new(bytes.Buffer)
-
-	err = pem.Encode(buf, &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: caBytes,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("cannot PEM encode CA: %w", err)
-	}
-
-	err = os.WriteFile("../testdata/ca.crt", buf.Bytes(), 0600)
-	if err != nil {
-		return nil, fmt.Errorf("cannot write CA certificate: %w", err)
-	}
-
-	buf.Reset()
-
-	err = pem.Encode(buf, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(pk),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("cannot PEM encode RSA key for CA: %w", err)
-	}
-
-	err = os.WriteFile("../testdata/ca.key", buf.Bytes(), 0600)
-	if err != nil {
-		return nil, fmt.Errorf("cannot write CA certificate RSA key: %w", err)
-	}
-
-	return ca, nil
+	return ca, writeFiles(caBytes, pk, "ca")
 }
 
 func makeCert(ca *x509.Certificate, name string) error {
@@ -129,9 +99,13 @@ func makeCert(ca *x509.Certificate, name string) error {
 		return fmt.Errorf("cannot create certificate %s: %w", name, err)
 	}
 
+	return writeFiles(crtBytes, pk, name)
+}
+
+func writeFiles(crtBytes []byte, pk *rsa.PrivateKey, name string) error {
 	buf := new(bytes.Buffer)
 
-	err = pem.Encode(buf, &pem.Block{
+	err := pem.Encode(buf, &pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: crtBytes,
 	})
@@ -158,6 +132,8 @@ func makeCert(ca *x509.Certificate, name string) error {
 	if err != nil {
 		return fmt.Errorf("cannot write certificate RSA key %s: %w", name, err)
 	}
+
+	fmt.Printf("created ../testdata/%s.key and ../testdata/%[1]s.crt\n", name)
 
 	return nil
 }
