@@ -26,6 +26,9 @@ website/node_modules
 
 website/vendor
 
+testdata/*.crt
+testdata/*.key
+
 # Test exclusions
 !command/test-fixtures/**/*.tfstate
 !command/test-fixtures/**/.terraform/
