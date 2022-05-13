@@ -20,6 +20,7 @@ testacc-cloud-instance:
 	TF_ACC_CLOUD_INSTANCE=true make testacc
 
 testacc-docker:
+	make -C testdata generate
 	GRAFANA_VERSION=$(GRAFANA_VERSION) \
 		docker-compose \
 		-f ./docker-compose.yml \
@@ -28,6 +29,7 @@ testacc-docker:
 		make testacc-oss
 
 testacc-docker-tls:
+	make -C testdata generate
 	GRAFANA_VERSION=$(GRAFANA_VERSION) \
 		docker-compose \
 		-f ./docker-compose.yml \
