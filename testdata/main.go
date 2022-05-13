@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"net"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -103,9 +104,16 @@ func makeCert(ca *x509.Certificate, name string) error {
 }
 
 func writeFiles(crtBytes []byte, pk *rsa.PrivateKey, name string) error {
+	var err error
+
+	name, err = filepath.Abs(name)
+	if err != nil {
+		return err
+	}
+
 	buf := new(bytes.Buffer)
 
-	err := pem.Encode(buf, &pem.Block{
+	err = pem.Encode(buf, &pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: crtBytes,
 	})
@@ -113,7 +121,7 @@ func writeFiles(crtBytes []byte, pk *rsa.PrivateKey, name string) error {
 		return fmt.Errorf("cannot PEM encode %s: %w", name, err)
 	}
 
-	err = os.WriteFile(fmt.Sprintf("../testdata/%s.crt", name), buf.Bytes(), 0600)
+	err = os.WriteFile(name+".crt", buf.Bytes(), 0600)
 	if err != nil {
 		return fmt.Errorf("cannot write certificate %s: %w", name, err)
 	}
@@ -128,12 +136,12 @@ func writeFiles(crtBytes []byte, pk *rsa.PrivateKey, name string) error {
 		return fmt.Errorf("cannot PEM encode RSA key %s: %w", name, err)
 	}
 
-	err = os.WriteFile(fmt.Sprintf("../testdata/%s.key", name), buf.Bytes(), 0600)
+	err = os.WriteFile(name+".key", buf.Bytes(), 0600)
 	if err != nil {
 		return fmt.Errorf("cannot write certificate RSA key %s: %w", name, err)
 	}
 
-	fmt.Printf("created ../testdata/%s.key and ../testdata/%[1]s.crt\n", name)
+	fmt.Printf("created %s.key and %[1]s.crt\n", name)
 
 	return nil
 }
