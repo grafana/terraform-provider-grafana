@@ -84,48 +84,37 @@ func makeCert(ca *x509.Certificate, name string) (*x509.Certificate, error) {
 		return nil, fmt.Errorf("cannot create certificate %s: %w", name, err)
 	}
 
-	return crt, writeFiles(crtBytes, pk, name)
-}
-
-func writeFiles(crtBytes []byte, pk *rsa.PrivateKey, name string) error {
-	var err error
-
 	name, err = filepath.Abs(name)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	if err = writePEMFile(name+".crt", "CERTIFICATE", crtBytes); err != nil {
+		return nil, fmt.Errorf("cannot write certificate file: %w", err)
+	}
+
+	if err = writePEMFile(name+".key", "RSA PRIVATE KEY", x509.MarshalPKCS1PrivateKey(pk)); err != nil {
+		return nil, fmt.Errorf("cannot write key file: %w", err)
+	}
+
+	return crt, nil
+}
+
+func writePEMFile(name, pemType string, data []byte) error {
 	buf := new(bytes.Buffer)
 
-	err = pem.Encode(buf, &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: crtBytes,
+	err := pem.Encode(buf, &pem.Block{
+		Type:  pemType,
+		Bytes: data,
 	})
 	if err != nil {
-		return fmt.Errorf("cannot PEM encode %s: %w", name, err)
+		return fmt.Errorf("cannot PEM encode %s: %w", pemType, err)
 	}
 
-	err = os.WriteFile(name+".crt", buf.Bytes(), 0600)
+	err = os.WriteFile(name, buf.Bytes(), 0600)
 	if err != nil {
-		return fmt.Errorf("cannot write certificate %s: %w", name, err)
+		return fmt.Errorf("cannot write PEM file %s: %w", name, err)
 	}
-
-	buf.Reset()
-
-	err = pem.Encode(buf, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(pk),
-	})
-	if err != nil {
-		return fmt.Errorf("cannot PEM encode RSA key %s: %w", name, err)
-	}
-
-	err = os.WriteFile(name+".key", buf.Bytes(), 0600)
-	if err != nil {
-		return fmt.Errorf("cannot write certificate RSA key %s: %w", name, err)
-	}
-
-	fmt.Printf("created %s.key and %[1]s.crt\n", name)
 
 	return nil
 }
