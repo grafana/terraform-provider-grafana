@@ -267,9 +267,8 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 		return nil
 	}
 
-	err = FlattenStack(d, stack)
-	if err != nil {
-		tflog.Error(ctx, "An error occurred")
+	if err := FlattenStack(d, stack); err != nil {
+		return diag.FromError(err)
 	}
 	// Always set the wait attribute to true after creation
 	// It no longer matters and this will prevent drift if the stack was imported
