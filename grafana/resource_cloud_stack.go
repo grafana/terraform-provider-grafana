@@ -295,16 +295,16 @@ func FlattenStack(d *schema.ResourceData, stack gapi.Stack) error {
 	d.Set("prometheus_user_id", stack.HmInstancePromID)
 	d.Set("prometheus_url", stack.HmInstancePromURL)
 	d.Set("prometheus_name", stack.HmInstancePromName)
-	re_url, err := appendPath(stack.HmInstancePromURL, "/api/prom")
-	d.Set("prometheus_remote_endpoint", re_url)
+	reURL, err := appendPath(stack.HmInstancePromURL, "/api/prom")
+	d.Set("prometheus_remote_endpoint", reURL)
 	if err != nil {
 		return err
 	}
-	rwe_url, err := appendPath(stack.HmInstancePromURL, "/api/prom/push")
+	rweURL, err := appendPath(stack.HmInstancePromURL, "/api/prom/push")
 	if err != nil {
 		return err
 	}
-	d.Set("prometheus_remote_write_endpoint", rwe_url)
+	d.Set("prometheus_remote_write_endpoint", rweURL)
 	d.Set("prometheus_status", stack.HmInstancePromStatus)
 
 	d.Set("logs_user_id", stack.HlInstanceID)
