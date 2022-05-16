@@ -13,6 +13,7 @@ import (
 	"time"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -266,7 +267,10 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 		return nil
 	}
 
-	FlattenStack(d, stack)
+	err = FlattenStack(d, stack)
+	if err != nil {
+		tflog.Error(ctx, "An error occurred")
+	}
 	// Always set the wait attribute to true after creation
 	// It no longer matters and this will prevent drift if the stack was imported
 	d.Set("wait_for_readiness", true)
@@ -274,7 +278,7 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 	return nil
 }
 
-func FlattenStack(d *schema.ResourceData, stack gapi.Stack) {
+func FlattenStack(d *schema.ResourceData, stack gapi.Stack) error {
 	id := strconv.FormatInt(stack.ID, 10)
 
 	d.SetId(id)
@@ -292,8 +296,16 @@ func FlattenStack(d *schema.ResourceData, stack gapi.Stack) {
 	d.Set("prometheus_user_id", stack.HmInstancePromID)
 	d.Set("prometheus_url", stack.HmInstancePromURL)
 	d.Set("prometheus_name", stack.HmInstancePromName)
-	d.Set("prometheus_remote_endpoint", appendPath(stack.HmInstancePromURL, "/api/prom"))
-	d.Set("prometheus_remote_write_endpoint", appendPath(stack.HmInstancePromURL, "/api/prom/push"))
+	re_url, err := appendPath(stack.HmInstancePromURL, "/api/prom")
+	d.Set("prometheus_remote_endpoint", re_url)
+	if err != nil {
+		return err
+	}
+	rwe_url, err := appendPath(stack.HmInstancePromURL, "/api/prom/push")
+	if err != nil {
+		return err
+	}
+	d.Set("prometheus_remote_write_endpoint", rwe_url)
 	d.Set("prometheus_status", stack.HmInstancePromStatus)
 
 	d.Set("logs_user_id", stack.HlInstanceID)
@@ -305,19 +317,21 @@ func FlattenStack(d *schema.ResourceData, stack gapi.Stack) {
 	d.Set("alertmanager_name", stack.AmInstanceName)
 	d.Set("alertmanager_url", stack.AmInstanceURL)
 	d.Set("alertmanager_status", stack.AmInstanceStatus)
+
+	return nil
 }
 
 // Append path to baseurl
-func appendPath(baseUrl, path string) string {
+func appendPath(baseUrl, path string) (string, error) {
 	bu, err := url.Parse(baseUrl)
 	if err != nil {
-		diag.FromErr(err)
+		return "", err
 	}
 	u, err := bu.Parse(path)
 	if err != nil {
-		diag.FromErr(err)
+		return "", err
 	}
-	return u.String()
+	return u.String(), nil
 }
 
 // waitForStackReadiness retries until the stack is ready, verified by querying the Grafana URL
