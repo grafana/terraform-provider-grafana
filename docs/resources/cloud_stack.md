@@ -60,4 +60,10 @@ Changing region will destroy the existing stack and create a new one in the desi
 - `prometheus_user_id` (Number) Promehteus user ID. Used for e.g. remote_write.
 - `status` (String) Status of the stack.
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_cloud_stack.stack_name {{stack_id}}
+```
