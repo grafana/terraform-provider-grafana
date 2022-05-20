@@ -38,13 +38,13 @@ resource "grafana_user" "staff" {
 
 ### Optional
 
-- `id` (String) The ID of this resource.
 - `is_admin` (Boolean) Whether to make user an admin. Defaults to `false`.
 - `login` (String) The username for the Grafana user.
 - `name` (String) The display name for the Grafana user.
 
 ### Read-Only
 
+- `id` (String) The ID of this resource.
 - `user_id` (Number) The numerical ID of the Grafana user.
 
 ## Import

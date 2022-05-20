@@ -86,13 +86,13 @@ data "grafana_dashboards" "limit_one" {
 ### Optional
 
 - `folder_ids` (List of Number) Numerical IDs of Grafana folders containing dashboards. Specify to filter for dashboards by folder (eg. `[0]` for General folder), or leave blank to get all dashboards in all folders.
-- `id` (String) The ID of this resource.
 - `limit` (Number) Maximum number of dashboard search results to return. Defaults to `5000`.
 - `tags` (List of String) List of string Grafana dashboard tags to search for, eg. `["prod"]`. Used only as search input, i.e., attribute value will remain unchanged.
 
 ### Read-Only
 
 - `dashboards` (List of Object) (see [below for nested schema](#nestedatt--dashboards))
+- `id` (String) The ID of this resource.
 
 <a id="nestedatt--dashboards"></a>
 ### Nested Schema for `dashboards`

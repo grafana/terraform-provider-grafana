@@ -25,7 +25,7 @@ data "grafana_oncall_user_group" "example_user_group" {
 resource "grafana_oncall_schedule" "example_schedule" {
   name               = "Example Ical Schadule"
   type               = "ical"
-  ical_url           = "https://example.com/example_ical.ics"
+  ical_url_primary   = "https://example.com/example_ical.ics"
   ical_url_overrides = "https://example.com/example_overrides_ical.ics"
   slack {
     channel_id    = data.grafana_oncall_slack_channel.example_slack_channel.slack_id
@@ -56,11 +56,14 @@ resource "grafana_oncall_schedule" "example_schedule" {
 
 - `ical_url_overrides` (String) The URL of external iCal calendar which override primary events.
 - `ical_url_primary` (String) The URL of the external calendar iCal file.
-- `id` (String) The ID of this resource.
 - `shifts` (Set of String) The list of ID's of on-call shifts.
 - `slack` (Block List, Max: 1) The Slack-specific settings for a schedule. (see [below for nested schema](#nestedblock--slack))
 - `team_id` (String) The ID of the team.
 - `time_zone` (String) The schedule's time zone.
+
+### Read-Only
+
+- `id` (String) The ID of this resource.
 
 <a id="nestedblock--slack"></a>
 ### Nested Schema for `slack`

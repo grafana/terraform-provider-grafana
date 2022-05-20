@@ -32,7 +32,7 @@ resource "grafana_cloud_plugin_installation" "test" {
 - `stack_slug` (String) The stack id to which the plugin should be installed.
 - `version` (String) Version of the plugin to be installed.
 
-### Optional
+### Read-Only
 
 - `id` (String) The ID of this resource.
 

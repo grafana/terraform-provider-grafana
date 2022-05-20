@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"path"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -266,7 +266,9 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 		return nil
 	}
 
-	FlattenStack(d, stack)
+	if err := FlattenStack(d, stack); err != nil {
+		return diag.FromErr(err)
+	}
 	// Always set the wait attribute to true after creation
 	// It no longer matters and this will prevent drift if the stack was imported
 	d.Set("wait_for_readiness", true)
@@ -274,7 +276,7 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 	return nil
 }
 
-func FlattenStack(d *schema.ResourceData, stack gapi.Stack) {
+func FlattenStack(d *schema.ResourceData, stack gapi.Stack) error {
 	id := strconv.FormatInt(stack.ID, 10)
 
 	d.SetId(id)
@@ -292,8 +294,16 @@ func FlattenStack(d *schema.ResourceData, stack gapi.Stack) {
 	d.Set("prometheus_user_id", stack.HmInstancePromID)
 	d.Set("prometheus_url", stack.HmInstancePromURL)
 	d.Set("prometheus_name", stack.HmInstancePromName)
-	d.Set("prometheus_remote_endpoint", path.Join(stack.HmInstancePromURL, "api/prom"))
-	d.Set("prometheus_remote_write_endpoint", path.Join(stack.HmInstancePromURL, "api/prom/push"))
+	reURL, err := appendPath(stack.HmInstancePromURL, "/api/prom")
+	d.Set("prometheus_remote_endpoint", reURL)
+	if err != nil {
+		return err
+	}
+	rweURL, err := appendPath(stack.HmInstancePromURL, "/api/prom/push")
+	if err != nil {
+		return err
+	}
+	d.Set("prometheus_remote_write_endpoint", rweURL)
 	d.Set("prometheus_status", stack.HmInstancePromStatus)
 
 	d.Set("logs_user_id", stack.HlInstanceID)
@@ -305,6 +315,21 @@ func FlattenStack(d *schema.ResourceData, stack gapi.Stack) {
 	d.Set("alertmanager_name", stack.AmInstanceName)
 	d.Set("alertmanager_url", stack.AmInstanceURL)
 	d.Set("alertmanager_status", stack.AmInstanceStatus)
+
+	return nil
+}
+
+// Append path to baseurl
+func appendPath(baseUrl, path string) (string, error) {
+	bu, err := url.Parse(baseUrl)
+	if err != nil {
+		return "", err
+	}
+	u, err := bu.Parse(path)
+	if err != nil {
+		return "", err
+	}
+	return u.String(), nil
 }
 
 // waitForStackReadiness retries until the stack is ready, verified by querying the Grafana URL

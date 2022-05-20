@@ -31,7 +31,7 @@ resource "grafana_team_external_group" "test-team-group" {
 - `groups` (Set of String) The team external groups list
 - `team_id` (Number) The Team ID
 
-### Optional
+### Read-Only
 
 - `id` (String) The ID of this resource.
 

@@ -28,7 +28,6 @@ description: |-
 - `by_month` (Set of Number) This parameter takes a list of months. Valid values are 1 to 12
 - `by_monthday` (Set of Number) This parameter takes a list of days of the month.  Valid values are 1 to 31 or -31 to -1
 - `frequency` (String) The frequency of the event. Can be daily, weekly, monthly
-- `id` (String) The ID of this resource.
 - `interval` (Number) The positive integer representing at which intervals the recurrence rule repeats.
 - `level` (Number) The priority level. The higher the value, the higher the priority.
 - `rolling_users` (List of Set of String) The list of lists with on-call users (for rolling_users event type)
@@ -37,6 +36,10 @@ description: |-
 - `time_zone` (String) The shift's timezone.  Overrides schedule's timezone.
 - `users` (Set of String) The list of on-call users (for single_event and recurrent_event event type).
 - `week_start` (String) Start day of the week in iCal format. Can be MO, TU, WE, TH, FR, SA, SU
+
+### Read-Only
+
+- `id` (String) The ID of this resource.
 
 ## Import
 

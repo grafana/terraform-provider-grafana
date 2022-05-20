@@ -25,13 +25,10 @@ data "grafana_oncall_team" "example_team" {
 
 - `name` (String) The team name.
 
-### Optional
-
-- `id` (String) The ID of this resource.
-
 ### Read-Only
 
 - `avatar_url` (String)
 - `email` (String)
+- `id` (String) The ID of this resource.
 
 

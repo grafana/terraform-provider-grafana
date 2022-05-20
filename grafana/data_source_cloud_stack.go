@@ -32,8 +32,6 @@ available at “https://<stack_slug>.grafana.net".`,
 func datasourceCloudStackRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gcloudapi
 
-	var diags diag.Diagnostics
-
 	slug := d.Get("slug").(string)
 
 	stack, err := client.StackBySlug(slug)
@@ -41,7 +39,9 @@ func datasourceCloudStackRead(ctx context.Context, d *schema.ResourceData, meta 
 		return diag.FromErr(err)
 	}
 
-	FlattenStack(d, stack)
+	if err := FlattenStack(d, stack); err != nil {
+		return diag.FromErr(err)
+	}
 
-	return diags
+	return nil
 }
