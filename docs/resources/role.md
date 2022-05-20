@@ -45,10 +45,10 @@ resource "grafana_role" "super_user" {
 ### Optional
 
 - `description` (String) Description of the role.
-- `display_name` (String) Display name of the role.
+- `display_name` (String) Display name of the role. Available with Grafana 8.5+.
 - `global` (Boolean) Boolean to state whether the role is available across all organizations or not. Defaults to `false`.
-- `group` (String) Group of the role.
-- `hidden` (Boolean) Boolean to state whether the role should be visible in the Grafana UI or not. Defaults to `false`.
+- `group` (String) Group of the role. Available with Grafana 8.5+.
+- `hidden` (Boolean) Boolean to state whether the role should be visible in the Grafana UI or not. Available with Grafana 8.5+. Defaults to `false`.
 - `permissions` (Block Set) Specific set of actions granted by the role. (see [below for nested schema](#nestedblock--permissions))
 - `uid` (String) Unique identifier of the role. Used for assignments.
 

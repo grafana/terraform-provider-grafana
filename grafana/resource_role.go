@@ -52,18 +52,18 @@ func ResourceRole() *schema.Resource {
 			"display_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Display name of the role.",
+				Description: "Display name of the role. Available with Grafana 8.5+.",
 			},
 			"group": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Group of the role.",
+				Description: "Group of the role. Available with Grafana 8.5+.",
 			},
 			"hidden": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Boolean to state whether the role should be visible in the Grafana UI or not.",
+				Description: "Boolean to state whether the role should be visible in the Grafana UI or not. Available with Grafana 8.5+.",
 			},
 			"global": {
 				Type:        schema.TypeBool,
