@@ -15,7 +15,7 @@ import (
 func ResourceBuiltInRoleAssignment() *schema.Resource {
 	return &schema.Resource{
 		Description: `
-**Note:** This resource is going to be deprecated with Grafana 9.+, please use grafana_role instead.
+**Note:** This resource is going to be deprecated with Grafana 9.+, please use [grafana_role](https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/role) instead.
 **Note:** This resource is available only with Grafana Enterprise 8.+.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/enterprise/access-control/)
@@ -28,7 +28,7 @@ func ResourceBuiltInRoleAssignment() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		DeprecationMessage: "This resource is going to be deprecated with Grafana 9.+, please use grafana_role instead",
+		DeprecationMessage: "This resource is going to be deprecated with Grafana 9.+, please use [grafana_role](https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/role) instead",
 		Schema: map[string]*schema.Schema{
 			// Built-in roles are all organization roles and Grafana Admin
 			"builtin_role": {

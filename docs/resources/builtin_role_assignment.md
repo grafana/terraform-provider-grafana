@@ -3,14 +3,14 @@
 page_title: "grafana_builtin_role_assignment Resource - terraform-provider-grafana"
 subcategory: ""
 description: |-
-  Note: This resource is going to be deprecated with Grafana 9.+, please use grafana_role instead.
+  Note: This resource is going to be deprecated with Grafana 9.+, please use grafana_role https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/role instead.
   Note: This resource is available only with Grafana Enterprise 8.+.
   Official documentation https://grafana.com/docs/grafana/latest/enterprise/access-control/HTTP API https://grafana.com/docs/grafana/latest/http_api/access_control/
 ---
 
 # grafana_builtin_role_assignment (Resource)
 
-**Note:** This resource is going to be deprecated with Grafana 9.+, please use grafana_role instead.
+**Note:** This resource is going to be deprecated with Grafana 9.+, please use [grafana_role](https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/role) instead.
 **Note:** This resource is available only with Grafana Enterprise 8.+.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/enterprise/access-control/)
