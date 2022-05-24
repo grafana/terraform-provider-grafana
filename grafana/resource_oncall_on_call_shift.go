@@ -1,13 +1,14 @@
 package grafana
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -51,56 +52,56 @@ func ResourceOnCallOnCallShift() *schema.Resource {
 		Description: `
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/on_call_shifts/)
 `,
-		Create: ResourceOnCallOnCallShiftCreate,
-		Read:   ResourceOnCallOnCallShiftRead,
-		Update: ResourceOnCallOnCallShiftUpdate,
-		Delete: ResourceOnCallOnCallShiftDelete,
+		CreateContext: ResourceOnCallOnCallShiftCreate,
+		ReadContext:   ResourceOnCallOnCallShiftRead,
+		UpdateContext: ResourceOnCallOnCallShiftUpdate,
+		DeleteContext: ResourceOnCallOnCallShiftDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
-			"team_id": &schema.Schema{
+			"team_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The ID of the team.",
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringIsNotEmpty,
 				Description:  "The shift's name.",
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringInSlice(onCallShiftTypeOptions, false),
 				Description:  fmt.Sprintf("The shift's type. Can be %s", onCallShiftTypeOptionsVerbal),
 			},
-			"level": &schema.Schema{
+			"level": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Description: "The priority level. The higher the value, the higher the priority.",
 			},
-			"start": &schema.Schema{
+			"start": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringIsNotEmpty,
 				Description:  "The start time of the on-call shift. This parameter takes a date format as yyyy-MM-dd'T'HH:mm:ss (for example \"2020-09-05T08:00:00\")",
 			},
-			"duration": &schema.Schema{
+			"duration": {
 				Type:         schema.TypeInt,
 				Required:     true,
 				ValidateFunc: validation.IntAtLeast(0),
 				Description:  "The duration of the event.",
 			},
-			"frequency": &schema.Schema{
+			"frequency": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice(onCallShiftFrequencyOptions, false),
 				Description:  fmt.Sprintf("The frequency of the event. Can be %s", onCallShiftFrequencyOptionsVerbal),
 			},
-			"users": &schema.Schema{
+			"users": {
 				Type: schema.TypeSet,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -108,7 +109,7 @@ func ResourceOnCallOnCallShift() *schema.Resource {
 				Optional: true,
 				Description: "The list of on-call users (for single_event and recurrent_event event type).	",
 			},
-			"rolling_users": &schema.Schema{
+			"rolling_users": {
 				Type: schema.TypeList,
 				Elem: &schema.Schema{
 					Type: schema.TypeSet,
@@ -119,19 +120,19 @@ func ResourceOnCallOnCallShift() *schema.Resource {
 				Optional:    true,
 				Description: "The list of lists with on-call users (for rolling_users event type)",
 			},
-			"interval": &schema.Schema{
+			"interval": {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				ValidateFunc: validation.IntAtLeast(1),
 				Description:  "The positive integer representing at which intervals the recurrence rule repeats.",
 			},
-			"week_start": &schema.Schema{
+			"week_start": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice(onCallShiftWeekDayOptions, false),
 				Description:  fmt.Sprintf("Start day of the week in iCal format. Can be %s", onCallShiftWeekDayOptionsVerbal),
 			},
-			"by_day": &schema.Schema{
+			"by_day": {
 				Type: schema.TypeSet,
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
@@ -140,7 +141,7 @@ func ResourceOnCallOnCallShift() *schema.Resource {
 				Optional:    true,
 				Description: fmt.Sprintf("This parameter takes a list of days in iCal format. Can be %s", onCallShiftWeekDayOptionsVerbal),
 			},
-			"by_month": &schema.Schema{
+			"by_month": {
 				Type: schema.TypeSet,
 				Elem: &schema.Schema{
 					Type:         schema.TypeInt,
@@ -149,7 +150,7 @@ func ResourceOnCallOnCallShift() *schema.Resource {
 				Optional:    true,
 				Description: "This parameter takes a list of months. Valid values are 1 to 12",
 			},
-			"by_monthday": &schema.Schema{
+			"by_monthday": {
 				Type: schema.TypeSet,
 				Elem: &schema.Schema{
 					Type:         schema.TypeInt,
@@ -158,13 +159,13 @@ func ResourceOnCallOnCallShift() *schema.Resource {
 				Optional:    true,
 				Description: "This parameter takes a list of days of the month.  Valid values are 1 to 31 or -31 to -1",
 			},
-			"time_zone": &schema.Schema{
+			"time_zone": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.StringIsNotEmpty,
 				Description:  "The shift's timezone.  Overrides schedule's timezone.",
 			},
-			"start_rotation_from_user_index": &schema.Schema{
+			"start_rotation_from_user_index": {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				ValidateFunc: validation.IntAtLeast(0),
@@ -174,10 +175,10 @@ func ResourceOnCallOnCallShift() *schema.Resource {
 	}
 }
 
-func ResourceOnCallOnCallShiftCreate(d *schema.ResourceData, m interface{}) error {
+func ResourceOnCallOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
 	teamIdData := d.Get("team_id").(string)
@@ -204,7 +205,7 @@ func ResourceOnCallOnCallShiftCreate(d *schema.ResourceData, m interface{}) erro
 			f := frequencyData.(string)
 			createOptions.Frequency = &f
 		} else {
-			return fmt.Errorf("frequency can not be set with type: %s", typeData)
+			return diag.Errorf("frequency can not be set with type: %s", typeData)
 		}
 	}
 
@@ -214,7 +215,7 @@ func ResourceOnCallOnCallShiftCreate(d *schema.ResourceData, m interface{}) erro
 			usersDataSlice := setToStringSlice(usersData.(*schema.Set))
 			createOptions.Users = &usersDataSlice
 		} else {
-			return fmt.Errorf("`users` can not be set with type: %s, use `rolling_users` field instead", typeData)
+			return diag.Errorf("`users` can not be set with type: %s, use `rolling_users` field instead", typeData)
 		}
 	}
 
@@ -224,7 +225,7 @@ func ResourceOnCallOnCallShiftCreate(d *schema.ResourceData, m interface{}) erro
 			i := intervalData.(int)
 			createOptions.Interval = &i
 		} else {
-			return fmt.Errorf("interval can not be set with type: %s", typeData)
+			return diag.Errorf("interval can not be set with type: %s", typeData)
 		}
 	}
 
@@ -234,7 +235,7 @@ func ResourceOnCallOnCallShiftCreate(d *schema.ResourceData, m interface{}) erro
 			w := weekStartData.(string)
 			createOptions.WeekStart = &w
 		} else {
-			return fmt.Errorf("week_start can not be set with type: %s", typeData)
+			return diag.Errorf("week_start can not be set with type: %s", typeData)
 		}
 	}
 
@@ -244,7 +245,7 @@ func ResourceOnCallOnCallShiftCreate(d *schema.ResourceData, m interface{}) erro
 			byDayDataSlice := setToStringSlice(byDayData.(*schema.Set))
 			createOptions.ByDay = &byDayDataSlice
 		} else {
-			return fmt.Errorf("by_day can not be set with type: %s", typeData)
+			return diag.Errorf("by_day can not be set with type: %s", typeData)
 		}
 	}
 
@@ -254,7 +255,7 @@ func ResourceOnCallOnCallShiftCreate(d *schema.ResourceData, m interface{}) erro
 			byMonthDataSlice := setToIntSlice(byMonthData.(*schema.Set))
 			createOptions.ByMonth = &byMonthDataSlice
 		} else {
-			return fmt.Errorf("by_month can not be set with type: %s", typeData)
+			return diag.Errorf("by_month can not be set with type: %s", typeData)
 		}
 	}
 
@@ -264,7 +265,7 @@ func ResourceOnCallOnCallShiftCreate(d *schema.ResourceData, m interface{}) erro
 			byMonthdayDataSlice := setToIntSlice(byMonthdayData.(*schema.Set))
 			createOptions.ByMonthday = &byMonthdayDataSlice
 		} else {
-			return fmt.Errorf("by_monthday can not be set with type: %s", typeData)
+			return diag.Errorf("by_monthday can not be set with type: %s", typeData)
 		}
 	}
 
@@ -274,7 +275,7 @@ func ResourceOnCallOnCallShiftCreate(d *schema.ResourceData, m interface{}) erro
 			rollingUsersDataSlice := listOfSetsToStringSlice(rollingUsersData.([]interface{}))
 			createOptions.RollingUsers = &rollingUsersDataSlice
 		} else {
-			return fmt.Errorf("`rolling_users` can not be set with type: %s, use `users` field instead", typeData)
+			return diag.Errorf("`rolling_users` can not be set with type: %s, use `users` field instead", typeData)
 		}
 	}
 
@@ -292,18 +293,18 @@ func ResourceOnCallOnCallShiftCreate(d *schema.ResourceData, m interface{}) erro
 
 	onCallShift, _, err := client.OnCallShifts.CreateOnCallShift(createOptions)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(onCallShift.ID)
 
-	return ResourceOnCallOnCallShiftRead(d, m)
+	return ResourceOnCallOnCallShiftRead(ctx, d, m)
 }
 
-func ResourceOnCallOnCallShiftUpdate(d *schema.ResourceData, m interface{}) error {
+func ResourceOnCallOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
 	typeData := d.Get("type").(string)
@@ -328,7 +329,7 @@ func ResourceOnCallOnCallShiftUpdate(d *schema.ResourceData, m interface{}) erro
 			f := frequencyData.(string)
 			updateOptions.Frequency = &f
 		} else {
-			return fmt.Errorf("frequency can not be set with type: %s", typeData)
+			return diag.Errorf("frequency can not be set with type: %s", typeData)
 		}
 	}
 
@@ -338,7 +339,7 @@ func ResourceOnCallOnCallShiftUpdate(d *schema.ResourceData, m interface{}) erro
 			usersDataSlice := setToStringSlice(usersData.(*schema.Set))
 			updateOptions.Users = &usersDataSlice
 		} else {
-			return fmt.Errorf("`users` can not be set with type: %s, use `rolling_users` field instead", typeData)
+			return diag.Errorf("`users` can not be set with type: %s, use `rolling_users` field instead", typeData)
 		}
 	}
 
@@ -348,7 +349,7 @@ func ResourceOnCallOnCallShiftUpdate(d *schema.ResourceData, m interface{}) erro
 			i := intervalData.(int)
 			updateOptions.Interval = &i
 		} else {
-			return fmt.Errorf("interval can not be set with type: %s", typeData)
+			return diag.Errorf("interval can not be set with type: %s", typeData)
 		}
 	}
 
@@ -358,7 +359,7 @@ func ResourceOnCallOnCallShiftUpdate(d *schema.ResourceData, m interface{}) erro
 			w := weekStartData.(string)
 			updateOptions.WeekStart = &w
 		} else {
-			return fmt.Errorf("week_start can not be set with type: %s", typeData)
+			return diag.Errorf("week_start can not be set with type: %s", typeData)
 		}
 	}
 
@@ -368,7 +369,7 @@ func ResourceOnCallOnCallShiftUpdate(d *schema.ResourceData, m interface{}) erro
 			byDayDataSlice := setToStringSlice(byDayData.(*schema.Set))
 			updateOptions.ByDay = &byDayDataSlice
 		} else {
-			return fmt.Errorf("by_day can not be set with type: %s", typeData)
+			return diag.Errorf("by_day can not be set with type: %s", typeData)
 		}
 	}
 
@@ -378,7 +379,7 @@ func ResourceOnCallOnCallShiftUpdate(d *schema.ResourceData, m interface{}) erro
 			byMonthDataSlice := setToIntSlice(byMonthData.(*schema.Set))
 			updateOptions.ByMonth = &byMonthDataSlice
 		} else {
-			return fmt.Errorf("by_month can not be set with type: %s", typeData)
+			return diag.Errorf("by_month can not be set with type: %s", typeData)
 		}
 	}
 
@@ -388,7 +389,7 @@ func ResourceOnCallOnCallShiftUpdate(d *schema.ResourceData, m interface{}) erro
 			byMonthDayData := setToIntSlice(byMonthDayData.(*schema.Set))
 			updateOptions.ByMonthday = &byMonthDayData
 		} else {
-			return fmt.Errorf("by_monthday can not be set with type: %s", typeData)
+			return diag.Errorf("by_monthday can not be set with type: %s", typeData)
 		}
 	}
 
@@ -404,7 +405,7 @@ func ResourceOnCallOnCallShiftUpdate(d *schema.ResourceData, m interface{}) erro
 			rollingUsersDataSlice := listOfSetsToStringSlice(rollingUsersData.([]interface{}))
 			updateOptions.RollingUsers = &rollingUsersDataSlice
 		} else {
-			return fmt.Errorf("`rolling_users` can not be set with type: %s, use `users` field instead", typeData)
+			return diag.Errorf("`rolling_users` can not be set with type: %s, use `users` field instead", typeData)
 		}
 	}
 
@@ -416,18 +417,18 @@ func ResourceOnCallOnCallShiftUpdate(d *schema.ResourceData, m interface{}) erro
 
 	onCallShift, _, err := client.OnCallShifts.UpdateOnCallShift(d.Id(), updateOptions)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(onCallShift.ID)
 
-	return ResourceOnCallOnCallShiftRead(d, m)
+	return ResourceOnCallOnCallShiftRead(ctx, d, m)
 }
 
-func ResourceOnCallOnCallShiftRead(d *schema.ResourceData, m interface{}) error {
+func ResourceOnCallOnCallShiftRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.GetOnCallShiftOptions{}
 	onCallShift, r, err := client.OnCallShifts.GetOnCallShift(d.Id(), options)
@@ -437,7 +438,7 @@ func ResourceOnCallOnCallShiftRead(d *schema.ResourceData, m interface{}) error 
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.Set("team_id", onCallShift.TeamId)
@@ -460,15 +461,15 @@ func ResourceOnCallOnCallShiftRead(d *schema.ResourceData, m interface{}) error 
 	return nil
 }
 
-func ResourceOnCallOnCallShiftDelete(d *schema.ResourceData, m interface{}) error {
+func ResourceOnCallOnCallShiftDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.DeleteOnCallShiftOptions{}
 	_, err := client.OnCallShifts.DeleteOnCallShift(d.Id(), options)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId("")
