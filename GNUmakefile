@@ -1,10 +1,4 @@
 GRAFANA_VERSION ?= 8.4.4
-OS_ARCH=darwin_arm64
-BINARY=terraform-provider-${NAME}
-HOSTNAME=grafana.com
-NAMESPACE=raintank
-NAME=grafana
-VERSION=0.2.4
 
 testacc:
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
@@ -54,11 +48,3 @@ drone:
 
 linkcheck:
 	docker run -it --entrypoint sh -v "$$PWD:$$PWD" -w "$$PWD" python:3.9-alpine -c "pip3 install linkchecker && linkchecker --config .linkcheckerrc docs"
-
-build:
-	go build -o ${BINARY}
-
-install: build
-	mkdir -p ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
-	mv ${BINARY} ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
-
