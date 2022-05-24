@@ -1,11 +1,12 @@
 package grafana
 
 import (
-	"errors"
+	"context"
 	"log"
 	"net/http"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -14,37 +15,37 @@ func ResourceOnCallRoute() *schema.Resource {
 		Description: `
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/routes/)
 `,
-		Create: ResourceOnCallRouteCreate,
-		Read:   ResourceOnCallRouteRead,
-		Update: ResourceOnCallRouteUpdate,
-		Delete: ResourceOnCallRouteDelete,
+		CreateContext: ResourceOnCallRouteCreate,
+		ReadContext:   ResourceOnCallRouteRead,
+		UpdateContext: ResourceOnCallRouteUpdate,
+		DeleteContext: ResourceOnCallRouteDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
-			"integration_id": &schema.Schema{
+			"integration_id": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "The ID of the integration.",
 			},
-			"escalation_chain_id": &schema.Schema{
+			"escalation_chain_id": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The ID of the escalation chain.",
 			},
-			"position": &schema.Schema{
+			"position": {
 				Type:        schema.TypeInt,
 				Required:    true,
 				Description: "The position of the route (starts from 0).",
 			},
-			"routing_regex": &schema.Schema{
+			"routing_regex": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Python Regex query. Route is chosen for an alert if there is a match inside the alert payload.",
 			},
-			"slack": &schema.Schema{
+			"slack": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -63,10 +64,10 @@ func ResourceOnCallRoute() *schema.Resource {
 	}
 }
 
-func ResourceOnCallRouteCreate(d *schema.ResourceData, m interface{}) error {
+func ResourceOnCallRouteCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
 	integrationIdData := d.Get("integration_id").(string)
@@ -86,18 +87,18 @@ func ResourceOnCallRouteCreate(d *schema.ResourceData, m interface{}) error {
 
 	route, _, err := client.Routes.CreateRoute(createOptions)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(route.ID)
 
-	return ResourceOnCallRouteRead(d, m)
+	return ResourceOnCallRouteRead(ctx, d, m)
 }
 
-func ResourceOnCallRouteRead(d *schema.ResourceData, m interface{}) error {
+func ResourceOnCallRouteRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
 	route, r, err := client.Routes.GetRoute(d.Id(), &onCallAPI.GetRouteOptions{})
@@ -107,7 +108,7 @@ func ResourceOnCallRouteRead(d *schema.ResourceData, m interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.Set("integration_id", route.IntegrationId)
@@ -119,10 +120,10 @@ func ResourceOnCallRouteRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func ResourceOnCallRouteUpdate(d *schema.ResourceData, m interface{}) error {
+func ResourceOnCallRouteUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
 	escalationChainIdData := d.Get("escalation_chain_id").(string)
@@ -140,22 +141,22 @@ func ResourceOnCallRouteUpdate(d *schema.ResourceData, m interface{}) error {
 
 	route, _, err := client.Routes.UpdateRoute(d.Id(), updateOptions)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(route.ID)
-	return ResourceOnCallRouteRead(d, m)
+	return ResourceOnCallRouteRead(ctx, d, m)
 }
 
-func ResourceOnCallRouteDelete(d *schema.ResourceData, m interface{}) error {
+func ResourceOnCallRouteDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
 	_, err := client.Routes.DeleteRoute(d.Id(), &onCallAPI.DeleteRouteOptions{})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId("")

@@ -1,13 +1,14 @@
 package grafana
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -40,38 +41,38 @@ func ResourceOnCallEscalation() *schema.Resource {
 * [Official documentation](https://grafana.com/docs/grafana-cloud/oncall/escalation-policies/)
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/escalation_policies/)
 `,
-		Create: resourceEscalationCreate,
-		Read:   resourceEscalationRead,
-		Update: resourceEscalationUpdate,
-		Delete: resourceEscalationDelete,
+		CreateContext: resourceEscalationCreate,
+		ReadContext:   resourceEscalationRead,
+		UpdateContext: resourceEscalationUpdate,
+		DeleteContext: resourceEscalationDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
-			"escalation_chain_id": &schema.Schema{
+			"escalation_chain_id": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "The ID of the escalation chain.",
 			},
-			"position": &schema.Schema{
+			"position": {
 				Type:        schema.TypeInt,
 				Required:    true,
 				Description: "The position of the escalation step (starts from 0).",
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice(escalationOptions, false),
 				Description:  fmt.Sprintf("The type of escalation policy. Can be %s", escalationOptionsVerbal),
 			},
-			"important": &schema.Schema{
+			"important": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Will activate \"important\" personal notification rules. Actual for steps: notify_persons, notify_on_call_from_schedule and notify_user_group",
 			},
-			"duration": &schema.Schema{
+			"duration": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ConflictsWith: []string{
@@ -86,7 +87,7 @@ func ResourceOnCallEscalation() *schema.Resource {
 				ValidateFunc: validation.IntInSlice(durationOptions),
 				Description:  "The duration of delay for wait type step.",
 			},
-			"notify_on_call_from_schedule": &schema.Schema{
+			"notify_on_call_from_schedule": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ConflictsWith: []string{
@@ -134,7 +135,7 @@ func ResourceOnCallEscalation() *schema.Resource {
 				},
 				Description: "The list of ID's of users for notify_person_next_each_time type step.",
 			},
-			"action_to_trigger": &schema.Schema{
+			"action_to_trigger": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ConflictsWith: []string{
@@ -148,7 +149,7 @@ func ResourceOnCallEscalation() *schema.Resource {
 				},
 				Description: "The ID of an Action for trigger_action type step.",
 			},
-			"group_to_notify": &schema.Schema{
+			"group_to_notify": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ConflictsWith: []string{
@@ -162,7 +163,7 @@ func ResourceOnCallEscalation() *schema.Resource {
 				},
 				Description: "The ID of a User Group for notify_user_group type step.",
 			},
-			"notify_if_time_from": &schema.Schema{
+			"notify_if_time_from": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ConflictsWith: []string{
@@ -177,7 +178,7 @@ func ResourceOnCallEscalation() *schema.Resource {
 				},
 				Description: "The beginning of the time interval for notify_if_time_from_to type step in UTC (for example 08:00:00Z).",
 			},
-			"notify_if_time_to": &schema.Schema{
+			"notify_if_time_to": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ConflictsWith: []string{
@@ -196,10 +197,10 @@ func ResourceOnCallEscalation() *schema.Resource {
 	}
 }
 
-func resourceEscalationCreate(d *schema.ResourceData, m interface{}) error {
+func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
 	escalationChainIdData := d.Get("escalation_chain_id").(string)
@@ -220,7 +221,7 @@ func resourceEscalationCreate(d *schema.ResourceData, m interface{}) error {
 		if typeData == "wait" {
 			createOptions.Duration = durationData.(int)
 		} else {
-			return fmt.Errorf("duration can not be set with type: %s", typeData)
+			return diag.Errorf("duration can not be set with type: %s", typeData)
 		}
 	}
 
@@ -230,7 +231,7 @@ func resourceEscalationCreate(d *schema.ResourceData, m interface{}) error {
 			personsToNotifyDataSlice := setToStringSlice(personsToNotifyData.(*schema.Set))
 			createOptions.PersonsToNotify = &personsToNotifyDataSlice
 		} else {
-			return fmt.Errorf("persons_to_notify can not be set with type: %s", typeData)
+			return diag.Errorf("persons_to_notify can not be set with type: %s", typeData)
 		}
 	}
 
@@ -239,7 +240,7 @@ func resourceEscalationCreate(d *schema.ResourceData, m interface{}) error {
 		if typeData == "notify_on_call_from_schedule" {
 			createOptions.NotifyOnCallFromSchedule = notifyOnCallFromScheduleData.(string)
 		} else {
-			return fmt.Errorf("notify_on_call_from_schedule can not be set with type: %s", typeData)
+			return diag.Errorf("notify_on_call_from_schedule can not be set with type: %s", typeData)
 		}
 	}
 
@@ -249,7 +250,7 @@ func resourceEscalationCreate(d *schema.ResourceData, m interface{}) error {
 			personsToNotifyNextEachTimeDataSlice := setToStringSlice(personsToNotifyNextEachTimeData.(*schema.Set))
 			createOptions.PersonsToNotify = &personsToNotifyNextEachTimeDataSlice
 		} else {
-			return fmt.Errorf("persons_to_notify_next_each_time can not be set with type: %s", typeData)
+			return diag.Errorf("persons_to_notify_next_each_time can not be set with type: %s", typeData)
 		}
 	}
 
@@ -258,7 +259,7 @@ func resourceEscalationCreate(d *schema.ResourceData, m interface{}) error {
 		if typeData == "notify_user_group" {
 			createOptions.GroupToNotify = notifyToGroupData.(string)
 		} else {
-			return fmt.Errorf("notify_to_group can not be set with type: %s", typeData)
+			return diag.Errorf("notify_to_group can not be set with type: %s", typeData)
 		}
 	}
 
@@ -267,7 +268,7 @@ func resourceEscalationCreate(d *schema.ResourceData, m interface{}) error {
 		if typeData == "trigger_action" {
 			createOptions.ActionToTrigger = actionToTriggerData.(string)
 		} else {
-			return fmt.Errorf("action to trigger can not be set with type: %s", typeData)
+			return diag.Errorf("action to trigger can not be set with type: %s", typeData)
 		}
 	}
 
@@ -276,7 +277,7 @@ func resourceEscalationCreate(d *schema.ResourceData, m interface{}) error {
 		if typeData == "notify_if_time_from_to" {
 			createOptions.NotifyIfTimeFrom = notifyIfTimeFromData.(string)
 		} else {
-			return fmt.Errorf("notify_if_time_from can not be set with type: %s", typeData)
+			return diag.Errorf("notify_if_time_from can not be set with type: %s", typeData)
 		}
 	}
 
@@ -285,7 +286,7 @@ func resourceEscalationCreate(d *schema.ResourceData, m interface{}) error {
 		if typeData == "notify_if_time_from_to" {
 			createOptions.NotifyIfTimeTo = notifyIfTimeToData.(string)
 		} else {
-			return fmt.Errorf("notify_if_time_to can not be set with type: %s", typeData)
+			return diag.Errorf("notify_if_time_to can not be set with type: %s", typeData)
 		}
 	}
 
@@ -297,18 +298,18 @@ func resourceEscalationCreate(d *schema.ResourceData, m interface{}) error {
 
 	escalation, _, err := client.Escalations.CreateEscalation(createOptions)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(escalation.ID)
 
-	return resourceEscalationRead(d, m)
+	return resourceEscalationRead(ctx, d, m)
 }
 
-func resourceEscalationRead(d *schema.ResourceData, m interface{}) error {
+func resourceEscalationRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
 	escalation, r, err := client.Escalations.GetEscalation(d.Id(), &onCallAPI.GetEscalationOptions{})
@@ -318,7 +319,7 @@ func resourceEscalationRead(d *schema.ResourceData, m interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.Set("escalation_chain_id", escalation.EscalationChainId)
@@ -337,10 +338,10 @@ func resourceEscalationRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceEscalationUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
 	updateOptions := &onCallAPI.UpdateEscalationOptions{
@@ -419,22 +420,22 @@ func resourceEscalationUpdate(d *schema.ResourceData, m interface{}) error {
 
 	escalation, _, err := client.Escalations.UpdateEscalation(d.Id(), updateOptions)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(escalation.ID)
-	return resourceEscalationRead(d, m)
+	return resourceEscalationRead(ctx, d, m)
 }
 
-func resourceEscalationDelete(d *schema.ResourceData, m interface{}) error {
+func resourceEscalationDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
 	_, err := client.Escalations.DeleteEscalation(d.Id(), &onCallAPI.DeleteEscalationOptions{})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId("")
