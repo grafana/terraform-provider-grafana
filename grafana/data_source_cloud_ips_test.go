@@ -25,9 +25,7 @@ func TestAccDataSourceCloudIPsRead(t *testing.T) {
 
 					for k, v := range rs.Primary.Attributes {
 						// Attributes have two parts, the count of a list and the list items
-						if k == "id" || k == "%" {
-							continue
-						} else if strings.HasSuffix(k, ".#") {
+						if strings.HasSuffix(k, ".#") {
 							// This is the count
 							intValue, err := strconv.Atoi(v)
 							if err != nil {
@@ -36,7 +34,7 @@ func TestAccDataSourceCloudIPsRead(t *testing.T) {
 							if intValue == 0 {
 								return fmt.Errorf("attribute %s is empty", k)
 							}
-						} else {
+						} else if k != "id" && k != "%" {
 							// Other items are IPs
 							if parsed := net.ParseIP(v); parsed == nil {
 								return fmt.Errorf("invalid IP in attribute %s: %s", k, v)

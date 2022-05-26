@@ -69,6 +69,7 @@ func dataSourceCloudIPsRead(ctx context.Context, d *schema.ResourceData, meta in
 		"hosted_traces":  "https://grafana.com/api/hosted-traces/source-ips.txt",
 		"hosted_logs":    "https://grafana.com/api/hosted-logs/source-ips.txt",
 	} {
+		// nolint: gosec
 		resp, err := http.Get(dataURL)
 		if err != nil {
 			return diag.Errorf("error querying IPs for %s (%s): %v", attr, dataURL, err)
