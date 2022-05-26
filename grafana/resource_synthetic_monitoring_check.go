@@ -3,7 +3,9 @@ package grafana
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -555,6 +557,11 @@ func resourceSyntheticMonitoringCheckRead(ctx context.Context, d *schema.Resourc
 	}
 	chk, err := c.GetCheck(ctx, id)
 	if err != nil {
+		if strings.Contains(err.Error(), "404 Not Found") {
+			log.Printf("[WARN] removing check %s from state because it no longer exists", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
