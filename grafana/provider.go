@@ -211,6 +211,7 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_organization":  DatasourceOrganization(),
 
 				// Cloud
+				"grafana_cloud_ips":   DatasourceCloudIPs(),
 				"grafana_cloud_stack": DatasourceCloudStack(),
 
 				// Synthetic Monitoring
