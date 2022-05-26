@@ -398,6 +398,11 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Description: "(Stackdriver) The token URI used, provided in the service account key.",
 						},
+						"tracing_datasource_uid": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Cloudwatch) The X-Ray datasource uid to associate to this Cloudwatch datasource.",
+						},
 						"tsdb_resolution": {
 							Type:        schema.TypeInt,
 							Optional:    true,
@@ -729,6 +734,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		TLSConfigurationMethod:     d.Get("json_data.0.tls_configuration_method").(string),
 		TLSSkipVerify:              d.Get("json_data.0.tls_skip_verify").(bool),
 		TokenURI:                   d.Get("json_data.0.token_uri").(string),
+		TracingDatasourceUID:       d.Get("json_data.0.tracing_datasource_uid").(string),
 		TsdbResolution:             int64(d.Get("json_data.0.tsdb_resolution").(int)),
 		TsdbVersion:                int64(d.Get("json_data.0.tsdb_version").(int)),
 		Version:                    d.Get("json_data.0.version").(string),
