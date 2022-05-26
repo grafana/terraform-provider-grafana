@@ -262,6 +262,11 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Description: "(Elasticsearch) Which field should be used as the log message.",
 						},
+						"manage_alerts": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "(Prometheus) Manage alerts.",
+						},
 						"max_concurrent_shard_requests": {
 							Type:        schema.TypeInt,
 							Optional:    true,
@@ -422,6 +427,11 @@ source selected (via the 'type' argument).
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: "(Athena) Workgroup to use.",
+						},
+						"xpack_enabled": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "(Elasticsearch) Enable X-Pack support.",
 						},
 					},
 				},
@@ -707,6 +717,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		Implementation:             d.Get("json_data.0.implementation").(string),
 		LogLevelField:              d.Get("json_data.0.log_level_field").(string),
 		LogMessageField:            d.Get("json_data.0.log_message_field").(string),
+		ManageAlerts:               d.Get("json_data.0.manage_alerts").(bool),
 		MaxConcurrentShardRequests: int64(d.Get("json_data.0.max_concurrent_shard_requests").(int)),
 		MaxIdleConns:               int64(d.Get("json_data.0.max_idle_conns").(int)),
 		MaxLines:                   d.Get("json_data.0.max_lines").(int),
@@ -739,6 +750,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		TsdbVersion:                int64(d.Get("json_data.0.tsdb_version").(int)),
 		Version:                    d.Get("json_data.0.version").(string),
 		Workgroup:                  d.Get("json_data.0.workgroup").(string),
+		XpackEnabled:               d.Get("json_data.0.xpack_enabled").(bool),
 	}
 }
 

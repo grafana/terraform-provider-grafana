@@ -130,6 +130,7 @@ Optional:
 - `interval` (String) (Elasticsearch) Index date time format. nil(No Pattern), 'Hourly', 'Daily', 'Weekly', 'Monthly' or 'Yearly'.
 - `log_level_field` (String) (Elasticsearch) Which field should be used to indicate the priority of the log message.
 - `log_message_field` (String) (Elasticsearch) Which field should be used as the log message.
+- `manage_alerts` (Boolean) (Prometheus) Manage alerts.
 - `max_concurrent_shard_requests` (Number) (Elasticsearch) Maximum number of concurrent shard requests.
 - `max_idle_conns` (Number) (MySQL, PostgreSQL and MSSQL) Maximum number of connections in the idle connection pool (Grafana v5.4+).
 - `max_lines` (Number) (Loki) Upper limit for the number of log lines returned by Loki
@@ -162,6 +163,7 @@ Optional:
 - `tsdb_version` (Number) (OpenTSDB) Version.
 - `version` (String) (InfluxDB) InfluxQL or Flux.
 - `workgroup` (String) (Athena) Workgroup to use.
+- `xpack_enabled` (Boolean) (Elasticsearch) Enable X-Pack support.
 
 <a id="nestedblock--json_data--derived_field"></a>
 ### Nested Schema for `json_data.derived_field`
