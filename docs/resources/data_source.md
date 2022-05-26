@@ -157,6 +157,7 @@ Optional:
 - `tls_configuration_method` (String) (All) SSL Certificate configuration, either by ‘file-path’ or ‘file-content’.
 - `tls_skip_verify` (Boolean) (All) Controls whether a client verifies the server’s certificate chain and host name.
 - `token_uri` (String) (Stackdriver) The token URI used, provided in the service account key.
+- `tracing_datasource_uid` (String) (Cloudwatch) The X-Ray datasource uid to associate to this Cloudwatch datasource.
 - `tsdb_resolution` (Number) (OpenTSDB) Resolution.
 - `tsdb_version` (Number) (OpenTSDB) Version.
 - `version` (String) (InfluxDB) InfluxQL or Flux.

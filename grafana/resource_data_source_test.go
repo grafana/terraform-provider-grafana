@@ -263,6 +263,7 @@ func TestAccDataSource_basic(t *testing.T) {
 					assume_role_arn           = "arn:aws:sts::*:assumed-role/*/*"
 					custom_metrics_namespaces = "foo"
 					external_id               = "abc123"
+					tracing_datasource_uid    = "my-datasource-uid"
 				}
 				secure_json_data {
 					access_key = "123"
@@ -280,6 +281,17 @@ func TestAccDataSource_basic(t *testing.T) {
 				"json_data.0.external_id":               "abc123",
 				"secure_json_data.0.access_key":         "123",
 				"secure_json_data.0.secret_key":         "456",
+			},
+			additionalChecks: []resource.TestCheckFunc{
+				func(s *terraform.State) error {
+					if dataSource.Name != "cloudwatch" {
+						return fmt.Errorf("bad name: %s", dataSource.Name)
+					}
+					if dataSource.JSONData.TracingDatasourceUID != "my-datasource-uid" {
+						return fmt.Errorf("bad tracing_datasource_uid: %s", dataSource.JSONData.TracingDatasourceUID)
+					}
+					return nil
+				},
 			},
 		},
 		{
