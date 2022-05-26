@@ -23,6 +23,7 @@ var escalationOptions = []string{
 	"resolve",
 	"notify_whole_channel",
 	"notify_if_time_from_to",
+	"repeat_escalation",
 }
 
 var escalationOptionsVerbal = strings.Join(escalationOptions, ", ")
