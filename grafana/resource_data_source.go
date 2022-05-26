@@ -370,7 +370,7 @@ source selected (via the 'type' argument).
 						"time_interval": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(Prometheus, Elasticsearch, InfluxDB, MySQL, PostgreSQL, and MSSQL) Lowest interval/step value that should be used for this data source.",
+							Description: `(Prometheus, Elasticsearch, InfluxDB, MySQL, PostgreSQL, and MSSQL) Lowest interval/step value that should be used for this data source. Sometimes called "Scrape Interval" in the Grafana UI.`,
 						},
 						"tls_auth": {
 							Type:        schema.TypeBool,
