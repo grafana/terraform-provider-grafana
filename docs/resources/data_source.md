@@ -150,7 +150,7 @@ Optional:
 - `subscription_id` (String) (Azure Monitor) The subscription id
 - `tenant_id` (String) (Azure Monitor) Service account tenant ID.
 - `time_field` (String) (Elasticsearch) Which field that should be used as timestamp.
-- `time_interval` (String) (Prometheus, Elasticsearch, InfluxDB, MySQL, PostgreSQL, and MSSQL) Lowest interval/step value that should be used for this data source.
+- `time_interval` (String) (Prometheus, Elasticsearch, InfluxDB, MySQL, PostgreSQL, and MSSQL) Lowest interval/step value that should be used for this data source. Sometimes called "Scrape Interval" in the Grafana UI.
 - `timescaledb` (Boolean) (PostgreSQL) Enable usage of TimescaleDB extension.
 - `tls_auth` (Boolean) (All) Enable TLS authentication using client cert configured in secure json data.
 - `tls_auth_with_ca_cert` (Boolean) (All) Enable TLS authentication using CA cert.
