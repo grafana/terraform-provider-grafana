@@ -199,6 +199,7 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_oncall_escalation":       ResourceOnCallEscalation(),
 				"grafana_oncall_on_call_shift":    ResourceOnCallOnCallShift(),
 				"grafana_oncall_schedule":         ResourceOnCallSchedule(),
+				"grafana_oncall_outgoing_webhook": ResourceOnCallOutgoingWebhook(),
 			},
 
 			DataSourcesMap: map[string]*schema.Resource{
