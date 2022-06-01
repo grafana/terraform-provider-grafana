@@ -12,9 +12,11 @@ import (
 func DataSourceOnCallAction() *schema.Resource {
 	return &schema.Resource{
 		Description: `
+**Note:** This data source is going to be deprecated, please use outgoing webhook data source instead.
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/outgoing_webhooks/)
 `,
 		Read: dataSourceOnCallActionRead,
+		DeprecationMessage: "This data source is going to be deprecated, please use outgoing webhook data source instead.",
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
