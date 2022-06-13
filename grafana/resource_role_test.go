@@ -30,7 +30,7 @@ func TestAccRole(t *testing.T) {
 						"grafana_role.test", "description", "test desc",
 					),
 					resource.TestCheckResourceAttr(
-						"grafana_role.test", "displayName", "testdisplay",
+						"grafana_role.test", "display_name", "testdisplay",
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_role.test", "group", "testgroup",
@@ -60,6 +60,12 @@ func TestAccRole(t *testing.T) {
 						"grafana_role.test", "description", "test desc",
 					),
 					resource.TestCheckResourceAttr(
+						"grafana_role.test", "display_name", "testdisplay",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_role.test", "group", "testgroup",
+					),
+					resource.TestCheckResourceAttr(
 						"grafana_role.test", "version", "2",
 					),
 					resource.TestCheckResourceAttr(
@@ -67,6 +73,9 @@ func TestAccRole(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_role.test", "global", "true",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_role.test", "hidden", "true",
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_role.test", "permissions.#", "2",
@@ -128,7 +137,7 @@ resource "grafana_role" "test" {
   uid = "testuid"
   global = true
   group = "testgroup"
-  displayName = "testdisplay"
+  display_name = "testdisplay"
   hidden = true
 }
 `
@@ -141,7 +150,7 @@ resource "grafana_role" "test" {
   uid = "testuid"
   global = true
   group = "testgroup"
-  displayName = "testdisplay"
+  display_name = "testdisplay"
   hidden = true
   permissions {
 	action = "users:read"

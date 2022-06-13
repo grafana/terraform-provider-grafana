@@ -204,7 +204,8 @@ func ReadRole(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	if d.HasChange("version") || d.HasChange("name") || d.HasChange("description") || d.HasChange("permissions") {
+	if d.HasChange("version") || d.HasChange("name") || d.HasChange("description") || d.HasChange("permissions") ||
+		d.HasChange("display_name") || d.HasChange("group") || d.HasChange("hidden") {
 		desc := ""
 		// If description is defined, use the value from the config
 		if v, ok := d.GetOk("description"); !ok {
