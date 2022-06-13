@@ -262,6 +262,11 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Description: "(Elasticsearch) Which field should be used as the log message.",
 						},
+						"manage_alerts": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "(Prometheus) Manage alerts.",
+						},
 						"max_concurrent_shard_requests": {
 							Type:        schema.TypeInt,
 							Optional:    true,
@@ -370,7 +375,7 @@ source selected (via the 'type' argument).
 						"time_interval": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(Prometheus, Elasticsearch, InfluxDB, MySQL, PostgreSQL, and MSSQL) Lowest interval/step value that should be used for this data source.",
+							Description: `(Prometheus, Elasticsearch, InfluxDB, MySQL, PostgreSQL, and MSSQL) Lowest interval/step value that should be used for this data source. Sometimes called "Scrape Interval" in the Grafana UI.`,
 						},
 						"tls_auth": {
 							Type:        schema.TypeBool,
@@ -398,6 +403,11 @@ source selected (via the 'type' argument).
 							Optional:    true,
 							Description: "(Stackdriver) The token URI used, provided in the service account key.",
 						},
+						"tracing_datasource_uid": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Cloudwatch) The X-Ray datasource uid to associate to this Cloudwatch datasource.",
+						},
 						"tsdb_resolution": {
 							Type:        schema.TypeInt,
 							Optional:    true,
@@ -417,6 +427,11 @@ source selected (via the 'type' argument).
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: "(Athena) Workgroup to use.",
+						},
+						"xpack_enabled": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "(Elasticsearch) Enable X-Pack support.",
 						},
 					},
 				},
@@ -702,6 +717,7 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		Implementation:             d.Get("json_data.0.implementation").(string),
 		LogLevelField:              d.Get("json_data.0.log_level_field").(string),
 		LogMessageField:            d.Get("json_data.0.log_message_field").(string),
+		ManageAlerts:               d.Get("json_data.0.manage_alerts").(bool),
 		MaxConcurrentShardRequests: int64(d.Get("json_data.0.max_concurrent_shard_requests").(int)),
 		MaxIdleConns:               int64(d.Get("json_data.0.max_idle_conns").(int)),
 		MaxLines:                   d.Get("json_data.0.max_lines").(int),
@@ -729,10 +745,12 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		TLSConfigurationMethod:     d.Get("json_data.0.tls_configuration_method").(string),
 		TLSSkipVerify:              d.Get("json_data.0.tls_skip_verify").(bool),
 		TokenURI:                   d.Get("json_data.0.token_uri").(string),
+		TracingDatasourceUID:       d.Get("json_data.0.tracing_datasource_uid").(string),
 		TsdbResolution:             int64(d.Get("json_data.0.tsdb_resolution").(int)),
 		TsdbVersion:                int64(d.Get("json_data.0.tsdb_version").(int)),
 		Version:                    d.Get("json_data.0.version").(string),
 		Workgroup:                  d.Get("json_data.0.workgroup").(string),
+		XpackEnabled:               d.Get("json_data.0.xpack_enabled").(bool),
 	}
 }
 

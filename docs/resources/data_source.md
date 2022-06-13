@@ -130,6 +130,7 @@ Optional:
 - `interval` (String) (Elasticsearch) Index date time format. nil(No Pattern), 'Hourly', 'Daily', 'Weekly', 'Monthly' or 'Yearly'.
 - `log_level_field` (String) (Elasticsearch) Which field should be used to indicate the priority of the log message.
 - `log_message_field` (String) (Elasticsearch) Which field should be used as the log message.
+- `manage_alerts` (Boolean) (Prometheus) Manage alerts.
 - `max_concurrent_shard_requests` (Number) (Elasticsearch) Maximum number of concurrent shard requests.
 - `max_idle_conns` (Number) (MySQL, PostgreSQL and MSSQL) Maximum number of connections in the idle connection pool (Grafana v5.4+).
 - `max_lines` (Number) (Loki) Upper limit for the number of log lines returned by Loki
@@ -150,17 +151,19 @@ Optional:
 - `subscription_id` (String) (Azure Monitor) The subscription id
 - `tenant_id` (String) (Azure Monitor) Service account tenant ID.
 - `time_field` (String) (Elasticsearch) Which field that should be used as timestamp.
-- `time_interval` (String) (Prometheus, Elasticsearch, InfluxDB, MySQL, PostgreSQL, and MSSQL) Lowest interval/step value that should be used for this data source.
+- `time_interval` (String) (Prometheus, Elasticsearch, InfluxDB, MySQL, PostgreSQL, and MSSQL) Lowest interval/step value that should be used for this data source. Sometimes called "Scrape Interval" in the Grafana UI.
 - `timescaledb` (Boolean) (PostgreSQL) Enable usage of TimescaleDB extension.
 - `tls_auth` (Boolean) (All) Enable TLS authentication using client cert configured in secure json data.
 - `tls_auth_with_ca_cert` (Boolean) (All) Enable TLS authentication using CA cert.
 - `tls_configuration_method` (String) (All) SSL Certificate configuration, either by ‘file-path’ or ‘file-content’.
 - `tls_skip_verify` (Boolean) (All) Controls whether a client verifies the server’s certificate chain and host name.
 - `token_uri` (String) (Stackdriver) The token URI used, provided in the service account key.
+- `tracing_datasource_uid` (String) (Cloudwatch) The X-Ray datasource uid to associate to this Cloudwatch datasource.
 - `tsdb_resolution` (Number) (OpenTSDB) Resolution.
 - `tsdb_version` (Number) (OpenTSDB) Version.
 - `version` (String) (InfluxDB) InfluxQL or Flux.
 - `workgroup` (String) (Athena) Workgroup to use.
+- `xpack_enabled` (Boolean) (Elasticsearch) Enable X-Pack support.
 
 <a id="nestedblock--json_data--derived_field"></a>
 ### Nested Schema for `json_data.derived_field`

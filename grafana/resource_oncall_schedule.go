@@ -1,12 +1,12 @@
 package grafana
 
 import (
-	"errors"
-	"fmt"
+	"context"
 	"log"
 	"net/http"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -21,49 +21,49 @@ func ResourceOnCallSchedule() *schema.Resource {
 		Description: `
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/schedules/)
 `,
-		Create: resourceScheduleCreate,
-		Read:   resourceScheduleRead,
-		Update: resourceScheduleUpdate,
-		Delete: resourceScheduleDelete,
+		CreateContext: resourceScheduleCreate,
+		ReadContext:   resourceScheduleRead,
+		UpdateContext: resourceScheduleUpdate,
+		DeleteContext: resourceScheduleDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringIsNotEmpty,
 				Description:  "The schedule's name.",
 			},
-			"team_id": &schema.Schema{
+			"team_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The ID of the team.",
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validation.StringInSlice(scheduleTypeOptions, false),
 				Description:  "The schedule's type.",
 			},
-			"time_zone": &schema.Schema{
+			"time_zone": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The schedule's time zone.",
 			},
-			"ical_url_primary": &schema.Schema{
+			"ical_url_primary": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The URL of the external calendar iCal file.",
 			},
-			"ical_url_overrides": &schema.Schema{
+			"ical_url_overrides": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The URL of external iCal calendar which override primary events.",
 			},
-			"slack": &schema.Schema{
+			"slack": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -83,7 +83,7 @@ func ResourceOnCallSchedule() *schema.Resource {
 				MaxItems:    1,
 				Description: "The Slack-specific settings for a schedule.",
 			},
-			"shifts": &schema.Schema{
+			"shifts": {
 				Type: schema.TypeSet,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -95,10 +95,10 @@ func ResourceOnCallSchedule() *schema.Resource {
 	}
 }
 
-func resourceScheduleCreate(d *schema.ResourceData, m interface{}) error {
+func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
 	nameData := d.Get("name").(string)
@@ -119,7 +119,7 @@ func resourceScheduleCreate(d *schema.ResourceData, m interface{}) error {
 			url := iCalUrlPrimaryData.(string)
 			createOptions.ICalUrlPrimary = &url
 		} else {
-			return fmt.Errorf("ical_url_primary can not be set with type: %s", typeData)
+			return diag.Errorf("ical_url_primary can not be set with type: %s", typeData)
 		}
 	}
 
@@ -135,7 +135,7 @@ func resourceScheduleCreate(d *schema.ResourceData, m interface{}) error {
 			shiftsDataSlice := setToStringSlice(shiftsData.(*schema.Set))
 			createOptions.Shifts = &shiftsDataSlice
 		} else {
-			return fmt.Errorf("shifts can not be set with type: %s", typeData)
+			return diag.Errorf("shifts can not be set with type: %s", typeData)
 		}
 	}
 
@@ -144,24 +144,24 @@ func resourceScheduleCreate(d *schema.ResourceData, m interface{}) error {
 		if typeData == "calendar" {
 			createOptions.TimeZone = timeZoneData.(string)
 		} else {
-			return fmt.Errorf("time_zone can not be set with type: %s", typeData)
+			return diag.Errorf("time_zone can not be set with type: %s", typeData)
 		}
 	}
 
 	schedule, _, err := client.Schedules.CreateSchedule(createOptions)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(schedule.ID)
 
-	return resourceScheduleRead(d, m)
+	return resourceScheduleRead(ctx, d, m)
 }
 
-func resourceScheduleUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
 	nameData := d.Get("name").(string)
@@ -179,7 +179,7 @@ func resourceScheduleUpdate(d *schema.ResourceData, m interface{}) error {
 			url := iCalUrlPrimaryData.(string)
 			updateOptions.ICalUrlPrimary = &url
 		} else {
-			return fmt.Errorf("ical_url_primary can not be set with type: %s", typeData)
+			return diag.Errorf("ical_url_primary can not be set with type: %s", typeData)
 		}
 	}
 
@@ -194,7 +194,7 @@ func resourceScheduleUpdate(d *schema.ResourceData, m interface{}) error {
 		if typeData == "calendar" {
 			updateOptions.TimeZone = timeZoneData.(string)
 		} else {
-			return fmt.Errorf("time_zone can not be set with type: %s", typeData)
+			return diag.Errorf("time_zone can not be set with type: %s", typeData)
 		}
 	}
 
@@ -204,24 +204,24 @@ func resourceScheduleUpdate(d *schema.ResourceData, m interface{}) error {
 			shiftsDataSlice := setToStringSlice(shiftsData.(*schema.Set))
 			updateOptions.Shifts = &shiftsDataSlice
 		} else {
-			return fmt.Errorf("shifts can not be set with type: %s", typeData)
+			return diag.Errorf("shifts can not be set with type: %s", typeData)
 		}
 	}
 
 	schedule, _, err := client.Schedules.UpdateSchedule(d.Id(), updateOptions)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(schedule.ID)
 
-	return resourceScheduleRead(d, m)
+	return resourceScheduleRead(ctx, d, m)
 }
 
-func resourceScheduleRead(d *schema.ResourceData, m interface{}) error {
+func resourceScheduleRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.GetScheduleOptions{}
 	schedule, r, err := client.Schedules.GetSchedule(d.Id(), options)
@@ -231,7 +231,7 @@ func resourceScheduleRead(d *schema.ResourceData, m interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.Set("name", schedule.Name)
@@ -246,15 +246,15 @@ func resourceScheduleRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceScheduleDelete(d *schema.ResourceData, m interface{}) error {
+func resourceScheduleDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.DeleteScheduleOptions{}
 	_, err := client.Schedules.DeleteSchedule(d.Id(), options)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId("")

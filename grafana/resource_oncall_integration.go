@@ -1,13 +1,14 @@
 package grafana
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -48,34 +49,34 @@ func ResourceOnCallIntegration() *schema.Resource {
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/)
 `,
 
-		Create: ResourceOnCallIntegrationCreate,
-		Read:   ResourceOnCallIntegrationRead,
-		Update: ResourceOnCallIntegrationUpdate,
-		Delete: ResourceOnCallIntegrationDelete,
+		CreateContext: ResourceOnCallIntegrationCreate,
+		ReadContext:   ResourceOnCallIntegrationRead,
+		UpdateContext: ResourceOnCallIntegrationUpdate,
+		DeleteContext: ResourceOnCallIntegrationDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringIsNotEmpty,
 				Description:  "The name of the service integration.",
 			},
-			"team_id": &schema.Schema{
+			"team_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The id of the team.",
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringInSlice(integrationTypes, false),
 				ForceNew:     true,
 				Description:  fmt.Sprintf("The type of integration. Can be %s.", integrationTypesVerbal),
 			},
-			"default_route": &schema.Schema{
+			"default_route": {
 				Type:     schema.TypeList,
 				Required: true,
 				Elem: &schema.Resource{
@@ -109,12 +110,12 @@ func ResourceOnCallIntegration() *schema.Resource {
 				MaxItems:    1,
 				Description: "The Default route for all alerts from the given integration",
 			},
-			"link": &schema.Schema{
+			"link": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The link for using in an integrated tool.",
 			},
-			"templates": &schema.Schema{
+			"templates": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -163,10 +164,10 @@ func ResourceOnCallIntegration() *schema.Resource {
 	}
 }
 
-func ResourceOnCallIntegrationCreate(d *schema.ResourceData, m interface{}) error {
+func ResourceOnCallIntegrationCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
 	teamIdData := d.Get("team_id").(string)
@@ -183,18 +184,18 @@ func ResourceOnCallIntegrationCreate(d *schema.ResourceData, m interface{}) erro
 
 	integration, _, err := client.Integrations.CreateIntegration(createOptions)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(integration.ID)
 
-	return ResourceOnCallIntegrationRead(d, m)
+	return ResourceOnCallIntegrationRead(ctx, d, m)
 }
 
-func ResourceOnCallIntegrationUpdate(d *schema.ResourceData, m interface{}) error {
+func ResourceOnCallIntegrationUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
 	nameData := d.Get("name").(string)
@@ -209,18 +210,18 @@ func ResourceOnCallIntegrationUpdate(d *schema.ResourceData, m interface{}) erro
 
 	integration, _, err := client.Integrations.UpdateIntegration(d.Id(), updateOptions)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(integration.ID)
 
-	return ResourceOnCallIntegrationRead(d, m)
+	return ResourceOnCallIntegrationRead(ctx, d, m)
 }
 
-func ResourceOnCallIntegrationRead(d *schema.ResourceData, m interface{}) error {
+func ResourceOnCallIntegrationRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.GetIntegrationOptions{}
 	integration, r, err := client.Integrations.GetIntegration(d.Id(), options)
@@ -230,7 +231,7 @@ func ResourceOnCallIntegrationRead(d *schema.ResourceData, m interface{}) error 
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.Set("team_id", integration.TeamId)
@@ -243,15 +244,15 @@ func ResourceOnCallIntegrationRead(d *schema.ResourceData, m interface{}) error 
 	return nil
 }
 
-func ResourceOnCallIntegrationDelete(d *schema.ResourceData, m interface{}) error {
+func ResourceOnCallIntegrationDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
+		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.DeleteIntegrationOptions{}
 	_, err := client.Integrations.DeleteIntegration(d.Id(), options)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId("")

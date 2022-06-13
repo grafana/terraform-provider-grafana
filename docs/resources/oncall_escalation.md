@@ -72,7 +72,7 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 - `notify_on_call_from_schedule` (String) ID of a Schedule for notify_on_call_from_schedule type step.
 - `persons_to_notify` (Set of String) The list of ID's of users for notify_persons type step.
 - `persons_to_notify_next_each_time` (Set of String) The list of ID's of users for notify_person_next_each_time type step.
-- `type` (String) The type of escalation policy. Can be wait, notify_persons, notify_person_next_each_time, notify_on_call_from_schedule, trigger_action, notify_user_group, resolve, notify_whole_channel, notify_if_time_from_to
+- `type` (String) The type of escalation policy. Can be wait, notify_persons, notify_person_next_each_time, notify_on_call_from_schedule, trigger_action, notify_user_group, resolve, notify_whole_channel, notify_if_time_from_to, repeat_escalation
 
 ### Read-Only
 
