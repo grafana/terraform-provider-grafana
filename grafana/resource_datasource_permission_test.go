@@ -64,15 +64,9 @@ func testAccDatasourcePermissionsCheckExists(rn string, datasourceID *int64) res
 func testAccDatasourcePermissionCheckDestroy(datasourceID *int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*client).gapi
-		response, err := client.DatasourcePermissions(*datasourceID)
+		_, err := client.DatasourcePermissions(*datasourceID)
 		if err != nil {
-			return fmt.Errorf("Error getting datasource permissions %d: %s", *datasourceID, err)
-		}
-		if response.Enabled {
-			return fmt.Errorf("Datasource permissions %d still enabled", *datasourceID)
-		}
-		if len(response.Permissions) > 0 {
-			return fmt.Errorf("Permissions were not empty when expected")
+			return fmt.Errorf("error getting datasource permissions %d: %s", *datasourceID, err)
 		}
 
 		return nil
