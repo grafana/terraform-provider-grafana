@@ -113,7 +113,7 @@ func writePEMFile(name, pemType string, data []byte) error {
 
 	err = os.WriteFile(name, buf.Bytes(), 0600)
 	if err != nil {
-		return fmt.Errorf("cannot write PEM file %s: %w", name, err)
+		return fmt.Errorf("cannot write to PEM file %s: %w", name, err)
 	}
 
 	return nil
