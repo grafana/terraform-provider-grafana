@@ -27,4 +27,8 @@ resource "grafana_data_source_permission" "fooPermissions" {
     user_id    = 3 // 3 is the admin user in cloud. It can't be queried
     permission = "Query"
   }
+  // As the data_source_permission is using legacy implementation, this temporary fixes the issue when Grafana returns more on-the-fly computed permissions than provisioned.
+  permissions {
+    permission = "Query"
+  }
 }
