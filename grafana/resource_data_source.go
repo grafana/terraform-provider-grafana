@@ -593,8 +593,8 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		TLSAuthWithCACert:          d.Get("json_data.0.tls_auth_with_ca_cert").(bool),
 		TLSSkipVerify:              d.Get("json_data.0.tls_skip_verify").(bool),
 		TokenURI:                   d.Get("json_data.0.token_uri").(string),
-		TsdbResolution:             d.Get("json_data.0.tsdb_resolution").(string),
-		TsdbVersion:                d.Get("json_data.0.tsdb_version").(string),
+		TsdbResolution:             d.Get("json_data.0.tsdb_resolution").(int64),
+		TsdbVersion:                d.Get("json_data.0.tsdb_version").(int64),
 		Workgroup:                  d.Get("json_data.0.workgroup").(string),
 	}
 }
