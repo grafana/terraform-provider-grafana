@@ -35,19 +35,21 @@ Manages Grafana Alerting contact points.
 			},
 			"type": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true, // TODO changed to optional
+				Default:     "",
 				Description: "The type of the contact point.",
 			},
 			"email": {
-				Type:        schema.TypeMap,
+				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "The email contact points.",
+				Description: "The email contact point.",
 				Elem:        emailResource(),
 			},
 			"settings": {
 				Type:        schema.TypeMap,
-				Required:    true,
+				Optional:    true, // TODO changed to optional
 				Sensitive:   true,
+				Default:     map[string]interface{}{},
 				Description: "Settings fields for the contact point.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -80,8 +82,29 @@ func readContactPoint(ctx context.Context, data *schema.ResourceData, meta inter
 	data.SetId(p.UID)
 	data.Set("name", p.Name)
 	data.Set("type", p.Type)
-	data.Set("settings", p.Settings)
 	data.Set("disable_resolve_message", p.DisableResolveMessage)
+	if p.Type == "email" {
+		emailData := map[string]interface{}{}
+		if v, ok := p.Settings["addresses"]; ok {
+			addrs := strings.Split(v.(string), ";")
+			for i, a := range addrs {
+				addrs[i] = strings.TrimSpace(a)
+			}
+			emailData["addresses"] = addrs
+		}
+		if v, ok := p.Settings["singleEmail"]; ok {
+			emailData["single_email"] = v.(bool)
+		}
+		if v, ok := p.Settings["message"]; ok {
+			emailData["message"] = v.(string)
+		}
+		if v, ok := p.Settings["subject"]; ok {
+			emailData["subject"] = v.(string)
+		}
+		data.Set("email", []interface{}{emailData})
+	} else {
+		data.Set("settings", p.Settings)
+	}
 
 	return nil
 }
@@ -122,12 +145,36 @@ func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 }
 
 func contactPointFromResourceData(data *schema.ResourceData) gapi.ContactPoint {
+	typ := data.Get("type").(string)
+	settings := data.Get("settings").(map[string]interface{})
+	if settings == nil {
+		settings = map[string]interface{}{}
+	}
+	if e, ok := data.GetOk("email"); ok {
+		typ = "email"
+		for _, notif := range e.(*schema.Set).List() {
+			// TODO: This is horrible because we're stuffing potentially many notifiers into one.
+			// TODO: Answer the "one vs many" notifiers per contact point question and fix accordingly.
+			// TODO: this is just for testing
+			n := notif.(map[string]interface{})
+			adds := n["addresses"].([]interface{})
+			addStrs := make([]string, len(adds))
+			for i, a := range adds {
+				addStrs[i] = a.(string)
+			}
+			settings["addresses"] = strings.Join(addStrs, ";")
+			settings["singleEmail"] = n["single_email"].(bool)
+			settings["message"] = n["message"].(string)
+			settings["subject"] = n["subject"].(string)
+			// TODO: merge in shared settings field too
+		}
+	}
 	return gapi.ContactPoint{
 		UID:                   data.Id(),
 		Name:                  data.Get("name").(string),
-		Type:                  data.Get("type").(string),
-		Settings:              data.Get("settings").(map[string]interface{}),
 		DisableResolveMessage: data.Get("disable_resolve_message").(bool),
+		Type:                  typ,
+		Settings:              settings,
 	}
 }
 
@@ -141,7 +188,7 @@ func emailResource() *schema.Resource {
 			Type: schema.TypeString,
 		},
 	}
-	r.Schema["singleEmail"] = &schema.Schema{
+	r.Schema["single_email"] = &schema.Schema{
 		Type:        schema.TypeBool,
 		Optional:    true,
 		Default:     false,
