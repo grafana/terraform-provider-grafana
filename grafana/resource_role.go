@@ -206,16 +206,11 @@ func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 
 	if d.HasChange("version") || d.HasChange("name") || d.HasChange("description") || d.HasChange("permissions") ||
 		d.HasChange("display_name") || d.HasChange("group") || d.HasChange("hidden") {
-		desc := ""
-		// If description is defined, use the value from the config
-		if v, ok := d.GetOk("description"); !ok {
-			desc = v.(string)
-		}
 		r := gapi.Role{
 			UID:         d.Id(),
 			Name:        d.Get("name").(string),
 			Global:      d.Get("global").(bool),
-			Description: desc,
+			Description: d.Get("description").(string),
 			DisplayName: d.Get("display_name").(string),
 			Group:       d.Get("group").(string),
 			Hidden:      d.Get("hidden").(bool),
