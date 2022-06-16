@@ -49,6 +49,22 @@ func ResourceRole() *schema.Resource {
 				Optional:    true,
 				Description: "Description of the role.",
 			},
+			"display_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Display name of the role. Available with Grafana 8.5+.",
+			},
+			"group": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Group of the role. Available with Grafana 8.5+.",
+			},
+			"hidden": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Boolean to state whether the role should be visible in the Grafana UI or not. Available with Grafana 8.5+.",
+			},
 			"global": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -88,6 +104,9 @@ func CreateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		Description: d.Get("description").(string),
 		Version:     int64(d.Get("version").(int)),
 		Global:      d.Get("global").(bool),
+		DisplayName: d.Get("display_name").(string),
+		Group:       d.Get("group").(string),
+		Hidden:      d.Get("hidden").(bool),
 		Permissions: permissions(d),
 	}
 	r, err := client.NewRole(role)
@@ -150,7 +169,19 @@ func ReadRole(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	err = d.Set("display_name", r.DisplayName)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = d.Set("group", r.Group)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	err = d.Set("global", r.Global)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = d.Set("hidden", r.Hidden)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -173,12 +204,16 @@ func ReadRole(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	if d.HasChange("version") || d.HasChange("name") || d.HasChange("description") || d.HasChange("permissions") {
+	if d.HasChange("version") || d.HasChange("name") || d.HasChange("description") || d.HasChange("permissions") ||
+		d.HasChange("display_name") || d.HasChange("group") || d.HasChange("hidden") {
 		r := gapi.Role{
 			UID:         d.Id(),
 			Name:        d.Get("name").(string),
 			Global:      d.Get("global").(bool),
 			Description: d.Get("description").(string),
+			DisplayName: d.Get("display_name").(string),
+			Group:       d.Get("group").(string),
+			Hidden:      d.Get("hidden").(bool),
 			Version:     int64(d.Get("version").(int)),
 			Permissions: permissions(d),
 		}
