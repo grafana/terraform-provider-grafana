@@ -28,6 +28,10 @@ The Grafana provider provides configuration management resources for
 
 {{ tffile "examples/provider/provider-sm.tf" }}
 
+### Managing Grafana OnCall
+
+{{ tffile "examples/provider/provider-oncall.tf" }}
+
 {{ .SchemaMarkdown | trimspace }}
 
 ## Authentication
@@ -88,3 +92,8 @@ Finally, go back to your stack page, and go to "Details" for Loki to get
 ```http
 https://grafana.com/orgs/<org-slug>/hosted-logs/<logs-instance-id>
 ```
+
+### `oncall_access_token`
+
+[Grafana OnCall API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/)
+uses API keys to allow access to the API. You can request a new OnCall API key in OnCall -> Settings page.

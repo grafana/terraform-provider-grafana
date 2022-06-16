@@ -1,21 +1,7 @@
-// Step 1: Create a stack it you haven't already.
+// Step 1: Configure provider block.
+//Go to the Grafana OnCall in your stack and create api token in the settings tab.It will be your oncall_access_token.
+// If you are using Grafana OnCall OSS consider set oncall_url. You can get it in OnCall -> settings -> API URL.
 provider "grafana" {
-  auth          = "cloud_api_key"
-  alias         = "cloud"
-  cloud_api_key = "<my-api-key>"
-}
-
-resource "grafana_cloud_stack" "sm_stack" {
-  provider = grafana.cloud
-
-  name        = "<stack-name>"
-  slug        = "<stack-slug>"
-  region_slug = "us"
-}
-
-// Step 2: Go to the Grafana OnCall in your stack and create api token in the settings tab.
-provider "grafana" {
-  auth                = "oncall_access_token"
   alias               = "oncall"
   oncall_access_token = "my_oncall_token"
 }
@@ -24,7 +10,7 @@ data "grafana_oncall_user" "alex" {
   username = "alex"
 }
 
-// Step 3: Interact with Grafana OnCall
+// Step 2: Interact with Grafana OnCall
 resource "grafana_oncall_integration" "test-acc-integration" {
   provider = grafana.oncall
   name     = "my integration"
