@@ -87,23 +87,23 @@ func ResourceOnCallOutgoingWebhookCreate(ctx context.Context, d *schema.Resource
 	}
 
 	dataData, dataDataOk := d.GetOk("data")
-    if dataDataOk {
+	if dataDataOk {
 		dd := dataData.(string)
 		createOptions.Data = &dd
 	}
 	userData, userDataOk := d.GetOk("user")
-    if userDataOk {
+	if userDataOk {
 		u := userData.(string)
 		createOptions.User = &u
 	}
 
 	passwordData, passwordDataOk := d.GetOk("password")
-    if passwordDataOk {
+	if passwordDataOk {
 		p := passwordData.(string)
 		createOptions.Password = &p
 	}
 	authHeaderData, authHeaderDataOk := d.GetOk("authorization_header")
-    if authHeaderDataOk {
+	if authHeaderDataOk {
 		a := authHeaderData.(string)
 		createOptions.AuthorizationHeader = &a
 	}
@@ -158,28 +158,28 @@ func ResourceOnCallOutgoingWebhookUpdate(ctx context.Context, d *schema.Resource
 
 	updateOptions := &onCallAPI.UpdateCustomActionOptions{
 		Name:                nameData,
-        Webhook:             webhookData,
+		Webhook:             webhookData,
 		ForwardWholePayload: forwardWholePayloadData,
 	}
 
-		dataData, dataDataOk := d.GetOk("data")
-    if dataDataOk {
+	dataData, dataDataOk := d.GetOk("data")
+	if dataDataOk {
 		dd := dataData.(string)
 		updateOptions.Data = &dd
 	}
 	userData, userDataOk := d.GetOk("user")
-    if userDataOk {
+	if userDataOk {
 		u := userData.(string)
 		updateOptions.User = &u
 	}
 
 	passwordData, passwordDataOk := d.GetOk("password")
-    if passwordDataOk {
+	if passwordDataOk {
 		p := passwordData.(string)
 		updateOptions.Password = &p
 	}
 	authHeaderData, authHeaderDataOk := d.GetOk("authorization_header")
-    if authHeaderDataOk {
+	if authHeaderDataOk {
 		a := authHeaderData.(string)
 		updateOptions.AuthorizationHeader = &a
 	}
