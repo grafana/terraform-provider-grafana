@@ -3,12 +3,12 @@
 page_title: "grafana_oncall_outgoing_webhook Resource - terraform-provider-grafana"
 subcategory: ""
 description: |-
-  HTTP API https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/actions/
+  HTTP API https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/outgoing_webhooks/
 ---
 
 # grafana_oncall_outgoing_webhook (Resource)
 
-* [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/actions/)
+* [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/outgoing_webhooks/)
 
 ## Example Usage
 
