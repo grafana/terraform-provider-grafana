@@ -1,6 +1,7 @@
 package grafana
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -214,6 +215,7 @@ func TestAccDataSource_basic(t *testing.T) {
 					log_message_field = "message"
 					log_level_field   = "fields.level"
 					max_concurrent_shard_requests = 8
+					xpack_enabled     = true
 				}
 			}
 			`,
@@ -228,6 +230,17 @@ func TestAccDataSource_basic(t *testing.T) {
 				"json_data.0.log_message_field": "message",
 				"json_data.0.log_level_field":   "fields.level",
 				"json_data.0.max_concurrent_shard_requests": "8",
+			},
+			additionalChecks: []resource.TestCheckFunc{
+				func(s *terraform.State) error {
+					if dataSource.Name != "elasticsearch" {
+						return fmt.Errorf("bad name: %s", dataSource.Name)
+					}
+					if dataSource.JSONData.XpackEnabled != true {
+						return errors.New("xpack_enabled should be true")
+					}
+					return nil
+				},
 			},
 		},
 		{
@@ -263,6 +276,7 @@ func TestAccDataSource_basic(t *testing.T) {
 					assume_role_arn           = "arn:aws:sts::*:assumed-role/*/*"
 					custom_metrics_namespaces = "foo"
 					external_id               = "abc123"
+					tracing_datasource_uid    = "my-datasource-uid"
 				}
 				secure_json_data {
 					access_key = "123"
@@ -280,6 +294,17 @@ func TestAccDataSource_basic(t *testing.T) {
 				"json_data.0.external_id":               "abc123",
 				"secure_json_data.0.access_key":         "123",
 				"secure_json_data.0.secret_key":         "456",
+			},
+			additionalChecks: []resource.TestCheckFunc{
+				func(s *terraform.State) error {
+					if dataSource.Name != "cloudwatch" {
+						return fmt.Errorf("bad name: %s", dataSource.Name)
+					}
+					if dataSource.JSONData.TracingDatasourceUID != "my-datasource-uid" {
+						return fmt.Errorf("bad tracing_datasource_uid: %s", dataSource.JSONData.TracingDatasourceUID)
+					}
+					return nil
+				},
 			},
 		},
 		{
@@ -360,6 +385,7 @@ func TestAccDataSource_basic(t *testing.T) {
 					sigv4_auth   = true
 					sigv4_auth_type = "default"
 					sigv4_region    = "eu-west-1"
+					manage_alerts   = true
 				}
 
 				http_headers = {
@@ -386,9 +412,11 @@ func TestAccDataSource_basic(t *testing.T) {
 					if len(dataSource.HTTPHeaders) != 1 {
 						return fmt.Errorf("expected 1 http header, got %d", len(dataSource.HTTPHeaders))
 					}
-
 					if _, ok := dataSource.HTTPHeaders["header1"]; !ok {
 						return fmt.Errorf("http header header1 not found")
+					}
+					if dataSource.JSONData.ManageAlerts != true {
+						return errors.New("expected manage_alerts to be true")
 					}
 					return nil
 				},

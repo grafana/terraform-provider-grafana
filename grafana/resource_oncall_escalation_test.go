@@ -25,9 +25,12 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 				Config: testAccOnCallEscalationConfig(riName, reType, reDuration),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOnCallEscalationResourceExists("grafana_oncall_escalation.test-acc-escalation"),
-					resource.TestCheckResourceAttr(
-						"grafana_oncall_escalation.test-acc-escalation", "type", "wait",
-					),
+					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation", "type", "wait"),
+					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation", "position", "0"),
+
+					testAccCheckOnCallEscalationResourceExists("grafana_oncall_escalation.test-acc-escalation-repeat"),
+					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-repeat", "type", "repeat_escalation"),
+					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-repeat", "position", "1"),
 				),
 			},
 		},
@@ -66,6 +69,12 @@ resource "grafana_oncall_escalation" "test-acc-escalation" {
 	type = "%s"
 	duration = "%d"
 	position = 0
+}
+
+resource "grafana_oncall_escalation" "test-acc-escalation-repeat" {
+	escalation_chain_id = grafana_oncall_escalation_chain.test-acc-escalation-chain.id
+	type = "repeat_escalation"
+	position = 1
 }
 `, riName, reType, reDuration)
 }

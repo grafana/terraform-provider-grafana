@@ -1,10 +1,13 @@
 package grafana
 
 import (
+	"context"
 	"regexp"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceSyntheticMonitoringCheck_dns(t *testing.T) {
@@ -229,6 +232,40 @@ func TestAccResourceSyntheticMonitoringCheck_traceroute(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "settings.0.traceroute.0.max_hops", "25"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "settings.0.traceroute.0.max_unknown_hops", "10"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "settings.0.traceroute.0.ptr_lookup", "false"),
+				),
+			},
+		},
+	})
+}
+
+// Test that a check is recreated if deleted outside the Terraform process
+func TestAccResourceSyntheticMonitoringCheck_recreate(t *testing.T) {
+	CheckCloudInstanceTestsEnabled(t)
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf"),
+				Check: func(s *terraform.State) error {
+					rs := s.RootModule().Resources["grafana_synthetic_monitoring_check.http"]
+					id, _ := strconv.ParseInt(rs.Primary.ID, 10, 64)
+					return testAccProvider.Meta().(*client).smapi.DeleteCheck(context.Background(), id)
+				},
+				ExpectNonEmptyPlan: true,
+			},
+			{
+				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "tenant_id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "job", "HTTP Defaults"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "target", "https://grafana.com"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "probes.0", "1"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "labels.foo", "bar"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.ip_version", "V4"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.method", "GET"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.no_follow_redirects", "false"),
 				),
 			},
 		},

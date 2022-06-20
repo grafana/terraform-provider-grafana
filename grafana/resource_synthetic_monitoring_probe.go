@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -111,6 +112,11 @@ func resourceSyntheticMonitoringProbeRead(ctx context.Context, d *schema.Resourc
 	}
 	prb, err := c.GetProbe(ctx, id)
 	if err != nil {
+		if strings.Contains(err.Error(), "404 Not Found") {
+			log.Printf("[WARN] removing probe %s from state because it no longer exists", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
