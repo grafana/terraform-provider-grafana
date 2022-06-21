@@ -34,10 +34,10 @@ func ResourceOnCallOutgoingWebhook() *schema.Resource {
 				Optional:    true,
 				Description: "The ID of the team.",
 			},
-			"webhook": {
+			"url": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The url of the webhook.",
+				Description: "The webhook URL.",
 			},
 			"data": {
 				Type:        schema.TypeString,
@@ -76,13 +76,13 @@ func ResourceOnCallOutgoingWebhookCreate(ctx context.Context, d *schema.Resource
 
 	name := d.Get("name").(string)
 	teamId := d.Get("team_id").(string)
-	webhook := d.Get("webhook").(string)
+	url := d.Get("url").(string)
 	forwardWholePayload := d.Get("forward_whole_payload").(bool)
 
 	createOptions := &onCallAPI.CreateCustomActionOptions{
 		Name:                name,
 		TeamId:              teamId,
-		Webhook:             webhook,
+		Url:                 url,
 		ForwardWholePayload: forwardWholePayload,
 	}
 
@@ -136,7 +136,7 @@ func ResourceOnCallOutgoingWebhookRead(ctx context.Context, d *schema.ResourceDa
 
 	d.Set("name", outgoingWebhook.Name)
 	d.Set("team_id", outgoingWebhook.TeamId)
-	d.Set("webhook", outgoingWebhook.Webhook)
+	d.Set("url", outgoingWebhook.Url)
 	d.Set("data", outgoingWebhook.Data)
 	d.Set("user", outgoingWebhook.User)
 	d.Set("password", outgoingWebhook.Password)
@@ -153,12 +153,12 @@ func ResourceOnCallOutgoingWebhookUpdate(ctx context.Context, d *schema.Resource
 	}
 
 	name := d.Get("name").(string)
-	webhook := d.Get("webhook").(string)
+	url := d.Get("url").(string)
 	forwardWholePayload := d.Get("forward_whole_payload").(bool)
 
 	updateOptions := &onCallAPI.UpdateCustomActionOptions{
 		Name:                name,
-		Webhook:             webhook,
+		Url:                 url,
 		ForwardWholePayload: forwardWholePayload,
 	}
 

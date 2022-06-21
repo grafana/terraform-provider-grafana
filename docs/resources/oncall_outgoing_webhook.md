@@ -26,7 +26,7 @@ resource "grafana_oncall_outgoing_webhook" "test-acc-outgoing_webhook" {
 ### Required
 
 - `name` (String) The name of the outgoing webhook.
-- `webhook` (String) The url of the webhook.
+- `url` (String) The webhook URL.
 
 ### Optional
 
