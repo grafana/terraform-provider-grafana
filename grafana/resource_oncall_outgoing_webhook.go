@@ -47,17 +47,17 @@ func ResourceOnCallOutgoingWebhook() *schema.Resource {
 			"user": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The auth data of the webhook.",
+				Description: "The auth data of the webhook. Used for Basic authentication.",
 			},
 			"password": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The auth data of the webhook.",
+				Description: "The auth data of the webhook. Used for Basic authentication",
 			},
 			"authorization_header": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The authorization header.",
+				Description: "The auth data of the webhook. Used in Authorization header instead of user/password auth.",
 			},
 			"forward_whole_payload": {
 				Type:        schema.TypeBool,
@@ -74,37 +74,37 @@ func ResourceOnCallOutgoingWebhookCreate(ctx context.Context, d *schema.Resource
 		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
-	nameData := d.Get("name").(string)
-	teamIdData := d.Get("team_id").(string)
-	webhookData := d.Get("webhook").(string)
-	forwardWholePayloadData := d.Get("forward_whole_payload").(bool)
+	name := d.Get("name").(string)
+	teamId := d.Get("team_id").(string)
+	webhook := d.Get("webhook").(string)
+	forwardWholePayload := d.Get("forward_whole_payload").(bool)
 
 	createOptions := &onCallAPI.CreateCustomActionOptions{
-		Name:                nameData,
-		TeamId:              teamIdData,
-		Webhook:             webhookData,
-		ForwardWholePayload: forwardWholePayloadData,
+		Name:                name,
+		TeamId:              teamId,
+		Webhook:             webhook,
+		ForwardWholePayload: forwardWholePayload,
 	}
 
-	dataData, dataDataOk := d.GetOk("data")
-	if dataDataOk {
-		dd := dataData.(string)
+	data, dataOk := d.GetOk("data")
+	if dataOk {
+		dd := data.(string)
 		createOptions.Data = &dd
 	}
-	userData, userDataOk := d.GetOk("user")
-	if userDataOk {
-		u := userData.(string)
+	user, userOk := d.GetOk("user")
+	if userOk {
+		u := user.(string)
 		createOptions.User = &u
 	}
 
-	passwordData, passwordDataOk := d.GetOk("password")
-	if passwordDataOk {
-		p := passwordData.(string)
+	password, passwordOk := d.GetOk("password")
+	if passwordOk {
+		p := password.(string)
 		createOptions.Password = &p
 	}
-	authHeaderData, authHeaderDataOk := d.GetOk("authorization_header")
-	if authHeaderDataOk {
-		a := authHeaderData.(string)
+	authHeader, authHeaderOk := d.GetOk("authorization_header")
+	if authHeaderOk {
+		a := authHeader.(string)
 		createOptions.AuthorizationHeader = &a
 	}
 
@@ -152,35 +152,35 @@ func ResourceOnCallOutgoingWebhookUpdate(ctx context.Context, d *schema.Resource
 		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
-	nameData := d.Get("name").(string)
-	webhookData := d.Get("webhook").(string)
-	forwardWholePayloadData := d.Get("forward_whole_payload").(bool)
+	name := d.Get("name").(string)
+	webhook := d.Get("webhook").(string)
+	forwardWholePayload := d.Get("forward_whole_payload").(bool)
 
 	updateOptions := &onCallAPI.UpdateCustomActionOptions{
-		Name:                nameData,
-		Webhook:             webhookData,
-		ForwardWholePayload: forwardWholePayloadData,
+		Name:                name,
+		Webhook:             webhook,
+		ForwardWholePayload: forwardWholePayload,
 	}
 
-	dataData, dataDataOk := d.GetOk("data")
-	if dataDataOk {
-		dd := dataData.(string)
+	data, dataOk := d.GetOk("data")
+	if dataOk {
+		dd := data.(string)
 		updateOptions.Data = &dd
 	}
-	userData, userDataOk := d.GetOk("user")
-	if userDataOk {
-		u := userData.(string)
+	user, userOk := d.GetOk("user")
+	if userOk {
+		u := user.(string)
 		updateOptions.User = &u
 	}
 
-	passwordData, passwordDataOk := d.GetOk("password")
-	if passwordDataOk {
-		p := passwordData.(string)
+	password, passwordOk := d.GetOk("password")
+	if passwordOk {
+		p := password.(string)
 		updateOptions.Password = &p
 	}
-	authHeaderData, authHeaderDataOk := d.GetOk("authorization_header")
-	if authHeaderDataOk {
-		a := authHeaderData.(string)
+	authHeader, authHeaderOk := d.GetOk("authorization_header")
+	if authHeaderOk {
+		a := authHeader.(string)
 		updateOptions.AuthorizationHeader = &a
 	}
 

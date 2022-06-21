@@ -31,9 +31,9 @@ func dataSourceOnCallOutgoingWebhookRead(d *schema.ResourceData, m interface{}) 
 		return errors.New("grafana OnCall api client is not configured")
 	}
 	options := &onCallAPI.ListCustomActionOptions{}
-	nameData := d.Get("name").(string)
+	name := d.Get("name").(string)
 
-	options.Name = nameData
+	options.Name = name
 
 	outgoingWebhookResponse, _, err := client.CustomActions.ListCustomActions(options)
 	if err != nil {
