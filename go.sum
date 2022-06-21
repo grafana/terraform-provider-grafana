@@ -115,8 +115,8 @@ github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+
 github.com/google/uuid v1.1.2/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
 github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
-github.com/grafana/amixr-api-go-client v0.0.2 h1:mCsXq+zjbuiK6VgJiB2ccZ5TPLrW3CXAJh5bD06AQoE=
-github.com/grafana/amixr-api-go-client v0.0.2/go.mod h1:N6x26XUrM5zGtK5zL5vNJnAn2JFMxLFPPLTw/6pDkFE=
+github.com/grafana/amixr-api-go-client v0.0.3 h1:kddsk7XB5H+WfMRsd4hQ8yK3tno9ID5VruyBGlw5pI8=
+github.com/grafana/amixr-api-go-client v0.0.3/go.mod h1:N6x26XUrM5zGtK5zL5vNJnAn2JFMxLFPPLTw/6pDkFE=
 github.com/grafana/grafana-api-golang-client v0.7.0 h1:MEkWVbM1acmfHiyxzKqhoiQtoV7S7taUSrT0OXXKTmw=
 github.com/grafana/grafana-api-golang-client v0.7.0/go.mod h1:24W29gPe9yl0/3A9X624TPkAOR8DpHno490cPwnkv8E=
 github.com/grafana/machine-learning-go-client v0.1.1 h1:Gw6cX8xAd6IVF2LApkXOIdBK8Gzz07B3jQPukecw7fc=
