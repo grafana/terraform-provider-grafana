@@ -47,7 +47,7 @@ func testAccOnCallOutgoingWebhookConfig(webhookName string) string {
 	return fmt.Sprintf(`
 resource "grafana_oncall_outgoing_webhook" "test-acc-outgoing_webhook" {
 	name = "%s"
-	webhook = "https://example.com"
+	url = "https://example.com"
 	data = "\"test\""
 	user = "test"
 	password = "test"
