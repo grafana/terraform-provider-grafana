@@ -1,0 +1,1 @@
+terraform import grafana_message_template.message_template_name {{alert_notification_id}}

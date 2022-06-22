@@ -77,3 +77,5 @@ require (
 	google.golang.org/grpc v1.47.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 )
+
+replace github.com/grafana/grafana-api-golang-client v0.6.0 => "../grafana-api-golang-client"
