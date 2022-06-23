@@ -1,14 +1,10 @@
 package grafana
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"testing"
-	"time"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -18,59 +14,29 @@ func TestAccGrafanaSAT(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccGrafanaAuthKeyCheckDestroy,
+		CheckDestroy:      testAccServiceAccountTokenCheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGrafanaAuthKeyBasicConfig,
+				Config: testAccServiceAccountTokenBasicConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccGrafanaAuthKeyCheckFields("grafana_api_key.foo", "foo-name", "Admin", false),
+					testAccServiceAccountTokenCheckFields("grafana_service_account_token.foo", "foo-name", 4, false),
 				),
 			},
 			{
-				Config: testAccGrafanaAuthKeyExpandedConfig,
+				Config: testAccServiceAccountTokenExpandedConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccGrafanaAuthKeyCheckFields("grafana_api_key.bar", "bar-name", "Viewer", true),
+					testAccServiceAccountTokenCheckFields("grafana_service_account_token.bar", "bar-name", 1, true),
 				),
 			},
 		},
 	})
 }
 
-func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
-	t.Parallel()
-	CheckCloudAPITestsEnabled(t)
-
-	var stack gapi.Stack
-	prefix := "tfapikeytest"
-	slug := GetRandomStackName(prefix)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccDeleteExistingStacks(t, prefix)
-		},
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccStackCheckDestroy(&stack),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccGrafanaAuthKeyFromCloud(slug, slug),
-				Check: resource.ComposeTestCheckFunc(
-					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
-					testAccGrafanaAuthKeyCheckFields("grafana_api_key.management", "management-key", "Admin", false),
-				),
-			},
-			{
-				Config: testAccStackConfigBasic(slug, slug),
-				Check:  testAccGrafanaAuthKeyCheckDestroyCloud,
-			},
-		},
-	})
-}
-
-func testAccGrafanaAuthKeyCheckDestroy(s *terraform.State) error {
+func testAccServiceAccountTokenCheckDestroy(s *terraform.State) error {
 	c := testAccProvider.Meta().(*client).gapi
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "grafana_api_key" {
+		if rs.Type != "grafana_service_account_token" {
 			continue
 		}
 
@@ -80,7 +46,7 @@ func testAccGrafanaAuthKeyCheckDestroy(s *terraform.State) error {
 			return err
 		}
 
-		keys, err := c.GetAPIKeys(false)
+		keys, err := c.GetServiceAccountTokens(1)
 		if err != nil {
 			return err
 		}
@@ -95,7 +61,7 @@ func testAccGrafanaAuthKeyCheckDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccGrafanaAuthKeyCheckFields(n string, name string, role string, expires bool) resource.TestCheckFunc {
+func testAccServiceAccountTokenCheckFields(n string, name string, serviceAccountID int64, expires bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -107,15 +73,19 @@ func testAccGrafanaAuthKeyCheckFields(n string, name string, role string, expire
 		}
 
 		if rs.Primary.Attributes["key"] == "" {
-			return fmt.Errorf("no API key is set")
+			return fmt.Errorf("no key is set")
 		}
 
 		if rs.Primary.Attributes["name"] != name {
 			return fmt.Errorf("incorrect name field found: %s", rs.Primary.Attributes["name"])
 		}
 
-		if rs.Primary.Attributes["role"] != role {
-			return fmt.Errorf("incorrect role field found: %s", rs.Primary.Attributes["role"])
+		saID, err := strconv.ParseInt(rs.Primary.Attributes["service_account_id"], 10, 64)
+		if err != nil {
+			return err
+		}
+		if saID != serviceAccountID {
+			return fmt.Errorf("incorrect service account id field found: %s", rs.Primary.Attributes["service_account_id"])
 		}
 
 		expiration := rs.Primary.Attributes["expiration"]
@@ -131,57 +101,17 @@ func testAccGrafanaAuthKeyCheckFields(n string, name string, role string, expire
 	}
 }
 
-// Checks that all API keys are deleted, to be called before the stack is completely destroyed
-func testAccGrafanaAuthKeyCheckDestroyCloud(s *terraform.State) error {
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "grafana_cloud_stack" {
-			continue
-		}
-
-		cloudClient := testAccProvider.Meta().(*client).gcloudapi
-		c, cleanup, err := cloudClient.CreateTemporaryStackGrafanaClient(rs.Primary.Attributes["slug"], "test-api-key-", 60*time.Second)
-		if err != nil {
-			return err
-		}
-		defer cleanup()
-
-		response, err := c.GetAPIKeys(true)
-		if err != nil {
-			return err
-		}
-
-		for _, key := range response {
-			if !strings.HasPrefix(key.Name, "test-api-key-") {
-				return fmt.Errorf("Found unexpected API key: %s", key.Name)
-			}
-		}
-		return nil
-	}
-
-	return errors.New("no cloud stack created")
-}
-
-const testAccGrafanaAuthKeyBasicConfig = `
-resource "grafana_api_key" "foo" {
+const testAccServiceAccountTokenBasicConfig = `
+resource "grafana_service_account_token" "foo" {
 	name = "foo-name"
-	role = "Admin"
+	service_account_id = 4
 }
 `
 
-const testAccGrafanaAuthKeyExpandedConfig = `
-resource "grafana_api_key" "bar" {
+const testAccServiceAccountTokenExpandedConfig = `
+resource "grafana_service_account_token" "bar" {
 	name 			= "bar-name"
-	role 			= "Viewer"
+	service_account_id = 1
 	seconds_to_live = 300
 }
 `
-
-func testAccGrafanaAuthKeyFromCloud(name, slug string) string {
-	return testAccStackConfigBasic(name, slug) + `
-	resource "grafana_api_key" "management" {
-		cloud_stack_slug = grafana_cloud_stack.test.slug
-		name             = "management-key"
-		role             = "Admin"
-	}
-	`
-}

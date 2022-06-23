@@ -3,7 +3,6 @@ package grafana
 import (
 	"context"
 	"strconv"
-	"time"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -18,9 +17,9 @@ Manages Grafana Service Account Tokens.
 * [HTTP API](https://grafana.com/docs/grafana/latest/http_api/serviceaccount/)
 `,
 
-		CreateContext: resourceAPIKeyCreate,
-		ReadContext:   resourceAPIKeyRead,
-		DeleteContext: resourceAPIKeyDelete,
+		CreateContext: resourceServiceAccountTokenCreate,
+		ReadContext:   resourceServiceAccountTokenRead,
+		DeleteContext: resourceServiceAccountTokenDelete,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -30,6 +29,7 @@ Manages Grafana Service Account Tokens.
 			},
 			"service_account_id": {
 				Type:     schema.TypeInt,
+				Required: true,
 				ForceNew: true,
 			},
 			"seconds_to_live": {
@@ -39,7 +39,7 @@ Manages Grafana Service Account Tokens.
 			},
 
 			"id": {
-				Type:     schema.TypeInt,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"key": {
@@ -61,12 +61,15 @@ Manages Grafana Service Account Tokens.
 
 func resourceServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	name := d.Get("name").(string)
-	role := d.Get("service_account_id").(int)
-	ttl := d.Get("seconds_to_live").(int)
+	serviceAccountID := d.Get("service_account_id").(int64)
+	ttl := d.Get("seconds_to_live").(int64)
 	c := m.(*client).gapi
 
-	request := gapi.CreateAPIKeyRequest{Name: name, Role: role, SecondsToLive: int64(ttl)}
-	response, err := c.CreateAPIKey(request)
+	request := gapi.CreateServiceAccountTokenRequest{
+		Name:             name,
+		ServiceAccountID: serviceAccountID,
+		SecondsToLive:    ttl}
+	response, err := c.CreateServiceAccountToken(request)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -75,17 +78,14 @@ func resourceServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceDa
 	d.Set("key", response.Key)
 
 	// Fill the true resource's state after a create by performing a read
-	return resourceAPIKeyRead(ctx, d, m)
+	return resourceServiceAccountTokenRead(ctx, d, m)
 }
 
-func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c, cleanup, err := getClientForAPIKeyManagement(d, m)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	defer cleanup()
+func resourceServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	serviceAccountID := d.Get("service_account_id").(int64)
+	c := m.(*client).gapi
 
-	response, err := c.GetAPIKeys(true)
+	response, err := c.GetServiceAccountTokens(serviceAccountID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -98,7 +98,6 @@ func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 		if id == key.ID {
 			d.SetId(strconv.FormatInt(key.ID, 10))
 			d.Set("name", key.Name)
-			d.Set("role", key.Role)
 
 			if !key.Expiration.IsZero() {
 				d.Set("expiration", key.Expiration.String())
@@ -114,33 +113,19 @@ func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 	return nil
 }
 
-func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	serviceAccountID := d.Get("service_account_id").(int64)
 	id, err := strconv.ParseInt(d.Id(), 10, 32)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	c, cleanup, err := getClientForAPIKeyManagement(d, m)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	defer cleanup()
+	c := m.(*client).gapi
 
-	_, err = c.DeleteAPIKey(id)
+	_, err = c.DeleteServiceAccountToken(serviceAccountID, id)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	return nil
-}
-
-func getClientForAPIKeyManagement(d *schema.ResourceData, m interface{}) (c *gapi.Client, cleanup func() error, err error) {
-	c = m.(*client).gapi
-	cleanup = func() error { return nil }
-	if cloudStackSlug, ok := d.GetOk("cloud_stack_slug"); ok && cloudStackSlug.(string) != "" {
-		cloudClient := m.(*client).gcloudapi
-		c, cleanup, err = cloudClient.CreateTemporaryStackGrafanaClient(cloudStackSlug.(string), "terraform-temp-", 60*time.Second)
-	}
-
-	return
 }
