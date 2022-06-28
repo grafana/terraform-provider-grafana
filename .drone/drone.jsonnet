@@ -112,9 +112,27 @@ local pipeline(name, steps, services=[]) = {
     concurrency: { limit: 1 },
   },
 
+  local cloud_instance_url = 'https://terraformprovidergrafana.grafana.net/';
   pipeline(
     'cloud instance tests',
     steps=[
+      {
+        name: 'wait for instance',
+        image: images.go,
+        commands: [
+          'status=0',
+          'i=0',
+          'while [ "${status}" != "200" ]; do',
+          '  if [ "${i}" -gt "30" ]; then',
+          '    echo "instance never became ready"',
+          '    exit 1',
+          '  fi',
+          '  status="$(curl -I -L -s -o /dev/null -w "%{http_code}" %s)"' % cloud_instance_url,
+          '  sleep 2',
+          '  i=$((i+1))',
+          'done',
+        ],
+      }
       {
         name: 'tests',
         image: images.go,
@@ -122,7 +140,7 @@ local pipeline(name, steps, services=[]) = {
           'make testacc-cloud-instance',
         ],
         environment: {
-          GRAFANA_URL: 'https://terraformprovidergrafana.grafana.net/',
+          GRAFANA_URL: cloud_instance_url,
           GRAFANA_AUTH: apiToken.fromSecret,
           GRAFANA_SM_ACCESS_TOKEN: smToken.fromSecret,
           GRAFANA_ORG_ID: 1,
