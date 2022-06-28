@@ -54,7 +54,7 @@ func ResourceDatasourcePermission() *schema.Resource {
 						"permission": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"Query","Edit"}, false),
+							ValidateFunc: validation.StringInSlice([]string{"Query", "Edit"}, false),
 							Description:  "Permission to associate with item. Must be `Query` or `Edit`.",
 						},
 					},
