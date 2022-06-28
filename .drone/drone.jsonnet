@@ -119,26 +119,12 @@ local pipeline(name, steps, services=[]) = {
       {
         name: 'wait for instance',
         image: images.go,
-        commands: [
-          'status=0',
-          'i=0',
-          'while [ "${status}" != "200" ]; do',
-          '  if [ "${i}" -gt "30" ]; then',
-          '    echo "instance never became ready"',
-          '    exit 1',
-          '  fi',
-          '  status="$(curl -I -L -s -o /dev/null -w "%{http_code}" ' + cloud_instance_url + ')"',
-          '  sleep 2',
-          '  i=$((i+1))',
-          'done',
-        ],
+        commands: ['.drone/wait-for-instance.sh ' + cloud_instance_url],
       },
       {
         name: 'tests',
         image: images.go,
-        commands: [
-          'make testacc-cloud-instance',
-        ],
+        commands: ['make testacc-cloud-instance'],
         environment: {
           GRAFANA_URL: cloud_instance_url,
           GRAFANA_AUTH: apiToken.fromSecret,
