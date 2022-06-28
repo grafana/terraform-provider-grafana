@@ -379,7 +379,8 @@ func createMLClient(url string, grafanaCfg *gapi.Config) (*mlapi.Client, error) 
 
 func createCloudClient(d *schema.ResourceData) (*gapi.Client, error) {
 	cfg := gapi.Config{
-		APIKey: d.Get("cloud_api_key").(string),
+		APIKey:     d.Get("cloud_api_key").(string),
+		NumRetries: d.Get("retries").(int),
 	}
 	return gapi.New(d.Get("cloud_api_url").(string), cfg)
 }
