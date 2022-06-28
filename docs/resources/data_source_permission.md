@@ -62,7 +62,7 @@ resource "grafana_data_source_permission" "fooPermissions" {
 
 Required:
 
-- `permission` (String) Permission to associate with item. Must be `Query` or `Edit`.
+- `permission` (String) Permission to associate with item. Must be one of `Query` or `Edit`.
 
 Optional:
 
