@@ -111,6 +111,20 @@ platform:
 services: []
 steps:
 - commands:
+  - status=0
+  - i=0
+  - while [ "${status}" != "200" ]; do
+  - '  if [ "${i}" -gt "30" ]; then'
+  - '    echo "instance never became ready"'
+  - '    exit 1'
+  - '  fi'
+  - '  status="$(curl -I -L -s -o /dev/null -w "%{http_code}" https://terraformprovidergrafana.grafana.net/)"'
+  - '  sleep 2'
+  - '  i=$((i+1))'
+  - done
+  image: golang:1.18
+  name: wait for instance
+- commands:
   - make testacc-cloud-instance
   environment:
     GRAFANA_AUTH:
@@ -313,6 +327,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: 171eec7dc5357f381a1f11749be493256f117fe12977dfbb9d353966e0f8c1cf
+hmac: f172ac5d926deef332d87d33dbdb02301839595d89e61cbaf25222a1142c1770
 
 ...

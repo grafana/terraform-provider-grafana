@@ -127,12 +127,12 @@ local pipeline(name, steps, services=[]) = {
           '    echo "instance never became ready"',
           '    exit 1',
           '  fi',
-          '  status="$(curl -I -L -s -o /dev/null -w "%{http_code}" %s)"' % cloud_instance_url,
+          '  status="$(curl -I -L -s -o /dev/null -w "%{http_code}" ' + cloud_instance_url + ')"',
           '  sleep 2',
           '  i=$((i+1))',
           'done',
         ],
-      }
+      },
       {
         name: 'tests',
         image: images.go,
