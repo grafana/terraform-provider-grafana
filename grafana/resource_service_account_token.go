@@ -61,14 +61,14 @@ Manages Grafana Service Account Tokens.
 
 func resourceServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	name := d.Get("name").(string)
-	serviceAccountID := d.Get("service_account_id").(int64)
-	ttl := d.Get("seconds_to_live").(int64)
+	serviceAccountID := d.Get("service_account_id").(int)
+	ttl := d.Get("seconds_to_live").(int)
 	c := m.(*client).gapi
 
 	request := gapi.CreateServiceAccountTokenRequest{
 		Name:             name,
-		ServiceAccountID: serviceAccountID,
-		SecondsToLive:    ttl}
+		ServiceAccountID: int64(serviceAccountID),
+		SecondsToLive:    int64(ttl)}
 	response, err := c.CreateServiceAccountToken(request)
 	if err != nil {
 		return diag.FromErr(err)

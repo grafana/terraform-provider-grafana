@@ -104,14 +104,14 @@ func testAccServiceAccountTokenCheckFields(n string, name string, serviceAccount
 const testAccServiceAccountTokenBasicConfig = `
 resource "grafana_service_account_token" "foo" {
 	name = "foo-name"
-	service_account_id = 4
+	service_account_id = 3
 }
 `
 
 const testAccServiceAccountTokenExpandedConfig = `
 resource "grafana_service_account_token" "bar" {
 	name 			= "bar-name"
-	service_account_id = 1
+	service_account_id = 4
 	seconds_to_live = 300
 }
 `
