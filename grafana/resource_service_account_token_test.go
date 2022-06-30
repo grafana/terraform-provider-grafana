@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestAccGrafanaSAT(t *testing.T) {
+func TestAccServiceAccountToken_basic(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
@@ -19,13 +19,13 @@ func TestAccGrafanaSAT(t *testing.T) {
 			{
 				Config: testAccServiceAccountTokenBasicConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccServiceAccountTokenCheckFields("grafana_service_account_token.foo", "foo-name", 4, false),
+					testAccServiceAccountTokenCheckFields("grafana_service_account_token.foo", "foo-name", false),
 				),
 			},
 			{
 				Config: testAccServiceAccountTokenExpandedConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccServiceAccountTokenCheckFields("grafana_service_account_token.bar", "bar-name", 1, true),
+					testAccServiceAccountTokenCheckFields("grafana_service_account_token.bar", "bar-name", true),
 				),
 			},
 		},
@@ -61,7 +61,7 @@ func testAccServiceAccountTokenCheckDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccServiceAccountTokenCheckFields(n string, name string, serviceAccountID int64, expires bool) resource.TestCheckFunc {
+func testAccServiceAccountTokenCheckFields(n string, name string, expires bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -101,17 +101,31 @@ func testAccServiceAccountTokenCheckFields(n string, name string, serviceAccount
 	}
 }
 
-const testAccServiceAccountTokenBasicConfig = `
-resource "grafana_service_account_token" "foo" {
-	name = "foo-name"
-	service_account_id = 3
+const testAccServiceAccountOne = `
+resource "grafana_service_account" "sa_one" {
+  name     = "SA One"
+  role     = "Editor"
 }
 `
 
-const testAccServiceAccountTokenExpandedConfig = `
+const testAccServiceAccountTwo = `
+resource "grafana_service_account" "sa_two" {
+  name     = "SA Two"
+  role     = "Viewer"
+}
+`
+
+const testAccServiceAccountTokenBasicConfig = testAccServiceAccountOne + `
+resource "grafana_service_account_token" "foo" {
+	name = "foo-name"
+	service_account_id = grafana_service_account.sa_one.id
+}
+`
+
+const testAccServiceAccountTokenExpandedConfig = testAccServiceAccountTwo + `
 resource "grafana_service_account_token" "bar" {
 	name 			= "bar-name"
-	service_account_id = 4
+	service_account_id = grafana_service_account.sa_two.id
 	seconds_to_live = 300
 }
 `

@@ -82,10 +82,10 @@ func resourceServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceDa
 }
 
 func resourceServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	serviceAccountID := d.Get("service_account_id").(int64)
+	serviceAccountID := d.Get("service_account_id").(int)
 	c := m.(*client).gapi
 
-	response, err := c.GetServiceAccountTokens(serviceAccountID)
+	response, err := c.GetServiceAccountTokens(int64(serviceAccountID))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -99,9 +99,10 @@ func resourceServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData
 			d.SetId(strconv.FormatInt(key.ID, 10))
 			d.Set("name", key.Name)
 
-			if !key.Expiration.IsZero() {
+			if key.Expiration != nil && !key.Expiration.IsZero() {
 				d.Set("expiration", key.Expiration.String())
 			}
+			d.Set("has_expired", key.HasExpired)
 
 			return nil
 		}
@@ -114,7 +115,7 @@ func resourceServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData
 }
 
 func resourceServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	serviceAccountID := d.Get("service_account_id").(int64)
+	serviceAccountID := d.Get("service_account_id").(int)
 	id, err := strconv.ParseInt(d.Id(), 10, 32)
 	if err != nil {
 		return diag.FromErr(err)
@@ -122,7 +123,7 @@ func resourceServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceDa
 
 	c := m.(*client).gapi
 
-	_, err = c.DeleteServiceAccountToken(serviceAccountID, id)
+	_, err = c.DeleteServiceAccountToken(int64(serviceAccountID), id)
 	if err != nil {
 		return diag.FromErr(err)
 	}

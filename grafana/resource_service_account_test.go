@@ -24,7 +24,7 @@ func TestAccServiceAccount_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccServiceAccountCheckExists("grafana_service_account.test", &user),
 					resource.TestCheckResourceAttr(
-						"grafana_service_account.test", "name", "terraform-test",
+						"grafana_service_account.test", "name", "sa-terraform-test",
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_service_account.test", "role", "Editor",
@@ -39,7 +39,7 @@ func TestAccServiceAccount_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccServiceAccountCheckExists("grafana_service_account.test_disabled", &user),
 					resource.TestCheckResourceAttr(
-						"grafana_service_account.test_disabled", "name", "terraform-test-disabled",
+						"grafana_service_account.test_disabled", "name", "sa-terraform-test-disabled",
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_service_account.test_disabled", "role", "Viewer",
@@ -108,14 +108,14 @@ func testAccServiceAccountCheckDestroy(a *gapi.ServiceAccountDTO) resource.TestC
 
 const testAccServiceAccountConfig_basic = `
 resource "grafana_service_account" "test" {
-  name     = "terraform-test"
+  name     = "sa-terraform-test"
   role     = "Editor"
 }
 `
 
 const testAccServiceAccountConfig_update = `
 resource "grafana_service_account" "test_disabled" {
-  name       = "terraform-test-disabled"
+  name       = "sa-terraform-test-disabled"
   is_disabled = true
 }
 `
