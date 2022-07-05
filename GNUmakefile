@@ -1,4 +1,4 @@
-GRAFANA_VERSION ?= 8.4.4
+GRAFANA_VERSION ?= 9.0.2
 
 testacc:
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m

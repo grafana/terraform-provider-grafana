@@ -162,14 +162,14 @@ kind: secret
 name: grafana-oncall-token
 ---
 kind: pipeline
-name: 'oss tests: 8.5.0'
+name: 'oss tests: 9.0.2'
 platform:
   arch: amd64
   os: linux
 services:
 - environment:
     GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
-  image: grafana/grafana:8.5.0
+  image: grafana/grafana:9.0.2
   name: grafana
 steps:
 - commands:
@@ -179,7 +179,38 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
-    GRAFANA_VERSION: 8.5.0
+    GRAFANA_VERSION: 9.0.2
+  image: golang:1.18
+  name: tests
+trigger:
+  branch:
+  - master
+  event:
+  - pull_request
+  - push
+type: docker
+workspace:
+  path: /drone/terraform-provider-grafana
+---
+kind: pipeline
+name: 'oss tests: 8.5.5'
+platform:
+  arch: amd64
+  os: linux
+services:
+- environment:
+    GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
+  image: grafana/grafana:8.5.5
+  name: grafana
+steps:
+- commands:
+  - sleep 5
+  - make testacc-oss
+  environment:
+    GRAFANA_AUTH: admin:admin
+    GRAFANA_ORG_ID: 1
+    GRAFANA_URL: http://grafana:3000
+    GRAFANA_VERSION: 8.5.5
   image: golang:1.18
   name: tests
 trigger:
@@ -255,37 +286,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: pipeline
-name: 'oss tests: 8.2.7'
-platform:
-  arch: amd64
-  os: linux
-services:
-- environment:
-    GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
-  image: grafana/grafana:8.2.7
-  name: grafana
-steps:
-- commands:
-  - sleep 5
-  - make testacc-oss
-  environment:
-    GRAFANA_AUTH: admin:admin
-    GRAFANA_ORG_ID: 1
-    GRAFANA_URL: http://grafana:3000
-    GRAFANA_VERSION: 8.2.7
-  image: golang:1.18
-  name: tests
-trigger:
-  branch:
-  - master
-  event:
-  - pull_request
-  - push
-type: docker
-workspace:
-  path: /drone/terraform-provider-grafana
----
-kind: pipeline
 name: 'oss tests: 7.5.15'
 platform:
   arch: amd64
@@ -317,6 +317,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: 53e6bc46bd4d36a535b6430dfa7b4390ce336cda3b6a1985f528d970eaf3e022
+hmac: d0eb58930be18d779d328a8753222aec82ffcc8e9704a07796386e383cdf3f10
 
 ...
