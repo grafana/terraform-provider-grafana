@@ -4,7 +4,7 @@ testacc:
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
 
 # Test OSS features
-testacc-oss: 
+testacc-oss:
 	TF_ACC_OSS=true make testacc
 
 # Test Enterprise features
