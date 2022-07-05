@@ -3,7 +3,7 @@
 set -euxo pipefail
 
 getStatus() {
-  "$(curl -I -L -s -o /dev/null -w "%{http_code}" "${1}")"
+  curl -I -L -s -o /dev/null -w "%{http_code}" "${1}"
 }
 
 status=$(getStatus "${1}")
