@@ -202,7 +202,7 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 
 ### Optional
 
-- `auth` (String, Sensitive) API token or basic auth username:password. May alternatively be set via the `GRAFANA_AUTH` environment variable.
+- `auth` (String, Sensitive) API token or basic auth base64-encoded `username:password`. May alternatively be set via the `GRAFANA_AUTH` environment variable.
 - `ca_cert` (String) Certificate CA bundle to use to verify the Grafana server's certificate. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.
 - `cloud_api_key` (String, Sensitive) API key for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_API_KEY` environment variable.
 - `cloud_api_url` (String) Grafana Cloud's API URL. May alternatively be set via the `GRAFANA_CLOUD_API_URL` environment variable.
@@ -225,7 +225,7 @@ One, or many, of the following authentication settings must be set. Each authent
 
 ### `auth`
 
-This can be a Grafana API key, basic auth `username:password`, or a
+This can be a basic auth base64-encoded `username:password` string, or a
 [Grafana API key](https://grafana.com/docs/grafana/latest/http_api/create-api-tokens-for-org/).
 
 ### `cloud_api_key`
