@@ -257,7 +257,7 @@ Based on the region of your Grafana Cloud stack, you need to use a different API
 Please [see API docs](https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#api-url) to find `SM_API_URL` for your region.
 
 `stackId`, `metricsInstanceId`, and `logsInstanceId` may also be obtained on
-the portal. First you need to create a Stack by clicking "Add Stack". When it's
+the portal. First, you need to create a Stack by clicking "Add Stack". When it's
 created you will be taken to its landing page on the portal. Get your `stackId`
 from the URL in your browser:
 
