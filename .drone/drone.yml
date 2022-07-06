@@ -111,6 +111,10 @@ platform:
 services: []
 steps:
 - commands:
+  - .drone/wait-for-instance.sh https://terraformprovidergrafana.grafana.net/
+  image: golang:1.18
+  name: wait for instance
+- commands:
   - make testacc-cloud-instance
   environment:
     GRAFANA_AUTH:
@@ -313,6 +317,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: 171eec7dc5357f381a1f11749be493256f117fe12977dfbb9d353966e0f8c1cf
+hmac: 53e6bc46bd4d36a535b6430dfa7b4390ce336cda3b6a1985f528d970eaf3e022
 
 ...

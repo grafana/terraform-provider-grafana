@@ -201,6 +201,7 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_oncall_escalation":       ResourceOnCallEscalation(),
 				"grafana_oncall_on_call_shift":    ResourceOnCallOnCallShift(),
 				"grafana_oncall_schedule":         ResourceOnCallSchedule(),
+				"grafana_oncall_outgoing_webhook": ResourceOnCallOutgoingWebhook(),
 			},
 
 			DataSourcesMap: map[string]*schema.Resource{
@@ -226,7 +227,8 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_oncall_escalation_chain": DataSourceOnCallEscalationChain(),
 				"grafana_oncall_schedule":         DataSourceOnCallSchedule(),
 				"grafana_oncall_slack_channel":    DataSourceOnCallSlackChannel(),
-				"grafana_oncall_action":           DataSourceOnCallAction(),
+				"grafana_oncall_action":           DataSourceOnCallAction(), // deprecated
+				"grafana_oncall_outgoing_webhook": DataSourceOnCallOutgoingWebhook(),
 				"grafana_oncall_user_group":       DataSourceOnCallUserGroup(),
 				"grafana_oncall_team":             DataSourceOnCallTeam(),
 			},
@@ -379,7 +381,8 @@ func createMLClient(url string, grafanaCfg *gapi.Config) (*mlapi.Client, error) 
 
 func createCloudClient(d *schema.ResourceData) (*gapi.Client, error) {
 	cfg := gapi.Config{
-		APIKey: d.Get("cloud_api_key").(string),
+		APIKey:     d.Get("cloud_api_key").(string),
+		NumRetries: d.Get("retries").(int),
 	}
 	return gapi.New(d.Get("cloud_api_url").(string), cfg)
 }
