@@ -2,12 +2,12 @@ package grafana
 
 import (
 	"context"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"strconv"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func ResourceServiceAccount() *schema.Resource {
@@ -81,10 +81,6 @@ func ReadServiceAccount(ctx context.Context, d *schema.ResourceData, meta interf
 		if sa.ID == id {
 			d.SetId(strconv.FormatInt(sa.ID, 10))
 			err = d.Set("name", sa.Name)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			err = d.Set("login", sa.Login)
 			if err != nil {
 				return diag.FromErr(err)
 			}

@@ -80,14 +80,10 @@ func testAccServiceAccountTokenCheckFields(n string, name string, expires bool) 
 			return fmt.Errorf("incorrect name field found: %s", rs.Primary.Attributes["name"])
 		}
 
-		saID, err := strconv.ParseInt(rs.Primary.Attributes["service_account_id"], 10, 64)
+		_, err := strconv.ParseInt(rs.Primary.Attributes["service_account_id"], 10, 64)
 		if err != nil {
 			return err
 		}
-		if saID != serviceAccountID {
-			return fmt.Errorf("incorrect service account id field found: %s", rs.Primary.Attributes["service_account_id"])
-		}
-
 		expiration := rs.Primary.Attributes["expiration"]
 		if expires && expiration == "" {
 			return fmt.Errorf("no expiration date set")

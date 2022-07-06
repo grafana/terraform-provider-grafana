@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"testing"
 
@@ -14,15 +15,15 @@ import (
 func TestAccServiceAccount_basic(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 
-	user := gapi.ServiceAccountDTO{}
+	sa := gapi.ServiceAccountDTO{}
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccServiceAccountCheckDestroy(&user),
+		CheckDestroy:      testAccServiceAccountCheckDestroy(&sa),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccServiceAccountConfig_basic,
+				Config: testServiceAccountConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccServiceAccountCheckExists("grafana_service_account.test", &user),
+					testAccServiceAccountCheckExists("grafana_service_account.test", &sa),
 					resource.TestCheckResourceAttr(
 						"grafana_service_account.test", "name", "sa-terraform-test",
 					),
@@ -34,29 +35,22 @@ func TestAccServiceAccount_basic(t *testing.T) {
 					),
 				),
 			},
+		},
+	})
+}
+
+func TestAccServiceAccount_invalid_role(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
+	sa := gapi.ServiceAccountDTO{}
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccServiceAccountCheckDestroy(&sa),
+		Steps: []resource.TestStep{
 			{
-				Config: testAccServiceAccountConfig_update,
-				Check: resource.ComposeTestCheckFunc(
-					testAccServiceAccountCheckExists("grafana_service_account.test_disabled", &user),
-					resource.TestCheckResourceAttr(
-						"grafana_service_account.test_disabled", "name", "sa-terraform-test-disabled",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_service_account.test_disabled", "role", "Viewer",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_service_account.test_disabled", "is_disabled", "true",
-					),
-					resource.TestMatchResourceAttr(
-						"grafana_service_account.test", "id", idRegexp,
-					),
-				),
-			},
-			{
-				ResourceName:            "grafana_service_account.test",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"password"},
+				ExpectError: regexp.MustCompile("expected role to be one of \\[Viewer Editor Admin\\], got Admiasdn"),
+				Config:      testServiceAccountConfigInvalidRole,
 			},
 		},
 	})
@@ -80,6 +74,13 @@ func testAccServiceAccountCheckExists(rn string, a *gapi.ServiceAccountDTO) reso
 		for _, sa := range sas {
 			if sa.ID == id {
 				*a = sa
+				a.Name = rs.Primary.Attributes["name"]
+				a.Role = rs.Primary.Attributes["role"]
+				d, err := strconv.ParseBool(rs.Primary.Attributes["grafana_service_account.test.is_disabled"])
+				if err != nil {
+					return fmt.Errorf("error parsing is_disabled field: %s", err)
+				}
+				a.IsDisabled = d
 				return nil
 			}
 		}
@@ -97,7 +98,7 @@ func testAccServiceAccountCheckDestroy(a *gapi.ServiceAccountDTO) resource.TestC
 		}
 
 		for _, sa := range sas {
-			if sa.ID == a.ID {
+			if a.ID == sa.ID {
 				return fmt.Errorf("service account still exists")
 			}
 		}
@@ -106,16 +107,16 @@ func testAccServiceAccountCheckDestroy(a *gapi.ServiceAccountDTO) resource.TestC
 	}
 }
 
-const testAccServiceAccountConfig_basic = `
+const testServiceAccountConfigBasic = `
 resource "grafana_service_account" "test" {
-  name     = "sa-terraform-test"
-  role     = "Editor"
-}
-`
+  name        = "sa-terraform-test"
+  role        = "Editor"
+  is_disabled = false
+}`
 
-const testAccServiceAccountConfig_update = `
-resource "grafana_service_account" "test_disabled" {
-  name       = "sa-terraform-test-disabled"
-  is_disabled = true
-}
-`
+const testServiceAccountConfigInvalidRole = `
+resource "grafana_service_account" "test" {
+  name        = "sa-terraform-test"
+  role        = "InvalidRole"
+  is_disabled = false
+}`
