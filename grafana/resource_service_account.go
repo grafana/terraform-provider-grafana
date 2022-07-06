@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"strconv"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -13,8 +14,10 @@ func ResourceServiceAccount() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
+**Note:** This resource is available only with Grafana 9.0+.
 
-This resource uses Grafana's API for creating and updating service accounts.`,
+* [Official documentation](https://grafana.com/docs/grafana/latest/administration/service-accounts/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/serviceaccount/#service-account-api)`,
 
 		CreateContext: CreateServiceAccount,
 		ReadContext:   ReadServiceAccount,
@@ -24,30 +27,22 @@ This resource uses Grafana's API for creating and updating service accounts.`,
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
-			"id": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The numerical ID of the Grafana user.",
-			},
-			"login": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The username of the service account",
-			},
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The name for the Grafana service account.",
+				Description: "The name of the service account.",
 			},
 			"role": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The role of the service account in the organization.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice([]string{"Viewer", "Editor", "Admin"}, false),
+				Description:  "The basic role of the service account in the organization.",
 			},
 			"is_disabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
+				Default:     false,
 				Description: "The disabled status for the service account.",
 			},
 		},
@@ -57,28 +52,13 @@ This resource uses Grafana's API for creating and updating service accounts.`,
 func CreateServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 	req := gapi.CreateServiceAccountRequest{
-		Name: d.Get("name").(string),
+		Name:       d.Get("name").(string),
+		Role:       d.Get("role").(string),
+		IsDisabled: d.Get("is_disabled").(bool),
 	}
 	sa, err := client.CreateServiceAccount(req)
 	if err != nil {
 		return diag.FromErr(err)
-	}
-
-	if d.HasChange("role") || d.HasChange("is_disabled") {
-		updateRequest := gapi.UpdateServiceAccountRequest{
-			Name: req.Name,
-		}
-		if d.HasChange("role") {
-			updateRequest.Role = d.Get("role").(string)
-		}
-		if d.HasChange("is_disabled") {
-			isDisabled := d.Get("is_disabled").(bool)
-			updateRequest.IsDisabled = &isDisabled
-		}
-
-		if _, err := client.UpdateServiceAccount(sa.ID, updateRequest); err != nil {
-			return diag.FromErr(err)
-		}
 	}
 
 	d.SetId(strconv.FormatInt(sa.ID, 10))
@@ -100,15 +80,27 @@ func ReadServiceAccount(ctx context.Context, d *schema.ResourceData, meta interf
 	for _, sa := range sas {
 		if sa.ID == id {
 			d.SetId(strconv.FormatInt(sa.ID, 10))
-			d.Set("name", sa.Name)
-			d.Set("login", sa.Login)
-			d.Set("role", sa.Role)
-			d.Set("is_disabled", sa.IsDisabled)
+			err = d.Set("name", sa.Name)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			err = d.Set("login", sa.Login)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			err = d.Set("role", sa.Role)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			err = d.Set("is_disabled", sa.IsDisabled)
+			if err != nil {
+				return diag.FromErr(err)
+			}
 
 			return nil
 		}
 	}
-	// Resource was not found via the client. Have Terraform destroy it.
+	// Resource was not found via the client. Enforce Terraform to destroy it.
 	d.SetId("")
 
 	return nil
@@ -126,8 +118,7 @@ func UpdateServiceAccount(ctx context.Context, d *schema.ResourceData, meta inte
 		updateRequest.Role = d.Get("role").(string)
 	}
 	if d.HasChange("is_disabled") {
-		isDisabled := d.Get("is_disabled").(bool)
-		updateRequest.IsDisabled = &isDisabled
+		updateRequest.IsDisabled = d.Get("is_disabled").(bool)
 	}
 
 	if _, err := client.UpdateServiceAccount(id, updateRequest); err != nil {
