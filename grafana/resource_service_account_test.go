@@ -30,6 +30,9 @@ func TestAccServiceAccount_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"grafana_service_account.test", "role", "Editor",
 					),
+					resource.TestCheckResourceAttr(
+						"grafana_service_account.test", "is_disabled", "false",
+					),
 					resource.TestMatchResourceAttr(
 						"grafana_service_account.test", "id", idRegexp,
 					),
@@ -49,7 +52,7 @@ func TestAccServiceAccount_invalid_role(t *testing.T) {
 		CheckDestroy:      testAccServiceAccountCheckDestroy(&sa),
 		Steps: []resource.TestStep{
 			{
-				ExpectError: regexp.MustCompile("expected role to be one of \\[Viewer Editor Admin\\], got Admiasdn"),
+				ExpectError: regexp.MustCompile("expected role to be one of \\[Viewer Editor Admin], got InvalidRole"),
 				Config:      testServiceAccountConfigInvalidRole,
 			},
 		},
@@ -76,7 +79,7 @@ func testAccServiceAccountCheckExists(rn string, a *gapi.ServiceAccountDTO) reso
 				*a = sa
 				a.Name = rs.Primary.Attributes["name"]
 				a.Role = rs.Primary.Attributes["role"]
-				d, err := strconv.ParseBool(rs.Primary.Attributes["grafana_service_account.test.is_disabled"])
+				d, err := strconv.ParseBool(rs.Primary.Attributes["is_disabled"])
 				if err != nil {
 					return fmt.Errorf("error parsing is_disabled field: %s", err)
 				}
