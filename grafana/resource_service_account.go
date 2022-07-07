@@ -51,10 +51,11 @@ func ResourceServiceAccount() *schema.Resource {
 
 func CreateServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
+	isDisabled := d.Get("is_disabled").(bool)
 	req := gapi.CreateServiceAccountRequest{
 		Name:       d.Get("name").(string),
 		Role:       d.Get("role").(string),
-		IsDisabled: d.Get("is_disabled").(bool),
+		IsDisabled: &isDisabled,
 	}
 	sa, err := client.CreateServiceAccount(req)
 	if err != nil {
@@ -114,7 +115,8 @@ func UpdateServiceAccount(ctx context.Context, d *schema.ResourceData, meta inte
 		updateRequest.Role = d.Get("role").(string)
 	}
 	if d.HasChange("is_disabled") {
-		updateRequest.IsDisabled = d.Get("is_disabled").(bool)
+		isDisabled := d.Get("is_disabled").(bool)
+		updateRequest.IsDisabled = &isDisabled
 	}
 
 	if _, err := client.UpdateServiceAccount(id, updateRequest); err != nil {
