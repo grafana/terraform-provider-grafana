@@ -15,6 +15,7 @@ import (
 
 var integrationTypes = []string{
 	"grafana",
+	"grafana_alerting",
 	"webhook",
 	"alertmanager",
 	"kapacitor",
