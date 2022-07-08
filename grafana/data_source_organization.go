@@ -73,10 +73,12 @@ func dataSourceOrganizationRead(ctx context.Context, d *schema.ResourceData, met
 		"editors": []string{},
 		"viewers": []string{},
 	}
+
 	for _, user := range orgUsers {
 		role := fmt.Sprintf("%ss", strings.ToLower(user.Role))
 		userCollections[role] = append(userCollections[role], user.Email)
 	}
+
 	for roleCollection, emails := range userCollections {
 		if err := d.Set(roleCollection, emails); err != nil {
 			return diag.FromErr(fmt.Errorf("error setting %s: %v", roleCollection, err))
