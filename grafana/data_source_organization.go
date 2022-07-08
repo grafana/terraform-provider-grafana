@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -22,6 +23,30 @@ func DatasourceOrganization() *schema.Resource {
 				Required:    true,
 				Description: "The name of the Organization.",
 			},
+			"admins": {
+				Type: schema.TypeSet,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Computed:    true,
+				Description: "A list of email addresses corresponding to users given admin access to the organization.",
+			},
+			"editors": {
+				Type: schema.TypeSet,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Computed:    true,
+				Description: "A list of email addresses corresponding to users given editor access to the organization.",
+			},
+			"viewers": {
+				Type: schema.TypeSet,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Computed:    true,
+				Description: "A list of email addresses corresponding to users given viewer access to the organization.",
+			},
 		},
 	}
 }
@@ -36,6 +61,26 @@ func dataSourceOrganizationRead(ctx context.Context, d *schema.ResourceData, met
 			return nil
 		}
 		return diag.FromErr(err)
+	}
+
+	orgUsers, err := client.OrgUsers(org.ID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	userCollections := map[string][]string{
+		"admins":  []string{},
+		"editors": []string{},
+		"viewers": []string{},
+	}
+	for _, user := range orgUsers {
+		role := fmt.Sprintf("%ss", strings.ToLower(user.Role))
+		userCollections[role] = append(userCollections[role], user.Email)
+	}
+	for roleCollection, emails := range userCollections {
+		if err := d.Set(roleCollection, emails); err != nil {
+			return diag.FromErr(fmt.Errorf("error setting %s: %v", roleCollection, err))
+		}
 	}
 
 	d.SetId(strconv.FormatInt(org.ID, 10))
