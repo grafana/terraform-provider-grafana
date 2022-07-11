@@ -80,8 +80,8 @@ func dataSourceOrganizationRead(ctx context.Context, d *schema.ResourceData, met
 	}
 
 	for role, emails := range userCollections {
-		if err := d.Set(roleCollection, emails); err != nil {
-			return diag.Errorf("error setting %s: %v", roleCollection, err)
+		if err := d.Set(role, emails); err != nil {
+			return diag.Errorf("error setting %s: %v", role, err)
 		}
 	}
 
