@@ -16,6 +16,25 @@ func TestAccDatasourceOrganization(t *testing.T) {
 		resource.TestCheckResourceAttr(
 			"data.grafana_organization.from_name", "name", "test-org",
 		),
+		resource.TestCheckResourceAttr(
+			"data.grafana_organization.from_name", "admins.#", "1",
+		),
+		resource.TestCheckResourceAttr(
+			// Grafana automatically adds the admin user to all orgs
+			"data.grafana_organization.from_name", "admins.0", "admin@localhost",
+		),
+		resource.TestCheckResourceAttr(
+			"data.grafana_organization.from_name", "viewers.#", "2",
+		),
+		resource.TestCheckResourceAttr(
+			"data.grafana_organization.from_name", "viewers.0", "viewer-01@example.com",
+		),
+		resource.TestCheckResourceAttr(
+			"data.grafana_organization.from_name", "viewers.1", "viewer-02@example.com",
+		),
+		resource.TestCheckResourceAttr(
+			"data.grafana_organization.from_name", "editors.#", "0",
+		),
 	}
 
 	resource.Test(t, resource.TestCase{
