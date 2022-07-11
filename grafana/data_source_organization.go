@@ -79,7 +79,7 @@ func dataSourceOrganizationRead(ctx context.Context, d *schema.ResourceData, met
 		userCollections[role] = append(userCollections[role], user.Email)
 	}
 
-	for roleCollection, emails := range userCollections {
+	for role, emails := range userCollections {
 		if err := d.Set(roleCollection, emails); err != nil {
 			return diag.Errorf("error setting %s: %v", roleCollection, err)
 		}
