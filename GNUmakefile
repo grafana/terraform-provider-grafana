@@ -42,9 +42,15 @@ release:
 	@git push origin $$RELEASE_VERSION
 
 drone:
-	drone jsonnet --stream --source .drone/drone.jsonnet --target .drone/drone.yml --format
+	drone jsonnet \
+		--stream \
+		--extVar 'grafanaVersions=$(shell ./.drone/get_grafana_versions.sh)' \
+		--source .drone/drone.jsonnet \
+		--target .drone/drone.yml \
+		--format
 	drone lint .drone/drone.yml
 	drone sign --save grafana/terraform-provider-grafana .drone/drone.yml
+.PHONY: drone
 
 golangci-lint:
 	docker run \
