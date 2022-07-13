@@ -84,11 +84,13 @@ func testAccAnnotationCheckDestroy(annotation *gapi.Annotation) resource.TestChe
 		}
 
 		if len(annotations) < 1 {
-			return errors.New("Grafana API returned no annotations")
+			return nil
 		}
 
-		if annotations[0].ID == annotation.ID {
-			return errors.New("annotation still exists")
+		for _, annotation := range annotations {
+			if annotation.Text == "basic text" {
+				return errors.New("annotation still exists")
+			}
 		}
 
 		return nil
