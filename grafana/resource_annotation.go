@@ -169,6 +169,6 @@ func makeAnnotation(_ context.Context, d *schema.ResourceData) (*gapi.Annotation
 		Text:        d.Get("text").(string),
 		PanelID:     int64(d.Get("panel_id").(int)),
 		DashboardID: int64(d.Get("dashboard_id").(int)),
-		Tags:        d.Get("tags").([]string),
+		Tags:        setToStringSlice(d.Get("tags").(*schema.Set)),
 	}, err
 }
