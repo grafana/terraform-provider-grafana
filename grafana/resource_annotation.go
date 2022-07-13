@@ -119,15 +119,15 @@ func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{
 		return diag.FromErr(err)
 	}
 
-	var annotation *gapi.Annotation
+	var annotation gapi.Annotation
 	for _, a := range annotations {
 		if a.ID == id {
-			annotation = &a
+			annotation = a
 			break
 		}
 	}
 
-	if annotation == nil {
+	if &annotation == nil {
 		return diag.Errorf("unable to find Grafana annotation ID %d", id)
 	}
 
