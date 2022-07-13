@@ -54,15 +54,23 @@ func testAccAnnotationCheckExists(rn string, annotation *gapi.Annotation) resour
 		if !ok {
 			return fmt.Errorf("resource not found: %s", rn)
 		}
+
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource id not set")
 		}
+
 		client := testAccProvider.Meta().(*client).gapi
 		annotations, err := client.Annotations(url.Values{})
 		if err != nil {
 			return fmt.Errorf("error getting annotation: %s", err)
 		}
+
+		if len(annotations) < 1 {
+			return errors.New("Grafana API returned no annotations")
+		}
+
 		*annotation = annotations[0]
+
 		return nil
 	}
 }
@@ -75,9 +83,14 @@ func testAccAnnotationCheckDestroy(annotation *gapi.Annotation) resource.TestChe
 			return err
 		}
 
+		if len(annotations) < 1 {
+			return errors.New("Grafana API returned no annotations")
+		}
+
 		if annotations[0].ID == annotation.ID {
 			return errors.New("annotation still exists")
 		}
+
 		return nil
 	}
 }
