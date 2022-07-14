@@ -86,14 +86,8 @@ func testAccAnnotationCheckDestroy(annotation *gapi.Annotation) resource.TestChe
 			return err
 		}
 
-		if len(annotations) < 1 {
-			return nil
-		}
-
-		for _, annotation := range annotations {
-			if annotation.Text == testAccAnnotationInitialText || annotation.Text == testAccAnnotationUpdatedText {
-				return errors.New("annotation still exists")
-			}
+		if len(annotations) > 0 {
+			return errors.New("annotation still exists")
 		}
 
 		return nil
