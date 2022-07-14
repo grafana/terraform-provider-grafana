@@ -70,6 +70,7 @@ source selected (via the 'type' argument).
 				Default:     "",
 				Sensitive:   true,
 				Description: "Basic auth password.",
+				Deprecated:  "Use secure_json_data.basic_auth_password instead. This attribute is removed in Grafana 9.0+",
 			},
 			"basic_auth_username": {
 				Type:        schema.TypeString,
@@ -447,6 +448,7 @@ source selected (via the 'type' argument).
 				Default:     "",
 				Sensitive:   true,
 				Description: "(Required by some data source types) The password to use to authenticate to the data source.",
+				Deprecated:  "Use secure_json_data.password instead. This attribute is removed in Grafana 9.0+",
 			},
 			"secure_json_data": {
 				Type:        schema.TypeList,
