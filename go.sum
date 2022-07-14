@@ -116,6 +116,8 @@ github.com/grafana/amixr-api-go-client v0.0.4 h1:GD36YNbfZnyJlpfCS4DfvKv2H1oAHDc
 github.com/grafana/amixr-api-go-client v0.0.4/go.mod h1:N6x26XUrM5zGtK5zL5vNJnAn2JFMxLFPPLTw/6pDkFE=
 github.com/grafana/grafana-api-golang-client v0.7.0 h1:MEkWVbM1acmfHiyxzKqhoiQtoV7S7taUSrT0OXXKTmw=
 github.com/grafana/grafana-api-golang-client v0.7.0/go.mod h1:24W29gPe9yl0/3A9X624TPkAOR8DpHno490cPwnkv8E=
+github.com/grafana/grafana-api-golang-client v0.8.0 h1:AmivUaL2Uf6+DQ6agNmE4inT4eHNYk9tEG6S2lk3rPY=
+github.com/grafana/grafana-api-golang-client v0.8.0/go.mod h1:24W29gPe9yl0/3A9X624TPkAOR8DpHno490cPwnkv8E=
 github.com/grafana/machine-learning-go-client v0.1.1 h1:Gw6cX8xAd6IVF2LApkXOIdBK8Gzz07B3jQPukecw7fc=
 github.com/grafana/machine-learning-go-client v0.1.1/go.mod h1:QFfZz8NkqVF8++skjkKQXJEZfpCYd8S0yTWJUpsLLTA=
 github.com/grafana/synthetic-monitoring-agent v0.9.3 h1:1GAjyUMWPYndRF6tux8NWgk97bRFx9RVYMkEMerPNKU=
