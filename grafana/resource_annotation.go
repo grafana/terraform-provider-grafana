@@ -27,6 +27,13 @@ func ResourceAnnotation() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"text": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Default:     false,
+				Description: "The text to associate with the annotation.",
+			},
+
 			"dashboard_id": {
 				Type:        schema.TypeInt,
 				Optional:    true,
@@ -39,13 +46,6 @@ func ResourceAnnotation() *schema.Resource {
 				Optional:    true,
 				Default:     false,
 				Description: "The ID of the dashboard panel on which to create the annotation.",
-			},
-
-			"text": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     false,
-				Description: "The text to associate with the annotation.",
 			},
 
 			"tags": {
