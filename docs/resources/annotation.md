@@ -24,7 +24,7 @@ resource "grafana_annotation" "test" {
 
 ### Required
 
-- `text` (String) The text to associate with the annotation. Defaults to `false`.
+- `text` (String) The text to associate with the annotation.
 
 ### Optional
 
