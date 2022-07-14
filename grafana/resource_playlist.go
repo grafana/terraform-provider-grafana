@@ -98,6 +98,7 @@ func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta interface{})
 
 	resp, err := client.Playlist(d.Id())
 
+	// In Grafana 9.0+, if the playlist doesn't exist, the API returns an empty playlist but not a 404
 	if (err != nil && strings.HasPrefix(err.Error(), "status: 404")) || resp.ID == 0 {
 		log.Printf("[WARN] removing playlist %s from state because it no longer exists in grafana", d.Id())
 		d.SetId("")

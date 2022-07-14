@@ -623,9 +623,7 @@ func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{
 
 	// TODO: these fields should be migrated to SecureJSONData.
 	d.Set("basic_auth_enabled", dataSource.BasicAuth)
-	d.Set("basic_auth_username", dataSource.BasicAuthUser)     //nolint:staticcheck // deprecated
-	d.Set("basic_auth_password", dataSource.BasicAuthPassword) //nolint:staticcheck // deprecated
-	d.Set("password", dataSource.Password)                     //nolint:staticcheck // deprecated
+	d.Set("basic_auth_username", dataSource.BasicAuthUser) //nolint:staticcheck // deprecated
 
 	return nil
 }
