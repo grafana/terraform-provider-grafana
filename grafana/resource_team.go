@@ -153,6 +153,11 @@ func ReadMembers(d *schema.ResourceData, meta interface{}) error {
 	}
 	memberSlice := []string{}
 	for _, teamMember := range teamMembers {
+		// Admin is added automatically to the team when the team is created.
+		// We can't interact with it, so we skip it from Terraform management.
+		if teamMember.Email == "admin@localhost" {
+			continue
+		}
 		memberSlice = append(memberSlice, teamMember.Email)
 	}
 	d.Set("members", memberSlice)
