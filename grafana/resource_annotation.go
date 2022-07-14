@@ -30,7 +30,6 @@ func ResourceAnnotation() *schema.Resource {
 			"text": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Default:     false,
 				Description: "The text to associate with the annotation.",
 			},
 
