@@ -3,12 +3,13 @@
 page_title: "grafana_message_template Resource - terraform-provider-grafana"
 subcategory: ""
 description: |-
-  TODO
+  Official documentation https://grafana.com/docs/grafana/next/alerting/contact-points/message-templating/HTTP API https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#templates
 ---
 
 # grafana_message_template (Resource)
 
-TODO
+* [Official documentation](https://grafana.com/docs/grafana/next/alerting/contact-points/message-templating/)
+* [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#templates)
 
 ## Example Usage
 

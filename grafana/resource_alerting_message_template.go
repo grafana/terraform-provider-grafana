@@ -11,7 +11,10 @@ import (
 
 func ResourceMessageTemplate() *schema.Resource {
 	return &schema.Resource{
-		Description:   `TODO`,
+		Description: `
+* [Official documentation](https://grafana.com/docs/grafana/next/alerting/contact-points/message-templating/)
+* [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#templates)
+`,
 		CreateContext: createMessageTemplate,
 		ReadContext:   readMessageTemplate,
 		UpdateContext: updateMessageTemplate,
