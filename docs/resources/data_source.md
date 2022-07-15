@@ -85,13 +85,13 @@ resource "grafana_data_source" "stackdriver" {
 
 - `access_mode` (String) The method by which Grafana will access the data source: `proxy` or `direct`. Defaults to `proxy`.
 - `basic_auth_enabled` (Boolean) Whether to enable basic auth for the data source. Defaults to `false`.
-- `basic_auth_password` (String, Sensitive, Deprecated) Basic auth password. Deprecated: Use secure_json_data.basic_auth_password instead. This attribute is removed in Grafana 9.0+ Defaults to ``.
+- `basic_auth_password` (String, Sensitive, Deprecated) Basic auth password. Deprecated: Use secure_json_data.basic_auth_password instead. This attribute is removed in Grafana 9.0+. Defaults to ``.
 - `basic_auth_username` (String) Basic auth username. Defaults to ``.
 - `database_name` (String) (Required by some data source types) The name of the database to use on the selected data source server. Defaults to ``.
 - `http_headers` (Map of String, Sensitive) Custom HTTP headers
 - `is_default` (Boolean) Whether to set the data source as default. This should only be `true` to a single data source. Defaults to `false`.
 - `json_data` (Block List) (Required by some data source types) (see [below for nested schema](#nestedblock--json_data))
-- `password` (String, Sensitive, Deprecated) (Required by some data source types) The password to use to authenticate to the data source. Deprecated: Use secure_json_data.password instead. This attribute is removed in Grafana 9.0+ Defaults to ``.
+- `password` (String, Sensitive, Deprecated) (Required by some data source types) The password to use to authenticate to the data source. Deprecated: Use secure_json_data.password instead. This attribute is removed in Grafana 9.0+. Defaults to ``.
 - `secure_json_data` (Block List) (see [below for nested schema](#nestedblock--secure_json_data))
 - `uid` (String) Unique identifier. If unset, this will be automatically generated.
 - `url` (String) The URL for the data source. The type of URL required varies depending on the chosen data source type.
