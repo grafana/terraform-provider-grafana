@@ -28,8 +28,8 @@ resource "grafana_annotation" "test" {
 
 ### Optional
 
-- `dashboard_id` (Number) The ID of the dashboard on which to create the annotation. Defaults to `false`.
-- `panel_id` (Number) The ID of the dashboard panel on which to create the annotation. Defaults to `false`.
+- `dashboard_id` (Number) The ID of the dashboard on which to create the annotation.
+- `panel_id` (Number) The ID of the dashboard panel on which to create the annotation.
 - `tags` (Set of String) The tags to associate with the annotation.
 
 ### Read-Only
