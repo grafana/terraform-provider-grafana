@@ -1,1 +1,1 @@
-terraform import grafana_message_template.message_template_name {{alert_notification_id}}
+terraform import grafana_message_template.message_template_name {{message_template_name}}
