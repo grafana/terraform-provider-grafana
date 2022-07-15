@@ -36,14 +36,12 @@ func ResourceAnnotation() *schema.Resource {
 			"dashboard_id": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     false,
 				Description: "The ID of the dashboard on which to create the annotation.",
 			},
 
 			"panel_id": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     false,
 				Description: "The ID of the dashboard panel on which to create the annotation.",
 			},
 
