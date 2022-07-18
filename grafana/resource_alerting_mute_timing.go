@@ -38,21 +38,21 @@ func ResourceMuteTiming() *schema.Resource {
 					SchemaVersion: 0,
 					Schema: map[string]*schema.Schema{
 						"times": {
-							Type:        schema.TypeSet,
+							Type:        schema.TypeList,
 							Optional:    true,
 							Description: "The time ranges, represented in minutes, during which to mute in a given day.",
 							Elem: &schema.Resource{
 								SchemaVersion: 0,
 								Schema: map[string]*schema.Schema{
 									"start": {
-										Type:        schema.TypeInt,
+										Type:        schema.TypeString,
 										Required:    true,
-										Description: "The inclusive starting minute, within a 1440 minute day, of the time interval.",
+										Description: "TODO",
 									},
 									"end": {
-										Type:        schema.TypeInt,
+										Type:        schema.TypeString,
 										Required:    true,
-										Description: "The exclusive ending minute, within a 1440 minute day, of the time interval.",
+										Description: "TODO",
 									},
 								},
 							},
@@ -132,12 +132,21 @@ func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 	client := meta.(*client).gapi
 
 	mt := unpackMuteTiming(data)
+
+	if mt.Name != data.Id() {
+		if err := client.NewMuteTiming(&mt); err != nil {
+			return diag.FromErr(err)
+		}
+		if err := client.DeleteMuteTiming(data.Id()); err != nil {
+			return diag.FromErr(err)
+		}
+		data.SetId(mt.Name)
+		return readMuteTiming(ctx, data, meta)
+	}
+
 	if err := client.UpdateMuteTiming(&mt); err != nil {
 		return diag.FromErr(err)
 	}
-
-	// TODO: handle renames (delete and recreate)
-
 	return readMuteTiming(ctx, data, meta)
 }
 
@@ -173,7 +182,7 @@ func packIntervals(nts []gapi.TimeInterval) []interface{} {
 			for _, time := range ti.Times {
 				times = append(times, packTimeRange(time))
 			}
-			in["times"] = []interface{}{}
+			in["times"] = times
 		}
 		if ti.Weekdays != nil {
 			wkdays := make([]interface{}, 0)
@@ -220,7 +229,7 @@ func unpackIntervals(raw *schema.Set) []gapi.TimeInterval {
 		block := r.(map[string]interface{})
 
 		if vals, ok := block["times"]; ok && vals != nil {
-			vals := vals.(*schema.Set).List()
+			vals := vals.([]interface{})
 			interval.Times = make([]gapi.TimeRange, len(vals))
 			for i := range vals {
 				interval.Times[i] = unpackTimeRange(vals[i])
@@ -262,16 +271,16 @@ func unpackIntervals(raw *schema.Set) []gapi.TimeInterval {
 }
 
 func packTimeRange(time gapi.TimeRange) interface{} {
-	return map[string]int{
+	return map[string]string{
 		"start": time.StartMinute,
 		"end":   time.EndMinute,
 	}
 }
 
 func unpackTimeRange(raw interface{}) gapi.TimeRange {
-	vals := raw.(map[string]int)
+	vals := raw.(map[string]interface{})
 	return gapi.TimeRange{
-		StartMinute: vals["start"],
-		EndMinute:   vals["end"],
+		StartMinute: vals["start"].(string),
+		EndMinute:   vals["end"].(string),
 	}
 }

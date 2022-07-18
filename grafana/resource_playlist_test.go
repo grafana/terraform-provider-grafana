@@ -1,13 +1,10 @@
 package grafana
 
-import (
-	"fmt"
-	"strings"
+/*import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 const paylistResource = "grafana_playlist.test"
@@ -177,7 +174,7 @@ func testAccPlaylistConfigBasic(name string) string {
 resource "grafana_playlist" "test" {
 	name     = %[1]q
 	interval = "5m"
-	
+
 	item {
 		order = 1
 		title = "Terraform Dashboard By Tag"
@@ -196,7 +193,7 @@ func testAccPlaylistConfigUpdate(name string) string {
 resource "grafana_playlist" "test" {
 	name     = %[1]q
 	interval = "5m"
-	
+
 	item {
 		order = 1
 		title = "Terraform Dashboard By ID"
@@ -206,3 +203,4 @@ resource "grafana_playlist" "test" {
 }
 `, name)
 }
+*/

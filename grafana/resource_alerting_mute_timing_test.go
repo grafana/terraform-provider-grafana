@@ -26,6 +26,35 @@ func TestAccMuteTiming_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testMuteTimingCheckExists("grafana_mute_timing.my_mute_timing", &mt),
 				),
+				// TODO: Test some properties.
+			},
+			// Test import.
+			{
+				ResourceName:      "grafana_mute_timing.my_mute_timing",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Test update content.
+			{
+				Config: testAccExampleWithReplace(t, "resources/grafana_mute_timing/resource.tf", map[string]string{
+					"monday": "friday",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testMuteTimingCheckExists("grafana_mute_timing.my_mute_timing", &mt),
+					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.weekdays.*", "friday"),
+					// TODO: test some properties.
+				),
+			},
+			// Test rename.
+			{
+				Config: testAccExampleWithReplace(t, "resources/grafana_mute_timing/resource.tf", map[string]string{
+					"My Mute Timing": "A Different Mute Timing",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testMuteTimingCheckExists("grafana_mute_timing.my_mute_timing", &mt),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "name", "A Different Mute Timing"),
+					testMuteTimingCheckDestroy(&gapi.MuteTiming{Name: "My Mute Timing"}),
+				),
 			},
 		},
 	})

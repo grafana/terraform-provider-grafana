@@ -3,8 +3,6 @@ package grafana
 import (
 	"context"
 	"fmt"
-	"log"
-	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -74,7 +72,7 @@ func ResourcePlaylist() *schema.Resource {
 }
 
 func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client).gapi
+	/*client := meta.(*client).gapi
 
 	playlist := gapi.Playlist{
 		Name:     d.Get("name").(string),
@@ -82,7 +80,7 @@ func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 		Items:    expandPlaylistItems(d.Get("item").(*schema.Set).List()),
 	}
 
-	id, err := client.NewPlaylist(playlist)
+	//id, err := client.NewPlaylist(playlist)
 
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("error creating Playlist: %w", err))
@@ -90,11 +88,12 @@ func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 
 	d.SetId(id)
 
-	return ReadPlaylist(ctx, d, meta)
+	return ReadPlaylist(ctx, d, meta)*/
+	return nil
 }
 
 func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client).gapi
+	/*client := meta.(*client).gapi
 
 	resp, err := client.Playlist(d.Id())
 
@@ -111,7 +110,7 @@ func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta interface{})
 	d.Set("interval", resp.Interval)
 	if err := d.Set("item", flattenPlaylistItems(resp.Items)); err != nil {
 		return diag.FromErr(fmt.Errorf("error setting item: %v", err))
-	}
+	}*/
 
 	return nil
 }
@@ -134,14 +133,14 @@ func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 }
 
 func DeletePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client).gapi
+	/*client := meta.(*client).gapi
 
 	if err := client.DeletePlaylist(d.Id()); err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
 			return nil
 		}
 		return diag.FromErr(fmt.Errorf("error deleting Playlist (%s): %w", d.Id(), err))
-	}
+	}*/
 
 	return nil
 }
