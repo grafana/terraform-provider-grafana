@@ -25,8 +25,15 @@ func TestAccMuteTiming_basic(t *testing.T) {
 				Config: testAccExample(t, "resources/grafana_mute_timing/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testMuteTimingCheckExists("grafana_mute_timing.my_mute_timing", &mt),
+					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.weekdays.*", "monday"),
+					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.weekdays.*", "tuesday:thursday"),
+					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.days_of_month.*", "1:7"),
+					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.days_of_month.*", "-1"),
+					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.months.*", "1:3"),
+					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.months.*", "12"),
+					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.years.*", "2030"),
+					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.years.*", "2025:2026"),
 				),
-				// TODO: Test some properties.
 			},
 			// Test import.
 			{
@@ -42,7 +49,7 @@ func TestAccMuteTiming_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testMuteTimingCheckExists("grafana_mute_timing.my_mute_timing", &mt),
 					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.weekdays.*", "friday"),
-					// TODO: test some properties.
+					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.weekdays.*", "tuesday:thursday"),
 				),
 			},
 			// Test rename.
