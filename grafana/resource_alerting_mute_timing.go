@@ -12,7 +12,10 @@ import (
 
 func ResourceMuteTiming() *schema.Resource {
 	return &schema.Resource{
-		Description: `TODO`,
+		Description: `
+* [Official documentation](https://grafana.com/docs/grafana/next/alerting/notifications/mute-timings/)
+* [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#mute-timings)
+		`,
 
 		CreateContext: createMuteTiming,
 		ReadContext:   readMuteTiming,
@@ -47,12 +50,12 @@ func ResourceMuteTiming() *schema.Resource {
 									"start": {
 										Type:        schema.TypeString,
 										Required:    true,
-										Description: "TODO",
+										Description: "The time, in hh:mm format, of when the interval should begin inclusively.",
 									},
 									"end": {
 										Type:        schema.TypeString,
 										Required:    true,
-										Description: "TODO",
+										Description: "The time, in hh:mm format, of when the interval should end exclusively.",
 									},
 								},
 							},
