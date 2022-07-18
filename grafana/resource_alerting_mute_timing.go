@@ -151,6 +151,15 @@ func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 	return diag.Diagnostics{}
 }
 
+func unpackMuteTiming(d *schema.ResourceData) gapi.MuteTiming {
+	intervals := d.Get("intervals").([]interface{})
+	mt := gapi.MuteTiming{
+		Name:          d.Get("name").(string),
+		TimeIntervals: unpackIntervals(intervals),
+	}
+	return mt
+}
+
 func packIntervals(nts []gapi.TimeInterval) []interface{} {
 	if nts == nil {
 		return nil
@@ -162,10 +171,7 @@ func packIntervals(nts []gapi.TimeInterval) []interface{} {
 		if ti.Times != nil {
 			times := []interface{}{}
 			for _, time := range ti.Times {
-				times = append(times, map[string]int{
-					"start": time.StartMinute,
-					"end":   time.EndMinute,
-				})
+				times = append(times, packTimeRange(time))
 			}
 			in["times"] = []interface{}{}
 		}
@@ -201,15 +207,6 @@ func packIntervals(nts []gapi.TimeInterval) []interface{} {
 	}
 
 	return intervals
-}
-
-func unpackMuteTiming(d *schema.ResourceData) gapi.MuteTiming {
-	intervals := d.Get("intervals").([]interface{})
-	mt := gapi.MuteTiming{
-		Name:          d.Get("name").(string),
-		TimeIntervals: unpackIntervals(intervals),
-	}
-	return mt
 }
 
 func unpackIntervals(raw []interface{}) []gapi.TimeInterval {
@@ -257,6 +254,13 @@ func unpackIntervals(raw []interface{}) []gapi.TimeInterval {
 	}
 
 	return result
+}
+
+func packTimeRange(time gapi.TimeRange) interface{} {
+	return map[string]int{
+		"start": time.StartMinute,
+		"end":   time.EndMinute,
+	}
 }
 
 func unpackTimeRange(raw interface{}) gapi.TimeRange {
