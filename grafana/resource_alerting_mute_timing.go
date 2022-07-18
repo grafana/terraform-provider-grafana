@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 
+	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -13,7 +14,10 @@ func ResourceMuteTiming() *schema.Resource {
 	return &schema.Resource{
 		Description: `TODO`,
 
-		ReadContext: readMuteTiming,
+		CreateContext: createMuteTiming,
+		ReadContext:   readMuteTiming,
+		UpdateContext: updateMuteTiming,
+		DeleteContext: deleteMuteTiming,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -108,52 +112,157 @@ func readMuteTiming(ctx context.Context, data *schema.ResourceData, meta interfa
 
 	data.SetId(mt.Name)
 	data.Set("name", mt.Name)
-	if mt.TimeIntervals != nil {
-		intervals := make([]interface{}, 0)
-		for _, ti := range mt.TimeIntervals {
-			in := map[string][]interface{}{}
-			if ti.Times != nil {
-				times := []interface{}{}
-				for _, time := range ti.Times {
-					times = append(times, map[string]int{
-						"start": time.StartMinute,
-						"end":   time.EndMinute,
-					})
-				}
-				in["times"] = []interface{}{}
-			}
-			if ti.Weekdays != nil {
-				wkdays := make([]interface{}, 0)
-				for _, wd := range ti.Weekdays {
-					wkdays = append(wkdays, wd)
-				}
-				in["weekdays"] = wkdays
-			}
-			if ti.DaysOfMonth != nil {
-				mdays := make([]interface{}, 0)
-				for _, dom := range ti.DaysOfMonth {
-					mdays = append(mdays, dom)
-				}
-				in["days_of_month"] = mdays
-			}
-			if ti.Months != nil {
-				ms := make([]interface{}, 0)
-				for _, m := range ti.Months {
-					ms = append(ms, m)
-				}
-				in["months"] = ms
-			}
-			if ti.Years != nil {
-				ys := make([]interface{}, 0)
-				for _, y := range ti.Years {
-					ys = append(ys, y)
-				}
-				in["years"] = ys
-			}
-			intervals = append(intervals, in)
-		}
-		data.Set("intervals", intervals)
+	data.Set("intervals", packIntervals(mt.TimeIntervals))
+	return nil
+}
+
+func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
+
+	mt := unpackMuteTiming(data)
+	if err := client.NewMuteTiming(&mt); err != nil {
+		return diag.FromErr(err)
 	}
 
-	return nil
+	data.SetId(mt.Name)
+	return readMuteTiming(ctx, data, meta)
+}
+
+func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
+
+	mt := unpackMuteTiming(data)
+	if err := client.UpdateMuteTiming(&mt); err != nil {
+		return diag.FromErr(err)
+	}
+
+	// TODO: handle renames (delete and recreate)
+
+	return readMuteTiming(ctx, data, meta)
+}
+
+func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
+	name := data.Id()
+
+	if err := client.DeleteMuteTiming(name); err != nil {
+		return diag.FromErr(err)
+	}
+	return diag.Diagnostics{}
+}
+
+func packIntervals(nts []gapi.TimeInterval) []interface{} {
+	if nts == nil {
+		return nil
+	}
+
+	intervals := make([]interface{}, 0)
+	for _, ti := range nts {
+		in := map[string][]interface{}{}
+		if ti.Times != nil {
+			times := []interface{}{}
+			for _, time := range ti.Times {
+				times = append(times, map[string]int{
+					"start": time.StartMinute,
+					"end":   time.EndMinute,
+				})
+			}
+			in["times"] = []interface{}{}
+		}
+		if ti.Weekdays != nil {
+			wkdays := make([]interface{}, 0)
+			for _, wd := range ti.Weekdays {
+				wkdays = append(wkdays, wd)
+			}
+			in["weekdays"] = wkdays
+		}
+		if ti.DaysOfMonth != nil {
+			mdays := make([]interface{}, 0)
+			for _, dom := range ti.DaysOfMonth {
+				mdays = append(mdays, dom)
+			}
+			in["days_of_month"] = mdays
+		}
+		if ti.Months != nil {
+			ms := make([]interface{}, 0)
+			for _, m := range ti.Months {
+				ms = append(ms, m)
+			}
+			in["months"] = ms
+		}
+		if ti.Years != nil {
+			ys := make([]interface{}, 0)
+			for _, y := range ti.Years {
+				ys = append(ys, y)
+			}
+			in["years"] = ys
+		}
+		intervals = append(intervals, in)
+	}
+
+	return intervals
+}
+
+func unpackMuteTiming(d *schema.ResourceData) gapi.MuteTiming {
+	intervals := d.Get("intervals").([]interface{})
+	mt := gapi.MuteTiming{
+		Name:          d.Get("name").(string),
+		TimeIntervals: unpackIntervals(intervals),
+	}
+	return mt
+}
+
+func unpackIntervals(raw []interface{}) []gapi.TimeInterval {
+	if raw == nil {
+		return nil
+	}
+
+	result := make([]gapi.TimeInterval, len(raw))
+	for i, r := range raw {
+		interval := gapi.TimeInterval{}
+		block := r.(map[string][]interface{})
+
+		if vals, ok := block["times"]; ok && vals != nil {
+			interval.Times = make([]gapi.TimeRange, len(vals))
+			for i := range vals {
+				interval.Times[i] = unpackTimeRange(vals[i])
+			}
+		}
+		if vals, ok := block["weekdays"]; ok && vals != nil {
+			interval.Weekdays = make([]gapi.WeekdayRange, len(vals))
+			for i := range vals {
+				interval.Weekdays[i] = gapi.WeekdayRange(vals[i].(string))
+			}
+		}
+		if vals, ok := block["days_of_month"]; ok && vals != nil {
+			interval.DaysOfMonth = make([]gapi.DayOfMonthRange, len(vals))
+			for i := range vals {
+				interval.DaysOfMonth[i] = gapi.DayOfMonthRange(vals[i].(string))
+			}
+		}
+		if vals, ok := block["months"]; ok && vals != nil {
+			interval.Months = make([]gapi.MonthRange, len(vals))
+			for i := range vals {
+				interval.Months[i] = gapi.MonthRange(vals[i].(string))
+			}
+		}
+		if vals, ok := block["years"]; ok && vals != nil {
+			interval.Years = make([]gapi.YearRange, len(vals))
+			for i := range vals {
+				interval.Years[i] = gapi.YearRange(vals[i].(string))
+			}
+		}
+
+		result[i] = interval
+	}
+
+	return result
+}
+
+func unpackTimeRange(raw interface{}) gapi.TimeRange {
+	vals := raw.(map[string]int)
+	return gapi.TimeRange{
+		StartMinute: vals["start"],
+		EndMinute:   vals["end"],
+	}
 }
