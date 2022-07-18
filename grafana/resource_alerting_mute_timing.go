@@ -152,7 +152,7 @@ func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 }
 
 func unpackMuteTiming(d *schema.ResourceData) gapi.MuteTiming {
-	intervals := d.Get("intervals").([]interface{})
+	intervals := d.Get("intervals").(*schema.Set)
 	mt := gapi.MuteTiming{
 		Name:          d.Get("name").(string),
 		TimeIntervals: unpackIntervals(intervals),
@@ -209,41 +209,46 @@ func packIntervals(nts []gapi.TimeInterval) []interface{} {
 	return intervals
 }
 
-func unpackIntervals(raw []interface{}) []gapi.TimeInterval {
+func unpackIntervals(raw *schema.Set) []gapi.TimeInterval {
 	if raw == nil {
 		return nil
 	}
 
-	result := make([]gapi.TimeInterval, len(raw))
-	for i, r := range raw {
+	result := make([]gapi.TimeInterval, raw.Len())
+	for i, r := range raw.List() {
 		interval := gapi.TimeInterval{}
-		block := r.(map[string][]interface{})
+		block := r.(map[string]interface{})
 
 		if vals, ok := block["times"]; ok && vals != nil {
+			vals := vals.(*schema.Set).List()
 			interval.Times = make([]gapi.TimeRange, len(vals))
 			for i := range vals {
 				interval.Times[i] = unpackTimeRange(vals[i])
 			}
 		}
 		if vals, ok := block["weekdays"]; ok && vals != nil {
+			vals := vals.(*schema.Set).List()
 			interval.Weekdays = make([]gapi.WeekdayRange, len(vals))
 			for i := range vals {
 				interval.Weekdays[i] = gapi.WeekdayRange(vals[i].(string))
 			}
 		}
 		if vals, ok := block["days_of_month"]; ok && vals != nil {
+			vals := vals.(*schema.Set).List()
 			interval.DaysOfMonth = make([]gapi.DayOfMonthRange, len(vals))
 			for i := range vals {
 				interval.DaysOfMonth[i] = gapi.DayOfMonthRange(vals[i].(string))
 			}
 		}
 		if vals, ok := block["months"]; ok && vals != nil {
+			vals := vals.(*schema.Set).List()
 			interval.Months = make([]gapi.MonthRange, len(vals))
 			for i := range vals {
 				interval.Months[i] = gapi.MonthRange(vals[i].(string))
 			}
 		}
 		if vals, ok := block["years"]; ok && vals != nil {
+			vals := vals.(*schema.Set).List()
 			interval.Years = make([]gapi.YearRange, len(vals))
 			for i := range vals {
 				interval.Years[i] = gapi.YearRange(vals[i].(string))
