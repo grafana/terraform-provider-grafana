@@ -30,6 +30,7 @@ func ResourceMuteTiming() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "The name of the mute timing.",
 			},
 
@@ -135,17 +136,6 @@ func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 	client := meta.(*client).gapi
 
 	mt := unpackMuteTiming(data)
-
-	if mt.Name != data.Id() {
-		if err := client.NewMuteTiming(&mt); err != nil {
-			return diag.FromErr(err)
-		}
-		if err := client.DeleteMuteTiming(data.Id()); err != nil {
-			return diag.FromErr(err)
-		}
-		data.SetId(mt.Name)
-		return readMuteTiming(ctx, data, meta)
-	}
 
 	if err := client.UpdateMuteTiming(&mt); err != nil {
 		return diag.FromErr(err)
