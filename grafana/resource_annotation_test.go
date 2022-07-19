@@ -126,7 +126,7 @@ resource "grafana_annotation" "test" {
 
 func testAnnotationConfigWithDashboardID(text string) string {
 	return fmt.Sprintf(`
-resource "grafana_dashboard" "test" {
+resource "grafana_dashboard" "test_with_dashboard_id" {
   config_json = <<EOD
 {
   "title": "%s"
@@ -134,9 +134,9 @@ resource "grafana_dashboard" "test" {
 EOD
 }
 
-resource "grafana_annotation" "test" {
+resource "grafana_annotation" "test_with_dashboard_id" {
     text         = "%s"
-		dashboard_id = grafana_dashboard.test.dashboard_id
+		dashboard_id = grafana_dashboard.test_with_dashboard_id.dashboard_id
 }
 `, text, text)
 }
