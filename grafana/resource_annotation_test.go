@@ -48,7 +48,7 @@ func TestAccAnnotation_basic(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				// Test resource creation with dashboard_id.
+				// Test resource creation with declared dashboard_id.
 				Config: testAnnotationConfigWithDashboardID(testAccAnnotationInitialText),
 				Check: resource.ComposeTestCheckFunc(
 					testAccAnnotationCheckExists("grafana_annotation.test_with_dashboard_id", &annotation),
@@ -56,7 +56,7 @@ func TestAccAnnotation_basic(t *testing.T) {
 				),
 			},
 			{
-				// Updates text in basic resource.
+				// Updates text in resource with declared dashboard_id.
 				Config: testAnnotationConfigWithDashboardID(testAccAnnotationUpdatedText),
 				Check: resource.ComposeTestCheckFunc(
 					testAccAnnotationCheckExists("grafana_annotation.test_with_dashboard_id", &annotation),
@@ -66,6 +66,28 @@ func TestAccAnnotation_basic(t *testing.T) {
 			{
 				// Importing matches the state of the previous step.
 				ResourceName:      "grafana_annotation.test_with_dashboard_id",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				// Test resource creation with declared panel_id.
+				Config: testAnnotationConfigWithPanelID(testAccAnnotationInitialText),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAnnotationCheckExists("grafana_annotation.test_with_panel_id", &annotation),
+					resource.TestCheckResourceAttr("grafana_annotation.test_with_panel_id", "text", testAccAnnotationInitialText),
+				),
+			},
+			{
+				// Updates text in resource with declared panel_id.
+				Config: testAnnotationConfigWithPanelID(testAccAnnotationUpdatedText),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAnnotationCheckExists("grafana_annotation.test_with_panel_id", &annotation),
+					resource.TestCheckResourceAttr("grafana_annotation.test_with_panel_id", "text", testAccAnnotationUpdatedText),
+				),
+			},
+			{
+				// Importing matches the state of the previous step.
+				ResourceName:      "grafana_annotation.test_with_panel_id",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -139,4 +161,29 @@ resource "grafana_annotation" "test_with_dashboard_id" {
 		dashboard_id = grafana_dashboard.test_with_dashboard_id.dashboard_id
 }
 `, text, text)
+}
+
+func testAnnotationConfigWithPanelID(text string) string {
+	return fmt.Sprintf(`
+resource "grafana_dashboard" "test_with_panel_id" {
+  config_json = <<EOD
+{
+  "title": "%s",
+	"panels": [{
+		"name": "%s"
+	}]
+}
+EOD
+}
+
+locals {
+  dashboard_json = jsondecode(grafana_dashboard.test_with_panel_id.config_json)
+  panel_id       = local.dashboard_json.dashboard.panels[0].id
+}
+
+resource "grafana_annotation" "test_with_panel_id" {
+    text     = "%s"
+		panel_id = local.panel_id
+}
+`, text, text, text)
 }
