@@ -26,7 +26,7 @@ func TestAccAnnotation_basic(t *testing.T) {
 		CheckDestroy:      testAccAnnotationCheckDestroy(&annotation),
 		Steps: []resource.TestStep{
 			{
-				// Test resource creation.
+				// Test basic resource creation.
 				Config: testAnnotationConfig(testAccAnnotationInitialText),
 				Check: resource.ComposeTestCheckFunc(
 					testAccAnnotationCheckExists("grafana_annotation.test", &annotation),
@@ -34,7 +34,7 @@ func TestAccAnnotation_basic(t *testing.T) {
 				),
 			},
 			{
-				// Updates text.
+				// Updates text in basic resource.
 				Config: testAnnotationConfig(testAccAnnotationUpdatedText),
 				Check: resource.ComposeTestCheckFunc(
 					testAccAnnotationCheckExists("grafana_annotation.test", &annotation),
@@ -44,6 +44,28 @@ func TestAccAnnotation_basic(t *testing.T) {
 			{
 				// Importing matches the state of the previous step.
 				ResourceName:      "grafana_annotation.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				// Test resource creation with dashboard_id.
+				Config: testAnnotationConfigWithDashboardID(testAccAnnotationInitialText),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAnnotationCheckExists("grafana_annotation.test_with_dashboard_id", &annotation),
+					resource.TestCheckResourceAttr("grafana_annotation.test_with_dashboard_id", "text", testAccAnnotationInitialText),
+				),
+			},
+			{
+				// Updates text in basic resource.
+				Config: testAnnotationConfigWithDashboardID(testAccAnnotationUpdatedText),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAnnotationCheckExists("grafana_annotation.test_with_dashboard_id", &annotation),
+					resource.TestCheckResourceAttr("grafana_annotation.test_with_dashboard_id", "text", testAccAnnotationUpdatedText),
+				),
+			},
+			{
+				// Importing matches the state of the previous step.
+				ResourceName:      "grafana_annotation.test_with_dashboard_id",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -100,4 +122,21 @@ resource "grafana_annotation" "test" {
     text = "%s"
 }
 `, text)
+}
+
+func testAnnotationConfigWithDashboardID(text string) string {
+	return fmt.Sprintf(`
+resource "grafana_dashboard" "test" {
+  config_json = <<EOD
+{
+  "title": "%s"
+}
+EOD
+}
+
+resource "grafana_annotation" "test" {
+    text         = "%s"
+		dashboard_id = grafana_dashboard.test.dashboard_id
+}
+`, text, text)
 }
