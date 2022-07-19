@@ -176,8 +176,12 @@ resource "grafana_dashboard" "test_with_panel_id" {
 EOD
 }
 
+data "grafana_dashboard" "test_with_panel_id" {
+	dashboard_id = grafana_dashboard.test_with_panel_id.dashboard_id
+}
+
 locals {
-  dashboard_json = jsondecode(grafana_dashboard.test_with_panel_id.config_json)
+  dashboard_json = jsondecode(data.grafana_dashboard.test_with_panel_id.config_json)
   panel_id       = local.dashboard_json.dashboard.panels[0].id
 }
 
