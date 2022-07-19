@@ -31,6 +31,8 @@ resource "grafana_annotation" "test" {
 - `dashboard_id` (Number) The ID of the dashboard on which to create the annotation.
 - `panel_id` (Number) The ID of the dashboard panel on which to create the annotation.
 - `tags` (Set of String) The tags to associate with the annotation.
+- `time` (String) The RFC 3339-formatted time string indicating the annotation's time.
+- `time_end` (String) The RFC 3339-formatted time string indicating the annotation's end time.
 
 ### Read-Only
 
