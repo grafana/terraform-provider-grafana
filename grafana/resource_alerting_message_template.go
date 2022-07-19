@@ -28,6 +28,7 @@ func ResourceMessageTemplate() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "The name of the message template.",
 			},
 			"template": {
@@ -80,13 +81,6 @@ func updateMessageTemplate(ctx context.Context, data *schema.ResourceData, meta 
 
 	if err := client.SetMessageTemplate(name, content); err != nil {
 		return diag.FromErr(err)
-	}
-
-	if name != data.Id() {
-		if err := client.DeleteMessageTemplate(data.Id()); err != nil {
-			return diag.FromErr(err)
-		}
-		data.SetId(name)
 	}
 
 	return readMessageTemplate(ctx, data, meta)
