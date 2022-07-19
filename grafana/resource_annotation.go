@@ -4,10 +4,12 @@ import (
 	"context"
 	"net/url"
 	"strconv"
+	"time"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func ResourceAnnotation() *schema.Resource {
@@ -31,6 +33,22 @@ func ResourceAnnotation() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The text to associate with the annotation.",
+			},
+
+			"time": {
+				Description:  "The RFC 3339-formatted time string indicating the annotation's time.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validation.IsRFC3339Time,
+			},
+
+			"time_end": {
+				Description:  "The RFC 3339-formatted time string indicating the annotation's end time.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validation.IsRFC3339Time,
 			},
 
 			"dashboard_id": {
@@ -128,10 +146,15 @@ func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{
 		return diag.Errorf("unable to find Grafana annotation ID %d", id)
 	}
 
+	t := time.UnixMilli(annotation.Time)
+	tEnd := time.UnixMilli(annotation.TimeEnd)
+
 	d.Set("text", annotation.Text)
 	d.Set("dashboard_id", annotation.DashboardID)
 	d.Set("panel_id", annotation.PanelID)
 	d.Set("tags", annotation.Tags)
+	d.Set("time", t.Format(time.RFC3339))
+	d.Set("time_end", tEnd.Format(time.RFC3339))
 	d.SetId(strconv.FormatInt(annotation.ID, 10))
 
 	return nil
@@ -161,11 +184,43 @@ func makeAnnotation(_ context.Context, d *schema.ResourceData) (*gapi.Annotation
 		id, err = strconv.ParseInt(idStr, 10, 64)
 	}
 
-	return &gapi.Annotation{
+	a := &gapi.Annotation{
 		ID:          id,
 		Text:        d.Get("text").(string),
 		PanelID:     int64(d.Get("panel_id").(int)),
 		DashboardID: int64(d.Get("dashboard_id").(int)),
 		Tags:        setToStringSlice(d.Get("tags").(*schema.Set)),
-	}, err
+	}
+
+	start := d.Get("time").(string)
+	if start != "" {
+		t, err := millisSinceEpoch(start)
+		if err != nil {
+			return a, err
+		}
+		a.Time = t
+	}
+
+	timeEnd := d.Get("time_end").(string)
+	if timeEnd != "" {
+		tEnd, err := millisSinceEpoch(timeEnd)
+		if err != nil {
+			return a, err
+		}
+		a.TimeEnd = tEnd
+	}
+
+	return a, err
+}
+
+func millisSinceEpoch(timeStr string) (int64, error) {
+	t, err := time.Parse(
+		time.RFC3339,
+		timeStr,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	return t.UnixNano() / int64(time.Millisecond), nil
 }
