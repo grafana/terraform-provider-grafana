@@ -170,7 +170,8 @@ resource "grafana_dashboard" "test_with_panel_id" {
 {
   "title": "%s",
 	"panels": [{
-		"name": "%s"
+		"name": "%s",
+		"id": 123
 	}]
 }
 EOD
