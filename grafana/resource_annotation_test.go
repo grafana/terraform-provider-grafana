@@ -182,7 +182,7 @@ data "grafana_dashboard" "test_with_panel_id" {
 
 locals {
   dashboard_json = jsondecode(data.grafana_dashboard.test_with_panel_id.config_json)
-  panel_id       = local.dashboard_json.dashboard.panels[0].id
+  panel_id       = local.dashboard_json.panels[0].id
 }
 
 resource "grafana_annotation" "test_with_panel_id" {
