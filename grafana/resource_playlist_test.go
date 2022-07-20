@@ -177,7 +177,7 @@ func testAccPlaylistConfigBasic(name string) string {
 resource "grafana_playlist" "test" {
 	name     = %[1]q
 	interval = "5m"
-	
+
 	item {
 		order = 1
 		title = "Terraform Dashboard By Tag"
@@ -196,7 +196,7 @@ func testAccPlaylistConfigUpdate(name string) string {
 resource "grafana_playlist" "test" {
 	name     = %[1]q
 	interval = "5m"
-
+	
 	item {
 		order = 1
 		title = "Terraform Dashboard By ID"
