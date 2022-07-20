@@ -91,7 +91,6 @@ func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 	d.SetId(id)
 
 	return ReadPlaylist(ctx, d, meta)
-	return nil
 }
 
 func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
