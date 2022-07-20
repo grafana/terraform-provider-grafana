@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 
@@ -35,7 +36,7 @@ func ResourceMuteTiming() *schema.Resource {
 			},
 
 			"intervals": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Optional:    true,
 				Description: "The time intervals at which to mute notifications.",
 				Elem: &schema.Resource{
@@ -62,7 +63,7 @@ func ResourceMuteTiming() *schema.Resource {
 							},
 						},
 						"weekdays": {
-							Type:        schema.TypeSet,
+							Type:        schema.TypeList,
 							Optional:    true,
 							Description: `An inclusive range of weekdays, e.g. "monday" or "tuesday:thursday".`,
 							Elem: &schema.Schema{
@@ -70,7 +71,7 @@ func ResourceMuteTiming() *schema.Resource {
 							},
 						},
 						"days_of_month": {
-							Type:        schema.TypeSet,
+							Type:        schema.TypeList,
 							Optional:    true,
 							Description: `An inclusive range of days, 1-31, within a month, e.g. "1" or "14:16". Negative values can be used to represent days counting from the end of a month, e.g. "-1".`,
 							Elem: &schema.Schema{
@@ -78,15 +79,16 @@ func ResourceMuteTiming() *schema.Resource {
 							},
 						},
 						"months": {
-							Type:        schema.TypeSet,
+							Type:        schema.TypeList,
 							Optional:    true,
 							Description: `An inclusive range of months, either numerical or full calendar month, e.g. "1:3", "december", or "may:august".`,
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
+							DiffSuppressFunc: suppressMonthDiff,
 						},
 						"years": {
-							Type:        schema.TypeSet,
+							Type:        schema.TypeList,
 							Optional:    true,
 							Description: `A positive inclusive range of years, e.g. "2030" or "2025:2026".`,
 							Elem: &schema.Schema{
@@ -153,8 +155,34 @@ func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 	return diag.Diagnostics{}
 }
 
+func suppressMonthDiff(k, oldValue, newValue string, d *schema.ResourceData) bool {
+	monthNums := map[string]int{
+		"january":   1,
+		"february":  2,
+		"march":     3,
+		"april":     4,
+		"may":       5,
+		"june":      6,
+		"july":      7,
+		"august":    8,
+		"september": 9,
+		"october":   10,
+		"november":  11,
+		"december":  12,
+	}
+
+	oldNormalized := oldValue
+	newNormalized := newValue
+	for k, v := range monthNums {
+		oldNormalized = strings.Replace(oldNormalized, k, fmt.Sprint(v), -1)
+		newNormalized = strings.Replace(newNormalized, k, fmt.Sprint(v), -1)
+	}
+
+	return oldNormalized == newNormalized
+}
+
 func unpackMuteTiming(d *schema.ResourceData) gapi.MuteTiming {
-	intervals := d.Get("intervals").(*schema.Set)
+	intervals := d.Get("intervals").([]interface{})
 	mt := gapi.MuteTiming{
 		Name:          d.Get("name").(string),
 		TimeIntervals: unpackIntervals(intervals),
@@ -211,13 +239,13 @@ func packIntervals(nts []gapi.TimeInterval) []interface{} {
 	return intervals
 }
 
-func unpackIntervals(raw *schema.Set) []gapi.TimeInterval {
+func unpackIntervals(raw []interface{}) []gapi.TimeInterval {
 	if raw == nil {
 		return nil
 	}
 
-	result := make([]gapi.TimeInterval, raw.Len())
-	for i, r := range raw.List() {
+	result := make([]gapi.TimeInterval, len(raw))
+	for i, r := range raw {
 		interval := gapi.TimeInterval{}
 		block := r.(map[string]interface{})
 
@@ -229,28 +257,28 @@ func unpackIntervals(raw *schema.Set) []gapi.TimeInterval {
 			}
 		}
 		if vals, ok := block["weekdays"]; ok && vals != nil {
-			vals := vals.(*schema.Set).List()
+			vals := vals.([]interface{})
 			interval.Weekdays = make([]gapi.WeekdayRange, len(vals))
 			for i := range vals {
 				interval.Weekdays[i] = gapi.WeekdayRange(vals[i].(string))
 			}
 		}
 		if vals, ok := block["days_of_month"]; ok && vals != nil {
-			vals := vals.(*schema.Set).List()
+			vals := vals.([]interface{})
 			interval.DaysOfMonth = make([]gapi.DayOfMonthRange, len(vals))
 			for i := range vals {
 				interval.DaysOfMonth[i] = gapi.DayOfMonthRange(vals[i].(string))
 			}
 		}
 		if vals, ok := block["months"]; ok && vals != nil {
-			vals := vals.(*schema.Set).List()
+			vals := vals.([]interface{})
 			interval.Months = make([]gapi.MonthRange, len(vals))
 			for i := range vals {
 				interval.Months[i] = gapi.MonthRange(vals[i].(string))
 			}
 		}
 		if vals, ok := block["years"]; ok && vals != nil {
-			vals := vals.(*schema.Set).List()
+			vals := vals.([]interface{})
 			interval.Years = make([]gapi.YearRange, len(vals))
 			for i := range vals {
 				interval.Years[i] = gapi.YearRange(vals[i].(string))

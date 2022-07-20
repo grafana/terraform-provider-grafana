@@ -25,14 +25,14 @@ func TestAccMuteTiming_basic(t *testing.T) {
 				Config: testAccExample(t, "resources/grafana_mute_timing/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testMuteTimingCheckExists("grafana_mute_timing.my_mute_timing", &mt),
-					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.weekdays.*", "monday"),
-					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.weekdays.*", "tuesday:thursday"),
-					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.days_of_month.*", "1:7"),
-					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.days_of_month.*", "-1"),
-					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.months.*", "1:3"),
-					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.months.*", "12"),
-					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.years.*", "2030"),
-					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.years.*", "2025:2026"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.weekdays.0", "monday"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.weekdays.1", "tuesday:thursday"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.days_of_month.0", "1:7"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.days_of_month.1", "-1"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.months.0", "1:3"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.months.1", "12"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.years.0", "2030"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.years.1", "2025:2026"),
 				),
 			},
 			// Test import.
@@ -48,8 +48,8 @@ func TestAccMuteTiming_basic(t *testing.T) {
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testMuteTimingCheckExists("grafana_mute_timing.my_mute_timing", &mt),
-					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.weekdays.*", "friday"),
-					resource.TestCheckTypeSetElemAttr("grafana_mute_timing.my_mute_timing", "intervals.*.weekdays.*", "tuesday:thursday"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.weekdays.0", "friday"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.weekdays.1", "tuesday:thursday"),
 				),
 			},
 			// Test rename.

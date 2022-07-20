@@ -8,8 +8,7 @@ resource "grafana_mute_timing" "my_mute_timing" {
         }
         weekdays = ["monday", "tuesday:thursday"]
         days_of_month = ["1:7", "-1"]
-        # TODO: This breaks on "december" but works on "12."
-        months = ["1:3", "12"]
+        months = ["1:3", "december"]
         years = ["2030", "2025:2026"]
     }
 }
