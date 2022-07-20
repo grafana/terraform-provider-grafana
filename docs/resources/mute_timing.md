@@ -24,8 +24,7 @@ resource "grafana_mute_timing" "my_mute_timing" {
         }
         weekdays = ["monday", "tuesday:thursday"]
         days_of_month = ["1:7", "-1"]
-        # TODO: This breaks on "december" but works on "12."
-        months = ["1:3", "12"]
+        months = ["1:3", "december"]
         years = ["2030", "2025:2026"]
     }
 }
@@ -40,7 +39,7 @@ resource "grafana_mute_timing" "my_mute_timing" {
 
 ### Optional
 
-- `intervals` (Block Set) The time intervals at which to mute notifications. (see [below for nested schema](#nestedblock--intervals))
+- `intervals` (Block List) The time intervals at which to mute notifications. (see [below for nested schema](#nestedblock--intervals))
 
 ### Read-Only
 
@@ -51,11 +50,11 @@ resource "grafana_mute_timing" "my_mute_timing" {
 
 Optional:
 
-- `days_of_month` (Set of String) An inclusive range of days, 1-31, within a month, e.g. "1" or "14:16". Negative values can be used to represent days counting from the end of a month, e.g. "-1".
-- `months` (Set of String) An inclusive range of months, either numerical or full calendar month, e.g. "1:3", "december", or "may:august".
+- `days_of_month` (List of String) An inclusive range of days, 1-31, within a month, e.g. "1" or "14:16". Negative values can be used to represent days counting from the end of a month, e.g. "-1".
+- `months` (List of String) An inclusive range of months, either numerical or full calendar month, e.g. "1:3", "december", or "may:august".
 - `times` (Block List) The time ranges, represented in minutes, during which to mute in a given day. (see [below for nested schema](#nestedblock--intervals--times))
-- `weekdays` (Set of String) An inclusive range of weekdays, e.g. "monday" or "tuesday:thursday".
-- `years` (Set of String) A positive inclusive range of years, e.g. "2030" or "2025:2026".
+- `weekdays` (List of String) An inclusive range of weekdays, e.g. "monday" or "tuesday:thursday".
+- `years` (List of String) A positive inclusive range of years, e.g. "2030" or "2025:2026".
 
 <a id="nestedblock--intervals--times"></a>
 ### Nested Schema for `intervals.times`

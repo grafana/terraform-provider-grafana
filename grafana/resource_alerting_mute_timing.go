@@ -174,8 +174,8 @@ func suppressMonthDiff(k, oldValue, newValue string, d *schema.ResourceData) boo
 	oldNormalized := oldValue
 	newNormalized := newValue
 	for k, v := range monthNums {
-		oldNormalized = strings.Replace(oldNormalized, k, fmt.Sprint(v), -1)
-		newNormalized = strings.Replace(newNormalized, k, fmt.Sprint(v), -1)
+		oldNormalized = strings.ReplaceAll(oldNormalized, k, fmt.Sprint(v))
+		newNormalized = strings.ReplaceAll(newNormalized, k, fmt.Sprint(v))
 	}
 
 	return oldNormalized == newNormalized
