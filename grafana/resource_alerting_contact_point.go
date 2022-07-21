@@ -33,33 +33,17 @@ Manages Grafana Alerting contact points.
 				Required:    true,
 				Description: "The name of the contact point.",
 			},
-			"type": {
-				Type:        schema.TypeString,
-				Optional:    true, // TODO changed to optional
-				Default:     "",
-				Description: "The type of the contact point.",
+			"custom": {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Description: "An unspecified, customizable contact point.",
+				Elem:        customContactResource(),
 			},
 			"email": {
 				Type:        schema.TypeSet,
 				Optional:    true,
 				Description: "The email contact point.",
-				Elem:        emailResource(),
-			},
-			"settings": {
-				Type:        schema.TypeMap,
-				Optional:    true, // TODO changed to optional
-				Sensitive:   true,
-				Default:     map[string]interface{}{},
-				Description: "Settings fields for the contact point.",
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
-			"disable_resolve_message": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: "Whether to disable sending resolve messages.",
+				Elem:        emailContactResource(),
 			},
 		},
 	}
@@ -178,7 +162,7 @@ func contactPointFromResourceData(data *schema.ResourceData) gapi.ContactPoint {
 	}
 }
 
-func emailResource() *schema.Resource {
+func emailContactResource() *schema.Resource {
 	r := baseChannelResource()
 	r.Schema["addresses"] = &schema.Schema{
 		Type:        schema.TypeList,
@@ -209,14 +193,31 @@ func emailResource() *schema.Resource {
 	return r
 }
 
+func customContactResource() *schema.Resource {
+	r := baseChannelResource()
+	r.Schema["type"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Description: "The type of the contact point.",
+	}
+	return r
+}
+
 func baseChannelResource() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
+			"disable_resolve_message": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Whether to disable sending resolve messages.",
+			},
 			"settings": {
 				Type:        schema.TypeMap,
 				Optional:    true,
-				Description: "Additional custom properties to attach to the notifier.",
 				Sensitive:   true,
+				Default:     map[string]interface{}{},
+				Description: "Additional custom properties to attach to the notifier.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
