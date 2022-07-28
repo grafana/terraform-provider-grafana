@@ -98,6 +98,7 @@ resource "grafana_folder" "my_folder" {
 provider "grafana" {
   alias         = "cloud"
   cloud_api_key = "<my-api-key>"
+  sm_url        = "<Synthetic Monitoring API URL>"
 }
 
 resource "grafana_cloud_stack" "sm_stack" {
@@ -130,6 +131,7 @@ resource "grafana_synthetic_monitoring_installation" "sm_stack" {
 provider "grafana" {
   alias           = "sm"
   sm_access_token = grafana_synthetic_monitoring_installation.sm_stack.sm_access_token
+  sm_url          = "<Synthetic Monitoring API URL>"
 }
 
 data "grafana_synthetic_monitoring_probes" "main" {
@@ -156,6 +158,12 @@ resource "grafana_synthetic_monitoring_check" "ping" {
   }
 }
 ```
+
+Please note the `sm_url` value is optional, but it must correspond with the
+value specified as the `region_slug` in the `grafana_cloud_stack` resource.
+Also, if the `sm_url` value is specified for one provider instance, it's almost
+certain that the same value should be specified for all provider instances.
+Currently the provider code DOES NOT enforce this.
 
 ### Managing Grafana OnCall
 
@@ -213,7 +221,7 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 - `org_id` (Number) The organization id to operate on within grafana. May alternatively be set via the `GRAFANA_ORG_ID` environment variable.
 - `retries` (Number) The amount of retries to use for Grafana API calls. May alternatively be set via the `GRAFANA_RETRIES` environment variable.
 - `sm_access_token` (String, Sensitive) A Synthetic Monitoring access token. May alternatively be set via the `GRAFANA_SM_ACCESS_TOKEN` environment variable.
-- `sm_url` (String) Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable.
+- `sm_url` (String) Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable. You can find the correct value for each service region [here](https://grafana.com/docs/grafana-cloud/synthetic-monitoring/private-probes/#probe-api-server-url), under the header "backend address".
 - `store_dashboard_sha256` (Boolean) Set to true if you want to save only the sha256sum instead of complete dashboard model JSON in the tfstate.
 - `tls_cert` (String) Client TLS certificate file to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.
 - `tls_key` (String) Client TLS key file to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.
