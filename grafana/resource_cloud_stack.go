@@ -85,7 +85,7 @@ Changing region will destroy the existing stack and create a new one in the desi
 				Description: "Whether to wait for readiness of the stack after creating it. The check is a HEAD request to the stack URL (Grafana instance).",
 				// Suppress the diff if the new value is "false" because this attribute is only used at creation-time
 				// If the diff is suppress for a "true" value, the attribute cannot be read at all
-				DiffSuppressFunc: func(_, _, newValue string, _ *schema.ResourceData) bool { return newValue == strconv.FormatBool(false) },
+				DiffSuppressFunc: func(_, _, newValue string, _ *schema.ResourceData) bool { return newValue == "false" },
 			},
 			"wait_for_readiness_timeout": {
 				Type:     schema.TypeString,
@@ -101,9 +101,9 @@ Changing region will destroy the existing stack and create a new one in the desi
 				},
 				// Only used when wait_for_readiness is true
 				DiffSuppressFunc: func(_, _, newValue string, d *schema.ResourceData) bool {
-					return d.Get("wait_for_readiness") == strconv.FormatBool(false) || newValue == "5m"
+					return newValue == defaultReadinessTimeout.String()
 				},
-				Description: "How long to wait for readiness. The default is 5 minutes.",
+				Description: "How long to wait for readiness (if enabled).",
 			},
 			"org_id": {
 				Type:        schema.TypeInt,
@@ -359,11 +359,10 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 		return nil
 	}
 
-	timeoutVal := d.Get("wait_for_readiness_timeout").(string)
-	if timeoutVal == "" {
-		timeoutVal = "5m"
+	timeout := defaultReadinessTimeout
+	if timeoutVal := d.Get("wait_for_readiness_timeout").(string); timeoutVal != "" {
+		timeout, _ = time.ParseDuration(timeoutVal)
 	}
-	timeout, _ := time.ParseDuration(timeoutVal)
 	err := resource.RetryContext(ctx, timeout, func() *resource.RetryError {
 		req, err := http.NewRequestWithContext(ctx, http.MethodHead, d.Get("url").(string), nil)
 		if err != nil {
