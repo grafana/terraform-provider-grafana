@@ -97,7 +97,8 @@ Changing region will destroy the existing stack and create a new one in the desi
 					}
 					return nil
 				},
-				Description: "How long to wait for readiness. The default is 5 minutes.",
+				DiffSuppressFunc: func(_, _, _ string, _ *schema.ResourceData) bool { return true },
+				Description:      "How long to wait for readiness. The default is 5 minutes.",
 			},
 			"org_id": {
 				Type:        schema.TypeInt,
