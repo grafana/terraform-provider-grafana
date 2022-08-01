@@ -97,9 +97,11 @@ Changing region will destroy the existing stack and create a new one in the desi
 					}
 					return nil
 				},
-				// Only used at creation-time
-				DiffSuppressFunc: func(_, oldValue, newValue string, _ *schema.ResourceData) bool { return oldValue != "" },
-				Description:      "How long to wait for readiness. The default is 5 minutes.",
+				// Only used when wait_for_readiness is true
+				DiffSuppressFunc: func(_, _, _ string, d *schema.ResourceData) bool {
+					return d.Get("wait_for_readiness") == "false"
+				},
+				Description: "How long to wait for readiness. The default is 5 minutes.",
 			},
 			"org_id": {
 				Type:        schema.TypeInt,
@@ -355,7 +357,7 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 		return nil
 	}
 
-	waitTime, _ := time.ParseDuration(d.Get("wait_for_readiness_timeout").(string))
+	waitTime, _ := time.ParseDuration(d.GetOk("wait_for_readiness_timeout").(string))
 	err := resource.RetryContext(ctx, waitTime, func() *resource.RetryError {
 		req, err := http.NewRequestWithContext(ctx, http.MethodHead, d.Get("url").(string), nil)
 		if err != nil {
