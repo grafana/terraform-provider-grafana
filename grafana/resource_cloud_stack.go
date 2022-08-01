@@ -357,7 +357,7 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 		return nil
 	}
 
-	waitTime, _ := time.ParseDuration(d.GetOk("wait_for_readiness_timeout").(string))
+	waitTime, _ := time.ParseDuration(d.Get("wait_for_readiness_timeout").(string))
 	err := resource.RetryContext(ctx, waitTime, func() *resource.RetryError {
 		req, err := http.NewRequestWithContext(ctx, http.MethodHead, d.Get("url").(string), nil)
 		if err != nil {
