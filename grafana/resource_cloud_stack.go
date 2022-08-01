@@ -338,7 +338,7 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 		return nil
 	}
 
-	err := resource.RetryContext(ctx, 2*time.Minute, func() *resource.RetryError {
+	err := resource.RetryContext(ctx, 5*time.Minute, func() *resource.RetryError {
 		req, err := http.NewRequestWithContext(ctx, http.MethodHead, d.Get("url").(string), nil)
 		if err != nil {
 			return resource.NonRetryableError(err)
