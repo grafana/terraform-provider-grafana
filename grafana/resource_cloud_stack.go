@@ -20,6 +20,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
+const defaultReadinessTimeout = time.Minute * 5
+
 var stackSlugRegex = regexp.MustCompile("^[a-z][a-z0-9]+$")
 
 func ResourceCloudStack() *schema.Resource {
@@ -88,7 +90,7 @@ Changing region will destroy the existing stack and create a new one in the desi
 			"wait_for_readiness_timeout": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "5m",
+				Default:  defaultReadinessTimeout.String(),
 				ValidateDiagFunc: func(i interface{}, p cty.Path) diag.Diagnostics {
 					v := i.(string)
 					_, err := time.ParseDuration(v)
@@ -98,8 +100,8 @@ Changing region will destroy the existing stack and create a new one in the desi
 					return nil
 				},
 				// Only used when wait_for_readiness is true
-				DiffSuppressFunc: func(_, _, _ string, d *schema.ResourceData) bool {
-					return d.Get("wait_for_readiness") == strconv.FormatBool(false)
+				DiffSuppressFunc: func(_, _, newValue string, d *schema.ResourceData) bool {
+					return d.Get("wait_for_readiness") == strconv.FormatBool(false) || newValue == "5m"
 				},
 				Description: "How long to wait for readiness. The default is 5 minutes.",
 			},
@@ -357,8 +359,12 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 		return nil
 	}
 
-	waitTime, _ := time.ParseDuration(d.Get("wait_for_readiness_timeout").(string))
-	err := resource.RetryContext(ctx, waitTime, func() *resource.RetryError {
+	timeoutVal := d.Get("wait_for_readiness_timeout").(string)
+	if timeoutVal == "" {
+		timeoutVal = "5m"
+	}
+	timeout, _ := time.ParseDuration(timeoutVal)
+	err := resource.RetryContext(ctx, timeout, func() *resource.RetryError {
 		req, err := http.NewRequestWithContext(ctx, http.MethodHead, d.Get("url").(string), nil)
 		if err != nil {
 			return resource.NonRetryableError(err)
@@ -377,7 +383,7 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 			} else {
 				body = buf.String()
 			}
-			return resource.RetryableError(fmt.Errorf("stack was not ready in %s. Status code: %d, Body: %s", waitTime, resp.StatusCode, body))
+			return resource.RetryableError(fmt.Errorf("stack was not ready in %s. Status code: %d, Body: %s", timeout, resp.StatusCode, body))
 		}
 
 		return nil
