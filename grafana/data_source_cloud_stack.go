@@ -24,7 +24,8 @@ available at “https://<stack_slug>.grafana.net".`,
 				Computed:    true,
 				Description: "The region this stack is deployed to.",
 			},
-			"wait_for_readiness": nil,
+			"wait_for_readiness":         nil,
+			"wait_for_readiness_timeout": nil,
 		}),
 	}
 }
