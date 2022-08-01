@@ -83,7 +83,7 @@ Changing region will destroy the existing stack and create a new one in the desi
 				Description: "Whether to wait for readiness of the stack after creating it. The check is a HEAD request to the stack URL (Grafana instance).",
 				// Suppress the diff if the new value is "false" because this attribute is only used at creation-time
 				// If the diff is suppress for a "true" value, the attribute cannot be read at all
-				DiffSuppressFunc: func(_, _, newValue string, _ *schema.ResourceData) bool { return newValue == "false" },
+				DiffSuppressFunc: func(_, _, newValue string, _ *schema.ResourceData) bool { return newValue == strconv.FormatBool(false) },
 			},
 			"wait_for_readiness_timeout": {
 				Type:     schema.TypeString,
@@ -99,7 +99,7 @@ Changing region will destroy the existing stack and create a new one in the desi
 				},
 				// Only used when wait_for_readiness is true
 				DiffSuppressFunc: func(_, _, _ string, d *schema.ResourceData) bool {
-					return d.Get("wait_for_readiness") == "false"
+					return d.Get("wait_for_readiness") == strconv.FormatBool(false)
 				},
 				Description: "How long to wait for readiness. The default is 5 minutes.",
 			},
