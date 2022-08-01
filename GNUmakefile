@@ -49,8 +49,6 @@ drone:
 golangci-lint:
 	docker run \
 		--rm \
-		--interactive \
-		--tty \
 		--volume "$(shell pwd):/src" \
 		--workdir "/src" \
 		golangci/golangci-lint:v1.45 golangci-lint run ./...
