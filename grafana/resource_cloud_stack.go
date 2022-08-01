@@ -374,7 +374,7 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 			} else {
 				body = buf.String()
 			}
-			return resource.RetryableError(fmt.Errorf("stack is not ready. Status code: %d, Body: %s", resp.StatusCode, body))
+			return resource.RetryableError(fmt.Errorf("stack was not ready in %s. Status code: %d, Body: %s", waitTime, resp.StatusCode, body))
 		}
 
 		return nil
