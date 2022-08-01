@@ -89,6 +89,7 @@ Changing region will destroy the existing stack and create a new one in the desi
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "5m",
+				Computed: false,
 				ValidateDiagFunc: func(i interface{}, p cty.Path) diag.Diagnostics {
 					v := i.(string)
 					_, err := time.ParseDuration(v)
