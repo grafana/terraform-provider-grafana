@@ -37,7 +37,7 @@ available at “https://<stack_slug>.grafana.net".
 Changing region will destroy the existing stack and create a new one in the desired region
 - `url` (String) Custom URL for the Grafana instance. Must have a CNAME setup to point to `.grafana.net` before creating the stack
 - `wait_for_readiness` (Boolean) Whether to wait for readiness of the stack after creating it. The check is a HEAD request to the stack URL (Grafana instance). Defaults to `true`.
-- `wait_for_readiness_timeout` (String) How long to wait for readiness Defaults to `5m0s`.
+- `wait_for_readiness_timeout` (String) How long to wait for readiness (if enabled). Defaults to `5m0s`.
 
 ### Read-Only
 
