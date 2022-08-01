@@ -1,8 +1,8 @@
 package grafana
 
 import (
+	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -349,7 +349,9 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
-			return resource.RetryableError(errors.New("stack is not ready yet"))
+			buf := new(bytes.Buffer)
+			buf.ReadFrom(resp.Body)
+			return resource.RetryableError(fmt.Errorf("stack is not ready. Status code: %d, Response: %s", resp.StatusCode, buf))
 		}
 
 		return nil
