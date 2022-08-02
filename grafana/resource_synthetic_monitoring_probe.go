@@ -5,9 +5,11 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -79,6 +81,24 @@ Grafana Synthetic Monitoring Agent.
 				Optional:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
+				},
+				ValidateDiagFunc: func(i interface{}, p cty.Path) diag.Diagnostics {
+					labelNameRegex := regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+					for k, vInt := range i.(map[string]interface{}) {
+						if !labelNameRegex.MatchString(k) {
+							return diag.Errorf("invalid label name %q. Must match %s", k, labelNameRegex)
+						}
+
+						v := vInt.(string)
+						if v == "" {
+							return diag.Errorf("label %q has an empty value", k)
+						}
+						bannedChars := ","
+						if strings.ContainsAny(v, bannedChars) {
+							return diag.Errorf("label %q has an invalid character it its value (one of %q)", k, bannedChars)
+						}
+					}
+					return nil
 				},
 			},
 			"public": {
