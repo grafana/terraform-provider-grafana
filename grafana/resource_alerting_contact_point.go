@@ -34,13 +34,13 @@ Manages Grafana Alerting contact points.
 				Description: "The name of the contact point.",
 			},
 			"custom": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Optional:    true,
 				Description: "An unspecified, customizable contact point.",
 				Elem:        customContactResource(),
 			},
 			"email": {
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Optional:    true,
 				Description: "The email contact point.",
 				Elem:        emailContactResource(),
@@ -78,7 +78,7 @@ func createContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 	client := meta.(*client).gapi
 
 	ps := unpackContactPoints(data)
-	uids := make([]string, len(ps))
+	uids := make([]string, 0, len(ps))
 	for _, p := range ps {
 		uid, err := client.NewContactPoint(&p)
 		if err != nil {
@@ -237,9 +237,10 @@ func emailContactResource() *schema.Resource {
 
 func unpackCustomNotifier(raw interface{}, name string) gapi.ContactPoint {
 	json := raw.(map[string]interface{})
-	disableResolve, settings := unpackCommonNotifierFields(json)
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	return gapi.ContactPoint{
+		UID:                   uid,
 		Name:                  name,
 		Type:                  json["type"].(string),
 		DisableResolveMessage: disableResolve,
@@ -263,8 +264,8 @@ func customContactResource() *schema.Resource {
 	return r
 }
 
-func unpackCommonNotifierFields(raw map[string]interface{}) (bool, map[string]interface{}) {
-	return raw["disable_resolve_message"].(bool), raw["settings"].(map[string]interface{})
+func unpackCommonNotifierFields(raw map[string]interface{}) (string, bool, map[string]interface{}) {
+	return raw["uid"].(string), raw["disable_resolve_message"].(bool), raw["settings"].(map[string]interface{})
 }
 
 func packCommonNotifierFields(p *gapi.ContactPoint) map[string]interface{} {
@@ -273,6 +274,7 @@ func packCommonNotifierFields(p *gapi.ContactPoint) map[string]interface{} {
 		settings[k] = v
 	}
 	return map[string]interface{}{
+		"uid":                     p.UID,
 		"disable_resolve_message": p.DisableResolveMessage,
 		"settings":                settings,
 	}
@@ -281,6 +283,11 @@ func packCommonNotifierFields(p *gapi.ContactPoint) map[string]interface{} {
 func commonNotifierResource() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
+			"uid": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The UID of the contact point.",
+			},
 			"disable_resolve_message": {
 				Type:        schema.TypeBool,
 				Optional:    true,
