@@ -39,6 +39,17 @@ func TestAccContactPoint_basic(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
+			// Test update content.
+			{
+				Config: testAccExampleWithReplace(t, "resources/grafana_contact_point/resource.tf", map[string]string{
+					"company.org": "user.net",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testContactPointCheckExists("grafana_contact_point.my_contact_point", &points),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "custom.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "custom.0.settings.addresses", "one@user.net;two@user.net"),
+				),
+			},
 		},
 	})
 }
