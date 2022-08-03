@@ -59,6 +59,46 @@ func TestAccContactPoint_basic(t *testing.T) {
 					testContactPointCheckExists("grafana_contact_point.my_contact_point", &points),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "name", "A Different Contact Point"),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "custom.#", "1"),
+					testContactPointCheckAllDestroy("My Contact Point"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContactPoint_compound(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+	CheckOSSTestsSemver(t, ">=9.0.0")
+
+	var points []gapi.ContactPoint
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: testContactPointCheckDestroy(points),
+		Steps: []resource.TestStep{
+			// Test creation.
+			{
+				Config: testAccExample(t, "resources/grafana_contact_point/_acc_compound_custom_receiver.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testContactPointCheckExists("grafana_contact_point.compound_custom_contact_point", &points),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "name", "Compound Custom Contact Point"),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "custom.#", "2"),
+				),
+			},
+			// TODO: Test update of one point but not the other.
+			// TODO: Test addition of a new point to the compound one.
+			// TODO: Test removal of a point from the compound one.
+			// Test rename.
+			{
+				Config: testAccExampleWithReplace(t, "resources/grafana_contact_point/_acc_compound_custom_receiver.tf", map[string]string{
+					"Compound Custom Contact Point": "A Different Contact Point",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testContactPointCheckExists("grafana_contact_point.compound_custom_contact_point", &points),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "name", "A Different Contact Point"),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "custom.#", "2"),
+					testContactPointCheckAllDestroy("Compound Custom Contact Point"),
 				),
 			},
 		},
@@ -98,6 +138,20 @@ func testContactPointCheckDestroy(points []gapi.ContactPoint) resource.TestCheck
 			}
 		}
 		points = []gapi.ContactPoint{}
+		return nil
+	}
+}
+
+func testContactPointCheckAllDestroy(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		client := testAccProvider.Meta().(*client).gapi
+		points, err := client.ContactPointsByName(name)
+		if err != nil {
+			return fmt.Errorf("error getting resource: %w", err)
+		}
+		if len(points) > 0 {
+			return fmt.Errorf("contact points still exist on the server: %#v", points)
+		}
 		return nil
 	}
 }

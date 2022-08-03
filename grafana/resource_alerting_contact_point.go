@@ -125,42 +125,8 @@ func unpackContactPoints(data *schema.ResourceData) []gapi.ContactPoint {
 			result = append(result, unpackCustomNotifier(p, name))
 		}
 	}
-	/*if email, ok := data.GetOk("email"); ok {
-
-	}*/
 
 	return result
-	/*typ := data.Get("type").(string)
-	settings := data.Get("settings").(map[string]interface{})
-	if settings == nil {
-		settings = map[string]interface{}{}
-	}
-	if e, ok := data.GetOk("email"); ok {
-		typ = "email"
-		for _, notif := range e.(*schema.Set).List() {
-			// TODO: This is horrible because we're stuffing potentially many notifiers into one.
-			// TODO: Answer the "one vs many" notifiers per contact point question and fix accordingly.
-			// TODO: this is just for testing
-			n := notif.(map[string]interface{})
-			adds := n["addresses"].([]interface{})
-			addStrs := make([]string, len(adds))
-			for i, a := range adds {
-				addStrs[i] = a.(string)
-			}
-			settings["addresses"] = strings.Join(addStrs, ";")
-			settings["singleEmail"] = n["single_email"].(bool)
-			settings["message"] = n["message"].(string)
-			settings["subject"] = n["subject"].(string)
-			// TODO: merge in shared settings field too
-		}
-	}
-	return gapi.ContactPoint{
-		UID:                   data.Id(),
-		Name:                  data.Get("name").(string),
-		DisableResolveMessage: data.Get("disable_resolve_message").(bool),
-		Type:                  typ,
-		Settings:              settings,
-	}*/
 }
 
 func packContactPoints(ps []gapi.ContactPoint, data *schema.ResourceData) {
@@ -176,32 +142,6 @@ func packContactPoints(ps []gapi.ContactPoint, data *schema.ResourceData) {
 		}
 	}
 	data.Set("custom", points["custom"])
-
-	/*
-		data.Set("type", p.Type)
-		data.Set("disable_resolve_message", p.DisableResolveMessage)
-		if p.Type == "email" {
-			emailData := map[string]interface{}{}
-			if v, ok := p.Settings["addresses"]; ok {
-				addrs := strings.Split(v.(string), ";")
-				for i, a := range addrs {
-					addrs[i] = strings.TrimSpace(a)
-				}
-				emailData["addresses"] = addrs
-			}
-			if v, ok := p.Settings["singleEmail"]; ok {
-				emailData["single_email"] = v.(bool)
-			}
-			if v, ok := p.Settings["message"]; ok {
-				emailData["message"] = v.(string)
-			}
-			if v, ok := p.Settings["subject"]; ok {
-				emailData["subject"] = v.(string)
-			}
-			data.Set("email", []interface{}{emailData})
-		} else {
-			data.Set("settings", p.Settings)
-		}*/
 }
 
 func emailContactResource() *schema.Resource {
