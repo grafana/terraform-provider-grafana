@@ -50,6 +50,17 @@ func TestAccContactPoint_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "custom.0.settings.addresses", "one@user.net;two@user.net"),
 				),
 			},
+			// Test rename.
+			{
+				Config: testAccExampleWithReplace(t, "resources/grafana_contact_point/resource.tf", map[string]string{
+					"My Contact Point": "A Different Contact Point",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testContactPointCheckExists("grafana_contact_point.my_contact_point", &points),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "name", "A Different Contact Point"),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "custom.#", "1"),
+				),
+			},
 		},
 	})
 }
