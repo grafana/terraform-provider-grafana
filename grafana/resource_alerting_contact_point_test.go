@@ -20,6 +20,7 @@ func TestAccContactPoint_basic(t *testing.T) {
 		// Implicitly tests deletion.
 		CheckDestroy: testContactPointCheckDestroy(points),
 		Steps: []resource.TestStep{
+			// Test creation.
 			{
 				Config: testAccExample(t, "resources/grafana_contact_point/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
@@ -31,6 +32,12 @@ func TestAccContactPoint_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "custom.0.settings.addresses", "one@company.org;two@company.org"),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.#", "0"),
 				),
+			},
+			// Test import.
+			{
+				ResourceName:      "grafana_contact_point.my_contact_point",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
