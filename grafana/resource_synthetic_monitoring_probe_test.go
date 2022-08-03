@@ -100,10 +100,6 @@ func TestAccResourceSyntheticMonitoringProbe_InvalidLabels(t *testing.T) {
 			cfg: testSyntheticMonitoringProbeLabel("thisisempty", ""),
 			err: `invalid label "thisisempty=": invalid label value`,
 		},
-		{
-			cfg: testSyntheticMonitoringProbeLabel("name", ","),
-			err: `invalid label "name=,": invalid character in value \(one of ","\)`,
-		},
 	} {
 		steps = append(steps, resource.TestStep{
 			Config:      tc.cfg,

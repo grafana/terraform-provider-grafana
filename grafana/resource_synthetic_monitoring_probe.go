@@ -87,13 +87,7 @@ Grafana Synthetic Monitoring Agent.
 					for k, vInt := range i.(map[string]interface{}) {
 						v := vInt.(string)
 						lbl := sm.Label{Name: k, Value: v}
-
-						err := lbl.Validate()
-						if err == nil && strings.ContainsAny(v, smProbeLabelBannedChars) {
-							err = fmt.Errorf("invalid character in value (one of %q)", smProbeLabelBannedChars)
-						}
-
-						if err != nil {
+						if err := lbl.Validate(); err != nil {
 							return diag.Errorf(`invalid label "%s=%s": %s`, k, v, err)
 						}
 					}
