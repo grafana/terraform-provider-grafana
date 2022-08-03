@@ -52,43 +52,24 @@ Manages Grafana Alerting contact points.
 func readContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	uid := data.Id()
-	p, err := client.ContactPoint(uid)
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing contact point %s from state because it no longer exists in grafana", uid)
-			data.SetId("")
-			return nil
+	uids := unpackUIDs(data.Id())
+
+	points := []gapi.ContactPoint{}
+	for _, uid := range uids {
+		p, err := client.ContactPoint(uid)
+		if err != nil {
+			if strings.HasPrefix(err.Error(), "status: 404") {
+				log.Printf("[WARN] removing contact point %s from state because it no longer exists in grafana", uid)
+				data.SetId("")
+				return nil
+			}
+			return diag.FromErr(err)
 		}
-		return diag.FromErr(err)
+		points = append(points, p)
 	}
 
-	data.SetId(p.UID)
-	data.Set("name", p.Name)
-	data.Set("type", p.Type)
-	data.Set("disable_resolve_message", p.DisableResolveMessage)
-	if p.Type == "email" {
-		emailData := map[string]interface{}{}
-		if v, ok := p.Settings["addresses"]; ok {
-			addrs := strings.Split(v.(string), ";")
-			for i, a := range addrs {
-				addrs[i] = strings.TrimSpace(a)
-			}
-			emailData["addresses"] = addrs
-		}
-		if v, ok := p.Settings["singleEmail"]; ok {
-			emailData["single_email"] = v.(bool)
-		}
-		if v, ok := p.Settings["message"]; ok {
-			emailData["message"] = v.(string)
-		}
-		if v, ok := p.Settings["subject"]; ok {
-			emailData["subject"] = v.(string)
-		}
-		data.Set("email", []interface{}{emailData})
-	} else {
-		data.Set("settings", p.Settings)
-	}
+	packContactPoints(points, data)
+	data.SetId(packUIDs(uids))
 
 	return nil
 }
@@ -96,22 +77,28 @@ func readContactPoint(ctx context.Context, data *schema.ResourceData, meta inter
 func createContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	p := contactPointFromResourceData(data)
-	uid, err := client.NewContactPoint(&p)
-	if err != nil {
-		return diag.FromErr(err)
+	ps := unpackContactPoints(data)
+	uids := make([]string, len(ps))
+	for _, p := range ps {
+		uid, err := client.NewContactPoint(&p)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		uids = append(uids, uid)
 	}
 
-	data.SetId(uid)
+	data.SetId(packUIDs(uids))
 	return readContactPoint(ctx, data, meta)
 }
 
 func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	p := contactPointFromResourceData(data)
-	if err := client.UpdateContactPoint(&p); err != nil {
-		return diag.FromErr(err)
+	ps := unpackContactPoints(data)
+	for _, p := range ps {
+		if err := client.UpdateContactPoint(&p); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return diag.Diagnostics{}
@@ -120,16 +107,30 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	uid := data.Id()
-	if err := client.DeleteContactPoint(uid); err != nil {
-		return diag.FromErr(err)
+	uids := unpackUIDs(data.Id())
+	for _, uid := range uids {
+		if err := client.DeleteContactPoint(uid); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return diag.Diagnostics{}
 }
 
-func contactPointFromResourceData(data *schema.ResourceData) gapi.ContactPoint {
-	typ := data.Get("type").(string)
+func unpackContactPoints(data *schema.ResourceData) []gapi.ContactPoint {
+	result := make([]gapi.ContactPoint, 0)
+	name := data.Get("name").(string)
+	if custom, ok := data.GetOk("custom"); ok {
+		for _, p := range custom.([]interface{}) {
+			result = append(result, unpackCustomNotifier(p, name))
+		}
+	}
+	/*if email, ok := data.GetOk("email"); ok {
+
+	}*/
+
+	return result
+	/*typ := data.Get("type").(string)
 	settings := data.Get("settings").(map[string]interface{})
 	if settings == nil {
 		settings = map[string]interface{}{}
@@ -159,11 +160,52 @@ func contactPointFromResourceData(data *schema.ResourceData) gapi.ContactPoint {
 		DisableResolveMessage: data.Get("disable_resolve_message").(bool),
 		Type:                  typ,
 		Settings:              settings,
+	}*/
+}
+
+func packContactPoints(ps []gapi.ContactPoint, data *schema.ResourceData) {
+	points := map[string][]interface{}{}
+	for _, p := range ps {
+		data.Set("name", p.Name)
+
+		if p.Type == "email TODO" {
+
+		} else {
+			point := packCustomNotifier(p)
+			points["custom"] = append(points["custom"], point)
+		}
 	}
+	data.Set("custom", points["custom"])
+
+	/*
+		data.Set("type", p.Type)
+		data.Set("disable_resolve_message", p.DisableResolveMessage)
+		if p.Type == "email" {
+			emailData := map[string]interface{}{}
+			if v, ok := p.Settings["addresses"]; ok {
+				addrs := strings.Split(v.(string), ";")
+				for i, a := range addrs {
+					addrs[i] = strings.TrimSpace(a)
+				}
+				emailData["addresses"] = addrs
+			}
+			if v, ok := p.Settings["singleEmail"]; ok {
+				emailData["single_email"] = v.(bool)
+			}
+			if v, ok := p.Settings["message"]; ok {
+				emailData["message"] = v.(string)
+			}
+			if v, ok := p.Settings["subject"]; ok {
+				emailData["subject"] = v.(string)
+			}
+			data.Set("email", []interface{}{emailData})
+		} else {
+			data.Set("settings", p.Settings)
+		}*/
 }
 
 func emailContactResource() *schema.Resource {
-	r := baseChannelResource()
+	r := commonNotifierResource()
 	r.Schema["addresses"] = &schema.Schema{
 		Type:        schema.TypeList,
 		Required:    true,
@@ -193,8 +235,26 @@ func emailContactResource() *schema.Resource {
 	return r
 }
 
+func unpackCustomNotifier(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	disableResolve, settings := unpackCommonNotifierFields(json)
+
+	return gapi.ContactPoint{
+		Name:                  name,
+		Type:                  json["type"].(string),
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}
+
+func packCustomNotifier(p gapi.ContactPoint) interface{} {
+	notifier := packCommonNotifierFields(&p)
+	notifier["type"] = p.Type
+	return notifier
+}
+
 func customContactResource() *schema.Resource {
-	r := baseChannelResource()
+	r := commonNotifierResource()
 	r.Schema["type"] = &schema.Schema{
 		Type:        schema.TypeString,
 		Required:    true,
@@ -203,7 +263,22 @@ func customContactResource() *schema.Resource {
 	return r
 }
 
-func baseChannelResource() *schema.Resource {
+func unpackCommonNotifierFields(raw map[string]interface{}) (bool, map[string]interface{}) {
+	return raw["disable_resolve_message"].(bool), raw["settings"].(map[string]interface{})
+}
+
+func packCommonNotifierFields(p *gapi.ContactPoint) map[string]interface{} {
+	settings := map[string]interface{}{}
+	for k, v := range p.Settings {
+		settings[k] = v
+	}
+	return map[string]interface{}{
+		"disable_resolve_message": p.DisableResolveMessage,
+		"settings":                settings,
+	}
+}
+
+func commonNotifierResource() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"disable_resolve_message": {
@@ -224,4 +299,14 @@ func baseChannelResource() *schema.Resource {
 			},
 		},
 	}
+}
+
+const UIDSeparator = ";"
+
+func packUIDs(uids []string) string {
+	return strings.Join(uids, UIDSeparator)
+}
+
+func unpackUIDs(packed string) []string {
+	return strings.Split(packed, UIDSeparator)
 }
