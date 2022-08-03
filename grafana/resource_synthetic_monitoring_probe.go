@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -15,8 +14,6 @@ import (
 
 	sm "github.com/grafana/synthetic-monitoring-agent/pkg/pb/synthetic_monitoring"
 )
-
-var smProbeLabelNameRegex = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
 const smProbeLabelBannedChars = ","
 
@@ -88,16 +85,16 @@ Grafana Synthetic Monitoring Agent.
 				},
 				ValidateDiagFunc: func(i interface{}, p cty.Path) diag.Diagnostics {
 					for k, vInt := range i.(map[string]interface{}) {
-						if !smProbeLabelNameRegex.MatchString(k) {
-							return diag.Errorf("invalid label name %q. Must match %s", k, smProbeLabelNameRegex)
+						v := vInt.(string)
+						lbl := sm.Label{Name: k, Value: v}
+
+						err := lbl.Validate()
+						if err == nil && strings.ContainsAny(v, smProbeLabelBannedChars) {
+							err = fmt.Errorf("invalid character in value (one of %q)", smProbeLabelBannedChars)
 						}
 
-						v := vInt.(string)
-						if v == "" {
-							return diag.Errorf("label %q has an empty value", k)
-						}
-						if strings.ContainsAny(v, smProbeLabelBannedChars) {
-							return diag.Errorf("label %q has an invalid character it its value (one of %q)", k, smProbeLabelBannedChars)
+						if err != nil {
+							return diag.Errorf(`invalid label "%s=%s": %s`, k, v, err)
 						}
 					}
 					return nil

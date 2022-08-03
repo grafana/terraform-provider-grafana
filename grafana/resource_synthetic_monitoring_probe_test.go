@@ -90,23 +90,19 @@ func TestAccResourceSyntheticMonitoringProbe_InvalidLabels(t *testing.T) {
 	}{
 		{
 			cfg: testSyntheticMonitoringProbeLabel("", "any"),
-			err: `invalid label name ""`,
-		},
-		{
-			cfg: testSyntheticMonitoringProbeLabel("42", "any"),
-			err: `invalid label name "42"`,
+			err: `invalid label "=any": invalid label name`,
 		},
 		{
 			cfg: testSyntheticMonitoringProbeLabel("bad-label", "any"),
-			err: `invalid label name "bad-label"`,
+			err: `invalid label "bad-label=any": invalid label name`,
 		},
 		{
 			cfg: testSyntheticMonitoringProbeLabel("thisisempty", ""),
-			err: `label "thisisempty" has an empty value`,
+			err: `invalid label "thisisempty=": invalid label value`,
 		},
 		{
 			cfg: testSyntheticMonitoringProbeLabel("name", ","),
-			err: `label "name" has an invalid character it its value`,
+			err: `invalid label "name=,": invalid character in value \(one of ","\)`,
 		},
 	} {
 		steps = append(steps, resource.TestStep{
