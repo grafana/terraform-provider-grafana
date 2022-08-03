@@ -109,7 +109,7 @@ func serviceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m inte
 			}
 			err = d.Set("has_expired", key.HasExpired)
 
-			return nil
+			return diag.FromErr(err)
 		}
 	}
 

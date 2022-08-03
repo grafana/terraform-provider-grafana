@@ -14,6 +14,7 @@ import (
 
 func TestAccServiceAccount_basic(t *testing.T) {
 	CheckOSSTestsEnabled(t)
+	CheckOSSTestsSemver(t, ">=9.1.0")
 
 	sa := gapi.ServiceAccountDTO{}
 	resource.Test(t, resource.TestCase{
