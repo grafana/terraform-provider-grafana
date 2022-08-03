@@ -15,8 +15,6 @@ import (
 	sm "github.com/grafana/synthetic-monitoring-agent/pkg/pb/synthetic_monitoring"
 )
 
-const smProbeLabelBannedChars = ","
-
 func ResourceSyntheticMonitoringProbe() *schema.Resource {
 	return &schema.Resource{
 
