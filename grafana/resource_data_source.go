@@ -69,7 +69,8 @@ source selected (via the 'type' argument).
 				Optional:    true,
 				Default:     "",
 				Sensitive:   true,
-				Description: "Basic auth password.",
+				Description: "Basic auth password. Deprecated: Use secure_json_data.basic_auth_password instead. This attribute is removed in Grafana 9.0+.",
+				Deprecated:  "Use secure_json_data.basic_auth_password instead. This attribute is removed in Grafana 9.0+.",
 			},
 			"basic_auth_username": {
 				Type:        schema.TypeString,
@@ -446,7 +447,8 @@ source selected (via the 'type' argument).
 				Optional:    true,
 				Default:     "",
 				Sensitive:   true,
-				Description: "(Required by some data source types) The password to use to authenticate to the data source.",
+				Description: "(Required by some data source types) The password to use to authenticate to the data source. Deprecated: Use secure_json_data.password instead. This attribute is removed in Grafana 9.0+.",
+				Deprecated:  "Use secure_json_data.password instead. This attribute is removed in Grafana 9.0+.",
 			},
 			"secure_json_data": {
 				Type:        schema.TypeList,
@@ -623,9 +625,7 @@ func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{
 
 	// TODO: these fields should be migrated to SecureJSONData.
 	d.Set("basic_auth_enabled", dataSource.BasicAuth)
-	d.Set("basic_auth_username", dataSource.BasicAuthUser)     //nolint:staticcheck // deprecated
-	d.Set("basic_auth_password", dataSource.BasicAuthPassword) //nolint:staticcheck // deprecated
-	d.Set("password", dataSource.Password)                     //nolint:staticcheck // deprecated
+	d.Set("basic_auth_username", dataSource.BasicAuthUser) //nolint:staticcheck // deprecated
 
 	return nil
 }

@@ -2,8 +2,6 @@ package grafana
 
 import (
 	"fmt"
-	"regexp"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -27,7 +25,7 @@ func TestAccPlaylist_basic(t *testing.T) {
 				Config: testAccPlaylistConfigBasic(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccPlaylistCheckExists(),
-					resource.TestMatchResourceAttr(paylistResource, "id", regexp.MustCompile(`\d+`)),
+					resource.TestMatchResourceAttr(paylistResource, "id", uidRegexp),
 					resource.TestCheckResourceAttr(paylistResource, "name", rName),
 					resource.TestCheckResourceAttr(paylistResource, "item.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
@@ -69,7 +67,7 @@ func TestAccPlaylist_update(t *testing.T) {
 				Config: testAccPlaylistConfigUpdate(updatedName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccPlaylistCheckExists(),
-					resource.TestMatchResourceAttr(paylistResource, "id", regexp.MustCompile(`\d+`)),
+					resource.TestMatchResourceAttr(paylistResource, "id", uidRegexp),
 					resource.TestCheckResourceAttr(paylistResource, "name", updatedName),
 					resource.TestCheckResourceAttr(paylistResource, "item.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
@@ -122,13 +120,8 @@ func testAccPlaylistCheckExists() resource.TestCheckFunc {
 		}
 
 		client := testAccProvider.Meta().(*client).gapi
-		id, err := strconv.Atoi(rs.Primary.ID)
-		if err != nil {
-			return err
-		}
 
-		_, err = client.Playlist(id)
-
+		_, err := client.Playlist(rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting playlist: %w", err)
 		}
@@ -149,13 +142,8 @@ func testAccPlaylistDisappears() resource.TestCheckFunc {
 		}
 
 		client := testAccProvider.Meta().(*client).gapi
-		id, err := strconv.Atoi(rs.Primary.ID)
-		if err != nil {
-			return err
-		}
 
-		err = client.DeletePlaylist(id)
-		return err
+		return client.DeletePlaylist(rs.Primary.ID)
 	}
 }
 
@@ -167,12 +155,7 @@ func testAccPlaylistDestroy(s *terraform.State) error {
 			continue
 		}
 
-		id, err := strconv.Atoi(rs.Primary.ID)
-		if err != nil {
-			return err
-		}
-
-		playlist, err := client.Playlist(id)
+		playlist, err := client.Playlist(rs.Primary.ID)
 
 		if err != nil {
 			if strings.HasPrefix(err.Error(), "status: 404") {
@@ -181,8 +164,8 @@ func testAccPlaylistDestroy(s *terraform.State) error {
 			return err
 		}
 
-		if playlist != nil {
-			return fmt.Errorf("Playlist still exists")
+		if playlist != nil && playlist.ID != 0 {
+			return fmt.Errorf("Playlist still exists: %+v", playlist)
 		}
 	}
 

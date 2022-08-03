@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -79,6 +80,16 @@ Grafana Synthetic Monitoring Agent.
 				Optional:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
+				},
+				ValidateDiagFunc: func(i interface{}, p cty.Path) diag.Diagnostics {
+					for k, vInt := range i.(map[string]interface{}) {
+						v := vInt.(string)
+						lbl := sm.Label{Name: k, Value: v}
+						if err := lbl.Validate(); err != nil {
+							return diag.Errorf(`invalid label "%s=%s": %s`, k, v, err)
+						}
+					}
+					return nil
 				},
 			},
 			"public": {

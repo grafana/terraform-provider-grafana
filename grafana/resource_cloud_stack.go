@@ -1,8 +1,8 @@
 package grafana
 
 import (
+	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,11 +13,14 @@ import (
 	"time"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
+
+const defaultReadinessTimeout = time.Minute * 5
 
 var stackSlugRegex = regexp.MustCompile("^[a-z][a-z0-9]+$")
 
@@ -83,6 +86,24 @@ Changing region will destroy the existing stack and create a new one in the desi
 				// Suppress the diff if the new value is "false" because this attribute is only used at creation-time
 				// If the diff is suppress for a "true" value, the attribute cannot be read at all
 				DiffSuppressFunc: func(_, _, newValue string, _ *schema.ResourceData) bool { return newValue == "false" },
+			},
+			"wait_for_readiness_timeout": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  defaultReadinessTimeout.String(),
+				ValidateDiagFunc: func(i interface{}, p cty.Path) diag.Diagnostics {
+					v := i.(string)
+					_, err := time.ParseDuration(v)
+					if err != nil {
+						return diag.Errorf("%q is not a valid duration: %s", v, err)
+					}
+					return nil
+				},
+				// Only used when wait_for_readiness is true
+				DiffSuppressFunc: func(_, _, newValue string, d *schema.ResourceData) bool {
+					return newValue == defaultReadinessTimeout.String()
+				},
+				Description: "How long to wait for readiness (if enabled).",
 			},
 			"org_id": {
 				Type:        schema.TypeInt,
@@ -338,7 +359,11 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 		return nil
 	}
 
-	err := resource.RetryContext(ctx, 2*time.Minute, func() *resource.RetryError {
+	timeout := defaultReadinessTimeout
+	if timeoutVal := d.Get("wait_for_readiness_timeout").(string); timeoutVal != "" {
+		timeout, _ = time.ParseDuration(timeoutVal)
+	}
+	err := resource.RetryContext(ctx, timeout, func() *resource.RetryError {
 		req, err := http.NewRequestWithContext(ctx, http.MethodHead, d.Get("url").(string), nil)
 		if err != nil {
 			return resource.NonRetryableError(err)
@@ -349,7 +374,15 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
-			return resource.RetryableError(errors.New("stack is not ready yet"))
+			buf := new(bytes.Buffer)
+			body := ""
+			_, err = buf.ReadFrom(resp.Body)
+			if err != nil {
+				body = "unable to read response body, error: " + err.Error()
+			} else {
+				body = buf.String()
+			}
+			return resource.RetryableError(fmt.Errorf("stack was not ready in %s. Status code: %d, Body: %s", timeout, resp.StatusCode, body))
 		}
 
 		return nil

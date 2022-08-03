@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -89,7 +88,7 @@ func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 		return diag.FromErr(fmt.Errorf("error creating Playlist: %w", err))
 	}
 
-	d.SetId(strconv.Itoa(id))
+	d.SetId(id)
 
 	return ReadPlaylist(ctx, d, meta)
 }
@@ -97,19 +96,14 @@ func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	id, err := strconv.Atoi(d.Id())
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("error reading Playlist (%s): %w", d.Id(), err))
-	}
+	resp, err := client.Playlist(d.Id())
 
-	resp, err := client.Playlist(id)
-
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing playlist %d from state because it no longer exists in grafana", id)
-			d.SetId("")
-			return nil
-		}
+	// In Grafana 9.0+, if the playlist doesn't exist, the API returns an empty playlist but not a 404
+	if (err != nil && strings.HasPrefix(err.Error(), "status: 404")) || resp.ID == 0 {
+		log.Printf("[WARN] removing playlist %s from state because it no longer exists in grafana", d.Id())
+		d.SetId("")
+		return nil
+	} else if err != nil {
 		return diag.FromErr(fmt.Errorf("error reading Playlist (%s): %w", d.Id(), err))
 	}
 
@@ -142,13 +136,7 @@ func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 func DeletePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	id, err := strconv.Atoi(d.Id())
-
-	if err != nil {
-		return diag.FromErr(fmt.Errorf("error deleting Playlist (%s): %w", d.Id(), err))
-	}
-
-	if err := client.DeletePlaylist(id); err != nil {
+	if err := client.DeletePlaylist(d.Id()); err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
 			return nil
 		}

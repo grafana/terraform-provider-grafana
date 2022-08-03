@@ -15,7 +15,13 @@ description: |-
 
 ```terraform
 resource "grafana_organization" "test" {
-  name = "test-org"
+  name         = "test-org"
+  admin_user   = "admin"
+  create_users = true
+  viewers = [
+    "viewer-01@example.com",
+    "viewer-02@example.com",
+  ]
 }
 
 data "grafana_organization" "from_name" {
@@ -32,6 +38,9 @@ data "grafana_organization" "from_name" {
 
 ### Read-Only
 
+- `admins` (Set of String) A list of email addresses corresponding to users given admin access to the organization.
+- `editors` (Set of String) A list of email addresses corresponding to users given editor access to the organization.
 - `id` (String) The ID of this resource.
+- `viewers` (Set of String) A list of email addresses corresponding to users given viewer access to the organization.
 
 

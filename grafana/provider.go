@@ -160,6 +160,7 @@ func Provider(version string) func() *schema.Provider {
 
 			ResourcesMap: map[string]*schema.Resource{
 				// Grafana
+				"grafana_annotation":              ResourceAnnotation(),
 				"grafana_api_key":                 ResourceAPIKey(),
 				"grafana_alert_notification":      ResourceAlertNotification(),
 				"grafana_builtin_role_assignment": ResourceBuiltInRoleAssignment(),
@@ -170,6 +171,7 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_folder":                  ResourceFolder(),
 				"grafana_folder_permission":       ResourceFolderPermission(),
 				"grafana_library_panel":           ResourceLibraryPanel(),
+				"grafana_message_template":        ResourceMessageTemplate(),
 				"grafana_organization":            ResourceOrganization(),
 				"grafana_playlist":                ResourcePlaylist(),
 				"grafana_report":                  ResourceReport(),

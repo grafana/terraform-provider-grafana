@@ -15,6 +15,7 @@ import (
 
 var integrationTypes = []string{
 	"grafana",
+	"grafana_alerting",
 	"webhook",
 	"alertmanager",
 	"kapacitor",
@@ -174,12 +175,14 @@ func ResourceOnCallIntegrationCreate(ctx context.Context, d *schema.ResourceData
 	nameData := d.Get("name").(string)
 	typeData := d.Get("type").(string)
 	templatesData := d.Get("templates").([]interface{})
+	defaultRouteData := d.Get("default_route").([]interface{})
 
 	createOptions := &onCallAPI.CreateIntegrationOptions{
-		TeamId:    teamIdData,
-		Name:      nameData,
-		Type:      typeData,
-		Templates: expandTemplates(templatesData),
+		TeamId:       teamIdData,
+		Name:         nameData,
+		Type:         typeData,
+		Templates:    expandTemplates(templatesData),
+		DefaultRoute: expandDefaultRoute(defaultRouteData),
 	}
 
 	integration, _, err := client.Integrations.CreateIntegration(createOptions)

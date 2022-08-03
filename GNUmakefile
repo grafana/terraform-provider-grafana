@@ -1,4 +1,4 @@
-GRAFANA_VERSION ?= 8.4.4
+GRAFANA_VERSION ?= 9.0.2
 
 testacc:
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
@@ -45,6 +45,13 @@ drone:
 	drone jsonnet --stream --source .drone/drone.jsonnet --target .drone/drone.yml --format
 	drone lint .drone/drone.yml
 	drone sign --save grafana/terraform-provider-grafana .drone/drone.yml
+
+golangci-lint:
+	docker run \
+		--rm \
+		--volume "$(shell pwd):/src" \
+		--workdir "/src" \
+		golangci/golangci-lint:v1.45 golangci-lint run ./...
 
 linkcheck:
 	docker run -it --entrypoint sh -v "$$PWD:$$PWD" -w "$$PWD" python:3.9-alpine -c "pip3 install linkchecker && linkchecker --config .linkcheckerrc docs"
