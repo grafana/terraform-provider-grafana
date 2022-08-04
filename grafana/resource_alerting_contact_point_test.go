@@ -26,11 +26,10 @@ func TestAccContactPoint_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testContactPointCheckExists("grafana_contact_point.my_contact_point", &points, 1),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "name", "My Contact Point"),
-					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "custom.#", "1"),
-					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "custom.0.type", "email"),
-					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "custom.0.disable_resolve_message", "false"),
-					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "custom.0.settings.addresses", "one@company.org;two@company.org"),
-					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.#", "0"),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.0.disable_resolve_message", "false"),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.0.addresses.0", "one@company.org"),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.0.addresses.1", "two@company.org"),
 				),
 			},
 			// Test import.
@@ -46,8 +45,9 @@ func TestAccContactPoint_basic(t *testing.T) {
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testContactPointCheckExists("grafana_contact_point.my_contact_point", &points, 1),
-					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "custom.#", "1"),
-					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "custom.0.settings.addresses", "one@user.net;two@user.net"),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.0.addresses.0", "one@user.net"),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.0.addresses.1", "two@user.net"),
 				),
 			},
 			// Test rename.
@@ -58,7 +58,7 @@ func TestAccContactPoint_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testContactPointCheckExists("grafana_contact_point.my_contact_point", &points, 1),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "name", "A Different Contact Point"),
-					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "custom.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.#", "1"),
 					testContactPointCheckAllDestroy("My Contact Point"),
 				),
 			},
@@ -79,53 +79,88 @@ func TestAccContactPoint_compound(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
-				Config: testAccExample(t, "resources/grafana_contact_point/_acc_compound_custom_receiver.tf"),
+				Config: testAccExample(t, "resources/grafana_contact_point/_acc_compound_receiver.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.compound_custom_contact_point", &points, 2),
-					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "name", "Compound Custom Contact Point"),
-					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "custom.#", "2"),
+					testContactPointCheckExists("grafana_contact_point.compound_contact_point", &points, 2),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "name", "Compound Contact Point"),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.#", "2"),
 				),
 			},
 			// Test update.
 			{
-				Config: testAccExampleWithReplace(t, "resources/grafana_contact_point/_acc_compound_custom_receiver.tf", map[string]string{
-					"discord-webhook-url": "another-url",
+				Config: testAccExampleWithReplace(t, "resources/grafana_contact_point/_acc_compound_receiver.tf", map[string]string{
+					"one": "asdf",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.compound_custom_contact_point", &points, 2),
-					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "custom.#", "2"),
-					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "custom.1.settings.url", "http://another-url"),
+					testContactPointCheckExists("grafana_contact_point.compound_contact_point", &points, 2),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.#", "2"),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.0.addresses.0", "asdf@company.org"),
 				),
 			},
 			// Test addition of a contact point to an existing compound one.
 			{
-				Config: testAccExample(t, "resources/grafana_contact_point/_acc_compound_custom_receiver_added.tf"),
+				Config: testAccExample(t, "resources/grafana_contact_point/_acc_compound_receiver_added.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.compound_custom_contact_point", &points, 3),
-					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "custom.#", "3"),
-					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "custom.0.settings.addresses", "one@company.org;two@company.org"),
-					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "custom.2.settings.addresses", "three@company.org;four@company.org"),
+					testContactPointCheckExists("grafana_contact_point.compound_contact_point", &points, 3),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.#", "3"),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.0.addresses.0", "one@company.org"),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.1.addresses.0", "three@company.org"),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.2.addresses.0", "five@company.org"),
 				),
 			},
 			// Test removal of a point from a compound one does not leak.
 			{
-				Config: testAccExample(t, "resources/grafana_contact_point/_acc_compound_custom_receiver_subtracted.tf"),
+				Config: testAccExample(t, "resources/grafana_contact_point/_acc_compound_receiver_subtracted.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.compound_custom_contact_point", &points, 1),
-					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "custom.#", "1"),
-					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "custom.0.settings.addresses", "one@company.org;two@company.org"),
+					testContactPointCheckExists("grafana_contact_point.compound_contact_point", &points, 1),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.0.addresses.0", "one@company.org"),
 				),
 			},
 			// Test rename.
 			{
-				Config: testAccExampleWithReplace(t, "resources/grafana_contact_point/_acc_compound_custom_receiver.tf", map[string]string{
-					"Compound Custom Contact Point": "A Different Contact Point",
+				Config: testAccExampleWithReplace(t, "resources/grafana_contact_point/_acc_compound_receiver.tf", map[string]string{
+					"Compound Contact Point": "A Different Contact Point",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.compound_custom_contact_point", &points, 2),
-					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "name", "A Different Contact Point"),
-					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "custom.#", "2"),
-					testContactPointCheckAllDestroy("Compound Custom Contact Point"),
+					testContactPointCheckExists("grafana_contact_point.compound_contact_point", &points, 2),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "name", "A Different Contact Point"),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.#", "2"),
+					testContactPointCheckAllDestroy("Compound Contact Point"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContactPoint_notifiers(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+	CheckOSSTestsSemver(t, ">=9.0.0")
+
+	var points []gapi.ContactPoint
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: testContactPointCheckDestroy(points),
+		Steps: []resource.TestStep{
+			// Test creation.
+			{
+				Config: testAccExample(t, "resources/grafana_contact_point/_acc_receiver_types.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 2),
+					// discord
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.url", "discord-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.message", "message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.avatar_url", "avatar_url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.use_discord_username", "true"),
+					// email
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "email.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "email.0.addresses.0", "one@company.org"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "email.0.message", "message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "email.0.subject", "subject"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "email.0.single_email", "true"),
 				),
 			},
 		},

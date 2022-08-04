@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 
@@ -11,7 +12,7 @@ import (
 )
 
 var notifiers = []notifier{
-	customNotifier{},
+	discordNotifier{},
 	emailNotifier{},
 }
 
@@ -166,8 +167,11 @@ func packContactPoints(ps []gapi.ContactPoint, data *schema.ResourceData) {
 		data.Set("name", p.Name)
 
 		for _, n := range notifiers {
-			packed := n.pack(p)
-			pointsPerNotifier[n] = append(pointsPerNotifier[n], packed)
+			if p.Type == n.meta().typeStr {
+				packed := n.pack(p)
+				pointsPerNotifier[n] = append(pointsPerNotifier[n], packed)
+				continue
+			}
 		}
 	}
 
@@ -181,16 +185,18 @@ func unpackCommonNotifierFields(raw map[string]interface{}) (string, bool, map[s
 }
 
 func packCommonNotifierFields(p *gapi.ContactPoint) map[string]interface{} {
-	settings := map[string]interface{}{}
-	// TODO: Terraform expects values to be strings. Convert here.
-	for k, v := range p.Settings {
-		settings[k] = v
-	}
 	return map[string]interface{}{
 		"uid":                     p.UID,
 		"disable_resolve_message": p.DisableResolveMessage,
-		"settings":                settings,
 	}
+}
+
+func packSettings(p *gapi.ContactPoint) map[string]interface{} {
+	settings := map[string]interface{}{}
+	for k, v := range p.Settings {
+		settings[k] = fmt.Sprintf("%#v", v)
+	}
+	return settings
 }
 
 func commonNotifierResource() *schema.Resource {
@@ -297,16 +303,21 @@ func (e emailNotifier) pack(p gapi.ContactPoint) interface{} {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["addresses"]; ok && v != nil {
 		notifier["addresses"] = packAddrs(v.(string))
+		delete(p.Settings, "addresses")
 	}
 	if v, ok := p.Settings["singleEmail"]; ok && v != nil {
 		notifier["single_email"] = v.(bool)
+		delete(p.Settings, "singleEmail")
 	}
 	if v, ok := p.Settings["message"]; ok && v != nil {
 		notifier["message"] = v.(string)
+		delete(p.Settings, "message")
 	}
 	if v, ok := p.Settings["subject"]; ok && v != nil {
 		notifier["subject"] = v.(string)
+		delete(p.Settings, "subject")
 	}
+	notifier["settings"] = packSettings(&p)
 	return notifier
 }
 
@@ -314,7 +325,7 @@ func (e emailNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
-	addrs := unpackAddrs(json["addresses"].([]string))
+	addrs := unpackAddrs(json["addresses"].([]interface{}))
 	settings["addresses"] = addrs
 	if v, ok := json["single_email"]; ok && v != nil {
 		settings["singleEmail"] = v.(bool)
@@ -341,45 +352,96 @@ func packAddrs(addrs string) []string {
 	return strings.Split(addrs, addrSeparator)
 }
 
-func unpackAddrs(addrs []string) string {
-	return strings.Join(addrs, addrSeparator)
+func unpackAddrs(addrs []interface{}) string {
+	strs := make([]string, 0, len(addrs))
+	for _, addr := range addrs {
+		strs = append(strs, addr.(string))
+	}
+	return strings.Join(strs, addrSeparator)
 }
 
-type customNotifier struct{}
+type discordNotifier struct{}
 
-var _ notifier = (*customNotifier)(nil)
+var _ notifier = (*discordNotifier)(nil)
 
-func (c customNotifier) meta() notifierMeta {
+func (d discordNotifier) meta() notifierMeta {
 	return notifierMeta{
-		typeStr: "custom",
-		desc:    "An unspecified, customizable contact point.",
+		typeStr: "discord",
+		desc:    "A contact point that sends notifications to Discord.",
 	}
 }
 
-func (c customNotifier) schema() *schema.Resource {
+func (d discordNotifier) schema() *schema.Resource {
 	r := commonNotifierResource()
-	r.Schema["type"] = &schema.Schema{
+	r.Schema["url"] = &schema.Schema{
 		Type:        schema.TypeString,
 		Required:    true,
-		Description: "The type of the contact point.",
+		Sensitive:   true,
+		Description: "The discord webhook URL.",
+	}
+	r.Schema["message"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Default:     "",
+		Description: "The templated content of the message.",
+	}
+	r.Schema["avatar_url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Default:     "",
+		Description: "The URL of a custom avatar image to use.",
+	}
+	r.Schema["use_discord_username"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Default:     false,
+		Description: "Whether to use the bot account's plain username instead of \"Grafana.\"",
 	}
 	return r
 }
 
-func (c customNotifier) pack(p gapi.ContactPoint) interface{} {
+func (d discordNotifier) pack(p gapi.ContactPoint) interface{} {
 	notifier := packCommonNotifierFields(&p)
-	notifier["type"] = p.Type
+	if v, ok := p.Settings["url"]; ok && v != nil {
+		notifier["url"] = v.(string)
+		delete(p.Settings, "url")
+	}
+	if v, ok := p.Settings["message"]; ok && v != nil {
+		notifier["message"] = v.(string)
+		delete(p.Settings, "message")
+	}
+	if v, ok := p.Settings["avatar_url"]; ok && v != nil {
+		notifier["avatar_url"] = v.(string)
+		delete(p.Settings, "avatar_url")
+	}
+	if v, ok := p.Settings["use_discord_username"]; ok && v != nil {
+		notifier["use_discord_username"] = v.(bool)
+		delete(p.Settings, "use_discord_username")
+	}
+
+	notifier["settings"] = packSettings(&p)
 	return notifier
 }
 
-func (c customNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (d discordNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	settings["url"] = json["url"].(string)
+	if v, ok := json["message"]; ok && v != nil {
+		settings["message"] = v.(string)
+	}
+	if v, ok := json["avatar_url"]; ok && v != nil {
+		settings["avatar_url"] = v.(string)
+	}
+	if v, ok := json["use_discord_username"]; ok && v != nil {
+		settings["use_discord_username"] = v.(bool)
+	}
 
 	return gapi.ContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  json["type"].(string),
+		Type:                  "discord",
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
