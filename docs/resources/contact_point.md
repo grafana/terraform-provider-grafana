@@ -20,12 +20,12 @@ Manages Grafana Alerting contact points.
 resource "grafana_contact_point" "my_contact_point" {
     name = "My Contact Point"
 
-    custom {
-        type = "email"
+   email {
+        addresses = ["one@company.org", "two@company.org"]
+        message = "{{ len .Alerts.Firing }} firing."
+        subject = "{{ template \"default.title\" .}}"
+        single_email = true
         disable_resolve_message = false
-        settings = {
-            "addresses" = "one@company.org;two@company.org"
-        }
     }
 }
 ```
@@ -39,24 +39,27 @@ resource "grafana_contact_point" "my_contact_point" {
 
 ### Optional
 
-- `custom` (Block List) An unspecified, customizable contact point. (see [below for nested schema](#nestedblock--custom))
-- `email` (Block List) The email contact point. (see [below for nested schema](#nestedblock--email))
+- `discord` (Block List) A contact point that sends notifications to Discord. (see [below for nested schema](#nestedblock--discord))
+- `email` (Block List) A contact point that sends notifications to an email address. (see [below for nested schema](#nestedblock--email))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
 
-<a id="nestedblock--custom"></a>
-### Nested Schema for `custom`
+<a id="nestedblock--discord"></a>
+### Nested Schema for `discord`
 
 Required:
 
-- `type` (String) The type of the contact point.
+- `url` (String, Sensitive) The discord webhook URL.
 
 Optional:
 
+- `avatar_url` (String) The URL of a custom avatar image to use. Defaults to ``.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `message` (String) The templated content of the message. Defaults to ``.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `use_discord_username` (Boolean) Whether to use the bot account's plain username instead of "Grafana." Defaults to `false`.
 
 Read-Only:
 
@@ -73,10 +76,10 @@ Required:
 Optional:
 
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
-- `message` (String) TODO Defaults to ``.
+- `message` (String) The templated content of the email. Defaults to ``.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `single_email` (Boolean) Whether to send a single email CC'ing all addresses, rather than a separate email to each address. Defaults to `false`.
-- `subject` (String) TODO Defaults to ``.
+- `subject` (String) The templated subject line of the email. Defaults to ``.
 
 Read-Only:
 
