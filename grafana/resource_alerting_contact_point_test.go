@@ -223,6 +223,15 @@ func testContactPointCheckAllDestroy(name string) resource.TestCheckFunc {
 		if err != nil {
 			return fmt.Errorf("error getting resource: %w", err)
 		}
+
+		// Work around query parameters not being supported in some older patch versions.
+		filtered := make([]gapi.ContactPoint, 0, len(points))
+		for i := range points {
+			if points[i].Name == name {
+				filtered = append(filtered, points[i])
+			}
+		}
+
 		if len(points) > 0 {
 			return fmt.Errorf("contact points still exist on the server: %#v", points)
 		}
