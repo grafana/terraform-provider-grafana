@@ -16,4 +16,12 @@ resource "grafana_contact_point" "compound_custom_contact_point" {
             "url" = "http://discord-webhook-url"
         }
     }
+
+    custom {
+        type = "email"
+        disable_resolve_message = true
+        settings = {
+            "addresses" = "three@company.org;four@company.org"
+        }
+    }
 }

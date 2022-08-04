@@ -94,14 +94,27 @@ func createContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
+	uids := unpackUIDs(data.Id())
 	ps := unpackContactPoints(data)
 	for _, p := range ps {
-		if err := client.UpdateContactPoint(&p); err != nil {
+		err := client.UpdateContactPoint(&p)
+		if err == nil {
+			continue
+		}
+		if strings.HasPrefix(err.Error(), "status: 404") {
+			uid, err := client.NewContactPoint(&p)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			uids = append(uids, uid)
+		} else {
 			return diag.FromErr(err)
 		}
 	}
 
-	return diag.Diagnostics{}
+	data.SetId(packUIDs(uids))
+
+	return readContactPoint(ctx, data, meta)
 }
 
 func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
