@@ -85,8 +85,8 @@ func createContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 
 	ps := unpackContactPoints(data)
 	uids := make([]string, 0, len(ps))
-	for _, p := range ps {
-		uid, err := client.NewContactPoint(&p)
+	for i := range ps {
+		uid, err := client.NewContactPoint(&ps[i])
 		if err != nil {
 			return diag.FromErr(err)
 		}
