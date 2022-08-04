@@ -15,6 +15,7 @@ func ResourceContactPoint() *schema.Resource {
 		Description: `
 Manages Grafana Alerting contact points.
 
+* [Official documentation](https://grafana.com/docs/grafana/next/alerting/contact-points)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#contact-points)
 `,
 		CreateContext: createContactPoint,
