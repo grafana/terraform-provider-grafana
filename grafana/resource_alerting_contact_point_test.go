@@ -86,7 +86,17 @@ func TestAccContactPoint_compound(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "custom.#", "2"),
 				),
 			},
-			// TODO: Test update of one point but not the other.
+			// Test update.
+			{
+				Config: testAccExampleWithReplace(t, "resources/grafana_contact_point/_acc_compound_custom_receiver.tf", map[string]string{
+					"discord-webhook-url": "another-url",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testContactPointCheckExists("grafana_contact_point.compound_custom_contact_point", &points),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "custom.#", "2"),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "custom.1.settings.url", "http://another-url"),
+				),
+			},
 			// TODO: Test addition of a new point to the compound one.
 			// TODO: Test removal of a point from the compound one.
 			// Test rename.
