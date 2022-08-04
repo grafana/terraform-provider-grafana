@@ -185,7 +185,15 @@ func testContactPointCheckExists(rname string, pts *[]gapi.ContactPoint, expCoun
 			return fmt.Errorf("error getting resource: %w", err)
 		}
 
-		if len(points) != expCount {
+		// Work around query parameters not being supported in some older patch versions.
+		filtered := make([]gapi.ContactPoint, 0, len(points))
+		for i := range points {
+			if points[i].Name == name {
+				filtered = append(filtered, points[i])
+			}
+		}
+
+		if len(filtered) != expCount {
 			return fmt.Errorf("wrong number of contact points on the server, expected %d but got %#v", expCount, points)
 		}
 
