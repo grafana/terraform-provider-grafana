@@ -94,25 +94,36 @@ func createContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	uids := unpackUIDs(data.Id())
+	existingUIDs := unpackUIDs(data.Id())
 	ps := unpackContactPoints(data)
+
+	unprocessedUIDs := toUIDSet(existingUIDs)
+	newUIDs := make([]string, 0, len(ps))
 	for _, p := range ps {
+		delete(unprocessedUIDs, p.UID)
 		err := client.UpdateContactPoint(&p)
 		if err == nil {
-			continue
-		}
-		if strings.HasPrefix(err.Error(), "status: 404") {
+			newUIDs = append(newUIDs, p.UID)
+		} else if strings.HasPrefix(err.Error(), "status: 404") {
 			uid, err := client.NewContactPoint(&p)
+			newUIDs = append(newUIDs, uid)
 			if err != nil {
 				return diag.FromErr(err)
 			}
-			uids = append(uids, uid)
 		} else {
 			return diag.FromErr(err)
 		}
 	}
 
-	data.SetId(packUIDs(uids))
+	// Any UIDs still left in the state that we haven't seen must map to deleted receivers.
+	// Delete them on the server and drop them from state.
+	for u := range unprocessedUIDs {
+		if err := client.DeleteContactPoint(u); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	data.SetId(packUIDs(newUIDs))
 
 	return readContactPoint(ctx, data, meta)
 }
@@ -269,4 +280,12 @@ func packUIDs(uids []string) string {
 
 func unpackUIDs(packed string) []string {
 	return strings.Split(packed, UIDSeparator)
+}
+
+func toUIDSet(uids []string) map[string]bool {
+	set := map[string]bool{}
+	for _, uid := range uids {
+		set[uid] = true
+	}
+	return set
 }

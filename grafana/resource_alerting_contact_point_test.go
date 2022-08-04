@@ -97,6 +97,7 @@ func TestAccContactPoint_compound(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "custom.1.settings.url", "http://another-url"),
 				),
 			},
+			// Test addition of a contact point to an existing compound one.
 			{
 				Config: testAccExample(t, "resources/grafana_contact_point/_acc_compound_custom_receiver_added.tf"),
 				Check: resource.ComposeTestCheckFunc(
@@ -106,19 +107,27 @@ func TestAccContactPoint_compound(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "custom.2.settings.addresses", "three@company.org;four@company.org"),
 				),
 			},
-			// TODO: Test removal of a point from the compound one.
+			// Test removal of a point from a compound one does not leak.
+			{
+				Config: testAccExample(t, "resources/grafana_contact_point/_acc_compound_custom_receiver_subtracted.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testContactPointCheckExists("grafana_contact_point.compound_custom_contact_point", &points, 1),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "custom.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "custom.0.settings.addresses", "one@company.org;two@company.org"),
+				),
+			},
 			// Test rename.
-			/*{
+			{
 				Config: testAccExampleWithReplace(t, "resources/grafana_contact_point/_acc_compound_custom_receiver.tf", map[string]string{
 					"Compound Custom Contact Point": "A Different Contact Point",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.compound_custom_contact_point", &points),
+					testContactPointCheckExists("grafana_contact_point.compound_custom_contact_point", &points, 2),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "name", "A Different Contact Point"),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_custom_contact_point", "custom.#", "2"),
 					testContactPointCheckAllDestroy("Compound Custom Contact Point"),
 				),
-			},*/
+			},
 		},
 	})
 }
