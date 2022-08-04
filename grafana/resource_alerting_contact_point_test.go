@@ -194,7 +194,7 @@ func testContactPointCheckExists(rname string, pts *[]gapi.ContactPoint, expCoun
 		}
 
 		if len(filtered) != expCount {
-			return fmt.Errorf("wrong number of contact points on the server, expected %d but got %#v", expCount, points)
+			return fmt.Errorf("wrong number of contact points on the server, expected %d but got %#v", expCount, filtered)
 		}
 
 		*pts = points
@@ -232,8 +232,8 @@ func testContactPointCheckAllDestroy(name string) resource.TestCheckFunc {
 			}
 		}
 
-		if len(points) > 0 {
-			return fmt.Errorf("contact points still exist on the server: %#v", points)
+		if len(filtered) > 0 {
+			return fmt.Errorf("contact points still exist on the server: %#v", filtered)
 		}
 		return nil
 	}
