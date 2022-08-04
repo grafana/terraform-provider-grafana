@@ -105,20 +105,21 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 
 	unprocessedUIDs := toUIDSet(existingUIDs)
 	newUIDs := make([]string, 0, len(ps))
-	for _, p := range ps {
-		delete(unprocessedUIDs, p.UID)
-		err := client.UpdateContactPoint(&p)
-		if err == nil {
-			newUIDs = append(newUIDs, p.UID)
-		} else if strings.HasPrefix(err.Error(), "status: 404") {
-			uid, err := client.NewContactPoint(&p)
-			newUIDs = append(newUIDs, uid)
-			if err != nil {
-				return diag.FromErr(err)
+	for i := range ps {
+		delete(unprocessedUIDs, ps[i].UID)
+		err := client.UpdateContactPoint(&ps[i])
+		if err != nil {
+			if strings.HasPrefix(err.Error(), "status: 404") {
+				uid, err := client.NewContactPoint(&ps[i])
+				newUIDs = append(newUIDs, uid)
+				if err != nil {
+					return diag.FromErr(err)
+				}
+				continue
 			}
-		} else {
 			return diag.FromErr(err)
 		}
+		newUIDs = append(newUIDs, ps[i].UID)
 	}
 
 	// Any UIDs still left in the state that we haven't seen must map to deleted receivers.
