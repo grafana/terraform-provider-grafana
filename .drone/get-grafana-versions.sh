@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script is intended to output a JSON array of the
 # last 5 minor versions of Grafana for use in dynamically
