@@ -44,7 +44,7 @@ release:
 drone:
 	drone jsonnet \
 		--stream \
-		--extVar 'grafanaVersions=$(shell ./.drone/get_grafana_versions.sh)' \
+		--extVar 'grafanaVersions=$(shell ./.drone/get-grafana-versions.sh)' \
 		--source .drone/drone.jsonnet \
 		--target .drone/drone.yml \
 		--format
