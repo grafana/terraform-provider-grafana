@@ -199,7 +199,7 @@ func packIntervals(nts []gapi.TimeInterval) []interface{} {
 		return nil
 	}
 
-	intervals := make([]interface{}, 0)
+	intervals := make([]interface{}, 0, len(nts))
 	for _, ti := range nts {
 		in := map[string][]interface{}{}
 		if ti.Times != nil {
