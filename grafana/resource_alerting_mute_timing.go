@@ -36,6 +36,10 @@ func ResourceMuteTiming() *schema.Resource {
 			},
 
 			"intervals": {
+				// List instead of set is necessary here. We rely on diff-suppression on the `months` field.
+				// TF represents sets internally as dics, with hashes as keys.
+				// If we use a set, the object hash is different any time a nested object gets changed.
+				// Therefore TF will see delete+create instead of modify, which breaks the diff-suppression.
 				Type:        schema.TypeList,
 				Optional:    true,
 				Description: "The time intervals at which to mute notifications.",
