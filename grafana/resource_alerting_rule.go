@@ -23,21 +23,25 @@ func ResourceAlertRule() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "The name of the rule group.",
 			},
 			"folder_uid": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "The UID of the group that the folder belongs to.",
 			},
 			"interval_seconds": {
 				Type:        schema.TypeInt,
 				Required:    true,
+				ForceNew:    true, // TODO: remove
 				Description: "The interval, in seconds, at which all rules in the group are evaluated. If a group contains many rules, the rules are evaluated sequentially.",
 			},
 			"rules": {
 				Type:        schema.TypeList,
 				Required:    true,
+				ForceNew:    true, // TODO: remove
 				Description: "The rules within the group.",
 				MinItems:    1,
 				Elem: &schema.Resource{
@@ -54,18 +58,18 @@ func ResourceAlertRule() *schema.Resource {
 						},
 						"for": {
 							Type:        schema.TypeInt,
-							Required:    false,
+							Required:    true, // TODO
 							Description: "TODO",
 						},
 						"no_data_state": {
 							Type:        schema.TypeString,
-							Required:    false,
+							Optional:    true,
 							Default:     "NoData",
 							Description: "TODO",
 						},
 						"exec_err_state": {
 							Type:        schema.TypeString,
-							Required:    false,
+							Optional:    true,
 							Default:     "Alerting",
 							Description: "TODO",
 						},
@@ -89,12 +93,12 @@ func ResourceAlertRule() *schema.Resource {
 									},
 									"datasource_uid": {
 										Type:        schema.TypeString,
-										Required:    false,
+										Optional:    true, // TODO
 										Description: "TODO",
 									},
 									"query_type": {
 										Type:        schema.TypeString,
-										Required:    false,
+										Required:    true, // TODO
 										Description: "TODO",
 									},
 									"model": {
@@ -105,7 +109,7 @@ func ResourceAlertRule() *schema.Resource {
 									},
 									"relative_time_range": {
 										Type:        schema.TypeMap,
-										Required:    false,
+										Optional:    true, // TODO
 										Description: "TODO",
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
