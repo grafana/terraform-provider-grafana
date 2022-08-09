@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 	"time"
 
@@ -91,11 +92,12 @@ func ResourceAlertRule() *schema.Resource {
 							Description: "TODO",
 						},
 						"data": {
-							Type:        schema.TypeList,
-							Required:    false,
-							Optional:    true, // TODO: make required
-							Description: "TODO",
-							MinItems:    1,
+							Type:             schema.TypeList,
+							Required:         false,
+							Optional:         true, // TODO: make required
+							Description:      "TODO",
+							MinItems:         1,
+							DiffSuppressFunc: diffSuppressJSON,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"ref_id": {
@@ -237,6 +239,19 @@ func deleteAlertRule(ctx context.Context, data *schema.ResourceData, meta interf
 	}
 
 	return diag.Diagnostics{}
+}
+
+func diffSuppressJSON(k, oldValue, newValue string, data *schema.ResourceData) bool {
+	var o, n interface{}
+	d := json.NewDecoder(strings.NewReader(oldValue))
+	if err := d.Decode(&o); err != nil {
+		return false
+	}
+	d = json.NewDecoder(strings.NewReader(newValue))
+	if err := d.Decode(&n); err != nil {
+		return false
+	}
+	return reflect.DeepEqual(o, n)
 }
 
 func packRuleGroup(g gapi.RuleGroup, data *schema.ResourceData) {
