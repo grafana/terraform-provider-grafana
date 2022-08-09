@@ -116,12 +116,7 @@ func ResourceAlertRule() *schema.Resource {
 										Description: "TODO",
 									},
 									"model": {
-										// TypeMap with no elem is equivalent to a JSON object.
-										//Type:     schema.TypeMap,
-										Required: true,
-										/*ValidateDiagFunc: func(interface{}, cty.Path) diag.Diagnostics {
-											return diag.Diagnostics{}
-										},*/
+										Required:    true,
 										Type:        schema.TypeString,
 										Description: "TODO",
 									},

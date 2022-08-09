@@ -24,10 +24,39 @@ func TestAccAlertRule_basic(t *testing.T) {
 			// Test creation.
 			{
 				Config: testAccExample(t, "resources/grafana_alert_rule/resource.tf"),
-				Check:  resource.ComposeTestCheckFunc(),
+				Check: resource.ComposeTestCheckFunc(
+					testRuleGroupCheckExists("grafana_alert_rule.my_alert_rule", &group),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "name", "My Alert Rule Group"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "interval_seconds", "60"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "org_id", "1"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.#", "1"),
+				),
 			},
 		},
 	})
+}
+
+func testRuleGroupCheckExists(rname string, g *gapi.RuleGroup) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		resource, ok := s.RootModule().Resources[rname]
+		if !ok {
+			return fmt.Errorf("resource not found: %s, resources: %#v", rname, s.RootModule().Resources)
+		}
+
+		if resource.Primary.ID == "" {
+			return fmt.Errorf("resource id not set")
+		}
+
+		client := testAccProvider.Meta().(*client).gapi
+		key := unpackGroupID(resource.Primary.ID)
+		grp, err := client.AlertRuleGroup(key.folderUID, key.name)
+		if err != nil {
+			return fmt.Errorf("error getting resource: %s", err)
+		}
+
+		*g = grp
+		return nil
+	}
 }
 
 func testAlertRuleCheckDestroy(group gapi.RuleGroup) resource.TestCheckFunc {
