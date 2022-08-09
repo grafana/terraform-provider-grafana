@@ -3,7 +3,6 @@ package grafana
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"reflect"
 	"strings"
@@ -49,7 +48,7 @@ func ResourceAlertRule() *schema.Resource {
 				Type:        schema.TypeInt,
 				Required:    true,
 				ForceNew:    true,
-				Description: "TODO",
+				Description: "The ID of the org to which the group belongs.",
 			},
 			"rules": {
 				Type:        schema.TypeList,
@@ -62,12 +61,12 @@ func ResourceAlertRule() *schema.Resource {
 						"uid": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: "TODO",
+							Description: "The unique identifier of the alert rule.",
 						},
 						"name": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "TODO",
+							Description: "The name of the alert rule.",
 						},
 						"for": {
 							Type:        schema.TypeInt,
@@ -89,7 +88,7 @@ func ResourceAlertRule() *schema.Resource {
 						"condition": {
 							Type:        schema.TypeString,
 							Required:    true, // TODO??
-							Description: "TODO",
+							Description: "The `ref_id` of the query node in the `data` field to use as the alert condition.",
 						},
 						"data": {
 							Type:             schema.TypeList,
@@ -103,12 +102,12 @@ func ResourceAlertRule() *schema.Resource {
 									"ref_id": {
 										Type:        schema.TypeString,
 										Required:    true,
-										Description: "TODO",
+										Description: "A unique string to identify this query stage within a rule.",
 									},
 									"datasource_uid": {
 										Type:        schema.TypeString,
 										Optional:    true, // TODO
-										Description: "TODO",
+										Description: "The UID of the datasource being queried.",
 									},
 									"query_type": {
 										Type:        schema.TypeString,
@@ -118,24 +117,24 @@ func ResourceAlertRule() *schema.Resource {
 									"model": {
 										Required:    true,
 										Type:        schema.TypeString,
-										Description: "TODO",
+										Description: "Custom JSON data to send to the specified datasource when querying.",
 									},
 									"relative_time_range": {
 										Type:        schema.TypeList,
 										Optional:    true, // TODO
-										Description: "TODO",
+										Description: "The time range, relative to when the query is executed, across which to query.",
 										MaxItems:    1,
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
 												"from": {
 													Type:        schema.TypeInt,
 													Required:    true,
-													Description: "TODO",
+													Description: "The number of seconds in the past, relative to when the rule is evaluated, at which the time range begins.",
 												},
 												"to": {
 													Type:        schema.TypeInt,
 													Required:    true,
-													Description: "TODO",
+													Description: "The number of seconds in the past, relative to when the rule is evaluated, at which the time range ends.",
 												},
 											},
 										},
@@ -147,7 +146,7 @@ func ResourceAlertRule() *schema.Resource {
 							Type:        schema.TypeMap,
 							Optional:    true,
 							Default:     map[string]interface{}{},
-							Description: "TODO",
+							Description: "Key-value pairs to attach to the alert rule that can be used in matching, grouping, and routing.",
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
@@ -156,7 +155,7 @@ func ResourceAlertRule() *schema.Resource {
 							Type:        schema.TypeMap,
 							Optional:    true,
 							Default:     map[string]interface{}{},
-							Description: "TODO",
+							Description: "Key-value pairs of metadata to attach to the alert rule that may add user-defined context, but cannot be used for matching, grouping, or routing.",
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
@@ -199,22 +198,12 @@ func createAlertRule(ctx context.Context, data *schema.ResourceData, meta interf
 
 		_, err := client.NewAlertRule(&group.Rules[i])
 		if err != nil {
-			// TODO: remove
-			panic(fmt.Sprintf("%s", jsonifyRuleTODORemove(group.Rules[i])))
 			return diag.FromErr(err)
 		}
 	}
 
 	data.SetId(packGroupID(key))
 	return readAlertRule(ctx, data, meta)
-}
-
-func jsonifyRuleTODORemove(g gapi.AlertRule) string {
-	bytes, err := json.Marshal(g)
-	if err != nil {
-		panic(err)
-	}
-	return string(bytes)
 }
 
 func deleteAlertRule(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -352,8 +341,6 @@ func unpackRuleData(raw interface{}) []*gapi.AlertQuery {
 			RefID:         row["ref_id"].(string),
 			QueryType:     row["query_type"].(string),
 			DatasourceUID: row["datasource_uid"].(string),
-
-			// TODO
 		}
 		if rtr, ok := row["relative_time_range"]; ok {
 			listShim := rtr.([]interface{})

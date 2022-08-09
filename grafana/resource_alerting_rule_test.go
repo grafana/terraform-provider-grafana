@@ -26,7 +26,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 				Config: testAccExample(t, "resources/grafana_alert_rule/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testRuleGroupCheckExists("grafana_alert_rule.my_alert_rule", &group),
-					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "name", "My Alert Rule Group"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "name", "My Rule Group"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "interval_seconds", "60"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "org_id", "1"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.#", "1"),
@@ -37,6 +37,18 @@ func TestAccAlertRule_basic(t *testing.T) {
 				ResourceName:      "grafana_alert_rule.my_alert_rule",
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+			// Test update content.
+			{
+				Config: testAccExampleWithReplace(t, "resources/grafana_alert_rule/resource.tf", map[string]string{
+					"My Alert Rule": "A Different Rule",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testRuleGroupCheckExists("grafana_alert_rule.my_alert_rule", &group),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "name", "My Rule Group"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.#", "1"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.name", "A Different Rule"),
+				),
 			},
 		},
 	})
