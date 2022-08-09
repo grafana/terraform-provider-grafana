@@ -13,7 +13,8 @@ func ResourceAlertRule() *schema.Resource {
 	return &schema.Resource{
 		Description: `TODO`,
 
-		ReadContext: readAlertRule,
+		ReadContext:   readAlertRule,
+		DeleteContext: deleteAlertRule,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -168,6 +169,25 @@ func readAlertRule(ctx context.Context, data *schema.ResourceData, meta interfac
 	data.SetId(packGroupID(ruleKeyFromGroup(group)))
 
 	return nil
+}
+
+func deleteAlertRule(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
+
+	key := unpackGroupID(data.Id())
+
+	group, err := client.AlertRuleGroup(key.folderUID, key.name)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	for _, r := range group.Rules {
+		if err := client.DeleteAlertRule(r.UID); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	return diag.Diagnostics{}
 }
 
 func packRuleGroup(g gapi.RuleGroup, data *schema.ResourceData) {
