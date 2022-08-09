@@ -137,5 +137,5 @@ func DeleteServiceAccount(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	return diag.Diagnostics{}
+	return nil
 }
