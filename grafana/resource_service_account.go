@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"log"
 	"strconv"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -97,7 +98,7 @@ func ReadServiceAccount(ctx context.Context, d *schema.ResourceData, meta interf
 			return nil
 		}
 	}
-	// Resource was not found via the client. Enforce Terraform to destroy it.
+	log.Printf("[WARN] removing service account %d from state because it no longer exists in grafana", id)
 	d.SetId("")
 
 	return nil
