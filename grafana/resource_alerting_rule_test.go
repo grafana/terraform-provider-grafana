@@ -32,6 +32,12 @@ func TestAccAlertRule_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.#", "1"),
 				),
 			},
+			// Test import.
+			{
+				ResourceName:      "grafana_alert_rule.my_alert_rule",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
