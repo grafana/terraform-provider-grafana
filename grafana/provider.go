@@ -164,6 +164,7 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_annotation":              ResourceAnnotation(),
 				"grafana_api_key":                 ResourceAPIKey(),
 				"grafana_alert_notification":      ResourceAlertNotification(),
+				"grafana_alert_rule":              ResourceAlertRule(),
 				"grafana_builtin_role_assignment": ResourceBuiltInRoleAssignment(),
 				"grafana_contact_point":           ResourceContactPoint(),
 				"grafana_dashboard":               ResourceDashboard(),
