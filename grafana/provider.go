@@ -179,6 +179,8 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_team":                    ResourceTeam(),
 				"grafana_team_preferences":        ResourceTeamPreferences(),
 				"grafana_team_external_group":     ResourceTeamExternalGroup(),
+				"grafana_service_account_token":   ResourceServiceAccountToken(),
+				"grafana_service_account":         ResourceServiceAccount(),
 				"grafana_user":                    ResourceUser(),
 
 				// Cloud
