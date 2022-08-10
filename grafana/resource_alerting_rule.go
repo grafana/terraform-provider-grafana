@@ -17,8 +17,9 @@ func ResourceAlertRule() *schema.Resource {
 	return &schema.Resource{
 		Description: `TODO`,
 
-		ReadContext:   readAlertRule,
 		CreateContext: createAlertRule,
+		ReadContext:   readAlertRule,
+		UpdateContext: updateAlertRule,
 		DeleteContext: deleteAlertRule,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -41,7 +42,6 @@ func ResourceAlertRule() *schema.Resource {
 			"interval_seconds": {
 				Type:        schema.TypeInt,
 				Required:    true,
-				ForceNew:    true, // TODO: remove
 				Description: "The interval, in seconds, at which all rules in the group are evaluated. If a group contains many rules, the rules are evaluated sequentially.",
 			},
 			"org_id": {
@@ -53,7 +53,6 @@ func ResourceAlertRule() *schema.Resource {
 			"rules": {
 				Type:        schema.TypeList,
 				Required:    true,
-				ForceNew:    true, // TODO: remove
 				Description: "The rules within the group.",
 				MinItems:    1,
 				Elem: &schema.Resource{
@@ -195,7 +194,6 @@ func createAlertRule(ctx context.Context, data *schema.ResourceData, meta interf
 	key := ruleKeyFromGroup(group)
 
 	for i := range group.Rules {
-
 		_, err := client.NewAlertRule(&group.Rules[i])
 		if err != nil {
 			return diag.FromErr(err)
@@ -203,6 +201,33 @@ func createAlertRule(ctx context.Context, data *schema.ResourceData, meta interf
 	}
 
 	data.SetId(packGroupID(key))
+	return readAlertRule(ctx, data, meta)
+}
+
+func updateAlertRule(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
+
+	key := unpackGroupID(data.Id())
+
+	oldGroup, err := client.AlertRuleGroup(key.folderUID, key.name)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	existingUIDs := extractRuleUIDs(oldGroup)
+
+	newGroup := unpackRuleGroup(data)
+	// unprocessedUIDs := toUIDSet(existingUIDs) TODO
+	_ = toUIDSet(existingUIDs)
+	for _, r := range newGroup.Rules {
+		r.RuleGroup = newGroup.Title
+		r.FolderUID = newGroup.FolderUID
+		// TODO: interval
+		err := client.UpdateAlertRule(&r)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
 	return readAlertRule(ctx, data, meta)
 }
 
@@ -290,6 +315,7 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, interv
 	json := raw.(map[string]interface{})
 
 	return gapi.AlertRule{
+		UID:       json["uid"].(string),
 		Title:     json["name"].(string),
 		FolderUID: folderUID,
 		RuleGroup: groupName,
@@ -368,6 +394,14 @@ func unpackMap(raw interface{}) map[string]string {
 		result[k] = v.(string)
 	}
 	return result
+}
+
+func extractRuleUIDs(g gapi.RuleGroup) []string {
+	uids := make([]string, 0, len(g.Rules))
+	for i := range g.Rules {
+		uids = append(uids, g.Rules[i].UID)
+	}
+	return uids
 }
 
 type alertRuleGroupKey struct {
