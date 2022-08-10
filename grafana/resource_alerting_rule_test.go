@@ -123,6 +123,19 @@ func TestAccAlertRule_compound(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
+			// Test update.
+			{
+				Config: testAccExampleWithReplace(t, "resources/grafana_alert_rule/_acc_multi_rule_group.tf", map[string]string{
+					"Rule 1": "asdf",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testRuleGroupCheckExists("grafana_alert_rule.my_multi_alert_group", &group),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_multi_alert_group", "name", "My Multi-Alert Rule Group"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_multi_alert_group", "rules.#", "2"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_multi_alert_group", "rules.0.name", "My Alert asdf"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_multi_alert_group", "rules.1.name", "My Alert Rule 2"),
+				),
+			},
 		},
 	})
 }
