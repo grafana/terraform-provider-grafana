@@ -1,0 +1,237 @@
+resource "grafana_folder" "compound_rule_folder" {
+    title = "My Compound Alert Rule Folder"
+}
+
+resource "grafana_alert_rule" "my_multi_alert_group" {
+    name = "My Multi-Alert Rule Group"
+    folder_uid = grafana_folder.compound_rule_folder.uid
+    interval_seconds = 240
+    org_id = 1
+    rules {
+        name = "My Alert Rule 1"
+        for = 120
+        condition = "B"
+        no_data_state = "NoData"
+        exec_err_state = "Alerting"
+        annotations = {
+            "a" = "b"
+            "c" = "d"
+        }
+        labels = {
+            "e" = "f"
+            "g" = "h"
+        }
+        data {
+            ref_id = "A"
+            query_type = ""
+            relative_time_range {
+                from = 600
+                to = 0
+            }
+            datasource_uid = "PD8C576611E62080A"
+            model = jsonencode({
+                hide = false
+                intervalMs = 1000
+                maxDataPoints = 43200
+                refId = "A"
+            })
+        }
+        data {
+            ref_id = "B"
+            query_type = ""
+            relative_time_range {
+                from = 0
+                to = 0
+            }
+            datasource_uid = "-100"
+            model = <<EOT
+{
+    "conditions": [
+        {
+        "evaluator": {
+            "params": [
+            3
+            ],
+            "type": "gt"
+        },
+        "operator": {
+            "type": "and"
+        },
+        "query": {
+            "params": [
+            "A"
+            ]
+        },
+        "reducer": {
+            "params": [],
+            "type": "last"
+        },
+        "type": "query"
+        }
+    ],
+    "datasource": {
+        "type": "__expr__",
+        "uid": "-100"
+    },
+    "hide": false,
+    "intervalMs": 1000,
+    "maxDataPoints": 43200,
+    "refId": "B",
+    "type": "classic_conditions"
+}
+EOT
+        }
+    }
+
+    rules {
+        name = "My Alert Rule 2"
+        for = 240
+        condition = "B"
+        no_data_state = "NoData"
+        exec_err_state = "Alerting"
+        annotations = {
+            "a" = "b"
+            "c" = "d"
+        }
+        labels = {
+            "e" = "f"
+            "g" = "h"
+        }
+        data {
+            ref_id = "A"
+            query_type = ""
+            relative_time_range {
+                from = 600
+                to = 0
+            }
+            datasource_uid = "PD8C576611E62080A"
+            model = jsonencode({
+                hide = false
+                intervalMs = 1000
+                maxDataPoints = 43200
+                refId = "A"
+            })
+        }
+        data {
+            ref_id = "B"
+            query_type = ""
+            relative_time_range {
+                from = 0
+                to = 0
+            }
+            datasource_uid = "-100"
+            model = <<EOT
+{
+    "conditions": [
+        {
+        "evaluator": {
+            "params": [
+            3
+            ],
+            "type": "gt"
+        },
+        "operator": {
+            "type": "and"
+        },
+        "query": {
+            "params": [
+            "A"
+            ]
+        },
+        "reducer": {
+            "params": [],
+            "type": "last"
+        },
+        "type": "query"
+        }
+    ],
+    "datasource": {
+        "type": "__expr__",
+        "uid": "-100"
+    },
+    "hide": false,
+    "intervalMs": 1000,
+    "maxDataPoints": 43200,
+    "refId": "B",
+    "type": "classic_conditions"
+}
+EOT
+        }
+    }
+
+    rules {
+        name = "My Alert Rule 3"
+        for = 240
+        condition = "B"
+        no_data_state = "NoData"
+        exec_err_state = "Alerting"
+        annotations = {
+            "a" = "b"
+            "c" = "d"
+        }
+        labels = {
+            "e" = "f"
+            "g" = "h"
+        }
+        data {
+            ref_id = "A"
+            query_type = ""
+            relative_time_range {
+                from = 600
+                to = 0
+            }
+            datasource_uid = "PD8C576611E62080A"
+            model = jsonencode({
+                hide = false
+                intervalMs = 1000
+                maxDataPoints = 43200
+                refId = "A"
+            })
+        }
+        data {
+            ref_id = "B"
+            query_type = ""
+            relative_time_range {
+                from = 0
+                to = 0
+            }
+            datasource_uid = "-100"
+            model = <<EOT
+{
+    "conditions": [
+        {
+        "evaluator": {
+            "params": [
+            3
+            ],
+            "type": "gt"
+        },
+        "operator": {
+            "type": "and"
+        },
+        "query": {
+            "params": [
+            "A"
+            ]
+        },
+        "reducer": {
+            "params": [],
+            "type": "last"
+        },
+        "type": "query"
+        }
+    ],
+    "datasource": {
+        "type": "__expr__",
+        "uid": "-100"
+    },
+    "hide": false,
+    "intervalMs": 1000,
+    "maxDataPoints": 43200,
+    "refId": "B",
+    "type": "classic_conditions"
+}
+EOT
+        }
+    }
+}
