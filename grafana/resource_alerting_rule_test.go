@@ -148,6 +148,17 @@ func TestAccAlertRule_compound(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_multi_alert_group", "rules.2.name", "My Alert Rule 3"),
 				),
 			},
+			// Test removal of rules from an existing group.
+			{
+				Config: testAccExample(t, "resources/grafana_alert_rule/_acc_multi_rule_group_subtracted.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testRuleGroupCheckExists("grafana_alert_rule.my_multi_alert_group", &group),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_multi_alert_group", "name", "My Multi-Alert Rule Group"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_multi_alert_group", "rules.#", "2"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_multi_alert_group", "rules.0.name", "My Alert Rule 1"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_multi_alert_group", "rules.1.name", "My Alert Rule 2"),
+				),
+			},
 		},
 	})
 }

@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"reflect"
 	"strings"
@@ -208,7 +209,7 @@ func updateAlertRule(ctx context.Context, data *schema.ResourceData, meta interf
 	group := unpackRuleGroup(data)
 	err := client.SetAlertRuleGroup(group)
 	if err != nil {
-		return diag.FromErr(err)
+		return diag.FromErr(fmt.Errorf("asdf %#v %w", group, err)) // TODO remove
 	}
 
 	data.SetId(packGroupID(ruleKeyFromGroup(group)))
@@ -300,12 +301,11 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, interv
 	json := raw.(map[string]interface{})
 
 	return gapi.AlertRule{
-		UID:       json["uid"].(string),
-		Title:     json["name"].(string),
-		FolderUID: folderUID,
-		RuleGroup: groupName,
-		OrgID:     int64(orgID),
-		// TODO: interval
+		UID:          json["uid"].(string),
+		Title:        json["name"].(string),
+		FolderUID:    folderUID,
+		RuleGroup:    groupName,
+		OrgID:        int64(orgID),
 		ExecErrState: gapi.ExecErrState(json["exec_err_state"].(string)),
 		NoDataState:  gapi.NoDataState(json["no_data_state"].(string)),
 		ForDuration:  time.Duration(json["for"].(int)),
