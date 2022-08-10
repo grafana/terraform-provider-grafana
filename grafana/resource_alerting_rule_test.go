@@ -98,6 +98,33 @@ func TestAccAlertRule_basic(t *testing.T) {
 func TestAccAlertRule_compound(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 	CheckOSSTestsSemver(t, ">=9.0.0")
+
+	var group gapi.RuleGroup
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: testAlertRuleCheckDestroy(&group),
+		Steps: []resource.TestStep{
+			// Test creation.
+			{
+				Config: testAccExample(t, "resources/grafana_alert_rule/_acc_multi_rule_group.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testRuleGroupCheckExists("grafana_alert_rule.my_multi_alert_group", &group),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_multi_alert_group", "name", "My Multi-Alert Rule Group"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_multi_alert_group", "interval_seconds", "240"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_multi_alert_group", "org_id", "1"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_multi_alert_group", "rules.#", "2"),
+				),
+			},
+			// Test import.
+			{
+				ResourceName:      "grafana_alert_rule.my_multi_alert_group",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
 }
 
 func testRuleGroupCheckExists(rname string, g *gapi.RuleGroup) resource.TestCheckFunc {
