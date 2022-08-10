@@ -2,7 +2,7 @@ package grafana
 
 import (
 	"context"
-	"crypto/md5"
+	"crypto/sha256"
 	"fmt"
 	"strings"
 
@@ -68,9 +68,9 @@ func readFolders(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 	for _, folder := range folders {
 		uids = append(uids, folder.UID)
 	}
-	md5 := md5.Sum([]byte(strings.Join(uids, "-")))
+	sha := sha256.Sum256([]byte(strings.Join(uids, "-")))
 
-	d.SetId(fmt.Sprintf("%x", md5))
+	d.SetId(fmt.Sprintf("%x", sha))
 
 	if err := d.Set("folders", flattenFolders(folders)); err != nil {
 		return diag.FromErr(fmt.Errorf("error setting item: %v", err))
