@@ -110,13 +110,14 @@ Manages Grafana Alerting rule groups.
 									},
 									"datasource_uid": {
 										Type:        schema.TypeString,
-										Optional:    true, // TODO
-										Description: "The UID of the datasource being queried.",
+										Required:    true,
+										Description: "The UID of the datasource being queried, or \"-100\" if this stage is an expression stage.",
 									},
 									"query_type": {
 										Type:        schema.TypeString,
-										Required:    true, // TODO
-										Description: "TODO",
+										Optional:    true,
+										Default:     "",
+										Description: "An optional identifier for the type of query being executed.",
 									},
 									"model": {
 										Required:    true,
@@ -125,7 +126,7 @@ Manages Grafana Alerting rule groups.
 									},
 									"relative_time_range": {
 										Type:        schema.TypeList,
-										Optional:    true, // TODO
+										Required:    true,
 										Description: "The time range, relative to when the query is executed, across which to query.",
 										MaxItems:    1,
 										Elem: &schema.Resource{
