@@ -27,7 +27,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testRuleGroupCheckExists("grafana_alert_rule.my_alert_rule", &group),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "name", "My Rule Group"),
-					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "interval_seconds", "60"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "interval_seconds", "240"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "org_id", "1"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.#", "1"),
 				),
@@ -46,6 +46,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testRuleGroupCheckExists("grafana_alert_rule.my_alert_rule", &group),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "name", "My Rule Group"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "interval_seconds", "240"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.#", "1"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.name", "A Different Rule"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.for", "120"),
@@ -59,6 +60,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testRuleGroupCheckExists("grafana_alert_rule.my_alert_rule", &group),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "name", "A Different Rule Group"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "interval_seconds", "240"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.#", "1"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.name", "My Alert Rule 1"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.for", "120"),
@@ -70,6 +72,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testRuleGroupCheckExists("grafana_alert_rule.my_alert_rule", &group),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "name", "My Rule Group"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "interval_seconds", "240"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "folder_uid", "test-uid"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.#", "1"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.name", "My Alert Rule 1"),
@@ -79,6 +82,11 @@ func TestAccAlertRule_basic(t *testing.T) {
 			// TODO: test change interval
 		},
 	})
+}
+
+func TestAccAlertRule_compound(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+	CheckOSSTestsSemver(t, ">=9.0.0")
 }
 
 func testRuleGroupCheckExists(rname string, g *gapi.RuleGroup) resource.TestCheckFunc {

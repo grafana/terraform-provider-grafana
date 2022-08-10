@@ -5,7 +5,7 @@ resource "grafana_folder" "rule_folder" {
 resource "grafana_alert_rule" "my_alert_rule" {
     name = "My Rule Group"
     folder_uid = grafana_folder.rule_folder.uid
-    interval_seconds = 60
+    interval_seconds = 240
     org_id = 1
     rules {
         name = "My Alert Rule 1"

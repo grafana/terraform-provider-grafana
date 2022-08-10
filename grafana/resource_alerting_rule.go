@@ -193,11 +193,9 @@ func createAlertRule(ctx context.Context, data *schema.ResourceData, meta interf
 	group := unpackRuleGroup(data)
 	key := ruleKeyFromGroup(group)
 
-	for i := range group.Rules {
-		_, err := client.NewAlertRule(&group.Rules[i])
-		if err != nil {
-			return diag.FromErr(err)
-		}
+	err := client.SetAlertRuleGroup(group)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	data.SetId(packGroupID(key))
@@ -207,26 +205,13 @@ func createAlertRule(ctx context.Context, data *schema.ResourceData, meta interf
 func updateAlertRule(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	key := unpackGroupID(data.Id())
-
-	oldGroup, err := client.AlertRuleGroup(key.folderUID, key.name)
+	group := unpackRuleGroup(data)
+	err := client.SetAlertRuleGroup(group)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	existingUIDs := extractRuleUIDs(oldGroup)
 
-	newGroup := unpackRuleGroup(data)
-	// unprocessedUIDs := toUIDSet(existingUIDs) TODO
-	_ = toUIDSet(existingUIDs)
-	for _, r := range newGroup.Rules {
-		r.RuleGroup = newGroup.Title
-		r.FolderUID = newGroup.FolderUID
-		// TODO: interval
-		err := client.UpdateAlertRule(&r)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-	}
+	data.SetId(packGroupID(ruleKeyFromGroup(group)))
 
 	return readAlertRule(ctx, data, meta)
 }
