@@ -66,6 +66,18 @@ func TestAccAlertRule_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.for", "120"),
 				),
 			},
+			// Test change interval.
+			{
+				Config: testAccExampleWithReplace(t, "resources/grafana_alert_rule/resource.tf", map[string]string{
+					"240": "360",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testRuleGroupCheckExists("grafana_alert_rule.my_alert_rule", &group),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "name", "My Rule Group"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "interval_seconds", "360"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.#", "1"),
+				),
+			},
 			// Test re-parent folder.
 			{
 				Config: testAccExample(t, "resources/grafana_alert_rule/_acc_reparent_folder.tf"),
@@ -79,7 +91,6 @@ func TestAccAlertRule_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.for", "120"),
 				),
 			},
-			// TODO: test change interval
 		},
 	})
 }
