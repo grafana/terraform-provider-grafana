@@ -187,7 +187,9 @@ func readAlertRule(ctx context.Context, data *schema.ResourceData, meta interfac
 		return diag.FromErr(err)
 	}
 
-	packRuleGroup(group, data)
+	if err := packRuleGroup(group, data); err != nil {
+		return diag.FromErr(err)
+	}
 	data.SetId(packGroupID(ruleKeyFromGroup(group)))
 
 	return nil
@@ -196,11 +198,13 @@ func readAlertRule(ctx context.Context, data *schema.ResourceData, meta interfac
 func createAlertRule(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	group := unpackRuleGroup(data)
+	group, err := unpackRuleGroup(data)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	key := ruleKeyFromGroup(group)
 
-	err := client.SetAlertRuleGroup(group)
-	if err != nil {
+	if err = client.SetAlertRuleGroup(group); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -211,14 +215,17 @@ func createAlertRule(ctx context.Context, data *schema.ResourceData, meta interf
 func updateAlertRule(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	group := unpackRuleGroup(data)
-	err := client.SetAlertRuleGroup(group)
+	group, err := unpackRuleGroup(data)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	key := ruleKeyFromGroup(group)
 
-	data.SetId(packGroupID(ruleKeyFromGroup(group)))
+	if err = client.SetAlertRuleGroup(group); err != nil {
+		return diag.FromErr(err)
+	}
 
+	data.SetId(packGroupID(key))
 	return readAlertRule(ctx, data, meta)
 }
 
@@ -254,19 +261,24 @@ func diffSuppressJSON(k, oldValue, newValue string, data *schema.ResourceData) b
 	return reflect.DeepEqual(o, n)
 }
 
-func packRuleGroup(g gapi.RuleGroup, data *schema.ResourceData) {
+func packRuleGroup(g gapi.RuleGroup, data *schema.ResourceData) error {
 	data.Set("name", g.Title)
 	data.Set("folder_uid", g.FolderUID)
 	data.Set("interval_seconds", g.Interval)
 	rules := make([]interface{}, 0, len(g.Rules))
 	for _, r := range g.Rules {
 		data.Set("org_id", r.OrgID)
-		rules = append(rules, packAlertRule(r))
+		packed, err := packAlertRule(r)
+		if err != nil {
+			return err
+		}
+		rules = append(rules, packed)
 	}
 	data.Set("rules", rules)
+	return nil
 }
 
-func unpackRuleGroup(data *schema.ResourceData) gapi.RuleGroup {
+func unpackRuleGroup(data *schema.ResourceData) (gapi.RuleGroup, error) {
 	group := data.Get("name").(string)
 	folder := data.Get("folder_uid").(string)
 	interval := data.Get("interval_seconds").(int)
@@ -275,7 +287,10 @@ func unpackRuleGroup(data *schema.ResourceData) gapi.RuleGroup {
 
 	rules := make([]gapi.AlertRule, 0, len(packedRules))
 	for i := range packedRules {
-		rule := unpackAlertRule(packedRules[i], group, folder, interval, orgID)
+		rule, err := unpackAlertRule(packedRules[i], group, folder, interval, orgID)
+		if err != nil {
+			return gapi.RuleGroup{}, err
+		}
 		rules = append(rules, rule)
 	}
 
@@ -284,10 +299,14 @@ func unpackRuleGroup(data *schema.ResourceData) gapi.RuleGroup {
 		FolderUID: folder,
 		Interval:  int64(interval),
 		Rules:     rules,
-	}
+	}, nil
 }
 
-func packAlertRule(r gapi.AlertRule) interface{} {
+func packAlertRule(r gapi.AlertRule) (interface{}, error) {
+	data, err := packRuleData(r.Data)
+	if err != nil {
+		return nil, err
+	}
 	json := map[string]interface{}{
 		"uid":            r.UID,
 		"name":           r.Title,
@@ -297,13 +316,17 @@ func packAlertRule(r gapi.AlertRule) interface{} {
 		"condition":      r.Condition,
 		"labels":         r.Labels,
 		"annotations":    r.Annotations,
-		"data":           packRuleData(r.Data),
+		"data":           data,
 	}
-	return json
+	return json, nil
 }
 
-func unpackAlertRule(raw interface{}, groupName string, folderUID string, interval int, orgID int) gapi.AlertRule {
+func unpackAlertRule(raw interface{}, groupName string, folderUID string, interval int, orgID int) (gapi.AlertRule, error) {
 	json := raw.(map[string]interface{})
+	data, err := unpackRuleData(json["data"])
+	if err != nil {
+		return gapi.AlertRule{}, err
+	}
 
 	return gapi.AlertRule{
 		UID:          json["uid"].(string),
@@ -314,14 +337,14 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, interv
 		ExecErrState: gapi.ExecErrState(json["exec_err_state"].(string)),
 		NoDataState:  gapi.NoDataState(json["no_data_state"].(string)),
 		ForDuration:  time.Duration(json["for"].(int)),
-		Data:         unpackRuleData(json["data"]),
+		Data:         data,
 		Condition:    json["condition"].(string),
 		Labels:       unpackMap(json["labels"]),
 		Annotations:  unpackMap(json["annotations"]),
-	}
+	}, nil
 }
 
-func packRuleData(queries []*gapi.AlertQuery) interface{} {
+func packRuleData(queries []*gapi.AlertQuery) (interface{}, error) {
 	result := []interface{}{}
 	for i := range queries {
 		if queries[i] == nil {
@@ -330,7 +353,7 @@ func packRuleData(queries []*gapi.AlertQuery) interface{} {
 
 		model, err := json.Marshal(queries[i].Model)
 		if err != nil {
-			panic(err) // TODO: propagate
+			return nil, err
 		}
 
 		data := map[string]interface{}{}
@@ -344,10 +367,10 @@ func packRuleData(queries []*gapi.AlertQuery) interface{} {
 		data["model"] = string(model)
 		result = append(result, data)
 	}
-	return result
+	return result, nil
 }
 
-func unpackRuleData(raw interface{}) []*gapi.AlertQuery {
+func unpackRuleData(raw interface{}) ([]*gapi.AlertQuery, error) {
 	rows := raw.([]interface{})
 	result := make([]*gapi.AlertQuery, 0, len(rows))
 	for i := range rows {
@@ -369,12 +392,12 @@ func unpackRuleData(raw interface{}) []*gapi.AlertQuery {
 		var decodedModelJSON interface{}
 		err := json.Unmarshal([]byte(row["model"].(string)), &decodedModelJSON)
 		if err != nil {
-			panic(err) // TODO
+			return nil, err
 		}
 		stage.Model = decodedModelJSON
 		result = append(result, stage)
 	}
-	return result
+	return result, nil
 }
 
 func unpackMap(raw interface{}) map[string]string {
