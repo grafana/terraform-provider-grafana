@@ -3,7 +3,6 @@ package grafana
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"reflect"
 	"strings"
@@ -16,8 +15,13 @@ import (
 
 func ResourceAlertRule() *schema.Resource {
 	return &schema.Resource{
-		Description: `TODO`,
+		Description: `
+Manages Grafana Alerting rule groups.
 
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/alerting-rules)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#alert-rules)
+
+`,
 		CreateContext: createAlertRule,
 		ReadContext:   readAlertRule,
 		UpdateContext: updateAlertRule,
@@ -70,32 +74,32 @@ func ResourceAlertRule() *schema.Resource {
 						},
 						"for": {
 							Type:        schema.TypeInt,
-							Required:    true, // TODO
-							Description: "TODO",
+							Optional:    true,
+							Default:     0,
+							Description: "The amount of time for which the rule must be breached for the rule to be considered to be Firing. Before this time has elapsed, the rule is only considered to be Pending.",
 						},
 						"no_data_state": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "NoData",
-							Description: "TODO",
+							Description: "Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, and Alerting.",
 						},
 						"exec_err_state": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "Alerting",
-							Description: "TODO",
+							Description: "Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, and Alerting.",
 						},
 						"condition": {
 							Type:        schema.TypeString,
-							Required:    true, // TODO??
+							Required:    true,
 							Description: "The `ref_id` of the query node in the `data` field to use as the alert condition.",
 						},
 						"data": {
 							Type:             schema.TypeList,
-							Required:         false,
-							Optional:         true, // TODO: make required
-							Description:      "TODO",
+							Required:         true,
 							MinItems:         1,
+							Description:      "A sequence of stages that describe the contents of the rule.",
 							DiffSuppressFunc: diffSuppressJSON,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -209,7 +213,7 @@ func updateAlertRule(ctx context.Context, data *schema.ResourceData, meta interf
 	group := unpackRuleGroup(data)
 	err := client.SetAlertRuleGroup(group)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("asdf %#v %w", group, err)) // TODO remove
+		return diag.FromErr(err)
 	}
 
 	data.SetId(packGroupID(ruleKeyFromGroup(group)))
