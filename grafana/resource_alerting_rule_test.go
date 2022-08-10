@@ -19,7 +19,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		// Implicitly tests deletion.
-		CheckDestroy: testAlertRuleCheckDestroy(group),
+		CheckDestroy: testAlertRuleCheckDestroy(&group),
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
@@ -41,15 +41,42 @@ func TestAccAlertRule_basic(t *testing.T) {
 			// Test update content.
 			{
 				Config: testAccExampleWithReplace(t, "resources/grafana_alert_rule/resource.tf", map[string]string{
-					"My Alert Rule": "A Different Rule",
+					"My Alert Rule 1": "A Different Rule",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testRuleGroupCheckExists("grafana_alert_rule.my_alert_rule", &group),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "name", "My Rule Group"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.#", "1"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.name", "A Different Rule"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.for", "120"),
 				),
 			},
+			// Test rename group.
+			{
+				Config: testAccExampleWithReplace(t, "resources/grafana_alert_rule/resource.tf", map[string]string{
+					"My Rule Group": "A Different Rule Group",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testRuleGroupCheckExists("grafana_alert_rule.my_alert_rule", &group),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "name", "A Different Rule Group"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.#", "1"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.name", "My Alert Rule 1"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.for", "120"),
+				),
+			},
+			// Test re-parent folder.
+			{
+				Config: testAccExample(t, "resources/grafana_alert_rule/_acc_reparent_folder.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testRuleGroupCheckExists("grafana_alert_rule.my_alert_rule", &group),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "name", "My Rule Group"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "folder_uid", "test-uid"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.#", "1"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.name", "My Alert Rule 1"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.for", "120"),
+				),
+			},
+			// TODO: test change interval
 		},
 	})
 }
@@ -77,7 +104,7 @@ func testRuleGroupCheckExists(rname string, g *gapi.RuleGroup) resource.TestChec
 	}
 }
 
-func testAlertRuleCheckDestroy(group gapi.RuleGroup) resource.TestCheckFunc {
+func testAlertRuleCheckDestroy(group *gapi.RuleGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*client).gapi
 		_, err := client.AlertRuleGroup(group.FolderUID, group.Title)
