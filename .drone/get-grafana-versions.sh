@@ -16,23 +16,20 @@
 #  "8.2.7"
 # ]
 
-gh api 'repos/grafana/grafana/releases' \
-  --paginate \
+gh api 'repos/grafana/grafana/releases?per_page=100' \
   --jq '
-    .[]
-    | select(.prerelease or .draft | not)
-    | .tag_name[1:100]
-    | split("-")[0]' \
-    | jq \
-      --slurp \
-      --raw-input \
-      'split("\n")[:-1]
-      | map({
-        major: (split(".")[0]),
-        minor: (split(".")[1]),
-        patch: (split(".")[2])
-      })
-      | group_by(.major, .minor)
-      | reverse
-      | map(.[0] | join("."))[:5]
-      '
+    [
+      .[]
+      | select(.prerelease or .draft | not)
+      | .tag_name[1:100]
+      | split("-")[0]
+    ]
+    | map({
+      major: (split(".")[0]),
+      minor: (split(".")[1]),
+      patch: (split(".")[2])
+    })
+    | group_by(.major, .minor)
+    | reverse
+    | map(.[0] | join("."))[:5]
+    '
