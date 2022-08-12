@@ -22,7 +22,7 @@ gh api 'repos/grafana/grafana/releases?per_page=100' \
       .[]
       | select(.prerelease or .draft | not)
       | .tag_name[1:100]
-      | split("-")[0]
+      | select(contains("-") | not)
     ]
     | map({
       major: (split(".")[0]),
