@@ -2,9 +2,7 @@ package grafana
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
-	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -64,13 +62,7 @@ func readFolders(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 		return diag.FromErr(err)
 	}
 
-	uids := []string{}
-	for _, folder := range folders {
-		uids = append(uids, folder.UID)
-	}
-	sha := sha256.Sum256([]byte(strings.Join(uids, "-")))
-
-	d.SetId(fmt.Sprintf("%x", sha))
+	d.SetId("grafana_folders")
 
 	if err := d.Set("folders", flattenFolders(folders)); err != nil {
 		return diag.FromErr(fmt.Errorf("error setting item: %v", err))
