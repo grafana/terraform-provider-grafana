@@ -1,0 +1,1 @@
+terraform import grafana_notification_policy.notification_policy_name {{notification_policy_name}}

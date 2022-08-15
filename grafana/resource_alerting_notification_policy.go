@@ -22,10 +22,10 @@ func ResourceNotificationPolicy() *schema.Resource {
 
 		SchemaVersion: 0,
 		Schema: map[string]*schema.Schema{
-			"receiver": {
+			"contact_point": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The default contact point to fall back to.",
+				Description: "The default contact point to route all unmatched notifications to.",
 			},
 			"group_by": {
 				Type:        schema.TypeList,
@@ -102,7 +102,7 @@ func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, me
 }
 
 func packNotifPolicy(npt gapi.NotificationPolicyTree, data *schema.ResourceData) {
-	data.Set("receiver", npt.Receiver)
+	data.Set("contact_point", npt.Receiver)
 	data.Set("group_by", npt.GroupBy)
 	data.Set("group_wait", npt.GroupWait)
 	data.Set("group_interval", npt.GroupInterval)
@@ -116,7 +116,7 @@ func unpackNotifPolicy(data *schema.ResourceData) gapi.NotificationPolicyTree {
 		groups = append(groups, g.(string))
 	}
 	return gapi.NotificationPolicyTree{
-		Receiver:       data.Get("receiver").(string),
+		Receiver:       data.Get("contact_point").(string),
 		GroupBy:        groups,
 		GroupWait:      data.Get("group_wait").(string),
 		GroupInterval:  data.Get("group_interval").(string),

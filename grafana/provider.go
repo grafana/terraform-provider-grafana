@@ -174,6 +174,7 @@ func Provider(version string) func() *schema.Provider {
 				"grafana_library_panel":           ResourceLibraryPanel(),
 				"grafana_message_template":        ResourceMessageTemplate(),
 				"grafana_mute_timing":             ResourceMuteTiming(),
+				"grafana_notification_policy":     ResourceNotificationPolicy(),
 				"grafana_organization":            ResourceOrganization(),
 				"grafana_playlist":                ResourcePlaylist(),
 				"grafana_report":                  ResourceReport(),
