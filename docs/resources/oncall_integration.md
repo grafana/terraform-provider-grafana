@@ -48,18 +48,48 @@ resource "grafana_oncall_integration" "test-acc-integration" {
 Optional:
 
 - `escalation_chain_id` (String) The ID of the escalation chain.
+- `msteams` (Block List, Max: 1) MS teams-specific settings for a route. (see [below for nested schema](#nestedblock--default_route--msteams))
 - `slack` (Block List, Max: 1) Slack-specific settings for a route. (see [below for nested schema](#nestedblock--default_route--slack))
+- `telegram` (Block List, Max: 1) Telegram-specific settings for a route. (see [below for nested schema](#nestedblock--default_route--telegram))
 
 Read-Only:
 
 - `id` (String) The ID of this resource.
+
+<a id="nestedblock--default_route--msteams"></a>
+### Nested Schema for `default_route.msteams`
+
+Required:
+
+- `enabled` (Boolean) Enable notification in MS teams.
+
+Optional:
+
+- `id` (String) MS teams channel id. Alerts will be directed to this channel in Microsoft teams.
+
 
 <a id="nestedblock--default_route--slack"></a>
 ### Nested Schema for `default_route.slack`
 
 Required:
 
+- `enabled` (Boolean) Enable notification in Slack.
+
+Optional:
+
 - `channel_id` (String) Slack channel id. Alerts will be directed to this channel in Slack.
+
+
+<a id="nestedblock--default_route--telegram"></a>
+### Nested Schema for `default_route.telegram`
+
+Required:
+
+- `enabled` (Boolean) Enable notification in Telegram.
+
+Optional:
+
+- `id` (String) Telegram channel id. Alerts will be directed to this channel in Telegram.
 
 
 
