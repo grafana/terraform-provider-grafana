@@ -14,6 +14,7 @@ func ResourceNotificationPolicy() *schema.Resource {
 
 		CreateContext: createNotificationPolicy,
 		ReadContext:   readNotificationPolicy,
+		UpdateContext: updateNotificationPolicy,
 		DeleteContext: deleteNotificationPolicy,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -76,6 +77,18 @@ func createNotificationPolicy(ctx context.Context, data *schema.ResourceData, me
 	}
 
 	data.SetId("TODO")
+	return readNotificationPolicy(ctx, data, meta)
+}
+
+func updateNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
+
+	npt := unpackNotifPolicy(data)
+
+	if err := client.SetNotificationPolicyTree(&npt); err != nil {
+		return diag.FromErr(err)
+	}
+
 	return readNotificationPolicy(ctx, data, meta)
 }
 
