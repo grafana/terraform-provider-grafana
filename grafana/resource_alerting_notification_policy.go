@@ -12,6 +12,7 @@ func ResourceNotificationPolicy() *schema.Resource {
 	return &schema.Resource{
 		Description: `TODO`,
 
+		CreateContext: createNotificationPolicy,
 		ReadContext:   readNotificationPolicy,
 		DeleteContext: deleteNotificationPolicy,
 		Importer: &schema.ResourceImporter{
@@ -65,6 +66,19 @@ func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta
 	return nil
 }
 
+func createNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
+
+	npt := unpackNotifPolicy(data)
+
+	if err := client.SetNotificationPolicyTree(&npt); err != nil {
+		return diag.FromErr(err)
+	}
+
+	data.SetId("TODO")
+	return readNotificationPolicy(ctx, data, meta)
+}
+
 func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
@@ -80,4 +94,19 @@ func packNotifPolicy(npt gapi.NotificationPolicyTree, data *schema.ResourceData)
 	data.Set("group_wait", npt.GroupWait)
 	data.Set("group_interval", npt.GroupInterval)
 	data.Set("repeat_interval", npt.RepeatInterval)
+}
+
+func unpackNotifPolicy(data *schema.ResourceData) gapi.NotificationPolicyTree {
+	groupBy := data.Get("group_by").([]interface{})
+	groups := make([]string, 0, len(groupBy))
+	for _, g := range groupBy {
+		groups = append(groups, g.(string))
+	}
+	return gapi.NotificationPolicyTree{
+		Receiver:       data.Get("receiver").(string),
+		GroupBy:        groups,
+		GroupWait:      data.Get("group_wait").(string),
+		GroupInterval:  data.Get("group_interval").(string),
+		RepeatInterval: data.Get("repeat_interval").(string),
+	}
 }
