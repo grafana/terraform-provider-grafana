@@ -57,6 +57,8 @@ func ResourceNotificationPolicy() *schema.Resource {
 	}
 }
 
+const PolicySingletonID = "policy"
+
 func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
@@ -66,7 +68,7 @@ func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta
 	}
 
 	packNotifPolicy(npt, data)
-	data.SetId("TODO")
+	data.SetId(PolicySingletonID)
 	return nil
 }
 
@@ -79,7 +81,7 @@ func createNotificationPolicy(ctx context.Context, data *schema.ResourceData, me
 		return diag.FromErr(err)
 	}
 
-	data.SetId("TODO")
+	data.SetId(PolicySingletonID)
 	return readNotificationPolicy(ctx, data, meta)
 }
 
