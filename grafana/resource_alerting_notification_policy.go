@@ -10,7 +10,10 @@ import (
 
 func ResourceNotificationPolicy() *schema.Resource {
 	return &schema.Resource{
-		Description: `TODO`,
+		Description: `
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/notifications/)
+* [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#notification-policies)
+`,
 
 		CreateContext: createNotificationPolicy,
 		ReadContext:   readNotificationPolicy,
