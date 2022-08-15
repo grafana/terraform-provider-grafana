@@ -37,6 +37,18 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
+			// Test update.
+			{
+				Config: testAccExampleWithReplace(t, "resources/grafana_notification_policy/resource.tf", map[string]string{
+					"...": "alertname",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testNotifPolicyCheckExists("grafana_notification_policy.my_notification_policy"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "contact_point", "A Contact Point"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "group_by.#", "1"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "group_by.0", "alertname"),
+				),
+			},
 		},
 	})
 }
