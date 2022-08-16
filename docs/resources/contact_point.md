@@ -39,12 +39,54 @@ resource "grafana_contact_point" "my_contact_point" {
 
 ### Optional
 
-- `discord` (Block List) A contact point that sends notifications to Discord. (see [below for nested schema](#nestedblock--discord))
+- `alertmanager` (Block List) A contact point that sends notifications to other Alertmanager instances. (see [below for nested schema](#nestedblock--alertmanager))
+- `dingding` (Block List) A contact point that sends notifications to DingDing. (see [below for nested schema](#nestedblock--dingding))
+- `discord` (Block List) A contact point that sends notifications as Discord messages (see [below for nested schema](#nestedblock--discord))
 - `email` (Block List) A contact point that sends notifications to an email address. (see [below for nested schema](#nestedblock--email))
+- `googlechat` (Block List) A contact point that sends notifications to Google Chat. (see [below for nested schema](#nestedblock--googlechat))
+- `kafka` (Block List) A contact point that publishes notifications to Apache Kafka topics. (see [below for nested schema](#nestedblock--kafka))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+<a id="nestedblock--alertmanager"></a>
+### Nested Schema for `alertmanager`
+
+Required:
+
+- `url` (String) The URL of the Alertmanager instance.
+
+Optional:
+
+- `basic_auth_password` (String, Sensitive) The password component of the basic auth credentials to use.
+- `basic_auth_user` (String) The username component of the basic auth credentials to use.
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--dingding"></a>
+### Nested Schema for `dingding`
+
+Required:
+
+- `url` (String) The DingDing webhook URL.
+
+Optional:
+
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `message` (String) The templated content of the message.
+- `message_type` (String) The format of message to send - either 'link' or 'actionCard'
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
 
 <a id="nestedblock--discord"></a>
 ### Nested Schema for `discord`
@@ -80,6 +122,42 @@ Optional:
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `single_email` (Boolean) Whether to send a single email CC'ing all addresses, rather than a separate email to each address. Defaults to `false`.
 - `subject` (String) The templated subject line of the email. Defaults to ``.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--googlechat"></a>
+### Nested Schema for `googlechat`
+
+Required:
+
+- `url` (String, Sensitive) The Google Chat webhook URL.
+
+Optional:
+
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `message` (String) The templated content of the message.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--kafka"></a>
+### Nested Schema for `kafka`
+
+Required:
+
+- `rest_proxy_url` (String, Sensitive) The URL of the Kafka REST proxy to send requests to.
+- `topic` (String) The name of the Kafka topic to publish to.
+
+Optional:
+
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 
 Read-Only:
 
