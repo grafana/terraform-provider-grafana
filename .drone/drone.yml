@@ -162,14 +162,14 @@ kind: secret
 name: grafana-oncall-token
 ---
 kind: pipeline
-name: 'oss tests: 9.0.2'
+name: 'oss tests: 9.1.0'
 platform:
   arch: amd64
   os: linux
 services:
 - environment:
     GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
-  image: grafana/grafana:9.0.2
+  image: grafana/grafana:9.1.0
   name: grafana
 steps:
 - commands:
@@ -179,7 +179,38 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
-    GRAFANA_VERSION: 9.0.2
+    GRAFANA_VERSION: 9.1.0
+  image: golang:1.18
+  name: tests
+trigger:
+  branch:
+  - master
+  event:
+  - pull_request
+  - push
+type: docker
+workspace:
+  path: /drone/terraform-provider-grafana
+---
+kind: pipeline
+name: 'oss tests: 9.0.7'
+platform:
+  arch: amd64
+  os: linux
+services:
+- environment:
+    GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
+  image: grafana/grafana:9.0.7
+  name: grafana
+steps:
+- commands:
+  - sleep 5
+  - make testacc-oss
+  environment:
+    GRAFANA_AUTH: admin:admin
+    GRAFANA_ORG_ID: 1
+    GRAFANA_URL: http://grafana:3000
+    GRAFANA_VERSION: 9.0.7
   image: golang:1.18
   name: tests
 trigger:
@@ -317,6 +348,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: d0eb58930be18d779d328a8753222aec82ffcc8e9704a07796386e383cdf3f10
+hmac: caf521c3c5837c7bbed6e18b4433e4e829e66b5ddc115fdeb2300e7445e5e3da
 
 ...
