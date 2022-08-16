@@ -7,6 +7,93 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+type discordNotifier struct{}
+
+var _ notifier = (*discordNotifier)(nil)
+
+func (d discordNotifier) meta() notifierMeta {
+	return notifierMeta{
+		typeStr: "discord",
+		desc:    "A contact point that sends notifications to Discord.",
+	}
+}
+
+func (d discordNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Sensitive:   true,
+		Description: "The discord webhook URL.",
+	}
+	r.Schema["message"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Default:     "",
+		Description: "The templated content of the message.",
+	}
+	r.Schema["avatar_url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Default:     "",
+		Description: "The URL of a custom avatar image to use.",
+	}
+	r.Schema["use_discord_username"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Default:     false,
+		Description: "Whether to use the bot account's plain username instead of \"Grafana.\"",
+	}
+	return r
+}
+
+func (d discordNotifier) pack(p gapi.ContactPoint) interface{} {
+	notifier := packCommonNotifierFields(&p)
+	if v, ok := p.Settings["url"]; ok && v != nil {
+		notifier["url"] = v.(string)
+		delete(p.Settings, "url")
+	}
+	if v, ok := p.Settings["message"]; ok && v != nil {
+		notifier["message"] = v.(string)
+		delete(p.Settings, "message")
+	}
+	if v, ok := p.Settings["avatar_url"]; ok && v != nil {
+		notifier["avatar_url"] = v.(string)
+		delete(p.Settings, "avatar_url")
+	}
+	if v, ok := p.Settings["use_discord_username"]; ok && v != nil {
+		notifier["use_discord_username"] = v.(bool)
+		delete(p.Settings, "use_discord_username")
+	}
+
+	notifier["settings"] = packSettings(&p)
+	return notifier
+}
+
+func (d discordNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	settings["url"] = json["url"].(string)
+	if v, ok := json["message"]; ok && v != nil {
+		settings["message"] = v.(string)
+	}
+	if v, ok := json["avatar_url"]; ok && v != nil {
+		settings["avatar_url"] = v.(string)
+	}
+	if v, ok := json["use_discord_username"]; ok && v != nil {
+		settings["use_discord_username"] = v.(bool)
+	}
+
+	return gapi.ContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  d.meta().typeStr,
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}
+
 type emailNotifier struct{}
 
 var _ notifier = (*emailNotifier)(nil)
@@ -90,7 +177,7 @@ func (e emailNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	return gapi.ContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  "email",
+		Type:                  e.meta().typeStr,
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -110,88 +197,71 @@ func unpackAddrs(addrs []interface{}) string {
 	return strings.Join(strs, addrSeparator)
 }
 
-type discordNotifier struct{}
+type alertmanagerNotifier struct{}
 
-var _ notifier = (*discordNotifier)(nil)
+var _ notifier = (*alertmanagerNotifier)(nil)
 
-func (d discordNotifier) meta() notifierMeta {
+func (a alertmanagerNotifier) meta() notifierMeta {
 	return notifierMeta{
-		typeStr: "discord",
-		desc:    "A contact point that sends notifications to Discord.",
+		typeStr: "prometheus-alertmanager",
+		desc:    "A contact point that sends notifications to other Alertmanager instances.",
 	}
 }
 
-func (d discordNotifier) schema() *schema.Resource {
+func (a alertmanagerNotifier) schema() *schema.Resource {
 	r := commonNotifierResource()
 	r.Schema["url"] = &schema.Schema{
 		Type:        schema.TypeString,
 		Required:    true,
+		Description: "The URL of the Alertmanager instance.",
+	}
+	r.Schema["basic_auth_user"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The username component of the basic auth credentials to use.",
+	}
+	r.Schema["basic_auth_password"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
 		Sensitive:   true,
-		Description: "The discord webhook URL.",
-	}
-	r.Schema["message"] = &schema.Schema{
-		Type:        schema.TypeString,
-		Optional:    true,
-		Default:     "",
-		Description: "The templated content of the message.",
-	}
-	r.Schema["avatar_url"] = &schema.Schema{
-		Type:        schema.TypeString,
-		Optional:    true,
-		Default:     "",
-		Description: "The URL of a custom avatar image to use.",
-	}
-	r.Schema["use_discord_username"] = &schema.Schema{
-		Type:        schema.TypeBool,
-		Optional:    true,
-		Default:     false,
-		Description: "Whether to use the bot account's plain username instead of \"Grafana.\"",
+		Description: "The password component of the basic auth credentials to use.",
 	}
 	return r
 }
 
-func (d discordNotifier) pack(p gapi.ContactPoint) interface{} {
+func (a alertmanagerNotifier) pack(p gapi.ContactPoint) interface{} {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
 		delete(p.Settings, "url")
 	}
-	if v, ok := p.Settings["message"]; ok && v != nil {
-		notifier["message"] = v.(string)
-		delete(p.Settings, "message")
+	if v, ok := p.Settings["basicAuthUser"]; ok && v != nil {
+		notifier["basic_auth_user"] = v.(string)
+		delete(p.Settings, "basicAuthUser")
 	}
-	if v, ok := p.Settings["avatar_url"]; ok && v != nil {
-		notifier["avatar_url"] = v.(string)
-		delete(p.Settings, "avatar_url")
+	if v, ok := p.Settings["basicAuthPassword"]; ok && v != nil {
+		notifier["basic_auth_password"] = v.(string)
+		delete(p.Settings, "basicAuthPassword")
 	}
-	if v, ok := p.Settings["use_discord_username"]; ok && v != nil {
-		notifier["use_discord_username"] = v.(bool)
-		delete(p.Settings, "use_discord_username")
-	}
-
 	notifier["settings"] = packSettings(&p)
 	return notifier
 }
 
-func (d discordNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (a alertmanagerNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	settings["url"] = json["url"].(string)
-	if v, ok := json["message"]; ok && v != nil {
-		settings["message"] = v.(string)
+	if v, ok := json["basic_auth_user"]; ok && v != nil {
+		settings["basicAuthUser"] = v.(string)
 	}
-	if v, ok := json["avatar_url"]; ok && v != nil {
-		settings["avatar_url"] = v.(string)
+	if v, ok := json["basic_auth_password"]; ok && v != nil {
+		settings["basicAuthPassword"] = v.(string)
 	}
-	if v, ok := json["use_discord_username"]; ok && v != nil {
-		settings["use_discord_username"] = v.(bool)
-	}
-
 	return gapi.ContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  "discord",
+		Type:                  a.meta().typeStr,
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}

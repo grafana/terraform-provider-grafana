@@ -12,6 +12,7 @@ import (
 )
 
 var notifiers = []notifier{
+	alertmanagerNotifier{},
 	discordNotifier{},
 	emailNotifier{},
 }
