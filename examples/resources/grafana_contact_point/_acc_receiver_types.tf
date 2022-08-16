@@ -28,4 +28,9 @@ resource "grafana_contact_point" "receiver_types" {
         single_email = true
         disable_resolve_message = true
     }
+
+    googlechat {
+        url = "http://googlechat-url"
+        message = "message"
+    }
 }

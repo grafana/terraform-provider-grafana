@@ -96,7 +96,7 @@ func (d dingDingNotifier) schema() *schema.Resource {
 	r.Schema["url"] = &schema.Schema{
 		Type:        schema.TypeString,
 		Required:    true,
-		Description: "The URL of the Alertmanager instance.",
+		Description: "The DingDing webhook URL.",
 	}
 	r.Schema["message_type"] = &schema.Schema{
 		Type:        schema.TypeString,
@@ -111,7 +111,7 @@ func (d dingDingNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (a dingDingNotifier) pack(p gapi.ContactPoint) interface{} {
+func (d dingDingNotifier) pack(p gapi.ContactPoint) interface{} {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
@@ -129,7 +129,7 @@ func (a dingDingNotifier) pack(p gapi.ContactPoint) interface{} {
 	return notifier
 }
 
-func (a dingDingNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (d dingDingNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -143,7 +143,7 @@ func (a dingDingNotifier) unpack(raw interface{}, name string) gapi.ContactPoint
 	return gapi.ContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  a.meta().typeStr,
+		Type:                  d.meta().typeStr,
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -339,4 +339,63 @@ func unpackAddrs(addrs []interface{}) string {
 		strs = append(strs, addr.(string))
 	}
 	return strings.Join(strs, addrSeparator)
+}
+
+type googleChatNotifier struct{}
+
+var _ notifier = (*dingDingNotifier)(nil)
+
+func (g googleChatNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:   "googlechat",
+		typeStr: "googlechat",
+		desc:    "A contact point that sends notifications to Google Chat.",
+	}
+}
+
+func (g googleChatNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Sensitive:   true,
+		Description: "The Google Chat webhook URL.",
+	}
+	r.Schema["message"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated content of the message.",
+	}
+	return r
+}
+
+func (g googleChatNotifier) pack(p gapi.ContactPoint) interface{} {
+	notifier := packCommonNotifierFields(&p)
+	if v, ok := p.Settings["url"]; ok && v != nil {
+		notifier["url"] = v.(string)
+		delete(p.Settings, "url")
+	}
+	if v, ok := p.Settings["message"]; ok && v != nil {
+		notifier["message"] = v.(string)
+		delete(p.Settings, "message")
+	}
+	notifier["settings"] = packSettings(&p)
+	return notifier
+}
+
+func (g googleChatNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	settings["url"] = json["url"].(string)
+	if v, ok := json["message"]; ok && v != nil {
+		settings["message"] = v.(string)
+	}
+	return gapi.ContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  g.meta().typeStr,
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
 }

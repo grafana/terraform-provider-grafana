@@ -148,7 +148,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 			{
 				Config: testAccExample(t, "resources/grafana_contact_point/_acc_receiver_types.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 4),
+					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 5),
 					// alertmanager
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.0.url", "http://my-am"),
@@ -171,6 +171,10 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "email.0.message", "message"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "email.0.subject", "subject"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "email.0.single_email", "true"),
+					// googlechat
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.url", "http://googlechat-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.message", "message"),
 				),
 			},
 		},

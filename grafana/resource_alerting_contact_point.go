@@ -16,6 +16,7 @@ var notifiers = []notifier{
 	dingDingNotifier{},
 	discordNotifier{},
 	emailNotifier{},
+	googleChatNotifier{},
 }
 
 func ResourceContactPoint() *schema.Resource {
