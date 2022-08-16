@@ -7,6 +7,76 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+type alertmanagerNotifier struct{}
+
+var _ notifier = (*alertmanagerNotifier)(nil)
+
+func (a alertmanagerNotifier) meta() notifierMeta {
+	return notifierMeta{
+		typeStr: "prometheus-alertmanager",
+		desc:    "A contact point that sends notifications to other Alertmanager instances.",
+	}
+}
+
+func (a alertmanagerNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Description: "The URL of the Alertmanager instance.",
+	}
+	r.Schema["basic_auth_user"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The username component of the basic auth credentials to use.",
+	}
+	r.Schema["basic_auth_password"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "The password component of the basic auth credentials to use.",
+	}
+	return r
+}
+
+func (a alertmanagerNotifier) pack(p gapi.ContactPoint) interface{} {
+	notifier := packCommonNotifierFields(&p)
+	if v, ok := p.Settings["url"]; ok && v != nil {
+		notifier["url"] = v.(string)
+		delete(p.Settings, "url")
+	}
+	if v, ok := p.Settings["basicAuthUser"]; ok && v != nil {
+		notifier["basic_auth_user"] = v.(string)
+		delete(p.Settings, "basicAuthUser")
+	}
+	if v, ok := p.Settings["basicAuthPassword"]; ok && v != nil {
+		notifier["basic_auth_password"] = v.(string)
+		delete(p.Settings, "basicAuthPassword")
+	}
+	notifier["settings"] = packSettings(&p)
+	return notifier
+}
+
+func (a alertmanagerNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	settings["url"] = json["url"].(string)
+	if v, ok := json["basic_auth_user"]; ok && v != nil {
+		settings["basicAuthUser"] = v.(string)
+	}
+	if v, ok := json["basic_auth_password"]; ok && v != nil {
+		settings["basicAuthPassword"] = v.(string)
+	}
+	return gapi.ContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  a.meta().typeStr,
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}
+
 type discordNotifier struct{}
 
 var _ notifier = (*discordNotifier)(nil)
@@ -195,74 +265,4 @@ func unpackAddrs(addrs []interface{}) string {
 		strs = append(strs, addr.(string))
 	}
 	return strings.Join(strs, addrSeparator)
-}
-
-type alertmanagerNotifier struct{}
-
-var _ notifier = (*alertmanagerNotifier)(nil)
-
-func (a alertmanagerNotifier) meta() notifierMeta {
-	return notifierMeta{
-		typeStr: "prometheus-alertmanager",
-		desc:    "A contact point that sends notifications to other Alertmanager instances.",
-	}
-}
-
-func (a alertmanagerNotifier) schema() *schema.Resource {
-	r := commonNotifierResource()
-	r.Schema["url"] = &schema.Schema{
-		Type:        schema.TypeString,
-		Required:    true,
-		Description: "The URL of the Alertmanager instance.",
-	}
-	r.Schema["basic_auth_user"] = &schema.Schema{
-		Type:        schema.TypeString,
-		Optional:    true,
-		Description: "The username component of the basic auth credentials to use.",
-	}
-	r.Schema["basic_auth_password"] = &schema.Schema{
-		Type:        schema.TypeString,
-		Optional:    true,
-		Sensitive:   true,
-		Description: "The password component of the basic auth credentials to use.",
-	}
-	return r
-}
-
-func (a alertmanagerNotifier) pack(p gapi.ContactPoint) interface{} {
-	notifier := packCommonNotifierFields(&p)
-	if v, ok := p.Settings["url"]; ok && v != nil {
-		notifier["url"] = v.(string)
-		delete(p.Settings, "url")
-	}
-	if v, ok := p.Settings["basicAuthUser"]; ok && v != nil {
-		notifier["basic_auth_user"] = v.(string)
-		delete(p.Settings, "basicAuthUser")
-	}
-	if v, ok := p.Settings["basicAuthPassword"]; ok && v != nil {
-		notifier["basic_auth_password"] = v.(string)
-		delete(p.Settings, "basicAuthPassword")
-	}
-	notifier["settings"] = packSettings(&p)
-	return notifier
-}
-
-func (a alertmanagerNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
-	json := raw.(map[string]interface{})
-	uid, disableResolve, settings := unpackCommonNotifierFields(json)
-
-	settings["url"] = json["url"].(string)
-	if v, ok := json["basic_auth_user"]; ok && v != nil {
-		settings["basicAuthUser"] = v.(string)
-	}
-	if v, ok := json["basic_auth_password"]; ok && v != nil {
-		settings["basicAuthPassword"] = v.(string)
-	}
-	return gapi.ContactPoint{
-		UID:                   uid,
-		Name:                  name,
-		Type:                  a.meta().typeStr,
-		DisableResolveMessage: disableResolve,
-		Settings:              settings,
-	}
 }
