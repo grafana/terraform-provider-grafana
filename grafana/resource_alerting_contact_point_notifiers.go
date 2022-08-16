@@ -399,3 +399,60 @@ func (g googleChatNotifier) unpack(raw interface{}, name string) gapi.ContactPoi
 		Settings:              settings,
 	}
 }
+
+type kafkaNotifier struct{}
+
+var _ notifier = (*kafkaNotifier)(nil)
+
+func (k kafkaNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:   "kafka",
+		typeStr: "kafka",
+		desc:    "A contact point that publishes notifications to Apache Kafka topics.",
+	}
+}
+
+func (k kafkaNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["rest_proxy_url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Sensitive:   true,
+		Description: "The URL of the Kafka REST proxy to send requests to.",
+	}
+	r.Schema["topic"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Description: "The name of the Kafka topic to publish to.",
+	}
+	return r
+}
+
+func (k kafkaNotifier) pack(p gapi.ContactPoint) interface{} {
+	notifier := packCommonNotifierFields(&p)
+	if v, ok := p.Settings["kafkaRestProxy"]; ok && v != nil {
+		notifier["rest_proxy_url"] = v.(string)
+		delete(p.Settings, "kafkaRestProxy")
+	}
+	if v, ok := p.Settings["kafkaTopic"]; ok && v != nil {
+		notifier["topic"] = v.(string)
+		delete(p.Settings, "kafkaTopic")
+	}
+	notifier["settings"] = packSettings(&p)
+	return notifier
+}
+
+func (k kafkaNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	settings["kafkaRestProxy"] = json["rest_proxy_url"].(string)
+	settings["kafkaTopic"] = json["topic"].(string)
+	return gapi.ContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  k.meta().typeStr,
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}

@@ -33,4 +33,9 @@ resource "grafana_contact_point" "receiver_types" {
         url = "http://googlechat-url"
         message = "message"
     }
+
+    kafka {
+        rest_proxy_url = "http://kafka-rest-proxy-url"
+        topic = "mytopic"
+    }
 }
