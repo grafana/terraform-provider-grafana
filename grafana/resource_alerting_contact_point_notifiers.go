@@ -13,6 +13,7 @@ var _ notifier = (*alertmanagerNotifier)(nil)
 
 func (a alertmanagerNotifier) meta() notifierMeta {
 	return notifierMeta{
+		field:   "alertmanager",
 		typeStr: "prometheus-alertmanager",
 		desc:    "A contact point that sends notifications to other Alertmanager instances.",
 	}
@@ -31,10 +32,11 @@ func (a alertmanagerNotifier) schema() *schema.Resource {
 		Description: "The username component of the basic auth credentials to use.",
 	}
 	r.Schema["basic_auth_password"] = &schema.Schema{
-		Type:        schema.TypeString,
-		Optional:    true,
-		Sensitive:   true,
-		Description: "The password component of the basic auth credentials to use.",
+		Type:             schema.TypeString,
+		Optional:         true,
+		Sensitive:        true,
+		DiffSuppressFunc: redactedContactPointDiffSuppress,
+		Description:      "The password component of the basic auth credentials to use.",
 	}
 	return r
 }
@@ -77,14 +79,85 @@ func (a alertmanagerNotifier) unpack(raw interface{}, name string) gapi.ContactP
 	}
 }
 
+type dingDingNotifier struct{}
+
+var _ notifier = (*dingDingNotifier)(nil)
+
+func (d dingDingNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:   "dingding",
+		typeStr: "dingding",
+		desc:    "A contact point that sends notifications to DingDing.",
+	}
+}
+
+func (d dingDingNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Description: "The URL of the Alertmanager instance.",
+	}
+	r.Schema["message_type"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The format of message to send - either 'link' or 'actionCard'",
+	}
+	r.Schema["message"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated content of the message.",
+	}
+	return r
+}
+
+func (a dingDingNotifier) pack(p gapi.ContactPoint) interface{} {
+	notifier := packCommonNotifierFields(&p)
+	if v, ok := p.Settings["url"]; ok && v != nil {
+		notifier["url"] = v.(string)
+		delete(p.Settings, "url")
+	}
+	if v, ok := p.Settings["msgType"]; ok && v != nil {
+		notifier["message_type"] = v.(string)
+		delete(p.Settings, "msgType")
+	}
+	if v, ok := p.Settings["message"]; ok && v != nil {
+		notifier["message"] = v.(string)
+		delete(p.Settings, "message")
+	}
+	notifier["settings"] = packSettings(&p)
+	return notifier
+}
+
+func (a dingDingNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	settings["url"] = json["url"].(string)
+	if v, ok := json["message_type"]; ok && v != nil {
+		settings["msgType"] = v.(string)
+	}
+	if v, ok := json["message"]; ok && v != nil {
+		settings["message"] = v.(string)
+	}
+	return gapi.ContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  a.meta().typeStr,
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}
+
 type discordNotifier struct{}
 
 var _ notifier = (*discordNotifier)(nil)
 
 func (d discordNotifier) meta() notifierMeta {
 	return notifierMeta{
+		field:   "discord",
 		typeStr: "discord",
-		desc:    "A contact point that sends notifications to Discord.",
+		desc:    "A contact point that sends notifications as Discord messages",
 	}
 }
 
@@ -170,6 +243,7 @@ var _ notifier = (*emailNotifier)(nil)
 
 func (e emailNotifier) meta() notifierMeta {
 	return notifierMeta{
+		field:   "email",
 		typeStr: "email",
 		desc:    "A contact point that sends notifications to an email address.",
 	}

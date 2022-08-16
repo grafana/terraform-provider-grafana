@@ -13,6 +13,7 @@ import (
 
 var notifiers = []notifier{
 	alertmanagerNotifier{},
+	dingDingNotifier{},
 	discordNotifier{},
 	emailNotifier{},
 }
@@ -45,7 +46,7 @@ Manages Grafana Alerting contact points.
 	}
 
 	for _, n := range notifiers {
-		resource.Schema[n.meta().typeStr] = &schema.Schema{
+		resource.Schema[n.meta().field] = &schema.Schema{
 			Type:        schema.TypeList,
 			Optional:    true,
 			Description: n.meta().desc,
@@ -153,7 +154,7 @@ func unpackContactPoints(data *schema.ResourceData) []gapi.ContactPoint {
 	result := make([]gapi.ContactPoint, 0)
 	name := data.Get("name").(string)
 	for _, n := range notifiers {
-		if points, ok := data.GetOk(n.meta().typeStr); ok {
+		if points, ok := data.GetOk(n.meta().field); ok {
 			for _, p := range points.([]interface{}) {
 				result = append(result, n.unpack(p, name))
 			}
@@ -178,7 +179,7 @@ func packContactPoints(ps []gapi.ContactPoint, data *schema.ResourceData) {
 	}
 
 	for n, pts := range pointsPerNotifier {
-		data.Set(n.meta().typeStr, pts)
+		data.Set(n.meta().field, pts)
 	}
 }
 
@@ -229,6 +230,15 @@ func commonNotifierResource() *schema.Resource {
 	}
 }
 
+const RedactedContactPointField = "[REDACTED]"
+
+func redactedContactPointDiffSuppress(k, oldValue, newValue string, d *schema.ResourceData) bool {
+	if oldValue == RedactedContactPointField {
+		return true
+	}
+	return false
+}
+
 const UIDSeparator = ";"
 
 func packUIDs(uids []string) string {
@@ -255,6 +265,7 @@ type notifier interface {
 }
 
 type notifierMeta struct {
+	field   string
 	typeStr string
 	desc    string
 }
