@@ -135,7 +135,7 @@ func TestAccContactPoint_compound(t *testing.T) {
 
 func TestAccContactPoint_notifiers(t *testing.T) {
 	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=9.0.0")
+	CheckOSSTestsSemver(t, ">=9.1.0")
 
 	var points []gapi.ContactPoint
 
@@ -148,10 +148,20 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 			{
 				Config: testAccExample(t, "resources/grafana_contact_point/_acc_receiver_types.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 2),
+					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 6),
+					// alertmanager
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.0.url", "http://my-am"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.0.basic_auth_user", "user"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.0.basic_auth_password", "[REDACTED]"),
+					// dingding
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "dingding.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "dingding.0.url", "http://dingding-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "dingding.0.message_type", "link"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "dingding.0.message", "message"),
 					// discord
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.#", "1"),
-					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.url", "discord-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.url", "http://discord-url"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.message", "message"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.avatar_url", "avatar_url"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.use_discord_username", "true"),
@@ -161,6 +171,14 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "email.0.message", "message"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "email.0.subject", "subject"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "email.0.single_email", "true"),
+					// googlechat
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.url", "http://googlechat-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.message", "message"),
+					// kafka
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.rest_proxy_url", "http://kafka-rest-proxy-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.topic", "mytopic"),
 				),
 			},
 		},
