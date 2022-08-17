@@ -148,7 +148,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 			{
 				Config: testAccExample(t, "resources/grafana_contact_point/_acc_receiver_types.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 9),
+					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 10),
 					// alertmanager
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.0.url", "http://my-am"),
@@ -208,6 +208,15 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.sound", "bugle"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.ok_sound", "cashregister"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.message", "message"),
+					// sensugo
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "sensugo.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "sensugo.0.url", "http://sensugo-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "sensugo.0.api_key", "[REDACTED]"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "sensugo.0.entity", "entity"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "sensugo.0.check", "check"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "sensugo.0.namespace", "namespace"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "sensugo.0.handler", "handler"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "sensugo.0.message", "message"),
 				),
 			},
 		},

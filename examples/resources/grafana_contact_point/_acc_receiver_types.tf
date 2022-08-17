@@ -70,4 +70,14 @@ resource "grafana_contact_point" "receiver_types" {
         ok_sound = "cashregister"
         message = "message"
     }
+
+    sensugo {
+        url = "http://sensugo-url"
+        api_key = "key"
+        entity = "entity"
+        check = "check"
+        namespace = "namespace"
+        handler = "handler"
+        message = "message"
+    }
 }

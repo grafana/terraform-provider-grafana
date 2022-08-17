@@ -860,3 +860,121 @@ func (n pushoverNotifier) unpack(raw interface{}, name string) gapi.ContactPoint
 		Settings:              settings,
 	}
 }
+
+type sensugoNotifier struct{}
+
+var _ notifier = (*sensugoNotifier)(nil)
+
+func (s sensugoNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:   "sensugo",
+		typeStr: "sensugo",
+		desc:    "A contact point that sends notifications to SensuGo.",
+	}
+}
+
+func (s sensugoNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Description: "The SensuGo URL to send requests to.",
+	}
+	r.Schema["api_key"] = &schema.Schema{
+		Type:             schema.TypeString,
+		Required:         true,
+		Sensitive:        true,
+		DiffSuppressFunc: redactedContactPointDiffSuppress,
+		Description:      "The SensuGo API key.",
+	}
+	r.Schema["entity"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The entity being monitored.",
+	}
+	r.Schema["check"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The SensuGo check to which the event should be routed.",
+	}
+	r.Schema["namespace"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The namespace in which the check resides.",
+	}
+	r.Schema["handler"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "A custom handler to execute in addition to the check.",
+	}
+	r.Schema["message"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Templated message content describing the alert.",
+	}
+	return r
+}
+
+func (s sensugoNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+	notifier := packCommonNotifierFields(&p)
+	if v, ok := p.Settings["url"]; ok && v != nil {
+		notifier["url"] = v.(string)
+		delete(p.Settings, "url")
+	}
+	if v, ok := p.Settings["apikey"]; ok && v != nil {
+		notifier["api_key"] = v.(string)
+		delete(p.Settings, "apikey")
+	}
+	if v, ok := p.Settings["entity"]; ok && v != nil {
+		notifier["entity"] = v.(string)
+		delete(p.Settings, "entity")
+	}
+	if v, ok := p.Settings["check"]; ok && v != nil {
+		notifier["check"] = v.(string)
+		delete(p.Settings, "check")
+	}
+	if v, ok := p.Settings["namespace"]; ok && v != nil {
+		notifier["namespace"] = v.(string)
+		delete(p.Settings, "namespace")
+	}
+	if v, ok := p.Settings["handler"]; ok && v != nil {
+		notifier["handler"] = v.(string)
+		delete(p.Settings, "handler")
+	}
+	if v, ok := p.Settings["message"]; ok && v != nil {
+		notifier["message"] = v.(string)
+		delete(p.Settings, "message")
+	}
+	notifier["settings"] = packSettings(&p)
+	return notifier, nil
+}
+
+func (s sensugoNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	settings["url"] = json["url"].(string)
+	settings["apikey"] = json["api_key"].(string)
+	if v, ok := json["entity"]; ok && v != nil {
+		settings["entity"] = v.(string)
+	}
+	if v, ok := json["check"]; ok && v != nil {
+		settings["check"] = v.(string)
+	}
+	if v, ok := json["namespace"]; ok && v != nil {
+		settings["namespace"] = v.(string)
+	}
+	if v, ok := json["handler"]; ok && v != nil {
+		settings["handler"] = v.(string)
+	}
+	if v, ok := json["message"]; ok && v != nil {
+		settings["message"] = v.(string)
+	}
+	return gapi.ContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  s.meta().typeStr,
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}
