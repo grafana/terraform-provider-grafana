@@ -57,4 +57,17 @@ resource "grafana_contact_point" "receiver_types" {
         group = "my service"
         summary = "message"
     }
+
+    pushover {
+        user_key = "userkey"
+        api_token = "token"
+        priority = 0
+        ok_priority = 0
+        retry = 45
+        expire = 80000
+        device = "device"
+        sound = "bugle"
+        ok_sound = "cashregister"
+        message = "message"
+    }
 }

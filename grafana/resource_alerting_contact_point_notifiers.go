@@ -1,6 +1,7 @@
 package grafana
 
 import (
+	"strconv"
 	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -41,7 +42,7 @@ func (a alertmanagerNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (a alertmanagerNotifier) pack(p gapi.ContactPoint) interface{} {
+func (a alertmanagerNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
@@ -56,7 +57,7 @@ func (a alertmanagerNotifier) pack(p gapi.ContactPoint) interface{} {
 		delete(p.Settings, "basicAuthPassword")
 	}
 	notifier["settings"] = packSettings(&p)
-	return notifier
+	return notifier, nil
 }
 
 func (a alertmanagerNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
@@ -111,7 +112,7 @@ func (d dingDingNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (d dingDingNotifier) pack(p gapi.ContactPoint) interface{} {
+func (d dingDingNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
@@ -126,7 +127,7 @@ func (d dingDingNotifier) pack(p gapi.ContactPoint) interface{} {
 		delete(p.Settings, "message")
 	}
 	notifier["settings"] = packSettings(&p)
-	return notifier
+	return notifier, nil
 }
 
 func (d dingDingNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
@@ -190,7 +191,7 @@ func (d discordNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (d discordNotifier) pack(p gapi.ContactPoint) interface{} {
+func (d discordNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
@@ -210,7 +211,7 @@ func (d discordNotifier) pack(p gapi.ContactPoint) interface{} {
 	}
 
 	notifier["settings"] = packSettings(&p)
-	return notifier
+	return notifier, nil
 }
 
 func (d discordNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
@@ -280,7 +281,7 @@ func (e emailNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (e emailNotifier) pack(p gapi.ContactPoint) interface{} {
+func (e emailNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["addresses"]; ok && v != nil {
 		notifier["addresses"] = packAddrs(v.(string))
@@ -299,7 +300,7 @@ func (e emailNotifier) pack(p gapi.ContactPoint) interface{} {
 		delete(p.Settings, "subject")
 	}
 	notifier["settings"] = packSettings(&p)
-	return notifier
+	return notifier, nil
 }
 
 func (e emailNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
@@ -343,7 +344,7 @@ func unpackAddrs(addrs []interface{}) string {
 
 type googleChatNotifier struct{}
 
-var _ notifier = (*dingDingNotifier)(nil)
+var _ notifier = (*googleChatNotifier)(nil)
 
 func (g googleChatNotifier) meta() notifierMeta {
 	return notifierMeta{
@@ -369,7 +370,7 @@ func (g googleChatNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (g googleChatNotifier) pack(p gapi.ContactPoint) interface{} {
+func (g googleChatNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
@@ -380,7 +381,7 @@ func (g googleChatNotifier) pack(p gapi.ContactPoint) interface{} {
 		delete(p.Settings, "message")
 	}
 	notifier["settings"] = packSettings(&p)
-	return notifier
+	return notifier, nil
 }
 
 func (g googleChatNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
@@ -428,7 +429,7 @@ func (k kafkaNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (k kafkaNotifier) pack(p gapi.ContactPoint) interface{} {
+func (k kafkaNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["kafkaRestProxy"]; ok && v != nil {
 		notifier["rest_proxy_url"] = v.(string)
@@ -439,7 +440,7 @@ func (k kafkaNotifier) pack(p gapi.ContactPoint) interface{} {
 		delete(p.Settings, "kafkaTopic")
 	}
 	notifier["settings"] = packSettings(&p)
-	return notifier
+	return notifier, nil
 }
 
 func (k kafkaNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
@@ -511,7 +512,7 @@ func (o opsGenieNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (o opsGenieNotifier) pack(p gapi.ContactPoint) interface{} {
+func (o opsGenieNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["apiUrl"]; ok && v != nil {
 		notifier["url"] = v.(string)
@@ -542,7 +543,7 @@ func (o opsGenieNotifier) pack(p gapi.ContactPoint) interface{} {
 		delete(p.Settings, "sendTagsAs")
 	}
 	notifier["settings"] = packSettings(&p)
-	return notifier
+	return notifier, nil
 }
 
 func (o opsGenieNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
@@ -581,7 +582,7 @@ func (o opsGenieNotifier) unpack(raw interface{}, name string) gapi.ContactPoint
 
 type pagerDutyNotifier struct{}
 
-var _ notifier = (*opsGenieNotifier)(nil)
+var _ notifier = (*pagerDutyNotifier)(nil)
 
 func (p pagerDutyNotifier) meta() notifierMeta {
 	return notifierMeta{
@@ -628,7 +629,7 @@ func (p pagerDutyNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (n pagerDutyNotifier) pack(p gapi.ContactPoint) interface{} {
+func (n pagerDutyNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["integrationKey"]; ok && v != nil {
 		notifier["integration_key"] = v.(string)
@@ -655,7 +656,7 @@ func (n pagerDutyNotifier) pack(p gapi.ContactPoint) interface{} {
 		delete(p.Settings, "summary")
 	}
 	notifier["settings"] = packSettings(&p)
-	return notifier
+	return notifier, nil
 }
 
 func (n pagerDutyNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
@@ -678,6 +679,179 @@ func (n pagerDutyNotifier) unpack(raw interface{}, name string) gapi.ContactPoin
 	if v, ok := json["summary"]; ok && v != nil {
 		settings["summary"] = v.(string)
 	}
+	return gapi.ContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  n.meta().typeStr,
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}
+
+type pushoverNotifier struct{}
+
+var _ notifier = (*pushoverNotifier)(nil)
+
+func (p pushoverNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:   "pushover",
+		typeStr: "pushover",
+		desc:    "A contact point that sends notifications to Pushover.",
+	}
+}
+
+func (p pushoverNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["user_key"] = &schema.Schema{
+		Type:             schema.TypeString,
+		Required:         true,
+		Sensitive:        true,
+		DiffSuppressFunc: redactedContactPointDiffSuppress,
+		Description:      "The Pushover user key.",
+	}
+	r.Schema["api_token"] = &schema.Schema{
+		Type:             schema.TypeString,
+		Required:         true,
+		Sensitive:        true,
+		DiffSuppressFunc: redactedContactPointDiffSuppress,
+		Description:      "The Pushover API token.",
+	}
+	r.Schema["priority"] = &schema.Schema{
+		Type:        schema.TypeInt,
+		Optional:    true,
+		Description: "The priority level of the event.",
+	}
+	r.Schema["ok_priority"] = &schema.Schema{
+		Type:        schema.TypeInt,
+		Optional:    true,
+		Description: "The priority level of the resolved event.",
+	}
+	r.Schema["retry"] = &schema.Schema{
+		Type:        schema.TypeInt,
+		Optional:    true,
+		Description: "How often, in seconds, the Pushover servers will send the same notification to the user.",
+	}
+	r.Schema["expire"] = &schema.Schema{
+		Type:        schema.TypeInt,
+		Optional:    true,
+		Description: "How many seconds for which the notification will continue to be retried by Pushover.",
+	}
+	r.Schema["device"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Comma-separated list of devices to which the event is associated.",
+	}
+	r.Schema["sound"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The sound associated with the notification.",
+	}
+	r.Schema["ok_sound"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The sound associated with the resolved notification.",
+	}
+	r.Schema["message"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated notification message content.",
+	}
+	return r
+}
+
+func (n pushoverNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+	notifier := packCommonNotifierFields(&p)
+	if v, ok := p.Settings["userKey"]; ok && v != nil {
+		notifier["user_key"] = v.(string)
+		delete(p.Settings, "userKey")
+	}
+	if v, ok := p.Settings["apiToken"]; ok && v != nil {
+		notifier["api_token"] = v.(string)
+		delete(p.Settings, "apiToken")
+	}
+	if v, ok := p.Settings["priority"]; ok && v != nil {
+		priority, err := strconv.Atoi(v.(string))
+		if err != nil {
+			return nil, err
+		}
+		notifier["priority"] = priority
+		delete(p.Settings, "priority")
+	}
+	if v, ok := p.Settings["okPriority"]; ok && v != nil {
+		priority, err := strconv.Atoi(v.(string))
+		if err != nil {
+			return nil, err
+		}
+		notifier["ok_priority"] = priority
+		delete(p.Settings, "okPriority")
+	}
+	if v, ok := p.Settings["retry"]; ok && v != nil {
+		priority, err := strconv.Atoi(v.(string))
+		if err != nil {
+			return nil, err
+		}
+		notifier["retry"] = priority
+		delete(p.Settings, "retry")
+	}
+	if v, ok := p.Settings["expire"]; ok && v != nil {
+		priority, err := strconv.Atoi(v.(string))
+		if err != nil {
+			return nil, err
+		}
+		notifier["expire"] = priority
+		delete(p.Settings, "expire")
+	}
+	if v, ok := p.Settings["device"]; ok && v != nil {
+		notifier["device"] = v.(string)
+		delete(p.Settings, "device")
+	}
+	if v, ok := p.Settings["sound"]; ok && v != nil {
+		notifier["sound"] = v.(string)
+		delete(p.Settings, "sound")
+	}
+	if v, ok := p.Settings["okSound"]; ok && v != nil {
+		notifier["ok_sound"] = v.(string)
+		delete(p.Settings, "okSound")
+	}
+	if v, ok := p.Settings["message"]; ok && v != nil {
+		notifier["message"] = v.(string)
+		delete(p.Settings, "message")
+	}
+	notifier["settings"] = packSettings(&p)
+	return notifier, nil
+}
+
+func (n pushoverNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	settings["userKey"] = json["user_key"].(string)
+	settings["apiToken"] = json["api_token"].(string)
+	if v, ok := json["priority"]; ok && v != nil {
+		settings["priority"] = strconv.Itoa(v.(int))
+	}
+	if v, ok := json["ok_priority"]; ok && v != nil {
+		settings["okPriority"] = strconv.Itoa(v.(int))
+	}
+	if v, ok := json["retry"]; ok && v != nil {
+		settings["retry"] = strconv.Itoa(v.(int))
+	}
+	if v, ok := json["expire"]; ok && v != nil {
+		settings["expire"] = strconv.Itoa(v.(int))
+	}
+	if v, ok := json["device"]; ok && v != nil {
+		settings["device"] = v.(string)
+	}
+	if v, ok := json["sound"]; ok && v != nil {
+		settings["sound"] = v.(string)
+	}
+	if v, ok := json["ok_sound"]; ok && v != nil {
+		settings["okSound"] = v.(string)
+	}
+	if v, ok := json["message"]; ok && v != nil {
+		settings["message"] = v.(string)
+	}
+
 	return gapi.ContactPoint{
 		UID:                   uid,
 		Name:                  name,
