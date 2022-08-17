@@ -28,7 +28,7 @@ resource "grafana_alert_rule" "my_alert_rule" {
     org_id = 1
     rules {
         name = "My Alert Rule 1"
-        for = 120
+        for = "2m"
         condition = "B"
         no_data_state = "NoData"
         exec_err_state = "Alerting"
@@ -132,7 +132,7 @@ Optional:
 
 - `annotations` (Map of String) Key-value pairs of metadata to attach to the alert rule that may add user-defined context, but cannot be used for matching, grouping, or routing. Defaults to `map[]`.
 - `exec_err_state` (String) Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, and Alerting. Defaults to `Alerting`.
-- `for` (Number) The amount of time for which the rule must be breached for the rule to be considered to be Firing. Before this time has elapsed, the rule is only considered to be Pending. Defaults to `0`.
+- `for` (String) The amount of time for which the rule must be breached for the rule to be considered to be Firing. Before this time has elapsed, the rule is only considered to be Pending. Defaults to `0`.
 - `labels` (Map of String) Key-value pairs to attach to the alert rule that can be used in matching, grouping, and routing. Defaults to `map[]`.
 - `no_data_state` (String) Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, and Alerting. Defaults to `NoData`.
 
