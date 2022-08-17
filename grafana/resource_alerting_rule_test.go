@@ -12,7 +12,7 @@ import (
 
 func TestAccAlertRule_basic(t *testing.T) {
 	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=9.0.0")
+	CheckOSSTestsSemver(t, ">=9.1.0")
 
 	var group gapi.RuleGroup
 
@@ -97,7 +97,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 
 func TestAccAlertRule_compound(t *testing.T) {
 	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=9.0.0")
+	CheckOSSTestsSemver(t, ">=9.1.0")
 
 	var group gapi.RuleGroup
 
