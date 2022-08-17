@@ -409,14 +409,6 @@ func unpackMap(raw interface{}) map[string]string {
 	return result
 }
 
-func extractRuleUIDs(g gapi.RuleGroup) []string {
-	uids := make([]string, 0, len(g.Rules))
-	for i := range g.Rules {
-		uids = append(uids, g.Rules[i].UID)
-	}
-	return uids
-}
-
 type alertRuleGroupKey struct {
 	folderUID string
 	name      string
