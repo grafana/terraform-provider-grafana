@@ -38,4 +38,14 @@ resource "grafana_contact_point" "receiver_types" {
         rest_proxy_url = "http://kafka-rest-proxy-url"
         topic = "mytopic"
     }
+
+    opsgenie {
+        url = "http://opsgenie-api"
+        api_key = "token"
+        message = "message"
+        description = "description"
+        auto_close = true
+        override_priority = true
+        send_tags_as = "both"
+    }
 }

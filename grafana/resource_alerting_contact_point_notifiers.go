@@ -456,3 +456,125 @@ func (k kafkaNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 		Settings:              settings,
 	}
 }
+
+type opsGenieNotifier struct{}
+
+var _ notifier = (*opsGenieNotifier)(nil)
+
+func (o opsGenieNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:   "opsgenie",
+		typeStr: "opsgenie",
+		desc:    "A contact point that sends notifications to OpsGenie.",
+	}
+}
+
+func (o opsGenieNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Allows customization of the OpsGenie API URL.",
+	}
+	r.Schema["api_key"] = &schema.Schema{
+		Type:             schema.TypeString,
+		Required:         true,
+		Sensitive:        true,
+		DiffSuppressFunc: redactedContactPointDiffSuppress,
+		Description:      "The OpsGenie API key to use.",
+	}
+	r.Schema["message"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated content of the message.",
+	}
+	r.Schema["description"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "A templated high-level description to use for the alert.",
+	}
+	r.Schema["auto_close"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Description: "Whether to auto-close alerts in OpsGenie when they resolve in the Alertmanager.",
+	}
+	r.Schema["override_priority"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Description: "Whether to allow the alert priority to be configured via the value of the `og_priority` annotation on the alert.",
+	}
+	r.Schema["send_tags_as"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Whether to send annotations to OpsGenie as Tags, Details, or both. Supported values are `tags`, `details`, `both`, or empty to use the default behavior of Tags.",
+	}
+	return r
+}
+
+func (o opsGenieNotifier) pack(p gapi.ContactPoint) interface{} {
+	notifier := packCommonNotifierFields(&p)
+	if v, ok := p.Settings["apiUrl"]; ok && v != nil {
+		notifier["url"] = v.(string)
+		delete(p.Settings, "apiUrl")
+	}
+	if v, ok := p.Settings["apiKey"]; ok && v != nil {
+		notifier["api_key"] = v.(string)
+		delete(p.Settings, "apiKey")
+	}
+	if v, ok := p.Settings["message"]; ok && v != nil {
+		notifier["message"] = v.(string)
+		delete(p.Settings, "message")
+	}
+	if v, ok := p.Settings["description"]; ok && v != nil {
+		notifier["description"] = v.(string)
+		delete(p.Settings, "description")
+	}
+	if v, ok := p.Settings["autoClose"]; ok && v != nil {
+		notifier["auto_close"] = v.(bool)
+		delete(p.Settings, "autoClose")
+	}
+	if v, ok := p.Settings["overridePriority"]; ok && v != nil {
+		notifier["override_priority"] = v.(bool)
+		delete(p.Settings, "overridePriority")
+	}
+	if v, ok := p.Settings["sendTagsAs"]; ok && v != nil {
+		notifier["send_tags_as"] = v.(string)
+		delete(p.Settings, "sendTagsAs")
+	}
+	notifier["settings"] = packSettings(&p)
+	return notifier
+}
+
+func (o opsGenieNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	if v, ok := json["url"]; ok && v != nil {
+		settings["apiUrl"] = v.(string)
+	}
+	if v, ok := json["api_key"]; ok && v != nil {
+		settings["apiKey"] = v.(string)
+	}
+	if v, ok := json["message"]; ok && v != nil {
+		settings["message"] = v.(string)
+	}
+	if v, ok := json["description"]; ok && v != nil {
+		settings["description"] = v.(string)
+	}
+	if v, ok := json["auto_close"]; ok && v != nil {
+		settings["autoClose"] = v.(bool)
+	}
+	if v, ok := json["override_priority"]; ok && v != nil {
+		settings["overridePriority"] = v.(bool)
+	}
+	if v, ok := json["send_tags_as"]; ok && v != nil {
+		settings["sendTagsAs"] = v.(string)
+	}
+	return gapi.ContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  o.meta().typeStr,
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}
