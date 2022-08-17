@@ -578,3 +578,111 @@ func (o opsGenieNotifier) unpack(raw interface{}, name string) gapi.ContactPoint
 		Settings:              settings,
 	}
 }
+
+type pagerDutyNotifier struct{}
+
+var _ notifier = (*opsGenieNotifier)(nil)
+
+func (p pagerDutyNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:   "pagerduty",
+		typeStr: "pagerduty",
+		desc:    "A contact point that sends notifications to PagerDuty.",
+	}
+}
+
+func (p pagerDutyNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["integration_key"] = &schema.Schema{
+		Type:             schema.TypeString,
+		Required:         true,
+		Sensitive:        true,
+		DiffSuppressFunc: redactedContactPointDiffSuppress,
+		Description:      "The PagerDuty API key.",
+	}
+	r.Schema["severity"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The PagerDuty event severity level. Default is `critical`.",
+	}
+	r.Schema["class"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The class or type of event, for example `ping failure`.",
+	}
+	r.Schema["component"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The component being affected by the event.",
+	}
+	r.Schema["group"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The group to which the provided component belongs to.",
+	}
+	r.Schema["summary"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated summary message of the event.",
+	}
+	return r
+}
+
+func (n pagerDutyNotifier) pack(p gapi.ContactPoint) interface{} {
+	notifier := packCommonNotifierFields(&p)
+	if v, ok := p.Settings["integrationKey"]; ok && v != nil {
+		notifier["integration_key"] = v.(string)
+		delete(p.Settings, "integrationKey")
+	}
+	if v, ok := p.Settings["severity"]; ok && v != nil {
+		notifier["severity"] = v.(string)
+		delete(p.Settings, "severity")
+	}
+	if v, ok := p.Settings["class"]; ok && v != nil {
+		notifier["class"] = v.(string)
+		delete(p.Settings, "class")
+	}
+	if v, ok := p.Settings["component"]; ok && v != nil {
+		notifier["component"] = v.(string)
+		delete(p.Settings, "component")
+	}
+	if v, ok := p.Settings["group"]; ok && v != nil {
+		notifier["group"] = v.(string)
+		delete(p.Settings, "group")
+	}
+	if v, ok := p.Settings["summary"]; ok && v != nil {
+		notifier["summary"] = v.(string)
+		delete(p.Settings, "summary")
+	}
+	notifier["settings"] = packSettings(&p)
+	return notifier
+}
+
+func (n pagerDutyNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	settings["integrationKey"] = json["integration_key"].(string)
+	if v, ok := json["severity"]; ok && v != nil {
+		settings["severity"] = v.(string)
+	}
+	if v, ok := json["class"]; ok && v != nil {
+		settings["class"] = v.(string)
+	}
+	if v, ok := json["component"]; ok && v != nil {
+		settings["component"] = v.(string)
+	}
+	if v, ok := json["group"]; ok && v != nil {
+		settings["group"] = v.(string)
+	}
+	if v, ok := json["summary"]; ok && v != nil {
+		settings["summary"] = v.(string)
+	}
+	return gapi.ContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  n.meta().typeStr,
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}

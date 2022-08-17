@@ -48,4 +48,13 @@ resource "grafana_contact_point" "receiver_types" {
         override_priority = true
         send_tags_as = "both"
     }
+
+    pagerduty {
+        integration_key = "token"
+        severity = "critical"
+        class = "ping failure"
+        component = "mysql"
+        group = "my service"
+        summary = "message"
+    }
 }

@@ -19,6 +19,7 @@ var notifiers = []notifier{
 	googleChatNotifier{},
 	kafkaNotifier{},
 	opsGenieNotifier{},
+	pagerDutyNotifier{},
 }
 
 func ResourceContactPoint() *schema.Resource {
