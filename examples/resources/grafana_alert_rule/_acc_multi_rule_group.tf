@@ -9,7 +9,7 @@ resource "grafana_alert_rule" "my_multi_alert_group" {
     org_id = 1
     rules {
         name = "My Alert Rule 1"
-        for = 120
+        for = "2m"
         condition = "B"
         no_data_state = "NoData"
         exec_err_state = "Alerting"
@@ -85,7 +85,7 @@ EOT
 
     rules {
         name = "My Alert Rule 2"
-        for = 240
+        for = "4m"
         condition = "B"
         no_data_state = "NoData"
         exec_err_state = "Alerting"

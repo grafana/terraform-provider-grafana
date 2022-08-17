@@ -14,7 +14,7 @@ resource "grafana_alert_rule" "my_alert_rule" {
     org_id = 1
     rules {
         name = "My Alert Rule 1"
-        for = 120
+        for = "2m"
         condition = "B"
         no_data_state = "NoData"
         exec_err_state = "Alerting"

@@ -73,7 +73,7 @@ Manages Grafana Alerting rule groups.
 							Description: "The name of the alert rule.",
 						},
 						"for": {
-							Type:        schema.TypeInt,
+							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     0,
 							Description: "The amount of time for which the rule must be breached for the rule to be considered to be Firing. Before this time has elapsed, the rule is only considered to be Pending.",
@@ -310,7 +310,7 @@ func packAlertRule(r gapi.AlertRule) (interface{}, error) {
 	json := map[string]interface{}{
 		"uid":            r.UID,
 		"name":           r.Title,
-		"for":            r.ForDuration,
+		"for":            r.For,
 		"no_data_state":  string(r.NoDataState),
 		"exec_err_state": string(r.ExecErrState),
 		"condition":      r.Condition,
@@ -336,7 +336,7 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, interv
 		OrgID:        int64(orgID),
 		ExecErrState: gapi.ExecErrState(json["exec_err_state"].(string)),
 		NoDataState:  gapi.NoDataState(json["no_data_state"].(string)),
-		ForDuration:  time.Duration(json["for"].(int)),
+		For:          json["for"].(string),
 		Data:         data,
 		Condition:    json["condition"].(string),
 		Labels:       unpackMap(json["labels"]),

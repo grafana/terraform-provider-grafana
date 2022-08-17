@@ -49,7 +49,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "interval_seconds", "240"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.#", "1"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.name", "A Different Rule"),
-					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.for", "120"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.for", "2m"),
 				),
 			},
 			// Test rename group.
@@ -63,7 +63,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "interval_seconds", "240"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.#", "1"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.name", "My Alert Rule 1"),
-					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.for", "120"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.for", "2m"),
 				),
 			},
 			// Test change interval.
@@ -88,7 +88,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "folder_uid", "test-uid"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.#", "1"),
 					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.name", "My Alert Rule 1"),
-					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.for", "120"),
+					resource.TestCheckResourceAttr("grafana_alert_rule.my_alert_rule", "rules.0.for", "2m"),
 				),
 			},
 		},
