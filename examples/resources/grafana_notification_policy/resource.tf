@@ -7,6 +7,14 @@ resource "grafana_contact_point" "a_contact_point" {
     }
 }
 
+resource "grafana_mute_timing" "a_mute_timing" {
+    name = "A Mute Timing"
+
+    intervals {
+        weekdays = ["monday"]
+    }
+}
+
 
 resource "grafana_notification_policy" "my_notification_policy" {
     group_by = ["..."]
@@ -15,4 +23,14 @@ resource "grafana_notification_policy" "my_notification_policy" {
     group_wait = "45s"
     group_interval = "6m"
     repeat_interval = "3h"
+
+    policy {
+        contact_point = grafana_contact_point.a_contact_point.name
+        group_by = ["alertname"]
+        continue = true
+        mute_timings = [grafana_mute_timing.a_mute_timing.name]
+        group_wait = "45s"
+        group_interval = "6m"
+        repeat_interval = "3h"
+    }
 }

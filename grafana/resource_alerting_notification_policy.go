@@ -93,7 +93,7 @@ func policySchema(depth uint) *schema.Resource {
 			"matcher": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "Describes which labels this rule should match. When multiple matchers are supplied, an alert must match ALL matchers to be accepted by this policy.",
+				Description: "Describes which labels this rule should match. When multiple matchers are supplied, an alert must match ALL matchers to be accepted by this policy. When no matchers are supplied, the rule will match all alert instances.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"label": {
@@ -126,6 +126,11 @@ func policySchema(depth uint) *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Whether to continue matching subsequent rules if an alert matches the current rule. Otherwise, the rule will be 'consumed' by the first policy to match it.",
+			},
+			"group_wait": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Time to wait to buffer alerts of the same group before sending a notification. Default is 30 seconds.",
 			},
 			"group_interval": {
 				Type:        schema.TypeString,
@@ -194,6 +199,36 @@ func packNotifPolicy(npt gapi.NotificationPolicyTree, data *schema.ResourceData)
 	data.Set("group_wait", npt.GroupWait)
 	data.Set("group_interval", npt.GroupInterval)
 	data.Set("repeat_interval", npt.RepeatInterval)
+
+	if len(npt.Routes) > 0 {
+		policies := make([]interface{}, 0, len(npt.Routes))
+		for _, r := range npt.Routes {
+			policies = append(policies, packSpecificPolicy(r))
+		}
+		data.Set("policy", policies)
+	}
+}
+
+func packSpecificPolicy(p gapi.SpecificPolicy) interface{} {
+	result := map[string]interface{}{
+		"contact_point": p.Receiver,
+		"group_by":      p.GroupBy,
+		"continue":      p.Continue,
+	}
+	// TODO: matchers
+	if p.MuteTimeIntervals != nil && len(p.MuteTimeIntervals) > 0 {
+		result["mute_timings"] = p.MuteTimeIntervals
+	}
+	if p.GroupWait != "" {
+		result["group_wait"] = p.GroupWait
+	}
+	if p.GroupInterval != "" {
+		result["group_interval"] = p.GroupInterval
+	}
+	if p.RepeatInterval != "" {
+		result["repeat_interval"] = p.RepeatInterval
+	}
+	return result
 }
 
 func unpackNotifPolicy(data *schema.ResourceData) gapi.NotificationPolicyTree {
@@ -202,11 +237,50 @@ func unpackNotifPolicy(data *schema.ResourceData) gapi.NotificationPolicyTree {
 	for _, g := range groupBy {
 		groups = append(groups, g.(string))
 	}
+
+	var children []gapi.SpecificPolicy
+	nested, ok := data.GetOk("policy")
+	if ok {
+		routes := nested.([]interface{})
+		for _, r := range routes {
+			children = append(children, unpackSpecificPolicy(r))
+		}
+	}
+
 	return gapi.NotificationPolicyTree{
 		Receiver:       data.Get("contact_point").(string),
 		GroupBy:        groups,
 		GroupWait:      data.Get("group_wait").(string),
 		GroupInterval:  data.Get("group_interval").(string),
 		RepeatInterval: data.Get("repeat_interval").(string),
+		Routes:         children,
 	}
+}
+
+func unpackSpecificPolicy(p interface{}) gapi.SpecificPolicy {
+	json := p.(map[string]interface{})
+	// TODO: matchers
+	policy := gapi.SpecificPolicy{
+		Receiver: json["contact_point"].(string),
+		GroupBy:  listToStringSlice(json["group_by"].([]interface{})),
+		Continue: json["continue"].(bool),
+	}
+
+	if v, ok := json["mute_timings"]; ok && v != nil {
+		policy.MuteTimeIntervals = listToStringSlice(v.([]interface{}))
+	}
+	if v, ok := json["continue"]; ok && v != nil {
+		policy.Continue = v.(bool)
+	}
+	if v, ok := json["group_wait"]; ok && v != nil {
+		policy.GroupWait = v.(string)
+	}
+	if v, ok := json["group_interval"]; ok && v != nil {
+		policy.GroupInterval = v.(string)
+	}
+	if v, ok := json["repeat_interval"]; ok && v != nil {
+		policy.RepeatInterval = v.(string)
+	}
+
+	return policy
 }
