@@ -1235,3 +1235,65 @@ func (t telegramNotifier) unpack(raw interface{}, name string) gapi.ContactPoint
 		Settings:              settings,
 	}
 }
+
+type threemaNotifier struct{}
+
+var _ notifier = (*threemaNotifier)(nil)
+
+func (t threemaNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:   "threema",
+		typeStr: "threema",
+		desc:    "A contact point that sends notifications to Threema.",
+	}
+}
+
+func (t threemaNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["gateway_id"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Description: "The Threema gateway ID.",
+	}
+	r.Schema["recipient_id"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The ID of the recipient of the message.",
+	}
+	r.Schema["api_secret"] = &schema.Schema{
+		Type:             schema.TypeString,
+		Required:         true,
+		Sensitive:        true,
+		DiffSuppressFunc: redactedContactPointDiffSuppress,
+		Description:      "The Threema API key.",
+	}
+	return r
+}
+
+func (t threemaNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+	notifier := packCommonNotifierFields(&p)
+
+	packNotifierStringField(&p.Settings, &notifier, "gateway_id", "gateway_id")
+	packNotifierStringField(&p.Settings, &notifier, "recipient_id", "recipient_id")
+	packNotifierStringField(&p.Settings, &notifier, "api_secret", "api_secret")
+
+	notifier["settings"] = packSettings(&p)
+	return notifier, nil
+}
+
+func (t threemaNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	unpackNotifierStringField(&json, &settings, "gateway_id", "gateway_id")
+	unpackNotifierStringField(&json, &settings, "recipient_id", "recipient_id")
+	unpackNotifierStringField(&json, &settings, "api_secret", "api_secret")
+
+	return gapi.ContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  t.meta().typeStr,
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}

@@ -107,4 +107,10 @@ resource "grafana_contact_point" "receiver_types" {
         chat_id = "chat-id"
         message = "message"
     }
+
+    threema {
+        gateway_id = "*gateway"
+        recipient_id = "*target1"
+        api_secret = "secret"
+    }
 }
