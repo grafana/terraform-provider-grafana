@@ -1084,42 +1084,18 @@ func (s slackNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
-	if v, ok := json["endpoint_url"]; ok && v != nil {
-		settings["endpointUrl"] = v.(string)
-	}
-	if v, ok := json["url"]; ok && v != nil {
-		settings["url"] = v.(string)
-	}
-	if v, ok := json["token"]; ok && v != nil {
-		settings["token"] = v.(string)
-	}
-	if v, ok := json["recipient"]; ok && v != nil {
-		settings["recipient"] = v.(string)
-	}
-	if v, ok := json["text"]; ok && v != nil {
-		settings["text"] = v.(string)
-	}
-	if v, ok := json["title"]; ok && v != nil {
-		settings["title"] = v.(string)
-	}
-	if v, ok := json["username"]; ok && v != nil {
-		settings["username"] = v.(string)
-	}
-	if v, ok := json["icon_emoji"]; ok && v != nil {
-		settings["icon_emoji"] = v.(string)
-	}
-	if v, ok := json["icon_url"]; ok && v != nil {
-		settings["icon_url"] = v.(string)
-	}
-	if v, ok := json["mention_channel"]; ok && v != nil {
-		settings["mentionChannel"] = v.(string)
-	}
-	if v, ok := json["mention_users"]; ok && v != nil {
-		settings["mentionUsers"] = v.(string)
-	}
-	if v, ok := json["mention_groups"]; ok && v != nil {
-		settings["mentionGroups"] = v.(string)
-	}
+	unpackNotifierStringField(&json, &settings, "endpoint_url", "endpointUrl")
+	unpackNotifierStringField(&json, &settings, "url", "url")
+	unpackNotifierStringField(&json, &settings, "token", "token")
+	unpackNotifierStringField(&json, &settings, "recipient", "recipient")
+	unpackNotifierStringField(&json, &settings, "text", "text")
+	unpackNotifierStringField(&json, &settings, "title", "title")
+	unpackNotifierStringField(&json, &settings, "username", "username")
+	unpackNotifierStringField(&json, &settings, "icon_emoji", "icon_emoji")
+	unpackNotifierStringField(&json, &settings, "icon_url", "icon_url")
+	unpackNotifierStringField(&json, &settings, "mention_channel", "mentionChannel")
+	unpackNotifierStringField(&json, &settings, "mention_users", "mentionUsers")
+	unpackNotifierStringField(&json, &settings, "mention_groups", "mentionGroups")
 
 	return gapi.ContactPoint{
 		UID:                   uid,
@@ -1180,9 +1156,33 @@ func (t teamsNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
 	return notifier, nil
 }
 
+func (t teamsNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	unpackNotifierStringField(&json, &settings, "url", "url")
+	unpackNotifierStringField(&json, &settings, "message", "message")
+	unpackNotifierStringField(&json, &settings, "title", "title")
+	unpackNotifierStringField(&json, &settings, "section_title", "sectiontitle")
+
+	return gapi.ContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  t.meta().typeStr,
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}
+
 func packNotifierStringField(gfSettings, tfSettings *map[string]interface{}, gfKey, tfKey string) {
 	if v, ok := (*gfSettings)[gfKey]; ok && v != nil {
 		(*tfSettings)[tfKey] = v.(string)
 		delete(*gfSettings, gfKey)
+	}
+}
+
+func unpackNotifierStringField(tfSettings, gfSettings *map[string]interface{}, tfKey, gfKey string) {
+	if v, ok := (*tfSettings)[tfKey]; ok && v != nil {
+		(*gfSettings)[gfKey] = v.(string)
 	}
 }

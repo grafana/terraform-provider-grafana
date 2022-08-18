@@ -23,6 +23,7 @@ var notifiers = []notifier{
 	pushoverNotifier{},
 	sensugoNotifier{},
 	slackNotifier{},
+	teamsNotifier{},
 }
 
 func ResourceContactPoint() *schema.Resource {

@@ -94,4 +94,11 @@ resource "grafana_contact_point" "receiver_types" {
         mention_users = "user"
         mention_groups = "group"
     }
+
+    teams {
+        url = "http://teams-webhook"
+        message = "message"
+        title = "title"
+        section_title = "section"
+    }
 }
