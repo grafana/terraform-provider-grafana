@@ -80,4 +80,18 @@ resource "grafana_contact_point" "receiver_types" {
         handler = "handler"
         message = "message"
     }
+
+    slack {
+        endpoint_url = "http://custom-slack-url"
+        token = "xoxb-token"
+        recipient = "#channel"
+        text = "message"
+        title = "title"
+        username = "bot"
+        icon_emoji = ":icon:"
+        icon_url = "http://domain/icon.png"
+        mention_channel = "here"
+        mention_users = "user"
+        mention_groups = "group"
+    }
 }

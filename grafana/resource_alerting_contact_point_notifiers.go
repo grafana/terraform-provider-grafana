@@ -978,3 +978,188 @@ func (s sensugoNotifier) unpack(raw interface{}, name string) gapi.ContactPoint 
 		Settings:              settings,
 	}
 }
+
+type slackNotifier struct{}
+
+var _ notifier = (*slackNotifier)(nil)
+
+func (s slackNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:   "slack",
+		typeStr: "slack",
+		desc:    "A contact point that sends notifications to Slack.",
+	}
+}
+
+func (s slackNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["endpoint_url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Use this to override the Slack API endpoint URL to send requests to.",
+	}
+	r.Schema["url"] = &schema.Schema{
+		Type:             schema.TypeString,
+		Optional:         true,
+		Sensitive:        true,
+		DiffSuppressFunc: redactedContactPointDiffSuppress,
+		Description:      "A Slack webhook URL,for sending messages via the webhook method.",
+	}
+	r.Schema["token"] = &schema.Schema{
+		Type:             schema.TypeString,
+		Optional:         true,
+		Sensitive:        true,
+		DiffSuppressFunc: redactedContactPointDiffSuppress,
+		Description:      "A Slack API token,for sending messages directly without the webhook method.",
+	}
+	r.Schema["recipient"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Channel, private group, or IM channel (can be an encoded ID or a name) to send messages to.",
+	}
+	r.Schema["text"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Templated content of the message.",
+	}
+	r.Schema["title"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Templated title of the message.",
+	}
+	r.Schema["username"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Username for the bot to use.",
+	}
+	r.Schema["icon_emoji"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The name of a Slack workspace emoji to use as the bot icon.",
+	}
+	r.Schema["icon_url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "A URL of an image to use as the bot icon.",
+	}
+	r.Schema["mention_channel"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Describes how to ping the slack channel that messages are being sent to. Options are `here` for an @here ping, `channel` for @channel, or empty for no ping.",
+	}
+	r.Schema["mention_users"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Comma-separated list of users to mention in the message.",
+	}
+	r.Schema["mention_groups"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Comma-separated list of groups to mention in the message.",
+	}
+	return r
+}
+
+func (s slackNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+	notifier := packCommonNotifierFields(&p)
+	if v, ok := p.Settings["endpointUrl"]; ok && v != nil {
+		notifier["endpoint_url"] = v.(string)
+		delete(p.Settings, "endpointUrl")
+	}
+	if v, ok := p.Settings["url"]; ok && v != nil {
+		notifier["url"] = v.(string)
+		delete(p.Settings, "url")
+	}
+	if v, ok := p.Settings["token"]; ok && v != nil {
+		notifier["token"] = v.(string)
+		delete(p.Settings, "token")
+	}
+	if v, ok := p.Settings["recipient"]; ok && v != nil {
+		notifier["recipient"] = v.(string)
+		delete(p.Settings, "recipient")
+	}
+	if v, ok := p.Settings["text"]; ok && v != nil {
+		notifier["text"] = v.(string)
+		delete(p.Settings, "text")
+	}
+	if v, ok := p.Settings["title"]; ok && v != nil {
+		notifier["title"] = v.(string)
+		delete(p.Settings, "title")
+	}
+	if v, ok := p.Settings["username"]; ok && v != nil {
+		notifier["username"] = v.(string)
+		delete(p.Settings, "username")
+	}
+	if v, ok := p.Settings["icon_emoji"]; ok && v != nil {
+		notifier["icon_emoji"] = v.(string)
+		delete(p.Settings, "icon_emoji")
+	}
+	if v, ok := p.Settings["icon_url"]; ok && v != nil {
+		notifier["icon_url"] = v.(string)
+		delete(p.Settings, "icon_url")
+	}
+	if v, ok := p.Settings["mentionChannel"]; ok && v != nil {
+		notifier["mention_channel"] = v.(string)
+		delete(p.Settings, "mentionChannel")
+	}
+	if v, ok := p.Settings["mentionUsers"]; ok && v != nil {
+		notifier["mention_users"] = v.(string)
+		delete(p.Settings, "mentionUsers")
+	}
+	if v, ok := p.Settings["mentionGroups"]; ok && v != nil {
+		notifier["mention_groups"] = v.(string)
+		delete(p.Settings, "mentionGroups")
+	}
+	notifier["settings"] = packSettings(&p)
+	return notifier, nil
+}
+
+func (s slackNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	if v, ok := json["endpoint_url"]; ok && v != nil {
+		settings["endpointUrl"] = v.(string)
+	}
+	if v, ok := json["url"]; ok && v != nil {
+		settings["url"] = v.(string)
+	}
+	if v, ok := json["token"]; ok && v != nil {
+		settings["token"] = v.(string)
+	}
+	if v, ok := json["recipient"]; ok && v != nil {
+		settings["recipient"] = v.(string)
+	}
+	if v, ok := json["text"]; ok && v != nil {
+		settings["text"] = v.(string)
+	}
+	if v, ok := json["title"]; ok && v != nil {
+		settings["title"] = v.(string)
+	}
+	if v, ok := json["username"]; ok && v != nil {
+		settings["username"] = v.(string)
+	}
+	if v, ok := json["icon_emoji"]; ok && v != nil {
+		settings["icon_emoji"] = v.(string)
+	}
+	if v, ok := json["icon_url"]; ok && v != nil {
+		settings["icon_url"] = v.(string)
+	}
+	if v, ok := json["mention_channel"]; ok && v != nil {
+		settings["mentionChannel"] = v.(string)
+	}
+	if v, ok := json["mention_users"]; ok && v != nil {
+		settings["mentionUsers"] = v.(string)
+	}
+	if v, ok := json["mention_groups"]; ok && v != nil {
+		settings["mentionGroups"] = v.(string)
+	}
+
+	return gapi.ContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  s.meta().typeStr,
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}

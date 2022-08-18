@@ -22,6 +22,7 @@ var notifiers = []notifier{
 	pagerDutyNotifier{},
 	pushoverNotifier{},
 	sensugoNotifier{},
+	slackNotifier{},
 }
 
 func ResourceContactPoint() *schema.Resource {
