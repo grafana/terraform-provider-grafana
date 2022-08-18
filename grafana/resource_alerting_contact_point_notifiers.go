@@ -1062,54 +1062,20 @@ func (s slackNotifier) schema() *schema.Resource {
 
 func (s slackNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
-	if v, ok := p.Settings["endpointUrl"]; ok && v != nil {
-		notifier["endpoint_url"] = v.(string)
-		delete(p.Settings, "endpointUrl")
-	}
-	if v, ok := p.Settings["url"]; ok && v != nil {
-		notifier["url"] = v.(string)
-		delete(p.Settings, "url")
-	}
-	if v, ok := p.Settings["token"]; ok && v != nil {
-		notifier["token"] = v.(string)
-		delete(p.Settings, "token")
-	}
-	if v, ok := p.Settings["recipient"]; ok && v != nil {
-		notifier["recipient"] = v.(string)
-		delete(p.Settings, "recipient")
-	}
-	if v, ok := p.Settings["text"]; ok && v != nil {
-		notifier["text"] = v.(string)
-		delete(p.Settings, "text")
-	}
-	if v, ok := p.Settings["title"]; ok && v != nil {
-		notifier["title"] = v.(string)
-		delete(p.Settings, "title")
-	}
-	if v, ok := p.Settings["username"]; ok && v != nil {
-		notifier["username"] = v.(string)
-		delete(p.Settings, "username")
-	}
-	if v, ok := p.Settings["icon_emoji"]; ok && v != nil {
-		notifier["icon_emoji"] = v.(string)
-		delete(p.Settings, "icon_emoji")
-	}
-	if v, ok := p.Settings["icon_url"]; ok && v != nil {
-		notifier["icon_url"] = v.(string)
-		delete(p.Settings, "icon_url")
-	}
-	if v, ok := p.Settings["mentionChannel"]; ok && v != nil {
-		notifier["mention_channel"] = v.(string)
-		delete(p.Settings, "mentionChannel")
-	}
-	if v, ok := p.Settings["mentionUsers"]; ok && v != nil {
-		notifier["mention_users"] = v.(string)
-		delete(p.Settings, "mentionUsers")
-	}
-	if v, ok := p.Settings["mentionGroups"]; ok && v != nil {
-		notifier["mention_groups"] = v.(string)
-		delete(p.Settings, "mentionGroups")
-	}
+
+	packNotifierStringField(&p.Settings, &notifier, "endpointUrl", "endpoint_url")
+	packNotifierStringField(&p.Settings, &notifier, "url", "url")
+	packNotifierStringField(&p.Settings, &notifier, "token", "token")
+	packNotifierStringField(&p.Settings, &notifier, "recipient", "recipient")
+	packNotifierStringField(&p.Settings, &notifier, "text", "text")
+	packNotifierStringField(&p.Settings, &notifier, "title", "title")
+	packNotifierStringField(&p.Settings, &notifier, "username", "username")
+	packNotifierStringField(&p.Settings, &notifier, "icon_emoji", "icon_emoji")
+	packNotifierStringField(&p.Settings, &notifier, "icon_url", "icon_url")
+	packNotifierStringField(&p.Settings, &notifier, "mentionChannel", "mention_channel")
+	packNotifierStringField(&p.Settings, &notifier, "mentionUsers", "mention_users")
+	packNotifierStringField(&p.Settings, &notifier, "mentionGroups", "mention_groups")
+
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
 }
@@ -1161,5 +1127,62 @@ func (s slackNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 		Type:                  s.meta().typeStr,
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
+	}
+}
+
+type teamsNotifier struct{}
+
+var _ notifier = (*teamsNotifier)(nil)
+
+func (t teamsNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:   "teams",
+		typeStr: "teams",
+		desc:    "A contact point that sends notifications to Microsoft Teams.",
+	}
+}
+
+func (t teamsNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Sensitive:   true,
+		Description: "A Teams webhook URL.",
+	}
+	r.Schema["message"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated message content to send.",
+	}
+	r.Schema["title"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated title of the message.",
+	}
+	r.Schema["section_title"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated subtitle for each message section.",
+	}
+	return r
+}
+
+func (t teamsNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+	notifier := packCommonNotifierFields(&p)
+
+	packNotifierStringField(&p.Settings, &notifier, "url", "url")
+	packNotifierStringField(&p.Settings, &notifier, "message", "message")
+	packNotifierStringField(&p.Settings, &notifier, "title", "title")
+	packNotifierStringField(&p.Settings, &notifier, "sectiontitle", "section_title")
+
+	notifier["settings"] = packSettings(&p)
+	return notifier, nil
+}
+
+func packNotifierStringField(gfSettings, tfSettings *map[string]interface{}, gfKey, tfKey string) {
+	if v, ok := (*gfSettings)[gfKey]; ok && v != nil {
+		(*tfSettings)[tfKey] = v.(string)
+		delete(*gfSettings, gfKey)
 	}
 }
