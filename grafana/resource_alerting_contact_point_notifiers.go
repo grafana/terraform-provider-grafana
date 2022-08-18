@@ -1174,15 +1174,64 @@ func (t teamsNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	}
 }
 
-func packNotifierStringField(gfSettings, tfSettings *map[string]interface{}, gfKey, tfKey string) {
-	if v, ok := (*gfSettings)[gfKey]; ok && v != nil {
-		(*tfSettings)[tfKey] = v.(string)
-		delete(*gfSettings, gfKey)
+type telegramNotifier struct{}
+
+var _ notifier = (*telegramNotifier)(nil)
+
+func (t telegramNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:   "telegram",
+		typeStr: "telegram",
+		desc:    "A contact point that sends notifications to Telegram.",
 	}
 }
 
-func unpackNotifierStringField(tfSettings, gfSettings *map[string]interface{}, tfKey, gfKey string) {
-	if v, ok := (*tfSettings)[tfKey]; ok && v != nil {
-		(*gfSettings)[gfKey] = v.(string)
+func (t telegramNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["token"] = &schema.Schema{
+		Type:             schema.TypeString,
+		Required:         true,
+		Sensitive:        true,
+		DiffSuppressFunc: redactedContactPointDiffSuppress,
+		Description:      "The Telegram bot token.",
+	}
+	r.Schema["chat_id"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Description: "The chat ID to send messages to.",
+	}
+	r.Schema["message"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated content of the message.",
+	}
+	return r
+}
+
+func (t telegramNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+	notifier := packCommonNotifierFields(&p)
+
+	packNotifierStringField(&p.Settings, &notifier, "bottoken", "token")
+	packNotifierStringField(&p.Settings, &notifier, "chatid", "chat_id")
+	packNotifierStringField(&p.Settings, &notifier, "message", "message")
+
+	notifier["settings"] = packSettings(&p)
+	return notifier, nil
+}
+
+func (t telegramNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	unpackNotifierStringField(&json, &settings, "token", "bottoken")
+	unpackNotifierStringField(&json, &settings, "chat_id", "chatid")
+	unpackNotifierStringField(&json, &settings, "message", "message")
+
+	return gapi.ContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  t.meta().typeStr,
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
 	}
 }

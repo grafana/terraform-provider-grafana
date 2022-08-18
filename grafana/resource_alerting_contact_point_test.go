@@ -148,7 +148,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 			{
 				Config: testAccExample(t, "resources/grafana_contact_point/_acc_receiver_types.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 12),
+					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 13),
 					// alertmanager
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.0.url", "http://my-am"),
@@ -236,6 +236,11 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "teams.0.message", "message"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "teams.0.title", "title"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "teams.0.section_title", "section"),
+					// telegram
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.token", "[REDACTED]"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.chat_id", "chat-id"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.message", "message"),
 				),
 			},
 		},

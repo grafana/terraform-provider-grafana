@@ -101,4 +101,10 @@ resource "grafana_contact_point" "receiver_types" {
         title = "title"
         section_title = "section"
     }
+
+    telegram {
+        token = "token"
+        chat_id = "chat-id"
+        message = "message"
+    }
 }
