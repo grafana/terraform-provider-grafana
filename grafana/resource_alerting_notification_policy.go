@@ -53,11 +53,93 @@ func ResourceNotificationPolicy() *schema.Resource {
 				Optional:    true,
 				Description: "Minimum time interval for re-sending a notification if an alert is still firing. Default is 4 hours.",
 			},
+
+			"policy": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "Routing rules for specific label sets.",
+				Elem:        policySchema(supportedPolicyTreeDepth),
+			},
 		},
 	}
 }
 
+// The maximum depth of policy tree that the provider supports, as Terraform does not allow for infinitely recursive schemas.
+// This can be increased without breaking backwards compatibility.
+const supportedPolicyTreeDepth = 1
+
 const PolicySingletonID = "policy"
+
+func policySchema(depth uint) *schema.Resource {
+	if depth == 0 {
+		panic("there is no valid Terraform schema for a policy tree with depth 0")
+	}
+
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"contact_point": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The contact point to route notifications that match this rule to.",
+			},
+			"group_by": {
+				Type:        schema.TypeList,
+				Required:    true,
+				Description: "A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"matcher": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "Describes which labels this rule should match. When multiple matchers are supplied, an alert must match ALL matchers to be accepted by this policy.",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"label": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The name of the label to match against.",
+						},
+						"match": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The operator to apply when matching values of the given label. Allowed operators are `=` for equality, `!=` for negated equality, `=~` for regex equality, and `!~` for negated regex equality.",
+						},
+						"value": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The label value to match against.",
+						},
+					},
+				},
+			},
+			"mute_timings": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "A list of mute timing names to apply to alerts that match this policy.",
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"continue": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Whether to continue matching subsequent rules if an alert matches the current rule. Otherwise, the rule will be 'consumed' by the first policy to match it.",
+			},
+			"group_interval": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Minimum time interval between two notifications for the same group. Default is 5 minutes.",
+			},
+			"repeat_interval": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Minimum time interval for re-sending a notification if an alert is still firing. Default is 4 hours.",
+			},
+		},
+	}
+}
 
 func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
