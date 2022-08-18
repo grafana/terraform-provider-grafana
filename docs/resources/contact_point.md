@@ -45,6 +45,10 @@ resource "grafana_contact_point" "my_contact_point" {
 - `email` (Block List) A contact point that sends notifications to an email address. (see [below for nested schema](#nestedblock--email))
 - `googlechat` (Block List) A contact point that sends notifications to Google Chat. (see [below for nested schema](#nestedblock--googlechat))
 - `kafka` (Block List) A contact point that publishes notifications to Apache Kafka topics. (see [below for nested schema](#nestedblock--kafka))
+- `opsgenie` (Block List) A contact point that sends notifications to OpsGenie. (see [below for nested schema](#nestedblock--opsgenie))
+- `pagerduty` (Block List) A contact point that sends notifications to PagerDuty. (see [below for nested schema](#nestedblock--pagerduty))
+- `pushover` (Block List) A contact point that sends notifications to Pushover. (see [below for nested schema](#nestedblock--pushover))
+- `sensugo` (Block List) A contact point that sends notifications to SensuGo. (see [below for nested schema](#nestedblock--sensugo))
 
 ### Read-Only
 
@@ -157,6 +161,100 @@ Required:
 Optional:
 
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--opsgenie"></a>
+### Nested Schema for `opsgenie`
+
+Required:
+
+- `api_key` (String, Sensitive) The OpsGenie API key to use.
+
+Optional:
+
+- `auto_close` (Boolean) Whether to auto-close alerts in OpsGenie when they resolve in the Alertmanager.
+- `description` (String) A templated high-level description to use for the alert.
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `message` (String) The templated content of the message.
+- `override_priority` (Boolean) Whether to allow the alert priority to be configured via the value of the `og_priority` annotation on the alert.
+- `send_tags_as` (String) Whether to send annotations to OpsGenie as Tags, Details, or both. Supported values are `tags`, `details`, `both`, or empty to use the default behavior of Tags.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `url` (String) Allows customization of the OpsGenie API URL.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--pagerduty"></a>
+### Nested Schema for `pagerduty`
+
+Required:
+
+- `integration_key` (String, Sensitive) The PagerDuty API key.
+
+Optional:
+
+- `class` (String) The class or type of event, for example `ping failure`.
+- `component` (String) The component being affected by the event.
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `group` (String) The group to which the provided component belongs to.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `severity` (String) The PagerDuty event severity level. Default is `critical`.
+- `summary` (String) The templated summary message of the event.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--pushover"></a>
+### Nested Schema for `pushover`
+
+Required:
+
+- `api_token` (String, Sensitive) The Pushover API token.
+- `user_key` (String, Sensitive) The Pushover user key.
+
+Optional:
+
+- `device` (String) Comma-separated list of devices to which the event is associated.
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `expire` (Number) How many seconds for which the notification will continue to be retried by Pushover.
+- `message` (String) The templated notification message content.
+- `ok_priority` (Number) The priority level of the resolved event.
+- `ok_sound` (String) The sound associated with the resolved notification.
+- `priority` (Number) The priority level of the event.
+- `retry` (Number) How often, in seconds, the Pushover servers will send the same notification to the user.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `sound` (String) The sound associated with the notification.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--sensugo"></a>
+### Nested Schema for `sensugo`
+
+Required:
+
+- `api_key` (String, Sensitive) The SensuGo API key.
+- `url` (String) The SensuGo URL to send requests to.
+
+Optional:
+
+- `check` (String) The SensuGo check to which the event should be routed.
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `entity` (String) The entity being monitored.
+- `handler` (String) A custom handler to execute in addition to the check.
+- `message` (String) Templated message content describing the alert.
+- `namespace` (String) The namespace in which the check resides.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 
 Read-Only:

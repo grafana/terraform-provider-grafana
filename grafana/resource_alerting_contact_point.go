@@ -18,6 +18,10 @@ var notifiers = []notifier{
 	emailNotifier{},
 	googleChatNotifier{},
 	kafkaNotifier{},
+	opsGenieNotifier{},
+	pagerDutyNotifier{},
+	pushoverNotifier{},
+	sensugoNotifier{},
 }
 
 func ResourceContactPoint() *schema.Resource {
@@ -78,7 +82,10 @@ func readContactPoint(ctx context.Context, data *schema.ResourceData, meta inter
 		points = append(points, p)
 	}
 
-	packContactPoints(points, data)
+	err := packContactPoints(points, data)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	data.SetId(packUIDs(uids))
 
 	return nil
@@ -166,14 +173,17 @@ func unpackContactPoints(data *schema.ResourceData) []gapi.ContactPoint {
 	return result
 }
 
-func packContactPoints(ps []gapi.ContactPoint, data *schema.ResourceData) {
+func packContactPoints(ps []gapi.ContactPoint, data *schema.ResourceData) error {
 	pointsPerNotifier := map[notifier][]interface{}{}
 	for _, p := range ps {
 		data.Set("name", p.Name)
 
 		for _, n := range notifiers {
 			if p.Type == n.meta().typeStr {
-				packed := n.pack(p)
+				packed, err := n.pack(p)
+				if err != nil {
+					return err
+				}
 				pointsPerNotifier[n] = append(pointsPerNotifier[n], packed)
 				continue
 			}
@@ -183,6 +193,8 @@ func packContactPoints(ps []gapi.ContactPoint, data *schema.ResourceData) {
 	for n, pts := range pointsPerNotifier {
 		data.Set(n.meta().field, pts)
 	}
+
+	return nil
 }
 
 func unpackCommonNotifierFields(raw map[string]interface{}) (string, bool, map[string]interface{}) {
@@ -262,7 +274,7 @@ func toUIDSet(uids []string) map[string]bool {
 type notifier interface {
 	meta() notifierMeta
 	schema() *schema.Resource
-	pack(p gapi.ContactPoint) interface{}
+	pack(p gapi.ContactPoint) (interface{}, error)
 	unpack(raw interface{}, name string) gapi.ContactPoint
 }
 

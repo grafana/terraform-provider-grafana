@@ -38,4 +38,46 @@ resource "grafana_contact_point" "receiver_types" {
         rest_proxy_url = "http://kafka-rest-proxy-url"
         topic = "mytopic"
     }
+
+    opsgenie {
+        url = "http://opsgenie-api"
+        api_key = "token"
+        message = "message"
+        description = "description"
+        auto_close = true
+        override_priority = true
+        send_tags_as = "both"
+    }
+
+    pagerduty {
+        integration_key = "token"
+        severity = "critical"
+        class = "ping failure"
+        component = "mysql"
+        group = "my service"
+        summary = "message"
+    }
+
+    pushover {
+        user_key = "userkey"
+        api_token = "token"
+        priority = 0
+        ok_priority = 0
+        retry = 45
+        expire = 80000
+        device = "device"
+        sound = "bugle"
+        ok_sound = "cashregister"
+        message = "message"
+    }
+
+    sensugo {
+        url = "http://sensugo-url"
+        api_key = "key"
+        entity = "entity"
+        check = "check"
+        namespace = "namespace"
+        handler = "handler"
+        message = "message"
+    }
 }
