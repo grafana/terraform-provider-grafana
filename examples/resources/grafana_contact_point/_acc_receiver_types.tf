@@ -118,4 +118,12 @@ resource "grafana_contact_point" "receiver_types" {
         url = "http://victor-ops-url"
         message_type = "CRITICAL"
     }
+
+    webhook {
+        url = "http://my-url"
+        http_method = "POST"
+        basic_auth_user = "user"
+        basic_auth_password = "password"
+        max_alerts = 100
+    }
 }

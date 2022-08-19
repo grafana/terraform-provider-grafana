@@ -27,6 +27,7 @@ var notifiers = []notifier{
 	telegramNotifier{},
 	threemaNotifier{},
 	victorOpsNotifier{},
+	webhookNotifier{},
 }
 
 func ResourceContactPoint() *schema.Resource {
