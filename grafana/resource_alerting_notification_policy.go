@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"fmt"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -165,7 +166,8 @@ func createNotificationPolicy(ctx context.Context, data *schema.ResourceData, me
 	npt := unpackNotifPolicy(data)
 
 	if err := client.SetNotificationPolicyTree(&npt); err != nil {
-		return diag.FromErr(err)
+		return diag.FromErr(fmt.Errorf("TODO %w %#v", err, npt))
+		// return diag.FromErr(err)
 	}
 
 	data.SetId(PolicySingletonID)
@@ -215,7 +217,13 @@ func packSpecificPolicy(p gapi.SpecificPolicy) interface{} {
 		"group_by":      p.GroupBy,
 		"continue":      p.Continue,
 	}
-	// TODO: matchers
+	if p.ObjectMatchers != nil && len(p.ObjectMatchers) > 0 {
+		matchers := make([]interface{}, 0, len(p.ObjectMatchers))
+		for _, m := range p.ObjectMatchers {
+			matchers = append(matchers, packPolicyMatcher(m))
+		}
+		result["matcher"] = matchers
+	}
 	if p.MuteTimeIntervals != nil && len(p.MuteTimeIntervals) > 0 {
 		result["mute_timings"] = p.MuteTimeIntervals
 	}
@@ -229,6 +237,14 @@ func packSpecificPolicy(p gapi.SpecificPolicy) interface{} {
 		result["repeat_interval"] = p.RepeatInterval
 	}
 	return result
+}
+
+func packPolicyMatcher(m gapi.Matcher) interface{} {
+	return map[string]interface{}{
+		"label": m.Name,
+		"match": m.Type.String(),
+		"value": m.Value,
+	}
 }
 
 func unpackNotifPolicy(data *schema.ResourceData) gapi.NotificationPolicyTree {
@@ -259,13 +275,20 @@ func unpackNotifPolicy(data *schema.ResourceData) gapi.NotificationPolicyTree {
 
 func unpackSpecificPolicy(p interface{}) gapi.SpecificPolicy {
 	json := p.(map[string]interface{})
-	// TODO: matchers
 	policy := gapi.SpecificPolicy{
 		Receiver: json["contact_point"].(string),
 		GroupBy:  listToStringSlice(json["group_by"].([]interface{})),
 		Continue: json["continue"].(bool),
 	}
 
+	if v, ok := json["matcher"]; ok && v != nil {
+		ms := v.([]interface{})
+		matchers := make([]gapi.Matcher, 0, len(ms))
+		for _, m := range ms {
+			matchers = append(matchers, unpackPolicyMatcher(m))
+		}
+		policy.ObjectMatchers = matchers
+	}
 	if v, ok := json["mute_timings"]; ok && v != nil {
 		policy.MuteTimeIntervals = listToStringSlice(v.([]interface{}))
 	}
@@ -283,4 +306,28 @@ func unpackSpecificPolicy(p interface{}) gapi.SpecificPolicy {
 	}
 
 	return policy
+}
+
+func unpackPolicyMatcher(m interface{}) gapi.Matcher {
+	json := m.(map[string]interface{})
+
+	var matchType gapi.MatchType
+	switch json["match"].(string) {
+	case "=":
+		matchType = gapi.MatchEqual
+	case "!=":
+		matchType = gapi.MatchNotEqual
+	case "=~":
+		matchType = gapi.MatchRegexp
+	case "!~":
+		matchType = gapi.MatchNotRegexp
+	default:
+		// TODO: error!
+		panic(fmt.Sprintf("lol bad match %s", json["match"].(string)))
+	}
+	return gapi.Matcher{
+		Name:  json["label"].(string),
+		Type:  matchType,
+		Value: json["value"].(string),
+	}
 }
