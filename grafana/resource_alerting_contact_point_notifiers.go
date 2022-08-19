@@ -1297,3 +1297,56 @@ func (t threemaNotifier) unpack(raw interface{}, name string) gapi.ContactPoint 
 		Settings:              settings,
 	}
 }
+
+type victorOpsNotifier struct{}
+
+var _ notifier = (*victorOpsNotifier)(nil)
+
+func (v victorOpsNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:   "victorops",
+		typeStr: "victorops",
+		desc:    "A contact point that sends notifications to VictorOps (now known as Splunk OnCall).",
+	}
+}
+
+func (v victorOpsNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Description: "The VictorOps webhook URL.",
+	}
+	r.Schema["message_type"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The VictorOps alert state - typically either `CRITICAL` or `RECOVERY`.",
+	}
+	return r
+}
+
+func (v victorOpsNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+	notifier := packCommonNotifierFields(&p)
+
+	packNotifierStringField(&p.Settings, &notifier, "url", "url")
+	packNotifierStringField(&p.Settings, &notifier, "messageType", "message_type")
+
+	notifier["settings"] = packSettings(&p)
+	return notifier, nil
+}
+
+func (v victorOpsNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	unpackNotifierStringField(&json, &settings, "url", "url")
+	unpackNotifierStringField(&json, &settings, "message_type", "messageType")
+
+	return gapi.ContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  v.meta().typeStr,
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}

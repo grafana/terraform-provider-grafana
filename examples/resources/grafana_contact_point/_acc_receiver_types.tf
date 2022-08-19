@@ -113,4 +113,9 @@ resource "grafana_contact_point" "receiver_types" {
         recipient_id = "*target1"
         api_secret = "secret"
     }
+
+    victorops {
+        url = "http://victor-ops-url"
+        message_type = "CRITICAL"
+    }
 }
