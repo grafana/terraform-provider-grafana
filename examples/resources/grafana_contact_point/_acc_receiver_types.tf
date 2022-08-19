@@ -126,4 +126,10 @@ resource "grafana_contact_point" "receiver_types" {
         basic_auth_password = "password"
         max_alerts = 100
     }
+
+    wecom {
+        url = "http://wecom-url"
+        message = "message"
+        title = "title"
+    }
 }

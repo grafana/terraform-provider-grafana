@@ -1462,3 +1462,65 @@ func (w webhookNotifier) unpack(raw interface{}, name string) gapi.ContactPoint 
 		Settings:              settings,
 	}
 }
+
+type wecomNotifier struct{}
+
+var _ notifier = (*wecomNotifier)(nil)
+
+func (w wecomNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:   "wecom",
+		typeStr: "wecom",
+		desc:    "A contact point that sends notifications to WeCom.",
+	}
+}
+
+func (w wecomNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["url"] = &schema.Schema{
+		Type:             schema.TypeString,
+		Required:         true,
+		Sensitive:        true,
+		DiffSuppressFunc: redactedContactPointDiffSuppress,
+		Description:      "The WeCom webhook URL.",
+	}
+	r.Schema["message"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated content of the message to send.",
+	}
+	r.Schema["title"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated title of the message to send.",
+	}
+	return r
+}
+
+func (w wecomNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+	notifier := packCommonNotifierFields(&p)
+
+	packNotifierStringField(&p.Settings, &notifier, "url", "url")
+	packNotifierStringField(&p.Settings, &notifier, "message", "message")
+	packNotifierStringField(&p.Settings, &notifier, "title", "title")
+
+	notifier["settings"] = packSettings(&p)
+	return notifier, nil
+}
+
+func (w wecomNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	unpackNotifierStringField(&json, &settings, "url", "url")
+	unpackNotifierStringField(&json, &settings, "message", "message")
+	unpackNotifierStringField(&json, &settings, "title", "title")
+
+	return gapi.ContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  w.meta().typeStr,
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}
