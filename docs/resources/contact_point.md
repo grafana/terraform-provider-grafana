@@ -49,6 +49,10 @@ resource "grafana_contact_point" "my_contact_point" {
 - `pagerduty` (Block List) A contact point that sends notifications to PagerDuty. (see [below for nested schema](#nestedblock--pagerduty))
 - `pushover` (Block List) A contact point that sends notifications to Pushover. (see [below for nested schema](#nestedblock--pushover))
 - `sensugo` (Block List) A contact point that sends notifications to SensuGo. (see [below for nested schema](#nestedblock--sensugo))
+- `slack` (Block List) A contact point that sends notifications to Slack. (see [below for nested schema](#nestedblock--slack))
+- `teams` (Block List) A contact point that sends notifications to Microsoft Teams. (see [below for nested schema](#nestedblock--teams))
+- `telegram` (Block List) A contact point that sends notifications to Telegram. (see [below for nested schema](#nestedblock--telegram))
+- `threema` (Block List) A contact point that sends notifications to Threema. (see [below for nested schema](#nestedblock--threema))
 
 ### Read-Only
 
@@ -255,6 +259,89 @@ Optional:
 - `handler` (String) A custom handler to execute in addition to the check.
 - `message` (String) Templated message content describing the alert.
 - `namespace` (String) The namespace in which the check resides.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--slack"></a>
+### Nested Schema for `slack`
+
+Optional:
+
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `endpoint_url` (String) Use this to override the Slack API endpoint URL to send requests to.
+- `icon_emoji` (String) The name of a Slack workspace emoji to use as the bot icon.
+- `icon_url` (String) A URL of an image to use as the bot icon.
+- `mention_channel` (String) Describes how to ping the slack channel that messages are being sent to. Options are `here` for an @here ping, `channel` for @channel, or empty for no ping.
+- `mention_groups` (String) Comma-separated list of groups to mention in the message.
+- `mention_users` (String) Comma-separated list of users to mention in the message.
+- `recipient` (String) Channel, private group, or IM channel (can be an encoded ID or a name) to send messages to.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `text` (String) Templated content of the message.
+- `title` (String) Templated title of the message.
+- `token` (String, Sensitive) A Slack API token,for sending messages directly without the webhook method.
+- `url` (String, Sensitive) A Slack webhook URL,for sending messages via the webhook method.
+- `username` (String) Username for the bot to use.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--teams"></a>
+### Nested Schema for `teams`
+
+Required:
+
+- `url` (String, Sensitive) A Teams webhook URL.
+
+Optional:
+
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `message` (String) The templated message content to send.
+- `section_title` (String) The templated subtitle for each message section.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `title` (String) The templated title of the message.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--telegram"></a>
+### Nested Schema for `telegram`
+
+Required:
+
+- `chat_id` (String) The chat ID to send messages to.
+- `token` (String, Sensitive) The Telegram bot token.
+
+Optional:
+
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `message` (String) The templated content of the message.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--threema"></a>
+### Nested Schema for `threema`
+
+Required:
+
+- `api_secret` (String, Sensitive) The Threema API key.
+- `gateway_id` (String) The Threema gateway ID.
+
+Optional:
+
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `recipient_id` (String) The ID of the recipient of the message.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 
 Read-Only:

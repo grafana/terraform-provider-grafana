@@ -22,6 +22,10 @@ var notifiers = []notifier{
 	pagerDutyNotifier{},
 	pushoverNotifier{},
 	sensugoNotifier{},
+	slackNotifier{},
+	teamsNotifier{},
+	telegramNotifier{},
+	threemaNotifier{},
 }
 
 func ResourceContactPoint() *schema.Resource {
@@ -282,4 +286,17 @@ type notifierMeta struct {
 	field   string
 	typeStr string
 	desc    string
+}
+
+func packNotifierStringField(gfSettings, tfSettings *map[string]interface{}, gfKey, tfKey string) {
+	if v, ok := (*gfSettings)[gfKey]; ok && v != nil {
+		(*tfSettings)[tfKey] = v.(string)
+		delete(*gfSettings, gfKey)
+	}
+}
+
+func unpackNotifierStringField(tfSettings, gfSettings *map[string]interface{}, tfKey, gfKey string) {
+	if v, ok := (*tfSettings)[tfKey]; ok && v != nil {
+		(*gfSettings)[gfKey] = v.(string)
+	}
 }
