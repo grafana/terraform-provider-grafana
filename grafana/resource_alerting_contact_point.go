@@ -99,10 +99,14 @@ func readContactPoint(ctx context.Context, data *schema.ResourceData, meta inter
 }
 
 func createContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	lock := &meta.(*client).alertingMutex
 	client := meta.(*client).gapi
 
 	ps := unpackContactPoints(data)
 	uids := make([]string, 0, len(ps))
+
+	lock.Lock()
+	defer lock.Unlock()
 	for i := range ps {
 		uid, err := client.NewContactPoint(&ps[i])
 		if err != nil {
@@ -116,6 +120,7 @@ func createContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 }
 
 func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	lock := &meta.(*client).alertingMutex
 	client := meta.(*client).gapi
 
 	existingUIDs := unpackUIDs(data.Id())
@@ -123,6 +128,8 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 
 	unprocessedUIDs := toUIDSet(existingUIDs)
 	newUIDs := make([]string, 0, len(ps))
+	lock.Lock()
+	defer lock.Unlock()
 	for i := range ps {
 		delete(unprocessedUIDs, ps[i].UID)
 		err := client.UpdateContactPoint(&ps[i])
@@ -154,9 +161,13 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 }
 
 func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	lock := &meta.(*client).alertingMutex
 	client := meta.(*client).gapi
 
 	uids := unpackUIDs(data.Id())
+
+	lock.Lock()
+	defer lock.Unlock()
 	for _, uid := range uids {
 		if err := client.DeleteContactPoint(uid); err != nil {
 			return diag.FromErr(err)

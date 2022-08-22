@@ -10,6 +10,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -258,6 +259,8 @@ type client struct {
 	mlapi *mlapi.Client
 
 	onCallAPI *onCallAPI.Client
+
+	alertingMutex sync.Mutex
 }
 
 func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
