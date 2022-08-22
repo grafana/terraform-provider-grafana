@@ -113,4 +113,23 @@ resource "grafana_contact_point" "receiver_types" {
         recipient_id = "*target1"
         api_secret = "secret"
     }
+
+    victorops {
+        url = "http://victor-ops-url"
+        message_type = "CRITICAL"
+    }
+
+    webhook {
+        url = "http://my-url"
+        http_method = "POST"
+        basic_auth_user = "user"
+        basic_auth_password = "password"
+        max_alerts = 100
+    }
+
+    wecom {
+        url = "http://wecom-url"
+        message = "message"
+        title = "title"
+    }
 }
