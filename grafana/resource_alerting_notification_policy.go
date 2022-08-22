@@ -67,16 +67,18 @@ func ResourceNotificationPolicy() *schema.Resource {
 
 // The maximum depth of policy tree that the provider supports, as Terraform does not allow for infinitely recursive schemas.
 // This can be increased without breaking backwards compatibility.
-const supportedPolicyTreeDepth = 1
+const supportedPolicyTreeDepth = 2
 
 const PolicySingletonID = "policy"
 
+// policySchema recursively builds a resource schema for the policy resource. Each policy contains a list of policies.
+// Since Terraform does not support infinitely recursive schemas, we instead define the resource to a finite depth.
 func policySchema(depth uint) *schema.Resource {
 	if depth == 0 {
 		panic("there is no valid Terraform schema for a policy tree with depth 0")
 	}
 
-	return &schema.Resource{
+	resource := &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"contact_point": {
 				Type:        schema.TypeString,
@@ -145,6 +147,17 @@ func policySchema(depth uint) *schema.Resource {
 			},
 		},
 	}
+
+	if depth > 1 {
+		resource.Schema["policy"] = &schema.Schema{
+			Type:        schema.TypeList,
+			Optional:    true,
+			Description: "Routing rules for specific label sets.",
+			Elem:        policySchema(supportedPolicyTreeDepth - 1),
+		}
+	}
+
+	return resource
 }
 
 func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -205,13 +218,13 @@ func packNotifPolicy(npt gapi.NotificationPolicyTree, data *schema.ResourceData)
 	if len(npt.Routes) > 0 {
 		policies := make([]interface{}, 0, len(npt.Routes))
 		for _, r := range npt.Routes {
-			policies = append(policies, packSpecificPolicy(r))
+			policies = append(policies, packSpecificPolicy(r, supportedPolicyTreeDepth))
 		}
 		data.Set("policy", policies)
 	}
 }
 
-func packSpecificPolicy(p gapi.SpecificPolicy) interface{} {
+func packSpecificPolicy(p gapi.SpecificPolicy, depth uint) interface{} {
 	result := map[string]interface{}{
 		"contact_point": p.Receiver,
 		"group_by":      p.GroupBy,
@@ -235,6 +248,13 @@ func packSpecificPolicy(p gapi.SpecificPolicy) interface{} {
 	}
 	if p.RepeatInterval != "" {
 		result["repeat_interval"] = p.RepeatInterval
+	}
+	if depth > 1 && p.Routes != nil && len(p.Routes) > 0 {
+		policies := make([]interface{}, 0, len(p.Routes))
+		for _, r := range p.Routes {
+			policies = append(policies, packSpecificPolicy(r, depth-1))
+		}
+		result["policy"] = policies
 	}
 	return result
 }
@@ -303,6 +323,14 @@ func unpackSpecificPolicy(p interface{}) gapi.SpecificPolicy {
 	}
 	if v, ok := json["repeat_interval"]; ok && v != nil {
 		policy.RepeatInterval = v.(string)
+	}
+	if v, ok := json["policy"]; ok && v != nil {
+		ps := v.([]interface{})
+		policies := make([]gapi.SpecificPolicy, 0, len(ps))
+		for _, p := range ps {
+			policies = append(policies, unpackSpecificPolicy(p))
+		}
+		policy.Routes = policies
 	}
 
 	return policy

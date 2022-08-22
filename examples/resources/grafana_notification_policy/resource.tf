@@ -42,6 +42,16 @@ resource "grafana_notification_policy" "my_notification_policy" {
         group_wait = "45s"
         group_interval = "6m"
         repeat_interval = "3h"
+
+        policy {
+            matcher {
+                label = "sublabel"
+                match = "="
+                value = "subvalue"
+            }
+            contact_point = grafana_contact_point.a_contact_point.name
+            group_by = ["..."]
+        }
     }
 
      policy {

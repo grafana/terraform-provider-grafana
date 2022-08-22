@@ -41,6 +41,13 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.group_wait", "45s"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.group_interval", "6m"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.repeat_interval", "3h"),
+					// deeply nested
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.policy.#", "1"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.policy.0.contact_point", "A Contact Point"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.policy.0.matcher.0.label", "sublabel"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.policy.0.matcher.0.match", "="),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.policy.0.matcher.0.value", "subvalue"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.policy.0.group_by.0", "..."),
 					// nested sibling
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.1.contact_point", "A Contact Point"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.1.matcher.0.label", "anotherlabel"),
