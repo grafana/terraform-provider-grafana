@@ -131,8 +131,7 @@ func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 
 	mt := unpackMuteTiming(data)
 	if err := client.NewMuteTiming(&mt); err != nil {
-		return diag.FromErr(fmt.Errorf("TODO %w %#v", err, mt))
-		// return diag.FromErr(err)
+		return diag.FromErr(err)
 	}
 
 	data.SetId(mt.Name)
