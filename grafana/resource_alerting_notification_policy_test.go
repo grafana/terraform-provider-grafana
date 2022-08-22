@@ -18,11 +18,6 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 		// Implicitly tests deletion.
 		CheckDestroy: testNotifPolicyCheckDestroy(),
 		Steps: []resource.TestStep{
-			// Setup environment.
-			/*{
-				Config:                    testAccExample(t, "resources/grafana_notification_policy/_acc_support_mute_timing.tf"),
-				PreventPostDestroyRefresh: true,
-			},*/
 			// Test creation.
 			{
 				Config: testAccExample(t, "resources/grafana_notification_policy/resource.tf"),
@@ -35,14 +30,23 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "group_interval", "6m"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "repeat_interval", "3h"),
 					// nested
-					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.#", "1"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.#", "2"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.contact_point", "A Contact Point"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.matcher.0.label", "mylabel"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.matcher.0.match", "="),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.matcher.0.value", "myvalue"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.group_by.0", "alertname"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.continue", "true"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.mute_timings.0", "Some Mute Timing"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.group_wait", "45s"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.group_interval", "6m"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.repeat_interval", "3h"),
+					// nested sibling
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.1.contact_point", "A Contact Point"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.1.matcher.0.label", "anotherlabel"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.1.matcher.0.match", "=~"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.1.matcher.0.value", "another value.*"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.1.group_by.0", "..."),
 				),
 			},
 			// Test import.

@@ -36,11 +36,21 @@ resource "grafana_notification_policy" "my_notification_policy" {
         }
         contact_point = grafana_contact_point.a_contact_point.name
         group_by = ["alertname"]
-       continue = true
+        continue = true
         mute_timings = [grafana_mute_timing.a_mute_timing.name]
 
         group_wait = "45s"
         group_interval = "6m"
         repeat_interval = "3h"
+    }
+
+     policy {
+        matcher {
+            label = "anotherlabel"
+            match = "=~"
+            value = "another value.*"
+        }
+        contact_point = grafana_contact_point.a_contact_point.name
+        group_by = ["..."]
     }
 }
