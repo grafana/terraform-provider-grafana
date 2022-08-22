@@ -176,11 +176,13 @@ func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta
 func createNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	npt := unpackNotifPolicy(data)
+	npt, err := unpackNotifPolicy(data)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	if err := client.SetNotificationPolicyTree(&npt); err != nil {
-		return diag.FromErr(fmt.Errorf("TODO %w %#v", err, npt))
-		// return diag.FromErr(err)
+		return diag.FromErr(err)
 	}
 
 	data.SetId(PolicySingletonID)
@@ -190,7 +192,10 @@ func createNotificationPolicy(ctx context.Context, data *schema.ResourceData, me
 func updateNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	npt := unpackNotifPolicy(data)
+	npt, err := unpackNotifPolicy(data)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	if err := client.SetNotificationPolicyTree(&npt); err != nil {
 		return diag.FromErr(err)
@@ -267,7 +272,7 @@ func packPolicyMatcher(m gapi.Matcher) interface{} {
 	}
 }
 
-func unpackNotifPolicy(data *schema.ResourceData) gapi.NotificationPolicyTree {
+func unpackNotifPolicy(data *schema.ResourceData) (gapi.NotificationPolicyTree, error) {
 	groupBy := data.Get("group_by").([]interface{})
 	groups := make([]string, 0, len(groupBy))
 	for _, g := range groupBy {
@@ -279,7 +284,11 @@ func unpackNotifPolicy(data *schema.ResourceData) gapi.NotificationPolicyTree {
 	if ok {
 		routes := nested.([]interface{})
 		for _, r := range routes {
-			children = append(children, unpackSpecificPolicy(r))
+			unpacked, err := unpackSpecificPolicy(r)
+			if err != nil {
+				return gapi.NotificationPolicyTree{}, err
+			}
+			children = append(children, unpacked)
 		}
 	}
 
@@ -290,10 +299,10 @@ func unpackNotifPolicy(data *schema.ResourceData) gapi.NotificationPolicyTree {
 		GroupInterval:  data.Get("group_interval").(string),
 		RepeatInterval: data.Get("repeat_interval").(string),
 		Routes:         children,
-	}
+	}, nil
 }
 
-func unpackSpecificPolicy(p interface{}) gapi.SpecificPolicy {
+func unpackSpecificPolicy(p interface{}) (gapi.SpecificPolicy, error) {
 	json := p.(map[string]interface{})
 	policy := gapi.SpecificPolicy{
 		Receiver: json["contact_point"].(string),
@@ -305,7 +314,11 @@ func unpackSpecificPolicy(p interface{}) gapi.SpecificPolicy {
 		ms := v.([]interface{})
 		matchers := make([]gapi.Matcher, 0, len(ms))
 		for _, m := range ms {
-			matchers = append(matchers, unpackPolicyMatcher(m))
+			matcher, err := unpackPolicyMatcher(m)
+			if err != nil {
+				return gapi.SpecificPolicy{}, err
+			}
+			matchers = append(matchers, matcher)
 		}
 		policy.ObjectMatchers = matchers
 	}
@@ -328,15 +341,19 @@ func unpackSpecificPolicy(p interface{}) gapi.SpecificPolicy {
 		ps := v.([]interface{})
 		policies := make([]gapi.SpecificPolicy, 0, len(ps))
 		for _, p := range ps {
-			policies = append(policies, unpackSpecificPolicy(p))
+			unpacked, err := unpackSpecificPolicy(p)
+			if err != nil {
+				return gapi.SpecificPolicy{}, err
+			}
+			policies = append(policies, unpacked)
 		}
 		policy.Routes = policies
 	}
 
-	return policy
+	return policy, nil
 }
 
-func unpackPolicyMatcher(m interface{}) gapi.Matcher {
+func unpackPolicyMatcher(m interface{}) (gapi.Matcher, error) {
 	json := m.(map[string]interface{})
 
 	var matchType gapi.MatchType
@@ -350,12 +367,11 @@ func unpackPolicyMatcher(m interface{}) gapi.Matcher {
 	case "!~":
 		matchType = gapi.MatchNotRegexp
 	default:
-		// TODO: error!
-		panic(fmt.Sprintf("lol bad match %s", json["match"].(string)))
+		return gapi.Matcher{}, fmt.Errorf("unknown match operator: %s", json["match"].(string))
 	}
 	return gapi.Matcher{
 		Name:  json["label"].(string),
 		Type:  matchType,
 		Value: json["value"].(string),
-	}
+	}, nil
 }
