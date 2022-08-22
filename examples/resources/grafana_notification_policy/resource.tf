@@ -13,30 +13,34 @@ resource "grafana_mute_timing" "a_mute_timing" {
     intervals {
         weekdays = ["monday"]
     }
+
+    depends_on = [
+        grafana_contact_point.a_contact_point
+    ]
 }
 
 
-#resource "grafana_notification_policy" "my_notification_policy" {
-#    group_by = ["..."]
-#    contact_point = grafana_contact_point.a_contact_point.name
-#
-#    group_wait = "45s"
-#    group_interval = "6m"
-#    repeat_interval = "3h"
-#
-#    policy {
-#        matcher {
-#            label = "mylabel"
-#            match = "="
-#            value = "myvalue"
-#        }
-#        contact_point = grafana_contact_point.a_contact_point.name
-#        group_by = ["alertname"]
-#       continue = true
-#        mute_timings = [grafana_mute_timing.a_mute_timing.name]
-#
-#        group_wait = "45s"
-#        group_interval = "6m"
-#        repeat_interval = "3h"
-#    }
-#}
+resource "grafana_notification_policy" "my_notification_policy" {
+    group_by = ["..."]
+    contact_point = grafana_contact_point.a_contact_point.name
+
+    group_wait = "45s"
+    group_interval = "6m"
+    repeat_interval = "3h"
+
+    policy {
+        matcher {
+            label = "mylabel"
+            match = "="
+            value = "myvalue"
+        }
+        contact_point = grafana_contact_point.a_contact_point.name
+        group_by = ["alertname"]
+       continue = true
+        mute_timings = [grafana_mute_timing.a_mute_timing.name]
+
+        group_wait = "45s"
+        group_interval = "6m"
+        repeat_interval = "3h"
+    }
+}

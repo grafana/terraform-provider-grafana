@@ -18,6 +18,11 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 		// Implicitly tests deletion.
 		CheckDestroy: testNotifPolicyCheckDestroy(),
 		Steps: []resource.TestStep{
+			// Setup environment.
+			/*{
+				Config:                    testAccExample(t, "resources/grafana_notification_policy/_acc_support_mute_timing.tf"),
+				PreventPostDestroyRefresh: true,
+			},*/
 			// Test creation.
 			{
 				Config: testAccExample(t, "resources/grafana_notification_policy/resource.tf"),
