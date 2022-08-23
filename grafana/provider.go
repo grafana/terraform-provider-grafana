@@ -152,7 +152,7 @@ func Provider(version string) func() *schema.Provider {
 				"oncall_url": {
 					Type:         schema.TypeString,
 					Optional:     true,
-					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_ONCALL_URL", "https://a-prod-us-central-0.grafana.net/"),
+					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_ONCALL_URL", "https://oncall-prod-us-central-0.grafana.net/oncall"),
 					Description:  "An Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable.",
 					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 				},
