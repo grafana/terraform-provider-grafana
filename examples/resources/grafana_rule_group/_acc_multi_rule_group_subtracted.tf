@@ -2,7 +2,7 @@ resource "grafana_folder" "compound_rule_folder" {
     title = "My Compound Alert Rule Folder"
 }
 
-resource "grafana_alert_rule" "my_multi_alert_group" {
+resource "grafana_rule_group" "my_multi_alert_group" {
     name = "My Multi-Alert Rule Group"
     folder_uid = grafana_folder.compound_rule_folder.uid
     interval_seconds = 240

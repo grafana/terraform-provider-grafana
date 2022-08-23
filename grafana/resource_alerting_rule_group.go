@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceAlertRule() *schema.Resource {
+func ResourceRuleGroup() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 Manages Grafana Alerting rule groups.
@@ -22,10 +22,10 @@ Manages Grafana Alerting rule groups.
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#alert-rules)
 
 `,
-		CreateContext: createAlertRule,
-		ReadContext:   readAlertRule,
-		UpdateContext: updateAlertRule,
-		DeleteContext: deleteAlertRule,
+		CreateContext: createAlertRuleGroup,
+		ReadContext:   readAlertRuleGroup,
+		UpdateContext: updateAlertRuleGroup,
+		DeleteContext: deleteAlertRuleGroup,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -172,7 +172,7 @@ Manages Grafana Alerting rule groups.
 	}
 }
 
-func readAlertRule(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
 	key := unpackGroupID(data.Id())
@@ -195,7 +195,7 @@ func readAlertRule(ctx context.Context, data *schema.ResourceData, meta interfac
 	return nil
 }
 
-func createAlertRule(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func createAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
 	group, err := unpackRuleGroup(data)
@@ -209,10 +209,10 @@ func createAlertRule(ctx context.Context, data *schema.ResourceData, meta interf
 	}
 
 	data.SetId(packGroupID(key))
-	return readAlertRule(ctx, data, meta)
+	return readAlertRuleGroup(ctx, data, meta)
 }
 
-func updateAlertRule(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func updateAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
 	group, err := unpackRuleGroup(data)
@@ -226,10 +226,10 @@ func updateAlertRule(ctx context.Context, data *schema.ResourceData, meta interf
 	}
 
 	data.SetId(packGroupID(key))
-	return readAlertRule(ctx, data, meta)
+	return readAlertRuleGroup(ctx, data, meta)
 }
 
-func deleteAlertRule(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func deleteAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
 	key := unpackGroupID(data.Id())
