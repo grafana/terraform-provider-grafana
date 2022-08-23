@@ -11,7 +11,6 @@ import (
 )
 
 func TestAccOnCallOutgoingWebhook_basic(t *testing.T) {
-	t.Skip("TODO: un-skip me! this test fails against cloud instances, skipping to unblock CI")
 	CheckCloudInstanceTestsEnabled(t)
 
 	webhookName := fmt.Sprintf("name-%s", acctest.RandString(8))

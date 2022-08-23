@@ -10,7 +10,6 @@ import (
 )
 
 func TestAccDataSourceOnCallSlackChannel_Basic(t *testing.T) {
-	t.Skip("TODO: un-skip me! this test fails against cloud instances, skipping to unblock CI")
 	CheckCloudInstanceTestsEnabled(t)
 
 	slackChannelName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
