@@ -127,9 +127,13 @@ func readMuteTiming(ctx context.Context, data *schema.ResourceData, meta interfa
 }
 
 func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	lock := &meta.(*client).alertingMutex
 	client := meta.(*client).gapi
 
 	mt := unpackMuteTiming(data)
+
+	lock.Lock()
+	defer lock.Unlock()
 	if err := client.NewMuteTiming(&mt); err != nil {
 		return diag.FromErr(err)
 	}
@@ -139,10 +143,13 @@ func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 }
 
 func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	lock := &meta.(*client).alertingMutex
 	client := meta.(*client).gapi
 
 	mt := unpackMuteTiming(data)
 
+	lock.Lock()
+	defer lock.Unlock()
 	if err := client.UpdateMuteTiming(&mt); err != nil {
 		return diag.FromErr(err)
 	}
@@ -150,9 +157,12 @@ func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 }
 
 func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	lock := &meta.(*client).alertingMutex
 	client := meta.(*client).gapi
 	name := data.Id()
 
+	lock.Lock()
+	defer lock.Unlock()
 	if err := client.DeleteMuteTiming(name); err != nil {
 		return diag.FromErr(err)
 	}

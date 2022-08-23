@@ -174,6 +174,7 @@ func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta
 }
 
 func createNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	lock := &meta.(*client).alertingMutex
 	client := meta.(*client).gapi
 
 	npt, err := unpackNotifPolicy(data)
@@ -181,6 +182,8 @@ func createNotificationPolicy(ctx context.Context, data *schema.ResourceData, me
 		return diag.FromErr(err)
 	}
 
+	lock.Lock()
+	defer lock.Unlock()
 	if err := client.SetNotificationPolicyTree(&npt); err != nil {
 		return diag.FromErr(err)
 	}
@@ -190,6 +193,7 @@ func createNotificationPolicy(ctx context.Context, data *schema.ResourceData, me
 }
 
 func updateNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	lock := &meta.(*client).alertingMutex
 	client := meta.(*client).gapi
 
 	npt, err := unpackNotifPolicy(data)
@@ -197,6 +201,8 @@ func updateNotificationPolicy(ctx context.Context, data *schema.ResourceData, me
 		return diag.FromErr(err)
 	}
 
+	lock.Lock()
+	defer lock.Unlock()
 	if err := client.SetNotificationPolicyTree(&npt); err != nil {
 		return diag.FromErr(err)
 	}
@@ -205,11 +211,15 @@ func updateNotificationPolicy(ctx context.Context, data *schema.ResourceData, me
 }
 
 func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	lock := &meta.(*client).alertingMutex
 	client := meta.(*client).gapi
 
+	lock.Lock()
+	defer lock.Unlock()
 	if err := client.ResetNotificationPolicyTree(); err != nil {
 		return diag.FromErr(err)
 	}
+
 	return diag.Diagnostics{}
 }
 

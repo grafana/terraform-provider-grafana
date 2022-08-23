@@ -29,10 +29,6 @@ resource "grafana_mute_timing" "a_mute_timing" {
     intervals {
         weekdays = ["monday"]
     }
-
-    depends_on = [
-        grafana_contact_point.a_contact_point
-    ]
 }
 
 

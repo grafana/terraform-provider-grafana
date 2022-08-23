@@ -62,10 +62,13 @@ func readMessageTemplate(ctx context.Context, data *schema.ResourceData, meta in
 }
 
 func createMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	lock := &meta.(*client).alertingMutex
 	client := meta.(*client).gapi
 	name := data.Get("name").(string)
 	content := data.Get("template").(string)
 
+	lock.Lock()
+	defer lock.Unlock()
 	if err := client.SetMessageTemplate(name, content); err != nil {
 		return diag.FromErr(err)
 	}
@@ -75,10 +78,13 @@ func createMessageTemplate(ctx context.Context, data *schema.ResourceData, meta 
 }
 
 func updateMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	lock := &meta.(*client).alertingMutex
 	client := meta.(*client).gapi
 	name := data.Get("name").(string)
 	content := data.Get("template").(string)
 
+	lock.Lock()
+	defer lock.Unlock()
 	if err := client.SetMessageTemplate(name, content); err != nil {
 		return diag.FromErr(err)
 	}
@@ -87,11 +93,15 @@ func updateMessageTemplate(ctx context.Context, data *schema.ResourceData, meta 
 }
 
 func deleteMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	lock := &meta.(*client).alertingMutex
 	client := meta.(*client).gapi
 	name := data.Id()
 
+	lock.Lock()
+	defer lock.Unlock()
 	if err := client.DeleteMessageTemplate(name); err != nil {
 		return diag.FromErr(err)
 	}
+
 	return diag.Diagnostics{}
 }
