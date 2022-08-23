@@ -153,7 +153,7 @@ func policySchema(depth uint) *schema.Resource {
 			Type:        schema.TypeList,
 			Optional:    true,
 			Description: "Routing rules for specific label sets.",
-			Elem:        policySchema(supportedPolicyTreeDepth - 1),
+			Elem:        policySchema(depth - 1),
 		}
 	}
 
