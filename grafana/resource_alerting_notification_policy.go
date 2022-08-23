@@ -67,7 +67,7 @@ func ResourceNotificationPolicy() *schema.Resource {
 
 // The maximum depth of policy tree that the provider supports, as Terraform does not allow for infinitely recursive schemas.
 // This can be increased without breaking backwards compatibility.
-const supportedPolicyTreeDepth = 2
+const supportedPolicyTreeDepth = 4
 
 const PolicySingletonID = "policy"
 
