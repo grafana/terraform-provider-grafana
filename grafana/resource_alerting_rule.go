@@ -55,7 +55,7 @@ Manages Grafana Alerting rule groups.
 				ForceNew:    true,
 				Description: "The ID of the org to which the group belongs.",
 			},
-			"rules": {
+			"rule": {
 				Type:        schema.TypeList,
 				Required:    true,
 				Description: "The rules within the group.",
@@ -274,7 +274,7 @@ func packRuleGroup(g gapi.RuleGroup, data *schema.ResourceData) error {
 		}
 		rules = append(rules, packed)
 	}
-	data.Set("rules", rules)
+	data.Set("rule", rules)
 	return nil
 }
 
@@ -282,7 +282,7 @@ func unpackRuleGroup(data *schema.ResourceData) (gapi.RuleGroup, error) {
 	group := data.Get("name").(string)
 	folder := data.Get("folder_uid").(string)
 	interval := data.Get("interval_seconds").(int)
-	packedRules := data.Get("rules").([]interface{})
+	packedRules := data.Get("rule").([]interface{})
 	orgID := data.Get("org_id").(int)
 
 	rules := make([]gapi.AlertRule, 0, len(packedRules))

@@ -7,7 +7,7 @@ resource "grafana_alert_rule" "my_multi_alert_group" {
     folder_uid = grafana_folder.compound_rule_folder.uid
     interval_seconds = 240
     org_id = 1
-    rules {
+    rule {
         name = "My Alert Rule 1"
         for = "2m"
         condition = "B"
@@ -83,7 +83,7 @@ EOT
         }
     }
 
-    rules {
+    rule {
         name = "My Alert Rule 2"
         for = "4m"
         condition = "B"
@@ -159,7 +159,7 @@ EOT
         }
     }
 
-    rules {
+    rule {
         name = "My Alert Rule 3"
         for = "4m"
         condition = "B"

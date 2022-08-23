@@ -7,7 +7,7 @@ resource "grafana_alert_rule" "my_alert_rule" {
     folder_uid = grafana_folder.rule_folder.uid
     interval_seconds = 240
     org_id = 1
-    rules {
+    rule {
         name = "My Alert Rule 1"
         for = "2m"
         condition = "B"
