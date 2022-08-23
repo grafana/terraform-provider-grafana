@@ -139,9 +139,9 @@ func resourceDashboardV0() *schema.Resource {
 
 // resourceDashboardStateUpgradeV0 migrates from version 0 of this resource's
 // schema to version 1.
-// * Use UID instead of slug. Slug was deprecated in Grafana 5 in favor of UID.
-//   Slug API endpoints were removed in Grafana 8.
-// * Version field added to schema.
+//   - Use UID instead of slug. Slug was deprecated in Grafana 5 in favor of UID.
+//     Slug API endpoints were removed in Grafana 8.
+//   - Version field added to schema.
 func resourceDashboardStateUpgradeV0(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
 	client := meta.(*client).gapi
 	dashboardID := int64(rawState["dashboard_id"].(float64))
@@ -216,8 +216,8 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
 	d.Set("version", int64(dashboard.Model["version"].(float64)))
 	d.Set("url", strings.TrimRight(gapiURL, "/")+dashboard.Meta.URL)
-	if dashboard.Folder > 0 {
-		d.Set("folder", strconv.FormatInt(dashboard.Folder, 10))
+	if dashboard.FolderID > 0 {
+		d.Set("folder", strconv.FormatInt(dashboard.FolderID, 10))
 	} else {
 		d.Set("folder", "")
 	}
@@ -293,7 +293,7 @@ func makeDashboard(d *schema.ResourceData) (gapi.Dashboard, error) {
 	}
 
 	dashboard := gapi.Dashboard{
-		Folder:    parsedFolder,
+		FolderID:  parsedFolder,
 		Overwrite: d.Get("overwrite").(bool),
 		Message:   d.Get("message").(string),
 	}
@@ -335,10 +335,10 @@ func validateDashboardConfigJSON(config interface{}, k string) ([]string, []erro
 //
 // It removes the following fields:
 //
-// * `id`:      an auto-incrementing ID Grafana assigns to dashboards upon
-//              creation. We cannot know this before creation and therefore it cannot
-//              be managed in code.
-// * `version`: is incremented by Grafana each time a dashboard changes.
+//   - `id`:      an auto-incrementing ID Grafana assigns to dashboards upon
+//     creation. We cannot know this before creation and therefore it cannot
+//     be managed in code.
+//   - `version`: is incremented by Grafana each time a dashboard changes.
 func normalizeDashboardConfigJSON(config interface{}) string {
 	var dashboardJSON map[string]interface{}
 	switch c := config.(type) {
