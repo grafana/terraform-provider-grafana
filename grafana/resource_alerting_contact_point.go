@@ -265,10 +265,7 @@ func commonNotifierResource() *schema.Resource {
 const RedactedContactPointField = "[REDACTED]"
 
 func redactedContactPointDiffSuppress(k, oldValue, newValue string, d *schema.ResourceData) bool {
-	if oldValue == RedactedContactPointField {
-		return true
-	}
-	return false
+	return oldValue == RedactedContactPointField
 }
 
 const UIDSeparator = ";"

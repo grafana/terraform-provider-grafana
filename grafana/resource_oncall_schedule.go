@@ -102,30 +102,30 @@ func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, m inter
 	}
 
 	nameData := d.Get("name").(string)
-	teamIdData := d.Get("team_id").(string)
+	teamIDData := d.Get("team_id").(string)
 	typeData := d.Get("type").(string)
 	slackData := d.Get("slack").([]interface{})
 
 	createOptions := &onCallAPI.CreateScheduleOptions{
-		TeamId: teamIdData,
+		TeamId: teamIDData,
 		Name:   nameData,
 		Type:   typeData,
 		Slack:  expandScheduleSlack(slackData),
 	}
 
-	iCalUrlPrimaryData, iCalUrlPrimaryOk := d.GetOk("ical_url_primary")
-	if iCalUrlPrimaryOk {
+	iCalURLPrimaryData, iCalURLPrimaryOk := d.GetOk("ical_url_primary")
+	if iCalURLPrimaryOk {
 		if typeData == "ical" {
-			url := iCalUrlPrimaryData.(string)
+			url := iCalURLPrimaryData.(string)
 			createOptions.ICalUrlPrimary = &url
 		} else {
 			return diag.Errorf("ical_url_primary can not be set with type: %s", typeData)
 		}
 	}
 
-	iCalUrlOverridesData, iCalUrlOverridesOk := d.GetOk("ical_url_overrides")
-	if iCalUrlOverridesOk {
-		url := iCalUrlOverridesData.(string)
+	iCalURLOverridesData, iCalURLOverridesOk := d.GetOk("ical_url_overrides")
+	if iCalURLOverridesOk {
+		url := iCalURLOverridesData.(string)
 		createOptions.ICalUrlOverrides = &url
 	}
 
@@ -173,19 +173,19 @@ func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		Slack: expandScheduleSlack(slackData),
 	}
 
-	iCalUrlPrimaryData, iCalUrlPrimaryOk := d.GetOk("ical_url_primary")
-	if iCalUrlPrimaryOk {
+	iCalURLPrimaryData, iCalURLPrimaryOk := d.GetOk("ical_url_primary")
+	if iCalURLPrimaryOk {
 		if typeData == "ical" {
-			url := iCalUrlPrimaryData.(string)
+			url := iCalURLPrimaryData.(string)
 			updateOptions.ICalUrlPrimary = &url
 		} else {
 			return diag.Errorf("ical_url_primary can not be set with type: %s", typeData)
 		}
 	}
 
-	iCalUrlOverridesData, iCalUrlOverridesOk := d.GetOk("ical_url_overrides")
-	if iCalUrlOverridesOk {
-		url := iCalUrlOverridesData.(string)
+	iCalURLOverridesData, iCalURLOverridesOk := d.GetOk("ical_url_overrides")
+	if iCalURLOverridesOk {
+		url := iCalURLOverridesData.(string)
 		updateOptions.ICalUrlOverrides = &url
 	}
 
@@ -287,12 +287,12 @@ func expandScheduleSlack(in []interface{}) *onCallAPI.SlackSchedule {
 	for _, r := range in {
 		inputMap := r.(map[string]interface{})
 		if inputMap["channel_id"] != "" {
-			channelId := inputMap["channel_id"].(string)
-			slackSchedule.ChannelId = &channelId
+			channelID := inputMap["channel_id"].(string)
+			slackSchedule.ChannelId = &channelID
 		}
 		if inputMap["user_group_id"] != "" {
-			userGroupId := inputMap["user_group_id"].(string)
-			slackSchedule.UserGroupId = &userGroupId
+			userGroupID := inputMap["user_group_id"].(string)
+			slackSchedule.UserGroupId = &userGroupID
 		}
 	}
 

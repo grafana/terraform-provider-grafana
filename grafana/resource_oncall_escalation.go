@@ -204,10 +204,10 @@ func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, m int
 		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
-	escalationChainIdData := d.Get("escalation_chain_id").(string)
+	escalationChainIDData := d.Get("escalation_chain_id").(string)
 
 	createOptions := &onCallAPI.CreateEscalationOptions{
-		EscalationChainId: escalationChainIdData,
+		EscalationChainId: escalationChainIDData,
 		ManualOrder:       true,
 	}
 

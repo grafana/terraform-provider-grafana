@@ -45,11 +45,11 @@ func ResourceOnCallEscalationChainCreate(ctx context.Context, d *schema.Resource
 	}
 
 	nameData := d.Get("name").(string)
-	teamIdData := d.Get("team_id").(string)
+	teamIDData := d.Get("team_id").(string)
 
 	createOptions := &onCallAPI.CreateEscalationChainOptions{
 		Name:   nameData,
-		TeamId: teamIdData,
+		TeamId: teamIDData,
 	}
 
 	escalationChain, _, err := client.EscalationChains.CreateEscalationChain(createOptions)

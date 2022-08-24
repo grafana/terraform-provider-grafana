@@ -171,14 +171,14 @@ func ResourceOnCallIntegrationCreate(ctx context.Context, d *schema.ResourceData
 		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
-	teamIdData := d.Get("team_id").(string)
+	teamIDData := d.Get("team_id").(string)
 	nameData := d.Get("name").(string)
 	typeData := d.Get("type").(string)
 	templatesData := d.Get("templates").([]interface{})
 	defaultRouteData := d.Get("default_route").([]interface{})
 
 	createOptions := &onCallAPI.CreateIntegrationOptions{
-		TeamId:       teamIdData,
+		TeamId:       teamIDData,
 		Name:         nameData,
 		Type:         typeData,
 		Templates:    expandTemplates(templatesData),
@@ -281,8 +281,8 @@ func expandRouteSlack(in []interface{}) *onCallAPI.SlackRoute {
 	for _, r := range in {
 		inputMap := r.(map[string]interface{})
 		if inputMap["channel_id"] != "" {
-			channelId := inputMap["channel_id"].(string)
-			slackRoute.ChannelId = &channelId
+			channelID := inputMap["channel_id"].(string)
+			slackRoute.ChannelId = &channelID
 		}
 	}
 
@@ -410,8 +410,8 @@ func expandDefaultRoute(input []interface{}) *onCallAPI.DefaultRoute {
 		id := inputMap["id"].(string)
 		defaultRoute.ID = id
 		if inputMap["escalation_chain_id"] != "" {
-			escalation_chain_id := inputMap["escalation_chain_id"].(string)
-			defaultRoute.EscalationChainId = &escalation_chain_id
+			escalationChainID := inputMap["escalation_chain_id"].(string)
+			defaultRoute.EscalationChainId = &escalationChainID
 		}
 		if inputMap["slack"] == nil {
 			defaultRoute.SlackRoute = nil

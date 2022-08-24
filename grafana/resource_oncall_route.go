@@ -70,15 +70,15 @@ func ResourceOnCallRouteCreate(ctx context.Context, d *schema.ResourceData, m in
 		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
-	integrationIdData := d.Get("integration_id").(string)
-	escalationChainIdData := d.Get("escalation_chain_id").(string)
+	integrationIDData := d.Get("integration_id").(string)
+	escalationChainIDData := d.Get("escalation_chain_id").(string)
 	routingRegexData := d.Get("routing_regex").(string)
 	positionData := d.Get("position").(int)
 	slackData := d.Get("slack").([]interface{})
 
 	createOptions := &onCallAPI.CreateRouteOptions{
-		IntegrationId:     integrationIdData,
-		EscalationChainId: escalationChainIdData,
+		IntegrationId:     integrationIDData,
+		EscalationChainId: escalationChainIDData,
 		RoutingRegex:      routingRegexData,
 		Position:          &positionData,
 		ManualOrder:       true,
@@ -126,13 +126,13 @@ func ResourceOnCallRouteUpdate(ctx context.Context, d *schema.ResourceData, m in
 		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
-	escalationChainIdData := d.Get("escalation_chain_id").(string)
+	escalationChainIDData := d.Get("escalation_chain_id").(string)
 	routingRegexData := d.Get("routing_regex").(string)
 	positionData := d.Get("position").(int)
 	slackData := d.Get("slack").([]interface{})
 
 	updateOptions := &onCallAPI.UpdateRouteOptions{
-		EscalationChainId: escalationChainIdData,
+		EscalationChainId: escalationChainIDData,
 		RoutingRegex:      routingRegexData,
 		Position:          &positionData,
 		ManualOrder:       true,

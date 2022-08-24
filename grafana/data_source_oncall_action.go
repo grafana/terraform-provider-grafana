@@ -48,10 +48,10 @@ func dataSourceOnCallActionRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("more than one action found matching: %s", options.Name)
 	}
 
-	custom_action := customActionsResponse.CustomActions[0]
+	customAction := customActionsResponse.CustomActions[0]
 
-	d.SetId(custom_action.ID)
-	d.Set("name", custom_action.Name)
+	d.SetId(customAction.ID)
+	d.Set("name", customAction.Name)
 
 	return nil
 }

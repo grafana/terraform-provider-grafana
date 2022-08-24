@@ -341,8 +341,8 @@ func FlattenStack(d *schema.ResourceData, stack gapi.Stack) error {
 }
 
 // Append path to baseurl
-func appendPath(baseUrl, path string) (string, error) {
-	bu, err := url.Parse(baseUrl)
+func appendPath(baseURL, path string) (string, error) {
+	bu, err := url.Parse(baseURL)
 	if err != nil {
 		return "", err
 	}
@@ -388,7 +388,7 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 		return nil
 	})
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("error waiting for stack to be ready: %w", err))
+		return diag.Errorf("error waiting for stack to be ready: %v", err)
 	}
 
 	return nil

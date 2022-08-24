@@ -75,13 +75,13 @@ func ResourceOnCallOutgoingWebhookCreate(ctx context.Context, d *schema.Resource
 	}
 
 	name := d.Get("name").(string)
-	teamId := d.Get("team_id").(string)
+	teamID := d.Get("team_id").(string)
 	url := d.Get("url").(string)
 	forwardWholePayload := d.Get("forward_whole_payload").(bool)
 
 	createOptions := &onCallAPI.CreateCustomActionOptions{
 		Name:                name,
-		TeamId:              teamId,
+		TeamId:              teamID,
 		Url:                 url,
 		ForwardWholePayload: forwardWholePayload,
 	}

@@ -50,11 +50,11 @@ func dataSourceOnCallSlackChannelRead(d *schema.ResourceData, m interface{}) err
 		return fmt.Errorf("more than one slack_channel found matching: %s", options.ChannelName)
 	}
 
-	slack_channel := slackChannelsResponse.SlackChannels[0]
+	slackChannel := slackChannelsResponse.SlackChannels[0]
 
-	d.SetId(slack_channel.SlackId)
-	d.Set("name", slack_channel.Name)
-	d.Set("slack_id", slack_channel.SlackId)
+	d.SetId(slackChannel.SlackId)
+	d.Set("name", slackChannel.Name)
+	d.Set("slack_id", slackChannel.SlackId)
 
 	return nil
 }
