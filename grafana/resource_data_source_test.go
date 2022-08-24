@@ -69,10 +69,16 @@ func TestAccDataSource_basic(t *testing.T) {
 			additionalChecks: []resource.TestCheckFunc{
 				func(s *terraform.State) error {
 					// Check datasource IDs
-					if dataSource.JSONData.DerivedFields[0].DatasourceUID != "" {
+					derivedFields := dataSource.JSONData["derivedFields"].([]interface{})
+					if len(derivedFields) != 2 {
+						return fmt.Errorf("expected 2 derived fields, got %d", len(derivedFields))
+					}
+					firstDerivedField := derivedFields[0].(map[string]interface{})
+					if _, ok := firstDerivedField["datasourceUid"]; ok {
 						return fmt.Errorf("expected empty datasource_uid")
 					}
-					if !uidRegexp.MatchString(dataSource.JSONData.DerivedFields[1].DatasourceUID) {
+					secondDerivedField := derivedFields[1].(map[string]interface{})
+					if !uidRegexp.MatchString(secondDerivedField["datasourceUid"].(string)) {
 						return fmt.Errorf("expected valid datasource_uid")
 					}
 					return nil
@@ -189,12 +195,8 @@ func TestAccDataSource_basic(t *testing.T) {
 					if dataSource.Name != "influx" {
 						return fmt.Errorf("bad name: %s", dataSource.Name)
 					}
-					if len(dataSource.HTTPHeaders) != 1 {
-						return fmt.Errorf("expected 1 http header, got %d", len(dataSource.HTTPHeaders))
-					}
-
-					if _, ok := dataSource.HTTPHeaders["Authorization"]; !ok {
-						return fmt.Errorf("http header header1 not found")
+					if v, ok := dataSource.JSONData["httpHeaderName1"]; !ok && v != "Authorization" {
+						return fmt.Errorf("http header Authorization not found")
 					}
 					return nil
 				},
@@ -236,7 +238,7 @@ func TestAccDataSource_basic(t *testing.T) {
 					if dataSource.Name != "elasticsearch" {
 						return fmt.Errorf("bad name: %s", dataSource.Name)
 					}
-					if dataSource.JSONData.XpackEnabled != true {
+					if dataSource.JSONData["xpack"].(bool) != true {
 						return errors.New("xpack_enabled should be true")
 					}
 					return nil
@@ -300,8 +302,9 @@ func TestAccDataSource_basic(t *testing.T) {
 					if dataSource.Name != "cloudwatch" {
 						return fmt.Errorf("bad name: %s", dataSource.Name)
 					}
-					if dataSource.JSONData.TracingDatasourceUID != "my-datasource-uid" {
-						return fmt.Errorf("bad tracing_datasource_uid: %s", dataSource.JSONData.TracingDatasourceUID)
+					datasourceUID := dataSource.JSONData["tracingDatasourceUid"].(string)
+					if datasourceUID != "my-datasource-uid" {
+						return fmt.Errorf("bad tracing_datasource_uid: %s", datasourceUID)
 					}
 					return nil
 				},
@@ -409,13 +412,10 @@ func TestAccDataSource_basic(t *testing.T) {
 					if dataSource.Name != "prometheus" {
 						return fmt.Errorf("bad name: %s", dataSource.Name)
 					}
-					if len(dataSource.HTTPHeaders) != 1 {
-						return fmt.Errorf("expected 1 http header, got %d", len(dataSource.HTTPHeaders))
-					}
-					if _, ok := dataSource.HTTPHeaders["header1"]; !ok {
+					if v, ok := dataSource.JSONData["httpHeaderName1"]; !ok && v != "header1" {
 						return fmt.Errorf("http header header1 not found")
 					}
-					if dataSource.JSONData.ManageAlerts != true {
+					if dataSource.JSONData["manageAlerts"].(bool) != true {
 						return errors.New("expected manage_alerts to be true")
 					}
 					return nil
@@ -494,8 +494,9 @@ func TestAccDataSource_basic(t *testing.T) {
 			},
 			additionalChecks: []resource.TestCheckFunc{
 				func(s *terraform.State) error {
-					if dataSource.JSONData.GitHubURL != "https://test-github.com" {
-						return fmt.Errorf("bad github_url: %s. Expected: %s", dataSource.JSONData.GitHubURL, "https://test-github.com")
+					githubURL := dataSource.JSONData["githubUrl"].(string)
+					if githubURL != "https://test-github.com" {
+						return fmt.Errorf("bad github_url: %s. Expected: %s", githubURL, "https://test-github.com")
 					}
 					return nil
 				},

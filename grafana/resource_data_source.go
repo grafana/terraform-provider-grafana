@@ -105,10 +105,12 @@ source selected (via the 'type' argument).
 				Computed:    true,
 				Description: "Unique identifier. If unset, this will be automatically generated.",
 			},
+
 			"json_data": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "(Required by some data source types)",
+				Description: "(Required by some data source types). Deprecated: Use json_data_map instead. It supports arbitrary JSON data, and therefore all attributes.",
+				Deprecated:  "Use json_data_map instead. It supports arbitrary JSON data, and therefore all attributes.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"assume_role_arn": {
@@ -454,7 +456,8 @@ source selected (via the 'type' argument).
 				Type:        schema.TypeList,
 				Optional:    true,
 				Sensitive:   true,
-				Description: "",
+				Description: "Deprecated: Use secure_json_data instead. It supports arbitrary JSON data, and therefore all attributes.",
+				Deprecated:  "Use secure_json_data instead. It supports arbitrary JSON data, and therefore all attributes.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"access_key": {
@@ -553,6 +556,19 @@ source selected (via the 'type' argument).
 				Optional:    true,
 				Default:     "",
 				Description: "(Required by some data source types) The username to use to authenticate to the data source.",
+			},
+			"json_data_map": {
+				Type:          schema.TypeMap,
+				Optional:      true,
+				ConflictsWith: []string{"json_data"},
+				Description:   "Replaces the json_data attribute, this attribute can be used to pass configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI.",
+			},
+			"secure_json_data_map": {
+				Type:          schema.TypeMap,
+				Optional:      true,
+				Sensitive:     true,
+				ConflictsWith: []string{"secure_json_data"},
+				Description:   "Replaces the secure_json_data attribute, this attribute can be used to pass secure configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI.",
 			},
 		},
 	}
@@ -653,12 +669,25 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 	var err error
 	if idStr != "" {
 		id, err = strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	httpHeaders := make(map[string]string)
 	for key, value := range d.Get("http_headers").(map[string]interface{}) {
 		httpHeaders[key] = fmt.Sprintf("%v", value)
 	}
+
+	jd, err := makeJSONData(d)
+	if err != nil {
+		return nil, err
+	}
+	sd, err := makeSecureJSONData(d)
+	if err != nil {
+		return nil, err
+	}
+	jd, sd = gapi.JSONDataWithHeaders(jd, sd, httpHeaders)
 
 	return &gapi.DataSource{
 		ID:                id,
@@ -674,13 +703,16 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 		BasicAuthUser:     d.Get("basic_auth_username").(string),
 		BasicAuthPassword: d.Get("basic_auth_password").(string),
 		UID:               d.Get("uid").(string),
-		HTTPHeaders:       httpHeaders,
-		JSONData:          makeJSONData(d),
-		SecureJSONData:    makeSecureJSONData(d),
+		JSONData:          jd,
+		SecureJSONData:    sd,
 	}, err
 }
 
-func makeJSONData(d *schema.ResourceData) gapi.JSONData {
+func makeJSONData(d *schema.ResourceData) (map[string]interface{}, error) {
+	if v, ok := d.GetOk("json_data_map"); ok {
+		return v.(map[string]interface{}), nil
+	}
+
 	var derivedFields []gapi.LokiDerivedField
 	for _, field := range d.Get("json_data.0.derived_field").([]interface{}) {
 		derivedField := field.(map[string]interface{})
@@ -751,10 +783,14 @@ func makeJSONData(d *schema.ResourceData) gapi.JSONData {
 		Version:                    d.Get("json_data.0.version").(string),
 		Workgroup:                  d.Get("json_data.0.workgroup").(string),
 		XpackEnabled:               d.Get("json_data.0.xpack_enabled").(bool),
-	}
+	}.Map()
 }
 
-func makeSecureJSONData(d *schema.ResourceData) gapi.SecureJSONData {
+func makeSecureJSONData(d *schema.ResourceData) (map[string]interface{}, error) {
+	if v, ok := d.GetOk("secure_json_data_map"); ok {
+		return v.(map[string]interface{}), nil
+	}
+
 	return gapi.SecureJSONData{
 		AccessKey:         d.Get("secure_json_data.0.access_key").(string),
 		AccessToken:       d.Get("secure_json_data.0.access_token").(string),
@@ -769,7 +805,7 @@ func makeSecureJSONData(d *schema.ResourceData) gapi.SecureJSONData {
 		TLSCACert:         d.Get("secure_json_data.0.tls_ca_cert").(string),
 		TLSClientCert:     d.Get("secure_json_data.0.tls_client_cert").(string),
 		TLSClientKey:      d.Get("secure_json_data.0.tls_client_key").(string),
-	}
+	}.Map()
 }
 
 // TSDB Version and Resolution used to be strings, but now are integers.
