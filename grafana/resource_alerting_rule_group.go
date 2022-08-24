@@ -287,7 +287,7 @@ func unpackRuleGroup(data *schema.ResourceData) (gapi.RuleGroup, error) {
 
 	rules := make([]gapi.AlertRule, 0, len(packedRules))
 	for i := range packedRules {
-		rule, err := unpackAlertRule(packedRules[i], group, folder, interval, orgID)
+		rule, err := unpackAlertRule(packedRules[i], group, folder, orgID)
 		if err != nil {
 			return gapi.RuleGroup{}, err
 		}
@@ -321,7 +321,7 @@ func packAlertRule(r gapi.AlertRule) (interface{}, error) {
 	return json, nil
 }
 
-func unpackAlertRule(raw interface{}, groupName string, folderUID string, interval int, orgID int) (gapi.AlertRule, error) {
+func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID int) (gapi.AlertRule, error) {
 	json := raw.(map[string]interface{})
 	data, err := unpackRuleData(json["data"])
 	if err != nil {

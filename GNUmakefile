@@ -51,7 +51,7 @@ golangci-lint:
 		--rm \
 		--volume "$(shell pwd):/src" \
 		--workdir "/src" \
-		golangci/golangci-lint:v1.45 golangci-lint run ./...
+		golangci/golangci-lint:v1.49 golangci-lint run ./...
 
 linkcheck:
 	docker run -it --entrypoint sh -v "$$PWD:$$PWD" -w "$$PWD" python:3.9-alpine -c "pip3 install linkchecker && linkchecker --config .linkcheckerrc docs"

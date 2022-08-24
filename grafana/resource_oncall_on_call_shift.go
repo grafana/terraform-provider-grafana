@@ -106,7 +106,7 @@ func ResourceOnCallOnCallShift() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Optional: true,
+				Optional:    true,
 				Description: "The list of on-call users (for single_event and recurrent_event event type).	",
 			},
 			"rolling_users": {
@@ -181,14 +181,14 @@ func ResourceOnCallOnCallShiftCreate(ctx context.Context, d *schema.ResourceData
 		return diag.Errorf("grafana OnCall api client is not configured")
 	}
 
-	teamIdData := d.Get("team_id").(string)
+	teamIDData := d.Get("team_id").(string)
 	typeData := d.Get("type").(string)
 	nameData := d.Get("name").(string)
 	startData := d.Get("start").(string)
 	durationData := d.Get("duration").(int)
 
 	createOptions := &onCallAPI.CreateOnCallShiftOptions{
-		TeamId:   teamIdData,
+		TeamId:   teamIDData,
 		Type:     typeData,
 		Name:     nameData,
 		Start:    startData,

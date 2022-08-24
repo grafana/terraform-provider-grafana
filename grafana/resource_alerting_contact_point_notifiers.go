@@ -585,7 +585,7 @@ type pagerDutyNotifier struct{}
 
 var _ notifier = (*pagerDutyNotifier)(nil)
 
-func (p pagerDutyNotifier) meta() notifierMeta {
+func (n pagerDutyNotifier) meta() notifierMeta {
 	return notifierMeta{
 		field:   "pagerduty",
 		typeStr: "pagerduty",
@@ -593,7 +593,7 @@ func (p pagerDutyNotifier) meta() notifierMeta {
 	}
 }
 
-func (p pagerDutyNotifier) schema() *schema.Resource {
+func (n pagerDutyNotifier) schema() *schema.Resource {
 	r := commonNotifierResource()
 	r.Schema["integration_key"] = &schema.Schema{
 		Type:             schema.TypeString,
@@ -693,7 +693,7 @@ type pushoverNotifier struct{}
 
 var _ notifier = (*pushoverNotifier)(nil)
 
-func (p pushoverNotifier) meta() notifierMeta {
+func (n pushoverNotifier) meta() notifierMeta {
 	return notifierMeta{
 		field:   "pushover",
 		typeStr: "pushover",
@@ -701,7 +701,7 @@ func (p pushoverNotifier) meta() notifierMeta {
 	}
 }
 
-func (p pushoverNotifier) schema() *schema.Resource {
+func (n pushoverNotifier) schema() *schema.Resource {
 	r := commonNotifierResource()
 	r.Schema["user_key"] = &schema.Schema{
 		Type:             schema.TypeString,

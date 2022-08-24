@@ -48,10 +48,10 @@ func dataSourceOnCallUserGroupRead(d *schema.ResourceData, m interface{}) error 
 		return fmt.Errorf("couldn't find a user group matching: %s", options.SlackHandle)
 	}
 
-	user_group := userGroupsResponse.UserGroups[0]
+	userGroup := userGroupsResponse.UserGroups[0]
 
-	d.SetId(user_group.ID)
-	d.Set("slack_id", user_group.SlackUserGroup.ID)
+	d.SetId(userGroup.ID)
+	d.Set("slack_id", userGroup.SlackUserGroup.ID)
 
 	return nil
 }

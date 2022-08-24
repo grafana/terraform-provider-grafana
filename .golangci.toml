@@ -1,12 +1,5 @@
 [run]
 timeout = "10m"
-build-tags = [
-  "cloud",
-  "enterprise",
-]
-
-[linters-settings.golint]
-min-confidence = 3
 
 [linters-settings.goconst]
 min-len = 5
@@ -15,14 +8,13 @@ min-occurrences = 5
 [linters]
 disable-all = true
 enable = [
-  "bodyclose",
-  "deadcode",
   "depguard",
   "dogsled",
+  "exportloopref",
   "goconst",
   "gocritic",
+  "gocyclo",
   "goimports",
-  "golint",
   "goprintffuncname",
   "gosec",
   "gosimple",
@@ -31,17 +23,13 @@ enable = [
   "misspell",
   "nakedret",
   "rowserrcheck",
-  "exportloopref",
   "staticcheck",
-  "structcheck",
   "stylecheck",
   "typecheck",
   "unconvert",
-  "unused",
-  "varcheck",
-  "whitespace",
-  "gocyclo",
   "unparam",
+  "unused",
+  "whitespace"
 ]
 
 [[issues.exclude-rules]]

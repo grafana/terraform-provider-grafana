@@ -332,7 +332,7 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 	}
 
 	apiURL := d.Get("url").(string)
-	cli.Transport = logging.NewTransport("Grafana", transport)
+	cli.Transport = logging.NewSubsystemLoggingHTTPTransport("Grafana", transport)
 	cfg := gapi.Config{
 		Client:     cli,
 		NumRetries: d.Get("retries").(int),
@@ -405,8 +405,8 @@ func createSMClient(d *schema.ResourceData) (string, *smapi.Client) {
 
 func createOnCallClient(d *schema.ResourceData) (*onCallAPI.Client, error) {
 	aToken := d.Get("oncall_access_token").(string)
-	base_url := d.Get("oncall_url").(string)
-	return onCallAPI.New(base_url, aToken)
+	baseURL := d.Get("oncall_url").(string)
+	return onCallAPI.New(baseURL, aToken)
 }
 
 // getJSONMap is a helper function that parses the given environment variable as a JSON object
