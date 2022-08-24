@@ -203,6 +203,56 @@ func TestAccDataSource_basic(t *testing.T) {
 			},
 		},
 		{
+			resource: "grafana_data_source.influx-arbitrary",
+			config: `
+			resource "grafana_data_source" "influx-arbitrary" {
+				type         = "influxdb"
+				name         = "influx"
+				url          = "http://acc-test.invalid/"
+			    http_headers = {
+				    Authorization = "Token sdkfjsdjflkdsjflksjdklfjslkdfjdksljfldksjsflkj"
+			    }
+				json_data_map = {
+					defaultBucket         = "telegraf"
+					organization          = "organization"
+					tlsAuth               = false
+					tlsAuthWithCACert     = false
+					version               = "Flux"
+				}
+			}
+			`,
+			attrChecks: map[string]string{
+				"type":                            "influxdb",
+				"name":                            "influx",
+				"url":                             "http://acc-test.invalid/",
+				"json_data_map.defaultBucket":     "telegraf",
+				"json_data_map.organization":      "organization",
+				"json_data_map.tlsAuth":           "false",
+				"json_data_map.tlsAuthWithCACert": "false",
+				"json_data_map.version":           "Flux",
+				"http_headers.Authorization":      "Token sdkfjsdjflkdsjflksjdklfjslkdfjdksljfldksjsflkj",
+			},
+			additionalChecks: []resource.TestCheckFunc{
+				func(s *terraform.State) error {
+					if dataSource.Name != "influx" {
+						return fmt.Errorf("bad name: %s", dataSource.Name)
+					}
+					expected := map[string]interface{}{
+						"defaultBucket":     "telegraf",
+						"organization":      "organization",
+						"tlsAuth":           "false",
+						"tlsAuthWithCACert": "false",
+						"version":           "Flux",
+						"httpHeaderName1":   "Authorization",
+					}
+					if !reflect.DeepEqual(dataSource.JSONData, expected) {
+						return fmt.Errorf("bad json_data: %#v. Expected: %+v", dataSource.JSONData, expected)
+					}
+					return nil
+				},
+			},
+		},
+		{
 			resource: "grafana_data_source.elasticsearch",
 			config: `
 			resource "grafana_data_source" "elasticsearch" {

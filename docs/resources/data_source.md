@@ -19,6 +19,22 @@ source selected (via the 'type' argument).
 ## Example Usage
 
 ```terraform
+resource "grafana_data_source" "arbitrary-data" {
+  type = "stackdriver"
+  name = "sd-arbitrary-data"
+
+  json_data_map = {
+    "tokenUri"           = "https://oauth2.googleapis.com/token"
+    "authenticationType" = "jwt"
+    "defaultProject"     = "default-project"
+    "clientEmail"        = "client-email@default-project.iam.gserviceaccount.com"
+  }
+
+  secure_json_data_map = {
+    "privateKey" = "-----BEGIN PRIVATE KEY-----\nprivate-key\n-----END PRIVATE KEY-----\n"
+  }
+}
+
 resource "grafana_data_source" "influxdb" {
   type          = "influxdb"
   name          = "myapp-metrics"

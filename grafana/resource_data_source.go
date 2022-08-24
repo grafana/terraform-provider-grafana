@@ -687,6 +687,7 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	jd, sd = gapi.JSONDataWithHeaders(jd, sd, httpHeaders)
 
 	return &gapi.DataSource{
