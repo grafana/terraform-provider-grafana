@@ -167,9 +167,6 @@ func ResourceOnCallIntegration() *schema.Resource {
 
 func ResourceOnCallIntegrationCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 
 	teamIDData := d.Get("team_id").(string)
 	nameData := d.Get("name").(string)
@@ -197,9 +194,6 @@ func ResourceOnCallIntegrationCreate(ctx context.Context, d *schema.ResourceData
 
 func ResourceOnCallIntegrationUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 
 	nameData := d.Get("name").(string)
 	templateData := d.Get("templates").([]interface{})
@@ -223,9 +217,6 @@ func ResourceOnCallIntegrationUpdate(ctx context.Context, d *schema.ResourceData
 
 func ResourceOnCallIntegrationRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 	options := &onCallAPI.GetIntegrationOptions{}
 	integration, r, err := client.Integrations.GetIntegration(d.Id(), options)
 	if err != nil {
@@ -249,9 +240,6 @@ func ResourceOnCallIntegrationRead(ctx context.Context, d *schema.ResourceData, 
 
 func ResourceOnCallIntegrationDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 	options := &onCallAPI.DeleteIntegrationOptions{}
 	_, err := client.Integrations.DeleteIntegration(d.Id(), options)
 	if err != nil {

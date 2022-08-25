@@ -97,9 +97,6 @@ func ResourceOnCallSchedule() *schema.Resource {
 
 func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
@@ -160,9 +157,6 @@ func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 
 	nameData := d.Get("name").(string)
 	slackData := d.Get("slack").([]interface{})
@@ -220,9 +214,6 @@ func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 func resourceScheduleRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 	options := &onCallAPI.GetScheduleOptions{}
 	schedule, r, err := client.Schedules.GetSchedule(d.Id(), options)
 	if err != nil {
@@ -248,9 +239,6 @@ func resourceScheduleRead(ctx context.Context, d *schema.ResourceData, m interfa
 
 func resourceScheduleDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 	options := &onCallAPI.DeleteScheduleOptions{}
 	_, err := client.Schedules.DeleteSchedule(d.Id(), options)
 	if err != nil {
