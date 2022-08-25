@@ -23,6 +23,7 @@ func TestAccDataSource_basic(t *testing.T) {
 		config           string
 		attrChecks       map[string]string
 		additionalChecks []resource.TestCheckFunc
+		verifyImport     bool // Only test import when `json_data_encoded` is set. Data sources with `json_data` cannot have their data imported.
 	}{
 		{
 			resource: "grafana_data_source.loki",
@@ -212,25 +213,21 @@ func TestAccDataSource_basic(t *testing.T) {
 			    http_headers = {
 				    Authorization = "Token sdkfjsdjflkdsjflksjdklfjslkdfjdksljfldksjsflkj"
 			    }
-				json_data_map = {
+				json_data_encoded = jsonencode({
 					defaultBucket         = "telegraf"
 					organization          = "organization"
 					tlsAuth               = false
 					tlsAuthWithCACert     = false
 					version               = "Flux"
-				}
+				})
 			}
 			`,
 			attrChecks: map[string]string{
-				"type":                            "influxdb",
-				"name":                            "influx",
-				"url":                             "http://acc-test.invalid/",
-				"json_data_map.defaultBucket":     "telegraf",
-				"json_data_map.organization":      "organization",
-				"json_data_map.tlsAuth":           "false",
-				"json_data_map.tlsAuthWithCACert": "false",
-				"json_data_map.version":           "Flux",
-				"http_headers.Authorization":      "Token sdkfjsdjflkdsjflksjdklfjslkdfjdksljfldksjsflkj",
+				"type":                       "influxdb",
+				"name":                       "influx",
+				"url":                        "http://acc-test.invalid/",
+				"json_data_encoded":          `{"defaultBucket":"telegraf","organization":"organization","tlsAuth":false,"tlsAuthWithCACert":false,"version":"Flux"}`,
+				"http_headers.Authorization": "Token sdkfjsdjflkdsjflksjdklfjslkdfjdksljfldksjsflkj",
 			},
 			additionalChecks: []resource.TestCheckFunc{
 				func(s *terraform.State) error {
@@ -240,17 +237,18 @@ func TestAccDataSource_basic(t *testing.T) {
 					expected := map[string]interface{}{
 						"defaultBucket":     "telegraf",
 						"organization":      "organization",
-						"tlsAuth":           "false",
-						"tlsAuthWithCACert": "false",
+						"tlsAuth":           false,
+						"tlsAuthWithCACert": false,
 						"version":           "Flux",
 						"httpHeaderName1":   "Authorization",
 					}
 					if !reflect.DeepEqual(dataSource.JSONData, expected) {
-						return fmt.Errorf("bad json_data: %#v. Expected: %+v", dataSource.JSONData, expected)
+						return fmt.Errorf("bad json_data_encoded: %#v. Expected: %+v", dataSource.JSONData, expected)
 					}
 					return nil
 				},
 			},
+			verifyImport: true,
 		},
 		{
 			resource: "grafana_data_source.elasticsearch",
@@ -294,6 +292,45 @@ func TestAccDataSource_basic(t *testing.T) {
 					return nil
 				},
 			},
+		},
+		{
+			resource: "grafana_data_source.elasticsearch-arbitrary",
+			config: `
+			resource "grafana_data_source" "elasticsearch-arbitrary" {
+				type          = "elasticsearch"
+				name          = "elasticsearch-arbitrary"
+				database_name = "[filebeat-]YYYY.MM.DD"
+				url 	        = "http://acc-test.invalid/"
+				json_data_encoded = jsonencode({
+					esVersion        = "7.0.0"
+					interval          = "Daily"
+					timeField        = "@timestamp"
+					logMessageField = "message"
+					logLevelField   = "fields.level"
+					maxConcurrentShardRequests = 8
+					xpack     = true
+				})
+			}
+			`,
+			attrChecks: map[string]string{
+				"type":              "elasticsearch",
+				"name":              "elasticsearch-arbitrary",
+				"database_name":     "[filebeat-]YYYY.MM.DD",
+				"url":               "http://acc-test.invalid/",
+				"json_data_encoded": `{"esVersion":"7.0.0","interval":"Daily","logLevelField":"fields.level","logMessageField":"message","maxConcurrentShardRequests":8,"timeField":"@timestamp","xpack":true}`,
+			},
+			additionalChecks: []resource.TestCheckFunc{
+				func(s *terraform.State) error {
+					if dataSource.Name != "elasticsearch-arbitrary" {
+						return fmt.Errorf("bad name: %s", dataSource.Name)
+					}
+					if dataSource.JSONData["xpack"].(bool) != true {
+						return errors.New("xpack should be true")
+					}
+					return nil
+				},
+			},
+			verifyImport: true,
 		},
 		{
 			resource: "grafana_data_source.opentsdb",
@@ -656,13 +693,19 @@ func TestAccDataSource_basic(t *testing.T) {
 					},
 					// Test import using ID
 					{
-						ResourceName: test.resource,
-						ImportState:  true,
+						ResourceName:      test.resource,
+						ImportState:       true,
+						ImportStateVerify: test.verifyImport,
+						// Ignore sensitive attributes, we mostly only care about "json_data_encoded"
+						ImportStateVerifyIgnore: []string{"secure_json_data_encoded", "http_headers."},
 					},
 					// Test import using UID
 					{
-						ResourceName: test.resource,
-						ImportState:  true,
+						ResourceName:      test.resource,
+						ImportState:       true,
+						ImportStateVerify: test.verifyImport,
+						// Ignore sensitive attributes, we mostly only care about "json_data_encoded"
+						ImportStateVerifyIgnore: []string{"secure_json_data_encoded", "http_headers."},
 						ImportStateIdFunc: func(s *terraform.State) (string, error) {
 							rs, ok := s.RootModule().Resources[test.resource]
 							if !ok {

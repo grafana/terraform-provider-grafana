@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"regexp"
@@ -11,6 +12,7 @@ import (
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/structure"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -37,6 +39,9 @@ source selected (via the 'type' argument).
 		// Import either by ID or UID
 		Importer: &schema.ResourceImporter{
 			StateContext: func(c context.Context, rd *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				// Set this attribute on imports so that the condition in the read function is met
+				// This means that when we're importing, we'll always read the JSON data from the API into this attribute
+				rd.Set("json_data_encoded", "{}")
 				_, err := strconv.ParseInt(rd.Id(), 10, 64)
 				if err != nil {
 					// If the ID is not a number, then it may be a UID
@@ -109,8 +114,8 @@ source selected (via the 'type' argument).
 			"json_data": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "(Required by some data source types). Deprecated: Use json_data_map instead. It supports arbitrary JSON data, and therefore all attributes.",
-				Deprecated:  "Use json_data_map instead. It supports arbitrary JSON data, and therefore all attributes.",
+				Description: "(Required by some data source types). Deprecated: Use json_data_encoded instead. It supports arbitrary JSON data, and therefore all attributes.",
+				Deprecated:  "Use json_data_encoded instead. It supports arbitrary JSON data, and therefore all attributes.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"assume_role_arn": {
@@ -557,18 +562,30 @@ source selected (via the 'type' argument).
 				Default:     "",
 				Description: "(Required by some data source types) The username to use to authenticate to the data source.",
 			},
-			"json_data_map": {
-				Type:          schema.TypeMap,
+			"json_data_encoded": {
+				Type:          schema.TypeString,
 				Optional:      true,
-				ConflictsWith: []string{"json_data"},
-				Description:   "Replaces the json_data attribute, this attribute can be used to pass configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI.",
+				ConflictsWith: []string{"json_data", "secure_json_data"},
+				Description:   "Serialized JSON string containing the json data. Replaces the json_data attribute, this attribute can be used to pass configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI.",
+				ValidateFunc:  validation.StringIsJSON,
+				StateFunc: func(v interface{}) string {
+					json, _ := structure.NormalizeJsonString(v)
+					return json
+				},
+				DiffSuppressFunc: SuppressEquivalentJSONDiffs,
 			},
-			"secure_json_data_map": {
-				Type:          schema.TypeMap,
+			"secure_json_data_encoded": {
+				Type:          schema.TypeString,
 				Optional:      true,
 				Sensitive:     true,
-				ConflictsWith: []string{"secure_json_data"},
-				Description:   "Replaces the secure_json_data attribute, this attribute can be used to pass secure configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI.",
+				ConflictsWith: []string{"json_data", "secure_json_data"},
+				Description:   "Serialized JSON string containing the secure json data. Replaces the secure_json_data attribute, this attribute can be used to pass secure configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI.",
+				ValidateFunc:  validation.StringIsJSON,
+				StateFunc: func(v interface{}) string {
+					json, _ := structure.NormalizeJsonString(v)
+					return json
+				},
+				DiffSuppressFunc: SuppressEquivalentJSONDiffs,
 			},
 		},
 	}
@@ -638,6 +655,43 @@ func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{
 	d.Set("url", dataSource.URL)
 	d.Set("username", dataSource.User)
 	d.Set("uid", dataSource.UID)
+
+	// If `json_data` is not set, then we'll use the new attribute: `json_data_encoded`. This allows support of imports.
+	gottenJSONData, gottenSecureJSONData, gottenHeaders := gapi.ExtractHeadersFromJSONData(dataSource.JSONData, dataSource.SecureJSONData)
+	if _, ok := d.GetOk("json_data_encoded"); ok {
+		encodedJSONData, err := json.Marshal(gottenJSONData)
+		if err != nil {
+			return diag.Errorf("Failed to marshal JSON data: %s", err)
+		}
+		d.Set("json_data_encoded", string(encodedJSONData))
+	}
+
+	// For headers and secure data, we do not know the value (the API does not return secret data)
+	// so we only remove keys from the state that are no longer present in the API.
+	if currentSecureJSONDataEncoded := d.Get("secure_json_data_encoded").(string); currentSecureJSONDataEncoded != "" {
+		var currentSecureJSONData map[string]interface{}
+		if err := json.Unmarshal([]byte(currentSecureJSONDataEncoded), &currentSecureJSONData); err != nil {
+			return diag.Errorf("Failed to unmarshal current secure JSON data: %s", err)
+		}
+		for key := range currentSecureJSONData {
+			if _, ok := gottenSecureJSONData[key]; !ok {
+				delete(currentSecureJSONData, key)
+			}
+		}
+		encodedSecureJSONData, err := json.Marshal(currentSecureJSONData)
+		if err != nil {
+			return diag.Errorf("Failed to marshal secure_json_data_encoded: %s", err)
+		}
+		d.Set("secure_json_data_encoded", string(encodedSecureJSONData))
+	}
+
+	currentHeaders := d.Get("http_headers").(map[string]interface{})
+	for key := range currentHeaders {
+		if _, ok := gottenHeaders[key]; !ok {
+			delete(currentHeaders, key)
+		}
+	}
+	d.Set("http_headers", currentHeaders)
 
 	// TODO: these fields should be migrated to SecureJSONData.
 	d.Set("basic_auth_enabled", dataSource.BasicAuth)
@@ -710,8 +764,12 @@ func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
 }
 
 func makeJSONData(d *schema.ResourceData) (map[string]interface{}, error) {
-	if v, ok := d.GetOk("json_data_map"); ok {
-		return v.(map[string]interface{}), nil
+	if v, ok := d.GetOk("json_data_encoded"); ok {
+		var jd map[string]interface{}
+		if err := json.Unmarshal([]byte(v.(string)), &jd); err != nil {
+			return nil, err
+		}
+		return jd, nil
 	}
 
 	var derivedFields []gapi.LokiDerivedField
@@ -788,8 +846,12 @@ func makeJSONData(d *schema.ResourceData) (map[string]interface{}, error) {
 }
 
 func makeSecureJSONData(d *schema.ResourceData) (map[string]interface{}, error) {
-	if v, ok := d.GetOk("secure_json_data_map"); ok {
-		return v.(map[string]interface{}), nil
+	if v, ok := d.GetOk("secure_json_data_encoded"); ok {
+		var sjd map[string]interface{}
+		if err := json.Unmarshal([]byte(v.(string)), &sjd); err != nil {
+			return nil, err
+		}
+		return sjd, nil
 	}
 
 	return gapi.SecureJSONData{

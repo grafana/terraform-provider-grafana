@@ -23,16 +23,16 @@ resource "grafana_data_source" "arbitrary-data" {
   type = "stackdriver"
   name = "sd-arbitrary-data"
 
-  json_data_map = {
+  json_data_encoded = jsonencode({
     "tokenUri"           = "https://oauth2.googleapis.com/token"
     "authenticationType" = "jwt"
     "defaultProject"     = "default-project"
     "clientEmail"        = "client-email@default-project.iam.gserviceaccount.com"
-  }
+  })
 
-  secure_json_data_map = {
+  secure_json_data_encoded = jsonencode({
     "privateKey" = "-----BEGIN PRIVATE KEY-----\nprivate-key\n-----END PRIVATE KEY-----\n"
-  }
+  })
 }
 
 resource "grafana_data_source" "influxdb" {
@@ -106,11 +106,11 @@ resource "grafana_data_source" "stackdriver" {
 - `database_name` (String) (Required by some data source types) The name of the database to use on the selected data source server. Defaults to ``.
 - `http_headers` (Map of String, Sensitive) Custom HTTP headers
 - `is_default` (Boolean) Whether to set the data source as default. This should only be `true` to a single data source. Defaults to `false`.
-- `json_data` (Block List, Deprecated) (Required by some data source types). Deprecated: Use json_data_map instead. It supports arbitrary JSON data, and therefore all attributes. (see [below for nested schema](#nestedblock--json_data))
-- `json_data_map` (Map of String) Replaces the json_data attribute, this attribute can be used to pass configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI.
+- `json_data` (Block List, Deprecated) (Required by some data source types). Deprecated: Use json_data_encoded instead. It supports arbitrary JSON data, and therefore all attributes. (see [below for nested schema](#nestedblock--json_data))
+- `json_data_encoded` (String) Serialized JSON string containing the json data. Replaces the json_data attribute, this attribute can be used to pass configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI.
 - `password` (String, Sensitive, Deprecated) (Required by some data source types) The password to use to authenticate to the data source. Deprecated: Use secure_json_data.password instead. This attribute is removed in Grafana 9.0+. Defaults to ``.
 - `secure_json_data` (Block List, Deprecated) Deprecated: Use secure_json_data instead. It supports arbitrary JSON data, and therefore all attributes. (see [below for nested schema](#nestedblock--secure_json_data))
-- `secure_json_data_map` (Map of String, Sensitive) Replaces the secure_json_data attribute, this attribute can be used to pass secure configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI.
+- `secure_json_data_encoded` (String, Sensitive) Serialized JSON string containing the secure json data. Replaces the secure_json_data attribute, this attribute can be used to pass secure configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI.
 - `uid` (String) Unique identifier. If unset, this will be automatically generated.
 - `url` (String) The URL for the data source. The type of URL required varies depending on the chosen data source type.
 - `username` (String) (Required by some data source types) The username to use to authenticate to the data source. Defaults to ``.
