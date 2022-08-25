@@ -1,10 +1,10 @@
 package grafana
 
 import (
-	"errors"
-	"fmt"
+	"context"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -13,7 +13,7 @@ func DataSourceOnCallSlackChannel() *schema.Resource {
 		Description: `
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/slack_channels/)
 `,
-		Read: dataSourceOnCallSlackChannelRead,
+		ReadContext: dataSourceOnCallSlackChannelRead,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -29,11 +29,8 @@ func DataSourceOnCallSlackChannel() *schema.Resource {
 	}
 }
 
-func dataSourceOnCallSlackChannelRead(d *schema.ResourceData, m interface{}) error {
+func dataSourceOnCallSlackChannelRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
-	}
 	options := &onCallAPI.ListSlackChannelOptions{}
 	nameData := d.Get("name").(string)
 
@@ -41,13 +38,13 @@ func dataSourceOnCallSlackChannelRead(d *schema.ResourceData, m interface{}) err
 
 	slackChannelsResponse, _, err := client.SlackChannels.ListSlackChannels(options)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if len(slackChannelsResponse.SlackChannels) == 0 {
-		return fmt.Errorf("couldn't find a slack_channel matching: %s", options.ChannelName)
+		return diag.Errorf("couldn't find a slack_channel matching: %s", options.ChannelName)
 	} else if len(slackChannelsResponse.SlackChannels) != 1 {
-		return fmt.Errorf("more than one slack_channel found matching: %s", options.ChannelName)
+		return diag.Errorf("more than one slack_channel found matching: %s", options.ChannelName)
 	}
 
 	slackChannel := slackChannelsResponse.SlackChannels[0]
