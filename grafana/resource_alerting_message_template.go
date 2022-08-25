@@ -35,6 +35,9 @@ func ResourceMessageTemplate() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The content of the message template.",
+				StateFunc: func(v interface{}) string {
+					return strings.TrimSpace(v.(string))
+				},
 			},
 		},
 	}
