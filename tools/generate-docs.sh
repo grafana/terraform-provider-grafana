@@ -8,9 +8,11 @@ go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 subcategories="$(cat ${SCRIPTPATH}/subcategories.json)"
 
+echo -e "\nAdding subcategories to docs..."
 for f in $(find ./docs/ -name "*.md"); do
     f=${f#"./docs/"}
     f="${f%.*}"
+    echo "  - ${f}"
 
     subcategory="$(echo ${subcategories} | jq -r ".[\"${f}\"]")"
     if [[ "${subcategory}" == "ignore" ]]; then
