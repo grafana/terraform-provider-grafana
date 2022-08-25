@@ -60,6 +60,7 @@ local pipeline(name, steps, services=[]) = {
         name: 'check for drift',
         image: images.go,
         commands: [
+          'apt update && apt install -y jq',
           'go generate',
           'gitstatus="$(git status --porcelain)"',
           'if [ -n "$gitstatus" ]; then',
