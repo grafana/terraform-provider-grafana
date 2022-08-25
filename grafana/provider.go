@@ -80,16 +80,16 @@ func Provider(version string) func() *schema.Provider {
 
 		// Resources that require the Synthetic Monitoring client to exist.
 		smClientResources = addResourcesMetadataValidation(smClientPresent, map[string]*schema.Resource{
-			"grafana_synthetic_monitoring_check":        ResourceSyntheticMonitoringCheck(),
-			"grafana_synthetic_monitoring_probe":        ResourceSyntheticMonitoringProbe(),
-			"grafana_synthetic_monitoring_installation": ResourceSyntheticMonitoringInstallation(),
+			"grafana_synthetic_monitoring_check": ResourceSyntheticMonitoringCheck(),
+			"grafana_synthetic_monitoring_probe": ResourceSyntheticMonitoringProbe(),
 		})
 
 		// Resources that require the Cloud client to exist.
 		cloudClientResources = addResourcesMetadataValidation(cloudClientPresent, map[string]*schema.Resource{
-			"grafana_cloud_api_key":             ResourceCloudAPIKey(),
-			"grafana_cloud_plugin_installation": ResourceCloudPluginInstallation(),
-			"grafana_cloud_stack":               ResourceCloudStack(),
+			"grafana_cloud_api_key":                     ResourceCloudAPIKey(),
+			"grafana_cloud_plugin_installation":         ResourceCloudPluginInstallation(),
+			"grafana_cloud_stack":                       ResourceCloudStack(),
+			"grafana_synthetic_monitoring_installation": ResourceSyntheticMonitoringInstallation(), // This one installs SM on an instance, it really is a cloud resource.
 		})
 
 		// Resources that require the OnCall client to exist.
