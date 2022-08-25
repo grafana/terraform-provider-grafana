@@ -29,6 +29,7 @@ platform:
 services: []
 steps:
 - commands:
+  - apt update && apt install -y jq
   - go generate
   - gitstatus="$(git status --porcelain)"
   - if [ -n "$gitstatus" ]; then
@@ -348,6 +349,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: 337e340b40f3e6e6fa45e74e98a2e4881bd7e45e1849b234042a39f94a0934e7
+hmac: 5305c32d78ea4fd8751e54de562674e698f9b4d415934d03568881933a7921f9
 
 ...
