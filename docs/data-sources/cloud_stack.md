@@ -40,6 +40,10 @@ available at “https://<stack_slug>.grafana.net".
 - `alertmanager_url` (String) Base URL of the Alertmanager instance configured for this stack.
 - `alertmanager_user_id` (Number) User ID of the Alertmanager instance configured for this stack.
 - `description` (String) Description of stack.
+- `graphite_name` (String)
+- `graphite_status` (String)
+- `graphite_url` (String)
+- `graphite_user_id` (Number)
 - `id` (String) The stack id assigned to this stack by Grafana.
 - `logs_name` (String)
 - `logs_status` (String)
@@ -54,9 +58,13 @@ available at “https://<stack_slug>.grafana.net".
 - `prometheus_remote_write_endpoint` (String) Use this URL to send prometheus metrics to Grafana cloud
 - `prometheus_status` (String) Prometheus status for this instance.
 - `prometheus_url` (String) Prometheus url for this instance.
-- `prometheus_user_id` (Number) Promehteus user ID. Used for e.g. remote_write.
+- `prometheus_user_id` (Number) Prometheus user ID. Used for e.g. remote_write.
 - `region_slug` (String) The region this stack is deployed to.
 - `status` (String) Status of the stack.
+- `traces_name` (String)
+- `traces_status` (String)
+- `traces_url` (String)
+- `traces_user_id` (Number)
 - `url` (String) Custom URL for the Grafana instance. Must have a CNAME setup to point to `.grafana.net` before creating the stack
 
 
