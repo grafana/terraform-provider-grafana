@@ -323,9 +323,9 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 				return nil, diag.FromErr(err)
 			}
 		}
-		if d.Get("sm_access_token").(string) != "" {
-			smToken := d.Get("sm_access_token").(string)
-			c.smURL = d.Get("sm_url").(string)
+		c.smURL = d.Get("sm_url").(string)
+		if smToken := d.Get("sm_access_token").(string); smToken != "" {
+
 			c.smapi = smapi.NewClient(c.smURL, smToken, nil)
 		}
 		if d.Get("oncall_access_token").(string) != "" {
