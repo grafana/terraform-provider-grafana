@@ -40,6 +40,11 @@ func TestResourceCloudStack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "prometheus_remote_endpoint", "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom"),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "prometheus_remote_write_endpoint", "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push"),
+					resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "prometheus_user_id"),
+					resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "alertmanager_user_id"),
+					resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "logs_user_id"),
+					resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "traces_user_id"),
+					resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "graphite_user_id"),
 				),
 			},
 			{
