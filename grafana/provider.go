@@ -86,10 +86,9 @@ func Provider(version string) func() *schema.Provider {
 
 		// Resources that require the Cloud client to exist.
 		cloudClientResources = addResourcesMetadataValidation(cloudClientPresent, map[string]*schema.Resource{
-			"grafana_cloud_api_key":                     ResourceCloudAPIKey(),
-			"grafana_cloud_plugin_installation":         ResourceCloudPluginInstallation(),
-			"grafana_cloud_stack":                       ResourceCloudStack(),
-			"grafana_synthetic_monitoring_installation": ResourceSyntheticMonitoringInstallation(), // This one installs SM on an instance, it really is a cloud resource.
+			"grafana_cloud_api_key":             ResourceCloudAPIKey(),
+			"grafana_cloud_plugin_installation": ResourceCloudPluginInstallation(),
+			"grafana_cloud_stack":               ResourceCloudStack(),
 		})
 
 		// Resources that require the OnCall client to exist.
@@ -256,9 +255,11 @@ func Provider(version string) func() *schema.Provider {
 			},
 
 			ResourcesMap: mergeResourceMaps(
-				// Special case, this resource supports both Grafana and Cloud (depending on context)
 				map[string]*schema.Resource{
+					// Special case, this resource supports both Grafana and Cloud (depending on context)
 					"grafana_api_key": ResourceAPIKey(),
+					// This one installs SM on a cloud instance, everything it needs is in its attributes
+					"grafana_synthetic_monitoring_installation": ResourceSyntheticMonitoringInstallation(),
 				},
 				grafanaClientResources,
 				smClientResources,
@@ -323,7 +324,9 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			}
 		}
 		if d.Get("sm_access_token").(string) != "" {
-			c.smURL, c.smapi = createSMClient(d)
+			smToken := d.Get("sm_access_token").(string)
+			c.smURL = d.Get("sm_url").(string)
+			c.smapi = smapi.NewClient(c.smURL, smToken, nil)
 		}
 		if d.Get("oncall_access_token").(string) != "" {
 			c.onCallAPI, err = createOnCallClient(d)
@@ -433,12 +436,6 @@ func createCloudClient(d *schema.ResourceData) (*gapi.Client, error) {
 		NumRetries: d.Get("retries").(int),
 	}
 	return gapi.New(d.Get("cloud_api_url").(string), cfg)
-}
-
-func createSMClient(d *schema.ResourceData) (string, *smapi.Client) {
-	smToken := d.Get("sm_access_token").(string)
-	smURL := d.Get("sm_url").(string)
-	return smURL, smapi.NewClient(smURL, smToken, nil)
 }
 
 func createOnCallClient(d *schema.ResourceData) (*onCallAPI.Client, error) {
