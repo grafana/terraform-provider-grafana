@@ -1,16 +1,16 @@
 package grafana
 
 import (
-	"errors"
-	"fmt"
+	"context"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func DataSourceOnCallTeam() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceOnCallTeamRead,
+		ReadContext: dataSourceOnCallTeamRead,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -29,11 +29,8 @@ func DataSourceOnCallTeam() *schema.Resource {
 	}
 }
 
-func dataSourceOnCallTeamRead(d *schema.ResourceData, m interface{}) error {
+func dataSourceOnCallTeamRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
-	}
 	options := &onCallAPI.ListTeamOptions{}
 	nameData := d.Get("name").(string)
 
@@ -41,13 +38,13 @@ func dataSourceOnCallTeamRead(d *schema.ResourceData, m interface{}) error {
 
 	teamsResponse, _, err := client.Teams.ListTeams(options)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if len(teamsResponse.Teams) == 0 {
-		return fmt.Errorf("couldn't find a team matching: %s", options.Name)
+		return diag.Errorf("couldn't find a team matching: %s", options.Name)
 	} else if len(teamsResponse.Teams) != 1 {
-		return fmt.Errorf("more than one team found matching: %s", options.Name)
+		return diag.Errorf("more than one team found matching: %s", options.Name)
 	}
 
 	team := teamsResponse.Teams[0]
