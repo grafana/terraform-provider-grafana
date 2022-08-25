@@ -260,9 +260,18 @@ func Provider(version string) func() *schema.Provider {
 				map[string]*schema.Resource{
 					"grafana_api_key": ResourceAPIKey(),
 				},
-				grafanaClientResources, smClientResources, onCallClientResources, cloudClientResources),
+				grafanaClientResources,
+				smClientResources,
+				onCallClientResources,
+				cloudClientResources,
+			),
 
-			DataSourcesMap: mergeResourceMaps(grafanaClientDatasources, smClientDatasources, onCallClientDatasources, cloudClientDatasources),
+			DataSourcesMap: mergeResourceMaps(
+				grafanaClientDatasources,
+				smClientDatasources,
+				onCallClientDatasources,
+				cloudClientDatasources,
+			),
 		}
 
 		p.ConfigureContextFunc = configure(version, p)

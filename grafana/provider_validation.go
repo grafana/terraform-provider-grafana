@@ -11,7 +11,7 @@ import (
 
 // This file contains validations functions that can be added to a map of resources.
 // These validations are added to the Create and Read functions of all resources,
-//   because they are entrypoints (code that will be run in all cases).
+// because they are entrypoints (code that will be run in all cases).
 
 type metadataValidation func(resourceName string, m interface{}) error
 
