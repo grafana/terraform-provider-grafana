@@ -325,7 +325,6 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		}
 		c.smURL = d.Get("sm_url").(string)
 		if smToken := d.Get("sm_access_token").(string); smToken != "" {
-
 			c.smapi = smapi.NewClient(c.smURL, smToken, nil)
 		}
 		if d.Get("oncall_access_token").(string) != "" {
