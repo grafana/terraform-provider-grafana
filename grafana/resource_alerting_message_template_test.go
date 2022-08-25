@@ -35,6 +35,21 @@ func TestAccMessageTemplate_basic(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
+			// Test update with heredoc template doesn't change
+			{
+				Config: testAccExampleWithReplace(t, "resources/grafana_message_template/resource.tf", map[string]string{
+					`template = "{{define \"My Reusable Template\" }}\n template content\n{{ end }}"`: `template = <<-EOT
+{{define "My Reusable Template" }}
+ template content
+{{ end }}
+EOT`,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testMessageTemplateCheckExists("grafana_message_template.my_template", &tmpl),
+					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "My Reusable Template"),
+					resource.TestCheckResourceAttr("grafana_message_template.my_template", "template", "{{define \"My Reusable Template\" }}\n template content\n{{ end }}"),
+				),
+			},
 			// Test update content.
 			{
 				Config: testAccExampleWithReplace(t, "resources/grafana_message_template/resource.tf", map[string]string{
