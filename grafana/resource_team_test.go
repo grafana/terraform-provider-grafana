@@ -128,7 +128,7 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 	client := testAccProvider.Meta().(*client).gapi
 
 	var team gapi.Team
-	var userId int64 = -1
+	var userID int64 = -1
 
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
@@ -144,7 +144,7 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 						Password: "123456",
 					}
 					var err error
-					userId, err = client.CreateUser(user)
+					userID, err = client.CreateUser(user)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -159,7 +159,7 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 			{
 				PreConfig: func() {
 					// Delete the user
-					if err := client.DeleteUser(userId); err != nil {
+					if err := client.DeleteUser(userID); err != nil {
 						t.Fatal(err)
 					}
 				},
