@@ -122,6 +122,57 @@ func TestAccTeam_Members(t *testing.T) {
 	})
 }
 
+// Test that deleted users can still be removed as members of a team
+func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+	client := testAccProvider.Meta().(*client).gapi
+
+	var team gapi.Team
+	var userID int64 = -1
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccTeamCheckDestroy(&team),
+		Steps: []resource.TestStep{
+			{
+				PreConfig: func() {
+					// Create user
+					user := gapi.User{
+						Email:    "user1@grafana.com",
+						Login:    "user1@grafana.com",
+						Name:     "user1",
+						Password: "123456",
+					}
+					var err error
+					userID, err = client.CreateUser(user)
+					if err != nil {
+						t.Fatal(err)
+					}
+				},
+				Config: testAccTeam_withMember("user1@grafana.com"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccTeamCheckExists("grafana_team.test", &team),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "1"),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.0", "user1@grafana.com"),
+				),
+			},
+			{
+				PreConfig: func() {
+					// Delete the user
+					if err := client.DeleteUser(userID); err != nil {
+						t.Fatal(err)
+					}
+				},
+				Config: testAccTeamConfig_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccTeamCheckExists("grafana_team.test", &team),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "0"),
+				),
+			},
+		},
+	})
+}
+
 //nolint:unparam // `rn` always receives `"grafana_team.test"`
 func testAccTeamCheckExists(rn string, a *gapi.Team) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -220,3 +271,12 @@ resource "grafana_team" "test" {
   members = [ ]
 }
 `
+
+func testAccTeam_withMember(user string) string {
+	return fmt.Sprintf(`
+  resource "grafana_team" "test" {
+	name    = "terraform-acc-test"
+  	email   = "teamEmail@example.com"
+  	members = ["%s"]
+  }`, user)
+}
