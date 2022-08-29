@@ -102,55 +102,55 @@ func ResourceOnCallIntegration() *schema.Resource {
 										Description: "Slack channel id. Alerts will be directed to this channel in Slack.",
 									},
 									"enabled": {
-                                        Type:        schema.TypeBool,
-                                        Required:    true,
-                                        Description: "Enable notification in Slack.",
-						            },
+										Type:        schema.TypeBool,
+										Required:    true,
+										Description: "Enable notification in Slack.",
+									},
 								},
 							},
 							Description: "Slack-specific settings for a route.",
 							MaxItems:    1,
 						},
-                        "telegram": {
-                            Type:     schema.TypeList,
-                            Optional: true,
-                            Elem: &schema.Resource{
-                                Schema: map[string]*schema.Schema{
-                                    "id": {
-                                        Type:        schema.TypeString,
-                                        Optional:    true,
-                                        Description: "Telegram channel id. Alerts will be directed to this channel in Telegram.",
-                                    },
+						"telegram": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"id": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Telegram channel id. Alerts will be directed to this channel in Telegram.",
+									},
 									"enabled": {
-                                        Type:        schema.TypeBool,
-                                        Required:    true,
-                                        Description: "Enable notification in Telegram.",
-						            },
-                                },
-                            },
-                            MaxItems:    1,
-                            Description: "Telegram-specific settings for a route.",
-                        },
-                        "msteams": {
-                            Type:     schema.TypeList,
-                            Optional: true,
-                            Elem: &schema.Resource{
-                                Schema: map[string]*schema.Schema{
-                                    "id": {
-                                        Type:        schema.TypeString,
-                                        Optional:    true,
-                                        Description: "MS teams channel id. Alerts will be directed to this channel in Microsoft teams.",
-                                    },
+										Type:        schema.TypeBool,
+										Required:    true,
+										Description: "Enable notification in Telegram.",
+									},
+								},
+							},
+							MaxItems:    1,
+							Description: "Telegram-specific settings for a route.",
+						},
+						"msteams": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"id": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "MS teams channel id. Alerts will be directed to this channel in Microsoft teams.",
+									},
 									"enabled": {
-                                        Type:        schema.TypeBool,
-                                        Required:    true,
-                                        Description: "Enable notification in MS teams.",
-						            },
-                                },
-                            },
-                            MaxItems:    1,
-                            Description: "MS teams-specific settings for a route.",
-                        },
+										Type:        schema.TypeBool,
+										Required:    true,
+										Description: "Enable notification in MS teams.",
+									},
+								},
+							},
+							MaxItems:    1,
+							Description: "MS teams-specific settings for a route.",
+						},
 					},
 				},
 				MaxItems:    1,
@@ -301,10 +301,10 @@ func flattenRouteSlack(in *onCallAPI.SlackRoute) []map[string]interface{} {
 
 	out := make(map[string]interface{})
 
-    out["channel_id"] = in.ChannelId
-    out["enabled"] = in.Enabled
+	out["channel_id"] = in.ChannelId
+	out["enabled"] = in.Enabled
 
-    slack = append(slack, out)
+	slack = append(slack, out)
 
 	return slack
 }
@@ -331,8 +331,8 @@ func flattenRouteTelegram(in *onCallAPI.TelegramRoute) []map[string]interface{} 
 
 	out := make(map[string]interface{})
 
-    out["id"] = in.Id
-    out["enabled"] = in.Enabled
+	out["id"] = in.Id
+	out["enabled"] = in.Enabled
 	telegram = append(telegram, out)
 	return telegram
 }
@@ -360,9 +360,9 @@ func flattenRouteMSTeams(in *onCallAPI.MSTeamsRoute) []map[string]interface{} {
 	out := make(map[string]interface{})
 
 	if in != nil {
-        out["id"] = in.Id
-	    out["enabled"] = in.Enabled
-        msTeams = append(msTeams, out)
+		out["id"] = in.Id
+		out["enabled"] = in.Enabled
+		msTeams = append(msTeams, out)
 	}
 
 	return msTeams
@@ -377,7 +377,7 @@ func expandRouteMSTeams(in []interface{}) *onCallAPI.MSTeamsRoute {
 			id := inputMap["id"].(string)
 			msTeamsRoute.Id = &id
 		}
-        if enabled, ok := inputMap["enabled"].(bool); ok {
+		if enabled, ok := inputMap["enabled"].(bool); ok {
 			msTeamsRoute.Enabled = enabled
 		}
 	}
@@ -492,18 +492,18 @@ func flattenDefaultRoute(in *onCallAPI.DefaultRoute, d *schema.ResourceData) []m
 	out := make(map[string]interface{})
 	out["id"] = in.ID
 	out["escalation_chain_id"] = in.EscalationChainId
-    // Set messengers data only if related fields are present
-    _, slackOk := d.GetOk("default_route.0.slack")
+	// Set messengers data only if related fields are present
+	_, slackOk := d.GetOk("default_route.0.slack")
 	if slackOk {
-        out["slack"] = flattenRouteSlack(in.SlackRoute)
+		out["slack"] = flattenRouteSlack(in.SlackRoute)
 	}
-    _, telegramOk := d.GetOk("default_route.0.telegram")
+	_, telegramOk := d.GetOk("default_route.0.telegram")
 	if telegramOk {
-	    out["telegram"] = flattenRouteTelegram(in.TelegramRoute)
+		out["telegram"] = flattenRouteTelegram(in.TelegramRoute)
 	}
-    _, msteamsOk := d.GetOk("default_route.0.msteams")
+	_, msteamsOk := d.GetOk("default_route.0.msteams")
 	if msteamsOk {
-	    out["msteams"] = flattenRouteMSTeams(in.MSTeamsRoute)
+		out["msteams"] = flattenRouteMSTeams(in.MSTeamsRoute)
 	}
 
 	defaultRoute = append(defaultRoute, out)
