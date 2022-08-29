@@ -61,7 +61,7 @@ This resource cannot be imported but it can be used on an existing Synthetic Mon
 }
 
 func ResourceSyntheticMonitoringInstallationCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*client).smapi
+	c := smapi.NewClient(meta.(*client).smURL, "", nil)
 	stackID, metricsID, logsID := d.Get("stack_id").(int), d.Get("metrics_instance_id").(int), d.Get("logs_instance_id").(int)
 	resp, err := c.Install(ctx, int64(stackID), int64(metricsID), int64(logsID), d.Get("metrics_publisher_key").(string))
 	if err != nil {

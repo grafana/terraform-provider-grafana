@@ -135,7 +135,7 @@ func TestAccContactPoint_compound(t *testing.T) {
 
 func TestAccContactPoint_notifiers(t *testing.T) {
 	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=9.0.0")
+	CheckOSSTestsSemver(t, ">=9.1.0")
 
 	var points []gapi.ContactPoint
 
@@ -148,10 +148,20 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 			{
 				Config: testAccExample(t, "resources/grafana_contact_point/_acc_receiver_types.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 2),
+					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 17),
+					// alertmanager
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.0.url", "http://my-am"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.0.basic_auth_user", "user"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.0.basic_auth_password", "[REDACTED]"),
+					// dingding
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "dingding.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "dingding.0.url", "http://dingding-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "dingding.0.message_type", "link"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "dingding.0.message", "message"),
 					// discord
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.#", "1"),
-					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.url", "discord-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.url", "http://discord-url"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.message", "message"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.avatar_url", "avatar_url"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.use_discord_username", "true"),
@@ -161,6 +171,97 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "email.0.message", "message"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "email.0.subject", "subject"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "email.0.single_email", "true"),
+					// googlechat
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.url", "http://googlechat-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.message", "message"),
+					// kafka
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.rest_proxy_url", "http://kafka-rest-proxy-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.topic", "mytopic"),
+					// opsgenie
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.url", "http://opsgenie-api"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.api_key", "[REDACTED]"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.message", "message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.description", "description"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.auto_close", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.override_priority", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.send_tags_as", "both"),
+					// pagerduty
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.0.integration_key", "[REDACTED]"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.0.severity", "critical"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.0.class", "ping failure"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.0.component", "mysql"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.0.group", "my service"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.0.summary", "message"),
+					// pushover
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.user_key", "[REDACTED]"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.api_token", "[REDACTED]"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.priority", "0"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.ok_priority", "0"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.retry", "45"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.expire", "80000"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.device", "device"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.sound", "bugle"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.ok_sound", "cashregister"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.message", "message"),
+					// sensugo
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "sensugo.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "sensugo.0.url", "http://sensugo-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "sensugo.0.api_key", "[REDACTED]"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "sensugo.0.entity", "entity"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "sensugo.0.check", "check"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "sensugo.0.namespace", "namespace"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "sensugo.0.handler", "handler"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "sensugo.0.message", "message"),
+					// slack
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "slack.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "slack.0.endpoint_url", "http://custom-slack-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "slack.0.token", "[REDACTED]"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "slack.0.recipient", "#channel"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "slack.0.text", "message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "slack.0.title", "title"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "slack.0.username", "bot"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "slack.0.icon_emoji", ":icon:"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "slack.0.icon_url", "http://domain/icon.png"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "slack.0.mention_channel", "here"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "slack.0.mention_users", "user"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "slack.0.mention_groups", "group"),
+					// teams
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "teams.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "teams.0.url", "http://teams-webhook"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "teams.0.message", "message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "teams.0.title", "title"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "teams.0.section_title", "section"),
+					// telegram
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.token", "[REDACTED]"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.chat_id", "chat-id"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.message", "message"),
+					// threema
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "threema.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "threema.0.gateway_id", "*gateway"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "threema.0.recipient_id", "*target1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "threema.0.api_secret", "[REDACTED]"),
+					// victorops
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "victorops.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "victorops.0.url", "http://victor-ops-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "victorops.0.message_type", "CRITICAL"),
+					// webhook
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.url", "http://my-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_method", "POST"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.basic_auth_user", "user"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.basic_auth_password", "[REDACTED]"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.max_alerts", "100"),
+					// wecom
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.url", "[REDACTED]"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.message", "message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.title", "title"),
 				),
 			},
 		},

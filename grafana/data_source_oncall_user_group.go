@@ -1,10 +1,10 @@
 package grafana
 
 import (
-	"errors"
-	"fmt"
+	"context"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -13,7 +13,7 @@ func DataSourceOnCallUserGroup() *schema.Resource {
 		Description: `
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/user_groups/)
 `,
-		Read: dataSourceOnCallUserGroupRead,
+		ReadContext: dataSourceOnCallUserGroupRead,
 		Schema: map[string]*schema.Schema{
 			"slack_handle": {
 				Type:     schema.TypeString,
@@ -27,11 +27,8 @@ func DataSourceOnCallUserGroup() *schema.Resource {
 	}
 }
 
-func dataSourceOnCallUserGroupRead(d *schema.ResourceData, m interface{}) error {
+func dataSourceOnCallUserGroupRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
-	}
 	options := &onCallAPI.ListUserGroupOptions{}
 	slackHandleData := d.Get("slack_handle").(string)
 
@@ -39,19 +36,19 @@ func dataSourceOnCallUserGroupRead(d *schema.ResourceData, m interface{}) error 
 
 	userGroupsResponse, _, err := client.UserGroups.ListUserGroups(options)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if len(userGroupsResponse.UserGroups) == 0 {
-		return fmt.Errorf("couldn't find a user group matching: %s", options.SlackHandle)
+		return diag.Errorf("couldn't find a user group matching: %s", options.SlackHandle)
 	} else if len(userGroupsResponse.UserGroups) != 1 {
-		return fmt.Errorf("couldn't find a user group matching: %s", options.SlackHandle)
+		return diag.Errorf("couldn't find a user group matching: %s", options.SlackHandle)
 	}
 
-	user_group := userGroupsResponse.UserGroups[0]
+	userGroup := userGroupsResponse.UserGroups[0]
 
-	d.SetId(user_group.ID)
-	d.Set("slack_id", user_group.SlackUserGroup.ID)
+	d.SetId(userGroup.ID)
+	d.Set("slack_id", userGroup.SlackUserGroup.ID)
 
 	return nil
 }

@@ -144,7 +144,7 @@ func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{
 		}
 	}
 
-	if &annotation == nil {
+	if annotation.ID <= 0 {
 		return diag.Errorf("unable to find Grafana annotation ID %d", id)
 	}
 

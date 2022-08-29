@@ -1,10 +1,10 @@
 package grafana
 
 import (
-	"errors"
-	"fmt"
+	"context"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -14,7 +14,7 @@ func DataSourceOnCallSchedule() *schema.Resource {
 * [Official documentation](https://grafana.com/docs/grafana-cloud/oncall/calendar-schedules/)
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/schedules/)
 `,
-		Read: dataSourceOnCallScheduleRead,
+		ReadContext: dataSourceOnCallScheduleRead,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -30,11 +30,8 @@ func DataSourceOnCallSchedule() *schema.Resource {
 	}
 }
 
-func dataSourceOnCallScheduleRead(d *schema.ResourceData, m interface{}) error {
+func dataSourceOnCallScheduleRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
-	}
 	options := &onCallAPI.ListScheduleOptions{}
 	nameData := d.Get("name").(string)
 
@@ -42,13 +39,13 @@ func dataSourceOnCallScheduleRead(d *schema.ResourceData, m interface{}) error {
 
 	schedulesResponse, _, err := client.Schedules.ListSchedules(options)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if len(schedulesResponse.Schedules) == 0 {
-		return fmt.Errorf("couldn't find a schedule matching: %s", options.Name)
+		return diag.Errorf("couldn't find a schedule matching: %s", options.Name)
 	} else if len(schedulesResponse.Schedules) != 1 {
-		return fmt.Errorf("more than one schedule found matching: %s", options.Name)
+		return diag.Errorf("more than one schedule found matching: %s", options.Name)
 	}
 
 	schedule := schedulesResponse.Schedules[0]

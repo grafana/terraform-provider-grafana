@@ -69,6 +69,27 @@ func TestAccFolder_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "title", "Terraform Test Folder Updated With UID"),
 				),
 			},
+			// Test import using ID
+			{
+				ResourceName: "grafana_folder.test_folder",
+				ImportState:  true,
+			},
+			// Test import using UID
+			{
+				ResourceName: "grafana_folder.test_folder_with_uid",
+				ImportState:  true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					rs, ok := s.RootModule().Resources["grafana_folder.test_folder_with_uid"]
+					if !ok {
+						return "", fmt.Errorf("resource not found: %s", "grafana_folder.test_folder_with_uid")
+					}
+
+					if rs.Primary.ID == "" {
+						return "", fmt.Errorf("resource id not set")
+					}
+					return rs.Primary.Attributes["uid"], nil
+				},
+			},
 		},
 	})
 }
@@ -107,7 +128,7 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 		if id == 0 {
 			return fmt.Errorf("got a folder id of 0")
 		}
-		gotFolder, err := getFolderById(client, id)
+		gotFolder, err := getFolderByID(client, id)
 		if err != nil {
 			return fmt.Errorf("error getting folder: %s", err)
 		}
@@ -121,7 +142,7 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 func testAccFolderCheckDestroy(folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*client).gapi
-		_, err := getFolderById(client, folder.ID)
+		_, err := getFolderByID(client, folder.ID)
 		if err == nil {
 			return fmt.Errorf("folder still exists")
 		}

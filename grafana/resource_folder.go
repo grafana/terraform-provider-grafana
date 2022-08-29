@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -25,8 +26,22 @@ func ResourceFolder() *schema.Resource {
 		DeleteContext: DeleteFolder,
 		ReadContext:   ReadFolder,
 		UpdateContext: UpdateFolder,
+
+		// Import either by ID or UID
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: func(c context.Context, rd *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				_, err := strconv.ParseInt(rd.Id(), 10, 64)
+				if err != nil {
+					// If the ID is not a number, then it may be a UID
+					client := meta.(*client).gapi
+					folder, err := client.FolderByUID(rd.Id())
+					if err != nil {
+						return nil, fmt.Errorf("failed to find folder by ID or UID '%s': %w", rd.Id(), err)
+					}
+					rd.SetId(strconv.FormatInt(folder.ID, 10))
+				}
+				return []*schema.ResourceData{rd}, nil
+			},
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -100,7 +115,7 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		return diag.FromErr(err)
 	}
 
-	folder, err := getFolderById(client, id)
+	folder, err := getFolderByID(client, id)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
 			log.Printf("[WARN] removing folder %d from state because it no longer exists in grafana", id)
@@ -166,7 +181,7 @@ func NormalizeFolderConfigJSON(configI interface{}) string {
 // Hackish way to get the folder by ID.
 // TODO: Revert to using the specific folder ID GET endpoint once it's fixed
 // Broken in 8.5.0
-func getFolderById(client *gapi.Client, id int64) (*gapi.Folder, error) {
+func getFolderByID(client *gapi.Client, id int64) (*gapi.Folder, error) {
 	folders, err := client.Folders()
 	if err != nil {
 		return nil, err

@@ -34,6 +34,7 @@ func TestAccDatasourcePermission_basic(t *testing.T) {
 	})
 }
 
+//nolint:unused
 func testAccDatasourcePermissionsCheckExists(rn string, datasourceID *int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
@@ -63,6 +64,7 @@ func testAccDatasourcePermissionsCheckExists(rn string, datasourceID *int64) res
 	}
 }
 
+//nolint:unused
 func testAccDatasourcePermissionCheckDestroy(datasourceID *int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*client).gapi

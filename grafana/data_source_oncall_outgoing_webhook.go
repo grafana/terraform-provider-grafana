@@ -1,9 +1,9 @@
 package grafana
 
 import (
-	"errors"
-	"fmt"
+	"context"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
@@ -14,7 +14,7 @@ func DataSourceOnCallOutgoingWebhook() *schema.Resource {
 		Description: `
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/outgoing_webhooks/)
 `,
-		Read: dataSourceOnCallOutgoingWebhookRead,
+		ReadContext: dataSourceOnCallOutgoingWebhookRead,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -25,11 +25,8 @@ func DataSourceOnCallOutgoingWebhook() *schema.Resource {
 	}
 }
 
-func dataSourceOnCallOutgoingWebhookRead(d *schema.ResourceData, m interface{}) error {
+func dataSourceOnCallOutgoingWebhookRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
-	}
 	options := &onCallAPI.ListCustomActionOptions{}
 	name := d.Get("name").(string)
 
@@ -37,13 +34,13 @@ func dataSourceOnCallOutgoingWebhookRead(d *schema.ResourceData, m interface{}) 
 
 	outgoingWebhookResponse, _, err := client.CustomActions.ListCustomActions(options)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if len(outgoingWebhookResponse.CustomActions) == 0 {
-		return fmt.Errorf("couldn't find an outgoing webhook matching: %s", options.Name)
+		return diag.Errorf("couldn't find an outgoing webhook matching: %s", options.Name)
 	} else if len(outgoingWebhookResponse.CustomActions) != 1 {
-		return fmt.Errorf("more than one outgoing webhook found matching: %s", options.Name)
+		return diag.Errorf("more than one outgoing webhook found matching: %s", options.Name)
 	}
 
 	outgoingWebhook := outgoingWebhookResponse.CustomActions[0]

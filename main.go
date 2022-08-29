@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 )
 
-//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+//go:generate ./tools/generate-docs.sh
 
 var (
 	// these will be set by the goreleaser configuration

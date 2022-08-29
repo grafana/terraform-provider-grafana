@@ -212,18 +212,15 @@ func ResourceOnCallIntegration() *schema.Resource {
 
 func ResourceOnCallIntegrationCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 
-	teamIdData := d.Get("team_id").(string)
+	teamIDData := d.Get("team_id").(string)
 	nameData := d.Get("name").(string)
 	typeData := d.Get("type").(string)
 	templatesData := d.Get("templates").([]interface{})
 	defaultRouteData := d.Get("default_route").([]interface{})
 
 	createOptions := &onCallAPI.CreateIntegrationOptions{
-		TeamId:       teamIdData,
+		TeamId:       teamIDData,
 		Name:         nameData,
 		Type:         typeData,
 		Templates:    expandTemplates(templatesData),
@@ -242,9 +239,6 @@ func ResourceOnCallIntegrationCreate(ctx context.Context, d *schema.ResourceData
 
 func ResourceOnCallIntegrationUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 
 	nameData := d.Get("name").(string)
 	templateData := d.Get("templates").([]interface{})
@@ -268,9 +262,6 @@ func ResourceOnCallIntegrationUpdate(ctx context.Context, d *schema.ResourceData
 
 func ResourceOnCallIntegrationRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 	options := &onCallAPI.GetIntegrationOptions{}
 	integration, r, err := client.Integrations.GetIntegration(d.Id(), options)
 	if err != nil {
@@ -294,9 +285,6 @@ func ResourceOnCallIntegrationRead(ctx context.Context, d *schema.ResourceData, 
 
 func ResourceOnCallIntegrationDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 	options := &onCallAPI.DeleteIntegrationOptions{}
 	_, err := client.Integrations.DeleteIntegration(d.Id(), options)
 	if err != nil {
@@ -327,8 +315,8 @@ func expandRouteSlack(in []interface{}) *onCallAPI.SlackRoute {
 	for _, r := range in {
 		inputMap := r.(map[string]interface{})
 		if inputMap["channel_id"] != "" {
-			channelId := inputMap["channel_id"].(string)
-			slackRoute.ChannelId = &channelId
+			channelID := inputMap["channel_id"].(string)
+			slackRoute.ChannelId = &channelID
 		}
 		if enabled, ok := inputMap["enabled"].(bool); ok {
 			slackRoute.Enabled = enabled
@@ -530,8 +518,8 @@ func expandDefaultRoute(input []interface{}) *onCallAPI.DefaultRoute {
 		id := inputMap["id"].(string)
 		defaultRoute.ID = id
 		if inputMap["escalation_chain_id"] != "" {
-			escalation_chain_id := inputMap["escalation_chain_id"].(string)
-			defaultRoute.EscalationChainId = &escalation_chain_id
+			escalationChainID := inputMap["escalation_chain_id"].(string)
+			defaultRoute.EscalationChainId = &escalationChainID
 		}
 		if inputMap["slack"] == nil {
 			defaultRoute.SlackRoute = nil

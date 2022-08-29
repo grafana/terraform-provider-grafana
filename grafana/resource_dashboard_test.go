@@ -201,8 +201,8 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 
 func testAccDashboardCheckExistsInFolder(dashboard *gapi.Dashboard, folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if dashboard.Folder != folder.ID && folder.ID != 0 {
-			return fmt.Errorf("dashboard.Folder(%d) does not match folder.ID(%d)", dashboard.Folder, folder.ID)
+		if dashboard.FolderID != folder.ID && folder.ID != 0 {
+			return fmt.Errorf("dashboard.Folder(%d) does not match folder.ID(%d)", dashboard.FolderID, folder.ID)
 		}
 		return nil
 	}
@@ -226,7 +226,7 @@ func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.
 		if err == nil {
 			return fmt.Errorf("dashboard still exists")
 		}
-		folder, err = getFolderById(client, folder.ID)
+		folder, err = getFolderByID(client, folder.ID)
 		if err == nil {
 			return fmt.Errorf("the following folder still exists: %s", folder.Title)
 		}

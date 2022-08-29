@@ -40,16 +40,13 @@ func ResourceOnCallEscalationChain() *schema.Resource {
 
 func ResourceOnCallEscalationChainCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 
 	nameData := d.Get("name").(string)
-	teamIdData := d.Get("team_id").(string)
+	teamIDData := d.Get("team_id").(string)
 
 	createOptions := &onCallAPI.CreateEscalationChainOptions{
 		Name:   nameData,
-		TeamId: teamIdData,
+		TeamId: teamIDData,
 	}
 
 	escalationChain, _, err := client.EscalationChains.CreateEscalationChain(createOptions)
@@ -64,9 +61,6 @@ func ResourceOnCallEscalationChainCreate(ctx context.Context, d *schema.Resource
 
 func ResourceOnCallEscalationChainRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 
 	escalationChain, r, err := client.EscalationChains.GetEscalationChain(d.Id(), &onCallAPI.GetEscalationChainOptions{})
 	if err != nil {
@@ -86,9 +80,6 @@ func ResourceOnCallEscalationChainRead(ctx context.Context, d *schema.ResourceDa
 
 func ResourceOnCallEscalationChainUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 
 	nameData := d.Get("name").(string)
 
@@ -107,9 +98,6 @@ func ResourceOnCallEscalationChainUpdate(ctx context.Context, d *schema.Resource
 
 func ResourceOnCallEscalationChainDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 
 	_, err := client.EscalationChains.DeleteEscalationChain(d.Id(), &onCallAPI.DeleteEscalationChainOptions{})
 	if err != nil {

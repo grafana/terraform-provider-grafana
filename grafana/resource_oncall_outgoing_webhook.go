@@ -70,18 +70,15 @@ func ResourceOnCallOutgoingWebhook() *schema.Resource {
 
 func ResourceOnCallOutgoingWebhookCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 
 	name := d.Get("name").(string)
-	teamId := d.Get("team_id").(string)
+	teamID := d.Get("team_id").(string)
 	url := d.Get("url").(string)
 	forwardWholePayload := d.Get("forward_whole_payload").(bool)
 
 	createOptions := &onCallAPI.CreateCustomActionOptions{
 		Name:                name,
-		TeamId:              teamId,
+		TeamId:              teamID,
 		Url:                 url,
 		ForwardWholePayload: forwardWholePayload,
 	}
@@ -120,9 +117,6 @@ func ResourceOnCallOutgoingWebhookCreate(ctx context.Context, d *schema.Resource
 
 func ResourceOnCallOutgoingWebhookRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 
 	outgoingWebhook, r, err := client.CustomActions.GetCustomAction(d.Id(), &onCallAPI.GetCustomActionOptions{})
 	if err != nil {
@@ -148,9 +142,6 @@ func ResourceOnCallOutgoingWebhookRead(ctx context.Context, d *schema.ResourceDa
 
 func ResourceOnCallOutgoingWebhookUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 
 	name := d.Get("name").(string)
 	url := d.Get("url").(string)
@@ -195,9 +186,6 @@ func ResourceOnCallOutgoingWebhookUpdate(ctx context.Context, d *schema.Resource
 
 func ResourceOnCallOutgoingWebhookDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 
 	_, err := client.CustomActions.DeleteCustomAction(d.Id(), &onCallAPI.DeleteCustomActionOptions{})
 	if err != nil {
