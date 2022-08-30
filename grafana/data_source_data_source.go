@@ -556,3 +556,11 @@ func DatasourceDatasource() *schema.Resource {
 }
 
 // search DataSource by Name
+func findDataSourceWithName(client *gapi.Client, name string) (*gapi.DataSource, error) {
+	id, err := client.DataSourceIDByName(name)
+	if err != nil {
+		return nil, err
+	}
+	
+	return client.DataSourceByUID(id)
+}
