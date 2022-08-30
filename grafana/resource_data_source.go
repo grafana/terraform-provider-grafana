@@ -74,8 +74,8 @@ source selected (via the 'type' argument).
 				Optional:    true,
 				Default:     "",
 				Sensitive:   true,
-				Description: "Basic auth password. Deprecated: Use secure_json_data.basic_auth_password instead. This attribute is removed in Grafana 9.0+.",
-				Deprecated:  "Use secure_json_data.basic_auth_password instead. This attribute is removed in Grafana 9.0+.",
+				Description: "Basic auth password. Deprecated:Use secure_json_data_encoded instead. It supports arbitrary JSON data, and therefore all attributes. This attribute is removed in Grafana 9.0+.",
+				Deprecated:  "Use secure_json_data_encoded instead. It supports arbitrary JSON data, and therefore all attributes. This attribute is removed in Grafana 9.0+.",
 			},
 			"basic_auth_username": {
 				Type:        schema.TypeString,
@@ -454,15 +454,15 @@ source selected (via the 'type' argument).
 				Optional:    true,
 				Default:     "",
 				Sensitive:   true,
-				Description: "(Required by some data source types) The password to use to authenticate to the data source. Deprecated: Use secure_json_data.password instead. This attribute is removed in Grafana 9.0+.",
-				Deprecated:  "Use secure_json_data.password instead. This attribute is removed in Grafana 9.0+.",
+				Description: "(Required by some data source types) The password to use to authenticate to the data source. Deprecated: Use secure_json_data_encoded instead. It supports arbitrary JSON data, and therefore all attributes. This attribute is removed in Grafana 9.0+.",
+				Deprecated:  "Use secure_json_data_encoded instead. It supports arbitrary JSON data, and therefore all attributes. This attribute is removed in Grafana 9.0+.",
 			},
 			"secure_json_data": {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Sensitive:   true,
-				Description: "Deprecated: Use secure_json_data instead. It supports arbitrary JSON data, and therefore all attributes.",
-				Deprecated:  "Use secure_json_data instead. It supports arbitrary JSON data, and therefore all attributes.",
+				Description: "Deprecated: Use secure_json_data_encoded instead. It supports arbitrary JSON data, and therefore all attributes.",
+				Deprecated:  "Use secure_json_data_encoded instead. It supports arbitrary JSON data, and therefore all attributes.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"access_key": {
