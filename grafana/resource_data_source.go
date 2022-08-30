@@ -461,8 +461,8 @@ source selected (via the 'type' argument).
 				Type:        schema.TypeList,
 				Optional:    true,
 				Sensitive:   true,
-				Description: "Deprecated: Use secure_json_data instead. It supports arbitrary JSON data, and therefore all attributes.",
-				Deprecated:  "Use secure_json_data instead. It supports arbitrary JSON data, and therefore all attributes.",
+				Description: "Deprecated: Use secure_json_data_map instead. It supports arbitrary JSON data, and therefore all attributes.",
+				Deprecated:  "Use secure_json_data_map instead. It supports arbitrary JSON data, and therefore all attributes.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"access_key": {
