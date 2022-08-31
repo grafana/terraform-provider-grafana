@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"regexp"
+	"context"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/go-cty/cty"
@@ -554,7 +555,11 @@ func DatasourceDatasource() *schema.Resource {
 }
 
 // search DataSource by Name
-func dataSourceDataSourceRead(client *gapi.Client, name string) (*gapi.DataSource, error) {
+func dataSourceDataSourceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	gapiURL := meta.(*client).gapiURL
+	var dataspource *gapi.Datasource
+	client := meta.(*client).gapi
+
 	id, err := client.DataSourceIDByName(name)
 	if err != nil {
 		return nil, err
