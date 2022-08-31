@@ -112,6 +112,7 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_user":          DatasourceUser(),
 			"grafana_team":          DatasourceTeam(),
 			"grafana_organization":  DatasourceOrganization(),
+			"grafana_datasources":	 DatasourceDatasource(),
 		})
 
 		// Datasources that require the Synthetic Monitoring client to exist.
