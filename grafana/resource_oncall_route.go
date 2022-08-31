@@ -57,8 +57,9 @@ func ResourceOnCallRoute() *schema.Resource {
 						},
 						"enabled": {
 							Type:        schema.TypeBool,
-							Required:    true,
+							Optional:    true,
 							Description: "Enable notification in Slack.",
+							Default:     true,
 						},
 					},
 				},
@@ -77,8 +78,9 @@ func ResourceOnCallRoute() *schema.Resource {
 						},
 						"enabled": {
 							Type:        schema.TypeBool,
-							Required:    true,
+							Optional:    true,
 							Description: "Enable notification in Telegram.",
+							Default:     true,
 						},
 					},
 				},
@@ -97,8 +99,9 @@ func ResourceOnCallRoute() *schema.Resource {
 						},
 						"enabled": {
 							Type:        schema.TypeBool,
-							Required:    true,
+							Optional:    true,
 							Description: "Enable notification in MS teams.",
+							Default:     true,
 						},
 					},
 				},
