@@ -69,36 +69,27 @@ resource "grafana_oncall_route" "example_route" {
 <a id="nestedblock--msteams"></a>
 ### Nested Schema for `msteams`
 
-Required:
-
-- `enabled` (Boolean) Enable notification in MS teams.
-
 Optional:
 
+- `enabled` (Boolean) Enable notification in MS teams. Defaults to `true`.
 - `id` (String) MS teams channel id. Alerts will be directed to this channel in Microsoft teams.
 
 
 <a id="nestedblock--slack"></a>
 ### Nested Schema for `slack`
 
-Required:
-
-- `enabled` (Boolean) Enable notification in Slack.
-
 Optional:
 
 - `channel_id` (String) Slack channel id. Alerts will be directed to this channel in Slack.
+- `enabled` (Boolean) Enable notification in Slack. Defaults to `true`.
 
 
 <a id="nestedblock--telegram"></a>
 ### Nested Schema for `telegram`
 
-Required:
-
-- `enabled` (Boolean) Enable notification in Telegram.
-
 Optional:
 
+- `enabled` (Boolean) Enable notification in Telegram. Defaults to `true`.
 - `id` (String) Telegram channel id. Alerts will be directed to this channel in Telegram.
 
 ## Import

@@ -59,36 +59,27 @@ Read-Only:
 <a id="nestedblock--default_route--msteams"></a>
 ### Nested Schema for `default_route.msteams`
 
-Required:
-
-- `enabled` (Boolean) Enable notification in MS teams.
-
 Optional:
 
+- `enabled` (Boolean) Enable notification in MS teams. Defaults to `true`.
 - `id` (String) MS teams channel id. Alerts will be directed to this channel in Microsoft teams.
 
 
 <a id="nestedblock--default_route--slack"></a>
 ### Nested Schema for `default_route.slack`
 
-Required:
-
-- `enabled` (Boolean) Enable notification in Slack.
-
 Optional:
 
 - `channel_id` (String) Slack channel id. Alerts will be directed to this channel in Slack.
+- `enabled` (Boolean) Enable notification in Slack. Defaults to `true`.
 
 
 <a id="nestedblock--default_route--telegram"></a>
 ### Nested Schema for `default_route.telegram`
 
-Required:
-
-- `enabled` (Boolean) Enable notification in Telegram.
-
 Optional:
 
+- `enabled` (Boolean) Enable notification in Telegram. Defaults to `true`.
 - `id` (String) Telegram channel id. Alerts will be directed to this channel in Telegram.
 
 
