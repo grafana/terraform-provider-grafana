@@ -1,14 +1,12 @@
 package grafana
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"net/url"
-	"strconv"
-	"strings"
+	"regexp"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/structure"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -562,5 +560,5 @@ func findDataSourceWithName(client *gapi.Client, name string) (*gapi.DataSource,
 		return nil, err
 	}
 	
-	return client.DataSourceByUID(id)
+	return client.DataSource(id)
 }
