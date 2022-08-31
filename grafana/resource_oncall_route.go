@@ -52,13 +52,61 @@ func ResourceOnCallRoute() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"channel_id": {
 							Type:        schema.TypeString,
-							Required:    true,
+							Optional:    true,
 							Description: "Slack channel id. Alerts will be directed to this channel in Slack.",
+						},
+						"enabled": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Enable notification in Slack.",
+							Default:     true,
 						},
 					},
 				},
 				MaxItems:    1,
 				Description: "Slack-specific settings for a route.",
+			},
+			"telegram": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Telegram channel id. Alerts will be directed to this channel in Telegram.",
+						},
+						"enabled": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Enable notification in Telegram.",
+							Default:     true,
+						},
+					},
+				},
+				MaxItems:    1,
+				Description: "Telegram-specific settings for a route.",
+			},
+			"msteams": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "MS teams channel id. Alerts will be directed to this channel in Microsoft teams.",
+						},
+						"enabled": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Enable notification in MS teams.",
+							Default:     true,
+						},
+					},
+				},
+				MaxItems:    1,
+				Description: "MS teams-specific settings for a route.",
 			},
 		},
 	}
@@ -67,19 +115,23 @@ func ResourceOnCallRoute() *schema.Resource {
 func ResourceOnCallRouteCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 
-	integrationIDData := d.Get("integration_id").(string)
-	escalationChainIDData := d.Get("escalation_chain_id").(string)
-	routingRegexData := d.Get("routing_regex").(string)
-	positionData := d.Get("position").(int)
-	slackData := d.Get("slack").([]interface{})
+	integrationID := d.Get("integration_id").(string)
+	escalationChainID := d.Get("escalation_chain_id").(string)
+	routingRegex := d.Get("routing_regex").(string)
+	position := d.Get("position").(int)
+	slack := d.Get("slack").([]interface{})
+	telegram := d.Get("telegram").([]interface{})
+	msTeams := d.Get("msteams").([]interface{})
 
 	createOptions := &onCallAPI.CreateRouteOptions{
-		IntegrationId:     integrationIDData,
-		EscalationChainId: escalationChainIDData,
-		RoutingRegex:      routingRegexData,
-		Position:          &positionData,
+		IntegrationId:     integrationID,
+		EscalationChainId: escalationChainID,
+		RoutingRegex:      routingRegex,
+		Position:          &position,
 		ManualOrder:       true,
-		Slack:             expandRouteSlack(slackData),
+		Slack:             expandRouteSlack(slack),
+		Telegram:          expandRouteTelegram(telegram),
+		MSTeams:           expandRouteMSTeams(msTeams),
 	}
 
 	route, _, err := client.Routes.CreateRoute(createOptions)
@@ -109,7 +161,20 @@ func ResourceOnCallRouteRead(ctx context.Context, d *schema.ResourceData, m inte
 	d.Set("escalation_chain_id", route.EscalationChainId)
 	d.Set("routing_regex", route.RoutingRegex)
 	d.Set("position", route.Position)
-	d.Set("slack", flattenRouteSlack(route.SlackRoute))
+
+	// Set messengers data only if related fields are presented
+	_, slackOk := d.GetOk("slack")
+	if slackOk {
+		d.Set("slack", flattenRouteSlack(route.SlackRoute))
+	}
+	_, telegramOk := d.GetOk("telegram")
+	if telegramOk {
+		d.Set("telegram", flattenRouteTelegram(route.TelegramRoute))
+	}
+	_, msteamsOk := d.GetOk("msteams")
+	if msteamsOk {
+		d.Set("msteams", flattenRouteMSTeams(route.MSTeamsRoute))
+	}
 
 	return nil
 }
@@ -117,17 +182,21 @@ func ResourceOnCallRouteRead(ctx context.Context, d *schema.ResourceData, m inte
 func ResourceOnCallRouteUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
 
-	escalationChainIDData := d.Get("escalation_chain_id").(string)
-	routingRegexData := d.Get("routing_regex").(string)
-	positionData := d.Get("position").(int)
-	slackData := d.Get("slack").([]interface{})
+	escalationChainID := d.Get("escalation_chain_id").(string)
+	routingRegex := d.Get("routing_regex").(string)
+	position := d.Get("position").(int)
+	slack := d.Get("slack").([]interface{})
+	telegram := d.Get("telegram").([]interface{})
+	msTeams := d.Get("msteams").([]interface{})
 
 	updateOptions := &onCallAPI.UpdateRouteOptions{
-		EscalationChainId: escalationChainIDData,
-		RoutingRegex:      routingRegexData,
-		Position:          &positionData,
+		EscalationChainId: escalationChainID,
+		RoutingRegex:      routingRegex,
+		Position:          &position,
 		ManualOrder:       true,
-		Slack:             expandRouteSlack(slackData),
+		Slack:             expandRouteSlack(slack),
+		Telegram:          expandRouteTelegram(telegram),
+		MSTeams:           expandRouteMSTeams(msTeams),
 	}
 
 	route, _, err := client.Routes.UpdateRoute(d.Id(), updateOptions)
