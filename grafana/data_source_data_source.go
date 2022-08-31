@@ -17,7 +17,7 @@ func DatasourceDatasource() *schema.Resource {
 * [Official documentation](https://grafana.com/docs/grafana/latest/datasources/)
 * [DataSource HTTP API](https://grafana.com/docs/grafana/latest/http_api/data_source/)
 `,
-		ReadContext: ReadDataSource,
+		ReadContext: dataSourceDataSourceRead,
 		Schema: map[string]*schema.Schema{
 			"access_mode": {
 				Type:        schema.TypeString,
@@ -554,7 +554,7 @@ func DatasourceDatasource() *schema.Resource {
 }
 
 // search DataSource by Name
-func findDataSourceWithName(client *gapi.Client, name string) (*gapi.DataSource, error) {
+func dataSourceDataSourceRead(client *gapi.Client, name string) (*gapi.DataSource, error) {
 	id, err := client.DataSourceIDByName(name)
 	if err != nil {
 		return nil, err
