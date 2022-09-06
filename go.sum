@@ -118,8 +118,8 @@ github.com/grafana/grafana-api-golang-client v0.11.2 h1:wzT/TfaPWgOA0xHJ7fdIgmcn
 github.com/grafana/grafana-api-golang-client v0.11.2/go.mod h1:24W29gPe9yl0/3A9X624TPkAOR8DpHno490cPwnkv8E=
 github.com/grafana/machine-learning-go-client v0.1.1 h1:Gw6cX8xAd6IVF2LApkXOIdBK8Gzz07B3jQPukecw7fc=
 github.com/grafana/machine-learning-go-client v0.1.1/go.mod h1:QFfZz8NkqVF8++skjkKQXJEZfpCYd8S0yTWJUpsLLTA=
-github.com/grafana/synthetic-monitoring-agent v0.9.3 h1:1GAjyUMWPYndRF6tux8NWgk97bRFx9RVYMkEMerPNKU=
-github.com/grafana/synthetic-monitoring-agent v0.9.3/go.mod h1:wy21Ay1n5j3sfUWqCdUPHUwBcmA7OLOsBIkHkovcTkc=
+github.com/grafana/synthetic-monitoring-agent v0.9.4 h1:Enx5s6gFbc/RAzL5KDX/00catAlbcY7/1IFPBe5lo/c=
+github.com/grafana/synthetic-monitoring-agent v0.9.4/go.mod h1:PGcL9plaDkqkWenFE53vCfLamfws3yFba4jgWEt9kGw=
 github.com/grafana/synthetic-monitoring-api-go-client v0.6.0 h1:HWcBf2WYv7/qjY5LvuqiBxvA6IFW/AyDE8u0XBmgm3I=
 github.com/grafana/synthetic-monitoring-api-go-client v0.6.0/go.mod h1:cDXZ41bIcDOKyDup7bbtxurX+Pi5OxqB/B39FCsfDLk=
 github.com/grpc-ecosystem/grpc-gateway v1.16.0/go.mod h1:BDjrQk3hbvj6Nolgz8mAMFbcEtjT1g+wF4CSlocrBnw=
@@ -260,8 +260,8 @@ github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81P
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
-github.com/stretchr/testify v1.7.2 h1:4jaiDzPyXQvSd7D0EjG45355tLlV3VOECpq10pLC+8s=
 github.com/stretchr/testify v1.7.2/go.mod h1:R6va5+xMeoiuVRoj+gSkQ7d3FALtqAAGI1FQKckRals=
+github.com/stretchr/testify v1.8.0 h1:pSgiaMZlXftHpm5L7V1+rVB+AZJydKsMxsQBIJw4PKk=
 github.com/vmihailenco/msgpack v3.3.3+incompatible/go.mod h1:fy3FlTQTDXWkZ7Bh6AcGMlsjHatGryHQYUTf1ShIgkk=
 github.com/vmihailenco/msgpack v4.0.4+incompatible h1:dSLoQfGFAo3F6OoNhwUmLwVgaUXK79GlxNBwueZn0xI=
 github.com/vmihailenco/msgpack v4.0.4+incompatible/go.mod h1:fy3FlTQTDXWkZ7Bh6AcGMlsjHatGryHQYUTf1ShIgkk=
