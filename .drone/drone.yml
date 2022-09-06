@@ -62,7 +62,14 @@ platform:
 services: []
 steps:
 - commands:
+  - cp /bin/terraform /drone/terraform-provider-grafana/terraform
+  - chmod a+x /drone/terraform-provider-grafana/terraform
+  image: hashicorp/terraform
+  name: download-terraform
+- commands:
   - go test ./...
+  environment:
+    TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.18
   name: tests
 trigger:
@@ -85,11 +92,17 @@ platform:
 services: []
 steps:
 - commands:
+  - cp /bin/terraform /drone/terraform-provider-grafana/terraform
+  - chmod a+x /drone/terraform-provider-grafana/terraform
+  image: hashicorp/terraform
+  name: download-terraform
+- commands:
   - make testacc-cloud-api
   environment:
     GRAFANA_CLOUD_API_KEY:
       from_secret: grafana-cloud-api-key
     GRAFANA_CLOUD_ORG: terraformprovidergrafana
+    TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.18
   name: tests
 trigger:
@@ -112,6 +125,11 @@ platform:
 services: []
 steps:
 - commands:
+  - cp /bin/terraform /drone/terraform-provider-grafana/terraform
+  - chmod a+x /drone/terraform-provider-grafana/terraform
+  image: hashicorp/terraform
+  name: download-terraform
+- commands:
   - .drone/wait-for-instance.sh https://terraformprovidergrafana.grafana.net/
   image: golang:1.18
   name: wait for instance
@@ -126,6 +144,7 @@ steps:
     GRAFANA_SM_ACCESS_TOKEN:
       from_secret: grafana-sm-token
     GRAFANA_URL: https://terraformprovidergrafana.grafana.net/
+    TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.18
   name: tests
 trigger:
@@ -174,6 +193,11 @@ services:
   name: grafana
 steps:
 - commands:
+  - cp /bin/terraform /drone/terraform-provider-grafana/terraform
+  - chmod a+x /drone/terraform-provider-grafana/terraform
+  image: hashicorp/terraform
+  name: download-terraform
+- commands:
   - sleep 5
   - make testacc-oss
   environment:
@@ -181,6 +205,7 @@ steps:
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 9.1.0
+    TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.18
   name: tests
 trigger:
@@ -205,6 +230,11 @@ services:
   name: grafana
 steps:
 - commands:
+  - cp /bin/terraform /drone/terraform-provider-grafana/terraform
+  - chmod a+x /drone/terraform-provider-grafana/terraform
+  image: hashicorp/terraform
+  name: download-terraform
+- commands:
   - sleep 5
   - make testacc-oss
   environment:
@@ -212,6 +242,7 @@ steps:
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 9.0.7
+    TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.18
   name: tests
 trigger:
@@ -236,6 +267,11 @@ services:
   name: grafana
 steps:
 - commands:
+  - cp /bin/terraform /drone/terraform-provider-grafana/terraform
+  - chmod a+x /drone/terraform-provider-grafana/terraform
+  image: hashicorp/terraform
+  name: download-terraform
+- commands:
   - sleep 5
   - make testacc-oss
   environment:
@@ -243,6 +279,7 @@ steps:
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 8.5.5
+    TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.18
   name: tests
 trigger:
@@ -267,6 +304,11 @@ services:
   name: grafana
 steps:
 - commands:
+  - cp /bin/terraform /drone/terraform-provider-grafana/terraform
+  - chmod a+x /drone/terraform-provider-grafana/terraform
+  image: hashicorp/terraform
+  name: download-terraform
+- commands:
   - sleep 5
   - make testacc-oss
   environment:
@@ -274,6 +316,7 @@ steps:
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 8.4.7
+    TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.18
   name: tests
 trigger:
@@ -298,6 +341,11 @@ services:
   name: grafana
 steps:
 - commands:
+  - cp /bin/terraform /drone/terraform-provider-grafana/terraform
+  - chmod a+x /drone/terraform-provider-grafana/terraform
+  image: hashicorp/terraform
+  name: download-terraform
+- commands:
   - sleep 5
   - make testacc-oss
   environment:
@@ -305,6 +353,7 @@ steps:
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 8.3.7
+    TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.18
   name: tests
 trigger:
@@ -329,6 +378,11 @@ services:
   name: grafana
 steps:
 - commands:
+  - cp /bin/terraform /drone/terraform-provider-grafana/terraform
+  - chmod a+x /drone/terraform-provider-grafana/terraform
+  image: hashicorp/terraform
+  name: download-terraform
+- commands:
   - sleep 5
   - make testacc-oss
   environment:
@@ -336,6 +390,7 @@ steps:
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 7.5.15
+    TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.18
   name: tests
 trigger:
@@ -349,6 +404,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: 5305c32d78ea4fd8751e54de562674e698f9b4d415934d03568881933a7921f9
+hmac: 8c44f9980e078778581b1c708a316480b4d6636cb4389b091c057f94ed3afaa7
 
 ...
