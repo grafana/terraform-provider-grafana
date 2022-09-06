@@ -666,6 +666,8 @@ func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{
 		d.Set("json_data_encoded", string(encodedJSONData))
 	}
 
+	// For headers, we do not know the value (the API does not return secret data)
+	// so we only remove keys from the state that are no longer present in the API.
 	currentHeaders := d.Get("http_headers").(map[string]interface{})
 	for key := range currentHeaders {
 		if _, ok := gottenHeaders[key]; !ok {
