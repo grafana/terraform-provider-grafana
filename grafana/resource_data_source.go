@@ -577,6 +577,7 @@ source selected (via the 'type' argument).
 			"secure_json_data_encoded": {
 				Type:          schema.TypeString,
 				Optional:      true,
+				Sensitive:     true,
 				ConflictsWith: []string{"json_data", "secure_json_data"},
 				Description:   "Serialized JSON string containing the secure json data. Replaces the secure_json_data attribute, this attribute can be used to pass secure configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI.",
 				ValidateFunc:  validation.StringIsJSON,
