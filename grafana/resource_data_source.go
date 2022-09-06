@@ -657,7 +657,7 @@ func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{
 	d.Set("uid", dataSource.UID)
 
 	// If `json_data` is not set, then we'll use the new attribute: `json_data_encoded`. This allows support of imports.
-	gottenJSONData, gottenSecureJSONData, gottenHeaders := gapi.ExtractHeadersFromJSONData(dataSource.JSONData, dataSource.SecureJSONData)
+	gottenJSONData, _, gottenHeaders := gapi.ExtractHeadersFromJSONData(dataSource.JSONData, dataSource.SecureJSONData)
 	if _, ok := d.GetOk("json_data_encoded"); ok {
 		encodedJSONData, err := json.Marshal(gottenJSONData)
 		if err != nil {
@@ -666,25 +666,8 @@ func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{
 		d.Set("json_data_encoded", string(encodedJSONData))
 	}
 
-	// For headers and secure data, we do not know the value (the API does not return secret data)
+	// For headers, we do not know the value (the API does not return secret data)
 	// so we only remove keys from the state that are no longer present in the API.
-	if currentSecureJSONDataEncoded := d.Get("secure_json_data_encoded").(string); currentSecureJSONDataEncoded != "" {
-		var currentSecureJSONData map[string]interface{}
-		if err := json.Unmarshal([]byte(currentSecureJSONDataEncoded), &currentSecureJSONData); err != nil {
-			return diag.Errorf("Failed to unmarshal current secure JSON data: %s", err)
-		}
-		for key := range currentSecureJSONData {
-			if _, ok := gottenSecureJSONData[key]; !ok {
-				delete(currentSecureJSONData, key)
-			}
-		}
-		encodedSecureJSONData, err := json.Marshal(currentSecureJSONData)
-		if err != nil {
-			return diag.Errorf("Failed to marshal secure_json_data_encoded: %s", err)
-		}
-		d.Set("secure_json_data_encoded", string(encodedSecureJSONData))
-	}
-
 	currentHeaders := d.Get("http_headers").(map[string]interface{})
 	for key := range currentHeaders {
 		if _, ok := gottenHeaders[key]; !ok {
