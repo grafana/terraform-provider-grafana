@@ -34,7 +34,7 @@ resource "grafana_oncall_outgoing_webhook" "test-acc-outgoing_webhook" {
 - `data` (String) The data of the webhook.
 - `forward_whole_payload` (Boolean) Forwards whole payload of the alert to the webhook's url as POST data.
 - `password` (String) The auth data of the webhook. Used for Basic authentication
-- `team_id` (String) The ID of the team.
+- `team_id` (String) The ID of the OnCall team. Note that this is not the same as a Grafana team.
 - `user` (String) The auth data of the webhook. Used for Basic authentication.
 
 ### Read-Only

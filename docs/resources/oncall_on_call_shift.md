@@ -107,7 +107,7 @@ output "emea_weekday__rolling_users" {
 - `level` (Number) The priority level. The higher the value, the higher the priority.
 - `rolling_users` (List of Set of String) The list of lists with on-call users (for rolling_users event type)
 - `start_rotation_from_user_index` (Number) The index of the list of users in rolling_users, from which on-call rotation starts.
-- `team_id` (String) The ID of the team.
+- `team_id` (String) The ID of the OnCall team. Note that this is not the same as a Grafana team.
 - `time_zone` (String) The shift's timezone.  Overrides schedule's timezone.
 - `users` (Set of String) The list of on-call users (for single_event and recurrent_event event type).
 - `week_start` (String) Start day of the week in iCal format. Can be MO, TU, WE, TH, FR, SA, SU

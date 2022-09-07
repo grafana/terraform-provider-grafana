@@ -32,7 +32,7 @@ func ResourceOnCallOutgoingWebhook() *schema.Resource {
 			"team_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The ID of the team.",
+				Description: "The ID of the OnCall team. Note that this is not the same as a Grafana team.",
 			},
 			"url": {
 				Type:        schema.TypeString,

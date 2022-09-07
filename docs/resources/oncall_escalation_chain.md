@@ -28,7 +28,7 @@ resource "grafana_oncall_escalation_chain" "default" {
 
 ### Optional
 
-- `team_id` (String) The ID of the team.
+- `team_id` (String) The ID of the OnCall team. Note that this is not the same as a Grafana team.
 
 ### Read-Only
 

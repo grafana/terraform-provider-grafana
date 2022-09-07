@@ -34,7 +34,7 @@ resource "grafana_oncall_integration" "test-acc-integration" {
 
 ### Optional
 
-- `team_id` (String) The id of the team.
+- `team_id` (String) The ID of the OnCall team. Note that this is not the same as a Grafana team.
 - `templates` (Block List, Max: 1) Jinja2 templates for Alert payload. (see [below for nested schema](#nestedblock--templates))
 
 ### Read-Only

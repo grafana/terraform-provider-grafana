@@ -58,7 +58,7 @@ resource "grafana_oncall_schedule" "example_schedule" {
 - `ical_url_primary` (String) The URL of the external calendar iCal file.
 - `shifts` (Set of String) The list of ID's of on-call shifts.
 - `slack` (Block List, Max: 1) The Slack-specific settings for a schedule. (see [below for nested schema](#nestedblock--slack))
-- `team_id` (String) The ID of the team.
+- `team_id` (String) The ID of the OnCall team. Note that this is not the same as a Grafana team.
 - `time_zone` (String) The schedule's time zone.
 
 ### Read-Only
