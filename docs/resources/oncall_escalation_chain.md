@@ -28,7 +28,7 @@ resource "grafana_oncall_escalation_chain" "default" {
 
 ### Optional
 
-- `team_id` (String) The ID of the team.
+- `team_id` (String) The ID of the OnCall team. To get one, create a team in Grafana, and navigate to the OnCall plugin (to sync the team with OnCall). You can then get the ID using the `grafana_oncall_team` datasource.
 
 ### Read-Only
 

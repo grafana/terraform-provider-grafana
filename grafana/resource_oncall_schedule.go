@@ -39,7 +39,7 @@ func ResourceOnCallSchedule() *schema.Resource {
 			"team_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The ID of the team.",
+				Description: "The ID of the OnCall team. To get one, create a team in Grafana, and navigate to the OnCall plugin (to sync the team with OnCall). You can then get the ID using the `grafana_oncall_team` datasource.",
 			},
 			"type": {
 				Type:         schema.TypeString,
