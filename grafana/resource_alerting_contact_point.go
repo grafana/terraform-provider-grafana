@@ -73,16 +73,15 @@ Manages Grafana Alerting contact points.
 func readContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	uids := unpackUIDs(data.Id())
+	uidsToFetch := unpackUIDs(data.Id())
 
 	points := []gapi.ContactPoint{}
-	for _, uid := range uids {
+	for _, uid := range uidsToFetch {
 		p, err := client.ContactPoint(uid)
 		if err != nil {
-			if strings.HasPrefix(err.Error(), "status: 404") {
+			if strings.HasPrefix(err.Error(), "status: 404") || strings.Contains(err.Error(), "not found") {
 				log.Printf("[WARN] removing contact point %s from state because it no longer exists in grafana", uid)
-				data.SetId("")
-				return nil
+				continue
 			}
 			return diag.FromErr(err)
 		}
@@ -92,6 +91,10 @@ func readContactPoint(ctx context.Context, data *schema.ResourceData, meta inter
 	err := packContactPoints(points, data)
 	if err != nil {
 		return diag.FromErr(err)
+	}
+	uids := make([]string, 0, len(points))
+	for _, p := range points {
+		uids = append(uids, p.UID)
 	}
 	data.SetId(packUIDs(uids))
 
