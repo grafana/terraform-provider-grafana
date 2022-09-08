@@ -36,6 +36,7 @@ func TestAccContactPoint_basic(t *testing.T) {
 			{
 				ResourceName:      "grafana_contact_point.my_contact_point",
 				ImportState:       true,
+				ImportStateId:     "My Contact Point",
 				ImportStateVerify: true,
 			},
 			// Test update content.

@@ -45,7 +45,7 @@ Manages Grafana Alerting contact points.
 		DeleteContext: deleteContactPoint,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: importContactPoint,
 		},
 
 		SchemaVersion: 0,
@@ -68,6 +68,28 @@ Manages Grafana Alerting contact points.
 	}
 
 	return resource
+}
+
+func importContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	name := data.Id()
+	client := meta.(*client).gapi
+
+	ps, err := client.ContactPointsByName(name)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(ps) == 0 {
+		return nil, fmt.Errorf("no contact points with the given name were found to import")
+	}
+
+	uids := make([]string, 0, len(ps))
+	for _, p := range ps {
+		uids = append(uids, p.UID)
+	}
+
+	data.SetId(packUIDs(uids))
+	return []*schema.ResourceData{data}, nil
 }
 
 func readContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
