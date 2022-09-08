@@ -12,6 +12,7 @@ import (
 func ResourceNotificationPolicy() *schema.Resource {
 	return &schema.Resource{
 		Description: `
+Sets the global notification policy for Grafana. Note that this resource manages the entire notification policy tree, and will overwrite any existing policies.
 * [Official documentation](https://grafana.com/docs/grafana/latest/alerting/notifications/)
 * [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#notification-policies)
 `,

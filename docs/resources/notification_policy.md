@@ -3,11 +3,14 @@
 page_title: "grafana_notification_policy Resource - terraform-provider-grafana"
 subcategory: "Alerting"
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/alerting/notifications/HTTP API https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#notification-policies
+  Sets the global notification policy for Grafana. Note that this resource manages the entire notification policy tree, and will overwrite any existing policies.
+  * Official documentation https://grafana.com/docs/grafana/latest/alerting/notifications/
+  * HTTP API https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#notification-policies
 ---
 
 # grafana_notification_policy (Resource)
 
+Sets the global notification policy for Grafana. Note that this resource manages the entire notification policy tree, and will overwrite any existing policies.
 * [Official documentation](https://grafana.com/docs/grafana/latest/alerting/notifications/)
 * [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#notification-policies)
 
@@ -212,5 +215,6 @@ Required:
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_notification_policy.notification_policy_name {{notification_policy_name}}
+# The policy is a singleton, so the ID is a constant "policy" value.
+terraform import grafana_notification_policy.notification_policy_name "policy"
 ```
