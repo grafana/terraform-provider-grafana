@@ -79,7 +79,7 @@ func importContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 		return nil, err
 	}
 
-	if ps == nil || len(ps) == 0 {
+	if len(ps) == 0 {
 		return nil, fmt.Errorf("no contact points with the given name were found to import")
 	}
 
