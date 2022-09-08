@@ -1,1 +1,1 @@
-terraform import grafana_alert_rule.alert_rule_name {{alert_rule_name}}
+terraform import grafana_rule_group.rule_group_name {{folder_uid}};{{rule_group_name}}
