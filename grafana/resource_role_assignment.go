@@ -2,7 +2,7 @@ package grafana
 
 import (
 	"context"
-	"fmt"
+
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -86,8 +86,7 @@ func ResourceRoleAssignment() *schema.Resource {
 }
 
 func ReadRoleAssignments(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// TODO check how to avoid forces replacement (when adding a team say)
-	// TODO check how ot add repeated requests
+	// TODO check how ot handle repeated requests
 	// TODO improve errors from the backend side
 
 	client := meta.(*client).gapi
@@ -97,43 +96,7 @@ func ReadRoleAssignments(ctx context.Context, d *schema.ResourceData, meta inter
 		return diag.FromErr(err)
 	}
 
-	// resolve users
-	users := make([]interface{}, 0)
-	for _, user := range assignments.Users {
-		u := map[string]interface{}{
-			"id":     user.ID,
-			"global": user.Global,
-		}
-		users = append(users, u)
-	}
-
-	if err = d.Set("users", users); err != nil {
-		return diag.FromErr(err)
-	}
-
-	// resolve teams
-	teams := make([]interface{}, 0)
-	for _, team := range assignments.Teams {
-		t := map[string]interface{}{
-			"id": team.ID,
-		}
-		teams = append(teams, t)
-	}
-
-	if err = d.Set("teams", teams); err != nil {
-		return diag.FromErr(err)
-	}
-
-	// resolve service accounts
-	serviceAccounts := make([]interface{}, 0)
-	for _, sa := range assignments.ServiceAccounts {
-		sa := map[string]interface{}{
-			"id": sa.ID,
-		}
-		serviceAccounts = append(serviceAccounts, sa)
-	}
-
-	if err = d.Set("service_accounts", serviceAccounts); err != nil {
+	if err := setRoleAssignments(assignments, d); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -149,7 +112,7 @@ func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 	client := meta.(*client).gapi
 
 	uid := d.Get("role_uid").(string)
-	users := collectRoleAssignmentsToUsers(d)
+	users := collectRoleAssignmentsToFn(d.Get("users"))
 	teams := collectRoleAssignmentsToFn(d.Get("teams"))
 	serviceAccounts := collectRoleAssignmentsToFn(d.Get("service_accounts"))
 
@@ -165,48 +128,63 @@ func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 
-	fmt.Println(assignments.RoleUID)
+	if err := setRoleAssignments(assignments, d); err != nil {
+		return diag.FromErr(err)
+	}
 
-	// TODO Set the new status (but maybe not)
-	return ReadRoleAssignments(ctx, d, meta)
+	return nil
 }
 
-func setRoleAssignment(d *schema.ResourceData) []gapi.RoleAssignment {
-	users := d.Get("users")
-	output := make([]gapi.RoleAssignment, 0)
-	for _, r := range users.(*schema.Set).List() {
-		user := r.(map[string]interface{})
-		id := user["id"].(int)
-		global := user["global"].(bool)
-		output = append(output, gapi.RoleAssignment{
-			ID:     id,
-			Global: global,
-		})
+func setRoleAssignments(assignments *gapi.RoleAssignments, d *schema.ResourceData) error {
+	// resolve users
+	users := make([]interface{}, 0)
+	for _, user := range assignments.Users {
+		u := map[string]interface{}{
+			"id":     user.ID,
+			"global": user.Global,
+		}
+		users = append(users, u)
 	}
-	return output
-}
+	if err := d.Set("users", users); err != nil {
+		return err
+	}
 
-func collectRoleAssignmentsToUsers(d *schema.ResourceData) []gapi.RoleAssignment {
-	users := d.Get("users")
-	output := make([]gapi.RoleAssignment, 0)
-	for _, r := range users.(*schema.Set).List() {
-		user := r.(map[string]interface{})
-		id := user["id"].(int)
-		global := user["global"].(bool)
-		output = append(output, gapi.RoleAssignment{
-			ID:     id,
-			Global: global,
-		})
+	// resolve teams
+	teams := make([]interface{}, 0)
+	for _, team := range assignments.Teams {
+		t := map[string]interface{}{
+			"id": team.ID,
+		}
+		teams = append(teams, t)
 	}
-	return output
+	if err := d.Set("teams", teams); err != nil {
+		return err
+	}
+
+	// resolve service accounts
+	serviceAccounts := make([]interface{}, 0)
+	for _, sa := range assignments.ServiceAccounts {
+		sa := map[string]interface{}{
+			"id": sa.ID,
+		}
+		serviceAccounts = append(serviceAccounts, sa)
+	}
+	if err := d.Set("service_accounts", serviceAccounts); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func collectRoleAssignmentsToFn(r interface{}) []gapi.RoleAssignment {
 	output := make([]gapi.RoleAssignment, 0)
 	for _, r := range r.(*schema.Set).List() {
 		el := r.(map[string]interface{})
-		id := el["id"].(int)
-		output = append(output, gapi.RoleAssignment{ID: id})
+		roleAssignment := gapi.RoleAssignment{ID: el["id"].(int)}
+		if el["global"] != nil {
+			roleAssignment.Global = el["global"].(bool)
+		}
+		output = append(output, roleAssignment)
 	}
 	return output
 }
