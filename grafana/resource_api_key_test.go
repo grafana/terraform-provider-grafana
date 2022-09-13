@@ -46,7 +46,7 @@ func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccDeleteExistingStacks(t, prefix)
+			testAccDeleteExistingStacks(prefix)
 		},
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccStackCheckDestroy(&stack),

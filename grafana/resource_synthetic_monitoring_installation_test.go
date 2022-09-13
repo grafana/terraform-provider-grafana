@@ -14,7 +14,7 @@ func TestAccSyntheticMonitoringInstallation(t *testing.T) {
 
 	var stack gapi.Stack
 	stackPrefix := "tfsminstalltest"
-	testAccDeleteExistingStacks(t, stackPrefix)
+	testAccDeleteExistingStacks(stackPrefix)
 	stackSlug := GetRandomStackName(stackPrefix)
 
 	apiKeyPrefix := "testsminstall-"

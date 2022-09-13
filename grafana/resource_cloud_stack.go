@@ -316,6 +316,9 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 	var stack gapi.Stack
 	err = resource.RetryContext(ctx, 2*time.Minute, func() *resource.RetryError {
 		stack, err = client.StackByID(id)
+		if stack.Status != "active" {
+			return resource.RetryableError(fmt.Errorf("stack %d (%s) is not active yet", id, stack.Slug))
+		}
 		// Retry 404 errors.
 		// Sometimes, the API returns a 404 when the stack is being created.
 		if err != nil && strings.HasPrefix(err.Error(), "status: 404") {

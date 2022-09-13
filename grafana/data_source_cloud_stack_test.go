@@ -18,7 +18,7 @@ func TestAccDatasourceCloudStack_Basic(t *testing.T) {
 	var stack gapi.Stack
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccDeleteExistingStacks(t, prefix)
+			testAccDeleteExistingStacks(prefix)
 		},
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccStackCheckDestroy(&stack),

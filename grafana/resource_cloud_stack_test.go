@@ -25,7 +25,7 @@ func TestResourceCloudStack_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
-			testAccDeleteExistingStacks(t, prefix)
+			testAccDeleteExistingStacks(prefix)
 		},
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
@@ -51,7 +51,7 @@ func TestResourceCloudStack_Basic(t *testing.T) {
 				// Delete the stack outside of the test and make sure it is recreated
 				// Terraform should detect that it's gone and recreate it (status should be active at all times)
 				PreConfig: func() {
-					testAccDeleteExistingStacks(t, prefix)
+					testAccDeleteExistingStacks(prefix)
 				},
 				Config: testAccStackConfigBasic(resourceName, resourceName),
 				Check: resource.ComposeTestCheckFunc(
@@ -82,7 +82,7 @@ func TestResourceCloudStack_Basic(t *testing.T) {
 	})
 }
 
-func testAccDeleteExistingStacks(t *testing.T, prefix string) {
+func testAccDeleteExistingStacks(prefix string) {
 	client := testAccProvider.Meta().(*client).gcloudapi
 	resp, _ := client.Stacks()
 
