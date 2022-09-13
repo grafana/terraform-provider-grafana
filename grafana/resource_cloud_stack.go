@@ -313,7 +313,18 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 		return diag.Errorf("Invalid id: %#v", idStr)
 	}
 
-	stack, err := client.StackByID(id)
+	var stack gapi.Stack
+	err = resource.RetryContext(ctx, 2*time.Minute, func() *resource.RetryError {
+		stack, err = client.StackByID(id)
+		// Retry 404 errors.
+		// Sometimes, the API returns a 404 when the stack is being created.
+		if err != nil && strings.HasPrefix(err.Error(), "status: 404") {
+			return resource.RetryableError(err)
+		} else if err != nil {
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
 			log.Printf("[WARN] removing stack %s from state because it no longer exists in grafana", d.Get("name").(string))

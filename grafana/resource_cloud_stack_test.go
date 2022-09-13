@@ -84,17 +84,11 @@ func TestResourceCloudStack_Basic(t *testing.T) {
 
 func testAccDeleteExistingStacks(t *testing.T, prefix string) {
 	client := testAccProvider.Meta().(*client).gcloudapi
-	resp, err := client.Stacks()
-	if err != nil {
-		t.Error(err)
-	}
+	resp, _ := client.Stacks()
 
 	for _, stack := range resp.Items {
 		if strings.HasPrefix(stack.Name, prefix) {
-			err := client.DeleteStack(stack.Slug)
-			if err != nil {
-				t.Error(err)
-			}
+			client.DeleteStack(stack.Slug)
 		}
 	}
 }
