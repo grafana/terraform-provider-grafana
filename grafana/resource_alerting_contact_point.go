@@ -208,12 +208,23 @@ func unpackContactPoints(data *schema.ResourceData) []gapi.ContactPoint {
 	for _, n := range notifiers {
 		if points, ok := data.GetOk(n.meta().field); ok {
 			for _, p := range points.([]interface{}) {
-				result = append(result, n.unpack(p, name))
+				result = append(result, unpackPointConfig(n, p, name))
 			}
 		}
 	}
 
 	return result
+}
+
+func unpackPointConfig(n notifier, data interface{}, name string) gapi.ContactPoint {
+	pt := n.unpack(data, name)
+	// Treat settings like `omitempty`. Workaround for versions affected by https://github.com/grafana/grafana/issues/55139
+	for k, v := range pt.Settings {
+		if v == "" {
+			delete(pt.Settings, k)
+		}
+	}
+	return pt
 }
 
 func packContactPoints(ps []gapi.ContactPoint, data *schema.ResourceData) error {
