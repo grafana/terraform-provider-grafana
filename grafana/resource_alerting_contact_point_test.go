@@ -265,6 +265,35 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.title", "title"),
 				),
 			},
+			// Test blank fields in settings should be omitted.
+			{
+				Config: testAccExample(t, "resources/grafana_contact_point/_acc_default_settings.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testContactPointCheckExists("grafana_contact_point.default_settings", &points, 1),
+					resource.TestCheckResourceAttr("grafana_contact_point.default_settings", "slack.#", "1"),
+					resource.TestCheckNoResourceAttr("grafana_contact_point.default_settings", "slack.endpoint_url"),
+					func(s *terraform.State) error {
+						rname := "grafana_contact_point.default_settings"
+						rs, ok := s.RootModule().Resources[rname]
+						if !ok {
+							return fmt.Errorf("resource not found: %s, resources: %#v", rname, s.RootModule().Resources)
+						}
+						uid := rs.Primary.ID
+
+						client := testAccProvider.Meta().(*client).gapi
+						pt, err := client.ContactPoint(uid)
+						if err != nil {
+							return fmt.Errorf("error getting resource: %w", err)
+						}
+
+						if val, ok := pt.Settings["endpointUrl"]; ok {
+							return fmt.Errorf("endpointUrl was still present in the settings when it should have been omitted. value: %#v", val)
+						}
+
+						return nil
+					},
+				),
+			},
 		},
 	})
 }
