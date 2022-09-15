@@ -1,10 +1,10 @@
 package grafana
 
 import (
-	"errors"
-	"fmt"
+	"context"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -13,7 +13,7 @@ func DataSourceOnCallEscalationChain() *schema.Resource {
 		Description: `
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/escalation_chains/)
 `,
-		Read: dataSourceEscalationChainRead,
+		ReadContext: dataSourceEscalationChainRead,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -24,11 +24,8 @@ func DataSourceOnCallEscalationChain() *schema.Resource {
 	}
 }
 
-func dataSourceEscalationChainRead(d *schema.ResourceData, m interface{}) error {
+func dataSourceEscalationChainRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
-	}
 	options := &onCallAPI.ListEscalationChainOptions{}
 	nameData := d.Get("name").(string)
 
@@ -36,13 +33,13 @@ func dataSourceEscalationChainRead(d *schema.ResourceData, m interface{}) error 
 
 	escalationChainsResponse, _, err := client.EscalationChains.ListEscalationChains(options)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if len(escalationChainsResponse.EscalationChains) == 0 {
-		return fmt.Errorf("couldn't find an escalation chain matching: %s", options.Name)
+		return diag.Errorf("couldn't find an escalation chain matching: %s", options.Name)
 	} else if len(escalationChainsResponse.EscalationChains) != 1 {
-		return fmt.Errorf("more than one escalation chain found matching: %s", options.Name)
+		return diag.Errorf("more than one escalation chain found matching: %s", options.Name)
 	}
 
 	escalationChain := escalationChainsResponse.EscalationChains[0]

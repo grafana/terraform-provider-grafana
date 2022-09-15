@@ -23,6 +23,7 @@ func TestAccDataSource_basic(t *testing.T) {
 		config           string
 		attrChecks       map[string]string
 		additionalChecks []resource.TestCheckFunc
+		verifyImport     bool // Only test import when `json_data_encoded` is set. Data sources with `json_data` cannot have their data imported.
 	}{
 		{
 			resource: "grafana_data_source.loki",
@@ -69,10 +70,16 @@ func TestAccDataSource_basic(t *testing.T) {
 			additionalChecks: []resource.TestCheckFunc{
 				func(s *terraform.State) error {
 					// Check datasource IDs
-					if dataSource.JSONData.DerivedFields[0].DatasourceUID != "" {
+					derivedFields := dataSource.JSONData["derivedFields"].([]interface{})
+					if len(derivedFields) != 2 {
+						return fmt.Errorf("expected 2 derived fields, got %d", len(derivedFields))
+					}
+					firstDerivedField := derivedFields[0].(map[string]interface{})
+					if _, ok := firstDerivedField["datasourceUid"]; ok {
 						return fmt.Errorf("expected empty datasource_uid")
 					}
-					if !uidRegexp.MatchString(dataSource.JSONData.DerivedFields[1].DatasourceUID) {
+					secondDerivedField := derivedFields[1].(map[string]interface{})
+					if !uidRegexp.MatchString(secondDerivedField["datasourceUid"].(string)) {
 						return fmt.Errorf("expected valid datasource_uid")
 					}
 					return nil
@@ -189,16 +196,59 @@ func TestAccDataSource_basic(t *testing.T) {
 					if dataSource.Name != "influx" {
 						return fmt.Errorf("bad name: %s", dataSource.Name)
 					}
-					if len(dataSource.HTTPHeaders) != 1 {
-						return fmt.Errorf("expected 1 http header, got %d", len(dataSource.HTTPHeaders))
-					}
-
-					if _, ok := dataSource.HTTPHeaders["Authorization"]; !ok {
-						return fmt.Errorf("http header header1 not found")
+					if v, ok := dataSource.JSONData["httpHeaderName1"]; !ok && v != "Authorization" {
+						return fmt.Errorf("http header Authorization not found")
 					}
 					return nil
 				},
 			},
+		},
+		{
+			resource: "grafana_data_source.influx-arbitrary",
+			config: `
+			resource "grafana_data_source" "influx-arbitrary" {
+				type         = "influxdb"
+				name         = "influx"
+				url          = "http://acc-test.invalid/"
+			    http_headers = {
+				    Authorization = "Token sdkfjsdjflkdsjflksjdklfjslkdfjdksljfldksjsflkj"
+			    }
+				json_data_encoded = jsonencode({
+					defaultBucket         = "telegraf"
+					organization          = "organization"
+					tlsAuth               = false
+					tlsAuthWithCACert     = false
+					version               = "Flux"
+				})
+			}
+			`,
+			attrChecks: map[string]string{
+				"type":                       "influxdb",
+				"name":                       "influx",
+				"url":                        "http://acc-test.invalid/",
+				"json_data_encoded":          `{"defaultBucket":"telegraf","organization":"organization","tlsAuth":false,"tlsAuthWithCACert":false,"version":"Flux"}`,
+				"http_headers.Authorization": "Token sdkfjsdjflkdsjflksjdklfjslkdfjdksljfldksjsflkj",
+			},
+			additionalChecks: []resource.TestCheckFunc{
+				func(s *terraform.State) error {
+					if dataSource.Name != "influx" {
+						return fmt.Errorf("bad name: %s", dataSource.Name)
+					}
+					expected := map[string]interface{}{
+						"defaultBucket":     "telegraf",
+						"organization":      "organization",
+						"tlsAuth":           false,
+						"tlsAuthWithCACert": false,
+						"version":           "Flux",
+						"httpHeaderName1":   "Authorization",
+					}
+					if !reflect.DeepEqual(dataSource.JSONData, expected) {
+						return fmt.Errorf("bad json_data_encoded: %#v. Expected: %+v", dataSource.JSONData, expected)
+					}
+					return nil
+				},
+			},
+			verifyImport: true,
 		},
 		{
 			resource: "grafana_data_source.elasticsearch",
@@ -236,12 +286,51 @@ func TestAccDataSource_basic(t *testing.T) {
 					if dataSource.Name != "elasticsearch" {
 						return fmt.Errorf("bad name: %s", dataSource.Name)
 					}
-					if dataSource.JSONData.XpackEnabled != true {
+					if dataSource.JSONData["xpack"].(bool) != true {
 						return errors.New("xpack_enabled should be true")
 					}
 					return nil
 				},
 			},
+		},
+		{
+			resource: "grafana_data_source.elasticsearch-arbitrary",
+			config: `
+			resource "grafana_data_source" "elasticsearch-arbitrary" {
+				type          = "elasticsearch"
+				name          = "elasticsearch-arbitrary"
+				database_name = "[filebeat-]YYYY.MM.DD"
+				url 	        = "http://acc-test.invalid/"
+				json_data_encoded = jsonencode({
+					esVersion        = "7.0.0"
+					interval          = "Daily"
+					timeField        = "@timestamp"
+					logMessageField = "message"
+					logLevelField   = "fields.level"
+					maxConcurrentShardRequests = 8
+					xpack     = true
+				})
+			}
+			`,
+			attrChecks: map[string]string{
+				"type":              "elasticsearch",
+				"name":              "elasticsearch-arbitrary",
+				"database_name":     "[filebeat-]YYYY.MM.DD",
+				"url":               "http://acc-test.invalid/",
+				"json_data_encoded": `{"esVersion":"7.0.0","interval":"Daily","logLevelField":"fields.level","logMessageField":"message","maxConcurrentShardRequests":8,"timeField":"@timestamp","xpack":true}`,
+			},
+			additionalChecks: []resource.TestCheckFunc{
+				func(s *terraform.State) error {
+					if dataSource.Name != "elasticsearch-arbitrary" {
+						return fmt.Errorf("bad name: %s", dataSource.Name)
+					}
+					if dataSource.JSONData["xpack"].(bool) != true {
+						return errors.New("xpack should be true")
+					}
+					return nil
+				},
+			},
+			verifyImport: true,
 		},
 		{
 			resource: "grafana_data_source.opentsdb",
@@ -300,8 +389,9 @@ func TestAccDataSource_basic(t *testing.T) {
 					if dataSource.Name != "cloudwatch" {
 						return fmt.Errorf("bad name: %s", dataSource.Name)
 					}
-					if dataSource.JSONData.TracingDatasourceUID != "my-datasource-uid" {
-						return fmt.Errorf("bad tracing_datasource_uid: %s", dataSource.JSONData.TracingDatasourceUID)
+					datasourceUID := dataSource.JSONData["tracingDatasourceUid"].(string)
+					if datasourceUID != "my-datasource-uid" {
+						return fmt.Errorf("bad tracing_datasource_uid: %s", datasourceUID)
 					}
 					return nil
 				},
@@ -409,13 +499,10 @@ func TestAccDataSource_basic(t *testing.T) {
 					if dataSource.Name != "prometheus" {
 						return fmt.Errorf("bad name: %s", dataSource.Name)
 					}
-					if len(dataSource.HTTPHeaders) != 1 {
-						return fmt.Errorf("expected 1 http header, got %d", len(dataSource.HTTPHeaders))
-					}
-					if _, ok := dataSource.HTTPHeaders["header1"]; !ok {
+					if v, ok := dataSource.JSONData["httpHeaderName1"]; !ok && v != "header1" {
 						return fmt.Errorf("http header header1 not found")
 					}
-					if dataSource.JSONData.ManageAlerts != true {
+					if dataSource.JSONData["manageAlerts"].(bool) != true {
 						return errors.New("expected manage_alerts to be true")
 					}
 					return nil
@@ -494,8 +581,9 @@ func TestAccDataSource_basic(t *testing.T) {
 			},
 			additionalChecks: []resource.TestCheckFunc{
 				func(s *terraform.State) error {
-					if dataSource.JSONData.GitHubURL != "https://test-github.com" {
-						return fmt.Errorf("bad github_url: %s. Expected: %s", dataSource.JSONData.GitHubURL, "https://test-github.com")
+					githubURL := dataSource.JSONData["githubUrl"].(string)
+					if githubURL != "https://test-github.com" {
+						return fmt.Errorf("bad github_url: %s. Expected: %s", githubURL, "https://test-github.com")
 					}
 					return nil
 				},
@@ -605,13 +693,19 @@ func TestAccDataSource_basic(t *testing.T) {
 					},
 					// Test import using ID
 					{
-						ResourceName: test.resource,
-						ImportState:  true,
+						ResourceName:      test.resource,
+						ImportState:       true,
+						ImportStateVerify: test.verifyImport,
+						// Ignore sensitive attributes, we mostly only care about "json_data_encoded"
+						ImportStateVerifyIgnore: []string{"secure_json_data_encoded", "http_headers."},
 					},
 					// Test import using UID
 					{
-						ResourceName: test.resource,
-						ImportState:  true,
+						ResourceName:      test.resource,
+						ImportState:       true,
+						ImportStateVerify: test.verifyImport,
+						// Ignore sensitive attributes, we mostly only care about "json_data_encoded"
+						ImportStateVerifyIgnore: []string{"secure_json_data_encoded", "http_headers."},
 						ImportStateIdFunc: func(s *terraform.State) (string, error) {
 							rs, ok := s.RootModule().Resources[test.resource]
 							if !ok {

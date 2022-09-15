@@ -68,7 +68,7 @@ func ResourceOnCallIntegration() *schema.Resource {
 			"team_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The id of the team.",
+				Description: "The ID of the OnCall team. To get one, create a team in Grafana, and navigate to the OnCall plugin (to sync the team with OnCall). You can then get the ID using the `grafana_oncall_team` datasource.",
 			},
 			"type": {
 				Type:         schema.TypeString,
@@ -98,13 +98,61 @@ func ResourceOnCallIntegration() *schema.Resource {
 								Schema: map[string]*schema.Schema{
 									"channel_id": {
 										Type:        schema.TypeString,
-										Required:    true,
+										Optional:    true,
 										Description: "Slack channel id. Alerts will be directed to this channel in Slack.",
+									},
+									"enabled": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Enable notification in Slack.",
+										Default:     true,
 									},
 								},
 							},
 							Description: "Slack-specific settings for a route.",
 							MaxItems:    1,
+						},
+						"telegram": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"id": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Telegram channel id. Alerts will be directed to this channel in Telegram.",
+									},
+									"enabled": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Enable notification in Telegram.",
+										Default:     true,
+									},
+								},
+							},
+							MaxItems:    1,
+							Description: "Telegram-specific settings for a route.",
+						},
+						"msteams": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"id": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "MS teams channel id. Alerts will be directed to this channel in Microsoft teams.",
+									},
+									"enabled": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Description: "Enable notification in MS teams.",
+										Default:     true,
+									},
+								},
+							},
+							MaxItems:    1,
+							Description: "MS teams-specific settings for a route.",
 						},
 					},
 				},
@@ -167,18 +215,15 @@ func ResourceOnCallIntegration() *schema.Resource {
 
 func ResourceOnCallIntegrationCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 
-	teamIdData := d.Get("team_id").(string)
+	teamIDData := d.Get("team_id").(string)
 	nameData := d.Get("name").(string)
 	typeData := d.Get("type").(string)
 	templatesData := d.Get("templates").([]interface{})
 	defaultRouteData := d.Get("default_route").([]interface{})
 
 	createOptions := &onCallAPI.CreateIntegrationOptions{
-		TeamId:       teamIdData,
+		TeamId:       teamIDData,
 		Name:         nameData,
 		Type:         typeData,
 		Templates:    expandTemplates(templatesData),
@@ -197,9 +242,6 @@ func ResourceOnCallIntegrationCreate(ctx context.Context, d *schema.ResourceData
 
 func ResourceOnCallIntegrationUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 
 	nameData := d.Get("name").(string)
 	templateData := d.Get("templates").([]interface{})
@@ -223,9 +265,6 @@ func ResourceOnCallIntegrationUpdate(ctx context.Context, d *schema.ResourceData
 
 func ResourceOnCallIntegrationRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 	options := &onCallAPI.GetIntegrationOptions{}
 	integration, r, err := client.Integrations.GetIntegration(d.Id(), options)
 	if err != nil {
@@ -238,7 +277,7 @@ func ResourceOnCallIntegrationRead(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	d.Set("team_id", integration.TeamId)
-	d.Set("default_route", flattenDefaultRoute(integration.DefaultRoute))
+	d.Set("default_route", flattenDefaultRoute(integration.DefaultRoute, d))
 	d.Set("name", integration.Name)
 	d.Set("type", integration.Type)
 	d.Set("templates", flattenTemplates(integration.Templates))
@@ -249,9 +288,6 @@ func ResourceOnCallIntegrationRead(ctx context.Context, d *schema.ResourceData, 
 
 func ResourceOnCallIntegrationDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 	options := &onCallAPI.DeleteIntegrationOptions{}
 	_, err := client.Integrations.DeleteIntegration(d.Id(), options)
 	if err != nil {
@@ -268,10 +304,11 @@ func flattenRouteSlack(in *onCallAPI.SlackRoute) []map[string]interface{} {
 
 	out := make(map[string]interface{})
 
-	if in.ChannelId != nil {
-		out["channel_id"] = in.ChannelId
-		slack = append(slack, out)
-	}
+	out["channel_id"] = in.ChannelId
+	out["enabled"] = in.Enabled
+
+	slack = append(slack, out)
+
 	return slack
 }
 
@@ -281,12 +318,74 @@ func expandRouteSlack(in []interface{}) *onCallAPI.SlackRoute {
 	for _, r := range in {
 		inputMap := r.(map[string]interface{})
 		if inputMap["channel_id"] != "" {
-			channelId := inputMap["channel_id"].(string)
-			slackRoute.ChannelId = &channelId
+			channelID := inputMap["channel_id"].(string)
+			slackRoute.ChannelId = &channelID
+		}
+		if enabled, ok := inputMap["enabled"].(bool); ok {
+			slackRoute.Enabled = enabled
 		}
 	}
 
 	return &slackRoute
+}
+
+func flattenRouteTelegram(in *onCallAPI.TelegramRoute) []map[string]interface{} {
+	telegram := make([]map[string]interface{}, 0, 1)
+
+	out := make(map[string]interface{})
+
+	out["id"] = in.Id
+	out["enabled"] = in.Enabled
+	telegram = append(telegram, out)
+	return telegram
+}
+
+func expandRouteTelegram(in []interface{}) *onCallAPI.TelegramRoute {
+	telegramRoute := onCallAPI.TelegramRoute{}
+
+	for _, r := range in {
+		inputMap := r.(map[string]interface{})
+		if inputMap["id"] != "" {
+			id := inputMap["id"].(string)
+			telegramRoute.Id = &id
+		}
+		if enabled, ok := inputMap["enabled"].(bool); ok {
+			telegramRoute.Enabled = enabled
+		}
+	}
+
+	return &telegramRoute
+}
+
+func flattenRouteMSTeams(in *onCallAPI.MSTeamsRoute) []map[string]interface{} {
+	msTeams := make([]map[string]interface{}, 0, 1)
+
+	out := make(map[string]interface{})
+
+	if in != nil {
+		out["id"] = in.Id
+		out["enabled"] = in.Enabled
+		msTeams = append(msTeams, out)
+	}
+
+	return msTeams
+}
+
+func expandRouteMSTeams(in []interface{}) *onCallAPI.MSTeamsRoute {
+	msTeamsRoute := onCallAPI.MSTeamsRoute{}
+
+	for _, r := range in {
+		inputMap := r.(map[string]interface{})
+		if inputMap["id"] != "" {
+			id := inputMap["id"].(string)
+			msTeamsRoute.Id = &id
+		}
+		if enabled, ok := inputMap["enabled"].(bool); ok {
+			msTeamsRoute.Enabled = enabled
+		}
+	}
+
+	return &msTeamsRoute
 }
 
 func flattenTemplates(in *onCallAPI.Templates) []map[string]interface{} {
@@ -391,12 +490,24 @@ func expandSlackTemplate(in []interface{}) *onCallAPI.SlackTemplate {
 	return &slackTemplate
 }
 
-func flattenDefaultRoute(in *onCallAPI.DefaultRoute) []map[string]interface{} {
+func flattenDefaultRoute(in *onCallAPI.DefaultRoute, d *schema.ResourceData) []map[string]interface{} {
 	defaultRoute := make([]map[string]interface{}, 0, 1)
 	out := make(map[string]interface{})
 	out["id"] = in.ID
 	out["escalation_chain_id"] = in.EscalationChainId
-	out["slack"] = flattenRouteSlack(in.SlackRoute)
+	// Set messengers data only if related fields are present
+	_, slackOk := d.GetOk("default_route.0.slack")
+	if slackOk {
+		out["slack"] = flattenRouteSlack(in.SlackRoute)
+	}
+	_, telegramOk := d.GetOk("default_route.0.telegram")
+	if telegramOk {
+		out["telegram"] = flattenRouteTelegram(in.TelegramRoute)
+	}
+	_, msteamsOk := d.GetOk("default_route.0.msteams")
+	if msteamsOk {
+		out["msteams"] = flattenRouteMSTeams(in.MSTeamsRoute)
+	}
 
 	defaultRoute = append(defaultRoute, out)
 	return defaultRoute
@@ -410,13 +521,23 @@ func expandDefaultRoute(input []interface{}) *onCallAPI.DefaultRoute {
 		id := inputMap["id"].(string)
 		defaultRoute.ID = id
 		if inputMap["escalation_chain_id"] != "" {
-			escalation_chain_id := inputMap["escalation_chain_id"].(string)
-			defaultRoute.EscalationChainId = &escalation_chain_id
+			escalationChainID := inputMap["escalation_chain_id"].(string)
+			defaultRoute.EscalationChainId = &escalationChainID
 		}
 		if inputMap["slack"] == nil {
 			defaultRoute.SlackRoute = nil
 		} else {
 			defaultRoute.SlackRoute = expandRouteSlack(inputMap["slack"].([]interface{}))
+		}
+		if inputMap["telegram"] == nil {
+			defaultRoute.TelegramRoute = nil
+		} else {
+			defaultRoute.TelegramRoute = expandRouteTelegram(inputMap["telegram"].([]interface{}))
+		}
+		if inputMap["msteams"] == nil {
+			defaultRoute.MSTeamsRoute = nil
+		} else {
+			defaultRoute.MSTeamsRoute = expandRouteMSTeams(inputMap["msteams"].([]interface{}))
 		}
 	}
 	return &defaultRoute

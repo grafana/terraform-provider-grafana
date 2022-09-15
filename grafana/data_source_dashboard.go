@@ -125,7 +125,7 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta i
 	d.Set("config_json", string(configJSONBytes))
 	d.Set("version", int64(dashboard.Model["version"].(float64)))
 	d.Set("title", dashboard.Model["title"].(string))
-	d.Set("folder", dashboard.Folder)
+	d.Set("folder", dashboard.FolderID)
 	d.Set("is_starred", dashboard.Meta.IsStarred)
 	d.Set("slug", dashboard.Meta.Slug)
 	d.Set("url", strings.TrimRight(gapiURL, "/")+dashboard.Meta.URL)

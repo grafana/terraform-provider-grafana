@@ -11,7 +11,7 @@ import (
 func ResourceRoleAssignment() *schema.Resource {
 	return &schema.Resource{
 		Description: `
-**Note:** This resource is available only with Grafana Enterprise 9.1+.
+**Note:** This resource is available only with Grafana Enterprise 9.2+.
 * [Official documentation](https://grafana.com/docs/grafana/latest/enterprise/access-control/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/http_api/access_control/)
 `,
@@ -86,9 +86,6 @@ func ResourceRoleAssignment() *schema.Resource {
 }
 
 func ReadRoleAssignments(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// TODO check how ot handle repeated requests
-	// TODO improve errors from the backend side
-
 	client := meta.(*client).gapi
 	uid := d.Get("role_uid").(string)
 	assignments, err := client.GetRoleAssignments(uid)
@@ -122,7 +119,6 @@ func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 		Teams:           teams,
 		ServiceAccounts: serviceAccounts,
 	}
-	// TODO check why it keeps hammering request after a failed one
 	assignments, err := client.UpdateRoleAssignments(ra)
 	if err != nil {
 		return diag.FromErr(err)

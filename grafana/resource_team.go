@@ -242,7 +242,12 @@ func addMemberIdsToChanges(meta interface{}, changes []MemberChange) ([]MemberCh
 	for _, change := range changes {
 		id, ok := gUserMap[change.Member.Email]
 		if !ok {
-			return nil, fmt.Errorf("error adding user %s. User does not exist in Grafana", change.Member.Email)
+			if change.Type == AddMember {
+				return nil, fmt.Errorf("error adding user %s. User does not exist in Grafana", change.Member.Email)
+			} else {
+				log.Printf("[DEBUG] Skipping removal of user %s. User does not exist in Grafana", change.Member.Email)
+				continue
+			}
 		}
 
 		change.Member.ID = id

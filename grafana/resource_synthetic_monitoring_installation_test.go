@@ -14,13 +14,14 @@ func TestAccSyntheticMonitoringInstallation(t *testing.T) {
 
 	var stack gapi.Stack
 	stackPrefix := "tfsminstalltest"
+	testAccDeleteExistingStacks(t, stackPrefix)
 	stackSlug := GetRandomStackName(stackPrefix)
-	apiKeyName := "zzztest-" + acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	apiKeyPrefix := "testsminstall-"
+	testAccDeleteExistingCloudAPIKeys(t, apiKeyPrefix)
+	apiKeyName := apiKeyPrefix + acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccDeleteExistingStacks(t, stackPrefix)
-		},
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{

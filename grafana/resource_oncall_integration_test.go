@@ -53,6 +53,12 @@ resource "grafana_oncall_integration" "test-acc-integration" {
 	name = "%s"
 	type = "%s"
 	default_route {
+	    slack {
+	        enabled = false
+	    }
+	    telegram {
+	        enabled = false
+	    }
 	}
 }
 `, rName, rType)

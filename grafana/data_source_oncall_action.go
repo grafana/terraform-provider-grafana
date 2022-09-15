@@ -1,9 +1,9 @@
 package grafana
 
 import (
-	"errors"
-	"fmt"
+	"context"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
@@ -15,7 +15,7 @@ func DataSourceOnCallAction() *schema.Resource {
 **Note:** This data source is going to be deprecated, please use outgoing webhook data source instead.
 * [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/outgoing_webhooks/)
 `,
-		Read:               dataSourceOnCallActionRead,
+		ReadContext:        dataSourceOnCallActionRead,
 		DeprecationMessage: "This data source is going to be deprecated, please use outgoing webhook data source instead.",
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -27,11 +27,8 @@ func DataSourceOnCallAction() *schema.Resource {
 	}
 }
 
-func dataSourceOnCallActionRead(d *schema.ResourceData, m interface{}) error {
+func dataSourceOnCallActionRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return errors.New("grafana OnCall api client is not configured")
-	}
 	options := &onCallAPI.ListCustomActionOptions{}
 	nameData := d.Get("name").(string)
 
@@ -39,19 +36,19 @@ func dataSourceOnCallActionRead(d *schema.ResourceData, m interface{}) error {
 
 	customActionsResponse, _, err := client.CustomActions.ListCustomActions(options)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if len(customActionsResponse.CustomActions) == 0 {
-		return fmt.Errorf("couldn't find an action matching: %s", options.Name)
+		return diag.Errorf("couldn't find an action matching: %s", options.Name)
 	} else if len(customActionsResponse.CustomActions) != 1 {
-		return fmt.Errorf("more than one action found matching: %s", options.Name)
+		return diag.Errorf("more than one action found matching: %s", options.Name)
 	}
 
-	custom_action := customActionsResponse.CustomActions[0]
+	customAction := customActionsResponse.CustomActions[0]
 
-	d.SetId(custom_action.ID)
-	d.Set("name", custom_action.Name)
+	d.SetId(customAction.ID)
+	d.Set("name", customAction.Name)
 
 	return nil
 }

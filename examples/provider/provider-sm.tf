@@ -2,6 +2,7 @@
 provider "grafana" {
   alias         = "cloud"
   cloud_api_key = "<my-api-key>"
+  sm_url        = "<synthetic-monitoring-api-url>"
 }
 
 resource "grafana_cloud_stack" "sm_stack" {
@@ -34,6 +35,7 @@ resource "grafana_synthetic_monitoring_installation" "sm_stack" {
 provider "grafana" {
   alias           = "sm"
   sm_access_token = grafana_synthetic_monitoring_installation.sm_stack.sm_access_token
+  sm_url          = "<synthetic-monitoring-api-url>"
 }
 
 data "grafana_synthetic_monitoring_probes" "main" {
@@ -59,6 +61,3 @@ resource "grafana_synthetic_monitoring_check" "ping" {
     ping {}
   }
 }
-
-
-

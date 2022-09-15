@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"context"
-	"fmt"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -65,7 +64,7 @@ func readFolders(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 	d.SetId("grafana_folders")
 
 	if err := d.Set("folders", flattenFolders(folders)); err != nil {
-		return diag.FromErr(fmt.Errorf("error setting item: %v", err))
+		return diag.Errorf("error setting item: %v", err)
 	}
 
 	return nil

@@ -50,6 +50,12 @@ resource "grafana_oncall_integration" "test-acc-integration" {
 	name = "%s"
 	type = "grafana"
 	default_route {
+	    slack {
+	        enabled = false
+	    }
+	    telegram {
+	        enabled = false
+	    }
 	}
 }
 
@@ -62,6 +68,12 @@ resource "grafana_oncall_route" "test-acc-route" {
 	escalation_chain_id = grafana_oncall_escalation_chain.test-acc-escalation-chain.id
 	routing_regex = "%s"
 	position = 0
+    slack {
+        enabled = false
+    }
+    telegram {
+        enabled = false
+    }
 }
 `, riName, rrRegex)
 }

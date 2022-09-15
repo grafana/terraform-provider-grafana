@@ -125,10 +125,12 @@ Changing region will destroy the existing stack and create a new one in the desi
 				Computed:    true,
 				Description: "Status of the stack.",
 			},
+
+			// Hosted Metrics
 			"prometheus_user_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
-				Description: "Promehteus user ID. Used for e.g. remote_write.",
+				Description: "Prometheus user ID. Used for e.g. remote_write.",
 			},
 			"prometheus_url": {
 				Type:        schema.TypeString,
@@ -155,6 +157,8 @@ Changing region will destroy the existing stack and create a new one in the desi
 				Computed:    true,
 				Description: "Prometheus status for this instance.",
 			},
+
+			// Alerting
 			"alertmanager_user_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
@@ -175,6 +179,8 @@ Changing region will destroy the existing stack and create a new one in the desi
 				Computed:    true,
 				Description: "Status of the Alertmanager instance configured for this stack.",
 			},
+
+			// Hosted Logs
 			"logs_user_id": {
 				Type:     schema.TypeInt,
 				Computed: true,
@@ -188,6 +194,42 @@ Changing region will destroy the existing stack and create a new one in the desi
 				Computed: true,
 			},
 			"logs_status": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			// Traces
+			"traces_user_id": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"traces_name": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"traces_url": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"traces_status": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			// Graphite
+			"graphite_user_id": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"graphite_name": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"graphite_url": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"graphite_status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -316,10 +358,10 @@ func FlattenStack(d *schema.ResourceData, stack gapi.Stack) error {
 	d.Set("prometheus_url", stack.HmInstancePromURL)
 	d.Set("prometheus_name", stack.HmInstancePromName)
 	reURL, err := appendPath(stack.HmInstancePromURL, "/api/prom")
-	d.Set("prometheus_remote_endpoint", reURL)
 	if err != nil {
 		return err
 	}
+	d.Set("prometheus_remote_endpoint", reURL)
 	rweURL, err := appendPath(stack.HmInstancePromURL, "/api/prom/push")
 	if err != nil {
 		return err
@@ -337,12 +379,22 @@ func FlattenStack(d *schema.ResourceData, stack gapi.Stack) error {
 	d.Set("alertmanager_url", stack.AmInstanceURL)
 	d.Set("alertmanager_status", stack.AmInstanceStatus)
 
+	d.Set("traces_user_id", stack.HtInstanceID)
+	d.Set("traces_name", stack.HtInstanceName)
+	d.Set("traces_url", stack.HtInstanceURL)
+	d.Set("traces_status", stack.HtInstanceStatus)
+
+	d.Set("graphite_user_id", stack.HmInstanceGraphiteID)
+	d.Set("graphite_name", stack.HmInstanceGraphiteName)
+	d.Set("graphite_url", stack.HmInstanceGraphiteURL)
+	d.Set("graphite_status", stack.HmInstanceGraphiteStatus)
+
 	return nil
 }
 
 // Append path to baseurl
-func appendPath(baseUrl, path string) (string, error) {
-	bu, err := url.Parse(baseUrl)
+func appendPath(baseURL, path string) (string, error) {
+	bu, err := url.Parse(baseURL)
 	if err != nil {
 		return "", err
 	}
@@ -388,7 +440,7 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 		return nil
 	})
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("error waiting for stack to be ready: %w", err))
+		return diag.Errorf("error waiting for stack to be ready: %v", err)
 	}
 
 	return nil

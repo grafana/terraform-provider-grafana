@@ -3,6 +3,7 @@ package grafana
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -13,6 +14,9 @@ import (
 func TestAccCloudApiKey_Basic(t *testing.T) {
 	t.Parallel()
 	CheckCloudAPITestsEnabled(t)
+
+	prefix := "testcloudkey-"
+	testAccDeleteExistingCloudAPIKeys(t, prefix)
 
 	var tests = []struct {
 		role string
@@ -26,7 +30,7 @@ func TestAccCloudApiKey_Basic(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.role, func(t *testing.T) {
-			resourceName := "zzztest-" + acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+			resourceName := prefix + acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 			resource.Test(t, resource.TestCase{
 				ProviderFactories: testAccProviderFactories,
@@ -102,6 +106,24 @@ func testAccCheckCloudAPIKeyDestroy(s *terraform.State) error {
 	}
 
 	return nil
+}
+
+func testAccDeleteExistingCloudAPIKeys(t *testing.T, prefix string) {
+	org := os.Getenv("GRAFANA_CLOUD_ORG")
+	client := testAccProvider.Meta().(*client).gcloudapi
+	resp, err := client.ListCloudAPIKeys(org)
+	if err != nil {
+		t.Error(err)
+	}
+
+	for _, key := range resp.Items {
+		if strings.HasPrefix(key.Name, prefix) {
+			err := client.DeleteCloudAPIKey(org, key.Name)
+			if err != nil {
+				t.Error(err)
+			}
+		}
+	}
 }
 
 func testAccCloudAPIKeyConfig(resourceName, role string) string {

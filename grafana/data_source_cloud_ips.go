@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -89,7 +88,7 @@ func dataSourceCloudIPsRead(ctx context.Context, d *schema.ResourceData, meta in
 		}
 
 		if err := d.Set(attr, ipStr); err != nil {
-			return diag.FromErr(fmt.Errorf("error setting %s: %v", attr, err))
+			return diag.Errorf("error setting %s: %v", attr, err)
 		}
 	}
 

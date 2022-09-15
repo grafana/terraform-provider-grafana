@@ -36,6 +36,7 @@ func TestAccContactPoint_basic(t *testing.T) {
 			{
 				ResourceName:      "grafana_contact_point.my_contact_point",
 				ImportState:       true,
+				ImportStateId:     "My Contact Point",
 				ImportStateVerify: true,
 			},
 			// Test update content.
@@ -148,7 +149,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 			{
 				Config: testAccExample(t, "resources/grafana_contact_point/_acc_receiver_types.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 14),
+					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 17),
 					// alertmanager
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.0.url", "http://my-am"),
@@ -246,6 +247,51 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "threema.0.gateway_id", "*gateway"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "threema.0.recipient_id", "*target1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "threema.0.api_secret", "[REDACTED]"),
+					// victorops
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "victorops.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "victorops.0.url", "http://victor-ops-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "victorops.0.message_type", "CRITICAL"),
+					// webhook
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.url", "http://my-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.http_method", "POST"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.basic_auth_user", "user"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.basic_auth_password", "[REDACTED]"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.max_alerts", "100"),
+					// wecom
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.url", "[REDACTED]"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.message", "message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.title", "title"),
+				),
+			},
+			// Test blank fields in settings should be omitted.
+			{
+				Config: testAccExample(t, "resources/grafana_contact_point/_acc_default_settings.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testContactPointCheckExists("grafana_contact_point.default_settings", &points, 1),
+					resource.TestCheckResourceAttr("grafana_contact_point.default_settings", "slack.#", "1"),
+					resource.TestCheckNoResourceAttr("grafana_contact_point.default_settings", "slack.endpoint_url"),
+					func(s *terraform.State) error {
+						rname := "grafana_contact_point.default_settings"
+						rs, ok := s.RootModule().Resources[rname]
+						if !ok {
+							return fmt.Errorf("resource not found: %s, resources: %#v", rname, s.RootModule().Resources)
+						}
+						uid := rs.Primary.ID
+
+						client := testAccProvider.Meta().(*client).gapi
+						pt, err := client.ContactPoint(uid)
+						if err != nil {
+							return fmt.Errorf("error getting resource: %w", err)
+						}
+
+						if val, ok := pt.Settings["endpointUrl"]; ok {
+							return fmt.Errorf("endpointUrl was still present in the settings when it should have been omitted. value: %#v", val)
+						}
+
+						return nil
+					},
 				),
 			},
 		},

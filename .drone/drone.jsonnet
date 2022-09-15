@@ -2,8 +2,19 @@ local grafanaVersions = ['9.1.0', '9.0.7', '8.5.5', '8.4.7', '8.3.7', '7.5.15'];
 local images = {
   go: 'golang:1.18',
   python: 'python:3.9-alpine',
-  lint: 'golangci/golangci-lint:v1.45',
+  lint: 'golangci/golangci-lint:v1.49',
+  terraform: 'hashicorp/terraform',
   grafana(version): 'grafana/grafana:' + version,
+};
+
+local terraformPath = '/drone/terraform-provider-grafana/terraform';
+local installTerraformStep = {
+  name: 'download-terraform',
+  image: images.terraform,
+  commands: [
+    'cp /bin/terraform ' + terraformPath,
+    'chmod a+x ' + terraformPath,
+  ],
 };
 
 local secret(name, vaultPath, vaultKey) = {
@@ -60,6 +71,7 @@ local pipeline(name, steps, services=[]) = {
         name: 'check for drift',
         image: images.go,
         commands: [
+          'apt update && apt install -y jq',
           'go generate',
           'gitstatus="$(git status --porcelain)"',
           'if [ -n "$gitstatus" ]; then',
@@ -83,12 +95,16 @@ local pipeline(name, steps, services=[]) = {
   pipeline(
     'unit tests',
     steps=[
+      installTerraformStep,
       {
         name: 'tests',
         image: images.go,
         commands: [
           'go test ./...',
         ],
+        environment: {
+          TF_ACC_TERRAFORM_PATH: terraformPath,
+        },
       },
     ]
   ),
@@ -96,6 +112,7 @@ local pipeline(name, steps, services=[]) = {
   pipeline(
     'cloud api tests',
     steps=[
+      installTerraformStep,
       {
         name: 'tests',
         image: images.go,
@@ -105,6 +122,7 @@ local pipeline(name, steps, services=[]) = {
         environment: {
           GRAFANA_CLOUD_API_KEY: cloudApiKey.fromSecret,
           GRAFANA_CLOUD_ORG: 'terraformprovidergrafana',
+          TF_ACC_TERRAFORM_PATH: terraformPath,
         },
       },
     ]
@@ -116,6 +134,7 @@ local pipeline(name, steps, services=[]) = {
   pipeline(
     'cloud instance tests',
     steps=[
+      installTerraformStep,
       {
         name: 'wait for instance',
         image: images.go,
@@ -131,6 +150,7 @@ local pipeline(name, steps, services=[]) = {
           GRAFANA_SM_ACCESS_TOKEN: smToken.fromSecret,
           GRAFANA_ORG_ID: 1,
           GRAFANA_ONCALL_ACCESS_TOKEN: onCallToken.fromSecret,
+          TF_ACC_TERRAFORM_PATH: terraformPath,
         },
       },
     ]
@@ -147,6 +167,7 @@ local pipeline(name, steps, services=[]) = {
   pipeline(
     'oss tests: %s' % version,
     steps=[
+      installTerraformStep,
       {
         name: 'tests',
         image: images.go,
@@ -159,6 +180,7 @@ local pipeline(name, steps, services=[]) = {
           GRAFANA_AUTH: 'admin:admin',
           GRAFANA_VERSION: version,
           GRAFANA_ORG_ID: 1,
+          TF_ACC_TERRAFORM_PATH: terraformPath,
         },
       },
     ],

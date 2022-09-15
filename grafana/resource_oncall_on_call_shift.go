@@ -64,7 +64,7 @@ func ResourceOnCallOnCallShift() *schema.Resource {
 			"team_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The ID of the team.",
+				Description: "The ID of the OnCall team. To get one, create a team in Grafana, and navigate to the OnCall plugin (to sync the team with OnCall). You can then get the ID using the `grafana_oncall_team` datasource.",
 			},
 			"name": {
 				Type:         schema.TypeString,
@@ -106,7 +106,7 @@ func ResourceOnCallOnCallShift() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Optional: true,
+				Optional:    true,
 				Description: "The list of on-call users (for single_event and recurrent_event event type).	",
 			},
 			"rolling_users": {
@@ -177,18 +177,15 @@ func ResourceOnCallOnCallShift() *schema.Resource {
 
 func ResourceOnCallOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 
-	teamIdData := d.Get("team_id").(string)
+	teamIDData := d.Get("team_id").(string)
 	typeData := d.Get("type").(string)
 	nameData := d.Get("name").(string)
 	startData := d.Get("start").(string)
 	durationData := d.Get("duration").(int)
 
 	createOptions := &onCallAPI.CreateOnCallShiftOptions{
-		TeamId:   teamIdData,
+		TeamId:   teamIDData,
 		Type:     typeData,
 		Name:     nameData,
 		Start:    startData,
@@ -303,9 +300,6 @@ func ResourceOnCallOnCallShiftCreate(ctx context.Context, d *schema.ResourceData
 
 func ResourceOnCallOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 
 	typeData := d.Get("type").(string)
 	nameData := d.Get("name").(string)
@@ -427,9 +421,6 @@ func ResourceOnCallOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData
 
 func ResourceOnCallOnCallShiftRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 	options := &onCallAPI.GetOnCallShiftOptions{}
 	onCallShift, r, err := client.OnCallShifts.GetOnCallShift(d.Id(), options)
 	if err != nil {
@@ -463,9 +454,6 @@ func ResourceOnCallOnCallShiftRead(ctx context.Context, d *schema.ResourceData, 
 
 func ResourceOnCallOnCallShiftDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*client).onCallAPI
-	if client == nil {
-		return diag.Errorf("grafana OnCall api client is not configured")
-	}
 	options := &onCallAPI.DeleteOnCallShiftOptions{}
 	_, err := client.OnCallShifts.DeleteOnCallShift(d.Id(), options)
 	if err != nil {

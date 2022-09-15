@@ -26,6 +26,9 @@ var notifiers = []notifier{
 	teamsNotifier{},
 	telegramNotifier{},
 	threemaNotifier{},
+	victorOpsNotifier{},
+	webhookNotifier{},
+	wecomNotifier{},
 }
 
 func ResourceContactPoint() *schema.Resource {
@@ -42,7 +45,7 @@ Manages Grafana Alerting contact points.
 		DeleteContext: deleteContactPoint,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: importContactPoint,
 		},
 
 		SchemaVersion: 0,
@@ -67,19 +70,40 @@ Manages Grafana Alerting contact points.
 	return resource
 }
 
+func importContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	name := data.Id()
+	client := meta.(*client).gapi
+
+	ps, err := client.ContactPointsByName(name)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(ps) == 0 {
+		return nil, fmt.Errorf("no contact points with the given name were found to import")
+	}
+
+	uids := make([]string, 0, len(ps))
+	for _, p := range ps {
+		uids = append(uids, p.UID)
+	}
+
+	data.SetId(packUIDs(uids))
+	return []*schema.ResourceData{data}, nil
+}
+
 func readContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	uids := unpackUIDs(data.Id())
+	uidsToFetch := unpackUIDs(data.Id())
 
 	points := []gapi.ContactPoint{}
-	for _, uid := range uids {
+	for _, uid := range uidsToFetch {
 		p, err := client.ContactPoint(uid)
 		if err != nil {
-			if strings.HasPrefix(err.Error(), "status: 404") {
+			if strings.HasPrefix(err.Error(), "status: 404") || strings.Contains(err.Error(), "not found") {
 				log.Printf("[WARN] removing contact point %s from state because it no longer exists in grafana", uid)
-				data.SetId("")
-				return nil
+				continue
 			}
 			return diag.FromErr(err)
 		}
@@ -90,16 +114,24 @@ func readContactPoint(ctx context.Context, data *schema.ResourceData, meta inter
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	uids := make([]string, 0, len(points))
+	for _, p := range points {
+		uids = append(uids, p.UID)
+	}
 	data.SetId(packUIDs(uids))
 
 	return nil
 }
 
 func createContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	lock := &meta.(*client).alertingMutex
 	client := meta.(*client).gapi
 
 	ps := unpackContactPoints(data)
 	uids := make([]string, 0, len(ps))
+
+	lock.Lock()
+	defer lock.Unlock()
 	for i := range ps {
 		uid, err := client.NewContactPoint(&ps[i])
 		if err != nil {
@@ -113,6 +145,7 @@ func createContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 }
 
 func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	lock := &meta.(*client).alertingMutex
 	client := meta.(*client).gapi
 
 	existingUIDs := unpackUIDs(data.Id())
@@ -120,6 +153,8 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 
 	unprocessedUIDs := toUIDSet(existingUIDs)
 	newUIDs := make([]string, 0, len(ps))
+	lock.Lock()
+	defer lock.Unlock()
 	for i := range ps {
 		delete(unprocessedUIDs, ps[i].UID)
 		err := client.UpdateContactPoint(&ps[i])
@@ -151,9 +186,13 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 }
 
 func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	lock := &meta.(*client).alertingMutex
 	client := meta.(*client).gapi
 
 	uids := unpackUIDs(data.Id())
+
+	lock.Lock()
+	defer lock.Unlock()
 	for _, uid := range uids {
 		if err := client.DeleteContactPoint(uid); err != nil {
 			return diag.FromErr(err)
@@ -169,12 +208,23 @@ func unpackContactPoints(data *schema.ResourceData) []gapi.ContactPoint {
 	for _, n := range notifiers {
 		if points, ok := data.GetOk(n.meta().field); ok {
 			for _, p := range points.([]interface{}) {
-				result = append(result, n.unpack(p, name))
+				result = append(result, unpackPointConfig(n, p, name))
 			}
 		}
 	}
 
 	return result
+}
+
+func unpackPointConfig(n notifier, data interface{}, name string) gapi.ContactPoint {
+	pt := n.unpack(data, name)
+	// Treat settings like `omitempty`. Workaround for versions affected by https://github.com/grafana/grafana/issues/55139
+	for k, v := range pt.Settings {
+		if v == "" {
+			delete(pt.Settings, k)
+		}
+	}
+	return pt
 }
 
 func packContactPoints(ps []gapi.ContactPoint, data *schema.ResourceData) error {
@@ -251,10 +301,7 @@ func commonNotifierResource() *schema.Resource {
 const RedactedContactPointField = "[REDACTED]"
 
 func redactedContactPointDiffSuppress(k, oldValue, newValue string, d *schema.ResourceData) bool {
-	if oldValue == RedactedContactPointField {
-		return true
-	}
-	return false
+	return oldValue == RedactedContactPointField
 }
 
 const UIDSeparator = ";"

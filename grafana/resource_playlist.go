@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"strings"
 
@@ -85,7 +84,7 @@ func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 	id, err := client.NewPlaylist(playlist)
 
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("error creating Playlist: %w", err))
+		return diag.Errorf("error creating Playlist: %v", err)
 	}
 
 	d.SetId(id)
@@ -104,13 +103,13 @@ func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta interface{})
 		d.SetId("")
 		return nil
 	} else if err != nil {
-		return diag.FromErr(fmt.Errorf("error reading Playlist (%s): %w", d.Id(), err))
+		return diag.Errorf("error reading Playlist (%s): %v", d.Id(), err)
 	}
 
 	d.Set("name", resp.Name)
 	d.Set("interval", resp.Interval)
 	if err := d.Set("item", flattenPlaylistItems(resp.Items)); err != nil {
-		return diag.FromErr(fmt.Errorf("error setting item: %v", err))
+		return diag.Errorf("error setting item: %v", err)
 	}
 
 	return nil
@@ -127,7 +126,7 @@ func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 
 	err := client.UpdatePlaylist(playlist)
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("error updating Playlist (%s): %w", d.Id(), err))
+		return diag.Errorf("error updating Playlist (%s): %v", d.Id(), err)
 	}
 
 	return ReadPlaylist(ctx, d, meta)
@@ -140,7 +139,7 @@ func DeletePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 		if strings.HasPrefix(err.Error(), "status: 404") {
 			return nil
 		}
-		return diag.FromErr(fmt.Errorf("error deleting Playlist (%s): %w", d.Id(), err))
+		return diag.Errorf("error deleting Playlist (%s): %v", d.Id(), err)
 	}
 
 	return nil
