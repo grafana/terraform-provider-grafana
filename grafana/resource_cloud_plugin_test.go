@@ -16,6 +16,8 @@ func TestAccResourceCloudPluginInstallation(t *testing.T) {
 	pluginVersion := "1.7.0"
 
 	resource.Test(t, resource.TestCase{
+		PreCheck: func() { testAccCloudPluginDeleteExisting(t, slug, pluginSlug) },
+
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -68,6 +70,20 @@ func testAccCloudPluginInstallationDestroy(stackSlug string, pluginSlug string) 
 		}
 
 		return nil
+	}
+}
+
+func testAccCloudPluginDeleteExisting(t *testing.T, instanceSlug, pluginSlug string) {
+	client := testAccProvider.Meta().(*client).gcloudapi
+	installed, err := client.IsCloudPluginInstalled(instanceSlug, pluginSlug)
+	if err != nil {
+		t.Fatalf("error checking if plugin is installed: %s", err)
+	}
+	if installed {
+		err = client.UninstallCloudPlugin(instanceSlug, pluginSlug)
+		if err != nil {
+			t.Fatalf("error uninstalling plugin: %s", err)
+		}
 	}
 }
 
