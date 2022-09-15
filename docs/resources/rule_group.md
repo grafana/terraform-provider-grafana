@@ -109,7 +109,7 @@ EOT
 
 ### Required
 
-- `folder_uid` (String) The UID of the group that the folder belongs to.
+- `folder_uid` (String) The UID of the folder that the group belongs to.
 - `interval_seconds` (Number) The interval, in seconds, at which all rules in the group are evaluated. If a group contains many rules, the rules are evaluated sequentially.
 - `name` (String) The name of the rule group.
 - `org_id` (Number) The ID of the org to which the group belongs.
