@@ -42,7 +42,7 @@ Manages Grafana Alerting rule groups.
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The UID of the group that the folder belongs to.",
+				Description: "The UID of the folder that the group belongs to.",
 			},
 			"interval_seconds": {
 				Type:        schema.TypeInt,
