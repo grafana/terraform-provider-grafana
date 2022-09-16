@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"context"
-
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -19,8 +18,22 @@ func ResourceRoleAssignment() *schema.Resource {
 		UpdateContext: UpdateRoleAssignments,
 		ReadContext:   ReadRoleAssignments,
 		DeleteContext: UpdateRoleAssignments,
+		// Import either by UID
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: func(c context.Context, rd *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				//_, err := strconv.ParseInt(rd.Id(), 10, 64)
+				//if err != nil {
+				//	// If the ID is not a number, then it may be a UID
+				//	client := meta.(*client).gapi
+				//	folder, err := client.FolderByUID(rd.Id())
+				//	if err != nil {
+				//		return nil, fmt.Errorf("failed to find folder by ID or UID '%s': %w", rd.Id(), err)
+				//	}
+				//	rd.SetId(strconv.FormatInt(folder.ID, 10))
+				//}
+				rd.Set("role_uid", rd.Id())
+				return []*schema.ResourceData{rd}, nil
+			},
 		},
 		Schema: map[string]*schema.Schema{
 			"role_uid": {
@@ -40,13 +53,6 @@ func ResourceRoleAssignment() *schema.Resource {
 							Required:    true,
 							ForceNew:    false,
 							Description: "User ID.",
-						},
-						"global": {
-							Type:        schema.TypeBool,
-							Optional:    true,
-							Default:     false,
-							ForceNew:    false,
-							Description: "States whether the assignment is available across all organizations or not.",
 						},
 					},
 				},
@@ -134,10 +140,9 @@ func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 func setRoleAssignments(assignments *gapi.RoleAssignments, d *schema.ResourceData) error {
 	// resolve users
 	users := make([]interface{}, 0)
-	for _, user := range assignments.Users {
+	for _, userID := range assignments.Users {
 		u := map[string]interface{}{
-			"id":     user.ID,
-			"global": user.Global,
+			"id": userID,
 		}
 		users = append(users, u)
 	}
@@ -147,9 +152,9 @@ func setRoleAssignments(assignments *gapi.RoleAssignments, d *schema.ResourceDat
 
 	// resolve teams
 	teams := make([]interface{}, 0)
-	for _, team := range assignments.Teams {
+	for _, teamID := range assignments.Teams {
 		t := map[string]interface{}{
-			"id": team.ID,
+			"id": teamID,
 		}
 		teams = append(teams, t)
 	}
@@ -159,9 +164,9 @@ func setRoleAssignments(assignments *gapi.RoleAssignments, d *schema.ResourceDat
 
 	// resolve service accounts
 	serviceAccounts := make([]interface{}, 0)
-	for _, sa := range assignments.ServiceAccounts {
+	for _, saID := range assignments.ServiceAccounts {
 		sa := map[string]interface{}{
-			"id": sa.ID,
+			"id": saID,
 		}
 		serviceAccounts = append(serviceAccounts, sa)
 	}
@@ -172,15 +177,11 @@ func setRoleAssignments(assignments *gapi.RoleAssignments, d *schema.ResourceDat
 	return nil
 }
 
-func collectRoleAssignmentsToFn(r interface{}) []gapi.RoleAssignment {
-	output := make([]gapi.RoleAssignment, 0)
+func collectRoleAssignmentsToFn(r interface{}) []int {
+	output := make([]int, 0)
 	for _, r := range r.(*schema.Set).List() {
 		el := r.(map[string]interface{})
-		roleAssignment := gapi.RoleAssignment{ID: el["id"].(int)}
-		if el["global"] != nil {
-			roleAssignment.Global = el["global"].(bool)
-		}
-		output = append(output, roleAssignment)
+		output = append(output, el["id"].(int))
 	}
 	return output
 }
