@@ -5,6 +5,7 @@ subcategory: "Alerting"
 description: |-
   Manages Grafana Alerting contact points.
   Official documentation https://grafana.com/docs/grafana/next/alerting/contact-pointsHTTP API https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#contact-points
+  This resource requires Grafana 9.1.0 or later.
 ---
 
 # grafana_contact_point (Resource)
@@ -13,6 +14,8 @@ Manages Grafana Alerting contact points.
 
 * [Official documentation](https://grafana.com/docs/grafana/next/alerting/contact-points)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#contact-points)
+
+This resource requires Grafana 9.1.0 or later.
 
 ## Example Usage
 

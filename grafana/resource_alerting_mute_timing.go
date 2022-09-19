@@ -14,9 +14,13 @@ import (
 func ResourceMuteTiming() *schema.Resource {
 	return &schema.Resource{
 		Description: `
+Manages Grafana Alerting mute timings.
+
 * [Official documentation](https://grafana.com/docs/grafana/next/alerting/notifications/mute-timings/)
 * [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#mute-timings)
-		`,
+
+This resource requires Grafana 9.1.0 or later.
+`,
 
 		CreateContext: createMuteTiming,
 		ReadContext:   readMuteTiming,
