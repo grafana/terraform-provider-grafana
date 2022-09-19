@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"fmt"
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -11,7 +12,7 @@ func ResourceRoleAssignment() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 **Note:** This resource is available only with Grafana Enterprise 9.2+.
-* [Official documentation](https://grafana.com/docs/grafana/latest/enterprise/access-control/)
+* [Official documentatigrafana_role_assignmenton](https://grafana.com/docs/grafana/latest/enterprise/access-control/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/http_api/access_control/)
 `,
 		CreateContext: UpdateRoleAssignments,
@@ -21,16 +22,6 @@ func ResourceRoleAssignment() *schema.Resource {
 		// Import either by UID
 		Importer: &schema.ResourceImporter{
 			StateContext: func(c context.Context, rd *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				//_, err := strconv.ParseInt(rd.Id(), 10, 64)
-				//if err != nil {
-				//	// If the ID is not a number, then it may be a UID
-				//	client := meta.(*client).gapi
-				//	folder, err := client.FolderByUID(rd.Id())
-				//	if err != nil {
-				//		return nil, fmt.Errorf("failed to find folder by ID or UID '%s': %w", rd.Id(), err)
-				//	}
-				//	rd.SetId(strconv.FormatInt(folder.ID, 10))
-				//}
 				rd.Set("role_uid", rd.Id())
 				return []*schema.ResourceData{rd}, nil
 			},
@@ -45,46 +36,28 @@ func ResourceRoleAssignment() *schema.Resource {
 			"users": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "Role assignments to users.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:        schema.TypeInt,
-							Required:    true,
-							ForceNew:    false,
-							Description: "User ID.",
-						},
-					},
+				ForceNew:    false,
+				Description: "IDs of users that the role should be assigned to.",
+				Elem: &schema.Schema{
+					Type: schema.TypeInt,
 				},
 			},
 			"teams": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "Role assignments to teams.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:        schema.TypeInt,
-							Required:    true,
-							ForceNew:    false,
-							Description: "Team ID.",
-						},
-					},
+				ForceNew:    false,
+				Description: "IDs of teams that the role should be assigned to.",
+				Elem: &schema.Schema{
+					Type: schema.TypeInt,
 				},
 			},
 			"service_accounts": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "Role assignments to service accounts.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:        schema.TypeInt,
-							Required:    true,
-							ForceNew:    false,
-							Description: "Service account ID.",
-						},
-					},
+				ForceNew:    false,
+				Description: "IDs of service accounts that the role should be assigned to.",
+				Elem: &schema.Schema{
+					Type: schema.TypeInt,
 				},
 			},
 		},
@@ -92,6 +65,7 @@ func ResourceRoleAssignment() *schema.Resource {
 }
 
 func ReadRoleAssignments(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	// TODO test what happens when roles are set for ie teams and then the team id list is removed - do they get cleared correctly or is the previous state used?
 	client := meta.(*client).gapi
 	uid := d.Get("role_uid").(string)
 	assignments, err := client.GetRoleAssignments(uid)
@@ -115,9 +89,18 @@ func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 	client := meta.(*client).gapi
 
 	uid := d.Get("role_uid").(string)
-	users := collectRoleAssignmentsToFn(d.Get("users"))
-	teams := collectRoleAssignmentsToFn(d.Get("teams"))
-	serviceAccounts := collectRoleAssignmentsToFn(d.Get("service_accounts"))
+	users, err := collectRoleAssignmentsToFn(d.Get("users"))
+	if err != nil {
+		return diag.Errorf("invalid user IDs specifiedL %v", err)
+	}
+	teams, err := collectRoleAssignmentsToFn(d.Get("teams"))
+	if err != nil {
+		return diag.Errorf("invalid team IDs specifiedL %v", err)
+	}
+	serviceAccounts, err := collectRoleAssignmentsToFn(d.Get("service_accounts"))
+	if err != nil {
+		return diag.Errorf("invalid service account IDs specifiedL %v", err)
+	}
 
 	ra := gapi.RoleAssignments{
 		RoleUID:         uid,
@@ -138,50 +121,27 @@ func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func setRoleAssignments(assignments *gapi.RoleAssignments, d *schema.ResourceData) error {
-	// resolve users
-	users := make([]interface{}, 0)
-	for _, userID := range assignments.Users {
-		u := map[string]interface{}{
-			"id": userID,
-		}
-		users = append(users, u)
-	}
-	if err := d.Set("users", users); err != nil {
+	if err := d.Set("users", assignments.Users); err != nil {
 		return err
 	}
-
-	// resolve teams
-	teams := make([]interface{}, 0)
-	for _, teamID := range assignments.Teams {
-		t := map[string]interface{}{
-			"id": teamID,
-		}
-		teams = append(teams, t)
-	}
-	if err := d.Set("teams", teams); err != nil {
+	if err := d.Set("teams", assignments.Teams); err != nil {
 		return err
 	}
-
-	// resolve service accounts
-	serviceAccounts := make([]interface{}, 0)
-	for _, saID := range assignments.ServiceAccounts {
-		sa := map[string]interface{}{
-			"id": saID,
-		}
-		serviceAccounts = append(serviceAccounts, sa)
-	}
-	if err := d.Set("service_accounts", serviceAccounts); err != nil {
+	if err := d.Set("service_accounts", assignments.ServiceAccounts); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func collectRoleAssignmentsToFn(r interface{}) []int {
+func collectRoleAssignmentsToFn(r interface{}) ([]int, error) {
 	output := make([]int, 0)
-	for _, r := range r.(*schema.Set).List() {
-		el := r.(map[string]interface{})
-		output = append(output, el["id"].(int))
+	for _, rID := range r.(*schema.Set).List() {
+		id, ok := rID.(int)
+		if !ok {
+			return []int{}, fmt.Errorf("%s is not a valid id", rID)
+		}
+		output = append(output, id)
 	}
-	return output
+	return output, nil
 }
