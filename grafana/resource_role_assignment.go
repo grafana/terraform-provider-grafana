@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"fmt"
+
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -12,7 +13,7 @@ func ResourceRoleAssignment() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 **Note:** This resource is available only with Grafana Enterprise 9.2+.
-* [Official documentatigrafana_role_assignmenton](https://grafana.com/docs/grafana/latest/enterprise/access-control/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/enterprise/access-control/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/http_api/access_control/)
 `,
 		CreateContext: UpdateRoleAssignments,
