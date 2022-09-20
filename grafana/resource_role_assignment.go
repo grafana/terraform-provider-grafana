@@ -102,7 +102,7 @@ func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.Errorf("invalid service account IDs specifiedL %v", err)
 	}
 
-	ra := gapi.RoleAssignments{
+	ra := &gapi.RoleAssignments{
 		RoleUID:         uid,
 		Users:           users,
 		Teams:           teams,
