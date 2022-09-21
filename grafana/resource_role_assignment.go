@@ -23,7 +23,10 @@ func ResourceRoleAssignment() *schema.Resource {
 		// Import by UID
 		Importer: &schema.ResourceImporter{
 			StateContext: func(c context.Context, rd *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				rd.Set("role_uid", rd.Id())
+				if err := rd.Set("role_uid", rd.Id()); err != nil {
+					return nil, fmt.Errorf("could not set role UID")
+				}
+				rd.SetId(fmt.Sprintf("%s_assignments", rd.Id()))
 				return []*schema.ResourceData{rd}, nil
 			},
 		},
@@ -66,7 +69,6 @@ func ResourceRoleAssignment() *schema.Resource {
 }
 
 func ReadRoleAssignments(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// TODO test what happens when roles are set for ie teams and then the team id list is removed - do they get cleared correctly or is the previous state used?
 	client := meta.(*client).gapi
 	uid := d.Get("role_uid").(string)
 	assignments, err := client.GetRoleAssignments(uid)
@@ -120,7 +122,7 @@ func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func setRoleAssignments(assignments *gapi.RoleAssignments, d *schema.ResourceData) error {
-	d.SetId(assignments.RoleUID)
+	d.SetId(fmt.Sprintf("%s_assignments", assignments.RoleUID))
 	if err := d.Set("role_uid", assignments.RoleUID); err != nil {
 		return err
 	}
