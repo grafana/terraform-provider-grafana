@@ -19,7 +19,7 @@ func ResourceRoleAssignment() *schema.Resource {
 		UpdateContext: UpdateRoleAssignments,
 		ReadContext:   ReadRoleAssignments,
 		DeleteContext: UpdateRoleAssignments,
-		// Import either by UID
+		// Import by UID
 		Importer: &schema.ResourceImporter{
 			StateContext: func(c context.Context, rd *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				rd.Set("role_uid", rd.Id())
