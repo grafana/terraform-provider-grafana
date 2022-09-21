@@ -84,7 +84,7 @@ func TestAccRole(t *testing.T) {
 						"grafana_role.test", "permissions.0.action", "users:create",
 					),
 					resource.TestCheckResourceAttr(
-						"grafana_role.test", "permissions.1.scope", "global:users:*",
+						"grafana_role.test", "permissions.1.scope", "global.users:*",
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_role.test", "permissions.1.action", "users:read",
@@ -154,7 +154,7 @@ resource "grafana_role" "test" {
   hidden = true
   permissions {
 	action = "users:read"
-    scope = "global:users:*"
+    scope = "global.users:*"
   }
   permissions {
 	action = "users:create"
