@@ -77,8 +77,6 @@ func ReadRoleAssignments(ctx context.Context, d *schema.ResourceData, meta inter
 	if err := setRoleAssignments(assignments, d); err != nil {
 		return diag.FromErr(err)
 	}
-
-	d.SetId(uid)
 	return nil
 }
 
@@ -122,6 +120,10 @@ func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func setRoleAssignments(assignments *gapi.RoleAssignments, d *schema.ResourceData) error {
+	d.SetId(assignments.RoleUID)
+	if err := d.Set("role_uid", assignments.RoleUID); err != nil {
+		return err
+	}
 	if err := d.Set("users", assignments.Users); err != nil {
 		return err
 	}
