@@ -13,7 +13,7 @@ func ResourceRoleAssignment() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 **Note:** This resource is available only with Grafana Enterprise 9.2+.
-* [Official documentation](https://grafana.com/docs/grafana/latest/enterprise/access-control/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/http_api/access_control/)
 `,
 		CreateContext: UpdateRoleAssignments,
