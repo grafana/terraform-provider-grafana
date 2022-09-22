@@ -25,6 +25,7 @@
     "resources/folder_permission": "Grafana Enteprise",
     "resources/report": "Grafana Enteprise",
     "resources/role": "Grafana Enteprise",
+    "resources/role_assignment": "Grafana Enteprise",
     "resources/team_external_group": "Grafana Enteprise",
     "resources/cloud_api_key": "Cloud",
     "resources/cloud_plugin_installation": "Cloud",
