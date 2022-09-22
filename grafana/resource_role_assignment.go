@@ -83,7 +83,7 @@ func ReadRoleAssignments(ctx context.Context, d *schema.ResourceData, meta inter
 }
 
 func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	if !d.HasChange("users") && !d.HasChange("teams") && !d.HasChange("service_accounts") {
+	if !d.IsNewResource() && !d.HasChange("users") && !d.HasChange("teams") && !d.HasChange("service_accounts") {
 		return nil
 	}
 
