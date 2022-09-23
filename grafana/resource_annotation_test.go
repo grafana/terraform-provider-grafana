@@ -18,7 +18,7 @@ var (
 )
 
 func TestAccAnnotation_basic(t *testing.T) {
-	//CheckOSSTestsEnabled(t)
+	CheckOSSTestsEnabled(t)
 	var annotation gapi.Annotation
 
 	resource.Test(t, resource.TestCase{
