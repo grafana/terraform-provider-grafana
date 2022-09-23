@@ -66,6 +66,7 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_playlist":                ResourcePlaylist(),
 			"grafana_report":                  ResourceReport(),
 			"grafana_role":                    ResourceRole(),
+			"grafana_role_assignment":         ResourceRoleAssignment(),
 			"grafana_rule_group":              ResourceRuleGroup(),
 			"grafana_team":                    ResourceTeam(),
 			"grafana_team_preferences":        ResourceTeamPreferences(),
