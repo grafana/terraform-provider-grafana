@@ -111,7 +111,7 @@ func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 
-	return nil
+	return ReadRoleAssignments(ctx, d, meta)
 }
 
 func setRoleAssignments(assignments *gapi.RoleAssignments, d *schema.ResourceData) error {
