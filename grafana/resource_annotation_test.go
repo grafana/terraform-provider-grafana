@@ -18,7 +18,7 @@ var (
 )
 
 func TestAccAnnotation_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	//CheckOSSTestsEnabled(t)
 	var annotation gapi.Annotation
 
 	resource.Test(t, resource.TestCase{
@@ -164,6 +164,8 @@ resource "grafana_annotation" "test_with_dashboard_id" {
 }
 
 func testAnnotationConfigWithPanelID(text string) string {
+	panelID := 123
+
 	return fmt.Sprintf(`
 resource "grafana_dashboard" "test_with_panel_id" {
   config_json = <<EOD
@@ -171,24 +173,15 @@ resource "grafana_dashboard" "test_with_panel_id" {
   "title": "%s",
 	"panels": [{
 		"name": "%s",
-		"id": 123
+		"id": %d
 	}]
 }
 EOD
 }
 
-data "grafana_dashboard" "test_with_panel_id" {
-	dashboard_id = grafana_dashboard.test_with_panel_id.dashboard_id
-}
-
-locals {
-  dashboard_json = jsondecode(data.grafana_dashboard.test_with_panel_id.config_json)
-  panel_id       = local.dashboard_json.panels[0].id
-}
-
 resource "grafana_annotation" "test_with_panel_id" {
     text     = "%s"
-		panel_id = local.panel_id
+		panel_id = %d
 }
-`, text, text, text)
+`, text, text, panelID, text, panelID)
 }
