@@ -19,7 +19,7 @@ func ResourceRoleAssignment() *schema.Resource {
 		CreateContext: UpdateRoleAssignments,
 		UpdateContext: UpdateRoleAssignments,
 		ReadContext:   ReadRoleAssignments,
-		DeleteContext: UpdateRoleAssignments,
+		DeleteContext: DeleteRoleAssignments,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -102,16 +102,29 @@ func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 		Teams:           teams,
 		ServiceAccounts: serviceAccounts,
 	}
-	assignments, err := client.UpdateRoleAssignments(ra)
-	if err != nil {
+	if _, err := client.UpdateRoleAssignments(ra); err != nil {
 		return diag.FromErr(err)
 	}
 
-	if err := setRoleAssignments(assignments, d); err != nil {
-		return diag.FromErr(err)
-	}
-
+	d.SetId(uid)
 	return ReadRoleAssignments(ctx, d, meta)
+}
+
+func DeleteRoleAssignments(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*client).gapi
+
+	uid := d.Get("role_uid").(string)
+	ra := &gapi.RoleAssignments{
+		RoleUID:         uid,
+		Users:           []int{},
+		Teams:           []int{},
+		ServiceAccounts: []int{},
+	}
+
+	if _, err := client.UpdateRoleAssignments(ra); err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
 }
 
 func setRoleAssignments(assignments *gapi.RoleAssignments, d *schema.ResourceData) error {
