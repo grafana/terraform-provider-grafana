@@ -328,32 +328,32 @@ source selected (via the 'type' argument).
 						"sigv4_assume_role_arn": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(Elasticsearch and Prometheus) Specifies the ARN of an IAM role to assume.",
+							Description: "(Elasticsearch, Prometheus, Alertmanager) Specifies the ARN of an IAM role to assume.",
 						},
 						"sigv4_auth": {
 							Type:        schema.TypeBool,
 							Optional:    true,
-							Description: "(Elasticsearch and Prometheus) Enable usage of SigV4.",
+							Description: "(Elasticsearch, Prometheus, Alertmanager) Enable usage of SigV4.",
 						},
 						"sigv4_auth_type": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(Elasticsearch and Prometheus) The Sigv4 authentication provider to use: 'default', 'credentials' or 'keys' (AMG: 'workspace-iam-role').",
+							Description: "(Elasticsearch, Prometheus, Alertmanager) The Sigv4 authentication provider to use: 'default', 'credentials' or 'keys' (AMG: 'workspace-iam-role').",
 						},
 						"sigv4_external_id": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(Elasticsearch and Prometheus) When assuming a role in another account use this external ID.",
+							Description: "(Elasticsearch, Prometheus, Alertmanager) When assuming a role in another account use this external ID.",
 						},
 						"sigv4_profile": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(Elasticsearch and Prometheus) Credentials profile name, leave blank for default.",
+							Description: "(Elasticsearch, Prometheus, Alertmanager) Credentials profile name, leave blank for default.",
 						},
 						"sigv4_region": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(Elasticsearch and Prometheus) AWS region to use for Sigv4.",
+							Description: "(Elasticsearch, Prometheus, Alertmanager) AWS region to use for Sigv4.",
 						},
 						"ssl_mode": {
 							Type:        schema.TypeString,
