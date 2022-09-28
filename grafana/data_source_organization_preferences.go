@@ -29,7 +29,7 @@ func DatasourceOrganizationPreferences() *schema.Resource {
 				Description: "The Organization home dashboard ID.",
 			},
 			"home_dashboard_uid": {
-				Type:        schema.TypeInt,
+				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The Organization home dashboard UID.",
 			},
