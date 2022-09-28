@@ -2,9 +2,6 @@ package grafana
 
 import (
 	"context"
-	"crypto/sha256"
-	"fmt"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -67,6 +64,9 @@ func dataSourceOrganizationPreferencesRead(ctx context.Context, d *schema.Resour
 	d.Set("week_start", prefs.WeekStart)
 	d.Set("locale", prefs.Locale)
 
+	// In current implementation generateOrgPrefsIDSha() returns a sha sum of all the resource & data
+	// source attributes, and is also used by resource_organization_preferences.
+	//
 	// TODO: is it problematic that every organization_preference data source will have the same ID?
 	//
 	// According to @julienduchesne (https://github.com/grafana/terraform-provider-grafana/pull/583/files/b261189cf70ae4c076d9319d83abda2a959e5112#r944357467) ...
@@ -76,16 +76,7 @@ func dataSourceOrganizationPreferencesRead(ctx context.Context, d *schema.Resour
 	//
 	// However, in this instance, the data source does not accept any parameters; they are all computed.
 	// So, what would be a reasonable way to calculate its ID?
-	sha := sha256.Sum256([]byte(strings.Join([]string{
-		"theme",
-		"home_dashboard_id",
-		"home_dashboard_uid",
-		"timezone",
-		"week_start",
-		"locale",
-	}, "-")))
-
-	d.SetId(fmt.Sprintf("%x", sha))
+	d.SetId(generateOrgPrefsIDSha())
 
 	return nil
 }
