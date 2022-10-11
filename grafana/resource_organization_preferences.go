@@ -2,10 +2,7 @@ package grafana
 
 import (
 	"context"
-	"crypto/sha256"
-	"fmt"
 	"strconv"
-	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -80,7 +77,7 @@ func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 		return diag.FromErr(err)
 	}
 
-	d.SetId(generateOrgPrefsIDSha())
+	d.SetId("organization_preferences")
 
 	return ReadOrganizationPreferences(ctx, d, meta)
 }
@@ -130,22 +127,4 @@ func DeleteOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	return diag.Diagnostics{}
-}
-
-// TODO: is it problematic that every org preferences will have the same ID?
-// Because the `GET /api/org/preferences` endpoint operates on the current org
-// and returns no org ID, it's unclear how best to uniquely ID the
-// resource_organization_preferences resource.
-// Could/should we look up the current org and use its ID?
-func generateOrgPrefsIDSha() string {
-	sha := sha256.Sum256([]byte(strings.Join([]string{
-		"theme",
-		"home_dashboard_id",
-		"home_dashboard_uid",
-		"timezone",
-		"week_start",
-		"locale",
-	}, "-")))
-
-	return fmt.Sprintf("%x", sha)
 }

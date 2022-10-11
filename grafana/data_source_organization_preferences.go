@@ -33,19 +33,7 @@ func dataSourceOrganizationPreferencesRead(ctx context.Context, d *schema.Resour
 	d.Set("week_start", prefs.WeekStart)
 	d.Set("locale", prefs.Locale)
 
-	// In current implementation generateOrgPrefsIDSha() returns a sha sum of all the resource & data
-	// source attributes, and is also used by resource_organization_preferences.
-	//
-	// TODO: is it problematic that every organization_preference data source will have the same ID?
-	//
-	// According to @julienduchesne (https://github.com/grafana/terraform-provider-grafana/pull/583/files/b261189cf70ae4c076d9319d83abda2a959e5112#r944357467) ...
-	// "The ID should be declarative because it needs to be unique.
-	// For a datasource like this, it's usually the combination of all entry parameters because you
-	// will typically not have the same datasource twice with the same parameters"
-	//
-	// However, in this instance, the data source does not accept any parameters; they are all computed.
-	// So, what would be a reasonable way to calculate its ID?
-	d.SetId(generateOrgPrefsIDSha())
+	d.SetId("organization_preferences")
 
 	return nil
 }
