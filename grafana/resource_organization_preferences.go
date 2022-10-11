@@ -121,10 +121,9 @@ func UpdateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 
 func DeleteOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
-	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	if err := client.DeleteOrg(orgID); err != nil {
+	if _, err := client.UpdateAllOrgPreferences(gapi.Preferences{}); err != nil {
 		return diag.FromErr(err)
 	}
 
-	return diag.Diagnostics{}
+	return nil
 }
