@@ -6,6 +6,7 @@ import (
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func ResourceOrganizationPreferences() *schema.Resource {
@@ -40,11 +41,11 @@ func ResourceOrganizationPreferences() *schema.Resource {
 				Optional:    true,
 				Description: "The Organization home dashboard UID.",
 			},
-			// TODO: add validation?
 			"timezone": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Organization timezone.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The Organization timezone.",
+				ValidateFunc: validation.StringInSlice([]string{"utc", "browser", ""}, false),
 			},
 			// TODO: add validation?
 			"week_start": {
