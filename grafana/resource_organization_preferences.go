@@ -29,7 +29,7 @@ func ResourceOrganizationPreferences() *schema.Resource {
 			"theme": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Description:  "The Organization theme.",
+				Description:  "The Organization theme. Available values are `light`, `dark`, or an empty string for the default.",
 				ValidateFunc: validation.StringInSlice([]string{"light", "dark", ""}, false),
 			},
 			"home_dashboard_id": {
@@ -45,7 +45,7 @@ func ResourceOrganizationPreferences() *schema.Resource {
 			"timezone": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Description:  "The Organization timezone.",
+				Description:  "The Organization timezone. Available values are `utc`, `browser`, or an empty string for the default.",
 				ValidateFunc: validation.StringInSlice([]string{"utc", "browser", ""}, false),
 			},
 			// TODO: add validation?

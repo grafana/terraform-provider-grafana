@@ -21,8 +21,8 @@ description: |-
 - `home_dashboard_id` (Number) The Organization home dashboard ID.
 - `home_dashboard_uid` (String) The Organization home dashboard UID.
 - `id` (String) The ID of this resource.
-- `theme` (String) The Organization theme.
-- `timezone` (String) The Organization timezone.
+- `theme` (String) The Organization theme. Available values are `light`, `dark`, or an empty string for the default.
+- `timezone` (String) The Organization timezone. Available values are `utc`, `browser`, or an empty string for the default.
 - `week_start` (String) The Organization week start.
 
 
