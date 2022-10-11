@@ -97,7 +97,7 @@ func ReadOrganizationPreferences(ctx context.Context, d *schema.ResourceData, me
 	d.Set("week_start", prefs.WeekStart)
 	d.Set("locale", prefs.Locale)
 
-	d.SetId(generateOrgPrefsIDSha())
+	d.SetId("organization_preferences")
 
 	return nil
 }
