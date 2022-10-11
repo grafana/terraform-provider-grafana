@@ -27,9 +27,10 @@ func ResourceOrganizationPreferences() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"theme": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Organization theme.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The Organization theme.",
+				ValidateFunc: validation.StringInSlice([]string{"light", "dark", ""}, false),
 			},
 			"home_dashboard_id": {
 				Type:        schema.TypeInt,
