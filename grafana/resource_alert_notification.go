@@ -21,7 +21,7 @@ func ResourceAlertNotification() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
-* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/notifications/)
+This resource is used to configure the legacy alerting system which has been replaced by the [unified alerting system](https://grafana.com/docs/grafana/latest/alerting/) in Grafana 9+. See resources in the [Alerting section](https://registry.terraform.io/providers/grafana/grafana/latest/docs) for info on how to configure alerting with Terraform.
 * [HTTP API](https://grafana.com/docs/grafana/latest/http_api/alerting_notification_channels/)
 `,
 
@@ -32,6 +32,7 @@ func ResourceAlertNotification() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+		DeprecationMessage: "This resource is used to configure the legacy alerting system which has been replaced by the [unified alerting system](https://grafana.com/docs/grafana/latest/alerting/) in Grafana 9+. See resources in the [Alerting section](https://registry.terraform.io/providers/grafana/grafana/latest/docs) for info on how to configure alerting with Terraform.",
 
 		Schema: map[string]*schema.Schema{
 			"type": {

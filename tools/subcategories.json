@@ -1,6 +1,6 @@
 {
+    "resources/alert_notification": "Deprecated",
     "index": "ignore",
-    "resources/alert_notification": "Alerting",
     "resources/contact_point": "Alerting",
     "resources/message_template": "Alerting",
     "resources/mute_timing": "Alerting",
