@@ -54,12 +54,6 @@ func ResourceOrganizationPreferences() *schema.Resource {
 				Optional:    true,
 				Description: "The Organization week start.",
 			},
-			// TODO: add validation?
-			"locale": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Organization locale.",
-			},
 		},
 	}
 }
@@ -72,7 +66,6 @@ func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 		HomeDashboardUID: d.Get("home_dashboard_uid").(string),
 		Timezone:         d.Get("timezone").(string),
 		WeekStart:        d.Get("week_start").(string),
-		Locale:           d.Get("locale").(string),
 	})
 	if err != nil {
 		return diag.FromErr(err)
@@ -96,7 +89,6 @@ func ReadOrganizationPreferences(ctx context.Context, d *schema.ResourceData, me
 	d.Set("home_dashboard_uid", prefs.HomeDashboardUID)
 	d.Set("timezone", prefs.Timezone)
 	d.Set("week_start", prefs.WeekStart)
-	d.Set("locale", prefs.Locale)
 
 	d.SetId("organization_preferences")
 

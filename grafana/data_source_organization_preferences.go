@@ -31,7 +31,6 @@ func dataSourceOrganizationPreferencesRead(ctx context.Context, d *schema.Resour
 	d.Set("home_dashboard_uid", prefs.HomeDashboardUID)
 	d.Set("timezone", prefs.Timezone)
 	d.Set("week_start", prefs.WeekStart)
-	d.Set("locale", prefs.Locale)
 
 	d.SetId("organization_preferences")
 
