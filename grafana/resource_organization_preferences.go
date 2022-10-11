@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"context"
-	"strconv"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -103,20 +102,7 @@ func ReadOrganizationPreferences(ctx context.Context, d *schema.ResourceData, me
 }
 
 func UpdateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client).gapi
-	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	if d.HasChange("name") {
-		name := d.Get("name").(string)
-		err := client.UpdateOrg(orgID, name)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-	}
-	if err := UpdateUsers(d, meta); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return diag.Diagnostics{}
+	return CreateOrganizationPreferences(ctx, d, meta)
 }
 
 func DeleteOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
