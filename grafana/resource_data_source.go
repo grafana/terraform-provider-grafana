@@ -118,6 +118,11 @@ source selected (via the 'type' argument).
 				Deprecated:  "Use json_data_encoded instead. It supports arbitrary JSON data, and therefore all attributes.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"alertmanager_uid": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "(Prometheus) The name of the Alertmanager datasource to manage alerts via UI",
+						},
 						"assume_role_arn": {
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -767,6 +772,7 @@ func makeJSONData(d *schema.ResourceData) (map[string]interface{}, error) {
 	}
 
 	return gapi.JSONData{
+		AlertmanagerUID:            d.Get("json_data.0.alertmanager_uid").(string),
 		AssumeRoleArn:              d.Get("json_data.0.assume_role_arn").(string),
 		AuthType:                   d.Get("json_data.0.auth_type").(string),
 		AuthenticationType:         d.Get("json_data.0.authentication_type").(string),

@@ -476,6 +476,7 @@ func TestAccDataSource_basic(t *testing.T) {
 					sigv4_auth_type = "default"
 					sigv4_region    = "eu-west-1"
 					manage_alerts   = true
+					alertmanager_uid = "Alertmanager"
 				}
 
 				http_headers = {
@@ -484,15 +485,16 @@ func TestAccDataSource_basic(t *testing.T) {
 			}
 			`,
 			attrChecks: map[string]string{
-				"type":                        "prometheus",
-				"name":                        "prometheus",
-				"url":                         "http://acc-test.invalid:9090",
-				"json_data.0.http_method":     "GET",
-				"json_data.0.query_timeout":   "1",
-				"json_data.0.sigv4_auth":      "true",
-				"json_data.0.sigv4_auth_type": "default",
-				"json_data.0.sigv4_region":    "eu-west-1",
-				"http_headers.header1":        "value1",
+				"type":                         "prometheus",
+				"name":                         "prometheus",
+				"url":                          "http://acc-test.invalid:9090",
+				"json_data.0.http_method":      "GET",
+				"json_data.0.query_timeout":    "1",
+				"json_data.0.sigv4_auth":       "true",
+				"json_data.0.sigv4_auth_type":  "default",
+				"json_data.0.sigv4_region":     "eu-west-1",
+				"http_headers.header1":         "value1",
+				"json_data.0.alertmanager_uid": "Alertmanager",
 			},
 			additionalChecks: []resource.TestCheckFunc{
 				func(s *terraform.State) error {
