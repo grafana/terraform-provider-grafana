@@ -9,7 +9,7 @@ import (
 )
 
 func TestAccResourceOrganizationPreferences(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	CheckOSSTestsEnabled(t)
 
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
