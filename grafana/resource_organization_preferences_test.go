@@ -13,6 +13,7 @@ import (
 
 func TestAccResourceOrganizationPreferences(t *testing.T) {
 	CheckOSSTestsEnabled(t)
+	CheckOSSTestsSemver(t, ">=8.0.0")
 
 	prefs := gapi.Preferences{
 		Theme:     "light",
