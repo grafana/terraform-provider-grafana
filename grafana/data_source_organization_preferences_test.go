@@ -16,6 +16,9 @@ func TestAccDatasourceOrganizationPreferences(t *testing.T) {
 		resource.TestCheckResourceAttr(
 			"data.grafana_organization_preferences.test", "timezone", "",
 		),
+		resource.TestCheckResourceAttr(
+			"data.grafana_organization_preferences.test", "id", "organization_preferences",
+		),
 	}
 
 	resource.Test(t, resource.TestCase{
