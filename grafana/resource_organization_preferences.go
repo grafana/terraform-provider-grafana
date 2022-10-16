@@ -62,7 +62,7 @@ func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 	client := meta.(*client).gapi
 	_, err := client.UpdateAllOrgPreferences(gapi.Preferences{
 		Theme:            d.Get("theme").(string),
-		HomeDashboardID:  d.Get("home_dashboard_id").(int64),
+		HomeDashboardID:  int64(d.Get("home_dashboard_id").(int)),
 		HomeDashboardUID: d.Get("home_dashboard_uid").(string),
 		Timezone:         d.Get("timezone").(string),
 		WeekStart:        d.Get("week_start").(string),
