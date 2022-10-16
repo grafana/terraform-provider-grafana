@@ -20,10 +20,10 @@ func TestAccResourceOrganizationPreferences(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "id", "organization_preferences"),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "theme", "light"),
-					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_id", "wrong"),
-					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", "wrong"),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_id", "0"),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", ""),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "timezone", "utc"),
-					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "week_start", "wrong"),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "week_start", ""),
 				),
 			},
 		},
@@ -38,8 +38,7 @@ func testAccOrganizationPreferencesCheckDestroy() resource.TestCheckFunc {
 			return err
 		}
 
-		// TODO: beef up these assertions
-		if prefs.Theme != "" {
+		if prefs.Theme != "" || prefs.Timezone != "" {
 			return fmt.Errorf("customized organization preferences still exist")
 		}
 		return nil
