@@ -23,7 +23,7 @@ func TestAccResourceOrganizationPreferences(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_id", "0"),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", ""),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "timezone", "utc"),
-					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "week_start", ""),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "week_start", "Tuesday"),
 				),
 			},
 		},
@@ -38,7 +38,7 @@ func testAccOrganizationPreferencesCheckDestroy() resource.TestCheckFunc {
 			return err
 		}
 
-		if prefs.Theme != "" || prefs.Timezone != "" {
+		if prefs.Theme != "" || prefs.Timezone != "" || prefs.WeekStart != "" {
 			return fmt.Errorf("customized organization preferences still exist")
 		}
 		return nil

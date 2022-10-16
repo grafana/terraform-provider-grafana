@@ -15,8 +15,9 @@ description: |-
 
 ```terraform
 resource "grafana_organization_preferences" "test" {
-  theme    = "light"
-  timezone = "utc"
+  theme      = "light"
+  timezone   = "utc"
+  week_start = "Tuesday"
 }
 ```
 
