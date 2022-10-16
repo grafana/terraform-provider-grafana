@@ -25,6 +25,11 @@ func TestAccResourceOrganizationPreferences(t *testing.T) {
 		Timezone:  "utc",
 		WeekStart: "Tuesday",
 	}
+	finalPrefs := gapi.Preferences{
+		Theme:     "",
+		Timezone:  "browser",
+		WeekStart: "Monday",
+	}
 
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
@@ -52,6 +57,18 @@ func TestAccResourceOrganizationPreferences(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", ""),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "timezone", updatedPrefs.Timezone),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "week_start", updatedPrefs.WeekStart),
+				),
+			},
+			{
+				Config: testOrganizationPreferencesConfig(finalPrefs),
+				Check: resource.ComposeTestCheckFunc(
+					testAccOrganizationPreferencesCheckExists("grafana_organization_preferences.test", finalPrefs),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "id", "organization_preferences"),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "theme", finalPrefs.Theme),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_id", "0"),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", ""),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "timezone", finalPrefs.Timezone),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "week_start", finalPrefs.WeekStart),
 				),
 			},
 		},
