@@ -7,6 +7,7 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 type alertmanagerNotifier struct{}
@@ -258,7 +259,8 @@ func (e emailNotifier) schema() *schema.Resource {
 		Required:    true,
 		Description: "The addresses to send emails to.",
 		Elem: &schema.Schema{
-			Type: schema.TypeString,
+			Type:         schema.TypeString,
+			ValidateFunc: validation.StringIsNotEmpty,
 		},
 	}
 	r.Schema["single_email"] = &schema.Schema{
@@ -336,10 +338,7 @@ func packAddrs(addrs string) []string {
 }
 
 func unpackAddrs(addrs []interface{}) string {
-	strs := make([]string, 0, len(addrs))
-	for _, addr := range addrs {
-		strs = append(strs, addr.(string))
-	}
+	strs := listToStringSlice(addrs)
 	return strings.Join(strs, addrSeparator)
 }
 

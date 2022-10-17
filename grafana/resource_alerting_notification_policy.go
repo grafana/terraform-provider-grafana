@@ -7,6 +7,7 @@ import (
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func ResourceNotificationPolicy() *schema.Resource {
@@ -40,7 +41,8 @@ This resource requires Grafana 9.1.0 or later.
 				Required:    true,
 				Description: "A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping.",
 				Elem: &schema.Schema{
-					Type: schema.TypeString,
+					Type:         schema.TypeString,
+					ValidateFunc: validation.StringIsNotEmpty,
 				},
 			},
 			"group_wait": {
