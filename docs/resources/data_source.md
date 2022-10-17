@@ -124,6 +124,7 @@ resource "grafana_data_source" "stackdriver" {
 
 Optional:
 
+- `alertmanager_uid` (String) (Prometheus) The name of the Alertmanager datasource to manage alerts via UI
 - `assume_role_arn` (String) (CloudWatch, Athena) The ARN of the role to be assumed by Grafana when using the CloudWatch or Athena data source.
 - `auth_type` (String) (CloudWatch, Athena) The authentication type used to access the data source.
 - `authentication_type` (String) (Stackdriver) The authentication type: `jwt` or `gce`.
