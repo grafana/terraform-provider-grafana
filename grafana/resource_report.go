@@ -18,6 +18,28 @@ import (
 	gapi "github.com/grafana/grafana-api-golang-client"
 )
 
+const (
+	reportFrequencyHourly  = "hourly"
+	reportFrequencyDaily   = "daily"
+	reportFrequencyWeekly  = "weekly"
+	reportFrequencyMonthly = "monthly"
+	reportFrequencyCustom  = "custom"
+	reportFrequencyOnce    = "once"
+	reportFrequencyNever   = "never"
+
+	reportOrientationPortrait  = "portrait"
+	reportOrientationLandscape = "landscape"
+
+	reportLayoutGrid   = "grid"
+	reportLayoutSimple = "simple"
+)
+
+var (
+	reportLayouts      = []string{reportLayoutSimple, reportLayoutGrid}
+	reportOrientations = []string{reportOrientationLandscape, reportOrientationPortrait}
+	reportFrequencies  = []string{reportFrequencyNever, reportFrequencyOnce, reportFrequencyHourly, reportFrequencyDaily, reportFrequencyWeekly, reportFrequencyMonthly, reportFrequencyCustom}
+)
+
 func ResourceReport() *schema.Resource {
 	return &schema.Resource{
 		Description: `
@@ -85,16 +107,16 @@ func ResourceReport() *schema.Resource {
 			"layout": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Description:  "Layout of the report. `simple` or `grid`",
-				Default:      "grid",
-				ValidateFunc: validation.StringInSlice([]string{"simple", "grid"}, false),
+				Description:  allowedValuesDescription("Layout of the report", reportLayouts),
+				Default:      reportLayoutGrid,
+				ValidateFunc: validation.StringInSlice(reportLayouts, false),
 			},
 			"orientation": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Description:  "Orientation of the report. `landscape` or `portrait`",
-				Default:      "landscape",
-				ValidateFunc: validation.StringInSlice([]string{"landscape", "portrait"}, false),
+				Description:  allowedValuesDescription("Orientation of the report", reportOrientations),
+				Default:      reportOrientationLandscape,
+				ValidateFunc: validation.StringInSlice(reportOrientations, false),
 			},
 			"time_range": {
 				Type:        schema.TypeList,
@@ -129,8 +151,8 @@ func ResourceReport() *schema.Resource {
 						"frequency": {
 							Type:         schema.TypeString,
 							Required:     true,
-							Description:  "Frequency of the report. One of `never`, `once`, `hourly`, `daily`, `weekly`, `monthly` or `custom`.",
-							ValidateFunc: validation.StringInSlice([]string{"never", "once", "hourly", "daily", "weekly", "monthly", "custom"}, false),
+							Description:  allowedValuesDescription("Frequency of the report", reportFrequencies),
+							ValidateFunc: validation.StringInSlice(reportFrequencies, false),
 						},
 						"start_time": {
 							Type:         schema.TypeString,
@@ -178,6 +200,12 @@ func ResourceReport() *schema.Resource {
 								_, _, err := parseCustomReportInterval(i)
 								return diag.FromErr(err)
 							},
+						},
+						"last_day_of_month": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "Send the report on the last day of the month",
+							Default:     false,
 						},
 					},
 				},
@@ -253,6 +281,9 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	if r.Schedule.EndDate != nil {
 		schedule["end_time"] = r.Schedule.EndDate.Format(time.RFC3339)
 	}
+	if r.Schedule.DayOfMonth == "last" {
+		schedule["last_day_of_month"] = true
+	}
 
 	d.Set("schedule", []interface{}{schedule})
 
@@ -320,7 +351,7 @@ func schemaToReport(d *schema.ResourceData) (gapi.Report, error) {
 	}
 
 	// Set schedule start time
-	if frequency != "never" {
+	if frequency != reportFrequencyNever {
 		if startTimeStr := d.Get("schedule.0.start_time").(string); startTimeStr != "" {
 			startDate, err := time.Parse(time.RFC3339, startTimeStr)
 			if err != nil {
@@ -332,7 +363,7 @@ func schemaToReport(d *schema.ResourceData) (gapi.Report, error) {
 	}
 
 	// Set schedule end time
-	if frequency != "once" && frequency != "never" {
+	if frequency != reportFrequencyOnce && frequency != reportFrequencyNever {
 		if endTimeStr := d.Get("schedule.0.end_time").(string); endTimeStr != "" {
 			endDate, err := time.Parse(time.RFC3339, endTimeStr)
 			if err != nil {
@@ -343,10 +374,16 @@ func schemaToReport(d *schema.ResourceData) (gapi.Report, error) {
 		}
 	}
 
+	if frequency == reportFrequencyMonthly {
+		if lastDayOfMonth := d.Get("schedule.0.last_day_of_month").(bool); lastDayOfMonth {
+			report.Schedule.DayOfMonth = "last"
+		}
+	}
+
 	if reportWorkdaysOnlyConfigAllowed(frequency) {
 		report.Schedule.WorkdaysOnly = d.Get("schedule.0.workdays_only").(bool)
 	}
-	if frequency == "custom" {
+	if frequency == reportFrequencyCustom {
 		customInterval := d.Get("schedule.0.custom_interval").(string)
 		amount, unit, err := parseCustomReportInterval(customInterval)
 		if err != nil {
@@ -360,7 +397,7 @@ func schemaToReport(d *schema.ResourceData) (gapi.Report, error) {
 }
 
 func reportWorkdaysOnlyConfigAllowed(frequency string) bool {
-	return frequency == "hourly" || frequency == "daily" || frequency == "custom"
+	return frequency == reportFrequencyHourly || frequency == reportFrequencyDaily || frequency == reportFrequencyCustom
 }
 
 func parseCustomReportInterval(i interface{}) (int, string, error) {
