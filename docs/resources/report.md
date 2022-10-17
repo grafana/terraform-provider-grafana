@@ -51,9 +51,9 @@ resource "grafana_report" "test" {
 
 - `include_dashboard_link` (Boolean) Whether to include a link to the dashboard in the report. Defaults to `true`.
 - `include_table_csv` (Boolean) Whether to include a CSV file of table panel data. Defaults to `false`.
-- `layout` (String) Layout of the report. `simple` or `grid` Defaults to `grid`.
+- `layout` (String) Layout of the report. Allowed values: `simple`, `grid`. Defaults to `grid`.
 - `message` (String) Message to be sent in the report.
-- `orientation` (String) Orientation of the report. `landscape` or `portrait` Defaults to `landscape`.
+- `orientation` (String) Orientation of the report. Allowed values: `landscape`, `portrait`. Defaults to `landscape`.
 - `reply_to` (String) Reply-to email address of the report.
 - `time_range` (Block List, Max: 1) Time range of the report. (see [below for nested schema](#nestedblock--time_range))
 
@@ -66,13 +66,14 @@ resource "grafana_report" "test" {
 
 Required:
 
-- `frequency` (String) Frequency of the report. One of `never`, `once`, `hourly`, `daily`, `weekly`, `monthly` or `custom`.
+- `frequency` (String) Frequency of the report. Allowed values: `never`, `once`, `hourly`, `daily`, `weekly`, `monthly`, `custom`.
 
 Optional:
 
 - `custom_interval` (String) Custom interval of the report.
 **Note:** This field is only available when frequency is set to `custom`.
 - `end_time` (String) End time of the report. If empty, the report will be sent indefinitely (according to frequency). Note that times will be saved as UTC in Grafana.
+- `last_day_of_month` (Boolean) Send the report on the last day of the month Defaults to `false`.
 - `start_time` (String) Start time of the report. If empty, the start date will be set to the creation time. Note that times will be saved as UTC in Grafana.
 - `workdays_only` (Boolean) Whether to send the report only on work days. Defaults to `false`.
 

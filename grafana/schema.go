@@ -1,7 +1,9 @@
 package grafana
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -42,4 +44,8 @@ func cloneResourceSchemaForDatasource(r *schema.Resource, updates map[string]*sc
 		}
 	}
 	return clone
+}
+
+func allowedValuesDescription(description string, allowedValues []string) string {
+	return fmt.Sprintf("%s. Allowed values: `%s`.", description, strings.Join(allowedValues, "`, `"))
 }

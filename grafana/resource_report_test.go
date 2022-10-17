@@ -65,6 +65,27 @@ func TestAccResourceReport(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_report.test", "time_range.0.to", "now"),
 				),
 			},
+			{
+				Config: testAccExample(t, "resources/grafana_report/monthly.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccReportCheckExists("grafana_report.test", &report),
+					resource.TestCheckResourceAttrSet("grafana_report.test", "id"),
+					resource.TestCheckResourceAttrSet("grafana_report.test", "dashboard_id"),
+					resource.TestCheckResourceAttr("grafana_report.test", "name", "my report"),
+					resource.TestCheckResourceAttr("grafana_report.test", "recipients.0", "some@email.com"),
+					resource.TestCheckNoResourceAttr("grafana_report.test", "recipients.1"),
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.frequency", "monthly"),
+					resource.TestCheckResourceAttrSet("grafana_report.test", "schedule.0.start_time"), // Date set to current time
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", ""),  // No end time
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.last_day_of_month", "true"),
+					resource.TestCheckResourceAttr("grafana_report.test", "orientation", "landscape"),
+					resource.TestCheckResourceAttr("grafana_report.test", "layout", "grid"),
+					resource.TestCheckResourceAttr("grafana_report.test", "include_dashboard_link", "true"),
+					resource.TestCheckResourceAttr("grafana_report.test", "include_table_csv", "false"),
+					resource.TestCheckNoResourceAttr("grafana_report.test", "time_range.0.from"),
+					resource.TestCheckNoResourceAttr("grafana_report.test", "time_range.0.to"),
+				),
+			},
 		},
 	})
 }
