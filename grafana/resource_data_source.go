@@ -548,6 +548,12 @@ source selected (via the 'type' argument).
 							Sensitive:   true,
 							Description: "(All) TLS Client key for outgoing requests.",
 						},
+						"token": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Sensitive:   true,
+							Description: "(influxdb) Token for Flux version.",
+						},
 					},
 				},
 			},
@@ -857,6 +863,7 @@ func makeSecureJSONData(d *schema.ResourceData) (map[string]interface{}, error) 
 		TLSCACert:         d.Get("secure_json_data.0.tls_ca_cert").(string),
 		TLSClientCert:     d.Get("secure_json_data.0.tls_client_cert").(string),
 		TLSClientKey:      d.Get("secure_json_data.0.tls_client_key").(string),
+		Token:    		   d.Get("secure_json_data.0.sigv4_token").(string),
 	}.Map()
 }
 
