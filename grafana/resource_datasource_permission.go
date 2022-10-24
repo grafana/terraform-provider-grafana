@@ -128,18 +128,22 @@ func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(err)
 	}
 
-	permissionItems := make([]interface{}, len(response.Permissions))
-	for i, permission := range response.Permissions {
+	var permissionItems []interface{}
+	for _, permission := range response.Permissions {
 		permissionItem := make(map[string]interface{})
+		// Cannot change Admin role permissions on data sources, so ignore it when provisioning
+		if permission.BuiltInRole == "Admin" {
+			continue
+		}
+		permissionItem["built_in_role"] = permission.BuiltInRole
 		permissionItem["team_id"] = permission.TeamID
 		permissionItem["user_id"] = permission.UserID
-		permissionItem["built_in_role"] = permission.BuiltInRole
 
 		if permissionItem["permission"], err = mapDatasourcePermissionTypeToString(permission.Permission); err != nil {
 			return diag.FromErr(err)
 		}
 
-		permissionItems[i] = permissionItem
+		permissionItems = append(permissionItems, permissionItem)
 	}
 
 	d.Set("permissions", permissionItems)
