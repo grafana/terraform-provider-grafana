@@ -72,6 +72,6 @@ Optional:
 
 - `team_id` (Number) ID of the team to manage permissions for. Defaults to `0`.
 - `user_id` (Number) ID of the user to manage permissions for. Defaults to `0`.
-- `built_in_role` (String) Name of the basic role to manage permissions for. Defaults to `""`. Can only be set from Grafana versions 9.2.3+ when [Role-based access control](https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/) is enabled.
+- `built_in_role` (String) Name of the basic role to manage permissions for. Defaults to `""`. Can only be set from Grafana versions 9.2.3+.
 
 
