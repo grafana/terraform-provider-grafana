@@ -55,8 +55,8 @@ func ResourceDatasourcePermission() *schema.Resource {
 							Type:         schema.TypeString,
 							Optional:     true,
 							Default:      "",
-							ValidateFunc: validation.StringInSlice([]string{"Viewer", "Editor"}, false),
-							Description:  "Name of the basic role to manage permissions for. Options: `Viewer` or `Editor`.",
+							ValidateFunc: validation.StringInSlice([]string{"Viewer", "Editor", "Admin"}, false),
+							Description:  "Name of the basic role to manage permissions for. Options: `Viewer`, `Editor` or `Admin`.",
 						},
 						"permission": {
 							Type:         schema.TypeString,
@@ -128,13 +128,9 @@ func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(err)
 	}
 
-	permissionItems := make([]interface{}, 0, len(response.Permissions))
-	for _, permission := range response.Permissions {
+	permissionItems := make([]interface{}, len(response.Permissions))
+	for i, permission := range response.Permissions {
 		permissionItem := make(map[string]interface{})
-		// Cannot change Admin role permissions on data sources, so ignore it when provisioning
-		if permission.BuiltInRole == "Admin" {
-			continue
-		}
 		permissionItem["built_in_role"] = permission.BuiltInRole
 		permissionItem["team_id"] = permission.TeamID
 		permissionItem["user_id"] = permission.UserID
@@ -143,7 +139,7 @@ func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta
 			return diag.FromErr(err)
 		}
 
-		permissionItems = append(permissionItems, permissionItem)
+		permissionItems[i] = permissionItem
 	}
 
 	d.Set("permissions", permissionItems)

@@ -70,8 +70,7 @@ func testAccDatasourcePermissionCheckDestroy(datasourceID *int64) resource.TestC
 		if err != nil {
 			return fmt.Errorf("error getting datasource permissions %d: %s", *datasourceID, err)
 		}
-		// Data source permissions for Admins are always set and can't be removed through provisioning
-		if len(response.Permissions) > 1 || (len(response.Permissions) == 1 && response.Permissions[0].BuiltInRole != "Admin") {
+		if len(response.Permissions) > 0 {
 			return fmt.Errorf("permissions were not empty when expected")
 		}
 
