@@ -19,7 +19,7 @@ description: |-
 ```terraform
 resource "grafana_service_account" "admin" {
   name = "admin sa"
-  role = "Admin
+  role = "Admin"
   is_disabled = false
 }
 ```
