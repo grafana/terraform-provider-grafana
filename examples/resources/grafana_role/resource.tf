@@ -6,10 +6,15 @@ resource "grafana_role" "super_user" {
   global      = true
 
   permissions {
-    action = "users:create"
+    action = "org.users:add"
+    scope = "users:*"
   }
   permissions {
-    action = "users:read"
-    scope  = "global:users:*"
+    action = "org.users:write"
+    scope = "users:*"
+  }
+  permissions {
+    action = "org.users:read"
+    scope = "users:*"
   }
 }
