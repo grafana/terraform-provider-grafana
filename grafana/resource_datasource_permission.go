@@ -56,7 +56,7 @@ func ResourceDatasourcePermission() *schema.Resource {
 							Optional:     true,
 							Default:      "",
 							ValidateFunc: validation.StringInSlice([]string{"Viewer", "Editor", "Admin"}, false),
-							Description:  "Name of the basic role to manage permissions for. Options: `Viewer`, `Editor` or `Admin`.",
+							Description:  "Name of the basic role to manage permissions for. Defaults to `\"\"`. Options: `Viewer`, `Editor` or `Admin`. Can only be set from Grafana v9.2.3+.",
 						},
 						"permission": {
 							Type:         schema.TypeString,
