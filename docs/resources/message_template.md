@@ -21,8 +21,8 @@ This resource requires Grafana 9.1.0 or later.
 
 ```terraform
 resource "grafana_message_template" "my_template" {
-    name = "My Reusable Template"
-    template = "{{define \"My Reusable Template\" }}\n template content\n{{ end }}"
+  name     = "My Reusable Template"
+  template = "{{define \"My Reusable Template\" }}\n template content\n{{ end }}"
 }
 ```
 

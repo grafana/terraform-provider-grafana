@@ -62,6 +62,15 @@ local pipeline(name, steps, services=[]) = {
           'golangci-lint run ./...',
         ],
       },
+      {
+        name: 'terraform-fmt',
+        image: images.terraform,
+        commands: [
+          |||
+            terraform fmt -recursive -check || (echo "Terraform files aren't formatted. Run 'terraform fmt -recursive && go generate'"; exit 1;)
+          |||,
+        ],
+      },
     ]
   ),
 

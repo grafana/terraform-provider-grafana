@@ -7,14 +7,14 @@ resource "grafana_role" "super_user" {
 
   permissions {
     action = "org.users:add"
-    scope = "users:*"
+    scope  = "users:*"
   }
   permissions {
     action = "org.users:write"
-    scope = "users:*"
+    scope  = "users:*"
   }
   permissions {
     action = "org.users:read"
-    scope = "users:*"
+    scope  = "users:*"
   }
 }
