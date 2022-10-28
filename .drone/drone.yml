@@ -11,6 +11,10 @@ steps:
   - golangci-lint run ./...
   image: golangci/golangci-lint:v1.49
   name: lint
+- commands:
+  - terraform fmt -check -recursive
+  image: hashicorp/terraform
+  name: terraform-fmt
 trigger:
   branch:
   - master
@@ -404,6 +408,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: 8c44f9980e078778581b1c708a316480b4d6636cb4389b091c057f94ed3afaa7
+hmac: 0ee4a4599623c4555fcc8d101b90ab60e86d2e253942527e8266d7edee7ca8cb
 
 ...
