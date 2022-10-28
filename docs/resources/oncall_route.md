@@ -33,14 +33,14 @@ resource "grafana_oncall_route" "example_route" {
   position            = 0
   slack {
     channel_id = data.grafana_oncall_slack_channel.example_slack_channel.slack_id
-    enabled = true
+    enabled    = true
   }
   telegram {
-    id = "ONCALLTELEGRAMID"
+    id      = "ONCALLTELEGRAMID"
     enabled = true
   }
   msteams {
-    id = "ONCALLMSTEAMSID"
+    id      = "ONCALLMSTEAMSID"
     enabled = false
   }
 }

@@ -1,12 +1,12 @@
 resource "grafana_service_account_token" "foo" {
-  name = "key_foo"
+  name               = "key_foo"
   service_account_id = 1
 }
 
 resource "grafana_service_account_token" "bar" {
-  name            = "key_bar"
+  name               = "key_bar"
   service_account_id = 1
-  seconds_to_live = 30
+  seconds_to_live    = 30
 }
 
 

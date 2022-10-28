@@ -13,7 +13,7 @@ steps:
   name: lint
 - commands:
   - |
-    terraform fmt -recursive -check || (echo "Terraform files aren't formatted. Run 'terraform fmt -recursive'"; exit 1;)
+    terraform fmt -recursive -check || (echo "Terraform files aren't formatted. Run 'terraform fmt -recursive && go generate'"; exit 1;)
   image: hashicorp/terraform
   name: terraform-fmt
 trigger:
@@ -409,6 +409,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: 48acaf4ff93a51713d646cbd266aca631c79c1372352fe8e71a37b06a21e3024
+hmac: 307c016f2f24164ae2fa96bc6f30ae7a8d8840e0e66495ef9146c22d4780fdd1
 
 ...
