@@ -66,7 +66,9 @@ local pipeline(name, steps, services=[]) = {
         name: 'terraform-fmt',
         image: images.terraform,
         commands: [
-          'terraform fmt -check -recursive',
+          |||
+            terraform fmt -recursive -check || echo "Terraform files aren't formatted. Run 'terraform fmt -recursive'"
+          |||,
         ],
       },
     ]
