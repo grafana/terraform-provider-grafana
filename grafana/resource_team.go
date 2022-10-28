@@ -158,6 +158,11 @@ func ReadMembers(d *schema.ResourceData, meta interface{}) error {
 		if teamMember.Email == "admin@localhost" {
 			continue
 		}
+		// Labels store information about auth provider used to sync the team member.
+		// Team synced members should be managed through team_external_group resource and should be ignored here.
+		if len(teamMember.Labels) > 0 {
+			continue
+		}
 		memberSlice = append(memberSlice, teamMember.Email)
 	}
 	d.Set("members", memberSlice)
