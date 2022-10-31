@@ -69,8 +69,9 @@ available at “https://<stack_slug>.grafana.net".`,
 				Optional: true,
 				ForceNew: true,
 				Description: `Region slug to assign to this stack.
-Changing region will destroy the existing stack and create a new one in the desired region`,
-				ValidateFunc: validation.StringInSlice([]string{"au", "eu", "us"}, false),
+Changing region will destroy the existing stack and create a new one in the desired region.
+Available input au (GCP Australia), eu (GCP Belgium), us (GCP US Central), prod-ap-southeast-0 (GCP Singapore), prod-gb-south-0 (GCP UK), prod-ap-south-0 (GCP India), prod-sa-east-0 (GCP Brazil)`,
+				ValidateFunc: validation.StringInSlice([]string{"au", "eu", "us", "prod-ap-southeast-0", "prod-gb-south-0", "prod-ap-south-0", "prod-sa-east-0"}, false),
 			},
 			"url": {
 				Type:        schema.TypeString,
