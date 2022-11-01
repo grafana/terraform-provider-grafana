@@ -6,8 +6,4 @@ resource "grafana_machine_learning_job" "test_job" {
   query_params = {
     expr = "grafanacloud_grafana_instance_active_user_count"
   }
-  hyper_params = {
-    daily_seasonality  = 15
-    weekly_seasonality = 10
-  }
 }

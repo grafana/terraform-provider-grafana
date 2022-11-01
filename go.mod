@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/grafana/amixr-api-go-client v0.0.5
 	github.com/grafana/grafana-api-golang-client v0.13.0
-	github.com/grafana/machine-learning-go-client v0.1.1
+	github.com/grafana/machine-learning-go-client v0.2.0
 	github.com/grafana/synthetic-monitoring-agent v0.9.4
 	github.com/grafana/synthetic-monitoring-api-go-client v0.6.3
 	github.com/hashicorp/go-cleanhttp v0.5.2
