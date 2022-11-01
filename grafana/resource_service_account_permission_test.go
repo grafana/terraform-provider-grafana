@@ -91,7 +91,7 @@ resource "grafana_service_account" "test" {
 }
 
 resource "grafana_team" "test_team" {
-	name = "tf_test_team2"
+	name = "tf_test_team"
 }
 
 resource "grafana_user" "test_user" {
