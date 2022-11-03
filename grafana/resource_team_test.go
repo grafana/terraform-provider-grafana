@@ -216,12 +216,14 @@ const testAccTeamConfig_basic = `
 resource "grafana_team" "test" {
   name  = "terraform-acc-test"
   email = "teamEmail@example.com"
+  ignore_externally_synced_members = true
 }
 `
 const testAccTeamConfig_updateName = `
 resource "grafana_team" "test" {
   name    = "terraform-acc-test-update"
   email   = "teamEmailUpdate@example.com"
+  ignore_externally_synced_members = true
 }
 `
 const testAccTeam_users = `
@@ -250,6 +252,7 @@ resource "grafana_team" "test" {
 	grafana_user.user_one.email,
 	grafana_user.user_two.email,
   ]
+  ignore_externally_synced_members = true
 }
 `
 
@@ -261,6 +264,7 @@ resource "grafana_team" "test" {
 	grafana_user.user_two.email,
 	grafana_user.user_one.email,
 	]
+  ignore_externally_synced_members = true
 }
 `
 
@@ -269,6 +273,7 @@ resource "grafana_team" "test" {
   name    = "terraform-acc-test"
   email   = "teamEmail@example.com"
   members = [ ]
+  ignore_externally_synced_members = true
 }
 `
 
@@ -278,5 +283,6 @@ func testAccTeam_withMember(user string) string {
 	name    = "terraform-acc-test"
   	email   = "teamEmail@example.com"
   	members = ["%s"]
+	ignore_externally_synced_members = true
   }`, user)
 }
