@@ -11,7 +11,7 @@ import (
 )
 
 func TestAccTeam_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	//CheckOSSTestsEnabled(t)
 
 	var team gapi.Team
 
@@ -47,16 +47,17 @@ func TestAccTeam_basic(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      "grafana_team.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "grafana_team.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"ignore_externally_synced_members"},
 			},
 		},
 	})
 }
 
 func TestAccTeam_Members(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	//CheckOSSTestsEnabled(t)
 
 	var team gapi.Team
 
@@ -102,9 +103,10 @@ func TestAccTeam_Members(t *testing.T) {
 			},
 			// Test the import with members
 			{
-				ResourceName:      "grafana_team.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "grafana_team.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"ignore_externally_synced_members"},
 			},
 			{
 				Config: testAccTeamConfig_memberRemove,
@@ -124,7 +126,7 @@ func TestAccTeam_Members(t *testing.T) {
 
 // Test that deleted users can still be removed as members of a team
 func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	//CheckOSSTestsEnabled(t)
 	client := testAccProvider.Meta().(*client).gapi
 
 	var team gapi.Team
@@ -216,14 +218,12 @@ const testAccTeamConfig_basic = `
 resource "grafana_team" "test" {
   name  = "terraform-acc-test"
   email = "teamEmail@example.com"
-  ignore_externally_synced_members = true
 }
 `
 const testAccTeamConfig_updateName = `
 resource "grafana_team" "test" {
   name    = "terraform-acc-test-update"
   email   = "teamEmailUpdate@example.com"
-  ignore_externally_synced_members = true
 }
 `
 const testAccTeam_users = `
@@ -252,7 +252,6 @@ resource "grafana_team" "test" {
 	grafana_user.user_one.email,
 	grafana_user.user_two.email,
   ]
-  ignore_externally_synced_members = true
 }
 `
 
@@ -264,7 +263,6 @@ resource "grafana_team" "test" {
 	grafana_user.user_two.email,
 	grafana_user.user_one.email,
 	]
-  ignore_externally_synced_members = true
 }
 `
 
@@ -273,7 +271,6 @@ resource "grafana_team" "test" {
   name    = "terraform-acc-test"
   email   = "teamEmail@example.com"
   members = [ ]
-  ignore_externally_synced_members = true
 }
 `
 
@@ -283,6 +280,5 @@ func testAccTeam_withMember(user string) string {
 	name    = "terraform-acc-test"
   	email   = "teamEmail@example.com"
   	members = ["%s"]
-	ignore_externally_synced_members = true
   }`, user)
 }
