@@ -11,7 +11,7 @@ import (
 )
 
 func TestAccTeam_basic(t *testing.T) {
-	//CheckOSSTestsEnabled(t)
+	CheckOSSTestsEnabled(t)
 
 	var team gapi.Team
 
@@ -57,7 +57,7 @@ func TestAccTeam_basic(t *testing.T) {
 }
 
 func TestAccTeam_Members(t *testing.T) {
-	//CheckOSSTestsEnabled(t)
+	CheckOSSTestsEnabled(t)
 
 	var team gapi.Team
 
@@ -126,7 +126,7 @@ func TestAccTeam_Members(t *testing.T) {
 
 // Test that deleted users can still be removed as members of a team
 func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
-	//CheckOSSTestsEnabled(t)
+	CheckOSSTestsEnabled(t)
 	client := testAccProvider.Meta().(*client).gapi
 
 	var team gapi.Team
