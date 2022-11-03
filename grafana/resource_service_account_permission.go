@@ -115,13 +115,13 @@ func UpdateServiceAccountPermissions(ctx context.Context, d *schema.ResourceData
 	oldUserPerms := make(map[int64]string, 0)
 	for _, p := range state.(*schema.Set).List() {
 		perm := p.(map[string]interface{})
-		teamId := int64(perm["team_id"].(int))
-		userId := int64(perm["user_id"].(int))
-		if teamId > 0 {
-			oldTeamPerms[teamId] = perm["permission"].(string)
+		teamID := int64(perm["team_id"].(int))
+		userID := int64(perm["user_id"].(int))
+		if teamID > 0 {
+			oldTeamPerms[teamID] = perm["permission"].(string)
 		}
-		if userId > 0 {
-			oldUserPerms[userId] = perm["permission"].(string)
+		if userID > 0 {
+			oldUserPerms[userID] = perm["permission"].(string)
 		}
 	}
 
@@ -131,42 +131,42 @@ func UpdateServiceAccountPermissions(ctx context.Context, d *schema.ResourceData
 	for _, p := range config.(*schema.Set).List() {
 		permission := p.(map[string]interface{})
 		permissionItem := gapi.ServiceAccountPermissionItem{}
-		teamId := int64(permission["team_id"].(int))
-		userId := int64(permission["user_id"].(int))
-		if teamId > 0 {
-			perm, has := oldTeamPerms[teamId]
+		teamID := int64(permission["team_id"].(int))
+		userID := int64(permission["user_id"].(int))
+		if teamID > 0 {
+			perm, has := oldTeamPerms[teamID]
 			if has {
-				delete(oldTeamPerms, teamId)
+				delete(oldTeamPerms, teamID)
 				// Skip permissions that have not been changed
 				if perm == permission["permission"].(string) {
 					continue
 				}
 			}
-			permissionItem.TeamID = teamId
-		} else if userId > 0 {
-			perm, has := oldUserPerms[userId]
+			permissionItem.TeamID = teamID
+		} else if userID > 0 {
+			perm, has := oldUserPerms[userID]
 			if has {
-				delete(oldUserPerms, userId)
+				delete(oldUserPerms, userID)
 				if perm == permission["permission"].(string) {
 					continue
 				}
 			}
-			permissionItem.UserID = userId
+			permissionItem.UserID = userID
 		}
 		permissionItem.Permission = permission["permission"].(string)
 		permissionList.Permissions = append(permissionList.Permissions, &permissionItem)
 	}
 
 	// Remove the permissions that are in the state but not in the config
-	for teamId := range oldTeamPerms {
+	for teamID := range oldTeamPerms {
 		permissionList.Permissions = append(permissionList.Permissions, &gapi.ServiceAccountPermissionItem{
-			TeamID:     teamId,
+			TeamID:     teamID,
 			Permission: "",
 		})
 	}
-	for userId := range oldUserPerms {
+	for userID := range oldUserPerms {
 		permissionList.Permissions = append(permissionList.Permissions, &gapi.ServiceAccountPermissionItem{
-			UserID:     userId,
+			UserID:     userID,
 			Permission: "",
 		})
 	}
@@ -189,14 +189,14 @@ func DeleteServiceAccountPermissions(ctx context.Context, d *schema.ResourceData
 	permissionList := gapi.ServiceAccountPermissionItems{}
 	for _, p := range state.(*schema.Set).List() {
 		perm := p.(map[string]interface{})
-		teamId := int64(perm["team_id"].(int))
-		userId := int64(perm["user_id"].(int))
+		teamID := int64(perm["team_id"].(int))
+		userID := int64(perm["user_id"].(int))
 		permissionItem := gapi.ServiceAccountPermissionItem{}
 
-		if teamId > 0 {
-			permissionItem.TeamID = teamId
-		} else if userId > 0 {
-			permissionItem.UserID = userId
+		if teamID > 0 {
+			permissionItem.TeamID = teamID
+		} else if userID > 0 {
+			permissionItem.UserID = userID
 		}
 		permissionItem.Permission = ""
 		permissionList.Permissions = append(permissionList.Permissions, &permissionItem)
