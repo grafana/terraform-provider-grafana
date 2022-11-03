@@ -17,6 +17,7 @@
     "resources/playlist": "Grafana OSS",
     "resources/service_account": "Grafana OSS",
     "resources/service_account_token": "Grafana OSS",
+    "resources/service_account_permission": "Grafana OSS",
     "resources/team": "Grafana OSS",
     "resources/team_preferences": "Grafana OSS",
     "resources/user": "Grafana OSS",
