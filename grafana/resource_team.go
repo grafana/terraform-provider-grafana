@@ -71,6 +71,15 @@ A set of email addresses corresponding to users who should be given membership
 to the team. Note: users specified here must already exist in Grafana.
 `,
 			},
+			"ignore_externally_synced_members": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+				Description: `
+Ignores team members that have been added to team by [Team Sync](https://grafana.com/docs/grafana/latest/enterprise/team-sync/).
+Team Sync can be provisioned using [grafana_team_external_group resource](https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/team_external_group).
+`,
+			},
 		},
 	}
 }
@@ -156,6 +165,11 @@ func ReadMembers(d *schema.ResourceData, meta interface{}) error {
 		// Admin is added automatically to the team when the team is created.
 		// We can't interact with it, so we skip it from Terraform management.
 		if teamMember.Email == "admin@localhost" {
+			continue
+		}
+		// Labels store information about auth provider used to sync the team member.
+		// Team synced members should be managed through team_external_group resource and should be ignored here.
+		if d.Get("ignore_externally_synced_members").(bool) && len(teamMember.Labels) > 0 {
 			continue
 		}
 		memberSlice = append(memberSlice, teamMember.Email)

@@ -4,7 +4,7 @@ page_title: "grafana_contact_point Resource - terraform-provider-grafana"
 subcategory: "Alerting"
 description: |-
   Manages Grafana Alerting contact points.
-  Official documentation https://grafana.com/docs/grafana/next/alerting/contact-pointsHTTP API https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#contact-points
+  Official documentation https://grafana.com/docs/grafana/latest/alerting/contact-pointsHTTP API https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#contact-points
   This resource requires Grafana 9.1.0 or later.
 ---
 
@@ -12,7 +12,7 @@ description: |-
 
 Manages Grafana Alerting contact points.
 
-* [Official documentation](https://grafana.com/docs/grafana/next/alerting/contact-points)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/contact-points)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#contact-points)
 
 This resource requires Grafana 9.1.0 or later.
@@ -21,15 +21,15 @@ This resource requires Grafana 9.1.0 or later.
 
 ```terraform
 resource "grafana_contact_point" "my_contact_point" {
-    name = "My Contact Point"
+  name = "My Contact Point"
 
-   email {
-        addresses = ["one@company.org", "two@company.org"]
-        message = "{{ len .Alerts.Firing }} firing."
-        subject = "{{ template \"default.title\" .}}"
-        single_email = true
-        disable_resolve_message = false
-    }
+  email {
+    addresses               = ["one@company.org", "two@company.org"]
+    message                 = "{{ len .Alerts.Firing }} firing."
+    subject                 = "{{ template \"default.title\" .}}"
+    single_email            = true
+    disable_resolve_message = false
+  }
 }
 ```
 

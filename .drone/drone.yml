@@ -11,6 +11,11 @@ steps:
   - golangci-lint run ./...
   image: golangci/golangci-lint:v1.49
   name: lint
+- commands:
+  - |
+    terraform fmt -recursive -check || (echo "Terraform files aren't formatted. Run 'terraform fmt -recursive && go generate'"; exit 1;)
+  image: hashicorp/terraform
+  name: terraform-fmt
 trigger:
   branch:
   - master
@@ -404,6 +409,6 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: signature
-hmac: 8c44f9980e078778581b1c708a316480b4d6636cb4389b091c057f94ed3afaa7
+hmac: 307c016f2f24164ae2fa96bc6f30ae7a8d8840e0e66495ef9146c22d4780fdd1
 
 ...

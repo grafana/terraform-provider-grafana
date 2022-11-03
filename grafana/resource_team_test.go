@@ -47,9 +47,10 @@ func TestAccTeam_basic(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      "grafana_team.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "grafana_team.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"ignore_externally_synced_members"},
 			},
 		},
 	})
@@ -102,9 +103,10 @@ func TestAccTeam_Members(t *testing.T) {
 			},
 			// Test the import with members
 			{
-				ResourceName:      "grafana_team.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "grafana_team.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"ignore_externally_synced_members"},
 			},
 			{
 				Config: testAccTeamConfig_memberRemove,
