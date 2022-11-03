@@ -76,7 +76,7 @@ to the team. Note: users specified here must already exist in Grafana.
 				Optional: true,
 				Default:  true,
 				Description: `
-Ignores team members that have been added to team by [Team Sync]((https://grafana.com/docs/grafana/latest/enterprise/team-sync/)).
+Ignores team members that have been added to team by [Team Sync](https://grafana.com/docs/grafana/latest/enterprise/team-sync/).
 Team Sync can be provisioned using [grafana_team_external_group resource](https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/team_external_group).
 `,
 			},
