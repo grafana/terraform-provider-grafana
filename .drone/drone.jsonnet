@@ -24,13 +24,23 @@ local secret(name, vaultPath, vaultKey) = {
     path: vaultPath,
     name: vaultKey,
   },
-
-  fromSecret:: { from_secret: name },
 };
-local cloudApiKey = secret('grafana-cloud-api-key', 'infra/data/ci/terraform-provider-grafana/cloud', 'cloud-api-key');
-local apiToken = secret('grafana-api-token', 'infra/data/ci/terraform-provider-grafana/cloud', 'api-key');
-local smToken = secret('grafana-sm-token', 'infra/data/ci/terraform-provider-grafana/cloud', 'sm-access-token');
-local onCallToken = secret('grafana-oncall-token', 'infra/data/ci/terraform-provider-grafana/cloud', 'oncall-access-token');
+
+local fromSecret(secret) = {
+  from_secret: secret.name,
+};
+
+local secrets = {
+  // Grafana Cloud API test secrets
+  cloudOrg: secret('grafana-cloud-org', 'infra/data/ci/terraform-provider-grafana/cloud', 'cloud-org'),
+  cloudApiKey: secret('grafana-cloud-api-key', 'infra/data/ci/terraform-provider-grafana/cloud', 'cloud-api-key'),
+
+  // Grafana Enterprise test secrets (Instance running in Grafana Cloud)
+  cloudInstanceUrl: secret('grafana-cloud-instance-url', 'infra/data/ci/terraform-provider-grafana/cloud', 'cloud-instance-url'),
+  apiToken: secret('grafana-api-token', 'infra/data/ci/terraform-provider-grafana/cloud', 'api-key'),
+  smToken: secret('grafana-sm-token', 'infra/data/ci/terraform-provider-grafana/cloud', 'sm-access-token'),
+  onCallToken: secret('grafana-oncall-token', 'infra/data/ci/terraform-provider-grafana/cloud', 'oncall-access-token'),
+};
 
 local pipeline(name, steps, services=[]) = {
   kind: 'pipeline',
@@ -129,8 +139,8 @@ local pipeline(name, steps, services=[]) = {
           'make testacc-cloud-api',
         ],
         environment: {
-          GRAFANA_CLOUD_API_KEY: cloudApiKey.fromSecret,
-          GRAFANA_CLOUD_ORG: 'terraformprovidergrafana',
+          GRAFANA_CLOUD_API_KEY: fromSecret(secrets.cloudApiKey),
+          GRAFANA_CLOUD_ORG: fromSecret(secrets.cloudOrg),
           TF_ACC_TERRAFORM_PATH: terraformPath,
         },
       },
@@ -139,7 +149,6 @@ local pipeline(name, steps, services=[]) = {
     concurrency: { limit: 1 },
   },
 
-  local cloud_instance_url = 'https://terraformprovidergrafana.grafana.net/';
   pipeline(
     'cloud instance tests',
     steps=[
@@ -147,18 +156,21 @@ local pipeline(name, steps, services=[]) = {
       {
         name: 'wait for instance',
         image: images.go,
-        commands: ['.drone/wait-for-instance.sh ' + cloud_instance_url],
+        commands: ['.drone/wait-for-instance.sh $${GRAFANA_URL}'],
+        environment: {
+          GRAFANA_URL: fromSecret(secrets.cloudInstanceUrl),
+        },
       },
       {
         name: 'tests',
         image: images.go,
         commands: ['make testacc-cloud-instance'],
         environment: {
-          GRAFANA_URL: cloud_instance_url,
-          GRAFANA_AUTH: apiToken.fromSecret,
-          GRAFANA_SM_ACCESS_TOKEN: smToken.fromSecret,
+          GRAFANA_URL: fromSecret(secrets.cloudInstanceUrl),
+          GRAFANA_AUTH: fromSecret(secrets.apiToken),
+          GRAFANA_SM_ACCESS_TOKEN: fromSecret(secrets.smToken),
           GRAFANA_ORG_ID: 1,
-          GRAFANA_ONCALL_ACCESS_TOKEN: onCallToken.fromSecret,
+          GRAFANA_ONCALL_ACCESS_TOKEN: fromSecret(secrets.onCallToken),
           TF_ACC_TERRAFORM_PATH: terraformPath,
         },
       },
@@ -166,13 +178,8 @@ local pipeline(name, steps, services=[]) = {
   ) + {
     concurrency: { limit: 1 },
   },
-
-  cloudApiKey,
-  apiToken,
-  smToken,
-  onCallToken,
-] +
-[
+]
++ [
   pipeline(
     'oss tests: %s' % version,
     steps=[
@@ -206,3 +213,4 @@ local pipeline(name, steps, services=[]) = {
   )
   for version in grafanaVersions
 ]
++ std.objectValuesAll(secrets)
