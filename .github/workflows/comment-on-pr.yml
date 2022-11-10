@@ -1,0 +1,13 @@
+on:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: mshick/add-pr-comment@v2
+        with:
+          message: |
+            In order to preserve resources and have a faster runtime, PRs will not run Cloud tests automatically. To do so, a Grafana Labs employee must promote the Drone build.

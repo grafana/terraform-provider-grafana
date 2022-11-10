@@ -112,11 +112,8 @@ steps:
   image: golang:1.18
   name: tests
 trigger:
-  branch:
-  - master
   event:
-  - pull_request
-  - push
+  - promote
 type: docker
 workspace:
   path: /drone/terraform-provider-grafana
@@ -426,6 +423,6 @@ kind: secret
 name: grafana-sm-token
 ---
 kind: signature
-hmac: 859b4ecec6d95fed515f77177060967caf27b048bb6d8539a0b8a5f85317fd78
+hmac: e06354c28923331f229731c554363c1d778fb01464cde4ec885bb4f15a4e92fc
 
 ...
