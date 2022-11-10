@@ -146,6 +146,9 @@ local pipeline(name, steps, services=[]) = {
       },
     ]
   ) + {
+    trigger: {
+      event: ['promote'],
+    },
     concurrency: { limit: 1 },
   },
 
