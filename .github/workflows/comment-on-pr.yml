@@ -1,8 +1,10 @@
 on:
   pull_request:
+    types:
+      - opened
 
 jobs:
-  test:
+  info-comment:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
