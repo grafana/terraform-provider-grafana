@@ -41,10 +41,11 @@ release:
 	@git tag $$RELEASE_VERSION
 	@git push origin $$RELEASE_VERSION
 
+DRONE_DOCKER := docker run --rm -e DRONE_SERVER -e DRONE_TOKEN -v ${PWD}:${PWD} -w "${PWD}" drone/cli:1.6.1
 drone:
-	drone jsonnet --stream --source .drone/drone.jsonnet --target .drone/drone.yml --format
-	drone lint .drone/drone.yml
-	drone sign --save grafana/terraform-provider-grafana .drone/drone.yml
+	$(DRONE_DOCKER) jsonnet --stream --source .drone/drone.jsonnet --target .drone/drone.yml --format
+	$(DRONE_DOCKER) lint .drone/drone.yml
+	$(DRONE_DOCKER) sign --save grafana/terraform-provider-grafana .drone/drone.yml
 
 golangci-lint:
 	docker run \
