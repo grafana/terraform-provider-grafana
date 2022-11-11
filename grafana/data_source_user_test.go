@@ -75,7 +75,6 @@ func TestAccDatasourceUserPagination(t *testing.T) {
 			},
 		},
 	})
-
 }
 
 const testAccLotsOfUsers = `
