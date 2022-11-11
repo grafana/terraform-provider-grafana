@@ -52,14 +52,7 @@ func TestAccDatasourceUserPagination(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
-			{
-				Config: testAccLotsOfUsers,
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"grafana_user.users", "#", "1500",
-					),
-				),
-			},
+			{Config: testAccLotsOfUsers},
 			{
 				Config: testAccLotsOfUsersWithDatasource,
 				Check: resource.ComposeTestCheckFunc(
