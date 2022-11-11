@@ -45,3 +45,59 @@ func TestAccDatasourceUser(t *testing.T) {
 		},
 	})
 }
+
+func TestAccDatasourceUserPagination(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccLotsOfUsers,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"grafana_user.users", "#", "1500",
+					),
+				),
+			},
+			{
+				Config: testAccLotsOfUsersWithDatasource,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr(
+						"data.grafana_user.from_login", "user_id", idRegexp,
+					),
+					resource.TestCheckResourceAttr(
+						"data.grafana_user.from_login", "email", "user-1200@example.com",
+					),
+					resource.TestCheckResourceAttr(
+						"data.grafana_user.from_login", "name", "user-1200",
+					),
+					resource.TestCheckResourceAttr(
+						"data.grafana_user.from_login", "login", "user-1200@example.com",
+					),
+					resource.TestCheckResourceAttr(
+						"data.grafana_user.from_login", "is_admin", "true",
+					),
+				),
+			},
+		},
+	})
+
+}
+
+const testAccLotsOfUsers = `
+resource "grafana_user" "users" {
+	count    = 1500
+	name     = "user-${count.index}"
+	login    = "user-${count.index}@example.com"
+	email    = "user-${count.index}@example.com"
+	is_admin = true
+	password = "anything"
+}
+`
+
+var testAccLotsOfUsersWithDatasource = testAccLotsOfUsers + `
+data "grafana_user" "from_login" {
+  login = "user-1200@example.com"
+}
+`
