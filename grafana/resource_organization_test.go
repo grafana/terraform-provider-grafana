@@ -139,15 +139,16 @@ func TestAccOrganization_createManyUsers(t *testing.T) {
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{
+			{Config: testAccOrganizationConfig_usersCreateMany_1},
 			{
-				Config: testAccOrganizationConfig_usersCreateMany,
+				Config: testAccOrganizationConfig_usersCreateMany_2,
 				Check: resource.ComposeTestCheckFunc(
 					testAccOrganizationCheckExists("grafana_organization.test", &org),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "name", "terraform-acc-test",
 					),
 					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "admins.#", "1024",
+						"grafana_organization.test", "admins.#", "1500",
 					),
 				),
 			},
@@ -379,11 +380,31 @@ resource "grafana_organization" "test" {
 }
 `
 
-const testAccOrganizationConfig_usersCreateMany = `
+const testAccOrganizationConfig_usersCreateMany_1 = `
+resource "grafana_user" "users" {
+	count = 1500
+
+	name     = "user-${count.index}"
+	email    = "user-${count.index}@example.com"
+	login    = "user-${count.index}@example.com"
+	password = "password"
+}
+`
+
+const testAccOrganizationConfig_usersCreateMany_2 = `
+resource "grafana_user" "users" {
+	count = 1500
+
+	name     = "user-${count.index}"
+	email    = "user-${count.index}@example.com"
+	login    = "user-${count.index}@example.com"
+	password = "password"
+}
+
 resource "grafana_organization" "test" {
-    name = "terraform-acc-test"
-    admin_user = "admin"
+    name         = "terraform-acc-test"
+    admin_user   = "admin"
     create_users = true
-    admins = [for i in range(1024): "user-${i}@example.com"]
+    admins       = [ for user in grafana_user.users : user.email ]
 }
 `
