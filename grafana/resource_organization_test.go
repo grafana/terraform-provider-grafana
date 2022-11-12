@@ -147,7 +147,7 @@ func TestAccOrganization_createManyUsers(t *testing.T) {
 						"grafana_organization.test", "name", "terraform-acc-test",
 					),
 					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "admins.#", "1500",
+						"grafana_organization.test", "admins.#", "1024",
 					),
 				),
 			},
