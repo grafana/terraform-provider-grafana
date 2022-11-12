@@ -384,6 +384,6 @@ resource "grafana_organization" "test" {
     name = "terraform-acc-test"
     admin_user = "admin"
     create_users = true
-    admins = [for i in range(1500): "user-${i}@example.com"]
+    admins = [for i in range(1024): "user-${i}@example.com"]
 }
 `
