@@ -130,6 +130,31 @@ func TestAccOrganization_users(t *testing.T) {
 	})
 }
 
+func TestAccOrganization_createManyUsers(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
+	var org gapi.Org
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccOrganizationConfig_usersCreateMany,
+				Check: resource.ComposeTestCheckFunc(
+					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					resource.TestCheckResourceAttr(
+						"grafana_organization.test", "name", "terraform-acc-test",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_organization.test", "admins.#", "1500",
+					),
+				),
+			},
+		},
+	})
+}
+
 func TestAccOrganization_defaultAdmin(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 
@@ -351,5 +376,14 @@ resource "grafana_organization" "test" {
     name = "terraform-acc-test-external-user"
     create_users = false
     admins = []
+}
+`
+
+const testAccOrganizationConfig_usersCreateMany = `
+resource "grafana_organization" "test" {
+    name = "terraform-acc-test"
+    admin_user = "admin"
+    create_users = true
+    admins = ["user-${i}@example.com" for i in range(1500)]
 }
 `
