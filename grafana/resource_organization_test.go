@@ -404,7 +404,7 @@ resource "grafana_user" "users" {
 resource "grafana_organization" "test" {
     name         = "terraform-acc-test"
     admin_user   = "admin"
-    create_users = true
+    create_users = false
     admins       = [ for user in grafana_user.users : user.email ]
 }
 `
