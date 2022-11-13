@@ -60,6 +60,12 @@ already exist in Grafana.
 - `editors` (Set of String) A list of email addresses corresponding to users who should be given editor
 access to the organization. Note: users specified here must already exist in
 Grafana unless 'create_users' is set to true.
+- `ignore_missing_users` (Boolean) Whether or not to ignore Grafana users specified in the organization's
+membership if they don't already exist in Grafana. If unspecified, this
+parameter defaults to false, causing an error to be thrown. Setting this
+option to true will cause an warning to be thrown for any users that do not
+already exist in Grafana.
+ Defaults to `false`.
 - `viewers` (Set of String) A list of email addresses corresponding to users who should be given viewer
 access to the organization. Note: users specified here must already exist in
 Grafana unless 'create_users' is set to true.

@@ -47,7 +47,7 @@ func TestAccOrganization_basic(t *testing.T) {
 				ResourceName:            "grafana_organization.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"admins", "admin_user", "create_users"}, // Users are imported explicitly (with create_users == false)
+				ImportStateVerifyIgnore: []string{"admins", "admin_user", "create_users", "ignore_missing_users"}, // Users are imported explicitly (with create_users == false)
 				ImportStateCheck: func(s []*terraform.InstanceState) error {
 					if len(s) != 1 {
 						return fmt.Errorf("expected 1 state: %#v", s)
@@ -123,6 +123,18 @@ func TestAccOrganization_users(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "viewers.#", "0",
+					),
+				),
+			},
+			{
+				Config: testAccOrganizationConfig_ignoreMissingUsers,
+				Check: resource.ComposeTestCheckFunc(
+					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					resource.TestCheckResourceAttr(
+						"grafana_organization.test", "name", "terraform-acc-test-missing-user",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_organization.test", "admins.#", "1",
 					),
 				),
 			},
@@ -211,7 +223,7 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 				ResourceName:            "grafana_organization.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"admin_user", "create_user"}, // These are provider-side attributes and aren't returned by the API
+				ImportStateVerifyIgnore: []string{"admin_user", "create_user", "ignore_missing_users"}, // These are provider-side attributes and aren't returned by the API
 			},
 		},
 	})
@@ -406,5 +418,25 @@ resource "grafana_organization" "test" {
     admin_user   = "admin"
     create_users = false
     admins       = [ for user in grafana_user.users : user.email ]
+}
+`
+
+const testAccOrganizationConfig_ignoreMissingUsers = `
+resource "grafana_user" "external" {
+	name     = "external"
+	email    = "external-user@example.com"
+	login    = "external-user"
+	password = "password"
+
+}
+
+resource "grafana_organization" "test" {
+    name = "terraform-acc-test-missing-user"
+    create_users = false
+	ignore_missing_users = true
+    admins = [
+        grafana_user.external.email,
+		"missing_user@localhost",
+    ]
 }
 `

@@ -81,6 +81,18 @@ option to false will cause an error to be thrown for any users that do not
 already exist in Grafana.
 `,
 			},
+			"ignore_missing_users": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				Description: `
+Whether or not to ignore Grafana users specified in the organization's
+membership if they don't already exist in Grafana. If unspecified, this
+parameter defaults to false, causing an error to be thrown. Setting this
+option to true will cause an warning to be thrown for any users that do not
+already exist in Grafana.
+`,
+			},
 			"org_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
@@ -290,6 +302,7 @@ func addIdsToChanges(d *schema.ResourceData, meta interface{}, changes []UserCha
 	}
 	var output []UserChange
 	create := d.Get("create_users").(bool)
+	ignoreUser := d.Get("ignore_missing_users").(bool)
 	for _, change := range changes {
 		id, ok := gUserMap[change.User.Email]
 		if !ok && change.Type == Remove {
@@ -297,7 +310,11 @@ func addIdsToChanges(d *schema.ResourceData, meta interface{}, changes []UserCha
 			continue
 		}
 		if !ok && !create {
-			return nil, fmt.Errorf("error adding user %s. User does not exist in Grafana", change.User.Email)
+			if !ignoreUser {
+				return nil, fmt.Errorf("error adding user %s. User does not exist in Grafana", change.User.Email)
+			}
+			log.Printf("[WARN] skipping user %s. User does not exist in Grafana", change.User.Email)
+			continue
 		}
 		if !ok && create {
 			id, err = createUser(meta, change.User.Email)

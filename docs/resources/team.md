@@ -36,6 +36,12 @@ resource "grafana_team" "test-team" {
 - `ignore_externally_synced_members` (Boolean) Ignores team members that have been added to team by [Team Sync](https://grafana.com/docs/grafana/latest/enterprise/team-sync/).
 Team Sync can be provisioned using [grafana_team_external_group resource](https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/team_external_group).
  Defaults to `true`.
+- `ignore_missing_users` (Boolean) Whether or not to ignore Grafana users specified in the team's
+membership if they don't already exist in the organizagion. If unspecified, this
+parameter defaults to false, causing an error to be thrown. Setting this
+option to true will cause an warning to be thrown for any users that do not
+already exist in the organization Grafana.
+ Defaults to `false`.
 - `members` (Set of String) A set of email addresses corresponding to users who should be given membership
 to the team. Note: users specified here must already exist in Grafana.
 

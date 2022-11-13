@@ -80,6 +80,18 @@ Ignores team members that have been added to team by [Team Sync](https://grafana
 Team Sync can be provisioned using [grafana_team_external_group resource](https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/team_external_group).
 `,
 			},
+			"ignore_missing_users": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				Description: `
+Whether or not to ignore Grafana users specified in the team's
+membership if they don't already exist in the organizagion. If unspecified, this
+parameter defaults to false, causing an error to be thrown. Setting this
+option to true will cause an warning to be thrown for any users that do not
+already exist in the organization Grafana.
+`,
+			},
 		},
 	}
 }
@@ -187,7 +199,8 @@ func UpdateMembers(d *schema.ResourceData, meta interface{}) error {
 	// compile the list of differences between current state and config
 	changes := memberChanges(stateMembers, configMembers)
 	// retrieves the corresponding user IDs based on the email provided
-	changes, err = addMemberIdsToChanges(meta, changes)
+	ignoreUser := d.Get("ignore_missing_users").(bool)
+	changes, err = addMemberIdsToChanges(meta, changes, ignoreUser)
 	if err != nil {
 		return err
 	}
@@ -241,7 +254,7 @@ func memberChanges(stateMembers, configMembers map[string]TeamMember) []MemberCh
 	return changes
 }
 
-func addMemberIdsToChanges(meta interface{}, changes []MemberChange) ([]MemberChange, error) {
+func addMemberIdsToChanges(meta interface{}, changes []MemberChange, ignoreUser bool) ([]MemberChange, error) {
 	client := meta.(*client).gapi
 	gUserMap := make(map[string]int64)
 	gUsers, err := client.OrgUsersCurrent()
@@ -257,7 +270,11 @@ func addMemberIdsToChanges(meta interface{}, changes []MemberChange) ([]MemberCh
 		id, ok := gUserMap[change.Member.Email]
 		if !ok {
 			if change.Type == AddMember {
-				return nil, fmt.Errorf("error adding user %s. User does not exist in Grafana", change.Member.Email)
+				if !ignoreUser {
+					return nil, fmt.Errorf("error adding user %s. User does not exist in Grafana", change.Member.Email)
+				}
+				log.Printf("[WARN] Skipping addition of user %s. User does not exist in Grafana", change.Member.Email)
+				continue
 			} else {
 				log.Printf("[DEBUG] Skipping removal of user %s. User does not exist in Grafana", change.Member.Email)
 				continue

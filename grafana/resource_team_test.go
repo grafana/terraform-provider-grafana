@@ -50,7 +50,7 @@ func TestAccTeam_basic(t *testing.T) {
 				ResourceName:            "grafana_team.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"ignore_externally_synced_members"},
+				ImportStateVerifyIgnore: []string{"ignore_externally_synced_members", "ignore_missing_users"},
 			},
 		},
 	})
@@ -98,6 +98,17 @@ func TestAccTeam_Members(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_team.test", "members.1", "test-team-2@example.com",
+					),
+				),
+			},
+			{
+				Config: testAccTeamConfig_ignoreUser,
+				Check: resource.ComposeTestCheckFunc(
+					testAccTeamCheckExists("grafana_team.test", &team),
+					// The definition of this resource is the same as testAccTeamConfig_memberReorder with an extra missing user.
+					// With ignore_missing_users setted to true we are expecting 2 users
+					resource.TestCheckResourceAttr(
+						"grafana_team.test", "members.#", "2",
 					),
 				),
 			},
@@ -262,6 +273,19 @@ resource "grafana_team" "test" {
   members = [
 	grafana_user.user_two.email,
 	grafana_user.user_one.email,
+	]
+}
+`
+
+const testAccTeamConfig_ignoreUser = testAccTeam_users + `
+resource "grafana_team" "test" {
+  name                 = "terraform-acc-test"
+  email                = "teamEmail@example.com"
+  ignore_missing_users = true
+  members = [
+	grafana_user.user_two.email,
+	grafana_user.user_one.email,
+	"missing_user@localhost",
 	]
 }
 `
