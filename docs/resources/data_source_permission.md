@@ -40,7 +40,7 @@ resource "grafana_data_source_permission" "fooPermissions" {
   }
   permissions {
     user_id    = 3 // 3 is the admin user in cloud. It can't be queried
-    permission = "Query"
+    permission = "Edit"
   }
 }
 ```
@@ -62,7 +62,7 @@ resource "grafana_data_source_permission" "fooPermissions" {
 
 Required:
 
-- `permission` (String) Permission to associate with item. Must be `Query`.
+- `permission` (String) Permission to associate with item. Options: `Query` or `Edit` (`Edit` can only be used with Grafana v9.2.3+).
 
 Optional:
 

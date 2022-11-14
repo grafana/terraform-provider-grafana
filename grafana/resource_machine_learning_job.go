@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -49,7 +50,12 @@ A job defines the queries and model parameters for a machine learning task.
 			"datasource_id": {
 				Description: "The id of the datasource to query.",
 				Type:        schema.TypeInt,
-				Required:    true,
+				Optional:    true,
+			},
+			"datasource_uid": {
+				Description: "The uid of the datasource to query.",
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
 			"datasource_type": {
 				Description: "The type of datasource being queried. Currently allowed values are prometheus, graphite, loki, postgres, and datadog.",
@@ -85,8 +91,11 @@ A job defines the queries and model parameters for a machine learning task.
 
 func resourceMachineLearningJobCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client).mlapi
-	job := makeMLJob(d, meta)
-	job, err := c.NewJob(ctx, job)
+	job, err := makeMLJob(d, meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	job, err = c.NewJob(ctx, job)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -104,7 +113,16 @@ func resourceMachineLearningJobRead(ctx context.Context, d *schema.ResourceData,
 	d.Set("name", job.Name)
 	d.Set("metric", job.Metric)
 	d.Set("description", job.Description)
-	d.Set("datasource_id", job.DatasourceID)
+	if job.DatasourceID != 0 {
+		d.Set("datasource_id", job.DatasourceID)
+	} else {
+		d.Set("datasource_id", nil)
+	}
+	if job.DatasourceUID != "" {
+		d.Set("datasource_uid", job.DatasourceUID)
+	} else {
+		d.Set("datasource_uid", nil)
+	}
 	d.Set("datasource_type", job.DatasourceType)
 	d.Set("query_params", job.QueryParams)
 	d.Set("interval", job.Interval)
@@ -116,8 +134,11 @@ func resourceMachineLearningJobRead(ctx context.Context, d *schema.ResourceData,
 
 func resourceMachineLearningJobUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*client).mlapi
-	j := makeMLJob(d, meta)
-	_, err := c.UpdateJob(ctx, j)
+	job, err := makeMLJob(d, meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	_, err = c.UpdateJob(ctx, job)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -134,14 +155,20 @@ func resourceMachineLearningJobDelete(ctx context.Context, d *schema.ResourceDat
 	return nil
 }
 
-func makeMLJob(d *schema.ResourceData, meta interface{}) mlapi.Job {
+func makeMLJob(d *schema.ResourceData, meta interface{}) (mlapi.Job, error) {
+	datasourceID := uint(d.Get("datasource_id").(int))
+	datasourceUID := d.Get("datasource_uid").(string)
+	if datasourceID == 0 && datasourceUID == "" {
+		return mlapi.Job{}, fmt.Errorf("either datasource_id or datasource_uid must be set")
+	}
 	return mlapi.Job{
 		ID:                d.Id(),
 		Name:              d.Get("name").(string),
 		Metric:            d.Get("metric").(string),
 		Description:       d.Get("description").(string),
 		GrafanaURL:        meta.(*client).gapiURL,
-		DatasourceID:      uint(d.Get("datasource_id").(int)),
+		DatasourceID:      datasourceID,
+		DatasourceUID:     datasourceUID,
 		DatasourceType:    d.Get("datasource_type").(string),
 		QueryParams:       d.Get("query_params").(map[string]interface{}),
 		Interval:          uint(d.Get("interval").(int)),
@@ -149,5 +176,5 @@ func makeMLJob(d *schema.ResourceData, meta interface{}) mlapi.Job {
 		HyperParams:       d.Get("hyper_params").(map[string]interface{}),
 		TrainingWindow:    uint(d.Get("training_window").(int)),
 		TrainingFrequency: uint(24 * time.Hour / time.Second),
-	}
+	}, nil
 }

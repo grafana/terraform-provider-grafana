@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -11,7 +12,7 @@ import (
 func TestAccResourceCloudPluginInstallation(t *testing.T) {
 	CheckCloudAPITestsEnabled(t)
 
-	slug := "terraformprovidergrafana"
+	slug := os.Getenv("GRAFANA_CLOUD_ORG")
 	pluginSlug := "aws-datasource-provisioner-app"
 	pluginVersion := "1.7.0"
 
