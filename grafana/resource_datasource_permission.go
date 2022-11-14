@@ -61,8 +61,8 @@ func ResourceDatasourcePermission() *schema.Resource {
 						"permission": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"Query"}, false),
-							Description:  "Permission to associate with item. Must be `Query`.",
+							ValidateFunc: validation.StringInSlice([]string{"Query", "Edit"}, false),
+							Description:  "Permission to associate with item. Options: `Query` or `Edit` (`Edit` can only be used with Grafana v9.2.3+).",
 						},
 					},
 				},
@@ -218,15 +218,21 @@ addLoop:
 }
 
 func mapDatasourcePermissionStringToType(permission string) (gapi.DatasourcePermissionType, error) {
-	if permission == "Query" {
+	switch permission {
+	case "Query":
 		return gapi.DatasourcePermissionQuery, nil
+	case "Edit":
+		return gapi.DatasourcePermissionEdit, nil
 	}
 	return 0, fmt.Errorf("unknown datasource permission: %s", permission)
 }
 
 func mapDatasourcePermissionTypeToString(permission gapi.DatasourcePermissionType) (string, error) {
-	if permission == gapi.DatasourcePermissionQuery {
+	switch permission {
+	case gapi.DatasourcePermissionQuery:
 		return "Query", nil
+	case gapi.DatasourcePermissionEdit:
+		return "Edit", nil
 	}
 	return "", fmt.Errorf("unknown permission type: %d", permission)
 }

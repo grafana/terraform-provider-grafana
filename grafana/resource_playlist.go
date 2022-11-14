@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"log"
+	"strconv"
 	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -122,6 +123,13 @@ func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 		Name:     d.Get("name").(string),
 		Interval: d.Get("interval").(string),
 		Items:    expandPlaylistItems(d.Get("item").(*schema.Set).List()),
+	}
+
+	// Support both Grafana 9.0+ and older versions (UID is used in 9.0+)
+	if idInt, err := strconv.Atoi(d.Id()); err == nil {
+		playlist.ID = idInt
+	} else {
+		playlist.UID = d.Id()
 	}
 
 	err := client.UpdatePlaylist(playlist)

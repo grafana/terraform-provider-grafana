@@ -22,7 +22,7 @@ func TestAccPlaylist_basic(t *testing.T) {
 		CheckDestroy:      testAccPlaylistDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPlaylistConfigBasic(rName),
+				Config: testAccPlaylistConfigBasic(rName, "5m"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccPlaylistCheckExists(),
 					resource.TestMatchResourceAttr(paylistResource, "id", uidRegexp),
@@ -58,9 +58,17 @@ func TestAccPlaylist_update(t *testing.T) {
 		CheckDestroy:      testAccPlaylistDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPlaylistConfigBasic(rName),
+				Config: testAccPlaylistConfigBasic(rName, "5m"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccPlaylistCheckExists(),
+					resource.TestCheckResourceAttr(paylistResource, "interval", "5m"),
+				),
+			},
+			{
+				Config: testAccPlaylistConfigBasic(rName, "10m"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccPlaylistCheckExists(),
+					resource.TestCheckResourceAttr(paylistResource, "interval", "10m"),
 				),
 			},
 			{
@@ -97,7 +105,7 @@ func TestAccPlaylist_disappears(t *testing.T) {
 		CheckDestroy:      testAccPlaylistDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPlaylistConfigBasic(rName),
+				Config: testAccPlaylistConfigBasic(rName, "5m"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccPlaylistCheckExists(),
 					testAccPlaylistDisappears(),
@@ -172,11 +180,11 @@ func testAccPlaylistDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccPlaylistConfigBasic(name string) string {
+func testAccPlaylistConfigBasic(name, interval string) string {
 	return fmt.Sprintf(`
 resource "grafana_playlist" "test" {
 	name     = %[1]q
-	interval = "5m"
+	interval = %[2]q
 
 	item {
 		order = 1
@@ -188,7 +196,7 @@ resource "grafana_playlist" "test" {
 		title = "Terraform Dashboard By ID"
 	}
 }
-`, name)
+`, name, interval)
 }
 
 func testAccPlaylistConfigUpdate(name string) string {
