@@ -67,7 +67,7 @@ Required:
 
 Optional:
 
-- `team_id` (Number) ID of the team to manage permissions for. Specify either this or `user_id`. Defaults to `-1`.
-- `user_id` (Number) ID of the user to manage permissions for. Specify either this or `team_id`. Defaults to `-1`.
+- `team_id` (Number) ID of the team to manage permissions for. Specify either this or `user_id`. Defaults to `0`.
+- `user_id` (Number) ID of the user to manage permissions for. Specify either this or `team_id`. Defaults to `0`.
 
 
