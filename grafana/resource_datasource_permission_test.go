@@ -10,8 +10,6 @@ import (
 )
 
 func TestAccDatasourcePermission_basic(t *testing.T) {
-	t.Skip("skipping this test as the resource is going be deprecated soon and the test is flaky due to the Grafana server implementation")
-
 	CheckCloudInstanceTestsEnabled(t)
 
 	datasourceID := int64(-1)
@@ -23,7 +21,7 @@ func TestAccDatasourcePermission_basic(t *testing.T) {
 				Config: testAccExample(t, "resources/grafana_data_source_permission/resource.tf"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccDatasourcePermissionsCheckExists("grafana_data_source_permission.fooPermissions", &datasourceID),
-					resource.TestCheckResourceAttr("grafana_data_source_permission.fooPermissions", "permissions.#", "2"),
+					resource.TestCheckResourceAttr("grafana_data_source_permission.fooPermissions", "permissions.#", "3"),
 				),
 			},
 			{
@@ -71,9 +69,6 @@ func testAccDatasourcePermissionCheckDestroy(datasourceID *int64) resource.TestC
 		response, err := client.DatasourcePermissions(*datasourceID)
 		if err != nil {
 			return fmt.Errorf("error getting datasource permissions %d: %s", *datasourceID, err)
-		}
-		if response.Enabled {
-			return fmt.Errorf("datasource permissions %d still enabled", *datasourceID)
 		}
 		if len(response.Permissions) > 0 {
 			return fmt.Errorf("permissions were not empty when expected")

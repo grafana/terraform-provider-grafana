@@ -42,6 +42,10 @@ resource "grafana_data_source_permission" "fooPermissions" {
     user_id    = 3 // 3 is the admin user in cloud. It can't be queried
     permission = "Edit"
   }
+  permissions {
+    built_in_role = "Viewer"
+    permission    = "Query"
+  }
 }
 ```
 
@@ -66,6 +70,7 @@ Required:
 
 Optional:
 
+- `built_in_role` (String) Name of the basic role to manage permissions for. Options: `Viewer`, `Editor` or `Admin`. Can only be set from Grafana v9.2.3+. Defaults to ``.
 - `team_id` (Number) ID of the team to manage permissions for. Defaults to `0`.
 - `user_id` (Number) ID of the user to manage permissions for. Defaults to `0`.
 

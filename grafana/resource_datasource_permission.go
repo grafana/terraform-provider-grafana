@@ -51,6 +51,13 @@ func ResourceDatasourcePermission() *schema.Resource {
 							Default:     0,
 							Description: "ID of the user to manage permissions for.",
 						},
+						"built_in_role": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							Default:      "",
+							ValidateFunc: validation.StringInSlice([]string{"Viewer", "Editor", "Admin"}, false),
+							Description:  "Name of the basic role to manage permissions for. Options: `Viewer`, `Editor` or `Admin`. Can only be set from Grafana v9.2.3+.",
+						},
 						"permission": {
 							Type:         schema.TypeString,
 							Required:     true,
@@ -82,6 +89,9 @@ func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 		}
 		if permission["user_id"].(int) != -1 {
 			permissionItem.UserID = int64(permission["user_id"].(int))
+		}
+		if permission["built_in_role"].(string) != "" {
+			permissionItem.BuiltInRole = permission["built_in_role"].(string)
 		}
 		var err error
 		if permissionItem.Permission, err = mapDatasourcePermissionStringToType(permission["permission"].(string)); err != nil {
@@ -121,8 +131,10 @@ func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta
 	permissionItems := make([]interface{}, len(response.Permissions))
 	for i, permission := range response.Permissions {
 		permissionItem := make(map[string]interface{})
+		permissionItem["built_in_role"] = permission.BuiltInRole
 		permissionItem["team_id"] = permission.TeamID
 		permissionItem["user_id"] = permission.UserID
+
 		if permissionItem["permission"], err = mapDatasourcePermissionTypeToString(permission.Permission); err != nil {
 			return diag.FromErr(err)
 		}
@@ -154,7 +166,7 @@ func DeleteDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 
 func updateDatasourcePermissions(client *gapi.Client, id int64, permissions []*gapi.DatasourcePermissionAddPayload, enable, disable bool) error {
 	areEqual := func(a *gapi.DatasourcePermission, b *gapi.DatasourcePermissionAddPayload) bool {
-		return a.Permission == b.Permission && a.TeamID == b.TeamID && a.UserID == b.UserID
+		return a.Permission == b.Permission && a.TeamID == b.TeamID && a.UserID == b.UserID && a.BuiltInRole == b.BuiltInRole
 	}
 
 	response, err := client.DatasourcePermissions(id)
