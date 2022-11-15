@@ -42,13 +42,13 @@ func ResourceServiceAccountPermission() *schema.Resource {
 						"team_id": {
 							Type:        schema.TypeInt,
 							Optional:    true,
-							Default:     -1,
+							Default:     0,
 							Description: "ID of the team to manage permissions for. Specify either this or `user_id`.",
 						},
 						"user_id": {
 							Type:        schema.TypeInt,
 							Optional:    true,
-							Default:     -1,
+							Default:     0,
 							Description: "ID of the user to manage permissions for. Specify either this or `team_id`.",
 						},
 						"permission": {
