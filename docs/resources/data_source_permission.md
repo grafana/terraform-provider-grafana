@@ -70,8 +70,8 @@ Required:
 
 Optional:
 
+- `built_in_role` (String) Name of the basic role to manage permissions for. Options: `Viewer`, `Editor` or `Admin`. Can only be set from Grafana v9.2.3+. Defaults to ``.
 - `team_id` (Number) ID of the team to manage permissions for. Defaults to `0`.
 - `user_id` (Number) ID of the user to manage permissions for. Defaults to `0`.
-- `built_in_role` (String) Name of the basic role to manage permissions for. Defaults to `""`. Options: `Viewer`, `Editor` or `Admin`. Can only be set from Grafana v9.2.3+.
 
 
