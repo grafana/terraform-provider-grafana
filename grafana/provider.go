@@ -155,12 +155,11 @@ func Provider(version string) func() *schema.Provider {
 					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 				},
 				"auth": {
-					Type:         schema.TypeString,
-					Optional:     true,
-					Sensitive:    true,
-					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_AUTH", nil),
-					Description:  "API token or basic auth `username:password`. May alternatively be set via the `GRAFANA_AUTH` environment variable.",
-					AtLeastOneOf: []string{"auth", "cloud_api_key", "sm_access_token", "oncall_access_token"},
+					Type:        schema.TypeString,
+					Optional:    true,
+					Sensitive:   true,
+					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_AUTH", nil),
+					Description: "API token or basic auth `username:password`. May alternatively be set via the `GRAFANA_AUTH` environment variable.",
 				},
 				"http_headers": {
 					Type:        schema.TypeMap,
