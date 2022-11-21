@@ -94,6 +94,30 @@ func TestAccFolder_basic(t *testing.T) {
 	})
 }
 
+func TestAccFolder_createFromEditor(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
+	var folder gapi.Folder
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			testAccFolderCheckDestroy(&folder),
+		),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFolderFromEditorKey,
+				Check: resource.ComposeTestCheckFunc(
+					testAccFolderCheckExists("grafana_folder.bar", &folder),
+					resource.TestMatchResourceAttr("grafana_folder.bar", "id", idRegexp),
+					resource.TestMatchResourceAttr("grafana_folder.bar", "uid", uidRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.bar", "title", "from_editor_key"),
+				),
+			},
+		},
+	})
+}
+
 func testAccFolderIDDidntChange(rn string, folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		oldID := strconv.FormatInt(folder.ID, 10)
@@ -149,3 +173,20 @@ func testAccFolderCheckDestroy(folder *gapi.Folder) resource.TestCheckFunc {
 		return nil
 	}
 }
+
+const testAccFolderFromEditorKey = `
+resource "grafana_api_key" "foo" {
+	name = "key_foo"
+	role = "Editor"
+  }
+  
+  provider "grafana" {
+	alias = "api_key"
+	auth  = grafana_api_key.foo.key
+  }
+  
+  resource "grafana_folder" "bar" {
+	provider = grafana.api_key
+	title    = "from_editor_key"
+  }
+`
