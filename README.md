@@ -4,7 +4,7 @@
 
 # Terraform Provider for Grafana
 
-[![Build Status](https://drone.grafana.net/api/badges/grafana/terraform-provider-grafana/status.svg)](https://drone.grafana.net/grafana/terraform-provider-grafana)
+[![Build Status](https://drone.grafana.net/api/badges/grafana/terraform-provider-grafana/status.svg)](https://drone.grafana.net/grafana/terraform-provider-grafana
 
 - Grafana website: <https://grafana.com>
 - Grafana Cloud website: <https://grafana.com/products/cloud/>
