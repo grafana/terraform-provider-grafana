@@ -54,6 +54,7 @@
     "data-sources/organization_preferences": "Grafana OSS",
     "data-sources/team": "Grafana OSS",
     "data-sources/user": "Grafana OSS",
+    "data-sources/users": "Grafana OSS",
     "data-sources/oncall_action": "OnCall",
     "data-sources/oncall_escalation_chain": "OnCall",
     "data-sources/oncall_outgoing_webhook": "OnCall",
