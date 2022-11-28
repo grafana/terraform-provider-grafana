@@ -58,7 +58,7 @@ func dataSourceOrganizationRead(ctx context.Context, d *schema.ResourceData, met
 
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
-			return nil
+			return diag.FromErr(fmt.Errorf("no organization with name %q", name))
 		}
 		return diag.FromErr(err)
 	}
