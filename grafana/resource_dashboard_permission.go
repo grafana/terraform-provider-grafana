@@ -166,6 +166,8 @@ func ReadDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta 
 
 			permissionItems[count] = permissionItem
 			count++
+			d.Set("dashboard_id", permission.DashboardID)
+			d.Set("dashboard_uid", permission.DashboardUID)
 		}
 	}
 
