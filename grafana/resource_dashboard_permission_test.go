@@ -12,16 +12,15 @@ import (
 func TestAccDashboardPermission_basic(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 
-	dashboardID := int64(-1)
+	dashboardUID := ""
 
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccDashboardPermissionCheckDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDashboardPermissionConfig_Basic,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccDashboardPermissionsCheckExists("grafana_dashboard_permission.testPermission", &dashboardID),
+					testAccDashboardPermissionsCheckExistsUID("grafana_dashboard_permission.testPermission", &dashboardUID),
 					resource.TestCheckResourceAttr("grafana_dashboard_permission.testPermission", "permissions.#", "4"),
 				),
 			},
@@ -33,13 +32,15 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 			{
 				Config: testAccDashboardPermissionConfig_Remove,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccDashboardPermissionsCheckEmpty(&dashboardID),
+					testAccDashboardPermissionsCheckEmptyUID(&dashboardUID),
 				),
 			},
 		},
 	})
 }
 
+// Testing the deprecated case of using a dashboard ID instead of a dashboard UID
+// TODO: Remove in next major version
 func TestAccDashboardPermission_fromDashboardID(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 
@@ -47,7 +48,6 @@ func TestAccDashboardPermission_fromDashboardID(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccDashboardPermissionCheckDestroy(),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDashboardPermissionConfig_FromID,
@@ -58,6 +58,32 @@ func TestAccDashboardPermission_fromDashboardID(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccDashboardPermissionsCheckExistsUID(rn string, dashboardUID *string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[rn]
+		if !ok {
+			return fmt.Errorf("Resource not found: %s\n %#v", rn, s.RootModule().Resources)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("Resource id not set")
+		}
+
+		client := testAccProvider.Meta().(*client).gapi
+
+		gotDashboardUID := rs.Primary.ID
+
+		_, err := client.DashboardPermissionsByUID(gotDashboardUID)
+		if err != nil {
+			return fmt.Errorf("Error getting dashboard permissions: %s", err)
+		}
+
+		*dashboardUID = gotDashboardUID
+
+		return nil
+	}
 }
 
 func testAccDashboardPermissionsCheckExists(rn string, dashboardID *int64) resource.TestCheckFunc {
@@ -89,24 +115,17 @@ func testAccDashboardPermissionsCheckExists(rn string, dashboardID *int64) resou
 	}
 }
 
-func testAccDashboardPermissionsCheckEmpty(dashboardID *int64) resource.TestCheckFunc {
+func testAccDashboardPermissionsCheckEmptyUID(dashboardUID *string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*client).gapi
-		permissions, err := client.DashboardPermissions(*dashboardID)
+		permissions, err := client.DashboardPermissionsByUID(*dashboardUID)
 		if err != nil {
-			return fmt.Errorf("Error getting dashboard permissions %d: %s", *dashboardID, err)
+			return fmt.Errorf("Error getting dashboard permissions %s: %s", *dashboardUID, err)
 		}
 		if len(permissions) > 0 {
 			return fmt.Errorf("Permissions were not empty when expected")
 		}
 
-		return nil
-	}
-}
-
-func testAccDashboardPermissionCheckDestroy() resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		// you can't really destroy dashboard permissions so nothing to check for
 		return nil
 	}
 }
