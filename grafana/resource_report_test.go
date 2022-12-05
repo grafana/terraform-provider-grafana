@@ -93,7 +93,9 @@ func TestAccResourceReport(t *testing.T) {
 	})
 }
 
-func TestAccResourceReport_CreateFromDashboardUID(t *testing.T) {
+// Testing the deprecated case of using a dashboard ID instead of a dashboard UID
+// TODO: Remove in next major version
+func TestAccResourceReport_CreateFromDashboardID(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
 	var report gapi.Report
@@ -103,7 +105,7 @@ func TestAccResourceReport_CreateFromDashboardUID(t *testing.T) {
 		CheckDestroy:      testAccReportCheckDestroy(&report),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccReportCreateFromUID,
+				Config: testAccReportCreateFromID,
 				Check: resource.ComposeTestCheckFunc(
 					testAccReportCheckExists("grafana_report.test", &report),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "dashboard_id"),
@@ -156,7 +158,7 @@ func testAccReportCheckDestroy(report *gapi.Report) resource.TestCheckFunc {
 	}
 }
 
-const testAccReportCreateFromUID = `
+const testAccReportCreateFromID = `
 resource "grafana_dashboard" "test" {
 	config_json = <<EOD
   {
@@ -169,7 +171,7 @@ resource "grafana_dashboard" "test" {
   
   resource "grafana_report" "test" {
 	name         = "my report"
-	dashboard_uid = grafana_dashboard.test.uid
+	dashboard_id = grafana_dashboard.test.dashboard_id
 	recipients   = ["some@email.com"]
 	schedule {
 	  frequency = "hourly"
