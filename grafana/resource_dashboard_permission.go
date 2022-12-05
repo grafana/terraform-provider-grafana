@@ -25,13 +25,27 @@ func ResourceDashboardPermission() *schema.Resource {
 		ReadContext:   ReadDashboardPermissions,
 		UpdateContext: UpdateDashboardPermissions,
 		DeleteContext: DeleteDashboardPermissions,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"dashboard_id": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				ForceNew:    true,
-				Description: "ID of the dashboard to apply permissions to.",
+				Type:         schema.TypeInt,
+				ForceNew:     true,
+				Computed:     true,
+				Optional:     true,
+				ExactlyOneOf: []string{"dashboard_id", "dashboard_uid"},
+				Deprecated:   "use `dashboard_uid` instead",
+				Description:  "ID of the dashboard to apply permissions to. Deprecated: use `dashboard_uid` instead.",
+			},
+			"dashboard_uid": {
+				Type:         schema.TypeString,
+				ForceNew:     true,
+				Computed:     true,
+				Optional:     true,
+				ExactlyOneOf: []string{"dashboard_id", "dashboard_uid"},
+				Description:  "UID of the dashboard to apply permissions to.",
 			},
 			"permissions": {
 				Type:        schema.TypeSet,
@@ -94,27 +108,45 @@ func UpdateDashboardPermissions(ctx context.Context, d *schema.ResourceData, met
 		permissionList.Items = append(permissionList.Items, &permissionItem)
 	}
 
-	dashboardID := int64(d.Get("dashboard_id").(int))
+	var (
+		id  string
+		err error
+	)
 
-	err := client.UpdateDashboardPermissions(dashboardID, &permissionList)
+	if uid, ok := d.GetOk("dashboard_uid"); ok {
+		id = uid.(string)
+		err = client.UpdateDashboardPermissionsByUID(id, &permissionList)
+	} else {
+		id = strconv.Itoa(d.Get("dashboard_id").(int))
+		err = client.UpdateDashboardPermissions(int64(d.Get("dashboard_id").(int)), &permissionList)
+	}
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(dashboardID, 10))
+	d.SetId(id)
 
 	return ReadDashboardPermissions(ctx, d, meta)
 }
 
 func ReadDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
+	var (
+		dashboardPermissions []*gapi.DashboardPermission
+		err                  error
+	)
 
-	dashboardID := int64(d.Get("dashboard_id").(int))
+	id := d.Id()
+	if idInt, _ := strconv.Atoi(id); idInt == 0 {
+		// id is not an int, so it must be a uid
+		dashboardPermissions, err = client.DashboardPermissionsByUID(id)
+	} else {
+		dashboardPermissions, err = client.DashboardPermissions(int64(idInt))
+	}
 
-	dashboardPermissions, err := client.DashboardPermissions(dashboardID)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing dashboard permissions %d from state because it no longer exists in grafana", dashboardID)
+			log.Printf("[WARN] removing dashboard permissions %s from state because it no longer exists in grafana", id)
 			d.SetId("")
 			return nil
 		}
@@ -148,10 +180,14 @@ func DeleteDashboardPermissions(ctx context.Context, d *schema.ResourceData, met
 	// if for some reason the parent dashboard doesn't exist, we'll just ignore the error
 	client := meta.(*client).gapi
 
-	dashboardID := int64(d.Get("dashboard_id").(int))
 	emptyPermissions := gapi.PermissionItems{}
 
-	err := client.UpdateDashboardPermissions(dashboardID, &emptyPermissions)
+	var err error
+	if uid, ok := d.GetOk("dashboard_uid"); ok {
+		err = client.UpdateDashboardPermissionsByUID(uid.(string), &emptyPermissions)
+	} else {
+		err = client.UpdateDashboardPermissions(int64(d.Get("dashboard_id").(int)), &emptyPermissions)
+	}
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
 			d.SetId("")

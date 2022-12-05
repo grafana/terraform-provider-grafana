@@ -26,9 +26,34 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 				),
 			},
 			{
+				ImportState:       true,
+				ResourceName:      "grafana_dashboard_permission.testPermission",
+				ImportStateVerify: true,
+			},
+			{
 				Config: testAccDashboardPermissionConfig_Remove,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccDashboardPermissionsCheckEmpty(&dashboardID),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDashboardPermission_fromDashboardID(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
+	dashboardID := int64(-1)
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccDashboardPermissionCheckDestroy(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDashboardPermissionConfig_FromID,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccDashboardPermissionsCheckExists("grafana_dashboard_permission.testPermission", &dashboardID),
+					resource.TestCheckResourceAttr("grafana_dashboard_permission.testPermission", "permissions.#", "4"),
 				),
 			},
 		},
@@ -110,7 +135,7 @@ resource "grafana_user" "testAdminUser" {
 }
 
 resource "grafana_dashboard_permission" "testPermission" {
-  dashboard_id = grafana_dashboard.testDashboard.dashboard_id
+  dashboard_uid = grafana_dashboard.testDashboard.uid
   permissions {
     role       = "Viewer"
     permission = "View"
@@ -150,5 +175,49 @@ resource "grafana_user" "testAdminUser" {
   name     = "Terraform Test Dashboard Permissions"
   login    = "ttdp"
   password = "zyx987"
+}
+`
+
+const testAccDashboardPermissionConfig_FromID = `
+resource "grafana_dashboard" "testDashboard" {
+    config_json = <<EOT
+{
+    "title": "Terraform Dashboard Permission Test Dashboard",
+    "id": 14,
+    "version": "43",
+    "uid": "someuid"
+}
+EOT
+}
+
+resource "grafana_team" "testTeam" {
+  name = "terraform-test-team-permissions"
+}
+
+resource "grafana_user" "testAdminUser" {
+  email    = "terraform-test-dashboard-permissions@localhost"
+  name     = "Terraform Test Dashboard Permissions"
+  login    = "ttdp"
+  password = "zyx987"
+}
+
+resource "grafana_dashboard_permission" "testPermission" {
+  dashboard_id = grafana_dashboard.testDashboard.dashboard_id
+  permissions {
+    role       = "Viewer"
+    permission = "View"
+  }
+  permissions {
+    role       = "Editor"
+    permission = "Edit"
+  }
+  permissions {
+    team_id    = grafana_team.testTeam.id
+    permission = "View"
+  }
+  permissions {
+    user_id    = grafana_user.testAdminUser.id
+    permission = "Admin"
+  }
 }
 `
