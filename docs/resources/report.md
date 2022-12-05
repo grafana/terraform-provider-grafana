@@ -48,8 +48,8 @@ resource "grafana_report" "test" {
 
 ### Optional
 
-- `dashboard_id` (Number, Deprecated) Dashboard to be sent in the report. Either `dashboard_id` or `dashboard_uid` must be specified.
-- `dashboard_uid` (String) Dashboard to be sent in the report. Either `dashboard_id` or `dashboard_uid` must be specified.
+- `dashboard_id` (Number, Deprecated) Dashboard to be sent in the report. This field is deprecated, use `dashboard_uid` instead.
+- `dashboard_uid` (String) Dashboard to be sent in the report.
 - `include_dashboard_link` (Boolean) Whether to include a link to the dashboard in the report. Defaults to `true`.
 - `include_table_csv` (Boolean) Whether to include a CSV file of table panel data. Defaults to `false`.
 - `layout` (String) Layout of the report. Allowed values: `simple`, `grid`. Defaults to `grid`.

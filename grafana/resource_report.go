@@ -72,14 +72,14 @@ func ResourceReport() *schema.Resource {
 				Computed:     true,
 				Optional:     true,
 				Deprecated:   "Use dashboard_uid instead",
-				Description:  "Dashboard to be sent in the report. Either `dashboard_id` or `dashboard_uid` must be specified.",
+				Description:  "Dashboard to be sent in the report. This field is deprecated, use `dashboard_uid` instead.",
 			},
 			"dashboard_uid": {
 				Type:         schema.TypeString,
 				ExactlyOneOf: []string{"dashboard_id", "dashboard_uid"},
 				Computed:     true,
 				Optional:     true,
-				Description:  "Dashboard to be sent in the report. Either `dashboard_id` or `dashboard_uid` must be specified.",
+				Description:  "Dashboard to be sent in the report.",
 			},
 			"recipients": {
 				Type:        schema.TypeList,
