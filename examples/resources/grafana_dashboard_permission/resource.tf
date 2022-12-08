@@ -11,7 +11,7 @@ resource "grafana_dashboard" "metrics" {
 }
 
 resource "grafana_dashboard_permission" "collectionPermission" {
-  dashboard_id = grafana_dashboard.metrics.dashboard_id
+  dashboard_uid = grafana_dashboard.metrics.uid
   permissions {
     role       = "Editor"
     permission = "Edit"

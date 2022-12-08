@@ -27,7 +27,7 @@ resource "grafana_dashboard" "metrics" {
 }
 
 resource "grafana_dashboard_permission" "collectionPermission" {
-  dashboard_id = grafana_dashboard.metrics.dashboard_id
+  dashboard_uid = grafana_dashboard.metrics.uid
   permissions {
     role       = "Editor"
     permission = "Edit"
@@ -48,8 +48,12 @@ resource "grafana_dashboard_permission" "collectionPermission" {
 
 ### Required
 
-- `dashboard_id` (Number) ID of the dashboard to apply permissions to.
 - `permissions` (Block Set, Min: 1) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))
+
+### Optional
+
+- `dashboard_id` (Number, Deprecated) ID of the dashboard to apply permissions to. Deprecated: use `dashboard_uid` instead.
+- `dashboard_uid` (String) UID of the dashboard to apply permissions to.
 
 ### Read-Only
 
@@ -68,4 +72,10 @@ Optional:
 - `team_id` (Number) ID of the team to manage permissions for. Defaults to `0`.
 - `user_id` (Number) ID of the user to manage permissions for. Defaults to `0`.
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_dashboard_permission.dashboard_name {{dashboard_uid}}
+```
