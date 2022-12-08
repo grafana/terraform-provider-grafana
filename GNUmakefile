@@ -21,6 +21,7 @@ testacc-cloud-instance:
 
 testacc-docker:
 	make -C testdata generate
+	docker-compose -f ./docker-compose.yml stop
 	GRAFANA_VERSION=$(GRAFANA_VERSION) \
 		docker-compose \
 		-f ./docker-compose.yml \
@@ -30,6 +31,7 @@ testacc-docker:
 
 testacc-docker-tls:
 	make -C testdata generate
+	docker-compose -f ./docker-compose.yml -f ./docker-compose.tls.yml stop 
 	GRAFANA_VERSION=$(GRAFANA_VERSION) \
 		docker-compose \
 		-f ./docker-compose.yml \
