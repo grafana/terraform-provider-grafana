@@ -67,9 +67,19 @@ func ResourceReport() *schema.Resource {
 				Description: "Name of the report.",
 			},
 			"dashboard_id": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "Dashboard to be sent in the report.",
+				Type:         schema.TypeInt,
+				ExactlyOneOf: []string{"dashboard_id", "dashboard_uid"},
+				Computed:     true,
+				Optional:     true,
+				Deprecated:   "Use dashboard_uid instead",
+				Description:  "Dashboard to be sent in the report. This field is deprecated, use `dashboard_uid` instead.",
+			},
+			"dashboard_uid": {
+				Type:         schema.TypeString,
+				ExactlyOneOf: []string{"dashboard_id", "dashboard_uid"},
+				Computed:     true,
+				Optional:     true,
+				Description:  "Dashboard to be sent in the report.",
 			},
 			"recipients": {
 				Type:        schema.TypeList,
@@ -217,7 +227,7 @@ func ResourceReport() *schema.Resource {
 func CreateReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	report, err := schemaToReport(d)
+	report, err := schemaToReport(client, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -249,7 +259,8 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		return diag.FromErr(err)
 	}
 
-	d.Set("dashboard_id", r.DashboardID)
+	d.Set("dashboard_id", r.Dashboards[0].Dashboard.ID)
+	d.Set("dashboard_uid", r.Dashboards[0].Dashboard.UID)
 	d.Set("name", r.Name)
 	d.Set("recipients", strings.Split(r.Recipients, ","))
 	d.Set("reply_to", r.ReplyTo)
@@ -259,11 +270,12 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	d.Set("layout", r.Options.Layout)
 	d.Set("orientation", r.Options.Orientation)
 
-	if r.Options.TimeRange.From != "" {
+	timeRange := r.Dashboards[0].TimeRange
+	if timeRange.From != "" {
 		d.Set("time_range", []interface{}{
 			map[string]interface{}{
-				"from": r.Options.TimeRange.From,
-				"to":   r.Options.TimeRange.To,
+				"from": timeRange.From,
+				"to":   timeRange.To,
 			},
 		})
 	}
@@ -293,7 +305,7 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 func UpdateReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	report, err := schemaToReport(d)
+	report, err := schemaToReport(client, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -323,10 +335,34 @@ func DeleteReport(ctx context.Context, d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func schemaToReport(d *schema.ResourceData) (gapi.Report, error) {
+func schemaToReport(client *gapi.Client, d *schema.ResourceData) (gapi.Report, error) {
+	id := int64(d.Get("dashboard_id").(int))
+	uid := d.Get("dashboard_uid").(string)
+	if uid == "" {
+		dashboards, err := client.DashboardsByIDs([]int64{id})
+		if err != nil {
+			return gapi.Report{}, fmt.Errorf("error getting dashboard %d: %v", id, err)
+		}
+		for _, dashboard := range dashboards {
+			if int64(dashboard.ID) == id {
+				uid = dashboard.UID
+				break
+			}
+		}
+		if uid == "" {
+			return gapi.Report{}, fmt.Errorf("dashboard %d not found", id)
+		}
+	}
+
 	frequency := d.Get("schedule.0.frequency").(string)
 	report := gapi.Report{
-		DashboardID:        int64(d.Get("dashboard_id").(int)),
+		Dashboards: []gapi.ReportDashboard{
+			{
+				Dashboard: gapi.ReportDashboardIdentifier{
+					UID: uid,
+				},
+			},
+		},
 		Name:               d.Get("name").(string),
 		Recipients:         strings.Join(listToStringSlice(d.Get("recipients").([]interface{})), ","),
 		ReplyTo:            d.Get("reply_to").(string),
@@ -347,7 +383,7 @@ func schemaToReport(d *schema.ResourceData) (gapi.Report, error) {
 	timeRange := d.Get("time_range").([]interface{})
 	if len(timeRange) > 0 {
 		timeRange := timeRange[0].(map[string]interface{})
-		report.Options.TimeRange = gapi.ReportTimeRange{From: timeRange["from"].(string), To: timeRange["to"].(string)}
+		report.Dashboards[0].TimeRange = gapi.ReportDashboardTimeRange{From: timeRange["from"].(string), To: timeRange["to"].(string)}
 	}
 
 	// Set schedule start time

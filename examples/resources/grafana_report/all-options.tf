@@ -10,9 +10,9 @@ EOD
 
 resource "grafana_report" "test" {
   // Required attributes
-  name         = "my report updated"
-  dashboard_id = grafana_dashboard.test.dashboard_id
-  recipients   = ["some@email.com", "some2@email.com"]
+  name          = "my report updated"
+  dashboard_uid = grafana_dashboard.test.uid
+  recipients    = ["some@email.com", "some2@email.com"]
   schedule {
     frequency     = "daily"
     workdays_only = true

@@ -26,6 +26,7 @@ func TestAccResourceReport(t *testing.T) {
 					resource.TestCheckResourceAttrSet("grafana_report.test", "id"),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "dashboard_id"),
 					resource.TestCheckResourceAttr("grafana_report.test", "name", "my report"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", "report"),
 					resource.TestCheckResourceAttr("grafana_report.test", "recipients.0", "some@email.com"),
 					resource.TestCheckNoResourceAttr("grafana_report.test", "recipients.1"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.frequency", "hourly"),
@@ -47,9 +48,10 @@ func TestAccResourceReport(t *testing.T) {
 						// This is a custom function to delay the report ID evaluation, because it is generated after the first run
 						return resource.ComposeTestCheckFunc(
 							resource.TestCheckResourceAttr("grafana_report.test", "id", strconv.FormatInt(report.ID, 10)),
-							resource.TestCheckResourceAttr("grafana_report.test", "dashboard_id", strconv.FormatInt(report.DashboardID, 10)),
+							resource.TestCheckResourceAttr("grafana_report.test", "dashboard_id", strconv.FormatInt(report.Dashboards[0].Dashboard.ID, 10)),
 						)(s)
 					},
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", "report"),
 					resource.TestCheckResourceAttr("grafana_report.test", "name", "my report updated"),
 					resource.TestCheckResourceAttr("grafana_report.test", "recipients.0", "some@email.com"),
 					resource.TestCheckResourceAttr("grafana_report.test", "recipients.1", "some2@email.com"),
@@ -71,6 +73,7 @@ func TestAccResourceReport(t *testing.T) {
 					testAccReportCheckExists("grafana_report.test", &report),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "id"),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "dashboard_id"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", "report"),
 					resource.TestCheckResourceAttr("grafana_report.test", "name", "my report"),
 					resource.TestCheckResourceAttr("grafana_report.test", "recipients.0", "some@email.com"),
 					resource.TestCheckNoResourceAttr("grafana_report.test", "recipients.1"),
@@ -84,6 +87,29 @@ func TestAccResourceReport(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_report.test", "include_table_csv", "false"),
 					resource.TestCheckNoResourceAttr("grafana_report.test", "time_range.0.from"),
 					resource.TestCheckNoResourceAttr("grafana_report.test", "time_range.0.to"),
+				),
+			},
+		},
+	})
+}
+
+// Testing the deprecated case of using a dashboard ID instead of a dashboard UID
+// TODO: Remove in next major version
+func TestAccResourceReport_CreateFromDashboardID(t *testing.T) {
+	CheckCloudInstanceTestsEnabled(t)
+
+	var report gapi.Report
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccReportCheckDestroy(&report),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccReportCreateFromID,
+				Check: resource.ComposeTestCheckFunc(
+					testAccReportCheckExists("grafana_report.test", &report),
+					resource.TestCheckResourceAttrSet("grafana_report.test", "dashboard_id"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", "report-from-uid"),
 				),
 			},
 		},
@@ -131,3 +157,24 @@ func testAccReportCheckDestroy(report *gapi.Report) resource.TestCheckFunc {
 		return nil
 	}
 }
+
+const testAccReportCreateFromID = `
+resource "grafana_dashboard" "test" {
+	config_json = <<EOD
+  {
+	"title": "Dashboard for report from UID",
+	"uid": "report-from-uid"
+  }
+  EOD
+	message     = "initial commit."
+  }
+  
+  resource "grafana_report" "test" {
+	name         = "my report"
+	dashboard_id = grafana_dashboard.test.dashboard_id
+	recipients   = ["some@email.com"]
+	schedule {
+	  frequency = "hourly"
+	}
+  }
+  `
