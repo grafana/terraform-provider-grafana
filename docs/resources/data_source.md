@@ -95,14 +95,14 @@ resource "grafana_data_source" "prometheus" {
 
 - `access_mode` (String) The method by which Grafana will access the data source: `proxy` or `direct`. Defaults to `proxy`.
 - `basic_auth_enabled` (Boolean) Whether to enable basic auth for the data source. Defaults to `false`.
-- `basic_auth_password` (String, Sensitive, Deprecated) Use secure_json_data_encoded.basicAuthPassword instead Defaults to ``.
+- `basic_auth_password` (String, Sensitive, Deprecated) Use secure_json_data_encoded.basicAuthPassword instead. Defaults to ``.
 - `basic_auth_username` (String) Basic auth username. Defaults to ``.
 - `database_name` (String) (Required by some data source types) The name of the database to use on the selected data source server. Defaults to ``.
 - `http_headers` (Map of String, Sensitive) Custom HTTP headers
 - `is_default` (Boolean) Whether to set the data source as default. This should only be `true` to a single data source. Defaults to `false`.
 - `json_data` (Block List, Deprecated) Use json_data_encoded instead (see [below for nested schema](#nestedblock--json_data))
 - `json_data_encoded` (String) Serialized JSON string containing the json data. This attribute can be used to pass configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.
-- `password` (String, Sensitive, Deprecated) Use secure_json_data_encoded.password instead Defaults to ``.
+- `password` (String, Sensitive, Deprecated) Use secure_json_data_encoded.password instead. Defaults to ``.
 - `secure_json_data` (Block List, Deprecated) Use secure_json_data_encoded instead (see [below for nested schema](#nestedblock--secure_json_data))
 - `secure_json_data_encoded` (String, Sensitive) Serialized JSON string containing the secure json data. This attribute can be used to pass secure configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.
 - `uid` (String) Unique identifier. If unset, this will be automatically generated.
