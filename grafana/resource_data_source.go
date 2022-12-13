@@ -74,8 +74,8 @@ source selected (via the 'type' argument).
 				Optional:    true,
 				Default:     "",
 				Sensitive:   true,
-				Description: "Use secure_json_data_encoded.basicAuthPassword instead",
-				Deprecated:  "Use secure_json_data_encoded.basicAuthPassword instead",
+				Description: "Use secure_json_data_encoded.basicAuthPassword instead.",
+				Deprecated:  "Use secure_json_data_encoded.basicAuthPassword instead.",
 			},
 			"basic_auth_username": {
 				Type:        schema.TypeString,
@@ -114,8 +114,8 @@ source selected (via the 'type' argument).
 			"json_data": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "Use json_data_encoded instead",
-				Deprecated:  "Use json_data_encoded instead",
+				Description: "Use json_data_encoded instead.",
+				Deprecated:  "Use json_data_encoded instead.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"alertmanager_uid": {
@@ -459,15 +459,15 @@ source selected (via the 'type' argument).
 				Optional:    true,
 				Default:     "",
 				Sensitive:   true,
-				Description: "Use secure_json_data_encoded.password instead",
-				Deprecated:  "Use secure_json_data_encoded.password instead",
+				Description: "Use secure_json_data_encoded.password instead.",
+				Deprecated:  "Use secure_json_data_encoded.password instead.",
 			},
 			"secure_json_data": {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Sensitive:   true,
-				Description: "Use secure_json_data_encoded instead",
-				Deprecated:  "Use secure_json_data_encoded instead",
+				Description: "Use secure_json_data_encoded instead.",
+				Deprecated:  "Use secure_json_data_encoded instead.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"access_key": {
