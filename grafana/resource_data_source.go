@@ -74,8 +74,8 @@ source selected (via the 'type' argument).
 				Optional:    true,
 				Default:     "",
 				Sensitive:   true,
-				Description: "Basic auth password. Deprecated:Use secure_json_data_encoded instead. It supports arbitrary JSON data, and therefore all attributes. This attribute is removed in Grafana 9.0+.",
-				Deprecated:  "Use secure_json_data_encoded instead. It supports arbitrary JSON data, and therefore all attributes. This attribute is removed in Grafana 9.0+.",
+				Description: "Use secure_json_data_encoded.basicAuthPassword instead",
+				Deprecated:  "Use secure_json_data_encoded.basicAuthPassword instead",
 			},
 			"basic_auth_username": {
 				Type:        schema.TypeString,
@@ -114,8 +114,8 @@ source selected (via the 'type' argument).
 			"json_data": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "(Required by some data source types). Deprecated: Use json_data_encoded instead. It supports arbitrary JSON data, and therefore all attributes.",
-				Deprecated:  "Use json_data_encoded instead. It supports arbitrary JSON data, and therefore all attributes.",
+				Description: "Use json_data_encoded instead",
+				Deprecated:  "Use json_data_encoded instead",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"alertmanager_uid": {
@@ -459,15 +459,15 @@ source selected (via the 'type' argument).
 				Optional:    true,
 				Default:     "",
 				Sensitive:   true,
-				Description: "(Required by some data source types) The password to use to authenticate to the data source. Deprecated: Use secure_json_data_encoded instead. It supports arbitrary JSON data, and therefore all attributes. This attribute is removed in Grafana 9.0+.",
-				Deprecated:  "Use secure_json_data_encoded instead. It supports arbitrary JSON data, and therefore all attributes. This attribute is removed in Grafana 9.0+.",
+				Description: "Use secure_json_data_encoded.password instead",
+				Deprecated:  "Use secure_json_data_encoded.password instead",
 			},
 			"secure_json_data": {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Sensitive:   true,
-				Description: "Deprecated: Use secure_json_data_encoded instead. It supports arbitrary JSON data, and therefore all attributes.",
-				Deprecated:  "Use secure_json_data_encoded instead. It supports arbitrary JSON data, and therefore all attributes.",
+				Description: "Use secure_json_data_encoded instead",
+				Deprecated:  "Use secure_json_data_encoded instead",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"access_key": {
@@ -571,7 +571,7 @@ source selected (via the 'type' argument).
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"json_data", "secure_json_data"},
-				Description:   "Serialized JSON string containing the json data. Replaces the json_data attribute, this attribute can be used to pass configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI.",
+				Description:   "Serialized JSON string containing the json data. This attribute can be used to pass configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.",
 				ValidateFunc:  validation.StringIsJSON,
 				StateFunc: func(v interface{}) string {
 					json, _ := structure.NormalizeJsonString(v)
@@ -584,7 +584,7 @@ source selected (via the 'type' argument).
 				Optional:      true,
 				Sensitive:     true,
 				ConflictsWith: []string{"json_data", "secure_json_data"},
-				Description:   "Serialized JSON string containing the secure json data. Replaces the secure_json_data attribute, this attribute can be used to pass secure configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI.",
+				Description:   "Serialized JSON string containing the secure json data. This attribute can be used to pass secure configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.",
 				ValidateFunc:  validation.StringIsJSON,
 				StateFunc: func(v interface{}) string {
 					json, _ := structure.NormalizeJsonString(v)
@@ -681,9 +681,8 @@ func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{
 	}
 	d.Set("http_headers", currentHeaders)
 
-	// TODO: these fields should be migrated to SecureJSONData.
 	d.Set("basic_auth_enabled", dataSource.BasicAuth)
-	d.Set("basic_auth_username", dataSource.BasicAuthUser) //nolint:staticcheck // deprecated
+	d.Set("basic_auth_username", dataSource.BasicAuthUser)
 
 	return nil
 }
