@@ -174,7 +174,10 @@ func expandPlaylistItems(items []interface{}) []gapi.PlaylistItem {
 
 func flattenPlaylistItems(items []gapi.PlaylistItem) []interface{} {
 	playlistItems := make([]interface{}, 0)
-	for _, item := range items {
+	for i, item := range items {
+		if item.Order == 0 {
+			item.Order = i + 1
+		}
 		p := map[string]interface{}{
 			"type":  item.Type,
 			"value": item.Value,

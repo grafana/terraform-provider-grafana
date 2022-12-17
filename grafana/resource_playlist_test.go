@@ -187,14 +187,15 @@ resource "grafana_playlist" "test" {
 	interval = %[2]q
 
 	item {
+		order = 2
+		title = "Terraform Dashboard By ID"
+	}
+
+	item {
 		order = 1
 		title = "Terraform Dashboard By Tag"
 	}
 
-	item {
-		order = 2
-		title = "Terraform Dashboard By ID"
-	}
 }
 `, name, interval)
 }
