@@ -21,7 +21,7 @@ func TestAccDatasourcePermission_basic(t *testing.T) {
 				Config: testAccExample(t, "resources/grafana_data_source_permission/resource.tf"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccDatasourcePermissionsCheckExists("grafana_data_source_permission.fooPermissions", &datasourceID),
-					resource.TestCheckResourceAttr("grafana_data_source_permission.fooPermissions", "permissions.#", "3"),
+					resource.TestCheckResourceAttr("grafana_data_source_permission.fooPermissions", "permissions.#", "1"),
 				),
 			},
 			{

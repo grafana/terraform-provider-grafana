@@ -23,12 +23,4 @@ resource "grafana_data_source_permission" "fooPermissions" {
     team_id    = grafana_team.team.id
     permission = "Query"
   }
-  permissions {
-    user_id    = 3 // 3 is the admin user in cloud. It can't be queried
-    permission = "Edit"
-  }
-  permissions {
-    built_in_role = "Viewer"
-    permission    = "Query"
-  }
 }
