@@ -47,7 +47,7 @@ func DatasourceCloudOrganization() *schema.Resource {
 }
 
 func datasourceCloudOrganizationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client).gapi
+	client := meta.(*client).gcloudapi
 
 	id := d.Get("id").(string)
 	if id == "" {
