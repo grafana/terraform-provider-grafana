@@ -44,6 +44,7 @@
     "resources/synthetic_monitoring_installation": "Synthetic Monitoring",
     "resources/synthetic_monitoring_probe": "Synthetic Monitoring",
     "data-sources/cloud_ips": "Cloud",
+    "data-sources/cloud_organization": "Cloud",
     "data-sources/cloud_stack": "Cloud",
     "data-sources/dashboard": "Grafana OSS",
     "data-sources/dashboards": "Grafana OSS",
