@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -64,8 +65,8 @@ func datasourceCloudOrganizationRead(ctx context.Context, d *schema.ResourceData
 	d.Set("name", org.Name)
 	d.Set("slug", org.Slug)
 	d.Set("url", org.URL)
-	d.Set("created_at", org.CreatedAt)
-	d.Set("updated_at", org.UpdatedAt)
+	d.Set("created_at", org.CreatedAt.Format(time.RFC3339))
+	d.Set("updated_at", org.UpdatedAt.Format(time.RFC3339))
 
 	return nil
 }
