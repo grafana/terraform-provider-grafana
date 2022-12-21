@@ -108,6 +108,7 @@ source selected (via the 'type' argument).
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
+				ForceNew:    true,
 				Description: "Unique identifier. If unset, this will be automatically generated.",
 			},
 
