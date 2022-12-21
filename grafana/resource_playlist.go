@@ -99,7 +99,7 @@ func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta interface{})
 	resp, err := client.Playlist(d.Id())
 
 	// In Grafana 9.0+, if the playlist doesn't exist, the API returns an empty playlist but not a 404
-	if (err != nil && strings.HasPrefix(err.Error(), "status: 404")) || resp.ID == 0 {
+	if (err != nil && strings.HasPrefix(err.Error(), "status: 404")) || (resp.ID == 0 && resp.UID == "") {
 		log.Printf("[WARN] removing playlist %s from state because it no longer exists in grafana", d.Id())
 		d.SetId("")
 		return nil
@@ -174,7 +174,10 @@ func expandPlaylistItems(items []interface{}) []gapi.PlaylistItem {
 
 func flattenPlaylistItems(items []gapi.PlaylistItem) []interface{} {
 	playlistItems := make([]interface{}, 0)
-	for _, item := range items {
+	for i, item := range items {
+		if item.Order == 0 {
+			item.Order = i + 1
+		}
 		p := map[string]interface{}{
 			"type":  item.Type,
 			"value": item.Value,
