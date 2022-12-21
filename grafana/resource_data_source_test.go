@@ -855,6 +855,45 @@ func TestDatasourceMigrationV0(t *testing.T) {
 	}
 }
 
+func TestAccDataSource_changeUID(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
+	var dataSource gapi.DataSource
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccDataSourceCheckDestroy(&dataSource),
+		Steps: []resource.TestStep{
+			{
+				Config: `
+	resource "grafana_data_source" "test" {
+		name = "test-change-uid"
+		type = "prometheus"
+		url  = "http://localhost:9090"
+		uid  = "initial-uid"
+	}`,
+				Check: resource.ComposeTestCheckFunc(
+					testAccDataSourceCheckExists("grafana_data_source.test", &dataSource),
+					resource.TestCheckResourceAttr("grafana_data_source.test", "uid", "initial-uid"),
+				),
+			},
+			{
+				Config: `
+	resource "grafana_data_source" "test" {
+		name = "test-change-uid"
+		type = "prometheus"
+		url  = "http://localhost:9090"
+		uid  = "changed-uid"
+	}`,
+				Check: resource.ComposeTestCheckFunc(
+					testAccDataSourceCheckExists("grafana_data_source.test", &dataSource),
+					resource.TestCheckResourceAttr("grafana_data_source.test", "uid", "changed-uid"),
+				),
+			},
+		},
+	})
+}
+
 func testAccDataSourceCheckExists(rn string, dataSource *gapi.DataSource) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
