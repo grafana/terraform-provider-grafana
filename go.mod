@@ -2,6 +2,9 @@ module github.com/grafana/terraform-provider-grafana
 
 go 1.18
 
+// TODO: Remove this replace directive once the underlying client PR is merged
+replace github.com/grafana/grafana-api-golang-client => github.com/grafana/grafana-api-golang-client v0.16.1-0.20221221163002-c7472daa4f2e
+
 require (
 	github.com/Masterminds/semver/v3 v3.2.0
 	github.com/grafana/amixr-api-go-client v0.0.5

@@ -127,8 +127,9 @@ func Provider(version string) func() *schema.Provider {
 
 		// Datasources that require the Cloud client to exist.
 		cloudClientDatasources = addResourcesMetadataValidation(cloudClientPresent, map[string]*schema.Resource{
-			"grafana_cloud_ips":   DatasourceCloudIPs(),
-			"grafana_cloud_stack": DatasourceCloudStack(),
+			"grafana_cloud_ips":          DatasourceCloudIPs(),
+			"grafana_cloud_organization": DatasourceCloudOrganization(),
+			"grafana_cloud_stack":        DatasourceCloudStack(),
 		})
 
 		// Datasources that require the OnCall client to exist.
