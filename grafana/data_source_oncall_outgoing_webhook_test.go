@@ -14,7 +14,7 @@ func TestAccDataSourceOnCallOutgoingWebhook_Basic(t *testing.T) {
 
 	outgoingWebhookName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{

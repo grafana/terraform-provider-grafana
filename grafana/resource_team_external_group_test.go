@@ -14,7 +14,7 @@ func TestAccTeamExternalGroup_basic(t *testing.T) {
 
 	teamID := int64(-1)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccTeamExternalGroupCheckDestroy(),
 		Steps: []resource.TestStep{

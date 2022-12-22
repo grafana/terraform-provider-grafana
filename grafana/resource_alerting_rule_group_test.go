@@ -16,7 +16,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 
 	var group gapi.RuleGroup
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: testAlertRuleCheckDestroy(&group),
@@ -101,7 +101,7 @@ func TestAccAlertRule_compound(t *testing.T) {
 
 	var group gapi.RuleGroup
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: testAlertRuleCheckDestroy(&group),

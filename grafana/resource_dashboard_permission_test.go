@@ -15,6 +15,7 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 
 	dashboardUID := ""
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
@@ -47,6 +48,7 @@ func TestAccDashboardPermission_fromDashboardID(t *testing.T) {
 
 	dashboardID := int64(-1)
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{

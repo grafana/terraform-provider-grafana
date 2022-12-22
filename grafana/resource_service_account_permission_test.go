@@ -16,6 +16,7 @@ func TestAccServiceAccountPermission(t *testing.T) {
 	CheckOSSTestsSemver(t, ">=9.2.4")
 
 	var saPermission gapi.ServiceAccountPermission
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccServiceAccountPermissionsCheckDestroy(saPermission.ID),

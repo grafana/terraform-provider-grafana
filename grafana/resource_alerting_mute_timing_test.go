@@ -15,7 +15,7 @@ func TestAccMuteTiming_basic(t *testing.T) {
 
 	var mt gapi.MuteTiming
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: testMuteTimingCheckDestroy(&mt),

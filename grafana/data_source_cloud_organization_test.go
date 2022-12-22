@@ -9,7 +9,6 @@ import (
 )
 
 func TestAccDatasourceCloudOrganization_Basic(t *testing.T) {
-	t.Parallel()
 	CheckCloudAPITestsEnabled(t)
 
 	config := fmt.Sprintf(`
@@ -18,7 +17,7 @@ func TestAccDatasourceCloudOrganization_Basic(t *testing.T) {
 	}
 	`, os.Getenv("GRAFANA_CLOUD_ORG"))
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{

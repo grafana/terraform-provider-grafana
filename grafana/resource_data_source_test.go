@@ -683,6 +683,7 @@ func TestAccDataSource_basic(t *testing.T) {
 				))
 			}
 
+			// TODO: Make parallelizable
 			resource.Test(t, resource.TestCase{
 				ProviderFactories: testAccProviderFactories,
 				CheckDestroy:      testAccDataSourceCheckDestroy(&dataSource),
@@ -860,7 +861,7 @@ func TestAccDataSource_changeUID(t *testing.T) {
 
 	var dataSource gapi.DataSource
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccDataSourceCheckDestroy(&dataSource),
 		Steps: []resource.TestStep{

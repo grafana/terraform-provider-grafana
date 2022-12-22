@@ -13,6 +13,7 @@ import (
 func TestAccResourceSyntheticMonitoringCheck_dns(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
@@ -64,6 +65,7 @@ func TestAccResourceSyntheticMonitoringCheck_dns(t *testing.T) {
 func TestAccResourceSyntheticMonitoringCheck_http(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
@@ -122,6 +124,7 @@ func TestAccResourceSyntheticMonitoringCheck_http(t *testing.T) {
 func TestAccResourceSyntheticMonitoringCheck_ping(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
@@ -159,6 +162,7 @@ func TestAccResourceSyntheticMonitoringCheck_ping(t *testing.T) {
 func TestAccResourceSyntheticMonitoringCheck_tcp(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
@@ -204,6 +208,7 @@ func TestAccResourceSyntheticMonitoringCheck_tcp(t *testing.T) {
 func TestAccResourceSyntheticMonitoringCheck_traceroute(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
@@ -244,6 +249,7 @@ func TestAccResourceSyntheticMonitoringCheck_traceroute(t *testing.T) {
 func TestAccResourceSyntheticMonitoringCheck_recreate(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
@@ -277,7 +283,7 @@ func TestAccResourceSyntheticMonitoringCheck_recreate(t *testing.T) {
 func TestAccResourceSyntheticMonitoringCheck_noSettings(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -292,7 +298,7 @@ func TestAccResourceSyntheticMonitoringCheck_noSettings(t *testing.T) {
 func TestAccResourceSyntheticMonitoringCheck_multiple(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{

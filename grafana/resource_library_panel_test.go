@@ -16,6 +16,7 @@ func TestAccLibraryPanel_basic(t *testing.T) {
 
 	var panel gapi.LibraryPanel
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccLibraryPanelCheckDestroy(&panel),
@@ -54,6 +55,7 @@ func TestAccLibraryPanel_computed_config(t *testing.T) {
 
 	var panel gapi.LibraryPanel
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccLibraryPanelCheckDestroy(&panel),
@@ -77,6 +79,7 @@ func TestAccLibraryPanel_folder(t *testing.T) {
 	var panel gapi.LibraryPanel
 	var folder gapi.Folder
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccLibraryPanelFolderCheckDestroy(&panel, &folder),
@@ -104,6 +107,7 @@ func TestAccLibraryPanel_dashboard(t *testing.T) {
 	var panel gapi.LibraryPanel
 	var dashboard gapi.Dashboard
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccLibraryPanelCheckDestroy(&panel),

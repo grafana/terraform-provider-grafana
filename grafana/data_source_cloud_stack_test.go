@@ -9,14 +9,13 @@ import (
 )
 
 func TestAccDatasourceCloudStack_Basic(t *testing.T) {
-	t.Parallel()
 	CheckCloudAPITestsEnabled(t)
 
 	prefix := "tfdatatest"
 
 	resourceName := GetRandomStackName(prefix)
 	var stack gapi.Stack
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
 		},

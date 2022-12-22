@@ -14,6 +14,7 @@ import (
 func TestAccResourceSyntheticMonitoringProbe(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
@@ -51,7 +52,7 @@ func TestAccResourceSyntheticMonitoringProbe(t *testing.T) {
 func TestAccResourceSyntheticMonitoringProbe_recreate(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -107,7 +108,7 @@ func TestAccResourceSyntheticMonitoringProbe_InvalidLabels(t *testing.T) {
 		})
 	}
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps:             steps,
 	})

@@ -15,7 +15,7 @@ func TestAccResourceReport(t *testing.T) {
 
 	var report gapi.Report
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccReportCheckDestroy(&report),
 		Steps: []resource.TestStep{
@@ -100,7 +100,7 @@ func TestAccResourceReport_CreateFromDashboardID(t *testing.T) {
 
 	var report gapi.Report
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccReportCheckDestroy(&report),
 		Steps: []resource.TestStep{

@@ -16,6 +16,7 @@ func TestAccOnCallRoute_basic(t *testing.T) {
 	riName := fmt.Sprintf("integration-%s", acctest.RandString(8))
 	rrRegex := fmt.Sprintf("regex-%s", acctest.RandString(8))
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckOnCallRouteResourceDestroy,

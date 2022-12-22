@@ -39,7 +39,7 @@ func TestAccDatasourceDashboardBasicID(t *testing.T) {
 		),
 	}
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
 		Steps: []resource.TestStep{
@@ -54,6 +54,7 @@ func TestAccDatasourceDashboardBasicID(t *testing.T) {
 func TestAccDatasourceDashboardBadExactlyOneOf(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{

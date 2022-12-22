@@ -29,7 +29,7 @@ func TestAccDatasourceFolder(t *testing.T) {
 		),
 	}
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccFolderCheckDestroy(&folder),
 		Steps: []resource.TestStep{

@@ -17,6 +17,7 @@ func TestAccAlertNotification_basic(t *testing.T) {
 
 	var alertNotification gapi.AlertNotification
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
@@ -55,7 +56,7 @@ func TestAccAlertNotification_disableResolveMessage(t *testing.T) {
 
 	var alertNotification gapi.AlertNotification
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
@@ -93,7 +94,7 @@ func TestAccAlertNotification_invalid_frequency(t *testing.T) {
 
 	var alertNotification gapi.AlertNotification
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
@@ -110,7 +111,7 @@ func TestAccAlertNotification_reminder_no_frequency(t *testing.T) {
 
 	var alertNotification gapi.AlertNotification
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{

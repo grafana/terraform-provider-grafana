@@ -12,10 +12,9 @@ import (
 )
 
 func TestAccDataSourceCloudIPsRead(t *testing.T) {
-	t.Parallel()
 	CheckCloudAPITestsEnabled(t)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{

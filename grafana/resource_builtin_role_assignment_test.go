@@ -26,7 +26,7 @@ func TestAccBuiltInRoleAssignment(t *testing.T) {
 
 	var assignments map[string][]*gapi.Role
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccBuiltInRoleAssignmentCheckDestroy(&assignments, []string{roleUID3, roleUID4}, nil),
 		Steps: []resource.TestStep{
@@ -63,7 +63,7 @@ func TestAccBuiltInRoleAssignmentUpdate(t *testing.T) {
 
 	var assignments map[string][]*gapi.Role
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccBuiltInRoleAssignmentCheckDestroy(&assignments, []string{roleUID5, roleUID6}, []string{roleUID1, roleUID2}),
 		Steps: []resource.TestStep{

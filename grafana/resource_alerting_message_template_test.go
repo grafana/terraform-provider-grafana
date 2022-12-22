@@ -15,7 +15,7 @@ func TestAccMessageTemplate_basic(t *testing.T) {
 
 	var tmpl gapi.AlertingMessageTemplate
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: testMessageTemplateCheckDestroy(&tmpl),

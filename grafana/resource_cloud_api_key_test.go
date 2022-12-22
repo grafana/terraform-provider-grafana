@@ -12,7 +12,6 @@ import (
 )
 
 func TestAccCloudApiKey_Basic(t *testing.T) {
-	t.Parallel()
 	CheckCloudAPITestsEnabled(t)
 
 	prefix := "testcloudkey-"
@@ -32,7 +31,7 @@ func TestAccCloudApiKey_Basic(t *testing.T) {
 		t.Run(tt.role, func(t *testing.T) {
 			resourceName := prefix + acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-			resource.Test(t, resource.TestCase{
+			resource.ParallelTest(t, resource.TestCase{
 				ProviderFactories: testAccProviderFactories,
 				CheckDestroy:      testAccCheckCloudAPIKeyDestroy,
 				Steps: []resource.TestStep{

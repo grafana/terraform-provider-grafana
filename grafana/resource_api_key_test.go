@@ -16,6 +16,7 @@ import (
 func TestAccGrafanaAuthKey(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccGrafanaAuthKeyCheckDestroy,
@@ -37,14 +38,13 @@ func TestAccGrafanaAuthKey(t *testing.T) {
 }
 
 func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
-	t.Parallel()
 	CheckCloudAPITestsEnabled(t)
 
 	var stack gapi.Stack
 	prefix := "tfapikeytest"
 	slug := GetRandomStackName(prefix)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
 		},

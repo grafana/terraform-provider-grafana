@@ -17,7 +17,7 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 	reType := "wait"
 	reDuration := 300
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckOnCallEscalationResourceDestroy,
 		Steps: []resource.TestStep{

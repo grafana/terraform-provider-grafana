@@ -15,6 +15,7 @@ func TestAccTeam_basic(t *testing.T) {
 
 	var team gapi.Team
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccTeamCheckDestroy(&team),
@@ -61,6 +62,7 @@ func TestAccTeam_Members(t *testing.T) {
 
 	var team gapi.Team
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccTeamCheckDestroy(&team),
@@ -132,6 +134,7 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 	var team gapi.Team
 	var userID int64 = -1
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccTeamCheckDestroy(&team),

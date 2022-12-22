@@ -9,7 +9,6 @@ import (
 )
 
 func TestAccSyntheticMonitoringInstallation(t *testing.T) {
-	t.Parallel()
 	CheckCloudAPITestsEnabled(t)
 
 	var stack gapi.Stack
@@ -21,7 +20,7 @@ func TestAccSyntheticMonitoringInstallation(t *testing.T) {
 	testAccDeleteExistingCloudAPIKeys(t, apiKeyPrefix)
 	apiKeyName := apiKeyPrefix + acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{

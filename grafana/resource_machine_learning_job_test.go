@@ -15,7 +15,7 @@ func TestAccResourceMachineLearningJob(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
 	var job mlapi.Job
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccMLJobCheckDestroy(&job),
 		Steps: []resource.TestStep{
@@ -130,7 +130,7 @@ resource "grafana_machine_learning_job" "invalid" {
 func TestAccResourceInvalidMachineLearningJob(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
