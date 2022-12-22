@@ -13,7 +13,7 @@ func TestAccFolderPermission_basic(t *testing.T) {
 
 	folderUID := "uninitialized"
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccFolderPermissionCheckDestroy(),
 		Steps: []resource.TestStep{

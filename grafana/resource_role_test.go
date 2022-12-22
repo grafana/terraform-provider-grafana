@@ -15,7 +15,7 @@ func TestAccRole(t *testing.T) {
 
 	var role gapi.Role
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccRoleCheckDestroy(&role),
 		Steps: []resource.TestStep{

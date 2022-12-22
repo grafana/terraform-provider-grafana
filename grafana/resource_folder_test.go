@@ -19,7 +19,7 @@ func TestAccFolder_basic(t *testing.T) {
 	var folder gapi.Folder
 	var folderWithUID gapi.Folder
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccFolderCheckDestroy(&folder),

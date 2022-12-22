@@ -15,7 +15,7 @@ func TestAccUser_basic(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 
 	var user gapi.User
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccUserCheckDestroy(&user),
 		Steps: []resource.TestStep{

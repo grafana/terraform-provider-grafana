@@ -14,7 +14,6 @@ import (
 )
 
 func TestResourceCloudStack_Basic(t *testing.T) {
-	t.Parallel()
 	CheckCloudAPITestsEnabled(t)
 
 	prefix := "tfresourcetest"
@@ -23,7 +22,7 @@ func TestResourceCloudStack_Basic(t *testing.T) {
 	resourceName := GetRandomStackName(prefix)
 	stackDescription := "This is a test stack"
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
 		},

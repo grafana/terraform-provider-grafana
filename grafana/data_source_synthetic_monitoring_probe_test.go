@@ -9,6 +9,7 @@ import (
 func TestAccDataSourceSyntheticMonitoringProbe(t *testing.T) {
 	CheckCloudInstanceTestsEnabled(t)
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{

@@ -16,7 +16,7 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 	rName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
 	rType := "grafana"
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckOnCallIntegrationResourceDestroy,
 		Steps: []resource.TestStep{

@@ -29,7 +29,7 @@ func TestAccDataSourceDashboardsAllAndByFolderID(t *testing.T) {
 		resource.TestCheckResourceAttrSet("data.grafana_dashboard.from_data_source", "config_json"),
 	}
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{

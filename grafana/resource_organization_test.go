@@ -15,6 +15,7 @@ func TestAccOrganization_basic(t *testing.T) {
 
 	var org gapi.Org
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
@@ -68,6 +69,7 @@ func TestAccOrganization_users(t *testing.T) {
 
 	var org gapi.Org
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
@@ -135,6 +137,7 @@ func TestAccOrganization_createManyUsers(t *testing.T) {
 
 	var org gapi.Org
 
+	// Don't make this test parallel, it's already creating 1000+ users
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
@@ -148,7 +151,7 @@ func TestAccOrganization_createManyUsers(t *testing.T) {
 						"grafana_organization.test", "name", "terraform-acc-test",
 					),
 					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "admins.#", "1500",
+						"grafana_organization.test", "admins.#", "1024",
 					),
 				),
 			},
@@ -161,6 +164,7 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 
 	var org gapi.Org
 
+	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
@@ -222,7 +226,7 @@ func TestAccOrganization_externalUser(t *testing.T) {
 
 	var org gapi.Org
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{
@@ -382,7 +386,7 @@ resource "grafana_organization" "test" {
 
 const testAccOrganizationConfig_usersCreateMany_1 = `
 resource "grafana_user" "users" {
-	count = 1500
+	count = 1024
 
 	name     = "user-${count.index}"
 	email    = "user-${count.index}@example.com"
@@ -393,7 +397,7 @@ resource "grafana_user" "users" {
 
 const testAccOrganizationConfig_usersCreateMany_2 = `
 resource "grafana_user" "users" {
-	count = 1500
+	count = 1024
 
 	name     = "user-${count.index}"
 	email    = "user-${count.index}@example.com"

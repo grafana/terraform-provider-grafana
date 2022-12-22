@@ -16,7 +16,7 @@ func TestAccResourceCloudPluginInstallation(t *testing.T) {
 	pluginSlug := "aws-datasource-provisioner-app"
 	pluginVersion := "1.7.0"
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() { testAccCloudPluginDeleteExisting(t, slug, pluginSlug) },
 
 		ProviderFactories: testAccProviderFactories,

@@ -17,7 +17,7 @@ func TestAccServiceAccount_basic(t *testing.T) {
 	CheckOSSTestsSemver(t, ">=9.1.0")
 
 	sa := gapi.ServiceAccountDTO{}
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccServiceAccountCheckDestroy(&sa),
 		Steps: []resource.TestStep{
@@ -48,7 +48,7 @@ func TestAccServiceAccount_invalid_role(t *testing.T) {
 
 	sa := gapi.ServiceAccountDTO{}
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccServiceAccountCheckDestroy(&sa),
 		Steps: []resource.TestStep{

@@ -15,7 +15,7 @@ func TestAccContactPoint_basic(t *testing.T) {
 
 	var points []gapi.ContactPoint
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: testContactPointCheckDestroy(points),
@@ -73,7 +73,7 @@ func TestAccContactPoint_compound(t *testing.T) {
 
 	var points []gapi.ContactPoint
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: testContactPointCheckDestroy(points),
@@ -140,7 +140,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 
 	var points []gapi.ContactPoint
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: testContactPointCheckDestroy(points),

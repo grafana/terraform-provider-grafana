@@ -13,7 +13,7 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 	CheckOSSTestsSemver(t, ">=9.1.0")
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: testNotifPolicyCheckDestroy(),

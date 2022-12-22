@@ -15,7 +15,7 @@ func TestAccOnCallSchedule_basic(t *testing.T) {
 
 	scheduleName := fmt.Sprintf("schedule-%s", acctest.RandString(8))
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckOnCallScheduleResourceDestroy,
 		Steps: []resource.TestStep{

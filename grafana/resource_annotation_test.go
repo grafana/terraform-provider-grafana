@@ -21,7 +21,7 @@ func TestAccAnnotation_basic(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 	var annotation gapi.Annotation
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccAnnotationCheckDestroy(&annotation),
 		Steps: []resource.TestStep{

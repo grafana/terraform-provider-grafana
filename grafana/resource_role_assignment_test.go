@@ -14,7 +14,7 @@ func TestRoleAssignments(t *testing.T) {
 	CheckEnterpriseTestsEnabled(t)
 	var roleAssignment gapi.RoleAssignments
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testRoleAssignmentCheckDestroy(&roleAssignment),
 		Steps: []resource.TestStep{

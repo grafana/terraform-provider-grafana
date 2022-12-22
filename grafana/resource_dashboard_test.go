@@ -31,6 +31,7 @@ func TestAccDashboard_basic(t *testing.T) {
 				expectedUpdatedUIDConfig = "2934e80938a672bd09d8e56385159a1bf8176e2a2ef549437f200d82ff398bfb"
 			}
 
+			// TODO: Make parallelizable
 			resource.Test(t, resource.TestCase{
 				ProviderFactories: testAccProviderFactories,
 				CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
@@ -93,7 +94,7 @@ func TestAccDashboard_uid_unset(t *testing.T) {
 
 	var dashboard gapi.Dashboard
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
 		Steps: []resource.TestStep{
@@ -137,7 +138,7 @@ func TestAccDashboard_computed_config(t *testing.T) {
 
 	var dashboard gapi.Dashboard
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
 		Steps: []resource.TestStep{
@@ -159,7 +160,7 @@ func TestAccDashboard_folder(t *testing.T) {
 	var dashboard gapi.Dashboard
 	var folder gapi.Folder
 
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccDashboardFolderCheckDestroy(&dashboard, &folder),
 		Steps: []resource.TestStep{
