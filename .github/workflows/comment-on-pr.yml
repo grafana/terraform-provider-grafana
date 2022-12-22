@@ -11,3 +11,7 @@ jobs:
         with:
           message: |
             In order to lower resource usage and have a faster runtime, PRs will not run Cloud tests automatically. To do so, a Grafana Labs employee must promote the Drone build.
+            
+            _For maintainers_, it's better to run only the Cloud tests you need, rather than all of them. You can do so by setting the following parameter when promoting:
+            
+            `TESTARGS='-run=<testname>'`
