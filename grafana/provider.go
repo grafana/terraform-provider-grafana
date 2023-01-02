@@ -89,6 +89,8 @@ func Provider(version string) func() *schema.Provider {
 
 		// Resources that require the Cloud client to exist.
 		cloudClientResources = addResourcesMetadataValidation(cloudClientPresent, map[string]*schema.Resource{
+			"grafana_cloud_access_policy":       ResourceCloudAccessPolicy(),
+			"grafana_cloud_access_policy_token": ResourceCloudAccessPolicyToken(),
 			"grafana_cloud_api_key":             ResourceCloudAPIKey(),
 			"grafana_cloud_plugin_installation": ResourceCloudPluginInstallation(),
 			"grafana_cloud_stack":               ResourceCloudStack(),
