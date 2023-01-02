@@ -9,6 +9,7 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -94,6 +95,33 @@ func TestAccFolder_basic(t *testing.T) {
 	})
 }
 
+// This is a bug in Grafana, not the provider. It was fixed in 9.3.0, this test will check for regressions
+func TestAccFolder_createFromEditor(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+	CheckOSSTestsSemver(t, ">=9.3.0")
+
+	var folder gapi.Folder
+	var name = acctest.RandomWithPrefix("editor-key")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			testAccFolderCheckDestroy(&folder),
+		),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFolderFromEditorKey(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccFolderCheckExists("grafana_folder.bar", &folder),
+					resource.TestMatchResourceAttr("grafana_folder.bar", "id", idRegexp),
+					resource.TestMatchResourceAttr("grafana_folder.bar", "uid", uidRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.bar", "title", name),
+				),
+			},
+		},
+	})
+}
+
 func testAccFolderIDDidntChange(rn string, folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		oldID := strconv.FormatInt(folder.ID, 10)
@@ -148,4 +176,23 @@ func testAccFolderCheckDestroy(folder *gapi.Folder) resource.TestCheckFunc {
 		}
 		return nil
 	}
+}
+
+func testAccFolderFromEditorKey(name string) string {
+	return fmt.Sprintf(` 
+resource "grafana_api_key" "foo" {
+	name = "%[1]s"
+	role = "Editor"
+}
+  
+provider "grafana" {
+	alias = "api_key"
+	auth  = grafana_api_key.foo.key
+}
+
+resource "grafana_folder" "bar" {
+	provider = grafana.api_key
+	title    = "%[1]s"
+}
+`, name)
 }
