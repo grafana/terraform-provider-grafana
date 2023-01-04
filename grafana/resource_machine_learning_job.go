@@ -85,6 +85,14 @@ A job defines the queries and model parameters for a machine learning task.
 				Optional:    true,
 				Default:     int(90 * 24 * time.Hour / time.Second),
 			},
+			"holidays": {
+				Description: "A list of holiday IDs or names to take into account when training the model.",
+				Type:        schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Optional: true,
+			},
 		},
 	}
 }
@@ -128,6 +136,7 @@ func resourceMachineLearningJobRead(ctx context.Context, d *schema.ResourceData,
 	d.Set("interval", job.Interval)
 	d.Set("hyper_params", job.HyperParams)
 	d.Set("training_window", job.TrainingWindow)
+	d.Set("holidays", job.Holidays)
 
 	return nil
 }
@@ -176,5 +185,6 @@ func makeMLJob(d *schema.ResourceData, meta interface{}) (mlapi.Job, error) {
 		HyperParams:       d.Get("hyper_params").(map[string]interface{}),
 		TrainingWindow:    uint(d.Get("training_window").(int)),
 		TrainingFrequency: uint(24 * time.Hour / time.Second),
+		Holidays:          listToStringSlice(d.Get("holidays").([]interface{})),
 	}, nil
 }

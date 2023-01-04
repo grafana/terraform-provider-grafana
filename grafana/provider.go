@@ -78,7 +78,8 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_user":                       ResourceUser(),
 
 			// Machine Learning
-			"grafana_machine_learning_job": ResourceMachineLearningJob(),
+			"grafana_machine_learning_job":     ResourceMachineLearningJob(),
+			"grafana_machine_learning_holiday": ResourceMachineLearningHoliday(),
 		})
 
 		// Resources that require the Synthetic Monitoring client to exist.
