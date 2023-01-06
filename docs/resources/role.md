@@ -70,7 +70,7 @@ Required:
 
 Optional:
 
-- `scope` (String) Scope to restrict the action to a set of resources (for example: `users:*` or `roles:customrole1`)
+- `scope` (String) Scope to restrict the action to a set of resources (for example: `users:*` or `roles:customrole1`) Defaults to ``.
 
 ## Import
 
