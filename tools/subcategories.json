@@ -51,6 +51,7 @@
     "data-sources/cloud_stack": "Cloud",
     "data-sources/dashboard": "Grafana OSS",
     "data-sources/dashboards": "Grafana OSS",
+    "data-sources/data_source": "Grafana OSS",
     "data-sources/folder": "Grafana OSS",
     "data-sources/folders": "Grafana OSS",
     "data-sources/library_panel": "Grafana OSS",

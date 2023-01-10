@@ -578,7 +578,15 @@ source selected (via the 'type' argument).
 					json, _ := structure.NormalizeJsonString(v)
 					return json
 				},
-				DiffSuppressFunc: SuppressEquivalentJSONDiffs,
+				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+					// If the value wasn't directly changed, and the new value is empty, it means the value is computed and it should not be a diff
+					// Ex: The data source is managed by the old `json_data` field
+					if !d.HasChange("json_data_encoded") && newValue == "" {
+						return true
+					}
+
+					return SuppressEquivalentJSONDiffs(k, oldValue, newValue, d)
+				},
 			},
 			"secure_json_data_encoded": {
 				Type:          schema.TypeString,
@@ -652,40 +660,7 @@ func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(dataSource.ID, 10))
-	d.Set("access_mode", dataSource.Access)
-	d.Set("database_name", dataSource.Database)
-	d.Set("is_default", dataSource.IsDefault)
-	d.Set("name", dataSource.Name)
-	d.Set("type", dataSource.Type)
-	d.Set("url", dataSource.URL)
-	d.Set("username", dataSource.User)
-	d.Set("uid", dataSource.UID)
-
-	// If `json_data` is not set, then we'll use the new attribute: `json_data_encoded`. This allows support of imports.
-	gottenJSONData, _, gottenHeaders := gapi.ExtractHeadersFromJSONData(dataSource.JSONData, dataSource.SecureJSONData)
-	if _, ok := d.GetOk("json_data_encoded"); ok {
-		encodedJSONData, err := json.Marshal(gottenJSONData)
-		if err != nil {
-			return diag.Errorf("Failed to marshal JSON data: %s", err)
-		}
-		d.Set("json_data_encoded", string(encodedJSONData))
-	}
-
-	// For headers, we do not know the value (the API does not return secret data)
-	// so we only remove keys from the state that are no longer present in the API.
-	currentHeaders := d.Get("http_headers").(map[string]interface{})
-	for key := range currentHeaders {
-		if _, ok := gottenHeaders[key]; !ok {
-			delete(currentHeaders, key)
-		}
-	}
-	d.Set("http_headers", currentHeaders)
-
-	d.Set("basic_auth_enabled", dataSource.BasicAuth)
-	d.Set("basic_auth_username", dataSource.BasicAuthUser)
-
-	return nil
+	return readDatasource(d, dataSource)
 }
 
 // DeleteDataSource deletes a Grafana datasource
@@ -703,6 +678,42 @@ func DeleteDataSource(ctx context.Context, d *schema.ResourceData, meta interfac
 	}
 
 	return diag.Diagnostics{}
+}
+
+func readDatasource(d *schema.ResourceData, dataSource *gapi.DataSource) diag.Diagnostics {
+	d.SetId(strconv.FormatInt(dataSource.ID, 10))
+	d.Set("access_mode", dataSource.Access)
+	d.Set("database_name", dataSource.Database)
+	d.Set("is_default", dataSource.IsDefault)
+	d.Set("name", dataSource.Name)
+	d.Set("type", dataSource.Type)
+	d.Set("url", dataSource.URL)
+	d.Set("username", dataSource.User)
+	d.Set("uid", dataSource.UID)
+
+	gottenJSONData, _, gottenHeaders := gapi.ExtractHeadersFromJSONData(dataSource.JSONData, dataSource.SecureJSONData)
+	encodedJSONData, err := json.Marshal(gottenJSONData)
+	if err != nil {
+		return diag.Errorf("Failed to marshal JSON data: %s", err)
+	}
+	d.Set("json_data_encoded", string(encodedJSONData))
+
+	// For headers, we do not know the value (the API does not return secret data)
+	// so we only remove keys from the state that are no longer present in the API.
+	if currentHeadersInterface, ok := d.GetOk("http_headers"); ok {
+		currentHeaders := currentHeadersInterface.(map[string]interface{})
+		for key := range currentHeaders {
+			if _, ok := gottenHeaders[key]; !ok {
+				delete(currentHeaders, key)
+			}
+		}
+		d.Set("http_headers", currentHeaders)
+	}
+
+	d.Set("basic_auth_enabled", dataSource.BasicAuth)
+	d.Set("basic_auth_username", dataSource.BasicAuthUser)
+
+	return nil
 }
 
 func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
