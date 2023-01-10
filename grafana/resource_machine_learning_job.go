@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -85,6 +86,14 @@ A job defines the queries and model parameters for a machine learning task.
 				Optional:    true,
 				Default:     int(90 * 24 * time.Hour / time.Second),
 			},
+			"holidays": {
+				Description: "A list of holiday IDs or names to take into account when training the model.",
+				Type:        schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Optional: true,
+			},
 		},
 	}
 }
@@ -107,6 +116,17 @@ func resourceMachineLearningJobRead(ctx context.Context, d *schema.ResourceData,
 	c := meta.(*client).mlapi
 	job, err := c.Job(ctx, d.Id())
 	if err != nil {
+		var diags diag.Diagnostics
+		if strings.HasPrefix(err.Error(), "status: 404") {
+			name := d.Get("name").(string)
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  fmt.Sprintf("Job %q is in Terraform state, but no longer exists in Grafana ML", name),
+				Detail:   fmt.Sprintf("%q will be recreated when you apply", name),
+			})
+			d.SetId("")
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 
@@ -128,6 +148,7 @@ func resourceMachineLearningJobRead(ctx context.Context, d *schema.ResourceData,
 	d.Set("interval", job.Interval)
 	d.Set("hyper_params", job.HyperParams)
 	d.Set("training_window", job.TrainingWindow)
+	d.Set("holidays", job.Holidays)
 
 	return nil
 }
@@ -176,5 +197,6 @@ func makeMLJob(d *schema.ResourceData, meta interface{}) (mlapi.Job, error) {
 		HyperParams:       d.Get("hyper_params").(map[string]interface{}),
 		TrainingWindow:    uint(d.Get("training_window").(int)),
 		TrainingFrequency: uint(24 * time.Hour / time.Second),
+		Holidays:          listToStringSlice(d.Get("holidays").([]interface{})),
 	}, nil
 }

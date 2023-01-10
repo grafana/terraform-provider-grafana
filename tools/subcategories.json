@@ -35,6 +35,7 @@
     "resources/cloud_plugin_installation": "Cloud",
     "resources/cloud_stack": "Cloud",
     "resources/machine_learning_job": "Cloud",
+    "resources/machine_learning_holiday": "Cloud",
     "resources/oncall_escalation": "OnCall",
     "resources/oncall_escalation_chain": "OnCall",
     "resources/oncall_integration": "OnCall",
