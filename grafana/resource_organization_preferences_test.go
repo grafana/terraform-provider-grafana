@@ -31,7 +31,8 @@ func TestAccResourceOrganizationPreferences(t *testing.T) {
 		WeekStart: "Monday",
 	}
 
-	resource.ParallelTest(t, resource.TestCase{
+	// TODO: Make parallizable
+	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccOrganizationPreferencesCheckDestroy(),
 		Steps: []resource.TestStep{
