@@ -73,7 +73,9 @@ func TestAccContactPoint_compound(t *testing.T) {
 
 	var points []gapi.ContactPoint
 
-	resource.ParallelTest(t, resource.TestCase{
+	// TODO: Make parallelizable
+	// Error: wrong number of contact points on the server, expected 2 but got []{..., ..., ...} (len=3)
+	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: testContactPointCheckDestroy(points),
