@@ -35,6 +35,7 @@ func cloneResourceSchemaForDatasource(r *schema.Resource, updates map[string]*sc
 		clone[k].DiffSuppressFunc = nil
 		clone[k].ValidateDiagFunc = nil
 		clone[k].ValidateFunc = nil
+		clone[k].ConflictsWith = nil
 	}
 	for k, v := range updates {
 		if v == nil {
