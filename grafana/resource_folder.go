@@ -8,9 +8,11 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -137,11 +139,18 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 
-	if err := client.DeleteFolder(d.Get("uid").(string)); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return diag.Diagnostics{}
+	err := resource.RetryContext(ctx, 10*time.Second, func() *resource.RetryError {
+		err := client.DeleteFolder(d.Get("uid").(string))
+		if err != nil {
+			// Permissions can take some time to propagate, retry for a bit
+			if strings.Contains(err.Error(), "status: 403") {
+				return nil
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	return diag.FromErr(err)
 }
 
 func ValidateFolderConfigJSON(configI interface{}, k string) ([]string, []error) {
