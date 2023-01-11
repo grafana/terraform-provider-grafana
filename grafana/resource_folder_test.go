@@ -118,6 +118,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 			var folder gapi.Folder
 			var name = acctest.RandomWithPrefix(tc.role + "-key")
 
+			// Create an API key with the correct role and inject it in envvars. This auth will be used when the test runs
 			client := testAccProvider.Meta().(*client).gapi
 			key, err := client.CreateAPIKey(gapi.CreateAPIKeyRequest{
 				Name: name,
