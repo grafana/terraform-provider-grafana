@@ -70,6 +70,12 @@ func ResourceTeam() *schema.Resource {
 A set of email addresses corresponding to users who should be given membership
 to the team. Note: users specified here must already exist in Grafana.
 `,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if old == new || (new == "[]" && old == "") || (new == "" && old == "[]") {
+						return true
+					}
+					return false
+				},
 			},
 			"ignore_externally_synced_members": {
 				Type:     schema.TypeBool,
@@ -169,7 +175,8 @@ func ReadMembers(d *schema.ResourceData, meta interface{}) error {
 		}
 		// Labels store information about auth provider used to sync the team member.
 		// Team synced members should be managed through team_external_group resource and should be ignored here.
-		if d.Get("ignore_externally_synced_members").(bool) && len(teamMember.Labels) > 0 {
+		ignoreExternallySynced, hasKey := d.GetOk("ignore_externally_synced_members")
+		if (!hasKey || ignoreExternallySynced.(bool)) && len(teamMember.Labels) > 0 {
 			continue
 		}
 		memberSlice = append(memberSlice, teamMember.Email)
