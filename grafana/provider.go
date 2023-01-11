@@ -183,9 +183,9 @@ func Provider(version string) func() *schema.Provider {
 				},
 				"org_id": {
 					Type:        schema.TypeInt,
-					Required:    true,
+					Optional:    true,
 					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_ORG_ID", 1),
-					Description: "The organization id to operate on within grafana. May alternatively be set via the `GRAFANA_ORG_ID` environment variable.",
+					Description: "The default organization id to operate on within grafana. For resources that have an `org_id` attribute, the resource-level attribute has priority. May alternatively be set via the `GRAFANA_ORG_ID` environment variable.",
 				},
 				"tls_key": {
 					Type:        schema.TypeString,
@@ -386,10 +386,10 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 	cfg := gapi.Config{
 		Client:     cli,
 		NumRetries: d.Get("retries").(int),
-		OrgID:      int64(d.Get("org_id").(int)),
 	}
 	if len(auth) == 2 {
 		cfg.BasicAuth = url.UserPassword(auth[0], auth[1])
+		cfg.OrgID = int64(d.Get("org_id").(int))
 	} else {
 		cfg.APIKey = auth[0]
 	}

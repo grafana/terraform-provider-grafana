@@ -3,10 +3,12 @@ package grafana
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -31,16 +33,17 @@ func TestAccResourceOrganizationPreferences(t *testing.T) {
 		WeekStart: "Monday",
 	}
 
-	// TODO: Make parallizable
-	resource.Test(t, resource.TestCase{
+	testRandName := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccOrganizationPreferencesCheckDestroy(),
 		Steps: []resource.TestStep{
 			{
-				Config: testOrganizationPreferencesConfig(prefs),
+				Config: testOrganizationPreferencesConfig(testRandName, prefs),
 				Check: resource.ComposeTestCheckFunc(
 					testAccOrganizationPreferencesCheckExists("grafana_organization_preferences.test", prefs),
-					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "id", "organization_preferences"),
+					resource.TestMatchResourceAttr("grafana_organization_preferences.test", "id", idRegexp),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "theme", prefs.Theme),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_id", "0"),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", ""),
@@ -49,10 +52,10 @@ func TestAccResourceOrganizationPreferences(t *testing.T) {
 				),
 			},
 			{
-				Config: testOrganizationPreferencesConfig(updatedPrefs),
+				Config: testOrganizationPreferencesConfig(testRandName, updatedPrefs),
 				Check: resource.ComposeTestCheckFunc(
 					testAccOrganizationPreferencesCheckExists("grafana_organization_preferences.test", updatedPrefs),
-					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "id", "organization_preferences"),
+					resource.TestMatchResourceAttr("grafana_organization_preferences.test", "id", idRegexp),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "theme", updatedPrefs.Theme),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_id", "0"),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", ""),
@@ -61,10 +64,10 @@ func TestAccResourceOrganizationPreferences(t *testing.T) {
 				),
 			},
 			{
-				Config: testOrganizationPreferencesConfig(finalPrefs),
+				Config: testOrganizationPreferencesConfig(testRandName, finalPrefs),
 				Check: resource.ComposeTestCheckFunc(
 					testAccOrganizationPreferencesCheckExists("grafana_organization_preferences.test", finalPrefs),
-					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "id", "organization_preferences"),
+					resource.TestMatchResourceAttr("grafana_organization_preferences.test", "id", idRegexp),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "theme", finalPrefs.Theme),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_id", "0"),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", ""),
@@ -87,7 +90,11 @@ func testAccOrganizationPreferencesCheckExists(rn string, prefs gapi.Preferences
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*client).gapi
+		id, err := strconv.ParseInt(rs.Primary.Attributes["org_id"], 10, 64)
+		if err != nil {
+			return fmt.Errorf("error parsing org_id: %s", err)
+		}
+		client := testAccProvider.Meta().(*client).gapi.WithOrgID(id)
 		p, err := client.OrgPreferences()
 		if err != nil {
 			return fmt.Errorf("error getting organization preferences: %s", err)
@@ -127,12 +134,17 @@ func testAccOrganizationPreferencesCheckDestroy() resource.TestCheckFunc {
 	}
 }
 
-func testOrganizationPreferencesConfig(prefs gapi.Preferences) string {
+func testOrganizationPreferencesConfig(orgName string, prefs gapi.Preferences) string {
 	return fmt.Sprintf(`
-resource "grafana_organization_preferences" "test" {
-  theme      = "%s"
-  timezone   = "%s"
-  week_start = "%s"
+resource "grafana_organization" "test" {
+	name = "%[1]s"
 }
-`, prefs.Theme, prefs.Timezone, prefs.WeekStart)
+
+resource "grafana_organization_preferences" "test" {
+  org_id     = grafana_organization.test.id
+  theme      = "%[2]s"
+  timezone   = "%[3]s"
+  week_start = "%[4]s"
+}
+`, orgName, prefs.Theme, prefs.Timezone, prefs.WeekStart)
 }
