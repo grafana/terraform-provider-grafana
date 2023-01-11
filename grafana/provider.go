@@ -78,7 +78,8 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_user":                       ResourceUser(),
 
 			// Machine Learning
-			"grafana_machine_learning_job": ResourceMachineLearningJob(),
+			"grafana_machine_learning_job":     ResourceMachineLearningJob(),
+			"grafana_machine_learning_holiday": ResourceMachineLearningHoliday(),
 		})
 
 		// Resources that require the Synthetic Monitoring client to exist.
@@ -111,6 +112,7 @@ func Provider(version string) func() *schema.Provider {
 		grafanaClientDatasources = addResourcesMetadataValidation(grafanaClientPresent, map[string]*schema.Resource{
 			"grafana_dashboard":                DatasourceDashboard(),
 			"grafana_dashboards":               DatasourceDashboards(),
+			"grafana_data_source":              DatasourceDatasource(),
 			"grafana_folder":                   DatasourceFolder(),
 			"grafana_folders":                  DatasourceFolders(),
 			"grafana_library_panel":            DatasourceLibraryPanel(),

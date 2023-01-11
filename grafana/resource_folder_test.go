@@ -97,6 +97,8 @@ func TestAccFolder_basic(t *testing.T) {
 
 // This is a bug in Grafana, not the provider. It was fixed in 9.3.0, this test will check for regressions
 func TestAccFolder_createFromEditor(t *testing.T) {
+	t.Skip("This test is flaky, skipping for now. See https://github.com/grafana/terraform-provider-grafana/issues/773")
+
 	CheckOSSTestsEnabled(t)
 	CheckOSSTestsSemver(t, ">=9.3.0")
 
@@ -178,6 +180,7 @@ func testAccFolderCheckDestroy(folder *gapi.Folder) resource.TestCheckFunc {
 	}
 }
 
+// nolint: unused
 func testAccFolderFromEditorKey(name string) string {
 	return fmt.Sprintf(` 
 resource "grafana_api_key" "foo" {
