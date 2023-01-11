@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"strconv"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -26,6 +27,11 @@ func ResourceOrganizationPreferences() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"org_id": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The Organization ID. If not set, the Org ID defined in the provider block will be used.",
+			},
 			"theme": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -60,6 +66,11 @@ func ResourceOrganizationPreferences() *schema.Resource {
 
 func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
+	id := d.Get("org_id").(int)
+	if id > 0 {
+		client = client.WithOrgID(int64(id))
+	}
+
 	_, err := client.UpdateAllOrgPreferences(gapi.Preferences{
 		Theme:            d.Get("theme").(string),
 		HomeDashboardID:  int64(d.Get("home_dashboard_id").(int)),
@@ -71,13 +82,17 @@ func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 		return diag.FromErr(err)
 	}
 
-	d.SetId("organization_preferences")
+	d.SetId(strconv.Itoa(id))
 
 	return ReadOrganizationPreferences(ctx, d, meta)
 }
 
 func ReadOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
+	if id, _ := strconv.ParseInt(d.Id(), 10, 64); id > 0 {
+		client = client.WithOrgID(int64(id))
+	}
+
 	prefs, err := client.OrgPreferences()
 
 	if err != nil {
@@ -90,8 +105,6 @@ func ReadOrganizationPreferences(ctx context.Context, d *schema.ResourceData, me
 	d.Set("timezone", prefs.Timezone)
 	d.Set("week_start", prefs.WeekStart)
 
-	d.SetId("organization_preferences")
-
 	return nil
 }
 
@@ -101,6 +114,10 @@ func UpdateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 
 func DeleteOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
+	if id, _ := strconv.ParseInt(d.Id(), 10, 64); id > 0 {
+		client = client.WithOrgID(int64(id))
+	}
+
 	if _, err := client.UpdateAllOrgPreferences(gapi.Preferences{}); err != nil {
 		return diag.FromErr(err)
 	}
