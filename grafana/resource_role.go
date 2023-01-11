@@ -86,6 +86,7 @@ func ResourceRole() *schema.Resource {
 						"scope": {
 							Type:        schema.TypeString,
 							Optional:    true,
+							Default:     "",
 							Description: "Scope to restrict the action to a set of resources (for example: `users:*` or `roles:customrole1`)",
 						},
 					},
