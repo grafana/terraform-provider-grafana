@@ -40,14 +40,24 @@ func ResourceOrganizationPreferences() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{"light", "dark", ""}, false),
 			},
 			"home_dashboard_id": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "The Organization home dashboard ID.",
+				Type:          schema.TypeInt,
+				Optional:      true,
+				Description:   "The Organization home dashboard ID.",
+				ConflictsWith: []string{"home_dashboard_uid"},
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					_, uidSet := d.GetOk("home_dashboard_uid")
+					return uidSet
+				},
 			},
 			"home_dashboard_uid": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Organization home dashboard UID.",
+				Type:          schema.TypeString,
+				Optional:      true,
+				Description:   "The Organization home dashboard UID.",
+				ConflictsWith: []string{"home_dashboard_id"},
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					_, idSet := d.GetOk("home_dashboard_id")
+					return idSet
+				},
 			},
 			"timezone": {
 				Type:         schema.TypeString,
