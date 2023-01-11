@@ -158,7 +158,6 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 			})
 		})
 	}
-
 }
 
 func testAccFolderIDDidntChange(rn string, folder *gapi.Folder) resource.TestCheckFunc {
