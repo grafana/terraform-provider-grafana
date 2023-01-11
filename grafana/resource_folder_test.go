@@ -3,6 +3,7 @@ package grafana
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -95,33 +96,68 @@ func TestAccFolder_basic(t *testing.T) {
 	})
 }
 
-// This is a bug in Grafana, not the provider. It was fixed in 9.3.0, this test will check for regressions
-func TestAccFolder_createFromEditor(t *testing.T) {
-	t.Skip("This test is flaky, skipping for now. See https://github.com/grafana/terraform-provider-grafana/issues/773")
-
+// This is a bug in Grafana, not the provider. It was fixed in 9.2.7+ and 9.3.0+, this test will check for regressions
+func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=9.3.0")
+	CheckOSSTestsSemver(t, ">=9.2.7")
 
-	var folder gapi.Folder
-	var name = acctest.RandomWithPrefix("editor-key")
-
-	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy: resource.ComposeTestCheckFunc(
-			testAccFolderCheckDestroy(&folder),
-		),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccFolderFromEditorKey(name),
-				Check: resource.ComposeTestCheckFunc(
-					testAccFolderCheckExists("grafana_folder.bar", &folder),
-					resource.TestMatchResourceAttr("grafana_folder.bar", "id", idRegexp),
-					resource.TestMatchResourceAttr("grafana_folder.bar", "uid", uidRegexp),
-					resource.TestCheckResourceAttr("grafana_folder.bar", "title", name),
-				),
-			},
+	for _, tc := range []struct {
+		role        string
+		expectError *regexp.Regexp
+	}{
+		{
+			role:        "Viewer",
+			expectError: regexp.MustCompile(".*Access denied.*"),
 		},
-	})
+		{
+			role:        "Editor",
+			expectError: nil,
+		},
+	} {
+		t.Run(tc.role, func(t *testing.T) {
+			var folder gapi.Folder
+			var name = acctest.RandomWithPrefix(tc.role + "-key")
+
+			// Create an API key with the correct role and inject it in envvars. This auth will be used when the test runs
+			client := testAccProvider.Meta().(*client).gapi
+			key, err := client.CreateAPIKey(gapi.CreateAPIKeyRequest{
+				Name: name,
+				Role: tc.role,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer client.DeleteAPIKey(key.ID)
+			oldValue := os.Getenv("GRAFANA_AUTH")
+			defer os.Setenv("GRAFANA_AUTH", oldValue)
+			os.Setenv("GRAFANA_AUTH", key.Key)
+
+			config := fmt.Sprintf(`
+		resource "grafana_folder" "bar" {
+			title    = "%[1]s"
+		}`, name)
+
+			// Do not make parallel, fiddling with auth will break other tests that run in parallel
+			resource.Test(t, resource.TestCase{
+				ProviderFactories: testAccProviderFactories,
+				CheckDestroy: resource.ComposeTestCheckFunc(
+					testAccFolderCheckDestroy(&folder),
+				),
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: tc.expectError,
+						Check: resource.ComposeTestCheckFunc(
+							testAccFolderCheckExists("grafana_folder.bar", &folder),
+							resource.TestMatchResourceAttr("grafana_folder.bar", "id", idRegexp),
+							resource.TestMatchResourceAttr("grafana_folder.bar", "uid", uidRegexp),
+							resource.TestCheckResourceAttr("grafana_folder.bar", "title", name),
+						),
+					},
+				},
+			})
+		})
+	}
 }
 
 func testAccFolderIDDidntChange(rn string, folder *gapi.Folder) resource.TestCheckFunc {
@@ -178,24 +214,4 @@ func testAccFolderCheckDestroy(folder *gapi.Folder) resource.TestCheckFunc {
 		}
 		return nil
 	}
-}
-
-// nolint: unused
-func testAccFolderFromEditorKey(name string) string {
-	return fmt.Sprintf(` 
-resource "grafana_api_key" "foo" {
-	name = "%[1]s"
-	role = "Editor"
-}
-  
-provider "grafana" {
-	alias = "api_key"
-	auth  = grafana_api_key.foo.key
-}
-
-resource "grafana_folder" "bar" {
-	provider = grafana.api_key
-	title    = "%[1]s"
-}
-`, name)
 }
