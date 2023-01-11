@@ -185,7 +185,7 @@ func Provider(version string) func() *schema.Provider {
 					Type:        schema.TypeInt,
 					Optional:    true,
 					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_ORG_ID", 1),
-					Description: "The default organization id to operate on within grafana. For resources that have an `org_id` attribute, the resource-level attribute has priority. May alternatively be set via the `GRAFANA_ORG_ID` environment variable. To be deprecated once all OSS resources support the `org_id` attribute.",
+					Description: "The default organization id to operate on within grafana. For resources that have an `org_id` attribute, the resource-level attribute has priority. May alternatively be set via the `GRAFANA_ORG_ID` environment variable.",
 				},
 				"tls_key": {
 					Type:        schema.TypeString,
