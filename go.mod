@@ -2,13 +2,10 @@ module github.com/grafana/terraform-provider-grafana
 
 go 1.18
 
-// TODO: Remove once commit is merged in client!
-replace github.com/grafana/grafana-api-golang-client => github.com/grafana/grafana-api-golang-client v0.17.1-0.20230111021624-96fb9e66658f
-
 require (
 	github.com/Masterminds/semver/v3 v3.2.0
 	github.com/grafana/amixr-api-go-client v0.0.5
-	github.com/grafana/grafana-api-golang-client v0.17.0
+	github.com/grafana/grafana-api-golang-client v0.18.0
 	github.com/grafana/machine-learning-go-client v0.3.0
 	github.com/grafana/synthetic-monitoring-agent v0.13.0
 	github.com/grafana/synthetic-monitoring-api-go-client v0.6.5
