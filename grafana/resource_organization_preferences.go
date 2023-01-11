@@ -90,7 +90,7 @@ func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 func ReadOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 	if id, _ := strconv.ParseInt(d.Id(), 10, 64); id > 0 {
-		client = client.WithOrgID(int64(id))
+		client = client.WithOrgID(id)
 	}
 
 	prefs, err := client.OrgPreferences()
@@ -115,7 +115,7 @@ func UpdateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 func DeleteOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*client).gapi
 	if id, _ := strconv.ParseInt(d.Id(), 10, 64); id > 0 {
-		client = client.WithOrgID(int64(id))
+		client = client.WithOrgID(id)
 	}
 
 	if _, err := client.UpdateAllOrgPreferences(gapi.Preferences{}); err != nil {
