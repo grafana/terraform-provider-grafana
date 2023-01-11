@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	ossOrgIDRegexp       = regexp.MustCompile(`^(\d:)?[a-zA-Z0-9-_]+$`)
 	idRegexp             = regexp.MustCompile(`^\d+$`)
 	uidRegexp            = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
 	emailRegexp          = regexp.MustCompile(`.+\@.+\..+`)

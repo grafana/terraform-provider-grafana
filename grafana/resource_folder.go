@@ -30,25 +30,26 @@ func ResourceFolder() *schema.Resource {
 		// Import either by ID or UID
 		Importer: &schema.ResourceImporter{
 			StateContext: func(c context.Context, rd *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				_, err := strconv.ParseInt(rd.Id(), 10, 64)
+				client, orgID, folderID := clientFromOSSOrgID(meta, rd.Id())
+				_, err := strconv.ParseInt(folderID, 10, 64)
 				if err != nil {
 					// If the ID is not a number, then it may be a UID
-					client := meta.(*client).gapi
 					folder, err := client.FolderByUID(rd.Id())
 					if err != nil {
 						return nil, fmt.Errorf("failed to find folder by ID or UID '%s': %w", rd.Id(), err)
 					}
-					rd.SetId(strconv.FormatInt(folder.ID, 10))
+					rd.SetId(makeOSSOrgID(orgID, folder.ID))
 				}
 				return []*schema.ResourceData{rd}, nil
 			},
 		},
 
 		Schema: map[string]*schema.Schema{
-			"id": {
+			"org_id": {
 				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Unique internal identifier.",
+				Optional:    true,
+				Description: "The Organization ID. If not set, the Org ID defined in the provider block will be used.",
+				ForceNew:    true,
 			},
 			"uid": {
 				Type:        schema.TypeString,
@@ -71,7 +72,7 @@ func ResourceFolder() *schema.Resource {
 }
 
 func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client).gapi
+	client, orgID := clientFromOrgIDAttr(meta, d)
 
 	var resp gapi.Folder
 	var err error
@@ -85,17 +86,12 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 		return diag.FromErr(err)
 	}
 
-	id := strconv.FormatInt(resp.ID, 10)
-	d.SetId(id)
-	d.Set("id", id)
-	d.Set("uid", resp.UID)
-	d.Set("title", resp.Title)
-
+	d.SetId(makeOSSOrgID(orgID, resp.ID))
 	return ReadFolder(ctx, d, meta)
 }
 
 func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client).gapi
+	client, _ := clientFromOrgIDAttr(meta, d)
 
 	oldUID, newUID := d.GetChange("uid")
 
@@ -108,9 +104,9 @@ func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 
 func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	gapiURL := meta.(*client).gapiURL
-	client := meta.(*client).gapi
+	client, _, folderID := clientFromOSSOrgID(meta, d.Id())
 
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	id, err := strconv.ParseInt(folderID, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -126,7 +122,6 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(folder.ID, 10))
 	d.Set("title", folder.Title)
 	d.Set("uid", folder.UID)
 	d.Set("url", strings.TrimRight(gapiURL, "/")+folder.URL)
@@ -135,7 +130,7 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client).gapi
+	client, _ := clientFromOrgIDAttr(meta, d)
 
 	if err := client.DeleteFolder(d.Get("uid").(string)); err != nil {
 		return diag.FromErr(err)

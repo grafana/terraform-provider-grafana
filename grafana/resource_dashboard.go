@@ -71,14 +71,12 @@ Manages Grafana dashboards.
 					"so that previous versions of your dashboard are not lost.",
 			},
 			"folder": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				Description:  "The id of the folder to save the dashboard in. This attribute is a string to reflect the type of the folder's id.",
-				ValidateFunc: validation.StringMatch(idRegexp, "must be a valid folder id"),
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					return old == "0" && new == "" || old == "" && new == "0"
-				},
+				Type:             schema.TypeString,
+				Optional:         true,
+				ForceNew:         true,
+				Description:      "The id of the folder to save the dashboard in. This attribute is a string to reflect the type of the folder's id.",
+				ValidateFunc:     validation.StringMatch(ossOrgIDRegexp, "must be a valid folder id"),
+				DiffSuppressFunc: suppressFolderDiff,
 			},
 			"config_json": {
 				Type:         schema.TypeString,
@@ -198,7 +196,7 @@ func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 
 func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	gapiURL := meta.(*client).gapiURL
-	client, _, uid := clientFromOSSOrgID(meta, d.Id())
+	client, orgID, uid := clientFromOSSOrgID(meta, d.Id())
 
 	dashboard, err := client.DashboardByUID(uid)
 	var diags diag.Diagnostics
@@ -222,7 +220,7 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	d.Set("version", int64(dashboard.Model["version"].(float64)))
 	d.Set("url", strings.TrimRight(gapiURL, "/")+dashboard.Meta.URL)
 	if dashboard.FolderID > 0 {
-		d.Set("folder", strconv.FormatInt(dashboard.FolderID, 10))
+		d.Set("folder", fmt.Sprintf("%d:%d", orgID, dashboard.FolderID))
 	} else {
 		d.Set("folder", "")
 	}
@@ -291,7 +289,8 @@ func makeDashboard(d *schema.ResourceData) (gapi.Dashboard, error) {
 	var parsedFolder int64 = 0
 	var err error
 	if folderStr := d.Get("folder").(string); folderStr != "" {
-		parsedFolder, err = strconv.ParseInt(d.Get("folder").(string), 10, 64)
+		_, folderID := splitOSSOrgID(folderStr)
+		parsedFolder, err = strconv.ParseInt(folderID, 10, 64)
 		if err != nil {
 			return gapi.Dashboard{}, fmt.Errorf("error parsing folder: %s", err)
 		}
@@ -386,4 +385,10 @@ func normalizeDashboardConfigJSON(config interface{}) string {
 	} else {
 		return string(j)
 	}
+}
+
+func suppressFolderDiff(k, old, new string, d *schema.ResourceData) bool {
+	_, oldFolderID := splitOSSOrgID(old)
+	_, newFolderID := splitOSSOrgID(new)
+	return oldFolderID == newFolderID || oldFolderID == "0" && newFolderID == "" || oldFolderID == "" && newFolderID == "0"
 }

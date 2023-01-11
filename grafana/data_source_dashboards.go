@@ -23,11 +23,16 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 `,
 		ReadContext: dataSourceReadDashboards,
 		Schema: map[string]*schema.Schema{
+			"org_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Organization ID. If not set, the Org ID defined in the provider block will be used.",
+			},
 			"folder_ids": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "Numerical IDs of Grafana folders containing dashboards. Specify to filter for dashboards by folder (eg. `[0]` for General folder), or leave blank to get all dashboards in all folders.",
-				Elem:        &schema.Schema{Type: schema.TypeInt},
+				Description: "Folders containing dashboards. Specify to filter for dashboards by folder (eg. `[0]` for General folder), or leave blank to get all dashboards in all folders.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"limit": {
 				Type:        schema.TypeInt,
@@ -82,7 +87,7 @@ func hashDashboardSearchParameters(params map[string][]string) string {
 }
 
 func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*client).gapi
+	client, _ := clientFromOrgIDAttr(meta, d)
 	var diags diag.Diagnostics
 	params := url.Values{
 		"limit": {fmt.Sprint(d.Get("limit"))},
@@ -92,7 +97,8 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 	// add tags and folder IDs from attributes to dashboard search parameters
 	if list, ok := d.GetOk("folder_ids"); ok {
 		for _, elem := range list.([]interface{}) {
-			params.Add("folderIds", fmt.Sprint(elem))
+			_, folderID := splitOSSOrgID(elem.(string))
+			params.Add("folderIds", folderID)
 		}
 	}
 

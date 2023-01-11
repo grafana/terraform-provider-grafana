@@ -85,8 +85,9 @@ data "grafana_dashboards" "limit_one" {
 
 ### Optional
 
-- `folder_ids` (List of Number) Numerical IDs of Grafana folders containing dashboards. Specify to filter for dashboards by folder (eg. `[0]` for General folder), or leave blank to get all dashboards in all folders.
+- `folder_ids` (List of String) Folders containing dashboards. Specify to filter for dashboards by folder (eg. `[0]` for General folder), or leave blank to get all dashboards in all folders.
 - `limit` (Number) Maximum number of dashboard search results to return. Defaults to `5000`.
+- `org_id` (Number) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `tags` (List of String) List of string Grafana dashboard tags to search for, eg. `["prod"]`. Used only as search input, i.e., attribute value will remain unchanged.
 
 ### Read-Only

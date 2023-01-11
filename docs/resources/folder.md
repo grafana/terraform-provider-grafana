@@ -43,11 +43,12 @@ resource "grafana_folder" "test_folder_with_uid" {
 
 ### Optional
 
+- `org_id` (Number) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `uid` (String) Unique identifier.
 
 ### Read-Only
 
-- `id` (String) Unique internal identifier.
+- `id` (String) The ID of this resource.
 - `url` (String) The full URL of the folder.
 
 ## Import
@@ -55,6 +56,6 @@ resource "grafana_folder" "test_folder_with_uid" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_folder.by_integer_id {{folder_id}}
-terraform import grafana_folder.by_uid {{folder_uid}}
+terraform import grafana_folder.by_integer_id {{org_id}}:{{folder_id}}
+terraform import grafana_folder.by_uid {{org_id}}:{{folder_uid}}
 ```

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -50,9 +51,10 @@ Manages Grafana library panels.
 				Description: "The numeric ID of the library panel computed by Grafana.",
 			},
 			"folder_id": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "ID of the folder where the library panel is stored.",
+				Type:             schema.TypeString,
+				Optional:         true,
+				Description:      "ID of the folder where the library panel is stored.",
+				DiffSuppressFunc: suppressFolderDiff,
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -157,7 +159,7 @@ func ReadLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 	d.Set("uid", panel.UID)
 	d.Set("panel_id", panel.ID)
 	d.Set("org_id", panel.OrgID)
-	d.Set("folder_id", panel.Folder)
+	d.Set("folder_id", strconv.FormatInt(panel.Folder, 10))
 	d.Set("description", panel.Description)
 	d.Set("type", panel.Type)
 	d.Set("name", panel.Name)
@@ -210,10 +212,12 @@ func makeLibraryPanel(d *schema.ResourceData) gapi.LibraryPanel {
 	modelJSON := d.Get("model_json").(string)
 	panelJSON, err := unmarshalLibraryPanelModelJSON(modelJSON)
 
+	_, folderIDString := splitOSSOrgID(d.Get("folder_id").(string))
+	folderID, _ := strconv.ParseInt(folderIDString, 10, 64)
 	panel := gapi.LibraryPanel{
 		UID:    d.Get("uid").(string),
 		Name:   d.Get("name").(string),
-		Folder: int64(d.Get("folder_id").(int)),
+		Folder: folderID,
 		Model:  panelJSON,
 	}
 	if err != nil {

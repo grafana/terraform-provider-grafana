@@ -163,7 +163,7 @@ func TestAccDashboard_folder(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccDashboardFolderCheckDestroy(&dashboard, &folder),
+		CheckDestroy:      testAccDashboardFolderCheckDestroy(&dashboard, &folder, 0),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccExample(t, "resources/grafana_dashboard/_acc_folder.tf"),
@@ -173,9 +173,7 @@ func TestAccDashboard_folder(t *testing.T) {
 					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
 					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "0:folder"), // <org id>:<uid>
 					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", "folder"),
-					resource.TestMatchResourceAttr(
-						"grafana_dashboard.test_folder", "folder", idRegexp,
-					),
+					resource.TestMatchResourceAttr("grafana_dashboard.test_folder", "folder", ossOrgIDRegexp),
 				),
 			},
 		},
@@ -186,19 +184,23 @@ func TestAccDashboard_inOrg(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 
 	var dashboard gapi.Dashboard
+	var folder gapi.Folder
 	var org gapi.Org
 
 	orgName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard, org.ID),
+		CheckDestroy: func(s *terraform.State) error {
+			return testAccDashboardFolderCheckDestroy(&dashboard, &folder, org.ID)(s)
+		},
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDashboardInOrganization(orgName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccOrganizationCheckExists("grafana_organization.test", &org),
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
+					testAccFolderCheckExists("grafana_folder.test", &folder),
 					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "dashboard-"+orgName),
 					// Check that the dashboard is not in the default org, from its ID
 					func(s *terraform.State) error {
@@ -260,9 +262,13 @@ func testAccDashboardCheckDestroy(dashboard *gapi.Dashboard, orgID int64) resour
 	}
 }
 
-func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.Folder) resource.TestCheckFunc {
+func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.Folder, orgID int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*client).gapi
+		if orgID != 0 {
+			client = client.WithOrgID(orgID)
+		}
+
 		_, err := client.DashboardByUID(dashboard.Model["uid"].(string))
 		if err == nil {
 			return fmt.Errorf("dashboard still exists")
@@ -341,8 +347,14 @@ resource "grafana_organization" "test" {
 	name = "%[1]s"
 }
 
+resource "grafana_folder" "test" {
+	org_id = grafana_organization.test.id
+	title  = "folder-%[1]s"
+}
+
 resource "grafana_dashboard" "test" {
 	org_id      = grafana_organization.test.id
+	folder      = grafana_folder.test.id
 	config_json = jsonencode({
 	  title = "dashboard-%[1]s"
 	  uid   = "dashboard-%[1]s"

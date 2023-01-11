@@ -96,7 +96,7 @@ data "grafana_dashboard" "from_library_panel_connection" {
 - `created` (String) Timestamp when the library panel was created.
 - `dashboard_ids` (List of Number) Numerical IDs of Grafana dashboards containing the library panel.
 - `description` (String) Description of the library panel.
-- `folder_id` (Number) ID of the folder where the library panel is stored.
+- `folder_id` (String) ID of the folder where the library panel is stored.
 - `folder_name` (String) Name of the folder containing the library panel.
 - `folder_uid` (String) Unique ID (UID) of the folder containing the library panel.
 - `id` (String) The ID of this resource.
