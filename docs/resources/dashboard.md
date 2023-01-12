@@ -33,6 +33,7 @@ resource "grafana_dashboard" "metrics" {
 
 - `folder` (String) The id of the folder to save the dashboard in. This attribute is a string to reflect the type of the folder's id.
 - `message` (String) Set a commit message for the version history.
+- `org_id` (Number) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `overwrite` (Boolean) Set to true if you want to overwrite existing dashboard with newer version, same dashboard title in folder or same dashboard uid.
 
 ### Read-Only
@@ -49,5 +50,6 @@ resource "grafana_dashboard" "metrics" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_dashboard.dashboard_name {{dashboard_uid}}
+terraform import grafana_dashboard.dashboard_name {{dashboard_uid}} # To use the default provider org
+terraform import grafana_dashboard.dashboard_name {{org_id}}:{{dashboard_uid}} # When "org_id" is set on the resource
 ```

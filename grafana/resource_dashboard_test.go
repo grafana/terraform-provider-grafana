@@ -8,6 +8,7 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -34,14 +35,14 @@ func TestAccDashboard_basic(t *testing.T) {
 			// TODO: Make parallelizable
 			resource.Test(t, resource.TestCase{
 				ProviderFactories: testAccProviderFactories,
-				CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
+				CheckDestroy:      testAccDashboardCheckDestroy(&dashboard, 0),
 				Steps: []resource.TestStep{
 					{
 						// Test resource creation.
 						Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic.tf"),
 						Check: resource.ComposeTestCheckFunc(
 							testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic"),
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "0:basic"), // <org id>:<uid>
 							resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic"),
 							resource.TestCheckResourceAttr("grafana_dashboard.test", "url", strings.TrimRight(os.Getenv("GRAFANA_URL"), "/")+"/d/basic/terraform-acceptance-test"),
 							resource.TestCheckResourceAttr(
@@ -54,7 +55,7 @@ func TestAccDashboard_basic(t *testing.T) {
 						Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic_update.tf"),
 						Check: resource.ComposeTestCheckFunc(
 							testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic"),
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "0:basic"), // <org id>:<uid>
 							resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic"),
 							resource.TestCheckResourceAttr(
 								"grafana_dashboard.test", "config_json", expectedUpdatedTitleConfig,
@@ -68,7 +69,7 @@ func TestAccDashboard_basic(t *testing.T) {
 						Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic_update_uid.tf"),
 						Check: resource.ComposeTestCheckFunc(
 							testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "basic-update"),
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "0:basic-update"), // <org id>:<uid>
 							resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic-update"),
 							resource.TestCheckResourceAttr("grafana_dashboard.test", "url", strings.TrimRight(os.Getenv("GRAFANA_URL"), "/")+"/d/basic-update/updated-title"),
 							resource.TestCheckResourceAttr(
@@ -96,7 +97,7 @@ func TestAccDashboard_uid_unset(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
+		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard, 0),
 		Steps: []resource.TestStep{
 			{
 				// Create dashboard with no uid set.
@@ -140,7 +141,7 @@ func TestAccDashboard_computed_config(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
+		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard, 0),
 		Steps: []resource.TestStep{
 			{
 				// Test resource creation.
@@ -170,11 +171,45 @@ func TestAccDashboard_folder(t *testing.T) {
 					testAccDashboardCheckExists("grafana_dashboard.test_folder", &dashboard),
 					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
 					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
-					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "folder"),
+					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "0:folder"), // <org id>:<uid>
 					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", "folder"),
 					resource.TestMatchResourceAttr(
 						"grafana_dashboard.test_folder", "folder", idRegexp,
 					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDashboard_inOrg(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
+	var dashboard gapi.Dashboard
+	var org gapi.Org
+
+	orgName := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard, org.ID),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDashboardInOrganization(orgName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
+					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "dashboard-"+orgName),
+					// Check that the dashboard is not in the default org, from its ID
+					func(s *terraform.State) error {
+						expectedOrgID := org.ID
+						if org.ID <= 1 {
+							return fmt.Errorf("expected org ID higher than 1, got %d", org.ID)
+						}
+						expectedDashboardID := fmt.Sprintf("%d:dashboard-%s", expectedOrgID, orgName) // <org id>:<uid>
+						checkFunc := resource.TestCheckResourceAttr("grafana_dashboard.test", "id", expectedDashboardID)
+						return checkFunc(s)
+					},
 				),
 			},
 		},
@@ -190,8 +225,9 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource id not set")
 		}
-		client := testAccProvider.Meta().(*client).gapi
-		gotDashboard, err := client.DashboardByUID(rs.Primary.ID)
+
+		client, _, dashboardID := clientFromOSSOrgID(testAccProvider.Meta(), rs.Primary.ID)
+		gotDashboard, err := client.DashboardByUID(dashboardID)
 		if err != nil {
 			return fmt.Errorf("error getting dashboard: %s", err)
 		}
@@ -209,9 +245,13 @@ func testAccDashboardCheckExistsInFolder(dashboard *gapi.Dashboard, folder *gapi
 	}
 }
 
-func testAccDashboardCheckDestroy(dashboard *gapi.Dashboard) resource.TestCheckFunc {
+func testAccDashboardCheckDestroy(dashboard *gapi.Dashboard, orgID int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*client).gapi
+		if orgID != 0 {
+			client = client.WithOrgID(orgID)
+		}
+
 		_, err := client.DashboardByUID(dashboard.Model["uid"].(string))
 		if err == nil {
 			return fmt.Errorf("dashboard still exists")
@@ -293,4 +333,19 @@ func Test_normalizeDashboardConfigJSON(t *testing.T) {
 			}
 		})
 	}
+}
+
+func testAccDashboardInOrganization(orgName string) string {
+	return fmt.Sprintf(`
+resource "grafana_organization" "test" {
+	name = "%[1]s"
+}
+
+resource "grafana_dashboard" "test" {
+	org_id      = grafana_organization.test.id
+	config_json = jsonencode({
+	  title = "dashboard-%[1]s"
+	  uid   = "dashboard-%[1]s"
+	})
+}`, orgName)
 }
