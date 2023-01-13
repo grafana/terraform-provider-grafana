@@ -41,7 +41,7 @@ func TestAccDatasourceDashboardBasicID(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard),
+		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard, 0),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccExample(t, "data-sources/grafana_dashboard/data-source.tf"),
