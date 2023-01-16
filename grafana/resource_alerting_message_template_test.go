@@ -77,7 +77,6 @@ EOT`,
 	})
 }
 
-//nolint:unparam // `rname` always receives `"grafana_message_template.my_template"`
 func testMessageTemplateCheckExists(rname string, mt *gapi.AlertingMessageTemplate) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		resource, ok := s.RootModule().Resources[rname]

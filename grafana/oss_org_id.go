@@ -23,7 +23,6 @@ func splitOSSOrgID(id string) (int64, string) {
 	return 0, id
 }
 
-// nolint: unparam
 func clientFromOSSOrgID(meta interface{}, id string) (*gapi.Client, int64, string) {
 	orgID, restOfID := splitOSSOrgID(id)
 	client := meta.(*client).gapi

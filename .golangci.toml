@@ -27,7 +27,6 @@ enable = [
   "stylecheck",
   "typecheck",
   "unconvert",
-  "unparam",
   "unused",
   "whitespace"
 ]

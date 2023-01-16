@@ -34,7 +34,6 @@ func init() {
 	// Always allocate a new provider instance each invocation, otherwise gRPC
 	// ProviderConfigure() can overwrite configuration during concurrent testing.
 	testAccProviderFactories = map[string]func() (*schema.Provider, error){
-		//nolint:unparam // error is always nil
 		"grafana": func() (*schema.Provider, error) {
 			return Provider("testacc")(), nil
 		},
