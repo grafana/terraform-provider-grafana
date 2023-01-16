@@ -52,7 +52,7 @@ func ResourceOrganizationPreferences() *schema.Resource {
 			"home_dashboard_uid": {
 				Type:          schema.TypeString,
 				Optional:      true,
-				Description:   "The Organization home dashboard UID.",
+				Description:   "The Organization home dashboard UID. This is only available in Grafana 9.0+.",
 				ConflictsWith: []string{"home_dashboard_id"},
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					_, idSet := d.GetOk("home_dashboard_id")
