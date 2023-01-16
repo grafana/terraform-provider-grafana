@@ -21,7 +21,7 @@ func TestAccResourceOrganizationPreferences_WithDashboardID(t *testing.T) {
 
 func TestAccResourceOrganizationPreferences_WithDashboardUID(t *testing.T) {
 	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=8.0.0")
+	CheckOSSTestsSemver(t, ">=9.0.0") // UID support was added in 9.0.0
 	testAccResourceOrganizationPreferences(t, true)
 }
 
@@ -46,6 +46,12 @@ func testAccResourceOrganizationPreferences(t *testing.T, withUID bool) {
 
 	testRandName := acctest.RandString(10)
 
+	// In versions < 9.0.0, the home dashboard UID is not returned by the API
+	dashboardCheck := resource.TestMatchResourceAttr("grafana_organization_preferences.test", "home_dashboard_id", idRegexp)
+	if withUID {
+		dashboardCheck = resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", testRandName)
+	}
+
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccOrganizationPreferencesCheckDestroy(),
@@ -56,10 +62,9 @@ func testAccResourceOrganizationPreferences(t *testing.T, withUID bool) {
 					testAccOrganizationPreferencesCheckExists("grafana_organization_preferences.test", prefs),
 					resource.TestMatchResourceAttr("grafana_organization_preferences.test", "id", idRegexp),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "theme", prefs.Theme),
-					resource.TestMatchResourceAttr("grafana_organization_preferences.test", "home_dashboard_id", idRegexp),
-					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", testRandName),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "timezone", prefs.Timezone),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "week_start", prefs.WeekStart),
+					dashboardCheck,
 				),
 			},
 			{
@@ -68,10 +73,9 @@ func testAccResourceOrganizationPreferences(t *testing.T, withUID bool) {
 					testAccOrganizationPreferencesCheckExists("grafana_organization_preferences.test", updatedPrefs),
 					resource.TestMatchResourceAttr("grafana_organization_preferences.test", "id", idRegexp),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "theme", updatedPrefs.Theme),
-					resource.TestMatchResourceAttr("grafana_organization_preferences.test", "home_dashboard_id", idRegexp),
-					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", testRandName),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "timezone", updatedPrefs.Timezone),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "week_start", updatedPrefs.WeekStart),
+					dashboardCheck,
 				),
 			},
 			{
@@ -80,10 +84,9 @@ func testAccResourceOrganizationPreferences(t *testing.T, withUID bool) {
 					testAccOrganizationPreferencesCheckExists("grafana_organization_preferences.test", finalPrefs),
 					resource.TestMatchResourceAttr("grafana_organization_preferences.test", "id", idRegexp),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "theme", finalPrefs.Theme),
-					resource.TestMatchResourceAttr("grafana_organization_preferences.test", "home_dashboard_id", idRegexp),
-					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", testRandName),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "timezone", finalPrefs.Timezone),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "week_start", finalPrefs.WeekStart),
+					dashboardCheck,
 				),
 			},
 		},
