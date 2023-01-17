@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/Masterminds/semver/v3 v3.2.0
 	github.com/grafana/amixr-api-go-client v0.0.5
-	github.com/grafana/grafana-api-golang-client v0.18.0
+	github.com/grafana/grafana-api-golang-client v0.18.1
 	github.com/grafana/machine-learning-go-client v0.3.0
 	github.com/grafana/synthetic-monitoring-agent v0.14.0
 	github.com/grafana/synthetic-monitoring-api-go-client v0.6.5
