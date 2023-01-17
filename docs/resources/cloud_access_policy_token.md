@@ -51,7 +51,7 @@ resource "grafana_cloud_access_policy_token" "test" {
 
 - `access_policy_id` (String) ID of the access policy for which to create a token.
 - `name` (String) Name of the access policy token.
-- `region` (String) Region of the access policy. Should be set to the same region as the access policy.
+- `region` (String) Region of the access policy. Should be set to the same region as the access policy. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/reference/cloud-api/#list-regions.
 
 ### Optional
 

@@ -51,7 +51,7 @@ resource "grafana_cloud_access_policy_token" "test" {
 
 - `name` (String) Name of the access policy.
 - `realm` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--realm))
-- `region` (String) Region where the API is deployed. Region where the API is deployed. Generally where the stack is deployed. Valid values are 'us', 'eu', and 'au'.
+- `region` (String) Region where the API is deployed. Generally where the stack is deployed. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/reference/cloud-api/#list-regions.
 - `scopes` (Set of String) Scopes of the access policy. See https://grafana.com/docs/grafana-cloud/authentication-and-permissions/access-policies/#scopes for possible values.
 
 ### Optional
