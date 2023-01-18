@@ -6,36 +6,40 @@ import (
 )
 
 var (
-	stackRegions = StackRegions{
-		"us":                  "GCP US Central",
-		"us-azure":            "Azure US Central",
-		"eu":                  "GCP Belgium",
-		"au":                  "GCP Australia",
-		"prod-ap-southeast-0": "GCP Singapore",
-		"prod-gb-south-0":     "GCP UK",
-		"prod-eu-west-3":      "Azure Netherlands",
-		"prod-ap-south-0":     "GCP India",
-		"prod-sa-east-0":      "GCP Brazil",
+	stackRegions = stackRegionList{
+		{slug: "us", name: "GCP US Central"},
+		{slug: "us-azure", name: "Azure US Central"},
+		{slug: "eu", name: "GCP Belgium"},
+		{slug: "au", name: "GCP Australia"},
+		{slug: "prod-ap-southeast-0", name: "GCP Singapore"},
+		{slug: "prod-gb-south-0", name: "GCP UK"},
+		{slug: "prod-eu-west-3", name: "Azure Netherlands"},
+		{slug: "prod-ap-south-0", name: "GCP India"},
+		{slug: "prod-sa-east-0", name: "GCP Brazil"},
 	}
 )
 
-type StackRegions map[string]string
+type stackRegion struct {
+	slug string
+	name string
+}
+type stackRegionList []stackRegion
 
-// Slugs returns the list of all available stack regions.
-func (sr StackRegions) Slugs() []string {
+// slugs returns the list of all available stack regions.
+func (l stackRegionList) slugs() []string {
 	slugs := make([]string, 0)
-	for slug := range sr {
-		slugs = append(slugs, slug)
+	for _, region := range l {
+		slugs = append(slugs, region.slug)
 	}
 	return slugs
 }
 
-// DescriptionOptions returns a human-friendly string containing the list of
+// descriptionOptions returns a human-friendly string containing the list of
 // the region slugs and names.
-func (sr StackRegions) DescriptionOptions() string {
+func (l stackRegionList) descriptionOptions() string {
 	options := make([]string, 0)
-	for slug, name := range sr {
-		options = append(options, fmt.Sprintf("%s (%s)", slug, name))
+	for _, region := range l {
+		options = append(options, fmt.Sprintf("%s (%s)", region.slug, region.name))
 	}
 	return strings.Join(options, ", ")
 }

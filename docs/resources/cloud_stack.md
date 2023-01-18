@@ -35,7 +35,7 @@ available at “https://<stack_slug>.grafana.net".
 - `description` (String) Description of stack.
 - `region_slug` (String) Region slug to assign to this stack.
 Changing region will destroy the existing stack and create a new one in the desired region.
-Available options: prod-ap-southeast-0 (GCP Singapore), prod-gb-south-0 (GCP UK), prod-eu-west-3 (Azure Netherlands), us (GCP US Central), us-azure (Azure US Central), eu (GCP Belgium), au (GCP Australia), prod-ap-south-0 (GCP India), prod-sa-east-0 (GCP Brazil)
+Available options: us (GCP US Central), us-azure (Azure US Central), eu (GCP Belgium), au (GCP Australia), prod-ap-southeast-0 (GCP Singapore), prod-gb-south-0 (GCP UK), prod-eu-west-3 (Azure Netherlands), prod-ap-south-0 (GCP India), prod-sa-east-0 (GCP Brazil)
 - `url` (String) Custom URL for the Grafana instance. Must have a CNAME setup to point to `.grafana.net` before creating the stack
 - `wait_for_readiness` (Boolean) Whether to wait for readiness of the stack after creating it. The check is a HEAD request to the stack URL (Grafana instance). Defaults to `true`.
 - `wait_for_readiness_timeout` (String) How long to wait for readiness (if enabled). Defaults to `5m0s`.

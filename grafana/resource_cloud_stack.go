@@ -70,8 +70,8 @@ available at “https://<stack_slug>.grafana.net".`,
 				ForceNew: true,
 				Description: `Region slug to assign to this stack.
 Changing region will destroy the existing stack and create a new one in the desired region.
-Available options: ` + stackRegions.DescriptionOptions(),
-				ValidateFunc: validation.StringInSlice(stackRegions.Slugs(), false),
+Available options: ` + stackRegions.descriptionOptions(),
+				ValidateFunc: validation.StringInSlice(stackRegions.slugs(), false),
 			},
 			"url": {
 				Type:        schema.TypeString,

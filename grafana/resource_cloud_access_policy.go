@@ -36,8 +36,8 @@ func ResourceCloudAccessPolicy() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				Description:  "Region where the API is deployed. Generally where the stack is deployed. Available options: " + stackRegions.DescriptionOptions(),
-				ValidateFunc: validation.StringInSlice(stackRegions.Slugs(), false),
+				Description:  "Region where the API is deployed. Generally where the stack is deployed. Available options: " + stackRegions.descriptionOptions(),
+				ValidateFunc: validation.StringInSlice(stackRegions.slugs(), false),
 			},
 			"name": {
 				Type:        schema.TypeString,
