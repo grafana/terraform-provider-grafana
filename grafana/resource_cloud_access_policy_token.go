@@ -41,7 +41,7 @@ func ResourceCloudAccessPolicyToken() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "Region of the access policy. Should be set to the same region as the access policy.",
+				Description: "Region of the access policy. Should be set to the same region as the access policy. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/reference/cloud-api/#list-regions.",
 			},
 			"name": {
 				Type:        schema.TypeString,

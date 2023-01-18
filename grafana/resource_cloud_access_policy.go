@@ -33,11 +33,10 @@ func ResourceCloudAccessPolicy() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"region": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "Region where the API is deployed. Region where the API is deployed. Generally where the stack is deployed. Valid values are 'us', 'eu', and 'au'.",
-				ValidateFunc: validation.StringInSlice([]string{"us", "eu", "au"}, false),
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Region where the API is deployed. Generally where the stack is deployed. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/reference/cloud-api/#list-regions.",
 			},
 			"name": {
 				Type:        schema.TypeString,
