@@ -3,7 +3,6 @@ package grafana
 import (
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
