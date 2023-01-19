@@ -41,7 +41,7 @@ func ResourceCloudAccessPolicyToken() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "Region of the access policy. Should be set to the same region as the access policy.",
+				Description: "Region of the access policy. Should be set to the same region as the access policy. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/reference/cloud-api/#list-regions.",
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -92,22 +92,21 @@ func CreateCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, m
 	client := meta.(*client).gcloudapi
 	region := d.Get("region").(string)
 
-	expiresAt, err := time.Parse(time.RFC3339, d.Get("expires_at").(string))
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	displayName := d.Get("display_name").(string)
-	if displayName == "" {
-		displayName = d.Get("name").(string)
-	}
-
-	result, err := client.CreateCloudAccessPolicyToken(region, gapi.CreateCloudAccessPolicyTokenInput{
+	tokenInput := gapi.CreateCloudAccessPolicyTokenInput{
 		AccessPolicyID: d.Get("access_policy_id").(string),
 		Name:           d.Get("name").(string),
-		DisplayName:    displayName,
-		ExpiresAt:      expiresAt,
-	})
+		DisplayName:    d.Get("display_name").(string),
+	}
+
+	if v, ok := d.GetOk("expires_at"); ok {
+		expiresAt, err := time.Parse(time.RFC3339, v.(string))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		tokenInput.ExpiresAt = &expiresAt
+	}
+
+	result, err := client.CreateCloudAccessPolicyToken(region, tokenInput)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -158,9 +157,13 @@ func ReadCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, met
 	d.Set("region", region)
 	d.Set("name", result.Name)
 	d.Set("display_name", result.DisplayName)
-	d.Set("expires_at", result.ExpiresAt.Format(time.RFC3339))
 	d.Set("created_at", result.CreatedAt.Format(time.RFC3339))
-	d.Set("updated_at", result.UpdatedAt.Format(time.RFC3339))
+	if result.ExpiresAt != nil {
+		d.Set("expires_at", result.ExpiresAt.Format(time.RFC3339))
+	}
+	if result.UpdatedAt != nil {
+		d.Set("updated_at", result.UpdatedAt.Format(time.RFC3339))
+	}
 
 	return nil
 }

@@ -65,13 +65,10 @@ available at “https://<stack_slug>.grafana.net".`,
 				ValidateFunc: validation.StringMatch(stackSlugRegex, "must be a lowercase alphanumeric string and must start with a letter."),
 			},
 			"region_slug": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				Description: `Region slug to assign to this stack.
-Changing region will destroy the existing stack and create a new one in the desired region.
-Available input au (GCP Australia), eu (GCP Belgium), us (GCP US Central), prod-ap-southeast-0 (GCP Singapore), prod-gb-south-0 (GCP UK), prod-ap-south-0 (GCP India), prod-sa-east-0 (GCP Brazil)`,
-				ValidateFunc: validation.StringInSlice([]string{"au", "eu", "us", "prod-ap-southeast-0", "prod-gb-south-0", "prod-ap-south-0", "prod-sa-east-0"}, false),
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: `Region slug to assign to this stack. Changing region will destroy the existing stack and create a new one in the desired region. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/reference/cloud-api/#list-regions.`,
 			},
 			"url": {
 				Type:        schema.TypeString,
