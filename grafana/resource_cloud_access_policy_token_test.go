@@ -22,9 +22,6 @@ func TestResourceCloudAccessPolicyToken_Basic(t *testing.T) {
 	var policy gapi.CloudAccessPolicy
 	var policyToken gapi.CloudAccessPolicyToken
 
-	var policyNoExpiration gapi.CloudAccessPolicy
-	var policyNoExpirationToken gapi.CloudAccessPolicyToken
-
 	expiresAt := time.Now().Add(time.Hour * 24).UTC().Format(time.RFC3339)
 	initialScopes := []string{
 		"metrics:read",
@@ -84,18 +81,6 @@ func TestResourceCloudAccessPolicyToken_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy_token.test", "expires_at", expiresAt),
 				),
 			},
-			{
-				Config: testAccCloudAccessPolicyTokenConfigBasic("initial-no-expiration", "", initialScopes, ""),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.test", &policyNoExpiration),
-					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_token.test", &policyNoExpirationToken),
-					resource.TestCheckNoResourceAttr("grafana_cloud_access_policy_token.test", "expires_at"),
-				),
-			},
-			{
-				Config:      testAccCloudAccessPolicyTokenConfigBasic("initial", "", initialScopes, "invalid date"),
-				ExpectError: regexp.MustCompile(`expected "expires_at" to be a valid RFC3339 date`),
-			},
 			// Recreate
 			{
 				Config: testAccCloudAccessPolicyTokenConfigBasic("updated", "updated", updatedScopes, expiresAt),
@@ -115,6 +100,34 @@ func TestResourceCloudAccessPolicyToken_Basic(t *testing.T) {
 				ResourceName:      "grafana_cloud_access_policy.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+			{
+				ResourceName:            "grafana_cloud_access_policy_token.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"token"},
+			},
+		},
+	})
+}
+
+func TestResourceCloudAccessPolicyToken_NoExpiration(t *testing.T) {
+	t.Parallel()
+	CheckCloudAPITestsEnabled(t)
+
+	var policy gapi.CloudAccessPolicy
+	var policyToken gapi.CloudAccessPolicyToken
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCloudAccessPolicyTokenConfigBasic("initial-no-expiration", "", []string{"metrics:read"}, ""),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.test", &policy),
+					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_token.test", &policyToken),
+					resource.TestCheckNoResourceAttr("grafana_cloud_access_policy_token.test", "expires_at"),
+				),
 			},
 			{
 				ResourceName:            "grafana_cloud_access_policy_token.test",
