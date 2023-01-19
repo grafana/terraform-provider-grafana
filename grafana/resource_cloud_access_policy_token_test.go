@@ -110,6 +110,34 @@ func TestResourceCloudAccessPolicyToken_Basic(t *testing.T) {
 	})
 }
 
+func TestResourceCloudAccessPolicyToken_NoExpiration(t *testing.T) {
+	t.Parallel()
+	CheckCloudAPITestsEnabled(t)
+
+	var policy gapi.CloudAccessPolicy
+	var policyToken gapi.CloudAccessPolicyToken
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCloudAccessPolicyTokenConfigBasic("initial-no-expiration", "", []string{"metrics:read"}, ""),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.test", &policy),
+					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_token.test", &policyToken),
+					resource.TestCheckNoResourceAttr("grafana_cloud_access_policy_token.test", "expires_at"),
+				),
+			},
+			{
+				ResourceName:            "grafana_cloud_access_policy_token.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"token"},
+			},
+		},
+	})
+}
+
 // nolint: unparam
 func testAccCloudAccessPolicyCheckExists(rn string, a *gapi.CloudAccessPolicy) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -193,6 +221,10 @@ func testAccCloudAccessPolicyTokenConfigBasic(name, displayName string, scopes [
 		displayName = fmt.Sprintf("display_name = \"%s\"", displayName)
 	}
 
+	if expiresAt != "" {
+		expiresAt = fmt.Sprintf("expires_at = \"%s\"", expiresAt)
+	}
+
 	return fmt.Sprintf(`
 	data "grafana_cloud_organization" "current" {
 		slug = "%[4]s"
@@ -220,7 +252,7 @@ func testAccCloudAccessPolicyTokenConfigBasic(name, displayName string, scopes [
 		access_policy_id = grafana_cloud_access_policy.test.policy_id
 		name             = "token-%[1]s"
 		%[2]s
-		expires_at       = "%[5]s"
+		%[5]s
 	}
 	`, name, displayName, strings.Join(scopes, `","`), os.Getenv("GRAFANA_CLOUD_ORG"), expiresAt)
 }
