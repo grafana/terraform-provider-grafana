@@ -338,10 +338,13 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			c.smapi = smapi.NewClient(c.smURL, smToken, nil)
 		}
 		if d.Get("oncall_access_token").(string) != "" {
-			c.onCallAPI, err = createOnCallClient(d)
+			var onCallClient *onCallAPI.Client
+			onCallClient, err = createOnCallClient(d)
 			if err != nil {
 				return nil, diag.FromErr(err)
 			}
+			onCallClient.UserAgent = p.UserAgent("terraform-provider-grafana", version)
+			c.onCallAPI = onCallClient
 		}
 
 		storeDashboardSHA256 = d.Get("store_dashboard_sha256").(bool)
