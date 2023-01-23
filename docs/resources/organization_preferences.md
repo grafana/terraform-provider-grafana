@@ -28,7 +28,7 @@ resource "grafana_organization_preferences" "test" {
 
 - `home_dashboard_id` (Number) The Organization home dashboard ID.
 - `home_dashboard_uid` (String) The Organization home dashboard UID.
-- `org_id` (Number) The Organization ID. If not set, the Org ID defined in the provider block will be used.
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `theme` (String) The Organization theme. Available values are `light`, `dark`, or an empty string for the default.
 - `timezone` (String) The Organization timezone. Available values are `utc`, `browser`, or an empty string for the default.
 - `week_start` (String) The Organization week start.

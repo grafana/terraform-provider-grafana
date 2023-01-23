@@ -34,7 +34,7 @@ func clientFromOSSOrgID(meta interface{}, id string) (*gapi.Client, int64, strin
 }
 
 func clientFromOrgIDAttr(meta interface{}, d *schema.ResourceData) (*gapi.Client, int64) {
-	orgID := int64(d.Get("org_id").(int))
+	orgID, _ := strconv.ParseInt(d.Get("org_id").(string), 10, 64)
 	client := meta.(*client).gapi
 	if orgID > 0 {
 		client = client.WithOrgID(orgID)

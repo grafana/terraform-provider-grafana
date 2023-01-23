@@ -36,7 +36,7 @@ Manages Grafana dashboards.
 
 		Schema: map[string]*schema.Schema{
 			"org_id": {
-				Type:        schema.TypeInt,
+				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The Organization ID. If not set, the Org ID defined in the provider block will be used.",
 				ForceNew:    true,
