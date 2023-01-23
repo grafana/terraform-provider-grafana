@@ -398,7 +398,7 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 	}
 
 	var err error
-	if cfg.HTTPHeaders, err = getHttpHeadersMap(d); err != nil {
+	if cfg.HTTPHeaders, err = getHTTPHeadersMap(d); err != nil {
 		return "", nil, nil, err
 	}
 
@@ -435,7 +435,7 @@ func createCloudClient(d *schema.ResourceData) (*gapi.Client, error) {
 	}
 
 	var err error
-	if cfg.HTTPHeaders, err = getHttpHeadersMap(d); err != nil {
+	if cfg.HTTPHeaders, err = getHTTPHeadersMap(d); err != nil {
 		return nil, err
 	}
 
@@ -448,7 +448,7 @@ func createOnCallClient(d *schema.ResourceData) (*onCallAPI.Client, error) {
 	return onCallAPI.New(baseURL, aToken)
 }
 
-func getHttpHeadersMap(d *schema.ResourceData) (map[string]string, error) {
+func getHTTPHeadersMap(d *schema.ResourceData) (map[string]string, error) {
 	headersMap := d.Get("http_headers").(map[string]interface{})
 	if len(headersMap) == 0 {
 		// We cannot use a DefaultFunc because they do not work on maps
