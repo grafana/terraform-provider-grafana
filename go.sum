@@ -83,8 +83,8 @@ github.com/grafana/machine-learning-go-client v0.3.0 h1:QmDPt9kFvw7RsVZE92V4tSbn
 github.com/grafana/machine-learning-go-client v0.3.0/go.mod h1:QFfZz8NkqVF8++skjkKQXJEZfpCYd8S0yTWJUpsLLTA=
 github.com/grafana/synthetic-monitoring-agent v0.14.0 h1:3kdNdMrQCBznU0uJWK7LN/+sKnzn/DpTvnNOKYC2iZM=
 github.com/grafana/synthetic-monitoring-agent v0.14.0/go.mod h1:l8dB5eJE6G45ACNSvf2W5M1b3WEZ4wVNS3vNd+gC+L0=
-github.com/grafana/synthetic-monitoring-api-go-client v0.6.5 h1:q5BhSoM1FhaR4i5YhQiS019d/d6vaQfDmS1HfzxBi64=
-github.com/grafana/synthetic-monitoring-api-go-client v0.6.5/go.mod h1:BFB50/NuS9LtXdcrzBTU22mHiyZKlA9wWifBSQzcQUs=
+github.com/grafana/synthetic-monitoring-api-go-client v0.7.0 h1:3ZfQzmXDBPcQTTgMAIIiTw5Dwxm/B4lzf34Sto0d0YY=
+github.com/grafana/synthetic-monitoring-api-go-client v0.7.0/go.mod h1:ET64tbp14yq3U8X97/IO/KbG+FqU5Z8DigWrzGUHX40=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
 github.com/hashicorp/errwrap v1.1.0 h1:OxrOeh75EUXMY8TBjag2fzXGZ40LB6IKw45YeGUDY2I=
 github.com/hashicorp/errwrap v1.1.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
