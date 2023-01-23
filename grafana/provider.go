@@ -173,13 +173,13 @@ func Provider(version string) func() *schema.Provider {
 					Optional:    true,
 					Sensitive:   true,
 					Elem:        &schema.Schema{Type: schema.TypeString},
-					Description: "Optional. HTTP headers mapping keys to values used for accessing the Grafana API. May alternatively be set via the `GRAFANA_HTTP_HEADERS` environment variable in JSON format.",
+					Description: "Optional. HTTP headers mapping keys to values used for accessing the Grafana and Grafana Cloud APIs. May alternatively be set via the `GRAFANA_HTTP_HEADERS` environment variable in JSON format.",
 				},
 				"retries": {
 					Type:        schema.TypeInt,
 					Optional:    true,
 					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_RETRIES", 3),
-					Description: "The amount of retries to use for Grafana API calls. May alternatively be set via the `GRAFANA_RETRIES` environment variable.",
+					Description: "The amount of retries to use for Grafana API and Grafana Cloud API calls. May alternatively be set via the `GRAFANA_RETRIES` environment variable.",
 				},
 				"org_id": {
 					Type:        schema.TypeInt,
@@ -397,23 +397,9 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 		cfg.APIKey = auth[0]
 	}
 
-	headersMap := d.Get("http_headers").(map[string]interface{})
-	if headersMap != nil && len(headersMap) == 0 {
-		// We cannot use a DefaultFunc because they do not work on maps
-		var err error
-		headersMap, err = getJSONMap("GRAFANA_HTTP_HEADERS")
-		if err != nil {
-			return "", nil, nil, fmt.Errorf("invalid http_headers config: %w", err)
-		}
-	}
-	if len(headersMap) > 0 {
-		headers := make(map[string]string)
-		for k, v := range headersMap {
-			if v, ok := v.(string); ok {
-				headers[k] = v
-			}
-		}
-		cfg.HTTPHeaders = headers
+	var err error
+	if cfg.HTTPHeaders, err = getHttpHeadersMap(d); err != nil {
+		return "", nil, nil, err
 	}
 
 	gclient, err := gapi.New(apiURL, cfg)
@@ -447,6 +433,12 @@ func createCloudClient(d *schema.ResourceData) (*gapi.Client, error) {
 		APIKey:     d.Get("cloud_api_key").(string),
 		NumRetries: d.Get("retries").(int),
 	}
+
+	var err error
+	if cfg.HTTPHeaders, err = getHttpHeadersMap(d); err != nil {
+		return nil, err
+	}
+
 	return gapi.New(d.Get("cloud_api_url").(string), cfg)
 }
 
@@ -454,6 +446,28 @@ func createOnCallClient(d *schema.ResourceData) (*onCallAPI.Client, error) {
 	aToken := d.Get("oncall_access_token").(string)
 	baseURL := d.Get("oncall_url").(string)
 	return onCallAPI.New(baseURL, aToken)
+}
+
+func getHttpHeadersMap(d *schema.ResourceData) (map[string]string, error) {
+	headersMap := d.Get("http_headers").(map[string]interface{})
+	if len(headersMap) == 0 {
+		// We cannot use a DefaultFunc because they do not work on maps
+		var err error
+		headersMap, err = getJSONMap("GRAFANA_HTTP_HEADERS")
+		if err != nil {
+			return nil, fmt.Errorf("invalid http_headers config: %w", err)
+		}
+	}
+	if len(headersMap) > 0 {
+		headers := make(map[string]string)
+		for k, v := range headersMap {
+			if v, ok := v.(string); ok {
+				headers[k] = v
+			}
+		}
+		return headers, nil
+	}
+	return map[string]string{}, nil
 }
 
 // getJSONMap is a helper function that parses the given environment variable as a JSON object
