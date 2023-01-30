@@ -98,7 +98,6 @@ func testAccDeleteExistingStacks(t *testing.T, prefix string) {
 	}
 }
 
-// nolint: unparam
 func testAccStackCheckExists(rn string, a *gapi.Stack) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]

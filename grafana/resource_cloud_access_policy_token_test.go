@@ -138,7 +138,6 @@ func TestResourceCloudAccessPolicyToken_NoExpiration(t *testing.T) {
 	})
 }
 
-// nolint: unparam
 func testAccCloudAccessPolicyCheckExists(rn string, a *gapi.CloudAccessPolicy) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
@@ -164,7 +163,6 @@ func testAccCloudAccessPolicyCheckExists(rn string, a *gapi.CloudAccessPolicy) r
 	}
 }
 
-// nolint: unparam
 func testAccCloudAccessPolicyTokenCheckExists(rn string, a *gapi.CloudAccessPolicyToken) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
@@ -190,7 +188,6 @@ func testAccCloudAccessPolicyTokenCheckExists(rn string, a *gapi.CloudAccessPoli
 	}
 }
 
-// nolint: unparam
 func testAccCloudAccessPolicyCheckDestroy(region string, a *gapi.CloudAccessPolicy) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*client).gcloudapi
@@ -203,7 +200,6 @@ func testAccCloudAccessPolicyCheckDestroy(region string, a *gapi.CloudAccessPoli
 	}
 }
 
-// nolint: unparam
 func testAccCloudAccessPolicyTokenCheckDestroy(region string, a *gapi.CloudAccessPolicyToken) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*client).gcloudapi

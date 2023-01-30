@@ -258,7 +258,6 @@ func TestAccOrganization_externalUser(t *testing.T) {
 	})
 }
 
-//nolint:unparam // `rn` always receives `"grafana_organization.test"`
 func testAccOrganizationCheckExists(rn string, a *gapi.Org) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
