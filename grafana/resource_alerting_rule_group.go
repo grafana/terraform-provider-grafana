@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -51,7 +52,7 @@ This resource requires Grafana 9.1.0 or later.
 				Description: "The interval, in seconds, at which all rules in the group are evaluated. If a group contains many rules, the rules are evaluated sequentially.",
 			},
 			"org_id": {
-				Type:        schema.TypeInt,
+				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "The ID of the org to which the group belongs.",
@@ -268,7 +269,7 @@ func packRuleGroup(g gapi.RuleGroup, data *schema.ResourceData) error {
 	data.Set("interval_seconds", g.Interval)
 	rules := make([]interface{}, 0, len(g.Rules))
 	for _, r := range g.Rules {
-		data.Set("org_id", r.OrgID)
+		data.Set("org_id", strconv.FormatInt(r.OrgID, 10))
 		packed, err := packAlertRule(r)
 		if err != nil {
 			return err
@@ -284,7 +285,12 @@ func unpackRuleGroup(data *schema.ResourceData) (gapi.RuleGroup, error) {
 	folder := data.Get("folder_uid").(string)
 	interval := data.Get("interval_seconds").(int)
 	packedRules := data.Get("rule").([]interface{})
-	orgID := data.Get("org_id").(int)
+
+	// org_id is a string to properly support referencing between resources. However, the API expects an int64.
+	orgID, err := strconv.ParseInt(data.Get("org_id").(string), 10, 64)
+	if err != nil {
+		return gapi.RuleGroup{}, err
+	}
 
 	rules := make([]gapi.AlertRule, 0, len(packedRules))
 	for i := range packedRules {
@@ -322,7 +328,7 @@ func packAlertRule(r gapi.AlertRule) (interface{}, error) {
 	return json, nil
 }
 
-func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID int) (gapi.AlertRule, error) {
+func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID int64) (gapi.AlertRule, error) {
 	json := raw.(map[string]interface{})
 	data, err := unpackRuleData(json["data"])
 	if err != nil {
@@ -334,7 +340,7 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		Title:        json["name"].(string),
 		FolderUID:    folderUID,
 		RuleGroup:    groupName,
-		OrgID:        int64(orgID),
+		OrgID:        orgID,
 		ExecErrState: gapi.ExecErrState(json["exec_err_state"].(string)),
 		NoDataState:  gapi.NoDataState(json["no_data_state"].(string)),
 		For:          json["for"].(string),

@@ -115,7 +115,7 @@ EOT
 - `folder_uid` (String) The UID of the folder that the group belongs to.
 - `interval_seconds` (Number) The interval, in seconds, at which all rules in the group are evaluated. If a group contains many rules, the rules are evaluated sequentially.
 - `name` (String) The name of the rule group.
-- `org_id` (Number) The ID of the org to which the group belongs.
+- `org_id` (String) The ID of the org to which the group belongs.
 - `rule` (Block List, Min: 1) The rules within the group. (see [below for nested schema](#nestedblock--rule))
 
 ### Read-Only
