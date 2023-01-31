@@ -23,7 +23,7 @@ data "grafana_organization_preferences" "test" {}
 ### Read-Only
 
 - `home_dashboard_id` (Number) The Organization home dashboard ID.
-- `home_dashboard_uid` (String) The Organization home dashboard UID.
+- `home_dashboard_uid` (String) The Organization home dashboard UID. This is only available in Grafana 9.0+.
 - `id` (String) The ID of this resource.
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `theme` (String) The Organization theme. Available values are `light`, `dark`, or an empty string for the default.

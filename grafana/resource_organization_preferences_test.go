@@ -13,9 +13,20 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestAccResourceOrganizationPreferences(t *testing.T) {
+func TestAccResourceOrganizationPreferences_WithDashboardID(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 	CheckOSSTestsSemver(t, ">=8.0.0")
+	testAccResourceOrganizationPreferences(t, false)
+}
+
+func TestAccResourceOrganizationPreferences_WithDashboardUID(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+	CheckOSSTestsSemver(t, ">=9.0.0") // UID support was added in 9.0.0
+	testAccResourceOrganizationPreferences(t, true)
+}
+
+func testAccResourceOrganizationPreferences(t *testing.T, withUID bool) {
+	t.Helper()
 
 	prefs := gapi.Preferences{
 		Theme:     "light",
@@ -35,44 +46,47 @@ func TestAccResourceOrganizationPreferences(t *testing.T) {
 
 	testRandName := acctest.RandString(10)
 
+	// In versions < 9.0.0, the home dashboard UID is not returned by the API
+	dashboardCheck := resource.TestMatchResourceAttr("grafana_organization_preferences.test", "home_dashboard_id", idRegexp)
+	if withUID {
+		dashboardCheck = resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", testRandName)
+	}
+
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccOrganizationPreferencesCheckDestroy(),
 		Steps: []resource.TestStep{
 			{
-				Config: testOrganizationPreferencesConfig(testRandName, prefs),
+				Config: testOrganizationPreferencesConfig(testRandName, withUID, prefs),
 				Check: resource.ComposeTestCheckFunc(
 					testAccOrganizationPreferencesCheckExists("grafana_organization_preferences.test", prefs),
 					resource.TestMatchResourceAttr("grafana_organization_preferences.test", "id", idRegexp),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "theme", prefs.Theme),
-					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_id", "0"),
-					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", ""),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "timezone", prefs.Timezone),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "week_start", prefs.WeekStart),
+					dashboardCheck,
 				),
 			},
 			{
-				Config: testOrganizationPreferencesConfig(testRandName, updatedPrefs),
+				Config: testOrganizationPreferencesConfig(testRandName, withUID, updatedPrefs),
 				Check: resource.ComposeTestCheckFunc(
 					testAccOrganizationPreferencesCheckExists("grafana_organization_preferences.test", updatedPrefs),
 					resource.TestMatchResourceAttr("grafana_organization_preferences.test", "id", idRegexp),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "theme", updatedPrefs.Theme),
-					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_id", "0"),
-					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", ""),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "timezone", updatedPrefs.Timezone),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "week_start", updatedPrefs.WeekStart),
+					dashboardCheck,
 				),
 			},
 			{
-				Config: testOrganizationPreferencesConfig(testRandName, finalPrefs),
+				Config: testOrganizationPreferencesConfig(testRandName, withUID, finalPrefs),
 				Check: resource.ComposeTestCheckFunc(
 					testAccOrganizationPreferencesCheckExists("grafana_organization_preferences.test", finalPrefs),
 					resource.TestMatchResourceAttr("grafana_organization_preferences.test", "id", idRegexp),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "theme", finalPrefs.Theme),
-					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_id", "0"),
-					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", ""),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "timezone", finalPrefs.Timezone),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "week_start", finalPrefs.WeekStart),
+					dashboardCheck,
 				),
 			},
 		},
@@ -134,10 +148,25 @@ func testAccOrganizationPreferencesCheckDestroy() resource.TestCheckFunc {
 	}
 }
 
-func testOrganizationPreferencesConfig(orgName string, prefs gapi.Preferences) string {
+func testOrganizationPreferencesConfig(orgName string, withUID bool, prefs gapi.Preferences) string {
+	dashboardBlock := ""
+	if withUID {
+		dashboardBlock = "home_dashboard_uid = grafana_dashboard.test.uid"
+	} else {
+		dashboardBlock = "home_dashboard_id = grafana_dashboard.test.dashboard_id"
+	}
+
 	return fmt.Sprintf(`
 resource "grafana_organization" "test" {
 	name = "%[1]s"
+}
+
+resource "grafana_dashboard" "test" {
+	org_id = grafana_organization.test.id
+	config_json = jsonencode({
+	  title = "test-org-%[1]s"
+	  uid   = "%[1]s"
+	})
 }
 
 resource "grafana_organization_preferences" "test" {
@@ -145,6 +174,7 @@ resource "grafana_organization_preferences" "test" {
   theme      = "%[2]s"
   timezone   = "%[3]s"
   week_start = "%[4]s"
+  %[5]s
 }
-`, orgName, prefs.Theme, prefs.Timezone, prefs.WeekStart)
+`, orgName, prefs.Theme, prefs.Timezone, prefs.WeekStart, dashboardBlock)
 }
