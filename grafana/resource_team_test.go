@@ -3,9 +3,11 @@ package grafana
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -14,37 +16,29 @@ func TestAccTeam_basic(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 
 	var team gapi.Team
+	teamName := acctest.RandString(5)
+	teamNameUpdated := acctest.RandString(5)
 
-	// TODO: Make parallelizable
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccTeamCheckDestroy(&team),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccTeamConfig_basic,
+				Config: testAccTeamDefinition(teamName, nil),
 				Check: resource.ComposeTestCheckFunc(
 					testAccTeamCheckExists("grafana_team.test", &team),
-					resource.TestCheckResourceAttr(
-						"grafana_team.test", "name", "terraform-acc-test",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_team.test", "email", "teamEmail@example.com",
-					),
-					resource.TestMatchResourceAttr(
-						"grafana_team.test", "id", idRegexp,
-					),
+					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
+					resource.TestCheckResourceAttr("grafana_team.test", "email", teamName+"@example.com"),
+					resource.TestMatchResourceAttr("grafana_team.test", "id", idRegexp),
 				),
 			},
 			{
-				Config: testAccTeamConfig_updateName,
+				Config: testAccTeamDefinition(teamNameUpdated, nil),
 				Check: resource.ComposeTestCheckFunc(
 					testAccTeamCheckExists("grafana_team.test", &team),
-					resource.TestCheckResourceAttr(
-						"grafana_team.test", "name", "terraform-acc-test-update",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_team.test", "email", "teamEmailUpdate@example.com",
-					),
+					resource.TestCheckResourceAttr("grafana_team.test", "name", teamNameUpdated),
+					resource.TestCheckResourceAttr("grafana_team.test", "email", teamNameUpdated+"@example.com"),
+					resource.TestMatchResourceAttr("grafana_team.test", "id", idRegexp),
 				),
 			},
 			{
@@ -61,46 +55,47 @@ func TestAccTeam_Members(t *testing.T) {
 	CheckOSSTestsEnabled(t)
 
 	var team gapi.Team
+	teamName := acctest.RandString(5)
 
-	// TODO: Make parallelizable
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccTeamCheckDestroy(&team),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccTeamConfig_memberAdd,
+				Config: testAccTeamDefinition(teamName, []string{
+					"grafana_user.users.0.email",
+					"grafana_user.users.1.email",
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccTeamCheckExists("grafana_team.test", &team),
-					resource.TestCheckResourceAttr(
-						"grafana_team.test", "name", "terraform-acc-test",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_team.test", "members.#", "2",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_team.test", "members.0", "test-team-1@example.com",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_team.test", "members.1", "test-team-2@example.com",
-					),
+					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "2"),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.0", teamName+"-user-0@example.com"),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.1", teamName+"-user-1@example.com"),
 				),
 			},
+			// Reorder members but only plan changes. There should be no changes.
 			{
-				Config: testAccTeamConfig_memberReorder,
+				Config: testAccTeamDefinition(teamName, []string{
+					"grafana_user.users.1.email",
+					"grafana_user.users.0.email",
+				}),
+				PlanOnly: true,
+			},
+			// When adding a new member, the state should be updated and re-sorted.
+			{
+				Config: testAccTeamDefinition(teamName, []string{
+					"grafana_user.users.1.email",
+					"grafana_user.users.0.email",
+					"grafana_user.users.2.email",
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccTeamCheckExists("grafana_team.test", &team),
-					resource.TestCheckResourceAttr(
-						"grafana_team.test", "name", "terraform-acc-test",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_team.test", "members.#", "2",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_team.test", "members.0", "test-team-1@example.com",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_team.test", "members.1", "test-team-2@example.com",
-					),
+					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "3"),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.0", teamName+"-user-0@example.com"),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.1", teamName+"-user-1@example.com"),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.2", teamName+"-user-2@example.com"),
 				),
 			},
 			// Test the import with members
@@ -111,15 +106,11 @@ func TestAccTeam_Members(t *testing.T) {
 				ImportStateVerifyIgnore: []string{"ignore_externally_synced_members"},
 			},
 			{
-				Config: testAccTeamConfig_memberRemove,
+				Config: testAccTeamDefinition(teamName, nil),
 				Check: resource.ComposeTestCheckFunc(
 					testAccTeamCheckExists("grafana_team.test", &team),
-					resource.TestCheckResourceAttr(
-						"grafana_team.test", "name", "terraform-acc-test",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_team.test", "members.#", "0",
-					),
+					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "0"),
 				),
 			},
 		},
@@ -133,9 +124,9 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 
 	var team gapi.Team
 	var userID int64 = -1
+	teamName := acctest.RandString(5)
 
-	// TODO: Make parallelizable
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccTeamCheckDestroy(&team),
 		Steps: []resource.TestStep{
@@ -154,7 +145,7 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 						t.Fatal(err)
 					}
 				},
-				Config: testAccTeam_withMember("user1@grafana.com"),
+				Config: testAccTeamDefinition(teamName, []string{`"user1@grafana.com"`}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccTeamCheckExists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "1"),
@@ -168,7 +159,7 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 						t.Fatal(err)
 					}
 				},
-				Config: testAccTeamConfig_basic,
+				Config: testAccTeamDefinition(teamName, nil),
 				Check: resource.ComposeTestCheckFunc(
 					testAccTeamCheckExists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "0"),
@@ -217,71 +208,29 @@ func testAccTeamCheckDestroy(a *gapi.Team) resource.TestCheckFunc {
 	}
 }
 
-const testAccTeamConfig_basic = `
+func testAccTeamDefinition(name string, teamMembers []string) string {
+	definition := fmt.Sprintf(`
 resource "grafana_team" "test" {
-  name  = "terraform-acc-test"
-  email = "teamEmail@example.com"
+	name    = "%[1]s"
+	email   = "%[1]s@example.com"
+	members = [ %[2]s ]
 }
-`
-const testAccTeamConfig_updateName = `
-resource "grafana_team" "test" {
-  name    = "terraform-acc-test-update"
-  email   = "teamEmailUpdate@example.com"
-}
-`
-const testAccTeam_users = `
-resource "grafana_user" "user_one" {
-	email    = "test-team-1@example.com"
-	name     = "Team Test User 1"
-	login    = "test-team-1"
+`, name, strings.Join(teamMembers, `, `))
+
+	// If we're referencing a grafana_user resource, we need to create those users
+	if len(teamMembers) > 0 && strings.Contains(teamMembers[0], "grafana_user") {
+		definition += fmt.Sprintf(`
+resource "grafana_user" "users" {
+	count = 3
+
+	email    = "%[1]s-user-${count.index}@example.com"
+	name     = "%[1]s-user-${count.index}"
+	login    = "%[1]s-user-${count.index}"
 	password = "my-password"
 	is_admin = false
 }
+`, name)
+	}
 
-resource "grafana_user" "user_two" {
-	email    = "test-team-2@example.com"
-	name     = "Team Test User 2"
-	login    = "test-team-2"
-	password = "my-password"
-	is_admin = false
-}
-`
-
-const testAccTeamConfig_memberAdd = testAccTeam_users + `
-resource "grafana_team" "test" {
-  name    = "terraform-acc-test"
-  email   = "teamEmail@example.com"
-  members = [
-	grafana_user.user_one.email,
-	grafana_user.user_two.email,
-  ]
-}
-`
-
-const testAccTeamConfig_memberReorder = testAccTeam_users + `
-resource "grafana_team" "test" {
-  name    = "terraform-acc-test"
-  email   = "teamEmail@example.com"
-  members = [
-	grafana_user.user_two.email,
-	grafana_user.user_one.email,
-	]
-}
-`
-
-const testAccTeamConfig_memberRemove = testAccTeam_users + `
-resource "grafana_team" "test" {
-  name    = "terraform-acc-test"
-  email   = "teamEmail@example.com"
-  members = [ ]
-}
-`
-
-func testAccTeam_withMember(user string) string {
-	return fmt.Sprintf(`
-  resource "grafana_team" "test" {
-	name    = "terraform-acc-test"
-  	email   = "teamEmail@example.com"
-  	members = ["%s"]
-  }`, user)
+	return definition
 }
