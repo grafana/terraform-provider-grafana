@@ -71,7 +71,7 @@ A set of email addresses corresponding to users who should be given membership
 to the team. Note: users specified here must already exist in Grafana.
 `,
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					if old == new || (new == "[]" && old == "") || (new == "" && old == "[]") {
+					if (new == "[]" && old == "") || (new == "" && old == "[]") {
 						return true
 					}
 					return false
