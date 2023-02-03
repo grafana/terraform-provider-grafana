@@ -132,7 +132,7 @@ func CreateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta i
 	result, err := client.CreateCloudAccessPolicy(region, gapi.CreateCloudAccessPolicyInput{
 		Name:        d.Get("name").(string),
 		DisplayName: displayName,
-		Scopes:      listToStringSlice(d.Get("scopes").(*schema.Set).List()),
+		Scopes:      common.ListToStringSlice(d.Get("scopes").(*schema.Set).List()),
 		Realms:      expandCloudAccessPolicyRealm(d.Get("realm").(*schema.Set).List()),
 	})
 	if err != nil {
@@ -155,7 +155,7 @@ func UpdateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta i
 
 	_, err := client.UpdateCloudAccessPolicy(region, id, gapi.UpdateCloudAccessPolicyInput{
 		DisplayName: displayName,
-		Scopes:      listToStringSlice(d.Get("scopes").(*schema.Set).List()),
+		Scopes:      common.ListToStringSlice(d.Get("scopes").(*schema.Set).List()),
 		Realms:      expandCloudAccessPolicyRealm(d.Get("realm").(*schema.Set).List()),
 	})
 	if err != nil {

@@ -192,7 +192,7 @@ func makeAnnotation(_ context.Context, d *schema.ResourceData) (*gapi.Annotation
 		Text:        d.Get("text").(string),
 		PanelID:     int64(d.Get("panel_id").(int)),
 		DashboardID: int64(d.Get("dashboard_id").(int)),
-		Tags:        setToStringSlice(d.Get("tags").(*schema.Set)),
+		Tags:        common.SetToStringSlice(d.Get("tags").(*schema.Set)),
 	}
 
 	start := d.Get("time").(string)

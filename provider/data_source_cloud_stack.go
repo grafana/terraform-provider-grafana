@@ -12,7 +12,7 @@ func DatasourceCloudStack() *schema.Resource {
 	return &schema.Resource{
 		Description: "Data source for Grafana Stack",
 		ReadContext: datasourceCloudStackRead,
-		Schema: cloneResourceSchemaForDatasource(ResourceCloudStack(), map[string]*schema.Schema{
+		Schema: common.CloneResourceSchemaForDatasource(ResourceCloudStack(), map[string]*schema.Schema{
 			"slug": {
 				Type:     schema.TypeString,
 				Required: true,

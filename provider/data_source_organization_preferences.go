@@ -15,7 +15,7 @@ func DatasourceOrganizationPreferences() *schema.Resource {
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/preferences/#get-current-org-prefs)
 `,
 		ReadContext: dataSourceOrganizationPreferencesRead,
-		Schema:      cloneResourceSchemaForDatasource(ResourceOrganizationPreferences(), map[string]*schema.Schema{}),
+		Schema:      common.CloneResourceSchemaForDatasource(ResourceOrganizationPreferences(), map[string]*schema.Schema{}),
 	}
 }
 
