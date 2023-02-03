@@ -8,20 +8,21 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccTeam_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var team gapi.Team
 	teamName := acctest.RandString(5)
 	teamNameUpdated := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccTeamCheckDestroy(&team),
 		Steps: []resource.TestStep{
 			{
@@ -53,13 +54,13 @@ func TestAccTeam_basic(t *testing.T) {
 }
 
 func TestAccTeam_Members(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var team gapi.Team
 	teamName := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccTeamCheckDestroy(&team),
 		Steps: []resource.TestStep{
 			{
@@ -120,15 +121,15 @@ func TestAccTeam_Members(t *testing.T) {
 
 // Test that deleted users can still be removed as members of a team
 func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+	testutils.CheckOSSTestsEnabled(t)
+	client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 
 	var team gapi.Team
 	var userID int64 = -1
 	teamName := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccTeamCheckDestroy(&team),
 		Steps: []resource.TestStep{
 			{
@@ -185,7 +186,7 @@ func testAccTeamCheckExists(rn string, a *gapi.Team) resource.TestCheckFunc {
 			return fmt.Errorf("resource id is malformed")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		team, err := client.Team(id)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
@@ -199,7 +200,7 @@ func testAccTeamCheckExists(rn string, a *gapi.Team) resource.TestCheckFunc {
 
 func testAccTeamCheckDestroy(a *gapi.Team) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		team, err := client.Team(a.ID)
 		if err == nil && team.Name != "" {
 			return fmt.Errorf("team still exists")

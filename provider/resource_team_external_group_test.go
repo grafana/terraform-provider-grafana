@@ -6,17 +6,18 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccTeamExternalGroup_basic(t *testing.T) {
-	CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t)
 
 	teamID := int64(-1)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccTeamExternalGroupCheckDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -55,7 +56,7 @@ func testAccTeamExternalGroupCheckExists(rn string, teamID *int64) resource.Test
 			return fmt.Errorf("Resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 
 		gotTeamID, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
 		if err != nil {

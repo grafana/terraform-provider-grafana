@@ -9,13 +9,14 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestResourceCloudStack_Basic(t *testing.T) {
-	CheckCloudAPITestsEnabled(t)
+	testutils.CheckCloudAPITestsEnabled(t)
 
 	prefix := "tfresourcetest"
 
@@ -27,7 +28,7 @@ func TestResourceCloudStack_Basic(t *testing.T) {
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
 		},
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{
@@ -83,7 +84,7 @@ func TestResourceCloudStack_Basic(t *testing.T) {
 }
 
 func testAccDeleteExistingStacks(t *testing.T, prefix string) {
-	client := testAccProvider.Meta().(*common.Client).GrafanaCloudAPI
+	client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 	resp, err := client.Stacks()
 	if err != nil {
 		t.Error(err)
@@ -114,7 +115,7 @@ func testAccStackCheckExists(rn string, a *gapi.Stack) resource.TestCheckFunc {
 			return fmt.Errorf("resource id is malformed")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaCloudAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 		stack, err := client.StackByID(id)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
@@ -128,7 +129,7 @@ func testAccStackCheckExists(rn string, a *gapi.Stack) resource.TestCheckFunc {
 
 func testAccStackCheckDestroy(a *gapi.Stack) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaCloudAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 		stack, err := client.StackBySlug(a.Slug)
 		if err == nil && stack.Name != "" {
 			return fmt.Errorf("stack `%s` with ID `%d` still exists after destroy", stack.Name, stack.ID)

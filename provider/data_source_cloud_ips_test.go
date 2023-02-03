@@ -7,18 +7,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccDataSourceCloudIPsRead(t *testing.T) {
-	CheckCloudAPITestsEnabled(t)
+	testutils.CheckCloudAPITestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "data-sources/grafana_cloud_ips/data-source.tf"),
+				Config: testutils.TestAccExample(t, "data-sources/grafana_cloud_ips/data-source.tf"),
 				Check: func(s *terraform.State) error {
 					rs := s.RootModule().Resources["data.grafana_cloud_ips.test"]
 

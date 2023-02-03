@@ -6,19 +6,20 @@ import (
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccOnCallOnCallShift_basic(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	scheduleName := fmt.Sprintf("schedule-%s", acctest.RandString(8))
 	shiftName := fmt.Sprintf("shift-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccCheckOnCallOnCallShiftResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -32,7 +33,7 @@ func TestAccOnCallOnCallShift_basic(t *testing.T) {
 }
 
 func testAccCheckOnCallOnCallShiftResourceDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*common.Client).OnCallClient
+	client := testutils.Provider.Meta().(*common.Client).OnCallClient
 	for _, r := range s.RootModule().Resources {
 		if r.Type != "grafana_oncall_on_call_shift" {
 			continue
@@ -77,7 +78,7 @@ func testAccCheckOnCallOnCallShiftResourceExists(name string) resource.TestCheck
 			return fmt.Errorf("No OnCallShift ID is set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).OnCallClient
+		client := testutils.Provider.Meta().(*common.Client).OnCallClient
 
 		found, _, err := client.OnCallShifts.GetOnCallShift(rs.Primary.ID, &onCallAPI.GetOnCallShiftOptions{})
 		if err != nil {

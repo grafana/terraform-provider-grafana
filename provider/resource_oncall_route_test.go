@@ -6,20 +6,21 @@ import (
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccOnCallRoute_basic(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	riName := fmt.Sprintf("integration-%s", acctest.RandString(8))
 	rrRegex := fmt.Sprintf("regex-%s", acctest.RandString(8))
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccCheckOnCallRouteResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -33,7 +34,7 @@ func TestAccOnCallRoute_basic(t *testing.T) {
 }
 
 func testAccCheckOnCallRouteResourceDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*common.Client).OnCallClient
+	client := testutils.Provider.Meta().(*common.Client).OnCallClient
 	for _, r := range s.RootModule().Resources {
 		if r.Type != "grafana_oncall_route" {
 			continue
@@ -90,7 +91,7 @@ func testAccCheckOnCallRouteResourceExists(name string) resource.TestCheckFunc {
 			return fmt.Errorf("No Route ID is set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).OnCallClient
+		client := testutils.Provider.Meta().(*common.Client).OnCallClient
 
 		found, _, err := client.Routes.GetRoute(rs.Primary.ID, &onCallAPI.GetRouteOptions{})
 		if err != nil {

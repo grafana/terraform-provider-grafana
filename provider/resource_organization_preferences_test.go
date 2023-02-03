@@ -9,20 +9,21 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceOrganizationPreferences_WithDashboardID(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=8.0.0")
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=8.0.0")
 	testAccResourceOrganizationPreferences(t, false)
 }
 
 func TestAccResourceOrganizationPreferences_WithDashboardUID(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=9.0.0") // UID support was added in 9.0.0
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.0.0") // UID support was added in 9.0.0
 	testAccResourceOrganizationPreferences(t, true)
 }
 
@@ -54,7 +55,7 @@ func testAccResourceOrganizationPreferences(t *testing.T, withUID bool) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccOrganizationPreferencesCheckDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -109,7 +110,7 @@ func testAccOrganizationPreferencesCheckExists(rn string, prefs gapi.Preferences
 		if err != nil {
 			return fmt.Errorf("error parsing org_id: %s", err)
 		}
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI.WithOrgID(id)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(id)
 		p, err := client.OrgPreferences()
 		if err != nil {
 			return fmt.Errorf("error getting organization preferences: %s", err)
@@ -136,7 +137,7 @@ func testAccOrganizationPreferencesCheckExists(rn string, prefs gapi.Preferences
 
 func testAccOrganizationPreferencesCheckDestroy() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		prefs, err := client.OrgPreferences()
 		if err != nil {
 			return err

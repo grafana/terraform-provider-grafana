@@ -10,6 +10,7 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -17,20 +18,20 @@ import (
 )
 
 func TestAccFolder_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var folder gapi.Folder
 	var folderWithUID gapi.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccFolderCheckDestroy(&folder),
 			testAccFolderCheckDestroy(&folderWithUID),
 		),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "resources/grafana_folder/resource.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_folder/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
 					resource.TestMatchResourceAttr("grafana_folder.test_folder", "id", idRegexp),
@@ -56,7 +57,7 @@ func TestAccFolder_basic(t *testing.T) {
 			},
 			// Change the title of one folder, change the UID of the other. They shouldn't change IDs (the folder doesn't have to be recreated)
 			{
-				Config: testAccExampleWithReplace(t, "resources/grafana_folder/resource.tf", map[string]string{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_folder/resource.tf", map[string]string{
 					"Terraform Test Folder": "Terraform Test Folder Updated",
 					"test-folder-uid":       "test-folder-uid-other",
 				}),
@@ -99,8 +100,8 @@ func TestAccFolder_basic(t *testing.T) {
 
 // This is a bug in Grafana, not the provider. It was fixed in 9.2.7+ and 9.3.0+, this test will check for regressions
 func TestAccFolder_createFromDifferentRoles(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=9.2.7")
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.2.7")
 
 	for _, tc := range []struct {
 		role        string
@@ -120,7 +121,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 			var name = acctest.RandomWithPrefix(tc.role + "-key")
 
 			// Create an API key with the correct role and inject it in envvars. This auth will be used when the test runs
-			client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+			client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 			key, err := client.CreateAPIKey(gapi.CreateAPIKeyRequest{
 				Name: name,
 				Role: tc.role,
@@ -140,7 +141,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 
 			// Do not make parallel, fiddling with auth will break other tests that run in parallel
 			resource.Test(t, resource.TestCase{
-				ProviderFactories: testAccProviderFactories,
+				ProviderFactories: testutils.ProviderFactories,
 				CheckDestroy: resource.ComposeTestCheckFunc(
 					testAccFolderCheckDestroy(&folder),
 				),
@@ -186,7 +187,7 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
 		if err != nil {
 			return err
@@ -208,7 +209,7 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 
 func testAccFolderCheckDestroy(folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		_, err := getFolderByID(client, folder.ID)
 		if err == nil {
 			return fmt.Errorf("folder still exists")

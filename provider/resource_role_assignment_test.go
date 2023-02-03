@@ -9,14 +9,15 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 )
 
 func TestRoleAssignments(t *testing.T) {
-	CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t)
 	var roleAssignment gapi.RoleAssignments
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testRoleAssignmentCheckDestroy(&roleAssignment),
 		Steps: []resource.TestStep{
 			{
@@ -57,7 +58,7 @@ func testRoleAssignmentCheckExists(rn string, ra *gapi.RoleAssignments) resource
 			return fmt.Errorf("resource UID not set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		role, err := client.GetRoleAssignments(uid)
 		if err != nil {
 			return fmt.Errorf("error getting role assignments: %s", err)
@@ -71,7 +72,7 @@ func testRoleAssignmentCheckExists(rn string, ra *gapi.RoleAssignments) resource
 
 func testRoleAssignmentCheckDestroy(ra *gapi.RoleAssignments) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		role, err := client.GetRoleAssignments(ra.RoleUID)
 		if err == nil && (len(role.Users) > 0 || len(role.ServiceAccounts) > 0 || len(role.Teams) > 0) {
 			return fmt.Errorf("role is still assigned")

@@ -10,16 +10,17 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccGrafanaAuthKey(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccGrafanaAuthKeyCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -39,7 +40,7 @@ func TestAccGrafanaAuthKey(t *testing.T) {
 }
 
 func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
-	CheckCloudAPITestsEnabled(t)
+	testutils.CheckCloudAPITestsEnabled(t)
 
 	var stack gapi.Stack
 	prefix := "tfapikeytest"
@@ -49,7 +50,7 @@ func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
 		},
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{
@@ -68,7 +69,7 @@ func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
 }
 
 func testAccGrafanaAuthKeyCheckDestroy(s *terraform.State) error {
-	c := testAccProvider.Meta().(*common.Client).GrafanaAPI
+	c := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_api_key" {
@@ -139,7 +140,7 @@ func testAccGrafanaAuthKeyCheckDestroyCloud(s *terraform.State) error {
 			continue
 		}
 
-		cloudClient := testAccProvider.Meta().(*common.Client).GrafanaCloudAPI
+		cloudClient := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 		c, cleanup, err := cloudClient.CreateTemporaryStackGrafanaClient(rs.Primary.Attributes["slug"], "test-api-key-", 60*time.Second)
 		if err != nil {
 			return err

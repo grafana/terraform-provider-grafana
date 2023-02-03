@@ -10,14 +10,15 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 )
 
 func TestAccUser_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var user gapi.User
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccUserCheckDestroy(&user),
 		Steps: []resource.TestStep{
 			{
@@ -85,7 +86,7 @@ func testAccUserCheckExists(rn string, a *gapi.User) resource.TestCheckFunc {
 		if err != nil {
 			return fmt.Errorf("resource id is malformed")
 		}
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		user, err := client.User(id)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
@@ -97,7 +98,7 @@ func testAccUserCheckExists(rn string, a *gapi.User) resource.TestCheckFunc {
 
 func testAccUserCheckDestroy(a *gapi.User) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		user, err := client.User(a.ID)
 		if err == nil && user.Email != "" {
 			return fmt.Errorf("user still exists")

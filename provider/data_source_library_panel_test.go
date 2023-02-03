@@ -4,12 +4,13 @@ import (
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccDatasourceLibraryPanel(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=8.0.0")
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=8.0.0")
 
 	var panel gapi.LibraryPanel
 	// var dashboard gapi.Dashboard
@@ -31,11 +32,11 @@ func TestAccDatasourceLibraryPanel(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccLibraryPanelCheckDestroy(&panel),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "data-sources/grafana_library_panel/data-source.tf"),
+				Config: testutils.TestAccExample(t, "data-sources/grafana_library_panel/data-source.tf"),
 				Check:  resource.ComposeTestCheckFunc(checks...),
 			},
 		},

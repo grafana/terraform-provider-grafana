@@ -6,18 +6,19 @@ import (
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccOnCallSchedule_basic(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	scheduleName := fmt.Sprintf("schedule-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccCheckOnCallScheduleResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -31,7 +32,7 @@ func TestAccOnCallSchedule_basic(t *testing.T) {
 }
 
 func testAccCheckOnCallScheduleResourceDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*common.Client).OnCallClient
+	client := testutils.Provider.Meta().(*common.Client).OnCallClient
 	for _, r := range s.RootModule().Resources {
 		if r.Type != "grafana_oncall_schedule" {
 			continue
@@ -64,7 +65,7 @@ func testAccCheckOnCallScheduleResourceExists(name string) resource.TestCheckFun
 			return fmt.Errorf("No Schedule ID is set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).OnCallClient
+		client := testutils.Provider.Meta().(*common.Client).OnCallClient
 
 		found, _, err := client.Schedules.GetSchedule(rs.Primary.ID, &onCallAPI.GetScheduleOptions{})
 		if err != nil {

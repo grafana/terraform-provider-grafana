@@ -7,13 +7,14 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccCloudApiKey_Basic(t *testing.T) {
-	CheckCloudAPITestsEnabled(t)
+	testutils.CheckCloudAPITestsEnabled(t)
 
 	prefix := "testcloudkey-"
 	testAccDeleteExistingCloudAPIKeys(t, prefix)
@@ -33,7 +34,7 @@ func TestAccCloudApiKey_Basic(t *testing.T) {
 			resourceName := prefix + acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 			resource.ParallelTest(t, resource.TestCase{
-				ProviderFactories: testAccProviderFactories,
+				ProviderFactories: testutils.ProviderFactories,
 				CheckDestroy:      testAccCheckCloudAPIKeyDestroy,
 				Steps: []resource.TestStep{
 					{
@@ -69,7 +70,7 @@ func testAccCheckCloudAPIKeyExists(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("resource `%s` has no ID set", resourceName)
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaCloudAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 		res, err := client.ListCloudAPIKeys(rs.Primary.Attributes["cloud_org_slug"])
 		if err != nil {
 			return err
@@ -86,7 +87,7 @@ func testAccCheckCloudAPIKeyExists(resourceName string) resource.TestCheckFunc {
 }
 
 func testAccCheckCloudAPIKeyDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*common.Client).GrafanaCloudAPI
+	client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 
 	for name, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_cloud_api_key" {
@@ -110,7 +111,7 @@ func testAccCheckCloudAPIKeyDestroy(s *terraform.State) error {
 
 func testAccDeleteExistingCloudAPIKeys(t *testing.T, prefix string) {
 	org := os.Getenv("GRAFANA_CLOUD_ORG")
-	client := testAccProvider.Meta().(*common.Client).GrafanaCloudAPI
+	client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 	resp, err := client.ListCloudAPIKeys(org)
 	if err != nil {
 		t.Error(err)
@@ -127,7 +128,7 @@ func testAccDeleteExistingCloudAPIKeys(t *testing.T, prefix string) {
 }
 
 func testAccCloudAPIKeyConfig(resourceName, role string) string {
-	// GRAFANA_CLOUD_ORG is required from the `CheckCloudAPITestsEnabled` function
+	// GRAFANA_CLOUD_ORG is required from the `testutils.CheckCloudAPITestsEnabled` function
 	return fmt.Sprintf(`
 resource "grafana_cloud_api_key" "test" {
   cloud_org_slug = "%s"

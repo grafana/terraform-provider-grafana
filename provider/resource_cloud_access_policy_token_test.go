@@ -10,6 +10,7 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -17,7 +18,7 @@ import (
 // This test covers both the cloud_access_policy and cloud_access_policy_token resources.
 func TestResourceCloudAccessPolicyToken_Basic(t *testing.T) {
 	t.Parallel()
-	CheckCloudAPITestsEnabled(t)
+	testutils.CheckCloudAPITestsEnabled(t)
 
 	var policy gapi.CloudAccessPolicy
 	var policyToken gapi.CloudAccessPolicyToken
@@ -35,7 +36,7 @@ func TestResourceCloudAccessPolicyToken_Basic(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccCloudAccessPolicyCheckDestroy("us", &policy),
 			testAccCloudAccessPolicyTokenCheckDestroy("us", &policyToken),
@@ -113,13 +114,13 @@ func TestResourceCloudAccessPolicyToken_Basic(t *testing.T) {
 
 func TestResourceCloudAccessPolicyToken_NoExpiration(t *testing.T) {
 	t.Parallel()
-	CheckCloudAPITestsEnabled(t)
+	testutils.CheckCloudAPITestsEnabled(t)
 
 	var policy gapi.CloudAccessPolicy
 	var policyToken gapi.CloudAccessPolicyToken
 
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCloudAccessPolicyTokenConfigBasic("initial-no-expiration", "", []string{"metrics:read"}, ""),
@@ -152,7 +153,7 @@ func testAccCloudAccessPolicyCheckExists(rn string, a *gapi.CloudAccessPolicy) r
 
 		region, id, _ := strings.Cut(rs.Primary.ID, "/")
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaCloudAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 		policy, err := client.CloudAccessPolicyByID(region, id)
 		if err != nil {
 			return fmt.Errorf("error getting cloud access policy: %s", err)
@@ -177,7 +178,7 @@ func testAccCloudAccessPolicyTokenCheckExists(rn string, a *gapi.CloudAccessPoli
 
 		region, id, _ := strings.Cut(rs.Primary.ID, "/")
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaCloudAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 		token, err := client.CloudAccessPolicyTokenByID(region, id)
 		if err != nil {
 			return fmt.Errorf("error getting cloud access policy token: %s", err)
@@ -191,7 +192,7 @@ func testAccCloudAccessPolicyTokenCheckExists(rn string, a *gapi.CloudAccessPoli
 
 func testAccCloudAccessPolicyCheckDestroy(region string, a *gapi.CloudAccessPolicy) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaCloudAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 		policy, err := client.CloudAccessPolicyByID(region, a.ID)
 		if err == nil && policy.Name != "" {
 			return fmt.Errorf("cloud access policy `%s` with ID `%s` still exists after destroy", policy.Name, policy.ID)
@@ -203,7 +204,7 @@ func testAccCloudAccessPolicyCheckDestroy(region string, a *gapi.CloudAccessPoli
 
 func testAccCloudAccessPolicyTokenCheckDestroy(region string, a *gapi.CloudAccessPolicyToken) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaCloudAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 		token, err := client.CloudAccessPolicyTokenByID(region, a.ID)
 		if err == nil && token.Name != "" {
 			return fmt.Errorf("cloud access policy token `%s` with ID `%s` still exists after destroy", token.Name, token.ID)

@@ -9,15 +9,16 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 )
 
 func TestAccRole(t *testing.T) {
-	CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t)
 
 	var role gapi.Role
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccRoleCheckDestroy(&role),
 		Steps: []resource.TestStep{
 			{
@@ -107,7 +108,7 @@ func testAccRoleCheckExists(rn string, r *gapi.Role) resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		role, err := client.GetRole(rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting role: %s", err)
@@ -121,7 +122,7 @@ func testAccRoleCheckExists(rn string, r *gapi.Role) resource.TestCheckFunc {
 
 func testAccRoleCheckDestroy(r *gapi.Role) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		role, err := client.GetRole(r.UID)
 		if err == nil && role.Name != "" {
 			return fmt.Errorf("role still exists")

@@ -7,11 +7,12 @@ import (
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccDatasourceDashboardBasicID(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var dashboard gapi.Dashboard
 	checks := []resource.TestCheckFunc{
@@ -40,11 +41,11 @@ func TestAccDatasourceDashboardBasicID(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard, 0),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "data-sources/grafana_dashboard/data-source.tf"),
+				Config: testutils.TestAccExample(t, "data-sources/grafana_dashboard/data-source.tf"),
 				Check:  resource.ComposeTestCheckFunc(checks...),
 			},
 		},
@@ -52,14 +53,14 @@ func TestAccDatasourceDashboardBasicID(t *testing.T) {
 }
 
 func TestAccDatasourceDashboardBadExactlyOneOf(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccExample(t, "data-sources/grafana_dashboard/bad-ExactlyOneOf.tf"),
+				Config:      testutils.TestAccExample(t, "data-sources/grafana_dashboard/bad-ExactlyOneOf.tf"),
 				ExpectError: regexp.MustCompile(".*only one of.*can be specified.*"),
 			},
 		},

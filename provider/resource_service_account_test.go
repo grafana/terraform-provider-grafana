@@ -11,15 +11,16 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 )
 
 func TestAccServiceAccount_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=9.1.0")
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
 
 	sa := gapi.ServiceAccountDTO{}
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccServiceAccountCheckDestroy(&sa),
 		Steps: []resource.TestStep{
 			{
@@ -45,12 +46,12 @@ func TestAccServiceAccount_basic(t *testing.T) {
 }
 
 func TestAccServiceAccount_invalid_role(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	sa := gapi.ServiceAccountDTO{}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccServiceAccountCheckDestroy(&sa),
 		Steps: []resource.TestStep{
 			{
@@ -74,7 +75,7 @@ func testAccServiceAccountCheckExists(rn string, a *gapi.ServiceAccountDTO) reso
 		if err != nil {
 			return fmt.Errorf("resource id is malformed")
 		}
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		sas, err := client.GetServiceAccounts()
 		for _, sa := range sas {
 			if sa.ID == id {
@@ -96,7 +97,7 @@ func testAccServiceAccountCheckExists(rn string, a *gapi.ServiceAccountDTO) reso
 
 func testAccServiceAccountCheckDestroy(a *gapi.ServiceAccountDTO) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		sas, err := client.GetServiceAccounts()
 		if err != nil {
 			return err

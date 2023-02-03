@@ -6,20 +6,21 @@ import (
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccOnCallEscalation_basic(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	riName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
 	reType := "wait"
 	reDuration := 300
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccCheckOnCallEscalationResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -39,7 +40,7 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 }
 
 func testAccCheckOnCallEscalationResourceDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*common.Client).OnCallClient
+	client := testutils.Provider.Meta().(*common.Client).OnCallClient
 	for _, r := range s.RootModule().Resources {
 		if r.Type != "grafana_oncall_escalation" {
 			continue
@@ -90,7 +91,7 @@ func testAccCheckOnCallEscalationResourceExists(name string) resource.TestCheckF
 			return fmt.Errorf("No Escalation ID is set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).OnCallClient
+		client := testutils.Provider.Meta().(*common.Client).OnCallClient
 
 		found, _, err := client.Escalations.GetEscalation(rs.Primary.ID, &onCallAPI.GetEscalationOptions{})
 		if err != nil {

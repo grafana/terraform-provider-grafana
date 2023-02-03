@@ -4,11 +4,12 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccDataSourceDashboardsAllAndByFolderID(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	params := url.Values{
 		"limit": {"5000"},
@@ -30,10 +31,10 @@ func TestAccDataSourceDashboardsAllAndByFolderID(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "data-sources/grafana_dashboards/data-source.tf"),
+				Config: testutils.TestAccExample(t, "data-sources/grafana_dashboards/data-source.tf"),
 				Check:  resource.ComposeTestCheckFunc(checks...),
 			},
 		},

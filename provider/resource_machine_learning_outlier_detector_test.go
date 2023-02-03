@@ -8,20 +8,21 @@ import (
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceMachineLearningOutlierDetector(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	var outlier mlapi.OutlierDetector
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccMLOutlierCheckDestroy(&outlier),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "resources/grafana_machine_learning_outlier_detector/mad.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_machine_learning_outlier_detector/mad.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccMLOutlierCheckExists("grafana_machine_learning_outlier_detector.my_mad_outlier_detector", &outlier),
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_outlier_detector.my_mad_outlier_detector", "id"),
@@ -36,7 +37,7 @@ func TestAccResourceMachineLearningOutlierDetector(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccExample(t, "resources/grafana_machine_learning_outlier_detector/dbscan.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_machine_learning_outlier_detector/dbscan.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_outlier_detector.my_dbscan_outlier_detector", "id"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_dbscan_outlier_detector", "name", "My DBSCAN outlier detector"),
@@ -65,7 +66,7 @@ func testAccMLOutlierCheckExists(rn string, outlier *mlapi.OutlierDetector) reso
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).MLAPI
+		client := testutils.Provider.Meta().(*common.Client).MLAPI
 		gotOutlier, err := client.OutlierDetector(context.Background(), rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting outlier: %s", err)
@@ -84,7 +85,7 @@ func testAccMLOutlierCheckDestroy(outlier *mlapi.OutlierDetector) resource.TestC
 		if outlier.ID == "" {
 			return fmt.Errorf("checking deletion of empty id")
 		}
-		client := testAccProvider.Meta().(*common.Client).MLAPI
+		client := testutils.Provider.Meta().(*common.Client).MLAPI
 		_, err := client.OutlierDetector(context.Background(), outlier.ID)
 		if err == nil {
 			return fmt.Errorf("outlier still exists on server")
@@ -174,10 +175,10 @@ resource "grafana_machine_learning_outlier_detector" "invalid" {
 `
 
 func TestAccResourceInvalidMachineLearningOutlierDetector(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      machineLearningOutlierDetectorInvalid,

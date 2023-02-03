@@ -6,18 +6,19 @@ import (
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccOnCallOutgoingWebhook_basic(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	webhookName := fmt.Sprintf("name-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccCheckOnCallOutgoingWebhookResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -31,7 +32,7 @@ func TestAccOnCallOutgoingWebhook_basic(t *testing.T) {
 }
 
 func testAccCheckOnCallOutgoingWebhookResourceDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*common.Client).OnCallClient
+	client := testutils.Provider.Meta().(*common.Client).OnCallClient
 	for _, r := range s.RootModule().Resources {
 		if r.Type != "grafana_oncall_outgoing_webhook" {
 			continue
@@ -68,7 +69,7 @@ func testAccCheckOnCallOutgoingWebhookResourceExists(name string) resource.TestC
 			return fmt.Errorf("No OutgoingWebhook ID is set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).OnCallClient
+		client := testutils.Provider.Meta().(*common.Client).OnCallClient
 
 		found, _, err := client.CustomActions.GetCustomAction(rs.Primary.ID, &onCallAPI.GetCustomActionOptions{})
 		if err != nil {

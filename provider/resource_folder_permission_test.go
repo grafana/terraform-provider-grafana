@@ -5,17 +5,18 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccFolderPermission_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	folderUID := "uninitialized"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccFolderPermissionCheckDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -46,7 +47,7 @@ func testAccFolderPermissionsCheckExists(rn string, folderUID *string) resource.
 			return fmt.Errorf("Resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 
 		gotFolderUID := rs.Primary.ID
 		_, err := client.FolderPermissions(gotFolderUID)
@@ -62,7 +63,7 @@ func testAccFolderPermissionsCheckExists(rn string, folderUID *string) resource.
 
 func testAccFolderPermissionsCheckEmpty(folderUID *string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		permissions, err := client.FolderPermissions(*folderUID)
 		if err != nil {
 			return fmt.Errorf("Error getting folder permissions %s: %s", *folderUID, err)

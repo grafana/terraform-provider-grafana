@@ -9,13 +9,14 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccDataSource_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var dataSource gapi.DataSource
 
@@ -686,7 +687,7 @@ func TestAccDataSource_basic(t *testing.T) {
 
 			// TODO: Make parallelizable
 			resource.Test(t, resource.TestCase{
-				ProviderFactories: testAccProviderFactories,
+				ProviderFactories: testutils.ProviderFactories,
 				CheckDestroy:      testAccDataSourceCheckDestroy(&dataSource),
 				Steps: []resource.TestStep{
 					{
@@ -729,7 +730,7 @@ func TestAccDataSource_basic(t *testing.T) {
 }
 
 func TestDatasourceMigrationV0(t *testing.T) {
-	IsUnitTest(t)
+	testutils.IsUnitTest(t)
 
 	cases := []struct {
 		name     string
@@ -858,12 +859,12 @@ func TestDatasourceMigrationV0(t *testing.T) {
 }
 
 func TestAccDataSource_changeUID(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var dataSource gapi.DataSource
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccDataSourceCheckDestroy(&dataSource),
 		Steps: []resource.TestStep{
 			{
@@ -912,7 +913,7 @@ func testAccDataSourceCheckExists(rn string, dataSource *gapi.DataSource) resour
 			return fmt.Errorf("resource id is malformed")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		gotDataSource, err := client.DataSource(id)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
@@ -926,7 +927,7 @@ func testAccDataSourceCheckExists(rn string, dataSource *gapi.DataSource) resour
 
 func testAccDataSourceCheckDestroy(dataSource *gapi.DataSource) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		_, err := client.DataSource(dataSource.ID)
 		if err == nil {
 			return fmt.Errorf("data source still exists")

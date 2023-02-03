@@ -6,16 +6,17 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccServiceAccountToken_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=9.1.0")
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccServiceAccountTokenCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -35,7 +36,7 @@ func TestAccServiceAccountToken_basic(t *testing.T) {
 }
 
 func testAccServiceAccountTokenCheckDestroy(s *terraform.State) error {
-	c := testAccProvider.Meta().(*common.Client).GrafanaAPI
+	c := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_service_account_token" {

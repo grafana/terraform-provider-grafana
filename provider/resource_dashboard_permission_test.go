@@ -6,19 +6,20 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccDashboardPermission_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=9.0.0") // Dashboard UIDs are only available as references in Grafana 9+
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.0.0") // Dashboard UIDs are only available as references in Grafana 9+
 
 	dashboardUID := ""
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDashboardPermissionConfig_Basic,
@@ -45,13 +46,13 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 // Testing the deprecated case of using a dashboard ID instead of a dashboard UID
 // TODO: Remove in next major version
 func TestAccDashboardPermission_fromDashboardID(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	dashboardID := int64(-1)
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDashboardPermissionConfig_FromID,
@@ -75,7 +76,7 @@ func testAccDashboardPermissionsCheckExistsUID(rn string, dashboardUID *string) 
 			return fmt.Errorf("Resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 
 		gotDashboardUID := rs.Primary.ID
 
@@ -101,7 +102,7 @@ func testAccDashboardPermissionsCheckExists(rn string, dashboardID *int64) resou
 			return fmt.Errorf("Resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 
 		gotDashboardID, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
 		if err != nil {
@@ -121,7 +122,7 @@ func testAccDashboardPermissionsCheckExists(rn string, dashboardID *int64) resou
 
 func testAccDashboardPermissionsCheckEmptyUID(dashboardUID *string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		permissions, err := client.DashboardPermissionsByUID(*dashboardUID)
 		if err != nil {
 			return fmt.Errorf("Error getting dashboard permissions %s: %s", *dashboardUID, err)

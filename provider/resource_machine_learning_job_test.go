@@ -8,20 +8,21 @@ import (
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceMachineLearningJob(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	var job mlapi.Job
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccMLJobCheckDestroy(&job),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "resources/grafana_machine_learning_job/job.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_machine_learning_job/job.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccMLJobCheckExists("grafana_machine_learning_job.test_job", &job),
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_job.test_job", "id"),
@@ -35,7 +36,7 @@ func TestAccResourceMachineLearningJob(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccExample(t, "resources/grafana_machine_learning_job/datasource_uid_job.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_machine_learning_job/datasource_uid_job.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_job.test_job", "id"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "name", "Test Job"),
@@ -48,7 +49,7 @@ func TestAccResourceMachineLearningJob(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccExample(t, "resources/grafana_machine_learning_job/tuned_job.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_machine_learning_job/tuned_job.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_job.test_job", "id"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "name", "Test Job"),
@@ -63,7 +64,7 @@ func TestAccResourceMachineLearningJob(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccExample(t, "resources/grafana_machine_learning_job/holidays_job.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_machine_learning_job/holidays_job.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_job.test_job", "id"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "name", "Test Job"),
@@ -91,7 +92,7 @@ func testAccMLJobCheckExists(rn string, job *mlapi.Job) resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).MLAPI
+		client := testutils.Provider.Meta().(*common.Client).MLAPI
 		gotJob, err := client.Job(context.Background(), rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting job: %s", err)
@@ -110,7 +111,7 @@ func testAccMLJobCheckDestroy(job *mlapi.Job) resource.TestCheckFunc {
 		if job.ID == "" {
 			return fmt.Errorf("checking deletion of empty id")
 		}
-		client := testAccProvider.Meta().(*common.Client).MLAPI
+		client := testutils.Provider.Meta().(*common.Client).MLAPI
 		_, err := client.Job(context.Background(), job.ID)
 		if err == nil {
 			return fmt.Errorf("job still exists on server")
@@ -143,10 +144,10 @@ resource "grafana_machine_learning_job" "invalid" {
 `
 
 func TestAccResourceInvalidMachineLearningJob(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      machineLearningJobInvalid,

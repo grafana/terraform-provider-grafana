@@ -3,11 +3,12 @@ package provider
 import (
 	"testing"
 
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccDatasourceUsers(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	checks := []resource.TestCheckFunc{
 		// Let's not test the number of users found as due to the test concurrency we might not find the expected value
@@ -24,10 +25,10 @@ func TestAccDatasourceUsers(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "data-sources/grafana_users/data-source.tf"),
+				Config: testutils.TestAccExample(t, "data-sources/grafana_users/data-source.tf"),
 				Check:  resource.ComposeTestCheckFunc(checks...),
 			},
 		},

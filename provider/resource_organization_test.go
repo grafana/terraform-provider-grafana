@@ -7,18 +7,19 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccOrganization_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var org gapi.Org
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{
 			{
@@ -66,13 +67,13 @@ func TestAccOrganization_basic(t *testing.T) {
 }
 
 func TestAccOrganization_users(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var org gapi.Org
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{
 			{
@@ -134,13 +135,13 @@ func TestAccOrganization_users(t *testing.T) {
 }
 
 func TestAccOrganization_createManyUsers(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var org gapi.Org
 
 	// Don't make this test parallel, it's already creating 1000+ users
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{
 			{Config: testAccOrganizationConfig_usersCreateMany_1},
@@ -161,13 +162,13 @@ func TestAccOrganization_createManyUsers(t *testing.T) {
 }
 
 func TestAccOrganization_defaultAdmin(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var org gapi.Org
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{
 			{
@@ -223,12 +224,12 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 }
 
 func TestAccOrganization_externalUser(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var org gapi.Org
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{
 			{
@@ -274,7 +275,7 @@ func testAccOrganizationCheckExists(rn string, a *gapi.Org) resource.TestCheckFu
 			return fmt.Errorf("resource id is malformed")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		org, err := client.Org(id)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
@@ -288,7 +289,7 @@ func testAccOrganizationCheckExists(rn string, a *gapi.Org) resource.TestCheckFu
 
 func testAccOrganizationCheckDestroy(a *gapi.Org) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		org, err := client.Org(a.ID)
 		if err == nil && org.Name != "" {
 			return fmt.Errorf("organization still exists")

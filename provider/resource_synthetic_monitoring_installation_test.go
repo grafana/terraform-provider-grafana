@@ -4,12 +4,13 @@ import (
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccSyntheticMonitoringInstallation(t *testing.T) {
-	CheckCloudAPITestsEnabled(t)
+	testutils.CheckCloudAPITestsEnabled(t)
 
 	var stack gapi.Stack
 	stackPrefix := "tfsminstalltest"
@@ -21,7 +22,7 @@ func TestAccSyntheticMonitoringInstallation(t *testing.T) {
 	apiKeyName := apiKeyPrefix + acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{

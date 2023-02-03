@@ -6,23 +6,24 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccNotificationPolicy_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=9.1.0")
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
 
 	// TODO: Make parallizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: testNotifPolicyCheckDestroy(),
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
-				Config: testAccExample(t, "resources/grafana_notification_policy/resource.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_notification_policy/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testNotifPolicyCheckExists("grafana_notification_policy.my_notification_policy"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "contact_point", "A Contact Point"),
@@ -66,7 +67,7 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 			},
 			// Test update.
 			{
-				Config: testAccExampleWithReplace(t, "resources/grafana_notification_policy/resource.tf", map[string]string{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_notification_policy/resource.tf", map[string]string{
 					"...": "alertname",
 				}),
 				Check: resource.ComposeTestCheckFunc(
@@ -82,7 +83,7 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 
 func testNotifPolicyCheckDestroy() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		npt, err := client.NotificationPolicyTree()
 		if err != nil {
 			return fmt.Errorf("failed to get notification policies")
@@ -106,7 +107,7 @@ func testNotifPolicyCheckExists(rname string) resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		npt, err := client.NotificationPolicyTree()
 		if err != nil {
 			return fmt.Errorf("failed to get notification policies")
