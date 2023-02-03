@@ -18,7 +18,7 @@ func TestAccResourceMachineLearningOutlierDetector(t *testing.T) {
 
 	var outlier mlapi.OutlierDetector
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccMLOutlierCheckDestroy(&outlier),
 		Steps: []resource.TestStep{
 			{
@@ -66,7 +66,7 @@ func testAccMLOutlierCheckExists(rn string, outlier *mlapi.OutlierDetector) reso
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).MLAPI
+		client := testutils.Provider.Meta().(*common.Client).MLAPI
 		gotOutlier, err := client.OutlierDetector(context.Background(), rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting outlier: %s", err)
@@ -85,7 +85,7 @@ func testAccMLOutlierCheckDestroy(outlier *mlapi.OutlierDetector) resource.TestC
 		if outlier.ID == "" {
 			return fmt.Errorf("checking deletion of empty id")
 		}
-		client := testAccProvider.Meta().(*common.Client).MLAPI
+		client := testutils.Provider.Meta().(*common.Client).MLAPI
 		_, err := client.OutlierDetector(context.Background(), outlier.ID)
 		if err == nil {
 			return fmt.Errorf("outlier still exists on server")
@@ -178,7 +178,7 @@ func TestAccResourceInvalidMachineLearningOutlierDetector(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      machineLearningOutlierDetectorInvalid,

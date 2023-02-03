@@ -16,7 +16,7 @@ func TestAccDataSourceOnCallSchedule_Basic(t *testing.T) {
 	scheduleName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccDataSourceOnCallScheduleConfig(scheduleName),

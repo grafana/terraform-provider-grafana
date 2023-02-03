@@ -18,7 +18,7 @@ func TestAccMuteTiming_basic(t *testing.T) {
 	var mt gapi.MuteTiming
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: testMuteTimingCheckDestroy(&mt),
 		Steps: []resource.TestStep{
@@ -80,7 +80,7 @@ func testMuteTimingCheckExists(rname string, timing *gapi.MuteTiming) resource.T
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		mt, err := client.MuteTiming(resource.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting resource: %w", err)
@@ -92,7 +92,7 @@ func testMuteTimingCheckExists(rname string, timing *gapi.MuteTiming) resource.T
 
 func testMuteTimingCheckDestroy(timing *gapi.MuteTiming) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		mt, err := client.MuteTiming(timing.Name)
 		if err == nil && mt.Name != "" {
 			return fmt.Errorf("mute timing still exists on the server")

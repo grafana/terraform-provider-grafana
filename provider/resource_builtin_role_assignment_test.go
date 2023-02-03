@@ -29,7 +29,7 @@ func TestAccBuiltInRoleAssignment(t *testing.T) {
 	var assignments map[string][]*gapi.Role
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccBuiltInRoleAssignmentCheckDestroy(&assignments, []string{roleUID3, roleUID4}, nil),
 		Steps: []resource.TestStep{
 			{
@@ -66,7 +66,7 @@ func TestAccBuiltInRoleAssignmentUpdate(t *testing.T) {
 	var assignments map[string][]*gapi.Role
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccBuiltInRoleAssignmentCheckDestroy(&assignments, []string{roleUID5, roleUID6}, []string{roleUID1, roleUID2}),
 		Steps: []resource.TestStep{
 			{
@@ -123,7 +123,7 @@ func TestAccBuiltInRoleAssignmentUpdate(t *testing.T) {
 }
 
 func prepareDefaultAssignments() error {
-	client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+	client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 	r1 := gapi.Role{
 		UID:     roleUID1,
 		Version: 1,
@@ -179,7 +179,7 @@ func prepareDefaultAssignments() error {
 
 func testAccBuiltInRoleAssignmentWereNotDestroyed(brName string, roleUIDs ...string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		assignments, err := client.GetBuiltInRoleAssignments()
 		if err != nil || assignments[brName] == nil {
 			return fmt.Errorf("built-in assignments were destroyed, but expected to exist: %v", err)
@@ -199,7 +199,7 @@ func testAccBuiltInRoleAssignmentCheckExists(rn string, brAssignments *map[strin
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		assignments, err := client.GetBuiltInRoleAssignments()
 		if err != nil || assignments[rs.Primary.ID] == nil {
 			return fmt.Errorf("error getting built-in role assignments: %s", err)
@@ -214,7 +214,7 @@ func testAccBuiltInRoleAssignmentCheckExists(rn string, brAssignments *map[strin
 
 func testAccBuiltInRoleAssignmentCheckDestroy(brAssignments *map[string][]*gapi.Role, destroyedUIDs []string, preservedRoleUIDs []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		bra, err := client.GetBuiltInRoleAssignments()
 		if err != nil {
 			return fmt.Errorf("error getting built-in role assignments: %s", err)

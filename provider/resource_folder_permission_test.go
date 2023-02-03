@@ -16,7 +16,7 @@ func TestAccFolderPermission_basic(t *testing.T) {
 	folderUID := "uninitialized"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccFolderPermissionCheckDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -47,7 +47,7 @@ func testAccFolderPermissionsCheckExists(rn string, folderUID *string) resource.
 			return fmt.Errorf("Resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 
 		gotFolderUID := rs.Primary.ID
 		_, err := client.FolderPermissions(gotFolderUID)
@@ -63,7 +63,7 @@ func testAccFolderPermissionsCheckExists(rn string, folderUID *string) resource.
 
 func testAccFolderPermissionsCheckEmpty(folderUID *string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		permissions, err := client.FolderPermissions(*folderUID)
 		if err != nil {
 			return fmt.Errorf("Error getting folder permissions %s: %s", *folderUID, err)

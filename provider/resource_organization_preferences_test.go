@@ -55,7 +55,7 @@ func testAccResourceOrganizationPreferences(t *testing.T, withUID bool) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccOrganizationPreferencesCheckDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -110,7 +110,7 @@ func testAccOrganizationPreferencesCheckExists(rn string, prefs gapi.Preferences
 		if err != nil {
 			return fmt.Errorf("error parsing org_id: %s", err)
 		}
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI.WithOrgID(id)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(id)
 		p, err := client.OrgPreferences()
 		if err != nil {
 			return fmt.Errorf("error getting organization preferences: %s", err)
@@ -137,7 +137,7 @@ func testAccOrganizationPreferencesCheckExists(rn string, prefs gapi.Preferences
 
 func testAccOrganizationPreferencesCheckDestroy() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		prefs, err := client.OrgPreferences()
 		if err != nil {
 			return err

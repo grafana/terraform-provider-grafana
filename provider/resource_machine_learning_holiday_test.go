@@ -18,7 +18,7 @@ func TestAccResourceMachineLearningHoliday(t *testing.T) {
 
 	var holiday mlapi.Holiday
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccMLHolidayCheckDestroy(&holiday),
 		Steps: []resource.TestStep{
 			{
@@ -52,7 +52,7 @@ func testAccMLHolidayCheckExists(rn string, holiday *mlapi.Holiday) resource.Tes
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).MLAPI
+		client := testutils.Provider.Meta().(*common.Client).MLAPI
 		gotHoliday, err := client.Holiday(context.Background(), rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting holiday: %s", err)
@@ -71,7 +71,7 @@ func testAccMLHolidayCheckDestroy(holiday *mlapi.Holiday) resource.TestCheckFunc
 		if holiday.ID == "" {
 			return fmt.Errorf("checking deletion of empty id")
 		}
-		client := testAccProvider.Meta().(*common.Client).MLAPI
+		client := testutils.Provider.Meta().(*common.Client).MLAPI
 		_, err := client.Holiday(context.Background(), holiday.ID)
 		if err == nil {
 			return fmt.Errorf("holiday still exists on server")
@@ -108,7 +108,7 @@ func TestAccResourceInvalidMachineLearningHoliday(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      machineLearningHolidayInvalid,

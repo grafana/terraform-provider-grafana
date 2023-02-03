@@ -19,7 +19,7 @@ func TestAccDatasourceCloudOrganization_Basic(t *testing.T) {
 	`, os.Getenv("GRAFANA_CLOUD_ORG"))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

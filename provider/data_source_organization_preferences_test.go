@@ -23,7 +23,7 @@ func TestAccDatasourceOrganizationPreferences(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_organization_preferences/data-source.tf"),

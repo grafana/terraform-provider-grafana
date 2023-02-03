@@ -33,7 +33,7 @@ func TestAccDatasourceFolders(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccFolderCheckDestroy(&folderA),
 			testAccFolderCheckDestroy(&folderB),

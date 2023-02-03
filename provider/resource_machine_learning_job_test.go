@@ -18,7 +18,7 @@ func TestAccResourceMachineLearningJob(t *testing.T) {
 
 	var job mlapi.Job
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccMLJobCheckDestroy(&job),
 		Steps: []resource.TestStep{
 			{
@@ -92,7 +92,7 @@ func testAccMLJobCheckExists(rn string, job *mlapi.Job) resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).MLAPI
+		client := testutils.Provider.Meta().(*common.Client).MLAPI
 		gotJob, err := client.Job(context.Background(), rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting job: %s", err)
@@ -111,7 +111,7 @@ func testAccMLJobCheckDestroy(job *mlapi.Job) resource.TestCheckFunc {
 		if job.ID == "" {
 			return fmt.Errorf("checking deletion of empty id")
 		}
-		client := testAccProvider.Meta().(*common.Client).MLAPI
+		client := testutils.Provider.Meta().(*common.Client).MLAPI
 		_, err := client.Job(context.Background(), job.ID)
 		if err == nil {
 			return fmt.Errorf("job still exists on server")
@@ -147,7 +147,7 @@ func TestAccResourceInvalidMachineLearningJob(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      machineLearningJobInvalid,

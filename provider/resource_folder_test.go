@@ -24,7 +24,7 @@ func TestAccFolder_basic(t *testing.T) {
 	var folderWithUID gapi.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccFolderCheckDestroy(&folder),
 			testAccFolderCheckDestroy(&folderWithUID),
@@ -121,7 +121,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 			var name = acctest.RandomWithPrefix(tc.role + "-key")
 
 			// Create an API key with the correct role and inject it in envvars. This auth will be used when the test runs
-			client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+			client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 			key, err := client.CreateAPIKey(gapi.CreateAPIKeyRequest{
 				Name: name,
 				Role: tc.role,
@@ -141,7 +141,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 
 			// Do not make parallel, fiddling with auth will break other tests that run in parallel
 			resource.Test(t, resource.TestCase{
-				ProviderFactories: testAccProviderFactories,
+				ProviderFactories: testutils.ProviderFactories,
 				CheckDestroy: resource.ComposeTestCheckFunc(
 					testAccFolderCheckDestroy(&folder),
 				),
@@ -187,7 +187,7 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
 		if err != nil {
 			return err
@@ -209,7 +209,7 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 
 func testAccFolderCheckDestroy(folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		_, err := getFolderByID(client, folder.ID)
 		if err == nil {
 			return fmt.Errorf("folder still exists")

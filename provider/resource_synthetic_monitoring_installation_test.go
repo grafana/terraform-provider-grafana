@@ -22,7 +22,7 @@ func TestAccSyntheticMonitoringInstallation(t *testing.T) {
 	apiKeyName := apiKeyPrefix + acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{

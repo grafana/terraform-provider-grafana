@@ -31,7 +31,7 @@ func TestAccDatasourceFolder(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccFolderCheckDestroy(&folder),
 		Steps: []resource.TestStep{
 			{

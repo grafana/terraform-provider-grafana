@@ -20,7 +20,7 @@ func TestAccDatasourceCloudStack_Basic(t *testing.T) {
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
 		},
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{

@@ -6,7 +6,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/provider/common"
@@ -16,25 +15,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-// testAccProviderFactories is a static map containing only the main provider instance
-var testAccProviderFactories map[string]func() (*schema.Provider, error)
-
-// testAccProvider is the "main" provider instance
-//
-// This Provider can be used in testing code for API calls without requiring
-// the use of saving and referencing specific ProviderFactories instances.
-//
-// It is configured within the accTestsEnabled function (if acceptance tests are enabled)
-// testAccProviderConfigure is used to make sure that we only configure the provider once
-var testAccProvider *schema.Provider
-var testAccProviderConfigure sync.Once
-
 func init() {
-	testAccProvider = Provider("testacc")()
+	testutils.Provider = Provider("testacc")()
 
 	// Always allocate a new provider instance each invocation, otherwise gRPC
 	// ProviderConfigure() can overwrite configuration during concurrent testing.
-	testAccProviderFactories = map[string]func() (*schema.Provider, error){
+	testutils.ProviderFactories = map[string]func() (*schema.Provider, error){
 		"grafana": func() (*schema.Provider, error) {
 			return Provider("testacc")(), nil
 		},
@@ -42,14 +28,12 @@ func init() {
 
 	// If any acceptance tests are enabled, the test provider must be configured
 	if testutils.AccTestsEnabled("TF_ACC") {
-		testAccProviderConfigure.Do(func() {
-			// Since we are outside the scope of the Terraform configuration we must
-			// call Configure() to properly initialize the provider configuration.
-			err := testAccProvider.Configure(context.Background(), terraform.NewResourceConfigRaw(nil))
-			if err != nil {
-				panic(fmt.Sprintf("failed to configure provider: %v", err))
-			}
-		})
+		// Since we are outside the scope of the Terraform configuration we must
+		// call Configure() to properly initialize the provider configuration.
+		err := testutils.Provider.Configure(context.Background(), terraform.NewResourceConfigRaw(nil))
+		if err != nil {
+			panic(fmt.Sprintf("failed to configure provider: %v", err))
+		}
 	}
 }
 

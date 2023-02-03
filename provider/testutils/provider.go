@@ -10,7 +10,22 @@ import (
 	"testing"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+// ProviderFactories is a static map containing only the main provider instance
+// It is configured from the main provider package when the test suite is initialized
+// but it is used in tests of every package
+var ProviderFactories map[string]func() (*schema.Provider, error)
+
+// Provider is the "main" provider instance
+//
+// This Provider can be used in testing code for API calls without requiring
+// the use of saving and referencing specific ProviderFactories instances.
+//
+// It is configured from the main provider package when the test suite is initialized
+// but it is used in tests of every package
+var Provider *schema.Provider
 
 // TestAccExample returns an example config from the examples directory.
 // Examples are used for both documentation and acceptance tests.

@@ -21,7 +21,7 @@ func TestAccResourceCloudPluginInstallation(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() { testAccCloudPluginDeleteExisting(t, slug, pluginSlug) },
 
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGrafanaCloudPluginInstallation(slug, pluginSlug, pluginVersion),
@@ -53,7 +53,7 @@ func testAccCloudPluginInstallationCheckExists(rn string, stackSlug string, plug
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaCloudAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 		_, err := client.GetCloudPluginInstallation(stackSlug, pluginSlug)
 		if err != nil {
 			return fmt.Errorf("error getting installation: %s", err)
@@ -65,7 +65,7 @@ func testAccCloudPluginInstallationCheckExists(rn string, stackSlug string, plug
 
 func testAccCloudPluginInstallationDestroy(stackSlug string, pluginSlug string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaCloudAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 
 		installation, err := client.GetCloudPluginInstallation(stackSlug, pluginSlug)
 		if err == nil {
@@ -77,7 +77,7 @@ func testAccCloudPluginInstallationDestroy(stackSlug string, pluginSlug string) 
 }
 
 func testAccCloudPluginDeleteExisting(t *testing.T, instanceSlug, pluginSlug string) {
-	client := testAccProvider.Meta().(*common.Client).GrafanaCloudAPI
+	client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 	installed, err := client.IsCloudPluginInstalled(instanceSlug, pluginSlug)
 	if err != nil {
 		t.Fatalf("error checking if plugin is installed: %s", err)

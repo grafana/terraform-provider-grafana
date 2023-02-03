@@ -19,7 +19,7 @@ func TestAccOnCallOnCallShift_basic(t *testing.T) {
 	shiftName := fmt.Sprintf("shift-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccCheckOnCallOnCallShiftResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -33,7 +33,7 @@ func TestAccOnCallOnCallShift_basic(t *testing.T) {
 }
 
 func testAccCheckOnCallOnCallShiftResourceDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*common.Client).OnCallClient
+	client := testutils.Provider.Meta().(*common.Client).OnCallClient
 	for _, r := range s.RootModule().Resources {
 		if r.Type != "grafana_oncall_on_call_shift" {
 			continue
@@ -78,7 +78,7 @@ func testAccCheckOnCallOnCallShiftResourceExists(name string) resource.TestCheck
 			return fmt.Errorf("No OnCallShift ID is set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).OnCallClient
+		client := testutils.Provider.Meta().(*common.Client).OnCallClient
 
 		found, _, err := client.OnCallShifts.GetOnCallShift(rs.Primary.ID, &onCallAPI.GetOnCallShiftOptions{})
 		if err != nil {

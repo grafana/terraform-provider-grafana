@@ -31,7 +31,7 @@ func TestAccDataSourceDashboardsAllAndByFolderID(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_dashboards/data-source.tf"),

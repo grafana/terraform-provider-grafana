@@ -18,7 +18,7 @@ func TestAccResourceReport(t *testing.T) {
 	var report gapi.Report
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccReportCheckDestroy(&report),
 		Steps: []resource.TestStep{
 			{
@@ -103,7 +103,7 @@ func TestAccResourceReport_CreateFromDashboardID(t *testing.T) {
 	var report gapi.Report
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccReportCheckDestroy(&report),
 		Steps: []resource.TestStep{
 			{
@@ -129,7 +129,7 @@ func testAccReportCheckExists(rn string, report *gapi.Report) resource.TestCheck
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
 		if err != nil {
 			return err
@@ -151,7 +151,7 @@ func testAccReportCheckExists(rn string, report *gapi.Report) resource.TestCheck
 
 func testAccReportCheckDestroy(report *gapi.Report) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		_, err := client.Report(report.ID)
 		if err == nil {
 			return fmt.Errorf("report still exists")

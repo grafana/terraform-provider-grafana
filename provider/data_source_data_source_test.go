@@ -32,7 +32,7 @@ func TestAccDatasourceDatasource(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccDataSourceCheckDestroy(&dataSource),
 		Steps: []resource.TestStep{
 			{

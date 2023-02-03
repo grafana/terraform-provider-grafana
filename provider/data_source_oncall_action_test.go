@@ -16,7 +16,7 @@ func TestAccDataSourceOnCallAction_Basic(t *testing.T) {
 	actionName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccDataSourceOnCallActionConfig(actionName),

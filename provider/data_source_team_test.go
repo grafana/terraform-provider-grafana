@@ -23,7 +23,7 @@ func TestAccDatasourceTeam(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccTeamCheckDestroy(&team),
 		Steps: []resource.TestStep{
 			{

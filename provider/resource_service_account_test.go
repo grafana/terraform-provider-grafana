@@ -20,7 +20,7 @@ func TestAccServiceAccount_basic(t *testing.T) {
 
 	sa := gapi.ServiceAccountDTO{}
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccServiceAccountCheckDestroy(&sa),
 		Steps: []resource.TestStep{
 			{
@@ -51,7 +51,7 @@ func TestAccServiceAccount_invalid_role(t *testing.T) {
 	sa := gapi.ServiceAccountDTO{}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccServiceAccountCheckDestroy(&sa),
 		Steps: []resource.TestStep{
 			{
@@ -75,7 +75,7 @@ func testAccServiceAccountCheckExists(rn string, a *gapi.ServiceAccountDTO) reso
 		if err != nil {
 			return fmt.Errorf("resource id is malformed")
 		}
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		sas, err := client.GetServiceAccounts()
 		for _, sa := range sas {
 			if sa.ID == id {
@@ -97,7 +97,7 @@ func testAccServiceAccountCheckExists(rn string, a *gapi.ServiceAccountDTO) reso
 
 func testAccServiceAccountCheckDestroy(a *gapi.ServiceAccountDTO) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		sas, err := client.GetServiceAccounts()
 		if err != nil {
 			return err

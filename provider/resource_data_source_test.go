@@ -687,7 +687,7 @@ func TestAccDataSource_basic(t *testing.T) {
 
 			// TODO: Make parallelizable
 			resource.Test(t, resource.TestCase{
-				ProviderFactories: testAccProviderFactories,
+				ProviderFactories: testutils.ProviderFactories,
 				CheckDestroy:      testAccDataSourceCheckDestroy(&dataSource),
 				Steps: []resource.TestStep{
 					{
@@ -864,7 +864,7 @@ func TestAccDataSource_changeUID(t *testing.T) {
 	var dataSource gapi.DataSource
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccDataSourceCheckDestroy(&dataSource),
 		Steps: []resource.TestStep{
 			{
@@ -913,7 +913,7 @@ func testAccDataSourceCheckExists(rn string, dataSource *gapi.DataSource) resour
 			return fmt.Errorf("resource id is malformed")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		gotDataSource, err := client.DataSource(id)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
@@ -927,7 +927,7 @@ func testAccDataSourceCheckExists(rn string, dataSource *gapi.DataSource) resour
 
 func testAccDataSourceCheckDestroy(dataSource *gapi.DataSource) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		_, err := client.DataSource(dataSource.ID)
 		if err == nil {
 			return fmt.Errorf("data source still exists")

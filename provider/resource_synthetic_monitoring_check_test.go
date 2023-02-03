@@ -17,7 +17,7 @@ func TestAccResourceSyntheticMonitoringCheck_dns(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/dns_basic.tf"),
@@ -69,7 +69,7 @@ func TestAccResourceSyntheticMonitoringCheck_http(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf"),
@@ -128,7 +128,7 @@ func TestAccResourceSyntheticMonitoringCheck_ping(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/ping_basic.tf"),
@@ -166,7 +166,7 @@ func TestAccResourceSyntheticMonitoringCheck_tcp(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/tcp_basic.tf"),
@@ -212,7 +212,7 @@ func TestAccResourceSyntheticMonitoringCheck_traceroute(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/traceroute_basic.tf"),
@@ -253,14 +253,14 @@ func TestAccResourceSyntheticMonitoringCheck_recreate(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf"),
 				Check: func(s *terraform.State) error {
 					rs := s.RootModule().Resources["grafana_synthetic_monitoring_check.http"]
 					id, _ := strconv.ParseInt(rs.Primary.ID, 10, 64)
-					return testAccProvider.Meta().(*common.Client).SMAPI.DeleteCheck(context.Background(), id)
+					return testutils.Provider.Meta().(*common.Client).SMAPI.DeleteCheck(context.Background(), id)
 				},
 				ExpectNonEmptyPlan: true,
 			},
@@ -286,7 +286,7 @@ func TestAccResourceSyntheticMonitoringCheck_noSettings(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceSyntheticMonitoringCheck_noSettings,
@@ -301,7 +301,7 @@ func TestAccResourceSyntheticMonitoringCheck_multiple(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceSyntheticMonitoringCheck_multiple,

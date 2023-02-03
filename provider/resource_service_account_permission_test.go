@@ -20,7 +20,7 @@ func TestAccServiceAccountPermission(t *testing.T) {
 	var saPermission gapi.ServiceAccountPermission
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testAccProviderFactories,
+		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccServiceAccountPermissionsCheckDestroy(saPermission.ID),
 		Steps: []resource.TestStep{
 			{
@@ -54,7 +54,7 @@ func testServiceAccountPermissionsCheckExists(rn string, saPerm *gapi.ServiceAcc
 			return fmt.Errorf("resource id is malformed")
 		}
 
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		perms, err := client.GetServiceAccountPermissions(id)
 		if err != nil {
 			return fmt.Errorf("error getting role assignments: %s", err)
@@ -70,7 +70,7 @@ func testServiceAccountPermissionsCheckExists(rn string, saPerm *gapi.ServiceAcc
 
 func testAccServiceAccountPermissionsCheckDestroy(id int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		saPerms, err := client.GetServiceAccountPermissions(id)
 		if err != nil {
 			return err
