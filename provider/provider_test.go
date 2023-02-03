@@ -35,6 +35,9 @@ func init() {
 			panic(fmt.Sprintf("failed to configure provider: %v", err))
 		}
 	}
+
+	// Release the provider lock to allow testing in all packages
+	testutils.ProviderWaitGroup.Done()
 }
 
 func TestProvider(t *testing.T) {

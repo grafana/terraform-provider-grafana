@@ -22,6 +22,9 @@ import (
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/machinelearning"
+	"github.com/grafana/terraform-provider-grafana/provider/oncall"
+	"github.com/grafana/terraform-provider-grafana/provider/syntheticmonitoring"
 )
 
 var (
@@ -78,15 +81,15 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_user":                       ResourceUser(),
 
 			// Machine Learning
-			"grafana_machine_learning_job":              ResourceMachineLearningJob(),
-			"grafana_machine_learning_holiday":          ResourceMachineLearningHoliday(),
-			"grafana_machine_learning_outlier_detector": ResourceMachineLearningOutlierDetector(),
+			"grafana_machine_learning_job":              machinelearning.ResourceJob(),
+			"grafana_machine_learning_holiday":          machinelearning.ResourceHoliday(),
+			"grafana_machine_learning_outlier_detector": machinelearning.ResourceOutlierDetector(),
 		})
 
 		// Resources that require the Synthetic Monitoring client to exist.
 		smClientResources = addResourcesMetadataValidation(smClientPresent, map[string]*schema.Resource{
-			"grafana_synthetic_monitoring_check": ResourceSyntheticMonitoringCheck(),
-			"grafana_synthetic_monitoring_probe": ResourceSyntheticMonitoringProbe(),
+			"grafana_synthetic_monitoring_check": syntheticmonitoring.ResourceCheck(),
+			"grafana_synthetic_monitoring_probe": syntheticmonitoring.ResourceProbe(),
 		})
 
 		// Resources that require the Cloud client to exist.
@@ -100,13 +103,13 @@ func Provider(version string) func() *schema.Provider {
 
 		// Resources that require the OnCall client to exist.
 		onCallClientResources = addResourcesMetadataValidation(onCallClientPresent, map[string]*schema.Resource{
-			"grafana_oncall_integration":      ResourceOnCallIntegration(),
-			"grafana_oncall_route":            ResourceOnCallRoute(),
-			"grafana_oncall_escalation_chain": ResourceOnCallEscalationChain(),
-			"grafana_oncall_escalation":       ResourceOnCallEscalation(),
-			"grafana_oncall_on_call_shift":    ResourceOnCallOnCallShift(),
-			"grafana_oncall_schedule":         ResourceOnCallSchedule(),
-			"grafana_oncall_outgoing_webhook": ResourceOnCallOutgoingWebhook(),
+			"grafana_oncall_integration":      oncall.ResourceIntegration(),
+			"grafana_oncall_route":            oncall.ResourceRoute(),
+			"grafana_oncall_escalation_chain": oncall.ResourceEscalationChain(),
+			"grafana_oncall_escalation":       oncall.ResourceEscalation(),
+			"grafana_oncall_on_call_shift":    oncall.ResourceOnCallShift(),
+			"grafana_oncall_schedule":         oncall.ResourceSchedule(),
+			"grafana_oncall_outgoing_webhook": oncall.ResourceOutgoingWebhook(),
 		})
 
 		// Datasources that require the Grafana client to exist.
@@ -126,8 +129,8 @@ func Provider(version string) func() *schema.Provider {
 
 		// Datasources that require the Synthetic Monitoring client to exist.
 		smClientDatasources = addResourcesMetadataValidation(smClientPresent, map[string]*schema.Resource{
-			"grafana_synthetic_monitoring_probe":  DatasourceSyntheticMonitoringProbe(),
-			"grafana_synthetic_monitoring_probes": DatasourceSyntheticMonitoringProbes(),
+			"grafana_synthetic_monitoring_probe":  syntheticmonitoring.DataSourceProbe(),
+			"grafana_synthetic_monitoring_probes": syntheticmonitoring.DataSourceProbes(),
 		})
 
 		// Datasources that require the Cloud client to exist.
@@ -139,14 +142,14 @@ func Provider(version string) func() *schema.Provider {
 
 		// Datasources that require the OnCall client to exist.
 		onCallClientDatasources = addResourcesMetadataValidation(onCallClientPresent, map[string]*schema.Resource{
-			"grafana_oncall_user":             DataSourceOnCallUser(),
-			"grafana_oncall_escalation_chain": DataSourceOnCallEscalationChain(),
-			"grafana_oncall_schedule":         DataSourceOnCallSchedule(),
-			"grafana_oncall_slack_channel":    DataSourceOnCallSlackChannel(),
-			"grafana_oncall_action":           DataSourceOnCallAction(), // deprecated
-			"grafana_oncall_outgoing_webhook": DataSourceOnCallOutgoingWebhook(),
-			"grafana_oncall_user_group":       DataSourceOnCallUserGroup(),
-			"grafana_oncall_team":             DataSourceOnCallTeam(),
+			"grafana_oncall_user":             oncall.DataSourceUser(),
+			"grafana_oncall_escalation_chain": oncall.DataSourceEscalationChain(),
+			"grafana_oncall_schedule":         oncall.DataSourceSchedule(),
+			"grafana_oncall_slack_channel":    oncall.DataSourceSlackChannel(),
+			"grafana_oncall_action":           oncall.DataSourceAction(), // deprecated
+			"grafana_oncall_outgoing_webhook": oncall.DataSourceOutgoingWebhook(),
+			"grafana_oncall_user_group":       oncall.DataSourceUserGroup(),
+			"grafana_oncall_team":             oncall.DataSourceTeam(),
 		})
 	)
 
@@ -270,7 +273,7 @@ func Provider(version string) func() *schema.Provider {
 					// Special case, this resource supports both Grafana and Cloud (depending on context)
 					"grafana_api_key": ResourceAPIKey(),
 					// This one installs SM on a cloud instance, everything it needs is in its attributes
-					"grafana_synthetic_monitoring_installation": ResourceSyntheticMonitoringInstallation(),
+					"grafana_synthetic_monitoring_installation": ResourceInstallation(),
 				},
 				grafanaClientResources,
 				smClientResources,

@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/Masterminds/semver/v3"
@@ -26,6 +27,14 @@ var ProviderFactories map[string]func() (*schema.Provider, error)
 // It is configured from the main provider package when the test suite is initialized
 // but it is used in tests of every package
 var Provider *schema.Provider
+
+// ProviderWaitGroup is a WaitGroup that is used to wait for the provider to be initialized
+// The provider is initialized in the main package, but tests are run in every package
+var ProviderWaitGroup sync.WaitGroup
+
+func init() {
+	ProviderWaitGroup.Add(1)
+}
 
 // TestAccExample returns an example config from the examples directory.
 // Examples are used for both documentation and acceptance tests.

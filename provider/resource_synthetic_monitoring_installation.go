@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceSyntheticMonitoringInstallation() *schema.Resource {
+func ResourceInstallation() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
@@ -22,8 +22,8 @@ This resource cannot be imported but it can be used on an existing Synthetic Mon
 * [Official documentation](https://grafana.com/docs/grafana-cloud/synthetic-monitoring/installation/)
 * [API documentation](https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#apiv1registerinstall)
 `,
-		CreateContext: ResourceSyntheticMonitoringInstallationCreate,
-		DeleteContext: ResourceSyntheticMonitoringInstallationDelete,
+		CreateContext: ResourceInstallationCreate,
+		DeleteContext: ResourceInstallationDelete,
 
 		ReadContext: func(ctx context.Context, rd *schema.ResourceData, i interface{}) diag.Diagnostics { return nil },
 		Schema: map[string]*schema.Schema{
@@ -61,7 +61,7 @@ This resource cannot be imported but it can be used on an existing Synthetic Mon
 	}
 }
 
-func ResourceSyntheticMonitoringInstallationCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ResourceInstallationCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := SMAPI.NewClient(meta.(*common.Client).SMAPIURL, "", nil)
 	stackID, metricsID, logsID := d.Get("stack_id").(int), d.Get("metrics_instance_id").(int), d.Get("logs_instance_id").(int)
 	resp, err := c.Install(ctx, int64(stackID), int64(metricsID), int64(logsID), d.Get("metrics_publisher_key").(string))
@@ -75,7 +75,7 @@ func ResourceSyntheticMonitoringInstallationCreate(ctx context.Context, d *schem
 
 // Management of the installation is a one-off operation. The state cannot be updated through a read operation.
 // This read function will only invalidate the state (forcing recreation) if the installation has been deleted.
-func ResourceSyntheticMonitoringInstallationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ResourceInstallationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*common.Client)
 	tempClient := SMAPI.NewClient(provider.SMAPIURL, d.Get("sm_access_token").(string), nil)
 	if err := tempClient.ValidateToken(ctx); err != nil {
@@ -86,7 +86,7 @@ func ResourceSyntheticMonitoringInstallationRead(ctx context.Context, d *schema.
 	return nil
 }
 
-func ResourceSyntheticMonitoringInstallationDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ResourceInstallationDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*common.Client)
 	tempClient := SMAPI.NewClient(provider.SMAPIURL, d.Get("sm_access_token").(string), nil)
 	if err := tempClient.DeleteToken(ctx); err != nil {
