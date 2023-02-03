@@ -226,9 +226,20 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource id not set")
 		}
+		orgID, dashboardUID := splitOSSOrgID(rs.Primary.ID)
 
-		client, _, dashboardID := clientFromOSSOrgID(testAccProvider.Meta(), rs.Primary.ID)
-		gotDashboard, err := client.DashboardByUID(dashboardID)
+		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		// If the org ID is set, check that the dashboard doesn't exist in the default org
+		if orgID > 0 {
+			dashboard, err := client.DashboardByUID(dashboardUID)
+			if err == nil || dashboard != nil {
+				return fmt.Errorf("dashboard %s exists in the default org", dashboardUID)
+			}
+			client = client.WithOrgID(orgID)
+		}
+
+		// Check that the dashboard is in the expected org
+		gotDashboard, err := client.DashboardByUID(dashboardUID)
 		if err != nil {
 			return fmt.Errorf("error getting dashboard: %s", err)
 		}
@@ -248,15 +259,22 @@ func testAccDashboardCheckExistsInFolder(dashboard *gapi.Dashboard, folder *gapi
 
 func testAccDashboardCheckDestroy(dashboard *gapi.Dashboard, orgID int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
+		// Check that the dashboard was deleted from the default organization
 		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
-		if orgID != 0 {
-			client = client.WithOrgID(orgID)
-		}
-
-		_, err := client.DashboardByUID(dashboard.Model["uid"].(string))
-		if err == nil {
+		dashboard, err := client.DashboardByUID(dashboard.Model["uid"].(string))
+		if dashboard != nil || err == nil {
 			return fmt.Errorf("dashboard still exists")
 		}
+
+		// If the dashboard was created in an organization, check that it was deleted from that organization
+		if orgID != 0 {
+			client = client.WithOrgID(orgID)
+			dashboard, err = client.DashboardByUID(dashboard.Model["uid"].(string))
+			if dashboard != nil || err == nil {
+				return fmt.Errorf("dashboard still exists")
+			}
+		}
+
 		return nil
 	}
 }
