@@ -5,11 +5,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccDatasourceCloudOrganization_Basic(t *testing.T) {
-	CheckCloudAPITestsEnabled(t)
+	testutils.CheckCloudAPITestsEnabled(t)
 
 	config := fmt.Sprintf(`
 	data "grafana_cloud_organization" "test" {

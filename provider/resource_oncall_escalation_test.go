@@ -6,13 +6,14 @@ import (
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccOnCallEscalation_basic(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	riName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
 	reType := "wait"

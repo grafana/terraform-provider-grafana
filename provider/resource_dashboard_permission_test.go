@@ -6,13 +6,14 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccDashboardPermission_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=9.0.0") // Dashboard UIDs are only available as references in Grafana 9+
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.0.0") // Dashboard UIDs are only available as references in Grafana 9+
 
 	dashboardUID := ""
 
@@ -45,7 +46,7 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 // Testing the deprecated case of using a dashboard ID instead of a dashboard UID
 // TODO: Remove in next major version
 func TestAccDashboardPermission_fromDashboardID(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	dashboardID := int64(-1)
 

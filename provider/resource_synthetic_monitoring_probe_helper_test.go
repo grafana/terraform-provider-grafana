@@ -4,11 +4,12 @@ import (
 	"context"
 	"testing"
 
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func TestImportProbeStateWithToken(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	testcases := map[string]struct {
 		input             string

@@ -8,6 +8,7 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -15,7 +16,7 @@ import (
 )
 
 func TestAccDashboard_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var dashboard gapi.Dashboard
 
@@ -40,7 +41,7 @@ func TestAccDashboard_basic(t *testing.T) {
 				Steps: []resource.TestStep{
 					{
 						// Test resource creation.
-						Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic.tf"),
+						Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_basic.tf"),
 						Check: resource.ComposeTestCheckFunc(
 							testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "0:basic"), // <org id>:<uid>
@@ -53,7 +54,7 @@ func TestAccDashboard_basic(t *testing.T) {
 					},
 					{
 						// Updates title.
-						Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic_update.tf"),
+						Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_basic_update.tf"),
 						Check: resource.ComposeTestCheckFunc(
 							testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "0:basic"), // <org id>:<uid>
@@ -67,7 +68,7 @@ func TestAccDashboard_basic(t *testing.T) {
 						// Updates uid.
 						// uid is removed from `config_json` before writing it to state so it's
 						// important to ensure changing it triggers an update of `config_json`.
-						Config: testAccExample(t, "resources/grafana_dashboard/_acc_basic_update_uid.tf"),
+						Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_basic_update_uid.tf"),
 						Check: resource.ComposeTestCheckFunc(
 							testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "0:basic-update"), // <org id>:<uid>
@@ -92,7 +93,7 @@ func TestAccDashboard_basic(t *testing.T) {
 }
 
 func TestAccDashboard_uid_unset(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var dashboard gapi.Dashboard
 
@@ -102,7 +103,7 @@ func TestAccDashboard_uid_unset(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Create dashboard with no uid set.
-				Config: testAccExample(t, "resources/grafana_dashboard/_acc_uid_unset.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_uid_unset.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 					resource.TestCheckResourceAttr(
@@ -113,7 +114,7 @@ func TestAccDashboard_uid_unset(t *testing.T) {
 			{
 				// Update it to add a uid. We want to ensure that this causes a diff
 				// and subsequent update.
-				Config: testAccExample(t, "resources/grafana_dashboard/_acc_uid_unset_set.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_uid_unset_set.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 					resource.TestCheckResourceAttr(
@@ -123,7 +124,7 @@ func TestAccDashboard_uid_unset(t *testing.T) {
 			},
 			{
 				// Remove the uid once again to ensure this is also supported.
-				Config: testAccExample(t, "resources/grafana_dashboard/_acc_uid_unset.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_uid_unset.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 					resource.TestCheckResourceAttr(
@@ -136,7 +137,7 @@ func TestAccDashboard_uid_unset(t *testing.T) {
 }
 
 func TestAccDashboard_computed_config(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var dashboard gapi.Dashboard
 
@@ -146,7 +147,7 @@ func TestAccDashboard_computed_config(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Test resource creation.
-				Config: testAccExample(t, "resources/grafana_dashboard/_acc_computed.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_computed.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 					testAccDashboardCheckExists("grafana_dashboard.test-computed", &dashboard),
@@ -157,7 +158,7 @@ func TestAccDashboard_computed_config(t *testing.T) {
 }
 
 func TestAccDashboard_folder(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var dashboard gapi.Dashboard
 	var folder gapi.Folder
@@ -167,7 +168,7 @@ func TestAccDashboard_folder(t *testing.T) {
 		CheckDestroy:      testAccDashboardFolderCheckDestroy(&dashboard, &folder),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "resources/grafana_dashboard/_acc_folder.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_folder.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test_folder", &dashboard),
 					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
@@ -184,7 +185,7 @@ func TestAccDashboard_folder(t *testing.T) {
 }
 
 func TestAccDashboard_inOrg(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var dashboard gapi.Dashboard
 	var org gapi.Org
@@ -295,7 +296,7 @@ func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.
 }
 
 func Test_normalizeDashboardConfigJSON(t *testing.T) {
-	IsUnitTest(t)
+	testutils.IsUnitTest(t)
 
 	type args struct {
 		config interface{}

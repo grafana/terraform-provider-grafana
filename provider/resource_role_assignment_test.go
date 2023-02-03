@@ -9,10 +9,11 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 )
 
 func TestRoleAssignments(t *testing.T) {
-	CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t)
 	var roleAssignment gapi.RoleAssignments
 
 	resource.ParallelTest(t, resource.TestCase{

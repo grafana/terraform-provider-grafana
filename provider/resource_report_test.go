@@ -7,12 +7,13 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceReport(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	var report gapi.Report
 
@@ -21,7 +22,7 @@ func TestAccResourceReport(t *testing.T) {
 		CheckDestroy:      testAccReportCheckDestroy(&report),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "resources/grafana_report/resource.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_report/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccReportCheckExists("grafana_report.test", &report),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "id"),
@@ -42,7 +43,7 @@ func TestAccResourceReport(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccExample(t, "resources/grafana_report/all-options.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_report/all-options.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					func(s *terraform.State) error {
 						// Check that the ID and dashboard ID are the same as the first run
@@ -69,7 +70,7 @@ func TestAccResourceReport(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccExample(t, "resources/grafana_report/monthly.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_report/monthly.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccReportCheckExists("grafana_report.test", &report),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "id"),
@@ -97,7 +98,7 @@ func TestAccResourceReport(t *testing.T) {
 // Testing the deprecated case of using a dashboard ID instead of a dashboard UID
 // TODO: Remove in next major version
 func TestAccResourceReport_CreateFromDashboardID(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	var report gapi.Report
 

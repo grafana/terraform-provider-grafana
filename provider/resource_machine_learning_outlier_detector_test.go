@@ -8,12 +8,13 @@ import (
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceMachineLearningOutlierDetector(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	var outlier mlapi.OutlierDetector
 	resource.ParallelTest(t, resource.TestCase{
@@ -21,7 +22,7 @@ func TestAccResourceMachineLearningOutlierDetector(t *testing.T) {
 		CheckDestroy:      testAccMLOutlierCheckDestroy(&outlier),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "resources/grafana_machine_learning_outlier_detector/mad.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_machine_learning_outlier_detector/mad.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccMLOutlierCheckExists("grafana_machine_learning_outlier_detector.my_mad_outlier_detector", &outlier),
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_outlier_detector.my_mad_outlier_detector", "id"),
@@ -36,7 +37,7 @@ func TestAccResourceMachineLearningOutlierDetector(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccExample(t, "resources/grafana_machine_learning_outlier_detector/dbscan.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_machine_learning_outlier_detector/dbscan.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_outlier_detector.my_dbscan_outlier_detector", "id"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_dbscan_outlier_detector", "name", "My DBSCAN outlier detector"),
@@ -174,7 +175,7 @@ resource "grafana_machine_learning_outlier_detector" "invalid" {
 `
 
 func TestAccResourceInvalidMachineLearningOutlierDetector(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,

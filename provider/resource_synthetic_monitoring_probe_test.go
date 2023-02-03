@@ -8,19 +8,20 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceSyntheticMonitoringProbe(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_probe/resource.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_probe/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.main", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.main", "auth_token"),
@@ -33,7 +34,7 @@ func TestAccResourceSyntheticMonitoringProbe(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_probe/resource_update.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_probe/resource_update.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.main", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.main", "auth_token"),
@@ -51,13 +52,13 @@ func TestAccResourceSyntheticMonitoringProbe(t *testing.T) {
 
 // Test that a probe is recreated if deleted outside the Terraform process
 func TestAccResourceSyntheticMonitoringProbe_recreate(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_probe/resource.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_probe/resource.tf"),
 				Check: func(s *terraform.State) error {
 					rs := s.RootModule().Resources["grafana_synthetic_monitoring_probe.main"]
 					id, _ := strconv.ParseInt(rs.Primary.ID, 10, 64)
@@ -66,7 +67,7 @@ func TestAccResourceSyntheticMonitoringProbe_recreate(t *testing.T) {
 				ExpectNonEmptyPlan: true,
 			},
 			{
-				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_probe/resource.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_probe/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.main", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.main", "auth_token"),
@@ -83,7 +84,7 @@ func TestAccResourceSyntheticMonitoringProbe_recreate(t *testing.T) {
 }
 
 func TestAccResourceSyntheticMonitoringProbe_InvalidLabels(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	var steps []resource.TestStep
 	for _, tc := range []struct {

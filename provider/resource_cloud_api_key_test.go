@@ -7,13 +7,14 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccCloudApiKey_Basic(t *testing.T) {
-	CheckCloudAPITestsEnabled(t)
+	testutils.CheckCloudAPITestsEnabled(t)
 
 	prefix := "testcloudkey-"
 	testAccDeleteExistingCloudAPIKeys(t, prefix)
@@ -127,7 +128,7 @@ func testAccDeleteExistingCloudAPIKeys(t *testing.T, prefix string) {
 }
 
 func testAccCloudAPIKeyConfig(resourceName, role string) string {
-	// GRAFANA_CLOUD_ORG is required from the `CheckCloudAPITestsEnabled` function
+	// GRAFANA_CLOUD_ORG is required from the `testutils.CheckCloudAPITestsEnabled` function
 	return fmt.Sprintf(`
 resource "grafana_cloud_api_key" "test" {
   cloud_org_slug = "%s"

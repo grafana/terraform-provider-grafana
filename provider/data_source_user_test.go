@@ -4,11 +4,12 @@ import (
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccDatasourceUser(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var user gapi.User
 	checks := []resource.TestCheckFunc{
@@ -39,7 +40,7 @@ func TestAccDatasourceUser(t *testing.T) {
 		CheckDestroy:      testAccUserCheckDestroy(&user),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "data-sources/grafana_user/data-source.tf"),
+				Config: testutils.TestAccExample(t, "data-sources/grafana_user/data-source.tf"),
 				Check:  resource.ComposeTestCheckFunc(checks...),
 			},
 		},

@@ -10,6 +10,7 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -17,7 +18,7 @@ import (
 // This test covers both the cloud_access_policy and cloud_access_policy_token resources.
 func TestResourceCloudAccessPolicyToken_Basic(t *testing.T) {
 	t.Parallel()
-	CheckCloudAPITestsEnabled(t)
+	testutils.CheckCloudAPITestsEnabled(t)
 
 	var policy gapi.CloudAccessPolicy
 	var policyToken gapi.CloudAccessPolicyToken
@@ -113,7 +114,7 @@ func TestResourceCloudAccessPolicyToken_Basic(t *testing.T) {
 
 func TestResourceCloudAccessPolicyToken_NoExpiration(t *testing.T) {
 	t.Parallel()
-	CheckCloudAPITestsEnabled(t)
+	testutils.CheckCloudAPITestsEnabled(t)
 
 	var policy gapi.CloudAccessPolicy
 	var policyToken gapi.CloudAccessPolicyToken

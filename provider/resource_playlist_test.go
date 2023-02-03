@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -14,7 +15,7 @@ import (
 const paylistResource = "grafana_playlist.test"
 
 func TestAccPlaylist_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 
@@ -49,7 +50,7 @@ func TestAccPlaylist_basic(t *testing.T) {
 }
 
 func TestAccPlaylist_update(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 	updatedName := "updated name"
@@ -97,7 +98,7 @@ func TestAccPlaylist_update(t *testing.T) {
 }
 
 func TestAccPlaylist_disappears(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 

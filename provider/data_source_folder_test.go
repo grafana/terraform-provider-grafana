@@ -6,11 +6,12 @@ import (
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccDatasourceFolder(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var folder gapi.Folder
 	checks := []resource.TestCheckFunc{
@@ -34,7 +35,7 @@ func TestAccDatasourceFolder(t *testing.T) {
 		CheckDestroy:      testAccFolderCheckDestroy(&folder),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "data-sources/grafana_folder/data-source.tf"),
+				Config: testutils.TestAccExample(t, "data-sources/grafana_folder/data-source.tf"),
 				Check:  resource.ComposeTestCheckFunc(checks...),
 			},
 		},

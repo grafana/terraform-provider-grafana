@@ -6,12 +6,13 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceCloudPluginInstallation(t *testing.T) {
-	CheckCloudAPITestsEnabled(t)
+	testutils.CheckCloudAPITestsEnabled(t)
 
 	slug := os.Getenv("GRAFANA_CLOUD_ORG")
 	pluginSlug := "aws-datasource-provisioner-app"

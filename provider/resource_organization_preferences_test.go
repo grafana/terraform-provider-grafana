@@ -9,20 +9,21 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceOrganizationPreferences_WithDashboardID(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=8.0.0")
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=8.0.0")
 	testAccResourceOrganizationPreferences(t, false)
 }
 
 func TestAccResourceOrganizationPreferences_WithDashboardUID(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=9.0.0") // UID support was added in 9.0.0
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.0.0") // UID support was added in 9.0.0
 	testAccResourceOrganizationPreferences(t, true)
 }
 

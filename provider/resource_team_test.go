@@ -8,13 +8,14 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccTeam_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var team gapi.Team
 	teamName := acctest.RandString(5)
@@ -53,7 +54,7 @@ func TestAccTeam_basic(t *testing.T) {
 }
 
 func TestAccTeam_Members(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var team gapi.Team
 	teamName := acctest.RandString(5)
@@ -120,7 +121,7 @@ func TestAccTeam_Members(t *testing.T) {
 
 // Test that deleted users can still be removed as members of a team
 func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 	client := testAccProvider.Meta().(*common.Client).GrafanaAPI
 
 	var team gapi.Team

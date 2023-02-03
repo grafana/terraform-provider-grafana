@@ -6,13 +6,14 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccDatasourcePermission_basic(t *testing.T) {
 	t.Skip("This test is failing in Grafana Cloud 9.3+")
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	datasourceID := int64(-1)
 
@@ -20,14 +21,14 @@ func TestAccDatasourcePermission_basic(t *testing.T) {
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "resources/grafana_data_source_permission/resource.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_data_source_permission/resource.tf"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccDatasourcePermissionsCheckExists("grafana_data_source_permission.fooPermissions", &datasourceID),
 					resource.TestCheckResourceAttr("grafana_data_source_permission.fooPermissions", "permissions.#", "3"),
 				),
 			},
 			{
-				Config: testAccExample(t, "resources/grafana_data_source_permission/_acc_resource_remove.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_data_source_permission/_acc_resource_remove.tf"),
 				Check:  testAccDatasourcePermissionCheckDestroy(&datasourceID),
 			},
 		},

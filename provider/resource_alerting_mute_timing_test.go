@@ -6,13 +6,14 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccMuteTiming_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">9.0.0")
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">9.0.0")
 
 	var mt gapi.MuteTiming
 
@@ -23,7 +24,7 @@ func TestAccMuteTiming_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
-				Config: testAccExample(t, "resources/grafana_mute_timing/resource.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_mute_timing/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testMuteTimingCheckExists("grafana_mute_timing.my_mute_timing", &mt),
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.weekdays.0", "monday"),
@@ -44,7 +45,7 @@ func TestAccMuteTiming_basic(t *testing.T) {
 			},
 			// Test update content.
 			{
-				Config: testAccExampleWithReplace(t, "resources/grafana_mute_timing/resource.tf", map[string]string{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_mute_timing/resource.tf", map[string]string{
 					"monday": "friday",
 				}),
 				Check: resource.ComposeTestCheckFunc(
@@ -55,7 +56,7 @@ func TestAccMuteTiming_basic(t *testing.T) {
 			},
 			// Test rename.
 			{
-				Config: testAccExampleWithReplace(t, "resources/grafana_mute_timing/resource.tf", map[string]string{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_mute_timing/resource.tf", map[string]string{
 					"My Mute Timing": "A Different Mute Timing",
 				}),
 				Check: resource.ComposeTestCheckFunc(

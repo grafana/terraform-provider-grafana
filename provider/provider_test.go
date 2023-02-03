@@ -2,15 +2,15 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"testing"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -39,10 +39,22 @@ func init() {
 			return Provider("testacc")(), nil
 		},
 	}
+
+	// If any acceptance tests are enabled, the test provider must be configured
+	if testutils.AccTestsEnabled("TF_ACC") {
+		testAccProviderConfigure.Do(func() {
+			// Since we are outside the scope of the Terraform configuration we must
+			// call Configure() to properly initialize the provider configuration.
+			err := testAccProvider.Configure(context.Background(), terraform.NewResourceConfigRaw(nil))
+			if err != nil {
+				panic(fmt.Sprintf("failed to configure provider: %v", err))
+			}
+		})
+	}
 }
 
 func TestProvider(t *testing.T) {
-	IsUnitTest(t)
+	testutils.IsUnitTest(t)
 
 	if err := Provider("dev")().InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
@@ -50,7 +62,7 @@ func TestProvider(t *testing.T) {
 }
 
 func TestProviderConfigure(t *testing.T) {
-	IsUnitTest(t)
+	testutils.IsUnitTest(t)
 
 	// Helper for header tests
 	checkHeaders := func(t *testing.T, provider *schema.Provider) {
@@ -182,142 +194,4 @@ func TestProviderConfigure(t *testing.T) {
 			})
 		})
 	}
-}
-
-// testAccExample returns an example config from the examples directory.
-// Examples are used for both documentation and acceptance tests.
-func testAccExample(t *testing.T, path string) string {
-	example, err := os.ReadFile("../examples/" + path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return string(example)
-}
-
-// testAccExampleWithReplace works like testAccExample, but replaces strings in the example.
-func testAccExampleWithReplace(t *testing.T, path string, replaceMap map[string]string) string {
-	example := testAccExample(t, path)
-	for k, v := range replaceMap {
-		example = strings.ReplaceAll(example, k, v)
-	}
-	return example
-}
-
-func accTestsEnabled(t *testing.T, envVarName string) bool {
-	v, ok := os.LookupEnv(envVarName)
-	if !ok {
-		return false
-	}
-	enabled, err := strconv.ParseBool(v)
-	if err != nil {
-		t.Fatalf("%s must be set to a boolean value", envVarName)
-	}
-
-	// If any acceptance tests are enabled, the test provider must be configured
-	if enabled {
-		testAccProviderConfigure.Do(func() {
-			// Since we are outside the scope of the Terraform configuration we must
-			// call Configure() to properly initialize the provider configuration.
-			err := testAccProvider.Configure(context.Background(), terraform.NewResourceConfigRaw(nil))
-			if err != nil {
-				t.Fatalf("failed to configure provider: %v", err)
-			}
-		})
-	}
-
-	return enabled
-}
-
-func checkEnvVarsSet(t *testing.T, envVars ...string) {
-	t.Helper()
-
-	for _, envVar := range envVars {
-		if os.Getenv(envVar) == "" {
-			t.Fatalf("%s must be set", envVar)
-		}
-	}
-}
-
-func IsUnitTest(t *testing.T) {
-	t.Helper()
-
-	if accTestsEnabled(t, "TF_ACC") {
-		t.Skip("Skipping acceptance tests")
-	}
-}
-
-// CheckOSSTestsEnabled checks if the OSS acceptance tests are enabled. This should be the first line of any test that uses Grafana OSS features only
-func CheckOSSTestsEnabled(t *testing.T) {
-	t.Helper()
-
-	if !accTestsEnabled(t, "TF_ACC_OSS") {
-		t.Skip("TF_ACC_OSS must be set to a truthy value for OSS acceptance tests")
-	}
-
-	checkEnvVarsSet(t,
-		"GRAFANA_URL",
-		"GRAFANA_AUTH",
-		"GRAFANA_ORG_ID",
-		"GRAFANA_VERSION",
-	)
-}
-
-// CheckOSSTestsSemver allows to skip tests that are not supported by the Grafana OSS version
-func CheckOSSTestsSemver(t *testing.T, semverConstraint string) {
-	t.Helper()
-
-	versionStr := os.Getenv("GRAFANA_VERSION")
-	if semverConstraint != "" && versionStr != "" {
-		version := semver.MustParse(versionStr)
-		c, err := semver.NewConstraint(semverConstraint)
-		if err != nil {
-			t.Fatalf("invalid constraint %s: %v", semverConstraint, err)
-		}
-		if !c.Check(version) {
-			t.Skipf("skipping test for Grafana version `%s`, constraint `%s`", versionStr, semverConstraint)
-		}
-	}
-}
-
-// CheckCloudTestsEnabled checks if the cloud tests are enabled. This should be the first line of any test that tests Cloud API features
-func CheckCloudAPITestsEnabled(t *testing.T) {
-	t.Helper()
-
-	if !accTestsEnabled(t, "TF_ACC_CLOUD_API") {
-		t.Skip("TF_ACC_CLOUD_API must be set to a truthy value for Cloud API acceptance tests")
-	}
-
-	checkEnvVarsSet(t, "GRAFANA_CLOUD_API_KEY", "GRAFANA_CLOUD_ORG")
-}
-
-// CheckCloudInstanceTestsEnabled checks if tests that run on cloud instances are enabled. This should be the first line of any test that tests Grafana Cloud Pro features
-func CheckCloudInstanceTestsEnabled(t *testing.T) {
-	t.Helper()
-
-	if !accTestsEnabled(t, "TF_ACC_CLOUD_INSTANCE") {
-		t.Skip("TF_ACC_CLOUD_INSTANCE must be set to a truthy value for Cloud instance acceptance tests")
-	}
-
-	checkEnvVarsSet(t,
-		"GRAFANA_URL",
-		"GRAFANA_AUTH",
-		"GRAFANA_ORG_ID",
-		"GRAFANA_SM_ACCESS_TOKEN",
-		"GRAFANA_ONCALL_ACCESS_TOKEN",
-	)
-}
-
-// CheckEnterpriseTestsEnabled checks if the enterprise tests are enabled. This should be the first line of any test that tests Grafana Enterprise features
-func CheckEnterpriseTestsEnabled(t *testing.T) {
-	t.Helper()
-
-	if !accTestsEnabled(t, "TF_ACC_ENTERPRISE") {
-		t.Skip("TF_ACC_ENTERPRISE must be set to a truthy value for Enterprise acceptance tests")
-	}
-
-	checkEnvVarsSet(t,
-		"GRAFANA_URL",
-		"GRAFANA_AUTH",
-		"GRAFANA_ORG_ID",
-	)
 }

@@ -9,6 +9,7 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 )
 
 const (
@@ -23,7 +24,7 @@ const (
 )
 
 func TestAccBuiltInRoleAssignment(t *testing.T) {
-	CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t)
 
 	var assignments map[string][]*gapi.Role
 
@@ -60,7 +61,7 @@ func TestAccBuiltInRoleAssignment(t *testing.T) {
 }
 
 func TestAccBuiltInRoleAssignmentUpdate(t *testing.T) {
-	CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t)
 
 	var assignments map[string][]*gapi.Role
 

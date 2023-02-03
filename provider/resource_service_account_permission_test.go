@@ -10,11 +10,12 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 )
 
 func TestAccServiceAccountPermission(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=9.2.4")
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.2.4")
 
 	var saPermission gapi.ServiceAccountPermission
 	// TODO: Make parallelizable

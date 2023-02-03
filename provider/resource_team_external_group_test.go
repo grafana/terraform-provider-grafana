@@ -6,12 +6,13 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccTeamExternalGroup_basic(t *testing.T) {
-	CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t)
 
 	teamID := int64(-1)
 

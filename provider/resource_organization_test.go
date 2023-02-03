@@ -7,12 +7,13 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccOrganization_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var org gapi.Org
 
@@ -66,7 +67,7 @@ func TestAccOrganization_basic(t *testing.T) {
 }
 
 func TestAccOrganization_users(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var org gapi.Org
 
@@ -134,7 +135,7 @@ func TestAccOrganization_users(t *testing.T) {
 }
 
 func TestAccOrganization_createManyUsers(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var org gapi.Org
 
@@ -161,7 +162,7 @@ func TestAccOrganization_createManyUsers(t *testing.T) {
 }
 
 func TestAccOrganization_defaultAdmin(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var org gapi.Org
 
@@ -223,7 +224,7 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 }
 
 func TestAccOrganization_externalUser(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var org gapi.Org
 

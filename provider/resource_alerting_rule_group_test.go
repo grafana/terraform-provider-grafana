@@ -7,13 +7,14 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccAlertRule_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=9.1.0")
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
 
 	var group gapi.RuleGroup
 
@@ -24,7 +25,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
-				Config: testAccExample(t, "resources/grafana_rule_group/resource.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_rule_group/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testRuleGroupCheckExists("grafana_rule_group.my_alert_rule", &group),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "name", "My Rule Group"),
@@ -41,7 +42,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 			},
 			// Test update content.
 			{
-				Config: testAccExampleWithReplace(t, "resources/grafana_rule_group/resource.tf", map[string]string{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_rule_group/resource.tf", map[string]string{
 					"My Alert Rule 1": "A Different Rule",
 				}),
 				Check: resource.ComposeTestCheckFunc(
@@ -55,7 +56,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 			},
 			// Test rename group.
 			{
-				Config: testAccExampleWithReplace(t, "resources/grafana_rule_group/resource.tf", map[string]string{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_rule_group/resource.tf", map[string]string{
 					"My Rule Group": "A Different Rule Group",
 				}),
 				Check: resource.ComposeTestCheckFunc(
@@ -69,7 +70,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 			},
 			// Test change interval.
 			{
-				Config: testAccExampleWithReplace(t, "resources/grafana_rule_group/resource.tf", map[string]string{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_rule_group/resource.tf", map[string]string{
 					"240": "360",
 				}),
 				Check: resource.ComposeTestCheckFunc(
@@ -81,7 +82,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 			},
 			// Test re-parent folder.
 			{
-				Config: testAccExample(t, "resources/grafana_rule_group/_acc_reparent_folder.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_rule_group/_acc_reparent_folder.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testRuleGroupCheckExists("grafana_rule_group.my_alert_rule", &group),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "name", "My Rule Group"),
@@ -97,8 +98,8 @@ func TestAccAlertRule_basic(t *testing.T) {
 }
 
 func TestAccAlertRule_compound(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=9.1.0")
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
 
 	var group gapi.RuleGroup
 
@@ -109,7 +110,7 @@ func TestAccAlertRule_compound(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
-				Config: testAccExample(t, "resources/grafana_rule_group/_acc_multi_rule_group.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_rule_group/_acc_multi_rule_group.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testRuleGroupCheckExists("grafana_rule_group.my_multi_alert_group", &group),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_multi_alert_group", "name", "My Multi-Alert Rule Group"),
@@ -126,7 +127,7 @@ func TestAccAlertRule_compound(t *testing.T) {
 			},
 			// Test update.
 			{
-				Config: testAccExampleWithReplace(t, "resources/grafana_rule_group/_acc_multi_rule_group.tf", map[string]string{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_rule_group/_acc_multi_rule_group.tf", map[string]string{
 					"Rule 1": "asdf",
 				}),
 				Check: resource.ComposeTestCheckFunc(
@@ -139,7 +140,7 @@ func TestAccAlertRule_compound(t *testing.T) {
 			},
 			// Test addition of a rule to an existing group.
 			{
-				Config: testAccExample(t, "resources/grafana_rule_group/_acc_multi_rule_group_added.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_rule_group/_acc_multi_rule_group_added.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testRuleGroupCheckExists("grafana_rule_group.my_multi_alert_group", &group),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_multi_alert_group", "name", "My Multi-Alert Rule Group"),
@@ -151,7 +152,7 @@ func TestAccAlertRule_compound(t *testing.T) {
 			},
 			// Test removal of rules from an existing group.
 			{
-				Config: testAccExample(t, "resources/grafana_rule_group/_acc_multi_rule_group_subtracted.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_rule_group/_acc_multi_rule_group_subtracted.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testRuleGroupCheckExists("grafana_rule_group.my_multi_alert_group", &group),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_multi_alert_group", "name", "My Multi-Alert Rule Group"),

@@ -8,12 +8,13 @@ import (
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceMachineLearningHoliday(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	var holiday mlapi.Holiday
 	resource.ParallelTest(t, resource.TestCase{
@@ -21,7 +22,7 @@ func TestAccResourceMachineLearningHoliday(t *testing.T) {
 		CheckDestroy:      testAccMLHolidayCheckDestroy(&holiday),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "resources/grafana_machine_learning_holiday/ical_holiday.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_machine_learning_holiday/ical_holiday.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccMLHolidayCheckExists("grafana_machine_learning_holiday.ical", &holiday),
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_holiday.ical", "id"),
@@ -29,7 +30,7 @@ func TestAccResourceMachineLearningHoliday(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccExample(t, "resources/grafana_machine_learning_holiday/custom_periods_holiday.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_machine_learning_holiday/custom_periods_holiday.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccMLHolidayCheckExists("grafana_machine_learning_holiday.custom_periods", &holiday),
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_holiday.custom_periods", "id"),
@@ -104,7 +105,7 @@ resource "grafana_machine_learning_holiday" "invalid" {
 `
 
 func TestAccResourceInvalidMachineLearningHoliday(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,

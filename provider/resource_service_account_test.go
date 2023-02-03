@@ -11,11 +11,12 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 )
 
 func TestAccServiceAccount_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=9.1.0")
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
 
 	sa := gapi.ServiceAccountDTO{}
 	resource.ParallelTest(t, resource.TestCase{
@@ -45,7 +46,7 @@ func TestAccServiceAccount_basic(t *testing.T) {
 }
 
 func TestAccServiceAccount_invalid_role(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	sa := gapi.ServiceAccountDTO{}
 

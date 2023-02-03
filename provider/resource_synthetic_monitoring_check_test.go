@@ -7,19 +7,20 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceSyntheticMonitoringCheck_dns(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_check/dns_basic.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/dns_basic.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.dns", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.dns", "tenant_id"),
@@ -35,7 +36,7 @@ func TestAccResourceSyntheticMonitoringCheck_dns(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_check/dns_complex.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/dns_complex.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.dns", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.dns", "tenant_id"),
@@ -64,14 +65,14 @@ func TestAccResourceSyntheticMonitoringCheck_dns(t *testing.T) {
 }
 
 func TestAccResourceSyntheticMonitoringCheck_http(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "tenant_id"),
@@ -85,7 +86,7 @@ func TestAccResourceSyntheticMonitoringCheck_http(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_check/http_complex.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/http_complex.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "tenant_id"),
@@ -123,14 +124,14 @@ func TestAccResourceSyntheticMonitoringCheck_http(t *testing.T) {
 }
 
 func TestAccResourceSyntheticMonitoringCheck_ping(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_check/ping_basic.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/ping_basic.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.ping", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.ping", "tenant_id"),
@@ -142,7 +143,7 @@ func TestAccResourceSyntheticMonitoringCheck_ping(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_check/ping_complex.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/ping_complex.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.ping", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.ping", "tenant_id"),
@@ -161,14 +162,14 @@ func TestAccResourceSyntheticMonitoringCheck_ping(t *testing.T) {
 }
 
 func TestAccResourceSyntheticMonitoringCheck_tcp(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_check/tcp_basic.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/tcp_basic.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.tcp", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.tcp", "tenant_id"),
@@ -181,7 +182,7 @@ func TestAccResourceSyntheticMonitoringCheck_tcp(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_check/tcp_complex.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/tcp_complex.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.tcp", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.tcp", "tenant_id"),
@@ -207,14 +208,14 @@ func TestAccResourceSyntheticMonitoringCheck_tcp(t *testing.T) {
 }
 
 func TestAccResourceSyntheticMonitoringCheck_traceroute(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_check/traceroute_basic.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/traceroute_basic.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.traceroute", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.traceroute", "tenant_id"),
@@ -228,7 +229,7 @@ func TestAccResourceSyntheticMonitoringCheck_traceroute(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_check/traceroute_complex.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/traceroute_complex.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.traceroute", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.traceroute", "tenant_id"),
@@ -248,14 +249,14 @@ func TestAccResourceSyntheticMonitoringCheck_traceroute(t *testing.T) {
 
 // Test that a check is recreated if deleted outside the Terraform process
 func TestAccResourceSyntheticMonitoringCheck_recreate(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf"),
 				Check: func(s *terraform.State) error {
 					rs := s.RootModule().Resources["grafana_synthetic_monitoring_check.http"]
 					id, _ := strconv.ParseInt(rs.Primary.ID, 10, 64)
@@ -264,7 +265,7 @@ func TestAccResourceSyntheticMonitoringCheck_recreate(t *testing.T) {
 				ExpectNonEmptyPlan: true,
 			},
 			{
-				Config: testAccExample(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "tenant_id"),
@@ -282,7 +283,7 @@ func TestAccResourceSyntheticMonitoringCheck_recreate(t *testing.T) {
 }
 
 func TestAccResourceSyntheticMonitoringCheck_noSettings(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,
@@ -297,7 +298,7 @@ func TestAccResourceSyntheticMonitoringCheck_noSettings(t *testing.T) {
 }
 
 func TestAccResourceSyntheticMonitoringCheck_multiple(t *testing.T) {
-	CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testAccProviderFactories,

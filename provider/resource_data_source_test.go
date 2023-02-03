@@ -9,13 +9,14 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccDataSource_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var dataSource gapi.DataSource
 
@@ -729,7 +730,7 @@ func TestAccDataSource_basic(t *testing.T) {
 }
 
 func TestDatasourceMigrationV0(t *testing.T) {
-	IsUnitTest(t)
+	testutils.IsUnitTest(t)
 
 	cases := []struct {
 		name     string
@@ -858,7 +859,7 @@ func TestDatasourceMigrationV0(t *testing.T) {
 }
 
 func TestAccDataSource_changeUID(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var dataSource gapi.DataSource
 

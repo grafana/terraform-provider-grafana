@@ -10,6 +10,7 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -17,7 +18,7 @@ import (
 )
 
 func TestAccFolder_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var folder gapi.Folder
 	var folderWithUID gapi.Folder
@@ -30,7 +31,7 @@ func TestAccFolder_basic(t *testing.T) {
 		),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "resources/grafana_folder/resource.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_folder/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
 					resource.TestMatchResourceAttr("grafana_folder.test_folder", "id", idRegexp),
@@ -56,7 +57,7 @@ func TestAccFolder_basic(t *testing.T) {
 			},
 			// Change the title of one folder, change the UID of the other. They shouldn't change IDs (the folder doesn't have to be recreated)
 			{
-				Config: testAccExampleWithReplace(t, "resources/grafana_folder/resource.tf", map[string]string{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_folder/resource.tf", map[string]string{
 					"Terraform Test Folder": "Terraform Test Folder Updated",
 					"test-folder-uid":       "test-folder-uid-other",
 				}),
@@ -99,8 +100,8 @@ func TestAccFolder_basic(t *testing.T) {
 
 // This is a bug in Grafana, not the provider. It was fixed in 9.2.7+ and 9.3.0+, this test will check for regressions
 func TestAccFolder_createFromDifferentRoles(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=9.2.7")
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.2.7")
 
 	for _, tc := range []struct {
 		role        string

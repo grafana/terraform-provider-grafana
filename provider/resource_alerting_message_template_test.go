@@ -6,13 +6,14 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccMessageTemplate_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
-	CheckOSSTestsSemver(t, ">=9.0.0")
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.0.0")
 
 	var tmpl gapi.AlertingMessageTemplate
 
@@ -23,7 +24,7 @@ func TestAccMessageTemplate_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
-				Config: testAccExample(t, "resources/grafana_message_template/resource.tf"),
+				Config: testutils.TestAccExample(t, "resources/grafana_message_template/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testMessageTemplateCheckExists("grafana_message_template.my_template", &tmpl),
 					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "My Reusable Template"),
@@ -38,7 +39,7 @@ func TestAccMessageTemplate_basic(t *testing.T) {
 			},
 			// Test update with heredoc template doesn't change
 			{
-				Config: testAccExampleWithReplace(t, "resources/grafana_message_template/resource.tf", map[string]string{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_message_template/resource.tf", map[string]string{
 					`template = "{{define \"My Reusable Template\" }}\n template content\n{{ end }}"`: `template = <<-EOT
 {{define "My Reusable Template" }}
  template content
@@ -53,7 +54,7 @@ EOT`,
 			},
 			// Test update content.
 			{
-				Config: testAccExampleWithReplace(t, "resources/grafana_message_template/resource.tf", map[string]string{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_message_template/resource.tf", map[string]string{
 					"template content": "different content",
 				}),
 				Check: resource.ComposeTestCheckFunc(
@@ -64,7 +65,7 @@ EOT`,
 			},
 			// Test rename.
 			{
-				Config: testAccExampleWithReplace(t, "resources/grafana_message_template/resource.tf", map[string]string{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_message_template/resource.tf", map[string]string{
 					"My Reusable Template": "A Different Template",
 				}),
 				Check: resource.ComposeTestCheckFunc(

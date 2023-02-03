@@ -8,13 +8,14 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccAlertNotification_basic(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var alertNotification gapi.AlertNotification
 
@@ -53,7 +54,7 @@ func TestAccAlertNotification_basic(t *testing.T) {
 }
 
 func TestAccAlertNotification_disableResolveMessage(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var alertNotification gapi.AlertNotification
 
@@ -91,7 +92,7 @@ func TestAccAlertNotification_disableResolveMessage(t *testing.T) {
 }
 
 func TestAccAlertNotification_invalid_frequency(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var alertNotification gapi.AlertNotification
 
@@ -108,7 +109,7 @@ func TestAccAlertNotification_invalid_frequency(t *testing.T) {
 }
 
 func TestAccAlertNotification_reminder_no_frequency(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	var alertNotification gapi.AlertNotification
 

@@ -10,12 +10,13 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/provider/common"
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccGrafanaAuthKey(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
@@ -39,7 +40,7 @@ func TestAccGrafanaAuthKey(t *testing.T) {
 }
 
 func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
-	CheckCloudAPITestsEnabled(t)
+	testutils.CheckCloudAPITestsEnabled(t)
 
 	var stack gapi.Stack
 	prefix := "tfapikeytest"

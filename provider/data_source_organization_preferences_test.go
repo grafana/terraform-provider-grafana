@@ -3,11 +3,12 @@ package provider
 import (
 	"testing"
 
+	"github.com/grafana/terraform-provider-grafana/provider/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccDatasourceOrganizationPreferences(t *testing.T) {
-	CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t)
 
 	checks := []resource.TestCheckFunc{
 		resource.TestCheckResourceAttr(
@@ -25,7 +26,7 @@ func TestAccDatasourceOrganizationPreferences(t *testing.T) {
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccExample(t, "data-sources/grafana_organization_preferences/data-source.tf"),
+				Config: testutils.TestAccExample(t, "data-sources/grafana_organization_preferences/data-source.tf"),
 				Check:  resource.ComposeTestCheckFunc(checks...),
 			},
 		},
