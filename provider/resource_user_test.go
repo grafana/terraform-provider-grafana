@@ -1,0 +1,127 @@
+package provider
+
+import (
+	"fmt"
+	"strconv"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
+	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/terraform-provider-grafana/provider/common"
+)
+
+func TestAccUser_basic(t *testing.T) {
+	CheckOSSTestsEnabled(t)
+
+	var user gapi.User
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccUserCheckDestroy(&user),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccUserConfig_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccUserCheckExists("grafana_user.test", &user),
+					resource.TestCheckResourceAttr(
+						"grafana_user.test", "email", "terraform-test@localhost",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_user.test", "name", "Terraform Test",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_user.test", "login", "tt",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_user.test", "password", "abc123",
+					),
+					resource.TestMatchResourceAttr(
+						"grafana_user.test", "id", idRegexp,
+					),
+				),
+			},
+			{
+				Config: testAccUserConfig_update,
+				Check: resource.ComposeTestCheckFunc(
+					testAccUserCheckExists("grafana_user.test", &user),
+					resource.TestCheckResourceAttr(
+						"grafana_user.test", "email", "terraform-test-update@localhost",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_user.test", "name", "Terraform Test Update",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_user.test", "login", "ttu",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_user.test", "password", "zyx987",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_user.test", "is_admin", "true",
+					),
+				),
+			},
+			{
+				ResourceName:            "grafana_user.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"password"},
+			},
+		},
+	})
+}
+
+func testAccUserCheckExists(rn string, a *gapi.User) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[rn]
+		if !ok {
+			return fmt.Errorf("resource not found: %s", rn)
+		}
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("resource id not set")
+		}
+		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
+		if err != nil {
+			return fmt.Errorf("resource id is malformed")
+		}
+		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		user, err := client.User(id)
+		if err != nil {
+			return fmt.Errorf("error getting data source: %s", err)
+		}
+		*a = user
+		return nil
+	}
+}
+
+func testAccUserCheckDestroy(a *gapi.User) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		client := testAccProvider.Meta().(*common.Client).GrafanaAPI
+		user, err := client.User(a.ID)
+		if err == nil && user.Email != "" {
+			return fmt.Errorf("user still exists")
+		}
+		return nil
+	}
+}
+
+const testAccUserConfig_basic = `
+resource "grafana_user" "test" {
+  email    = "terraform-test@localhost"
+  name     = "Terraform Test"
+  login    = "tt"
+  password = "abc123"
+  is_admin = false
+}
+`
+
+const testAccUserConfig_update = `
+resource "grafana_user" "test" {
+  email    = "terraform-test-update@localhost"
+  name     = "Terraform Test Update"
+  login    = "ttu"
+  password = "zyx987"
+  is_admin = true
+}
+`
