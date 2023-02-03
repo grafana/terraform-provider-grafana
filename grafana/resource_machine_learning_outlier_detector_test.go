@@ -107,40 +107,6 @@ resource "grafana_machine_learning_outlier_detector" "invalid" {
   }
 }
 `
-
-const machineLearningOutlierDetectorMissingDatasourceIDOrUID = `
-resource "grafana_machine_learning_outlier_detector" "invalid" {
-  name            = "Test Outlier Detector"
-  metric          = "tf_my_mad_outlier_detector"
-  datasource_type = "prometheus"
-  query_params = {
-    expr = "grafanacloud_grafana_instance_active_user_count"
-  }
-  algorithm {
-    name = "mad"
-    sensitivity = 0.5
-  }
-}
-`
-const machineLearningOutlierDetectorMultipleAlgorithm = `
-resource "grafana_machine_learning_outlier_detector" "invalid" {
-  name            = "Test Outlier Detector"
-  metric          = "tf_my_mad_outlier_detector"
-  datasource_type = "datadog"
-  datasource_uid   = 100000
-  query_params = {
-    expr = "grafanacloud_grafana_instance_active_user_count"
-  }
-  algorithm {
-    name = "mad"
-    sensitivity = 0.5
-  }
-  algorithm {
-    name = "dbscan"
-    sensitivity = 0.5
-  }
-}
-`
 const machineLearningOutlierDetectorDBSCANMissingConfig = `
 resource "grafana_machine_learning_outlier_detector" "invalid" {
   name            = "Test Outlier Detector"
@@ -182,14 +148,6 @@ func TestAccResourceInvalidMachineLearningOutlierDetector(t *testing.T) {
 			{
 				Config:      machineLearningOutlierDetectorInvalid,
 				ExpectError: regexp.MustCompile(".*datasource_type.*"),
-			},
-			{
-				Config:      machineLearningOutlierDetectorMissingDatasourceIDOrUID,
-				ExpectError: regexp.MustCompile(".*datasource_id or datasource_uid.*"),
-			},
-			{
-				Config:      machineLearningOutlierDetectorMultipleAlgorithm,
-				ExpectError: regexp.MustCompile(".*most one \"algorithm\" block.*"),
 			},
 			{
 				Config:      machineLearningOutlierDetectorDBSCANMissingConfig,

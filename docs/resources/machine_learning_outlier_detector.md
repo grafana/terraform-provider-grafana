@@ -23,7 +23,7 @@ Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/
 
 ### Required
 
-- `algorithm` (Block Set, Min: 1) The algorithm to use and its configuration. See https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/ for details. (see [below for nested schema](#nestedblock--algorithm))
+- `algorithm` (Block Set, Min: 1, Max: 1) The algorithm to use and its configuration. See https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/ for details. (see [below for nested schema](#nestedblock--algorithm))
 - `datasource_type` (String) The type of datasource being queried. Currently allowed values are prometheus, graphite, loki, postgres, and datadog.
 - `metric` (String) The metric used to query the outlier detector results.
 - `name` (String) The name of the outlier detector.
@@ -50,7 +50,7 @@ Required:
 
 Optional:
 
-- `config` (Block Set) For DBSCAN only, specify the configuration map (see [below for nested schema](#nestedblock--algorithm--config))
+- `config` (Block Set, Max: 1) For DBSCAN only, specify the configuration map (see [below for nested schema](#nestedblock--algorithm--config))
 
 <a id="nestedblock--algorithm--config"></a>
 ### Nested Schema for `algorithm.config`

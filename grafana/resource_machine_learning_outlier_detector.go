@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-
-	"github.com/grafana/machine-learning-go-client/mlapi"
 )
 
 func ResourceMachineLearningOutlierDetector() *schema.Resource {
@@ -53,9 +52,10 @@ Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/
 				Optional:    true,
 			},
 			"datasource_id": {
-				Description: "The id of the datasource to query.",
-				Type:        schema.TypeInt,
-				Optional:    true,
+				Description:  "The id of the datasource to query.",
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ExactlyOneOf: []string{"datasource_uid"},
 			},
 			"datasource_uid": {
 				Description: "The uid of the datasource to query.",
@@ -82,6 +82,8 @@ Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/
 			"algorithm": {
 				Description: "The algorithm to use and its configuration. See https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/ for details.",
 				Type:        schema.TypeSet,
+				Required:    true,
+				MaxItems:    1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
@@ -99,6 +101,8 @@ Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/
 						"config": {
 							Description: "For DBSCAN only, specify the configuration map",
 							Type:        schema.TypeSet,
+							Optional:    true,
+							MaxItems:    1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"epsilon": {
@@ -109,11 +113,9 @@ Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/
 									},
 								},
 							},
-							Optional: true,
 						},
 					},
 				},
-				Required: true,
 			},
 		},
 	}
@@ -216,17 +218,7 @@ func convertToSetStructure(al mlapi.OutlierAlgorithm) []interface{} {
 }
 
 func makeMLOutlier(d *schema.ResourceData, meta interface{}) (mlapi.OutlierDetector, error) {
-	datasourceID := uint(d.Get("datasource_id").(int))
-	datasourceUID := d.Get("datasource_uid").(string)
-	if datasourceID == 0 && datasourceUID == "" {
-		return mlapi.OutlierDetector{}, fmt.Errorf("either datasource_id or datasource_uid must be set")
-	}
-
 	alSet := d.Get("algorithm").(*schema.Set)
-	if alSet.Len() != 1 {
-		return mlapi.OutlierDetector{}, fmt.Errorf("at most one \"algorithm\" block is required")
-	}
-
 	al := alSet.List()[0].(map[string]interface{})
 
 	var algorithm mlapi.OutlierAlgorithm
@@ -250,8 +242,8 @@ func makeMLOutlier(d *schema.ResourceData, meta interface{}) (mlapi.OutlierDetec
 		Metric:         d.Get("metric").(string),
 		Description:    d.Get("description").(string),
 		GrafanaURL:     meta.(*client).gapiURL,
-		DatasourceID:   datasourceID,
-		DatasourceUID:  datasourceUID,
+		DatasourceID:   uint(d.Get("datasource_id").(int)),
+		DatasourceUID:  d.Get("datasource_uid").(string),
 		DatasourceType: d.Get("datasource_type").(string),
 		QueryParams:    d.Get("query_params").(map[string]interface{}),
 		Interval:       uint(d.Get("interval").(int)),
