@@ -118,14 +118,14 @@ func ResourceReport() *schema.Resource {
 			"layout": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Description:  allowedValuesDescription("Layout of the report", reportLayouts),
+				Description:  common.AllowedValuesDescription("Layout of the report", reportLayouts),
 				Default:      reportLayoutGrid,
 				ValidateFunc: validation.StringInSlice(reportLayouts, false),
 			},
 			"orientation": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Description:  allowedValuesDescription("Orientation of the report", reportOrientations),
+				Description:  common.AllowedValuesDescription("Orientation of the report", reportOrientations),
 				Default:      reportOrientationLandscape,
 				ValidateFunc: validation.StringInSlice(reportOrientations, false),
 			},
@@ -162,7 +162,7 @@ func ResourceReport() *schema.Resource {
 						"frequency": {
 							Type:         schema.TypeString,
 							Required:     true,
-							Description:  allowedValuesDescription("Frequency of the report", reportFrequencies),
+							Description:  common.AllowedValuesDescription("Frequency of the report", reportFrequencies),
 							ValidateFunc: validation.StringInSlice(reportFrequencies, false),
 						},
 						"start_time": {
@@ -365,7 +365,7 @@ func schemaToReport(client *gapi.Client, d *schema.ResourceData) (gapi.Report, e
 			},
 		},
 		Name:               d.Get("name").(string),
-		Recipients:         strings.Join(listToStringSlice(d.Get("recipients").([]interface{})), ","),
+		Recipients:         strings.Join(common.ListToStringSlice(d.Get("recipients").([]interface{})), ","),
 		ReplyTo:            d.Get("reply_to").(string),
 		Message:            d.Get("message").(string),
 		EnableDashboardURL: d.Get("include_dashboard_link").(bool),

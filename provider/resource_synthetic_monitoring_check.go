@@ -623,8 +623,8 @@ func resourceSyntheticMonitoringCheckRead(ctx context.Context, d *schema.Resourc
 				schema.HashResource(syntheticMonitoringCheckSettingsDNSValidate),
 				[]interface{}{
 					map[string]interface{}{
-						"fail_if_matches_regexp":     stringSliceToSet(v.FailIfMatchesRegexp),
-						"fail_if_not_matches_regexp": stringSliceToSet(v.FailIfNotMatchesRegexp),
+						"fail_if_matches_regexp":     common.StringSliceToSet(v.FailIfMatchesRegexp),
+						"fail_if_not_matches_regexp": common.StringSliceToSet(v.FailIfNotMatchesRegexp),
 					},
 				},
 			)
@@ -636,7 +636,7 @@ func resourceSyntheticMonitoringCheckRead(ctx context.Context, d *schema.Resourc
 			"port":                    int(chk.Settings.Dns.Port),
 			"record_type":             chk.Settings.Dns.RecordType.String(),
 			"protocol":                chk.Settings.Dns.Protocol.String(),
-			"valid_r_codes":           stringSliceToSet(chk.Settings.Dns.ValidRCodes),
+			"valid_r_codes":           common.StringSliceToSet(chk.Settings.Dns.ValidRCodes),
 			"validate_answer_rrs":     dnsValidator(chk.Settings.Dns.ValidateAnswer),
 			"validate_authority_rrs":  dnsValidator(chk.Settings.Dns.ValidateAuthority),
 			"validate_additional_rrs": dnsValidator(chk.Settings.Dns.ValidateAdditional),
@@ -678,7 +678,7 @@ func resourceSyntheticMonitoringCheckRead(ctx context.Context, d *schema.Resourc
 			"ip_version":                        chk.Settings.Http.IpVersion.String(),
 			"tls_config":                        tlsConfig(chk.Settings.Http.TlsConfig),
 			"method":                            chk.Settings.Http.Method.String(),
-			"headers":                           stringSliceToSet(chk.Settings.Http.Headers),
+			"headers":                           common.StringSliceToSet(chk.Settings.Http.Headers),
 			"body":                              chk.Settings.Http.Body,
 			"no_follow_redirects":               chk.Settings.Http.NoFollowRedirects,
 			"basic_auth":                        &basicAuth,
@@ -686,10 +686,10 @@ func resourceSyntheticMonitoringCheckRead(ctx context.Context, d *schema.Resourc
 			"proxy_url":                         chk.Settings.Http.ProxyURL,
 			"fail_if_ssl":                       chk.Settings.Http.FailIfSSL,
 			"fail_if_not_ssl":                   chk.Settings.Http.FailIfNotSSL,
-			"valid_status_codes":                int32SliceToSet(chk.Settings.Http.ValidStatusCodes),
-			"valid_http_versions":               stringSliceToSet(chk.Settings.Http.ValidHTTPVersions),
-			"fail_if_body_matches_regexp":       stringSliceToSet(chk.Settings.Http.FailIfBodyMatchesRegexp),
-			"fail_if_body_not_matches_regexp":   stringSliceToSet(chk.Settings.Http.FailIfBodyNotMatchesRegexp),
+			"valid_status_codes":                common.Int32SliceToSet(chk.Settings.Http.ValidStatusCodes),
+			"valid_http_versions":               common.StringSliceToSet(chk.Settings.Http.ValidHTTPVersions),
+			"fail_if_body_matches_regexp":       common.StringSliceToSet(chk.Settings.Http.FailIfBodyMatchesRegexp),
+			"fail_if_body_not_matches_regexp":   common.StringSliceToSet(chk.Settings.Http.FailIfBodyNotMatchesRegexp),
 			"fail_if_header_matches_regexp":     headerMatch(chk.Settings.Http.FailIfHeaderMatchesRegexp),
 			"fail_if_header_not_matches_regexp": headerMatch(chk.Settings.Http.FailIfHeaderNotMatchesRegexp),
 			"cache_busting_query_param_name":    chk.Settings.Http.CacheBustingQueryParamName,
@@ -845,13 +845,13 @@ func makeCheckSettings(settings map[string]interface{}) sm.CheckSettings {
 			Port:            int32(d["port"].(int)),
 			RecordType:      sm.DnsRecordType(sm.DnsRecordType_value[d["record_type"].(string)]),
 			Protocol:        sm.DnsProtocol(sm.DnsProtocol_value[d["protocol"].(string)]),
-			ValidRCodes:     setToStringSlice(d["valid_r_codes"].(*schema.Set)),
+			ValidRCodes:     common.SetToStringSlice(d["valid_r_codes"].(*schema.Set)),
 		}
 		dnsValidator := func(validation string) *sm.DNSRRValidator {
 			val := sm.DNSRRValidator{}
 			for _, v := range d[validation].(*schema.Set).List() {
-				val.FailIfMatchesRegexp = setToStringSlice(v.(map[string]interface{})["fail_if_matches_regexp"].(*schema.Set))
-				val.FailIfNotMatchesRegexp = setToStringSlice(v.(map[string]interface{})["fail_if_not_matches_regexp"].(*schema.Set))
+				val.FailIfMatchesRegexp = common.SetToStringSlice(v.(map[string]interface{})["fail_if_matches_regexp"].(*schema.Set))
+				val.FailIfNotMatchesRegexp = common.SetToStringSlice(v.(map[string]interface{})["fail_if_not_matches_regexp"].(*schema.Set))
 			}
 			return &val
 		}
@@ -872,16 +872,16 @@ func makeCheckSettings(settings map[string]interface{}) sm.CheckSettings {
 		cs.Http = &sm.HttpSettings{
 			IpVersion:                  sm.IpVersion(sm.IpVersion_value[h["ip_version"].(string)]),
 			Method:                     sm.HttpMethod(sm.HttpMethod_value[h["method"].(string)]),
-			Headers:                    setToStringSlice(h["headers"].(*schema.Set)),
+			Headers:                    common.SetToStringSlice(h["headers"].(*schema.Set)),
 			Body:                       h["body"].(string),
 			NoFollowRedirects:          h["no_follow_redirects"].(bool),
 			BearerToken:                h["bearer_token"].(string),
 			ProxyURL:                   h["proxy_url"].(string),
 			FailIfSSL:                  h["fail_if_ssl"].(bool),
 			FailIfNotSSL:               h["fail_if_not_ssl"].(bool),
-			ValidHTTPVersions:          setToStringSlice(h["valid_http_versions"].(*schema.Set)),
-			FailIfBodyMatchesRegexp:    setToStringSlice(h["fail_if_body_matches_regexp"].(*schema.Set)),
-			FailIfBodyNotMatchesRegexp: setToStringSlice(h["fail_if_body_not_matches_regexp"].(*schema.Set)),
+			ValidHTTPVersions:          common.SetToStringSlice(h["valid_http_versions"].(*schema.Set)),
+			FailIfBodyMatchesRegexp:    common.SetToStringSlice(h["fail_if_body_matches_regexp"].(*schema.Set)),
+			FailIfBodyNotMatchesRegexp: common.SetToStringSlice(h["fail_if_body_not_matches_regexp"].(*schema.Set)),
 			CacheBustingQueryParamName: h["cache_busting_query_param_name"].(string),
 		}
 		if h["tls_config"].(*schema.Set).Len() > 0 {

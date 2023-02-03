@@ -227,7 +227,7 @@ func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, m int
 	personsToNotifyData, personsToNotifyDataOk := d.GetOk("persons_to_notify")
 	if personsToNotifyDataOk {
 		if typeData == "notify_persons" {
-			personsToNotifyDataSlice := setToStringSlice(personsToNotifyData.(*schema.Set))
+			personsToNotifyDataSlice := common.SetToStringSlice(personsToNotifyData.(*schema.Set))
 			createOptions.PersonsToNotify = &personsToNotifyDataSlice
 		} else {
 			return diag.Errorf("persons_to_notify can not be set with type: %s", typeData)
@@ -246,7 +246,7 @@ func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, m int
 	personsToNotifyNextEachTimeData, personsToNotifyNextEachTimeDataOk := d.GetOk("persons_to_notify_next_each_time")
 	if personsToNotifyNextEachTimeDataOk {
 		if typeData == "notify_person_next_each_time" {
-			personsToNotifyNextEachTimeDataSlice := setToStringSlice(personsToNotifyNextEachTimeData.(*schema.Set))
+			personsToNotifyNextEachTimeDataSlice := common.SetToStringSlice(personsToNotifyNextEachTimeData.(*schema.Set))
 			createOptions.PersonsToNotify = &personsToNotifyNextEachTimeDataSlice
 		} else {
 			return diag.Errorf("persons_to_notify_next_each_time can not be set with type: %s", typeData)
@@ -357,7 +357,7 @@ func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, m int
 	personsToNotifyData, personsToNotifyDataOk := d.GetOk("persons_to_notify")
 	if personsToNotifyDataOk {
 		if typeData == "notify_persons" {
-			personsToNotifyDataSlice := setToStringSlice(personsToNotifyData.(*schema.Set))
+			personsToNotifyDataSlice := common.SetToStringSlice(personsToNotifyData.(*schema.Set))
 			updateOptions.PersonsToNotify = &personsToNotifyDataSlice
 		}
 	}
@@ -372,7 +372,7 @@ func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, m int
 	personsToNotifyNextEachTimeData, personsToNotifyNextEachTimeDataOk := d.GetOk("persons_to_notify_next_each_time")
 	if personsToNotifyNextEachTimeDataOk {
 		if typeData == "notify_person_next_each_time" {
-			personsToNotifyNextEachTimeDataSlice := setToStringSlice(personsToNotifyNextEachTimeData.(*schema.Set))
+			personsToNotifyNextEachTimeDataSlice := common.SetToStringSlice(personsToNotifyNextEachTimeData.(*schema.Set))
 			updateOptions.PersonsToNotify = &personsToNotifyNextEachTimeDataSlice
 		}
 	}

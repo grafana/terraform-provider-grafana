@@ -62,13 +62,13 @@ Grafana Synthetic Monitoring Agent.
 				Description:      "Latitude coordinates.",
 				Type:             schema.TypeFloat,
 				Required:         true,
-				DiffSuppressFunc: schemaDiffFloat32,
+				DiffSuppressFunc: common.SchemaDiffFloat32,
 			},
 			"longitude": {
 				Description:      "Longitude coordinates.",
 				Type:             schema.TypeFloat,
 				Required:         true,
-				DiffSuppressFunc: schemaDiffFloat32,
+				DiffSuppressFunc: common.SchemaDiffFloat32,
 			},
 			"region": {
 				Description: "Region of the probe.",

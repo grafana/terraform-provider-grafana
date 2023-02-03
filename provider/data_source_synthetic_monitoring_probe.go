@@ -15,7 +15,7 @@ func DatasourceSyntheticMonitoringProbe() *schema.Resource {
 	return &schema.Resource{
 		Description: "Data source for retrieving a single probe by name.",
 		ReadContext: dataSourceSyntheticMonitoringProbeRead,
-		Schema: cloneResourceSchemaForDatasource(ResourceSyntheticMonitoringProbe(), map[string]*schema.Schema{
+		Schema: common.CloneResourceSchemaForDatasource(ResourceSyntheticMonitoringProbe(), map[string]*schema.Schema{
 			"name": {
 				Description: "Name of the probe.",
 				Type:        schema.TypeString,

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/terraform-provider-grafana/provider/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -338,7 +339,7 @@ func packAddrs(addrs string) []string {
 }
 
 func unpackAddrs(addrs []interface{}) string {
-	strs := listToStringSlice(addrs)
+	strs := common.ListToStringSlice(addrs)
 	return strings.Join(strs, addrSeparator)
 }
 

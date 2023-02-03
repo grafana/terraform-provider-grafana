@@ -198,6 +198,6 @@ func makeMLJob(d *schema.ResourceData, meta interface{}) (mlapi.Job, error) {
 		HyperParams:       d.Get("hyper_params").(map[string]interface{}),
 		TrainingWindow:    uint(d.Get("training_window").(int)),
 		TrainingFrequency: uint(24 * time.Hour / time.Second),
-		Holidays:          listToStringSlice(d.Get("holidays").([]interface{})),
+		Holidays:          common.ListToStringSlice(d.Get("holidays").([]interface{})),
 	}, nil
 }

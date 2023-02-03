@@ -130,7 +130,7 @@ func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, m inter
 	shiftsData, shiftsOk := d.GetOk("shifts")
 	if shiftsOk {
 		if typeData == "calendar" {
-			shiftsDataSlice := setToStringSlice(shiftsData.(*schema.Set))
+			shiftsDataSlice := common.SetToStringSlice(shiftsData.(*schema.Set))
 			createOptions.Shifts = &shiftsDataSlice
 		} else {
 			return diag.Errorf("shifts can not be set with type: %s", typeData)
@@ -196,7 +196,7 @@ func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	shiftsData, shiftsOk := d.GetOk("shifts")
 	if shiftsOk {
 		if typeData == "calendar" {
-			shiftsDataSlice := setToStringSlice(shiftsData.(*schema.Set))
+			shiftsDataSlice := common.SetToStringSlice(shiftsData.(*schema.Set))
 			updateOptions.Shifts = &shiftsDataSlice
 		} else {
 			return diag.Errorf("shifts can not be set with type: %s", typeData)

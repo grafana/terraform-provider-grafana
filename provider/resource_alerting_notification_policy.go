@@ -323,7 +323,7 @@ func unpackSpecificPolicy(p interface{}) (gapi.SpecificPolicy, error) {
 	json := p.(map[string]interface{})
 	policy := gapi.SpecificPolicy{
 		Receiver: json["contact_point"].(string),
-		GroupBy:  listToStringSlice(json["group_by"].([]interface{})),
+		GroupBy:  common.ListToStringSlice(json["group_by"].([]interface{})),
 		Continue: json["continue"].(bool),
 	}
 
@@ -340,7 +340,7 @@ func unpackSpecificPolicy(p interface{}) (gapi.SpecificPolicy, error) {
 		policy.ObjectMatchers = matchers
 	}
 	if v, ok := json["mute_timings"]; ok && v != nil {
-		policy.MuteTimeIntervals = listToStringSlice(v.([]interface{}))
+		policy.MuteTimeIntervals = common.ListToStringSlice(v.([]interface{}))
 	}
 	if v, ok := json["continue"]; ok && v != nil {
 		policy.Continue = v.(bool)

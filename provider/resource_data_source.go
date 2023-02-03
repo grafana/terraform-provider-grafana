@@ -586,7 +586,7 @@ source selected (via the 'type' argument).
 						return true
 					}
 
-					return SuppressEquivalentJSONDiffs(k, oldValue, newValue, d)
+					return common.SuppressEquivalentJSONDiffs(k, oldValue, newValue, d)
 				},
 			},
 			"secure_json_data_encoded": {
@@ -600,7 +600,7 @@ source selected (via the 'type' argument).
 					json, _ := structure.NormalizeJsonString(v)
 					return json
 				},
-				DiffSuppressFunc: SuppressEquivalentJSONDiffs,
+				DiffSuppressFunc: common.SuppressEquivalentJSONDiffs,
 			},
 		},
 	}
