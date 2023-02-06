@@ -168,6 +168,12 @@ This resource requires Grafana 9.1.0 or later.
 								Type: schema.TypeString,
 							},
 						},
+						"paused": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
+							Description: "Sets whether the alert should be paused or not.",
+						},
 					},
 				},
 			},
@@ -325,6 +331,7 @@ func packAlertRule(r gapi.AlertRule) (interface{}, error) {
 		"labels":         r.Labels,
 		"annotations":    r.Annotations,
 		"data":           data,
+		"paused":         r.IsPaused,
 	}
 	return json, nil
 }
@@ -349,6 +356,7 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		Condition:    json["condition"].(string),
 		Labels:       unpackMap(json["labels"]),
 		Annotations:  unpackMap(json["annotations"]),
+		IsPaused:     json["paused"].(bool),
 	}, nil
 }
 

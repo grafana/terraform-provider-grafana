@@ -53,6 +53,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.#", "1"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.name", "A Different Rule"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.for", "2m"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.paused", "false"),
 				),
 			},
 			// Test rename group.
@@ -79,6 +80,19 @@ func TestAccAlertRule_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "name", "My Rule Group"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "interval_seconds", "360"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.#", "1"),
+				),
+			},
+			// Test change pause.
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_rule_group/resource.tf", map[string]string{
+					"false": "true",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testRuleGroupCheckExists("grafana_rule_group.my_alert_rule", &group),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "name", "My Rule Group"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.#", "1"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.name", "My Alert Rule 1"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.paused", "true"),
 				),
 			},
 			// Test re-parent folder.
