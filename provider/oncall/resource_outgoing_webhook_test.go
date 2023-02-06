@@ -18,7 +18,7 @@ func TestAccOnCallOutgoingWebhook_basic(t *testing.T) {
 	webhookName := fmt.Sprintf("name-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccCheckOnCallOutgoingWebhookResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -32,7 +32,7 @@ func TestAccOnCallOutgoingWebhook_basic(t *testing.T) {
 }
 
 func testAccCheckOnCallOutgoingWebhookResourceDestroy(s *terraform.State) error {
-	client := testutils.Provider.Meta().(*common.Client).OnCallClient
+	client := testutils.GetProvider().Meta().(*common.Client).OnCallClient
 	for _, r := range s.RootModule().Resources {
 		if r.Type != "grafana_oncall_outgoing_webhook" {
 			continue
@@ -69,7 +69,7 @@ func testAccCheckOnCallOutgoingWebhookResourceExists(name string) resource.TestC
 			return fmt.Errorf("No OutgoingWebhook ID is set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).OnCallClient
+		client := testutils.GetProvider().Meta().(*common.Client).OnCallClient
 
 		found, _, err := client.CustomActions.GetCustomAction(rs.Primary.ID, &onCallAPI.GetCustomActionOptions{})
 		if err != nil {

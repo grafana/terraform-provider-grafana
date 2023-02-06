@@ -20,7 +20,7 @@ func TestAccOnCallRoute_basic(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccCheckOnCallRouteResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -34,7 +34,7 @@ func TestAccOnCallRoute_basic(t *testing.T) {
 }
 
 func testAccCheckOnCallRouteResourceDestroy(s *terraform.State) error {
-	client := testutils.Provider.Meta().(*common.Client).OnCallClient
+	client := testutils.GetProvider().Meta().(*common.Client).OnCallClient
 	for _, r := range s.RootModule().Resources {
 		if r.Type != "grafana_oncall_route" {
 			continue
@@ -91,7 +91,7 @@ func testAccCheckOnCallRouteResourceExists(name string) resource.TestCheckFunc {
 			return fmt.Errorf("No Route ID is set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).OnCallClient
+		client := testutils.GetProvider().Meta().(*common.Client).OnCallClient
 
 		found, _, err := client.Routes.GetRoute(rs.Primary.ID, &onCallAPI.GetRouteOptions{})
 		if err != nil {

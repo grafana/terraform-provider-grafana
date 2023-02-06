@@ -39,7 +39,7 @@ func TestAccDatasourceOrganization(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccOrganizationCheckDestroy(&organization),
 		Steps: []resource.TestStep{
 			{

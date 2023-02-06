@@ -16,7 +16,7 @@ func TestAccServiceAccountToken_basic(t *testing.T) {
 	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccServiceAccountTokenCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -36,7 +36,7 @@ func TestAccServiceAccountToken_basic(t *testing.T) {
 }
 
 func testAccServiceAccountTokenCheckDestroy(s *terraform.State) error {
-	c := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+	c := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_service_account_token" {

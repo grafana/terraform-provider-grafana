@@ -21,7 +21,7 @@ func TestAccAlertNotification_basic(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
 			{
@@ -59,7 +59,7 @@ func TestAccAlertNotification_disableResolveMessage(t *testing.T) {
 	var alertNotification gapi.AlertNotification
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
 			{
@@ -97,7 +97,7 @@ func TestAccAlertNotification_invalid_frequency(t *testing.T) {
 	var alertNotification gapi.AlertNotification
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
 			{
@@ -114,7 +114,7 @@ func TestAccAlertNotification_reminder_no_frequency(t *testing.T) {
 	var alertNotification gapi.AlertNotification
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccAlertNotificationCheckDestroy(&alertNotification),
 		Steps: []resource.TestStep{
 			{
@@ -141,7 +141,7 @@ func testAccAlertNotificationCheckExists(rn string, a *gapi.AlertNotification) r
 			return fmt.Errorf("resource id is malformed")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 		gotAlertNotification, err := client.AlertNotification(id)
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
@@ -165,7 +165,7 @@ func testAccAlertNotificationDefinition(a *gapi.AlertNotification) resource.Test
 
 func testAccAlertNotificationCheckDestroy(a *gapi.AlertNotification) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 		alert, err := client.AlertNotification(a.ID)
 		if err == nil && alert != nil {
 			return fmt.Errorf("alert-notification still exists")

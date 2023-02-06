@@ -19,7 +19,7 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 	rType := "grafana"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccCheckOnCallIntegrationResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -36,7 +36,7 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 }
 
 func testAccCheckOnCallIntegrationResourceDestroy(s *terraform.State) error {
-	client := testutils.Provider.Meta().(*common.Client).OnCallClient
+	client := testutils.GetProvider().Meta().(*common.Client).OnCallClient
 	for _, r := range s.RootModule().Resources {
 		if r.Type != "grafana_oncall_integration" {
 			continue
@@ -76,7 +76,7 @@ func testAccCheckOnCallIntegrationResourceExists(name string) resource.TestCheck
 			return fmt.Errorf("No Integration ID is set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).OnCallClient
+		client := testutils.GetProvider().Meta().(*common.Client).OnCallClient
 
 		found, _, err := client.Integrations.GetIntegration(rs.Primary.ID, &onCallAPI.GetIntegrationOptions{})
 		if err != nil {

@@ -18,7 +18,7 @@ func TestAccResourceProbe(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_probe/resource.tf"),
@@ -55,14 +55,14 @@ func TestAccResourceProbe_recreate(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_probe/resource.tf"),
 				Check: func(s *terraform.State) error {
 					rs := s.RootModule().Resources["grafana_synthetic_monitoring_probe.main"]
 					id, _ := strconv.ParseInt(rs.Primary.ID, 10, 64)
-					return testutils.Provider.Meta().(*common.Client).SMAPI.DeleteProbe(context.Background(), id)
+					return testutils.GetProvider().Meta().(*common.Client).SMAPI.DeleteProbe(context.Background(), id)
 				},
 				ExpectNonEmptyPlan: true,
 			},
@@ -111,7 +111,7 @@ func TestAccResourceProbe_InvalidLabels(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		Steps:             steps,
 	})
 }

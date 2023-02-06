@@ -24,7 +24,7 @@ func TestAccAnnotation_basic(t *testing.T) {
 	var annotation gapi.Annotation
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccAnnotationCheckDestroy(&annotation),
 		Steps: []resource.TestStep{
 			{
@@ -108,7 +108,7 @@ func testAccAnnotationCheckExists(rn string, annotation *gapi.Annotation) resour
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 		annotations, err := client.Annotations(url.Values{})
 		if err != nil {
 			return fmt.Errorf("error getting annotation: %s", err)
@@ -126,7 +126,7 @@ func testAccAnnotationCheckExists(rn string, annotation *gapi.Annotation) resour
 
 func testAccAnnotationCheckDestroy(annotation *gapi.Annotation) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 		annotations, err := client.Annotations(url.Values{})
 		if err != nil {
 			return err

@@ -32,7 +32,7 @@ func TestAccDatasourceLibraryPanel(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccLibraryPanelCheckDestroy(&panel),
 		Steps: []resource.TestStep{
 			{

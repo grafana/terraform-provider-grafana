@@ -20,7 +20,7 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 	reDuration := 300
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccCheckOnCallEscalationResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -40,7 +40,7 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 }
 
 func testAccCheckOnCallEscalationResourceDestroy(s *terraform.State) error {
-	client := testutils.Provider.Meta().(*common.Client).OnCallClient
+	client := testutils.GetProvider().Meta().(*common.Client).OnCallClient
 	for _, r := range s.RootModule().Resources {
 		if r.Type != "grafana_oncall_escalation" {
 			continue
@@ -91,7 +91,7 @@ func testAccCheckOnCallEscalationResourceExists(name string) resource.TestCheckF
 			return fmt.Errorf("No Escalation ID is set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).OnCallClient
+		client := testutils.GetProvider().Meta().(*common.Client).OnCallClient
 
 		found, _, err := client.Escalations.GetEscalation(rs.Primary.ID, &onCallAPI.GetEscalationOptions{})
 		if err != nil {

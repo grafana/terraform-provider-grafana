@@ -20,7 +20,7 @@ func TestAccLibraryPanel_basic(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccLibraryPanelCheckDestroy(&panel),
 		Steps: []resource.TestStep{
 			{
@@ -59,7 +59,7 @@ func TestAccLibraryPanel_computed_config(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccLibraryPanelCheckDestroy(&panel),
 		Steps: []resource.TestStep{
 			{
@@ -83,7 +83,7 @@ func TestAccLibraryPanel_folder(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccLibraryPanelFolderCheckDestroy(&panel, &folder),
 		Steps: []resource.TestStep{
 			{
@@ -111,7 +111,7 @@ func TestAccLibraryPanel_dashboard(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccLibraryPanelCheckDestroy(&panel),
 		Steps: []resource.TestStep{
 			{
@@ -136,7 +136,7 @@ func testAccLibraryPanelCheckExists(rn string, panel *gapi.LibraryPanel) resourc
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource id not set")
 		}
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 		gotLibraryPanel, err := client.LibraryPanelByUID(rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting panel: %s", err)
@@ -157,7 +157,7 @@ func testAccLibraryPanelCheckExistsInFolder(panel *gapi.LibraryPanel, folder *ga
 
 func testAccLibraryPanelCheckDestroy(panel *gapi.LibraryPanel) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 		_, err := client.LibraryPanelByUID(panel.UID)
 		if err == nil {
 			return fmt.Errorf("panel still exists")
@@ -168,7 +168,7 @@ func testAccLibraryPanelCheckDestroy(panel *gapi.LibraryPanel) resource.TestChec
 
 func testAccLibraryPanelFolderCheckDestroy(panel *gapi.LibraryPanel, folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 		_, err := client.LibraryPanelByUID(panel.UID)
 		if err == nil {
 			return fmt.Errorf("panel still exists")

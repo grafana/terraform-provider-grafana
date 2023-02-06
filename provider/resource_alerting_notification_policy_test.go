@@ -17,7 +17,7 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 
 	// TODO: Make parallizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		// Implicitly tests deletion.
 		CheckDestroy: testNotifPolicyCheckDestroy(),
 		Steps: []resource.TestStep{
@@ -83,7 +83,7 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 
 func testNotifPolicyCheckDestroy() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 		npt, err := client.NotificationPolicyTree()
 		if err != nil {
 			return fmt.Errorf("failed to get notification policies")
@@ -107,7 +107,7 @@ func testNotifPolicyCheckExists(rname string) resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 		npt, err := client.NotificationPolicyTree()
 		if err != nil {
 			return fmt.Errorf("failed to get notification policies")

@@ -18,7 +18,7 @@ func TestAccOnCallSchedule_basic(t *testing.T) {
 	scheduleName := fmt.Sprintf("schedule-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccCheckOnCallScheduleResourceDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -32,7 +32,7 @@ func TestAccOnCallSchedule_basic(t *testing.T) {
 }
 
 func testAccCheckOnCallScheduleResourceDestroy(s *terraform.State) error {
-	client := testutils.Provider.Meta().(*common.Client).OnCallClient
+	client := testutils.GetProvider().Meta().(*common.Client).OnCallClient
 	for _, r := range s.RootModule().Resources {
 		if r.Type != "grafana_oncall_schedule" {
 			continue
@@ -65,7 +65,7 @@ func testAccCheckOnCallScheduleResourceExists(name string) resource.TestCheckFun
 			return fmt.Errorf("No Schedule ID is set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).OnCallClient
+		client := testutils.GetProvider().Meta().(*common.Client).OnCallClient
 
 		found, _, err := client.Schedules.GetSchedule(rs.Primary.ID, &onCallAPI.GetScheduleOptions{})
 		if err != nil {

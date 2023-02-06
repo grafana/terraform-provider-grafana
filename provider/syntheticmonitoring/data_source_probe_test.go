@@ -12,7 +12,7 @@ func TestAccDataSourceSyntheticMonitoringProbe(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_synthetic_monitoring_probe/data-source.tf"),

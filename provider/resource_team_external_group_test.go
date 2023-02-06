@@ -17,7 +17,7 @@ func TestAccTeamExternalGroup_basic(t *testing.T) {
 	teamID := int64(-1)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccTeamExternalGroupCheckDestroy(),
 		Steps: []resource.TestStep{
 			{
@@ -56,7 +56,7 @@ func testAccTeamExternalGroupCheckExists(rn string, teamID *int64) resource.Test
 			return fmt.Errorf("Resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 
 		gotTeamID, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
 		if err != nil {

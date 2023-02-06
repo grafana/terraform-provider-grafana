@@ -18,7 +18,7 @@ func TestAccRole(t *testing.T) {
 	var role gapi.Role
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccRoleCheckDestroy(&role),
 		Steps: []resource.TestStep{
 			{
@@ -108,7 +108,7 @@ func testAccRoleCheckExists(rn string, r *gapi.Role) resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 		role, err := client.GetRole(rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting role: %s", err)
@@ -122,7 +122,7 @@ func testAccRoleCheckExists(rn string, r *gapi.Role) resource.TestCheckFunc {
 
 func testAccRoleCheckDestroy(r *gapi.Role) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 		role, err := client.GetRole(r.UID)
 		if err == nil && role.Name != "" {
 			return fmt.Errorf("role still exists")

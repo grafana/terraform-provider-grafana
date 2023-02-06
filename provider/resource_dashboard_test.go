@@ -36,7 +36,7 @@ func TestAccDashboard_basic(t *testing.T) {
 
 			// TODO: Make parallelizable
 			resource.Test(t, resource.TestCase{
-				ProviderFactories: testutils.ProviderFactories,
+				ProviderFactories: testutils.GetProviderFactories(),
 				CheckDestroy:      testAccDashboardCheckDestroy(&dashboard, 0),
 				Steps: []resource.TestStep{
 					{
@@ -98,7 +98,7 @@ func TestAccDashboard_uid_unset(t *testing.T) {
 	var dashboard gapi.Dashboard
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard, 0),
 		Steps: []resource.TestStep{
 			{
@@ -142,7 +142,7 @@ func TestAccDashboard_computed_config(t *testing.T) {
 	var dashboard gapi.Dashboard
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard, 0),
 		Steps: []resource.TestStep{
 			{
@@ -164,7 +164,7 @@ func TestAccDashboard_folder(t *testing.T) {
 	var folder gapi.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccDashboardFolderCheckDestroy(&dashboard, &folder),
 		Steps: []resource.TestStep{
 			{
@@ -193,7 +193,7 @@ func TestAccDashboard_inOrg(t *testing.T) {
 	orgName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard, org.ID),
 		Steps: []resource.TestStep{
 			{
@@ -229,7 +229,7 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 		}
 		orgID, dashboardUID := splitOSSOrgID(rs.Primary.ID)
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 		// If the org ID is set, check that the dashboard doesn't exist in the default org
 		if orgID > 0 {
 			dashboard, err := client.DashboardByUID(dashboardUID)
@@ -261,7 +261,7 @@ func testAccDashboardCheckExistsInFolder(dashboard *gapi.Dashboard, folder *gapi
 func testAccDashboardCheckDestroy(dashboard *gapi.Dashboard, orgID int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Check that the dashboard was deleted from the default organization
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 		dashboard, err := client.DashboardByUID(dashboard.Model["uid"].(string))
 		if dashboard != nil || err == nil {
 			return fmt.Errorf("dashboard still exists")
@@ -282,7 +282,7 @@ func testAccDashboardCheckDestroy(dashboard *gapi.Dashboard, orgID int64) resour
 
 func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 		_, err := client.DashboardByUID(dashboard.Model["uid"].(string))
 		if err == nil {
 			return fmt.Errorf("dashboard still exists")

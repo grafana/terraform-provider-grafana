@@ -16,11 +16,11 @@ import (
 )
 
 func init() {
-	testutils.Provider = Provider("testacc")()
+	p := Provider("testacc")()
 
 	// Always allocate a new provider instance each invocation, otherwise gRPC
 	// ProviderConfigure() can overwrite configuration during concurrent testing.
-	testutils.ProviderFactories = map[string]func() (*schema.Provider, error){
+	pf := map[string]func() (*schema.Provider, error){
 		"grafana": func() (*schema.Provider, error) {
 			return Provider("testacc")(), nil
 		},
@@ -30,14 +30,13 @@ func init() {
 	if testutils.AccTestsEnabled("TF_ACC") {
 		// Since we are outside the scope of the Terraform configuration we must
 		// call Configure() to properly initialize the provider configuration.
-		err := testutils.Provider.Configure(context.Background(), terraform.NewResourceConfigRaw(nil))
+		err := p.Configure(context.Background(), terraform.NewResourceConfigRaw(nil))
 		if err != nil {
 			panic(fmt.Sprintf("failed to configure provider: %v", err))
 		}
 	}
 
-	// Release the provider lock to allow testing in all packages
-	testutils.ProviderWaitGroup.Done()
+	testutils.SetTestProviders(p, pf)
 }
 
 func TestProvider(t *testing.T) {

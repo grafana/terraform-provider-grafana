@@ -12,7 +12,7 @@ func TestAccTeamPreferences_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccTeamPreferencesCheckDestroy(),
 		Steps: []resource.TestStep{
 			{

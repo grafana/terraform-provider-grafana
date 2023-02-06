@@ -18,7 +18,7 @@ func TestAccMessageTemplate_basic(t *testing.T) {
 	var tmpl gapi.AlertingMessageTemplate
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		// Implicitly tests deletion.
 		CheckDestroy: testMessageTemplateCheckDestroy(&tmpl),
 		Steps: []resource.TestStep{
@@ -90,7 +90,7 @@ func testMessageTemplateCheckExists(rname string, mt *gapi.AlertingMessageTempla
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 		tmpl, err := client.MessageTemplate(resource.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting resource: %s", err)
@@ -103,7 +103,7 @@ func testMessageTemplateCheckExists(rname string, mt *gapi.AlertingMessageTempla
 
 func testMessageTemplateCheckDestroy(mt *gapi.AlertingMessageTemplate) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 		tmpl, err := client.MessageTemplate(mt.Name)
 		if err == nil && tmpl != nil {
 			return fmt.Errorf("message template still exists on the server")

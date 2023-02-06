@@ -16,7 +16,7 @@ func TestAccDataSourceUser_Basic(t *testing.T) {
 	username := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccDataSourceUserConfig(username),

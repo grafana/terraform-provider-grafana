@@ -18,7 +18,7 @@ func TestAccDatasourcePermission_basic(t *testing.T) {
 	datasourceID := int64(-1)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_data_source_permission/resource.tf"),
@@ -47,7 +47,7 @@ func testAccDatasourcePermissionsCheckExists(rn string, datasourceID *int64) res
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 
 		gotDatasourceID, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
 		if err != nil {
@@ -68,7 +68,7 @@ func testAccDatasourcePermissionsCheckExists(rn string, datasourceID *int64) res
 //nolint:unused
 func testAccDatasourcePermissionCheckDestroy(datasourceID *int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 		response, err := client.DatasourcePermissions(*datasourceID)
 		if err != nil {
 			return fmt.Errorf("error getting datasource permissions %d: %s", *datasourceID, err)

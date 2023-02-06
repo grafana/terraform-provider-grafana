@@ -19,7 +19,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 	var group gapi.RuleGroup
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		// Implicitly tests deletion.
 		CheckDestroy: testAlertRuleCheckDestroy(&group),
 		Steps: []resource.TestStep{
@@ -104,7 +104,7 @@ func TestAccAlertRule_compound(t *testing.T) {
 	var group gapi.RuleGroup
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		// Implicitly tests deletion.
 		CheckDestroy: testAlertRuleCheckDestroy(&group),
 		Steps: []resource.TestStep{
@@ -176,7 +176,7 @@ func testRuleGroupCheckExists(rname string, g *gapi.RuleGroup) resource.TestChec
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 		key := unpackGroupID(resource.Primary.ID)
 		grp, err := client.AlertRuleGroup(key.folderUID, key.name)
 		if err != nil {
@@ -190,7 +190,7 @@ func testRuleGroupCheckExists(rname string, g *gapi.RuleGroup) resource.TestChec
 
 func testAlertRuleCheckDestroy(group *gapi.RuleGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 		_, err := client.AlertRuleGroup(group.FolderUID, group.Title)
 		if err == nil && strings.HasPrefix(err.Error(), "status: 404") {
 			return fmt.Errorf("rule group still exists on the server")

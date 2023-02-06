@@ -20,7 +20,7 @@ func TestAccGrafanaAuthKey(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccGrafanaAuthKeyCheckDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -50,7 +50,7 @@ func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
 		},
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{
@@ -69,7 +69,7 @@ func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
 }
 
 func testAccGrafanaAuthKeyCheckDestroy(s *terraform.State) error {
-	c := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+	c := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_api_key" {
@@ -140,7 +140,7 @@ func testAccGrafanaAuthKeyCheckDestroyCloud(s *terraform.State) error {
 			continue
 		}
 
-		cloudClient := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+		cloudClient := testutils.GetProvider().Meta().(*common.Client).GrafanaCloudAPI
 		c, cleanup, err := cloudClient.CreateTemporaryStackGrafanaClient(rs.Primary.Attributes["slug"], "test-api-key-", 60*time.Second)
 		if err != nil {
 			return err

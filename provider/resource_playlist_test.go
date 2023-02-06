@@ -20,7 +20,7 @@ func TestAccPlaylist_basic(t *testing.T) {
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccPlaylistDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -56,7 +56,7 @@ func TestAccPlaylist_update(t *testing.T) {
 	updatedName := "updated name"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccPlaylistDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -103,7 +103,7 @@ func TestAccPlaylist_disappears(t *testing.T) {
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProviderFactories: testutils.GetProviderFactories(),
 		CheckDestroy:      testAccPlaylistDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -129,7 +129,7 @@ func testAccPlaylistCheckExists() resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 
 		_, err := client.Playlist(rs.Primary.ID)
 		if err != nil {
@@ -151,14 +151,14 @@ func testAccPlaylistDisappears() resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 
 		return client.DeletePlaylist(rs.Primary.ID)
 	}
 }
 
 func testAccPlaylistDestroy(s *terraform.State) error {
-	client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+	client := testutils.GetProvider().Meta().(*common.Client).GrafanaAPI
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_playlist" {

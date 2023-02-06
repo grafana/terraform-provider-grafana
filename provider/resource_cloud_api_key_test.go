@@ -34,7 +34,7 @@ func TestAccCloudApiKey_Basic(t *testing.T) {
 			resourceName := prefix + acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 			resource.ParallelTest(t, resource.TestCase{
-				ProviderFactories: testutils.ProviderFactories,
+				ProviderFactories: testutils.GetProviderFactories(),
 				CheckDestroy:      testAccCheckCloudAPIKeyDestroy,
 				Steps: []resource.TestStep{
 					{
@@ -70,7 +70,7 @@ func testAccCheckCloudAPIKeyExists(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("resource `%s` has no ID set", resourceName)
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+		client := testutils.GetProvider().Meta().(*common.Client).GrafanaCloudAPI
 		res, err := client.ListCloudAPIKeys(rs.Primary.Attributes["cloud_org_slug"])
 		if err != nil {
 			return err
@@ -87,7 +87,7 @@ func testAccCheckCloudAPIKeyExists(resourceName string) resource.TestCheckFunc {
 }
 
 func testAccCheckCloudAPIKeyDestroy(s *terraform.State) error {
-	client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+	client := testutils.GetProvider().Meta().(*common.Client).GrafanaCloudAPI
 
 	for name, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_cloud_api_key" {
@@ -111,7 +111,7 @@ func testAccCheckCloudAPIKeyDestroy(s *terraform.State) error {
 
 func testAccDeleteExistingCloudAPIKeys(t *testing.T, prefix string) {
 	org := os.Getenv("GRAFANA_CLOUD_ORG")
-	client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+	client := testutils.GetProvider().Meta().(*common.Client).GrafanaCloudAPI
 	resp, err := client.ListCloudAPIKeys(org)
 	if err != nil {
 		t.Error(err)
