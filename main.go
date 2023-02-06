@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"github.com/grafana/terraform-provider-grafana/provider"
+	"github.com/grafana/terraform-provider-grafana/internal/provider"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 )
 
