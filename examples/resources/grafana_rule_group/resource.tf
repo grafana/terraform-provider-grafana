@@ -21,6 +21,7 @@ resource "grafana_rule_group" "my_alert_rule" {
       "e" = "f"
       "g" = "h"
     }
+    is_paused = false
     data {
       ref_id     = "A"
       query_type = ""
