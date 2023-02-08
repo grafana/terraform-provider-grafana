@@ -38,6 +38,7 @@ resource "grafana_library_panel" "test" {
 ### Optional
 
 - `folder_id` (Number) ID of the folder where the library panel is stored.
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `uid` (String) The unique identifier (UID) of a library panel uniquely identifies library panels between multiple Grafana installs. It’s automatically generated unless you specify it during library panel creation.The UID provides consistent URLs for accessing library panels and when syncing library panels between multiple Grafana installs.
 
 ### Read-Only
@@ -48,7 +49,6 @@ resource "grafana_library_panel" "test" {
 - `folder_name` (String) Name of the folder containing the library panel.
 - `folder_uid` (String) Unique ID (UID) of the folder containing the library panel.
 - `id` (String) The ID of this resource.
-- `org_id` (Number) The numeric ID of the library panel computed by Grafana.
 - `panel_id` (Number) The numeric ID of the library panel computed by Grafana.
 - `type` (String) Type of the library panel (eg. text).
 - `updated` (String) Timestamp when the library panel was last modified.
