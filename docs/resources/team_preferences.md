@@ -3,13 +3,13 @@
 page_title: "grafana_team_preferences Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/administration/preferences/HTTP API https://grafana.com/docs/grafana/latest/http_api/team/
+  Official documentation https://grafana.com/docs/grafana/latest/administration/organization-preferences/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/team/
 ---
 
 # grafana_team_preferences (Resource)
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/administration/preferences/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/team/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/administration/organization-preferences/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team/)
 
 ## Example Usage
 

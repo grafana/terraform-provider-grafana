@@ -24,7 +24,7 @@ func ResourceDataSource() *schema.Resource {
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/datasources/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/data_source/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/data_source/)
 
 The required arguments for this resource vary depending on the type of data
 source selected (via the 'type' argument).

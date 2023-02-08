@@ -4,7 +4,7 @@ page_title: "grafana_message_template Resource - terraform-provider-grafana"
 subcategory: "Alerting"
 description: |-
   Manages Grafana Alerting message templates.
-  Official documentation https://grafana.com/docs/grafana/latest/alerting/contact-points/message-templating/HTTP API https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#templates
+  Official documentation https://grafana.com/docs/grafana/next/alerting/manage-notifications/create-message-template/HTTP API https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#templates
   This resource requires Grafana 9.1.0 or later.
 ---
 
@@ -12,7 +12,7 @@ description: |-
 
 Manages Grafana Alerting message templates.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/contact-points/message-templating/)
+* [Official documentation](https://grafana.com/docs/grafana/next/alerting/manage-notifications/create-message-template/)
 * [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#templates)
 
 This resource requires Grafana 9.1.0 or later.

@@ -18,8 +18,8 @@ func ResourceDashboardPermission() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
-* [Official documentation](https://grafana.com/docs/grafana/latest/permissions/dashboard_folder_permissions/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/dashboard_permissions/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard_permissions/)
 `,
 
 		CreateContext: UpdateDashboardPermissions,

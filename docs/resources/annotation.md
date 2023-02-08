@@ -3,13 +3,13 @@
 page_title: "grafana_annotation Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/dashboards/annotations/HTTP API https://grafana.com/docs/grafana/latest/http_api/annotations/
+  Official documentation https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/annotate-visualizations/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/annotations/
 ---
 
 # grafana_annotation (Resource)
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/annotations/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/annotations/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/annotate-visualizations/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/annotations/)
 
 ## Example Usage
 

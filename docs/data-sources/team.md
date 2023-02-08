@@ -3,13 +3,13 @@
 page_title: "grafana_team Data Source - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/administration/manage-users-and-permissions/manage-teams/HTTP API https://grafana.com/docs/grafana/latest/http_api/team/
+  Official documentation https://grafana.com/docs/grafana/latest/administration/team-management/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/team/
 ---
 
 # grafana_team (Data Source)
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/administration/manage-users-and-permissions/manage-teams/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/team/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/administration/team-management/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team/)
 
 ## Example Usage
 

@@ -17,7 +17,7 @@ func DatasourceFolders() *schema.Resource {
 		},
 
 		Description: `
-* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/dashboard-folders/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder/)
 `,
 

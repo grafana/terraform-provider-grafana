@@ -17,8 +17,8 @@ func ResourceAnnotation() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
-* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/annotations/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/annotations/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/annotate-visualizations/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/annotations/)
 `,
 
 		CreateContext: CreateAnnotation,

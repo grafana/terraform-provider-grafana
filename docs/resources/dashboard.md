@@ -4,7 +4,7 @@ page_title: "grafana_dashboard Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
   Manages Grafana dashboards.
-  Official documentation https://grafana.com/docs/grafana/latest/dashboards/HTTP API https://grafana.com/docs/grafana/latest/http_api/dashboard/
+  Official documentation https://grafana.com/docs/grafana/latest/dashboards/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/
 ---
 
 # grafana_dashboard (Resource)
@@ -12,7 +12,7 @@ description: |-
 Manages Grafana dashboards.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/dashboard/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/)
 
 ## Example Usage
 

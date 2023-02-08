@@ -3,13 +3,13 @@
 page_title: "grafana_playlist Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/dashboards/playlist/HTTP API https://grafana.com/docs/grafana/latest/http_api/playlist/
+  Official documentation https://grafana.com/docs/grafana/latest/dashboards/create-manage-playlists/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/playlist/
 ---
 
 # grafana_playlist (Resource)
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/playlist/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/playlist/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/create-manage-playlists/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/playlist/)
 
 
 

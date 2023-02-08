@@ -228,7 +228,7 @@ One, or many, of the following authentication settings must be set. Each authent
 ### `auth`
 
 This can be a Grafana API key, basic auth `username:password`, or a
-[Grafana API key](https://grafana.com/docs/grafana/latest/http_api/create-api-tokens-for-org/).
+[Grafana API key](https://grafana.com/docs/grafana/latest/developers/http_api/create-api-tokens-for-org/).
 
 ### `cloud_api_key`
 
