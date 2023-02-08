@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
 func ResourceLibraryPanel() *schema.Resource {
@@ -23,10 +23,10 @@ Manages Grafana library panels.
 * [HTTP API](https://grafana.com/docs/grafana/latest/http_api/library_element/)
 `,
 
-		CreateContext: CreateLibraryPanel,
-		ReadContext:   ReadLibraryPanel,
-		UpdateContext: UpdateLibraryPanel,
-		DeleteContext: DeleteLibraryPanel,
+		CreateContext: createLibraryPanel,
+		ReadContext:   readLibraryPanel,
+		UpdateContext: updateLibraryPanel,
+		DeleteContext: deleteLibraryPanel,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -46,9 +46,13 @@ Manages Grafana library panels.
 				Description: "The numeric ID of the library panel computed by Grafana.",
 			},
 			"org_id": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "The numeric ID of the library panel computed by Grafana.",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Organization ID. If not set, the Org ID defined in the provider block will be used.",
+				ForceNew:    true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return new == "" // Ignore the case where we have a global org_id set
+				},
 			},
 			"folder_id": {
 				Type:        schema.TypeInt,
@@ -112,21 +116,20 @@ Manages Grafana library panels.
 	}
 }
 
-func CreateLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+func createLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, _ := ClientFromOrgIDAttr(meta, d)
+
 	panel := makeLibraryPanel(d)
 	resp, err := client.NewLibraryPanel(panel)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(resp.UID)
-	d.Set("uid", resp.UID)
-	return ReadLibraryPanel(ctx, d, meta)
+	d.SetId(MakeOSSOrgID(resp.OrgID, resp.UID))
+	return readLibraryPanel(ctx, d, meta)
 }
 
-func ReadLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	uid := d.Id()
+func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, _, uid := ClientFromOSSOrgID(meta, d.Id())
 
 	panel, err := client.LibraryPanelByUID(uid)
 	var diags diag.Diagnostics
@@ -134,8 +137,8 @@ func ReadLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 		if strings.HasPrefix(err.Error(), "status: 404") {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Warning,
-				Summary:  fmt.Sprintf("Library Panel %q is in state, but no longer exists in grafana", panel.Name),
-				Detail:   fmt.Sprintf("%q will be recreated when you apply", panel.Name),
+				Summary:  fmt.Sprintf("Library Panel %s is in state, but no longer exists in grafana", uid),
+				Detail:   fmt.Sprintf("%s will be recreated when you apply", uid),
 			})
 			d.SetId("")
 			return diags
@@ -154,10 +157,9 @@ func ReadLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 	}
 	modelJSON := normalizeLibraryPanelModelJSON(remotePanelJSON)
 
-	d.SetId(panel.UID)
 	d.Set("uid", panel.UID)
 	d.Set("panel_id", panel.ID)
-	d.Set("org_id", panel.OrgID)
+	d.Set("org_id", strconv.FormatInt(panel.OrgID, 10))
 	d.Set("folder_id", panel.Folder)
 	d.Set("description", panel.Description)
 	d.Set("type", panel.Type)
@@ -183,28 +185,22 @@ func ReadLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 	return diags
 }
 
-func UpdateLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	uid := d.Id()
+func updateLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, _, uid := ClientFromOSSOrgID(meta, d.Id())
 	panel := makeLibraryPanel(d)
 
 	resp, err := client.PatchLibraryPanel(uid, panel)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(resp.UID)
-	d.Set("uid", resp.UID)
-	return ReadLibraryPanel(ctx, d, meta)
+	d.SetId(MakeOSSOrgID(resp.OrgID, resp.UID))
+	return readLibraryPanel(ctx, d, meta)
 }
 
-func DeleteLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	uid := d.Id()
+func deleteLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, _, uid := ClientFromOSSOrgID(meta, d.Id())
 	_, err := client.DeleteLibraryPanel(uid)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	return nil
+	return diag.FromErr(err)
 }
 
 func makeLibraryPanel(d *schema.ResourceData) gapi.LibraryPanel {

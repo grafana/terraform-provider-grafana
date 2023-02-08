@@ -14,7 +14,7 @@ data "grafana_library_panel" "from_name" {
 }
 
 data "grafana_library_panel" "from_uid" {
-  uid = grafana_library_panel.test.id
+  uid = grafana_library_panel.test.uid
 }
 
 // create library panels to be added to a dashboard

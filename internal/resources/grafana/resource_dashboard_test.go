@@ -200,19 +200,13 @@ func TestAccDashboard_inOrg(t *testing.T) {
 			{
 				Config: testAccDashboardInOrganization(orgName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
 					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "dashboard-"+orgName),
-					// Check that the dashboard is not in the default org, from its ID
-					func(s *terraform.State) error {
-						expectedOrgID := org.ID
-						if org.ID <= 1 {
-							return fmt.Errorf("expected org ID higher than 1, got %d", org.ID)
-						}
-						expectedDashboardID := fmt.Sprintf("%d:dashboard-%s", expectedOrgID, orgName) // <org id>:<uid>
-						checkFunc := resource.TestCheckResourceAttr("grafana_dashboard.test", "id", expectedDashboardID)
-						return checkFunc(s)
-					},
+
+					// Check that the dashboard is in the correct organization
+					resource.TestMatchResourceAttr("grafana_dashboard.test", "id", nonDefaultOrgIDRegexp),
+					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					checkResourceIsInOrg("grafana_dashboard.test", "grafana_organization.test"),
 				),
 			},
 		},
