@@ -13,8 +13,8 @@ func ResourceTeamExternalGroup() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
-* [Official documentation](https://grafana.com/docs/grafana/latest/enterprise/team-sync/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/external_group_sync/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/external_group_sync/)
 `,
 
 		CreateContext: CreateTeamExternalGroup,

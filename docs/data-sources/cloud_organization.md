@@ -3,13 +3,12 @@
 page_title: "grafana_cloud_organization Data Source - terraform-provider-grafana"
 subcategory: "Cloud"
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/administration/manage-organizations/HTTP API https://grafana.com/docs/grafana/latest/http_api/org/
+  
 ---
 
 # grafana_cloud_organization (Data Source)
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/administration/manage-organizations/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/org/)
+
 
 ## Example Usage
 

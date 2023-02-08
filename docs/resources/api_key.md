@@ -4,14 +4,14 @@ page_title: "grafana_api_key Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
   Manages Grafana API Keys.
-  HTTP API https://grafana.com/docs/grafana/latest/http_api/auth/
+  HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/auth/
 ---
 
 # grafana_api_key (Resource)
 
 Manages Grafana API Keys.
 
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/auth/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/auth/)
 
 ## Example Usage
 

@@ -4,13 +4,13 @@ page_title: "grafana_alert_notification Resource - terraform-provider-grafana"
 subcategory: "Deprecated"
 description: |-
   This resource is used to configure the legacy alerting system which has been replaced by the unified alerting system https://grafana.com/docs/grafana/latest/alerting/ in Grafana 9+. See resources in the Alerting section https://registry.terraform.io/providers/grafana/grafana/latest/docs for info on how to configure alerting with Terraform.
-  * HTTP API https://grafana.com/docs/grafana/latest/http_api/alerting_notification_channels/
+  * HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/alerting_notification_channels/
 ---
 
 # grafana_alert_notification (Resource)
 
 This resource is used to configure the legacy alerting system which has been replaced by the [unified alerting system](https://grafana.com/docs/grafana/latest/alerting/) in Grafana 9+. See resources in the [Alerting section](https://registry.terraform.io/providers/grafana/grafana/latest/docs) for info on how to configure alerting with Terraform.
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/alerting_notification_channels/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_notification_channels/)
 
 ## Example Usage
 
@@ -44,7 +44,7 @@ resource "grafana_alert_notification" "email_someteam" {
 - `is_default` (Boolean) Is this the default channel for all your alerts. Defaults to `false`.
 - `secure_settings` (Map of String, Sensitive) Additional secure settings, for full reference lookup [Grafana Supported Settings documentation](https://grafana.com/docs/grafana/latest/administration/provisioning/#supported-settings).
 - `send_reminder` (Boolean) Whether to send reminders for triggered alerts. Defaults to `false`.
-- `settings` (Map of String) Additional settings, for full reference see [Grafana HTTP API documentation](https://grafana.com/docs/grafana/latest/http_api/alerting_notification_channels/).
+- `settings` (Map of String) Additional settings, for full reference see [Grafana HTTP API documentation](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_notification_channels/).
 - `uid` (String) Unique identifier. If unset, this will be automatically generated.
 
 ### Read-Only

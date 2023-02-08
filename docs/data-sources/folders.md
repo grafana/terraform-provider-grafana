@@ -3,12 +3,12 @@
 page_title: "grafana_folders Data Source - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/dashboards/dashboard-folders/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/folder/
+  Official documentation https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/folder/
 ---
 
 # grafana_folders (Data Source)
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/dashboard-folders/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder/)
 
 ## Example Usage

@@ -3,13 +3,13 @@
 page_title: "grafana_organization Data Source - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/administration/manage-organizations/HTTP API https://grafana.com/docs/grafana/latest/http_api/org/
+  Official documentation https://grafana.com/docs/grafana/latest/administration/organization-management/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/org/
 ---
 
 # grafana_organization (Data Source)
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/administration/manage-organizations/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/org/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/administration/organization-management/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/org/)
 
 ## Example Usage
 

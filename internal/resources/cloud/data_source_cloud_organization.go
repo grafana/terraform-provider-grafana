@@ -12,10 +12,6 @@ import (
 
 func DataSourceOrganization() *schema.Resource {
 	return &schema.Resource{
-		Description: `
-* [Official documentation](https://grafana.com/docs/grafana/latest/administration/manage-organizations/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/org/)
-`,
 		ReadContext: DataSourceOrganizationRead,
 		Schema: map[string]*schema.Schema{
 			"id": {

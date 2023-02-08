@@ -28,7 +28,7 @@ func ResourceDashboard() *schema.Resource {
 Manages Grafana dashboards.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/dashboard/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/)
 `,
 
 		CreateContext: CreateDashboard,

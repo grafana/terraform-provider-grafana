@@ -4,7 +4,7 @@ page_title: "grafana_notification_policy Resource - terraform-provider-grafana"
 subcategory: "Alerting"
 description: |-
   Sets the global notification policy for Grafana. Note that this resource manages the entire notification policy tree, and will overwrite any existing policies.
-  Official documentation https://grafana.com/docs/grafana/latest/alerting/notifications/HTTP API https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#notification-policies
+  Official documentation https://grafana.com/docs/grafana/latest/alerting/manage-notifications/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/
   This resource requires Grafana 9.1.0 or later.
 ---
 
@@ -12,8 +12,8 @@ description: |-
 
 Sets the global notification policy for Grafana. Note that this resource manages the entire notification policy tree, and will overwrite any existing policies.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/notifications/)
-* [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#notification-policies)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/manage-notifications/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/)
 
 This resource requires Grafana 9.1.0 or later.
 

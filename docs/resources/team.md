@@ -3,13 +3,13 @@
 page_title: "grafana_team Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/administration/manage-users-and-permissions/manage-teams/HTTP API https://grafana.com/docs/grafana/latest/http_api/team/
+  Official documentation https://grafana.com/docs/grafana/latest/administration/team-management/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/team/
 ---
 
 # grafana_team (Resource)
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/administration/manage-users-and-permissions/manage-teams/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/team/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/administration/team-management/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team/)
 
 ## Example Usage
 
@@ -33,7 +33,7 @@ resource "grafana_team" "test-team" {
 ### Optional
 
 - `email` (String) An email address for the team.
-- `ignore_externally_synced_members` (Boolean) Ignores team members that have been added to team by [Team Sync](https://grafana.com/docs/grafana/latest/enterprise/team-sync/).
+- `ignore_externally_synced_members` (Boolean) Ignores team members that have been added to team by [Team Sync](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/).
 Team Sync can be provisioned using [grafana_team_external_group resource](https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/team_external_group).
  Defaults to `true`.
 - `members` (Set of String) A set of email addresses corresponding to users who should be given membership

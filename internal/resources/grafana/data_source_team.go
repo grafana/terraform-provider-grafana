@@ -14,8 +14,8 @@ import (
 func DatasourceTeam() *schema.Resource {
 	return &schema.Resource{
 		Description: `
-* [Official documentation](https://grafana.com/docs/grafana/latest/administration/manage-users-and-permissions/manage-teams/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/team/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/administration/team-management/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team/)
 `,
 		ReadContext: dataSourceTeamRead,
 		Schema: map[string]*schema.Schema{
