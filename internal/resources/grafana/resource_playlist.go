@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -67,15 +66,20 @@ func ResourcePlaylist() *schema.Resource {
 				},
 			},
 			"org_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Organization ID. If not set, the Org ID defined in the provider block will be used.",
+				ForceNew:    true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return new == "" // Ignore the case where we have a global org_id set
+				},
 			},
 		},
 	}
 }
 
 func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID := ClientFromOrgIDAttr(meta, d)
 
 	playlist := gapi.Playlist{
 		Name:     d.Get("name").(string),
@@ -89,27 +93,28 @@ func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 		return diag.Errorf("error creating Playlist: %v", err)
 	}
 
-	d.SetId(id)
+	d.SetId(MakeOSSOrgID(orgID, id))
 
 	return ReadPlaylist(ctx, d, meta)
 }
 
 func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID, id := ClientFromOSSOrgID(meta, d.Id())
 
-	resp, err := client.Playlist(d.Id())
+	resp, err := client.Playlist(id)
 
 	// In Grafana 9.0+, if the playlist doesn't exist, the API returns an empty playlist but not a 404
 	if (err != nil && strings.HasPrefix(err.Error(), "status: 404")) || (resp.ID == 0 && resp.UID == "") {
-		log.Printf("[WARN] removing playlist %s from state because it no longer exists in grafana", d.Id())
+		log.Printf("[WARN] removing playlist %s from state because it no longer exists in grafana", id)
 		d.SetId("")
 		return nil
 	} else if err != nil {
-		return diag.Errorf("error reading Playlist (%s): %v", d.Id(), err)
+		return diag.Errorf("error reading Playlist (%s): %v", id, err)
 	}
 
 	d.Set("name", resp.Name)
 	d.Set("interval", resp.Interval)
+	d.Set("org_id", strconv.FormatInt(orgID, 10))
 	if err := d.Set("item", flattenPlaylistItems(resp.Items)); err != nil {
 		return diag.Errorf("error setting item: %v", err)
 	}
@@ -118,7 +123,7 @@ func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta interface{})
 }
 
 func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _, id := ClientFromOSSOrgID(meta, d.Id())
 
 	playlist := gapi.Playlist{
 		Name:     d.Get("name").(string),
@@ -127,28 +132,28 @@ func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 	}
 
 	// Support both Grafana 9.0+ and older versions (UID is used in 9.0+)
-	if idInt, err := strconv.Atoi(d.Id()); err == nil {
+	if idInt, err := strconv.Atoi(id); err == nil {
 		playlist.ID = idInt
 	} else {
-		playlist.UID = d.Id()
+		playlist.UID = id
 	}
 
 	err := client.UpdatePlaylist(playlist)
 	if err != nil {
-		return diag.Errorf("error updating Playlist (%s): %v", d.Id(), err)
+		return diag.Errorf("error updating Playlist (%s): %v", id, err)
 	}
 
 	return ReadPlaylist(ctx, d, meta)
 }
 
 func DeletePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _, id := ClientFromOSSOrgID(meta, d.Id())
 
-	if err := client.DeletePlaylist(d.Id()); err != nil {
+	if err := client.DeletePlaylist(id); err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
 			return nil
 		}
-		return diag.Errorf("error deleting Playlist (%s): %v", d.Id(), err)
+		return diag.Errorf("error deleting Playlist (%s): %v", id, err)
 	}
 
 	return nil
