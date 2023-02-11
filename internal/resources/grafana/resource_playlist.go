@@ -65,21 +65,13 @@ func ResourcePlaylist() *schema.Resource {
 					},
 				},
 			},
-			"org_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Organization ID. If not set, the Org ID defined in the provider block will be used.",
-				ForceNew:    true,
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					return new == "" // Ignore the case where we have a global org_id set
-				},
-			},
+			"org_id": orgIDAttribute(),
 		},
 	}
 }
 
 func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromOrgIDAttr(meta, d)
+	client, orgID := clientFromNewOrgResource(meta, d)
 
 	playlist := gapi.Playlist{
 		Name:     d.Get("name").(string),
@@ -93,13 +85,13 @@ func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 		return diag.Errorf("error creating Playlist: %v", err)
 	}
 
-	d.SetId(MakeOSSOrgID(orgID, id))
+	d.SetId(makeOrgResourceID(orgID, id))
 
 	return ReadPlaylist(ctx, d, meta)
 }
 
 func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID, id := ClientFromOSSOrgID(meta, d.Id())
+	client, orgID, id := clientFromExistingOrgResource(meta, d.Id())
 
 	resp, err := client.Playlist(id)
 
@@ -123,7 +115,7 @@ func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta interface{})
 }
 
 func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, id := ClientFromOSSOrgID(meta, d.Id())
+	client, _, id := clientFromExistingOrgResource(meta, d.Id())
 
 	playlist := gapi.Playlist{
 		Name:     d.Get("name").(string),
@@ -147,7 +139,7 @@ func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 }
 
 func DeletePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, id := ClientFromOSSOrgID(meta, d.Id())
+	client, _, id := clientFromExistingOrgResource(meta, d.Id())
 
 	if err := client.DeletePlaylist(id); err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {

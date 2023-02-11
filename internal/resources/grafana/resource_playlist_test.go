@@ -7,7 +7,6 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -173,7 +172,7 @@ func testAccPlaylistCheckExists() resource.TestCheckFunc {
 
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 
-		orgID, playlistID := grafana.SplitOSSOrgID(rs.Primary.ID)
+		orgID, playlistID := grafana.splitOrgResourceID(rs.Primary.ID)
 
 		// If the org ID is set, check that the playlist doesn't exist in the default org
 		if orgID > 0 {
@@ -204,7 +203,7 @@ func testAccPlaylistDisappears() resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		client, _, playlistID := grafana.ClientFromOSSOrgID(testutils.Provider.Meta(), rs.Primary.ID)
+		client, _, playlistID := grafana.clientFromExistingOrgResource(testutils.Provider.Meta(), rs.Primary.ID)
 
 		return client.DeletePlaylist(playlistID)
 	}
@@ -216,7 +215,7 @@ func testAccPlaylistDestroy(s *terraform.State) error {
 			continue
 		}
 
-		client, _, playlistID := grafana.ClientFromOSSOrgID(testutils.Provider.Meta(), rs.Primary.ID)
+		client, _, playlistID := grafana.clientFromExistingOrgResource(testutils.Provider.Meta(), rs.Primary.ID)
 		playlist, err := client.Playlist(playlistID)
 
 		if err != nil {
