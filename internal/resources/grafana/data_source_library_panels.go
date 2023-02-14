@@ -50,30 +50,18 @@ func dataSourceLibraryPanelsRead(ctx context.Context, d *schema.ResourceData, me
 		return diag.FromErr(err)
 	}
 
-	// var allDiags diag.Diagnostics
-	// elements := make([]*schema.ResourceData, len(panels))
-	// for i, p := range panels {
-	// 	resource := &schema.ResourceData{}
-
-	// 	diags := handleLibraryPanel(client, resource, &p)
-	// 	if diags.HasError() {
-	// 		return diags
-	// 	}
-
-	// 	allDiags = append(allDiags, diags...)
-	// 	elements[i] = resource
-	// }
-
 	d.SetId("grafana_library_panels")
-	d.Set("elements", flattenPanels(panels))
+	if err := d.Set("elements", flattenPanels(panels, meta)); err != nil {
+		return diag.Errorf("error setting item: %v", err)
+	}
 
 	return nil
 }
 
-func flattenPanels(panels []gapi.LibraryPanel) []interface{} {
+func flattenPanels(panels []gapi.LibraryPanel, meta interface{}) []interface{} {
 	libraryPanels := make([]interface{}, len(panels))
 	for i, p := range panels {
-		libraryPanels[i], _ = flattenLibraryPanel(p)
+		libraryPanels[i], _ = flattenLibraryPanel(p, meta)
 	}
 
 	return libraryPanels

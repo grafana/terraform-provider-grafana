@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
 func ResourceLibraryPanel() *schema.Resource {
@@ -266,7 +267,7 @@ func normalizeLibraryPanelModelJSON(config interface{}) string {
 	return string(j)
 }
 
-func flattenLibraryPanel(panel gapi.LibraryPanel) (interface{}, diag.Diagnostics) {
+func flattenLibraryPanel(panel gapi.LibraryPanel, meta interface{}) (interface{}, diag.Diagnostics) {
 	modelJSONBytes, err := json.Marshal(panel.Model)
 	if err != nil {
 		return nil, diag.FromErr(err)
@@ -288,22 +289,22 @@ func flattenLibraryPanel(panel gapi.LibraryPanel) (interface{}, diag.Diagnostics
 		"type":        panel.Type,
 		"name":        panel.Name,
 		"model_json":  modelJSON,
-		"kind":        panel.Kind,
 		"version":     panel.Version,
 		"created":     panel.Meta.Created.String(),
 		"updated":     panel.Meta.Updated.String(),
 	}
 
-	// connections, err := client.LibraryPanelConnections(uid)
-	// if err != nil {
-	// 	return diag.FromErr(err)
-	// }
+	client := meta.(*common.Client).GrafanaAPI
+	connections, err := client.LibraryPanelConnections(panel.UID)
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
 
-	// dashboardIds := make([]int64, 0, len(*connections))
-	// for _, connection := range *connections {
-	// 	dashboardIds = append(dashboardIds, connection.DashboardID)
-	// }
-	// d.Set("dashboard_ids", dashboardIds)
+	dashboardIds := make([]int64, 0, len(*connections))
+	for _, connection := range *connections {
+		dashboardIds = append(dashboardIds, connection.DashboardID)
+	}
+	flattenedPanel["dashboard_ids"] = dashboardIds
 
 	return flattenedPanel, nil
 }
