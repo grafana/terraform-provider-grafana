@@ -211,7 +211,6 @@ func testAccPlaylistDisappears() resource.TestCheckFunc {
 }
 
 func testAccPlaylistDestroy(s *terraform.State) error {
-
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_playlist" {
 			continue
