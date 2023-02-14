@@ -102,6 +102,22 @@ Manages Grafana dashboards.
 				Optional:    true,
 				Description: "Set a commit message for the version history.",
 			},
+			"panels": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "List of panels",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"config_json": {
+							Type:      schema.TypeString,
+							Required:  true,
+							StateFunc: NormalizePanelConfigJSON,
+							// ValidateFunc: validateDashboardConfigJSON,
+							Description: "The complete panel JSON.",
+						},
+					},
+				},
+			},
 		},
 		SchemaVersion: 1,
 		StateUpgraders: []schema.StateUpgrader{
