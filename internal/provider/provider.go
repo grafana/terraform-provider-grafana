@@ -113,6 +113,7 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_folder":                   grafana.DatasourceFolder(),
 			"grafana_folders":                  grafana.DatasourceFolders(),
 			"grafana_library_panel":            grafana.DatasourceLibraryPanel(),
+			"grafana_library_panels":           grafana.DatasourceLibraryPanels(),
 			"grafana_user":                     grafana.DatasourceUser(),
 			"grafana_users":                    grafana.DatasourceUsers(),
 			"grafana_team":                     grafana.DatasourceTeam(),
