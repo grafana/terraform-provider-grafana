@@ -265,3 +265,45 @@ func normalizeLibraryPanelModelJSON(config interface{}) string {
 	j, _ := json.Marshal(modelJSON)
 	return string(j)
 }
+
+func flattenLibraryPanel(panel gapi.LibraryPanel) (interface{}, diag.Diagnostics) {
+	modelJSONBytes, err := json.Marshal(panel.Model)
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+	remotePanelJSON, err := unmarshalLibraryPanelModelJSON(string(modelJSONBytes))
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+	modelJSON := normalizeLibraryPanelModelJSON(remotePanelJSON)
+
+	flattenedPanel := map[string]interface{}{
+		"uid":         panel.UID,
+		"panel_id":    panel.ID,
+		"org_id":      strconv.FormatInt(panel.OrgID, 10),
+		"folder_id":   panel.Folder,
+		"folder_name": panel.Meta.FolderName,
+		"folder_uid":  panel.Meta.FolderUID,
+		"description": panel.Description,
+		"type":        panel.Type,
+		"name":        panel.Name,
+		"model_json":  modelJSON,
+		"kind":        panel.Kind,
+		"version":     panel.Version,
+		"created":     panel.Meta.Created.String(),
+		"updated":     panel.Meta.Updated.String(),
+	}
+
+	// connections, err := client.LibraryPanelConnections(uid)
+	// if err != nil {
+	// 	return diag.FromErr(err)
+	// }
+
+	// dashboardIds := make([]int64, 0, len(*connections))
+	// for _, connection := range *connections {
+	// 	dashboardIds = append(dashboardIds, connection.DashboardID)
+	// }
+	// d.Set("dashboard_ids", dashboardIds)
+
+	return flattenedPanel, nil
+}

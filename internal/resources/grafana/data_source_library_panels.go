@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 
+	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -49,22 +50,31 @@ func dataSourceLibraryPanelsRead(ctx context.Context, d *schema.ResourceData, me
 		return diag.FromErr(err)
 	}
 
-	var allDiags diag.Diagnostics
-	elements := make([]*schema.ResourceData, len(panels))
+	// var allDiags diag.Diagnostics
+	// elements := make([]*schema.ResourceData, len(panels))
+	// for i, p := range panels {
+	// 	resource := &schema.ResourceData{}
+
+	// 	diags := handleLibraryPanel(client, resource, &p)
+	// 	if diags.HasError() {
+	// 		return diags
+	// 	}
+
+	// 	allDiags = append(allDiags, diags...)
+	// 	elements[i] = resource
+	// }
+
+	d.SetId("grafana_library_panels")
+	d.Set("elements", flattenPanels(panels))
+
+	return nil
+}
+
+func flattenPanels(panels []gapi.LibraryPanel) []interface{} {
+	libraryPanels := make([]interface{}, len(panels))
 	for i, p := range panels {
-		resource := &schema.ResourceData{}
-		resource.Set("uid", p.UID)
-
-		diags := readLibraryPanel(ctx, resource, meta)
-		if diags.HasError() {
-			return diags
-		}
-
-		allDiags = append(allDiags, diags...)
-		elements[i] = resource
+		libraryPanels[i], _ = flattenLibraryPanel(p)
 	}
 
-	d.Set("elements", elements)
-
-	return allDiags
+	return libraryPanels
 }
