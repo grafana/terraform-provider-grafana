@@ -222,7 +222,7 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource id not set")
 		}
-		orgID, dashboardUID := grafana.splitOrgResourceID(rs.Primary.ID)
+		orgID, dashboardUID := grafana.SplitOrgResourceID(rs.Primary.ID)
 
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		// If the org ID is set, check that the dashboard doesn't exist in the default org

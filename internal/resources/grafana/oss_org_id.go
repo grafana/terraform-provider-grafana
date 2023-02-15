@@ -22,13 +22,13 @@ func orgIDAttribute() *schema.Schema {
 	}
 }
 
-// makeOrgResourceID creates a resource ID for an org-scoped resource
-func makeOrgResourceID(orgID int64, resourceID interface{}) string {
+// MakeOrgResourceID creates a resource ID for an org-scoped resource
+func MakeOrgResourceID(orgID int64, resourceID interface{}) string {
 	return fmt.Sprintf("%d:%s", orgID, fmt.Sprint(resourceID))
 }
 
-// splitOrgResourceID splits into two parts (org ID and resource ID) the ID of an org-scoped resource
-func splitOrgResourceID(id string) (int64, string) {
+// SplitOrgResourceID splits into two parts (org ID and resource ID) the ID of an org-scoped resource
+func SplitOrgResourceID(id string) (int64, string) {
 	if strings.ContainsRune(id, ':') {
 		parts := strings.SplitN(id, ":", 2)
 		orgID, _ := strconv.ParseInt(parts[0], 10, 64)
@@ -38,10 +38,10 @@ func splitOrgResourceID(id string) (int64, string) {
 	return 0, id
 }
 
-// clientFromExistingOrgResource creates a client from the ID of an org-scoped resource
+// ClientFromExistingOrgResource creates a client from the ID of an org-scoped resource
 // Those IDs are in the <orgID>:<resourceID> format
-func clientFromExistingOrgResource(meta interface{}, id string) (*gapi.Client, int64, string) {
-	orgID, restOfID := splitOrgResourceID(id)
+func ClientFromExistingOrgResource(meta interface{}, id string) (*gapi.Client, int64, string) {
+	orgID, restOfID := SplitOrgResourceID(id)
 	client := meta.(*common.Client).GrafanaAPI
 	if orgID > 0 {
 		client = client.WithOrgID(orgID)
@@ -49,9 +49,9 @@ func clientFromExistingOrgResource(meta interface{}, id string) (*gapi.Client, i
 	return client, orgID, restOfID
 }
 
-// clientFromNewOrgResource creates a client from the `org_id` attribute of a resource
+// ClientFromNewOrgResource creates a client from the `org_id` attribute of a resource
 // This client is meant to be used in `Create` functions when the ID hasn't already been baked into the resource ID
-func clientFromNewOrgResource(meta interface{}, d *schema.ResourceData) (*gapi.Client, int64) {
+func ClientFromNewOrgResource(meta interface{}, d *schema.ResourceData) (*gapi.Client, int64) {
 	orgID, _ := strconv.ParseInt(d.Get("org_id").(string), 10, 64)
 	client := meta.(*common.Client).GrafanaAPI
 	if orgID > 0 {

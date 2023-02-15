@@ -71,7 +71,7 @@ func ResourcePlaylist() *schema.Resource {
 }
 
 func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := clientFromNewOrgResource(meta, d)
+	client, orgID := ClientFromNewOrgResource(meta, d)
 
 	playlist := gapi.Playlist{
 		Name:     d.Get("name").(string),
@@ -85,13 +85,13 @@ func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 		return diag.Errorf("error creating Playlist: %v", err)
 	}
 
-	d.SetId(makeOrgResourceID(orgID, id))
+	d.SetId(MakeOrgResourceID(orgID, id))
 
 	return ReadPlaylist(ctx, d, meta)
 }
 
 func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID, id := clientFromExistingOrgResource(meta, d.Id())
+	client, orgID, id := ClientFromExistingOrgResource(meta, d.Id())
 
 	resp, err := client.Playlist(id)
 
@@ -115,7 +115,7 @@ func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta interface{})
 }
 
 func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, id := clientFromExistingOrgResource(meta, d.Id())
+	client, _, id := ClientFromExistingOrgResource(meta, d.Id())
 
 	playlist := gapi.Playlist{
 		Name:     d.Get("name").(string),
@@ -139,7 +139,7 @@ func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 }
 
 func DeletePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, id := clientFromExistingOrgResource(meta, d.Id())
+	client, _, id := ClientFromExistingOrgResource(meta, d.Id())
 
 	if err := client.DeletePlaylist(id); err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {

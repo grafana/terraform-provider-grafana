@@ -182,7 +182,7 @@ func resourceDashboardStateUpgradeV0(ctx context.Context, rawState map[string]in
 }
 
 func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := clientFromNewOrgResource(meta, d)
+	client, orgID := ClientFromNewOrgResource(meta, d)
 
 	dashboard, err := makeDashboard(d)
 	if err != nil {
@@ -192,13 +192,13 @@ func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(makeOrgResourceID(orgID, resp.UID))
+	d.SetId(MakeOrgResourceID(orgID, resp.UID))
 	return ReadDashboard(ctx, d, meta)
 }
 
 func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	gapiURL := meta.(*common.Client).GrafanaAPIURL
-	client, _, uid := clientFromExistingOrgResource(meta, d.Id())
+	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
 
 	dashboard, err := client.DashboardByUID(uid)
 	var diags diag.Diagnostics
@@ -260,7 +260,7 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 }
 
 func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := clientFromNewOrgResource(meta, d)
+	client, orgID := ClientFromNewOrgResource(meta, d)
 
 	dashboard, err := makeDashboard(d)
 	if err != nil {
@@ -272,12 +272,12 @@ func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(makeOrgResourceID(orgID, resp.UID))
+	d.SetId(MakeOrgResourceID(orgID, resp.UID))
 	return ReadDashboard(ctx, d, meta)
 }
 
 func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := clientFromExistingOrgResource(meta, d.Id())
+	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
 
 	err := client.DeleteDashboardByUID(uid)
 	var diags diag.Diagnostics

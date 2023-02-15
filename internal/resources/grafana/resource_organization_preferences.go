@@ -72,7 +72,7 @@ func ResourceOrganizationPreferences() *schema.Resource {
 }
 
 func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := clientFromNewOrgResource(meta, d)
+	client, orgID := ClientFromNewOrgResource(meta, d)
 
 	_, err := client.UpdateAllOrgPreferences(gapi.Preferences{
 		Theme:            d.Get("theme").(string),

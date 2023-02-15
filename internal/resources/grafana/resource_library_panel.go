@@ -109,19 +109,19 @@ Manages Grafana library panels.
 }
 
 func createLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _ := clientFromNewOrgResource(meta, d)
+	client, _ := ClientFromNewOrgResource(meta, d)
 
 	panel := makeLibraryPanel(d)
 	resp, err := client.NewLibraryPanel(panel)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(makeOrgResourceID(resp.OrgID, resp.UID))
+	d.SetId(MakeOrgResourceID(resp.OrgID, resp.UID))
 	return readLibraryPanel(ctx, d, meta)
 }
 
 func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := clientFromExistingOrgResource(meta, d.Id())
+	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
 
 	panel, err := client.LibraryPanelByUID(uid)
 	var diags diag.Diagnostics
@@ -178,19 +178,19 @@ func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 }
 
 func updateLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := clientFromExistingOrgResource(meta, d.Id())
+	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
 	panel := makeLibraryPanel(d)
 
 	resp, err := client.PatchLibraryPanel(uid, panel)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(makeOrgResourceID(resp.OrgID, resp.UID))
+	d.SetId(MakeOrgResourceID(resp.OrgID, resp.UID))
 	return readLibraryPanel(ctx, d, meta)
 }
 
 func deleteLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := clientFromExistingOrgResource(meta, d.Id())
+	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
 	_, err := client.DeleteLibraryPanel(uid)
 	return diag.FromErr(err)
 }

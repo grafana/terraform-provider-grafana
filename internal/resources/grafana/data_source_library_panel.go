@@ -29,7 +29,7 @@ func DatasourceLibraryPanel() *schema.Resource {
 }
 
 func dataSourceLibraryPanelRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := clientFromNewOrgResource(meta, d)
+	client, orgID := ClientFromNewOrgResource(meta, d)
 	uid := d.Get("uid").(string)
 
 	// get UID from name if specified
@@ -42,7 +42,7 @@ func dataSourceLibraryPanelRead(ctx context.Context, d *schema.ResourceData, met
 		uid = panel.UID
 	}
 
-	d.SetId(makeOrgResourceID(orgID, uid))
+	d.SetId(MakeOrgResourceID(orgID, uid))
 
 	return readLibraryPanel(ctx, d, meta)
 }
