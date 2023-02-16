@@ -60,3 +60,8 @@ golangci-lint:
 
 linkcheck:
 	docker run -it --entrypoint sh -v "$$PWD:$$PWD" -w "$$PWD" python:3.9-alpine -c "pip3 install linkchecker && linkchecker --config .linkcheckerrc docs"
+
+install:
+	go build -o terraform-provider-grafana
+	mkdir -p ~/.terraform.d/plugins/grafana.com/grafana/grafana/0.1/darwin_arm64
+	mv terraform-provider-grafana ~/.terraform.d/plugins/grafana.com/grafana/grafana/0.1/darwin_arm64

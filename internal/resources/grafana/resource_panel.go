@@ -32,11 +32,15 @@ Manages Grafana panels.
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
+			// TODO: this should be replaces with a schema of the panel, that probably should be serialized and put into config_json
+			"temp_json": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The panel JSON.",
+			},
 			"config_json": {
-				Type:      schema.TypeString,
-				Required:  true,
-				StateFunc: NormalizeDashboardConfigJSON,
-				// ValidateFunc: validateDashboardConfigJSON,
+				Type:        schema.TypeString,
+				Computed:    true,
 				Description: "The panel JSON.",
 			},
 		},
@@ -44,8 +48,14 @@ Manages Grafana panels.
 }
 
 func CreatePanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	// TODO: this should be replaces with a schema of the panel, that probably should be serialized and put into config_json
+	tmp := d.Get("temp_json")
+	err := d.Set("config_json", tmp)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	d.SetId(strconv.FormatInt(time.Now().Unix(), 10))
-	return ReadDashboard(ctx, d, meta)
+	return nil
 }
 
 func ReadPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

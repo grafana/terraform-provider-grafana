@@ -109,9 +109,9 @@ Manages Grafana dashboards.
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"config_json": {
-							Type:      schema.TypeString,
-							Required:  true,
-							StateFunc: NormalizePanelConfigJSON,
+							Type:     schema.TypeString,
+							Required: true,
+							//StateFunc: NormalizePanelConfigJSON,
 							// ValidateFunc: validateDashboardConfigJSON,
 							Description: "The complete panel JSON.",
 						},
@@ -205,7 +205,16 @@ func resourceDashboardStateUpgradeV0(ctx context.Context, rawState map[string]in
 func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := ClientFromOrgIDAttr(meta, d)
 
-	dashboard, err := makeDashboard(d)
+	panelConfigs := d.Get("panels").([]interface{})
+
+	var panels []interface{}
+	for _, c := range panelConfigs {
+		p := c.(map[string]interface{})
+		panels = append(panels, p["config_json"])
+	}
+
+	// TODO: somehow put panels into dashboard.Model's panels
+	dashboard, err := makeDashboard(d, panels)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -213,6 +222,7 @@ func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	_ = panels
 	d.SetId(MakeOSSOrgID(orgID, resp.UID))
 	return ReadDashboard(ctx, d, meta)
 }
@@ -283,7 +293,7 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := ClientFromOrgIDAttr(meta, d)
 
-	dashboard, err := makeDashboard(d)
+	dashboard, err := makeDashboard(d, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -293,6 +303,7 @@ func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	d.SetId(MakeOSSOrgID(orgID, resp.UID))
 	return ReadDashboard(ctx, d, meta)
 }
@@ -308,7 +319,7 @@ func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 	return diags
 }
 
-func makeDashboard(d *schema.ResourceData) (gapi.Dashboard, error) {
+func makeDashboard(d *schema.ResourceData, panels []interface{}) (gapi.Dashboard, error) {
 	var parsedFolder int64 = 0
 	var err error
 	if folderStr := d.Get("folder").(string); folderStr != "" {
@@ -330,6 +341,14 @@ func makeDashboard(d *schema.ResourceData) (gapi.Dashboard, error) {
 	}
 	delete(dashboardJSON, "id")
 	delete(dashboardJSON, "version")
+	// TODO
+	var dashPanels []interface{}
+	for _, p := range panels {
+		s := p.(string)
+		u, _ := UnmarshalDashboardConfigJSON(s)
+		dashPanels = append(dashPanels, u)
+	}
+	dashboardJSON["panels"] = dashPanels
 	dashboard.Model = dashboardJSON
 	return dashboard, nil
 }
