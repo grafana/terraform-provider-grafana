@@ -12,12 +12,12 @@ resource "grafana_cloud_stack" "my_stack" {
   region_slug = "us"
 }
 
-resource "grafana_api_key" "management" {
+resource "grafana_cloud_stack_api_key" "management" {
   provider = grafana.cloud
 
-  cloud_stack_slug = grafana_cloud_stack.my_stack.slug
-  name             = "management-key"
-  role             = "Admin"
+  stack_slug = grafana_cloud_stack.my_stack.slug
+  name       = "management-key"
+  role       = "Admin"
 }
 
 // Step 2: Create resources within the stack

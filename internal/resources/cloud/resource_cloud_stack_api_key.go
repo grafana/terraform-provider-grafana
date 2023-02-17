@@ -1,4 +1,4 @@
-package grafana
+package cloud
 
 import (
 	"context"
@@ -12,19 +12,26 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func ResourceAPIKey() *schema.Resource {
+func ResourceStackAPIKey() *schema.Resource {
 	return &schema.Resource{
 		Description: `
-Manages Grafana API Keys.
+Manages API keys of a Grafana Cloud stack using the Cloud API
+This can be used to bootstrap a management API key for a new stack
 
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/auth/)
 `,
 
-		CreateContext: resourceAPIKeyCreate,
-		ReadContext:   resourceAPIKeyRead,
-		DeleteContext: resourceAPIKeyDelete,
+		CreateContext: resourceStackAPIKeyCreate,
+		ReadContext:   resourceStackAPIKeyRead,
+		DeleteContext: resourceStackAPIKeyDelete,
 
 		Schema: map[string]*schema.Schema{
+			"stack_slug": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -41,14 +48,6 @@ Manages Grafana API Keys.
 				Optional: true,
 				ForceNew: true,
 			},
-			"cloud_stack_slug": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    true,
-				Description: "Deprecated: Use the `grafana_cloud_stack_api_key` resource instead",
-				Deprecated:  "Use the `grafana_cloud_stack_api_key` resource instead",
-			},
-
 			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -66,7 +65,7 @@ Manages Grafana API Keys.
 	}
 }
 
-func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceStackAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	name := d.Get("name").(string)
 	role := d.Get("role").(string)
 	ttl := d.Get("seconds_to_live").(int)
@@ -87,10 +86,10 @@ func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	d.Set("key", response.Key)
 
 	// Fill the true resource's state after a create by performing a read
-	return resourceAPIKeyRead(ctx, d, m)
+	return resourceStackAPIKeyRead(ctx, d, m)
 }
 
-func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceStackAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c, cleanup, err := getClientForAPIKeyManagement(d, m)
 	if err != nil {
 		return diag.FromErr(err)
@@ -126,7 +125,7 @@ func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 	return nil
 }
 
-func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceStackAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	id, err := strconv.ParseInt(d.Id(), 10, 32)
 	if err != nil {
 		return diag.FromErr(err)
@@ -147,13 +146,6 @@ func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m interfa
 }
 
 func getClientForAPIKeyManagement(d *schema.ResourceData, m interface{}) (c *gapi.Client, cleanup func() error, err error) {
-	// TODO: Remove this client management once `cloud_stack_slug` is removed
-	c = m.(*common.Client).GrafanaAPI
-	cleanup = func() error { return nil }
-	if cloudStackSlug, ok := d.GetOk("cloud_stack_slug"); ok && cloudStackSlug.(string) != "" {
-		cloudClient := m.(*common.Client).GrafanaCloudAPI
-		c, cleanup, err = cloudClient.CreateTemporaryStackGrafanaClient(cloudStackSlug.(string), "terraform-temp-", 60*time.Second)
-	}
-
-	return
+	cloudClient := m.(*common.Client).GrafanaCloudAPI
+	return cloudClient.CreateTemporaryStackGrafanaClient(d.Get("stack-slug").(string), "terraform-temp-", 60*time.Second)
 }
