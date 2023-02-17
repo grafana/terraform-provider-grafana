@@ -65,3 +65,10 @@ install:
 	go build -o terraform-provider-grafana
 	mkdir -p ~/.terraform.d/plugins/grafana.com/grafana/grafana/0.1/darwin_arm64
 	mv terraform-provider-grafana ~/.terraform.d/plugins/grafana.com/grafana/grafana/0.1/darwin_arm64
+
+test-local:
+	rm -f ./test/.terraform.lock.hcl
+	rm -f ./test/terraform.tfstate
+	rm -f ./test/terraform.tfstate.backup
+	rm -r -f ./test/.terraform
+	cd test && terraform init && terraform apply

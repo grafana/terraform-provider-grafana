@@ -23,6 +23,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana/dashboardhelpers"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/machinelearning"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/oncall"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/syntheticmonitoring"
@@ -110,6 +111,7 @@ func Provider(version string) func() *schema.Provider {
 		grafanaClientDatasources = addResourcesMetadataValidation(grafanaClientPresent, map[string]*schema.Resource{
 			"grafana_dashboard":                grafana.DatasourceDashboard(),
 			"grafana_dashboards":               grafana.DatasourceDashboards(),
+			"grafana_text_panel":               dashboardhelpers.DatasourceTextPanel(),
 			"grafana_data_source":              grafana.DatasourceDatasource(),
 			"grafana_folder":                   grafana.DatasourceFolder(),
 			"grafana_folders":                  grafana.DatasourceFolders(),
