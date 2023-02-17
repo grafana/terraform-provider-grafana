@@ -28,7 +28,7 @@ func ResourceTeamPreferences() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"team_id": {
-				Type:        schema.TypeInt,
+				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "The numeric team ID.",
@@ -55,9 +55,7 @@ func ResourceTeamPreferences() *schema.Resource {
 }
 
 func UpdateTeamPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-
-	teamID := int64(d.Get("team_id").(int))
+	client, teamID := getTeamIDFromResourceID(meta, d.Get("team_id").(string))
 	theme := d.Get("theme").(string)
 	homeDashboardID := int64(d.Get("home_dashboard_id").(int))
 	timezone := d.Get("timezone").(string)
@@ -77,9 +75,7 @@ func UpdateTeamPreferences(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func ReadTeamPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-
-	teamID := int64(d.Get("team_id").(int))
+	client, teamID := getTeamIDFromResourceID(meta, d.Get("team_id").(string))
 
 	preferences, err := client.TeamPreferences(teamID)
 	if err != nil {
@@ -99,9 +95,7 @@ func DeleteTeamPreferences(ctx context.Context, d *schema.ResourceData, meta int
 	// the specified preferences and go back to the default values. note: if the
 	// call fails because the team no longer exists - we'll just ignore the error
 
-	client := meta.(*common.Client).GrafanaAPI
-
-	teamID := int64(d.Get("team_id").(int))
+	client, teamID := getTeamIDFromResourceID(meta, d.Get("team_id").(string))
 	defaultPreferences := gapi.Preferences{}
 
 	err := client.UpdateTeamPreferences(teamID, defaultPreferences)
@@ -114,4 +108,14 @@ func DeleteTeamPreferences(ctx context.Context, d *schema.ResourceData, meta int
 	}
 
 	return nil
+}
+
+func getTeamIDFromResourceID(meta interface{}, id string) (*gapi.Client, int64) {
+	client := meta.(*common.Client).GrafanaAPI
+	orgID, teamIDStr := SplitOrgResourceID(id)
+	teamID, err := strconv.ParseInt(teamIDStr, 10, 64)
+	if err != nil {
+		return client, 0
+	}
+	return client.WithOrgID(orgID), teamID
 }

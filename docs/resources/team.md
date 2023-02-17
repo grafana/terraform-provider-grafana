@@ -38,6 +38,7 @@ Team Sync can be provisioned using [grafana_team_external_group resource](https:
  Defaults to `true`.
 - `members` (Set of String) A set of email addresses corresponding to users who should be given membership
 to the team. Note: users specified here must already exist in Grafana.
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 
 ### Read-Only
 

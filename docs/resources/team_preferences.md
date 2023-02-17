@@ -35,7 +35,7 @@ resource "grafana_team_preferences" "team_preferences" {
 
 ### Required
 
-- `team_id` (Number) The numeric team ID.
+- `team_id` (String) The numeric team ID.
 
 ### Optional
 

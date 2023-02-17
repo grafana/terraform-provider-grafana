@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -37,15 +37,16 @@ func ResourceTeam() *schema.Resource {
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team/)
 `,
 
-		CreateContext: CreateTeam,
-		ReadContext:   ReadTeam,
-		UpdateContext: UpdateTeam,
-		DeleteContext: DeleteTeam,
+		CreateContext: createTeam,
+		ReadContext:   readTeam,
+		UpdateContext: updateTeam,
+		DeleteContext: deleteTeam,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"team_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
@@ -91,8 +92,9 @@ Team Sync can be provisioned using [grafana_team_external_group resource](https:
 	}
 }
 
-func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+func createTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, orgID := ClientFromNewOrgResource(meta, d)
+
 	name := d.Get("name").(string)
 	email := d.Get("email").(string)
 	teamID, err := client.AddTeam(name, email)
@@ -100,18 +102,18 @@ func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(teamID, 10))
-	d.Set("team_id", teamID)
-	if err = UpdateMembers(d, meta); err != nil {
-		return diag.FromErr(err)
+	d.SetId(MakeOrgResourceID(orgID, strconv.FormatInt(teamID, 10)))
+
+	if err := updateTeamMembers(d, meta); err != nil {
+		return err
 	}
 
-	return diag.Diagnostics{}
+	return readTeam(ctx, d, meta)
 }
 
-func ReadTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
+func readTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, _, teamIDStr := ClientFromExistingOrgResource(meta, d.Id())
+	teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
 	resp, err := client.Team(teamID)
 	if err != nil && strings.HasPrefix(err.Error(), "status: 404") {
 		log.Printf("[WARN] removing team %s from state because it no longer exists in grafana", d.Id())
@@ -126,15 +128,14 @@ func ReadTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 	if resp.Email != "" {
 		d.Set("email", resp.Email)
 	}
-	if err := ReadMembers(d, meta); err != nil {
-		return diag.FromErr(err)
-	}
-	return nil
+	d.Set("org_id", strconv.FormatInt(resp.OrgID, 10))
+
+	return readTeamMembers(d, meta)
 }
 
-func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
+func updateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, _, teamIDStr := ClientFromExistingOrgResource(meta, d.Id())
+	teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
 	if d.HasChange("name") || d.HasChange("email") {
 		name := d.Get("name").(string)
 		email := d.Get("email").(string)
@@ -143,29 +144,26 @@ func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 			return diag.FromErr(err)
 		}
 	}
-	if err := UpdateMembers(d, meta); err != nil {
-		return diag.FromErr(err)
+
+	if err := updateTeamMembers(d, meta); err != nil {
+		return err
 	}
 
-	return diag.Diagnostics{}
+	return readTeam(ctx, d, meta)
 }
 
-func DeleteTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	if err := client.DeleteTeam(teamID); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return diag.Diagnostics{}
+func deleteTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, _, teamIDStr := ClientFromExistingOrgResource(meta, d.Id())
+	teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
+	return diag.FromErr(client.DeleteTeam(teamID))
 }
 
-func ReadMembers(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*common.Client).GrafanaAPI
-	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
+func readTeamMembers(d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, _, teamIDStr := ClientFromExistingOrgResource(meta, d.Id())
+	teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
 	teamMembers, err := client.TeamMembers(teamID)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	memberSlice := []string{}
 	for _, teamMember := range teamMembers {
@@ -187,21 +185,22 @@ func ReadMembers(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func UpdateMembers(d *schema.ResourceData, meta interface{}) error {
+func updateTeamMembers(d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, _, teamIDStr := ClientFromExistingOrgResource(meta, d.Id())
+	teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
 	stateMembers, configMembers, err := collectMembers(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	// compile the list of differences between current state and config
 	changes := memberChanges(stateMembers, configMembers)
 	// retrieves the corresponding user IDs based on the email provided
-	changes, err = addMemberIdsToChanges(meta, changes)
+	changes, err = addMemberIdsToChanges(client, changes)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	// now we can make the corresponding updates so current state matches config
-	return applyMemberChanges(meta, teamID, changes)
+	return applyMemberChanges(client, teamID, changes)
 }
 
 func collectMembers(d *schema.ResourceData) (map[string]TeamMember, map[string]TeamMember, error) {
@@ -249,8 +248,7 @@ func memberChanges(stateMembers, configMembers map[string]TeamMember) []MemberCh
 	return changes
 }
 
-func addMemberIdsToChanges(meta interface{}, changes []MemberChange) ([]MemberChange, error) {
-	client := meta.(*common.Client).GrafanaAPI
+func addMemberIdsToChanges(client *gapi.Client, changes []MemberChange) ([]MemberChange, error) {
 	gUserMap := make(map[string]int64)
 	gUsers, err := client.OrgUsersCurrent()
 	if err != nil {
@@ -278,9 +276,8 @@ func addMemberIdsToChanges(meta interface{}, changes []MemberChange) ([]MemberCh
 	return output, nil
 }
 
-func applyMemberChanges(meta interface{}, teamID int64, changes []MemberChange) error {
+func applyMemberChanges(client *gapi.Client, teamID int64, changes []MemberChange) diag.Diagnostics {
 	var err error
-	client := meta.(*common.Client).GrafanaAPI
 	for _, change := range changes {
 		u := change.Member
 		switch change.Type {
@@ -290,7 +287,7 @@ func applyMemberChanges(meta interface{}, teamID int64, changes []MemberChange) 
 			err = client.RemoveMemberFromTeam(teamID, u.ID)
 		}
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 	return nil
