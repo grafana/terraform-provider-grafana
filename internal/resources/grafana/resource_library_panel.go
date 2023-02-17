@@ -45,15 +45,7 @@ Manages Grafana library panels.
 				Computed:    true,
 				Description: "The numeric ID of the library panel computed by Grafana.",
 			},
-			"org_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Organization ID. If not set, the Org ID defined in the provider block will be used.",
-				ForceNew:    true,
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					return new == "" // Ignore the case where we have a global org_id set
-				},
-			},
+			"org_id": orgIDAttribute(),
 			"folder_id": {
 				Type:        schema.TypeInt,
 				Optional:    true,
@@ -117,19 +109,19 @@ Manages Grafana library panels.
 }
 
 func createLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _ := ClientFromOrgIDAttr(meta, d)
+	client, _ := ClientFromNewOrgResource(meta, d)
 
 	panel := makeLibraryPanel(d)
 	resp, err := client.NewLibraryPanel(panel)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(MakeOSSOrgID(resp.OrgID, resp.UID))
+	d.SetId(MakeOrgResourceID(resp.OrgID, resp.UID))
 	return readLibraryPanel(ctx, d, meta)
 }
 
 func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := ClientFromOSSOrgID(meta, d.Id())
+	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
 
 	panel, err := client.LibraryPanelByUID(uid)
 	var diags diag.Diagnostics
@@ -186,19 +178,19 @@ func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 }
 
 func updateLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := ClientFromOSSOrgID(meta, d.Id())
+	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
 	panel := makeLibraryPanel(d)
 
 	resp, err := client.PatchLibraryPanel(uid, panel)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(MakeOSSOrgID(resp.OrgID, resp.UID))
+	d.SetId(MakeOrgResourceID(resp.OrgID, resp.UID))
 	return readLibraryPanel(ctx, d, meta)
 }
 
 func deleteLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := ClientFromOSSOrgID(meta, d.Id())
+	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
 	_, err := client.DeleteLibraryPanel(uid)
 	return diag.FromErr(err)
 }

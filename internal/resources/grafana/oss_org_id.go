@@ -10,11 +10,25 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func MakeOSSOrgID(orgID int64, resourceID interface{}) string {
+func orgIDAttribute() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The Organization ID. If not set, the Org ID defined in the provider block will be used.",
+		ForceNew:    true,
+		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			return new == "" // Ignore the case where we have a global org_id set
+		},
+	}
+}
+
+// MakeOrgResourceID creates a resource ID for an org-scoped resource
+func MakeOrgResourceID(orgID int64, resourceID interface{}) string {
 	return fmt.Sprintf("%d:%s", orgID, fmt.Sprint(resourceID))
 }
 
-func SplitOSSOrgID(id string) (int64, string) {
+// SplitOrgResourceID splits into two parts (org ID and resource ID) the ID of an org-scoped resource
+func SplitOrgResourceID(id string) (int64, string) {
 	if strings.ContainsRune(id, ':') {
 		parts := strings.SplitN(id, ":", 2)
 		orgID, _ := strconv.ParseInt(parts[0], 10, 64)
@@ -24,8 +38,10 @@ func SplitOSSOrgID(id string) (int64, string) {
 	return 0, id
 }
 
-func ClientFromOSSOrgID(meta interface{}, id string) (*gapi.Client, int64, string) {
-	orgID, restOfID := SplitOSSOrgID(id)
+// ClientFromExistingOrgResource creates a client from the ID of an org-scoped resource
+// Those IDs are in the <orgID>:<resourceID> format
+func ClientFromExistingOrgResource(meta interface{}, id string) (*gapi.Client, int64, string) {
+	orgID, restOfID := SplitOrgResourceID(id)
 	client := meta.(*common.Client).GrafanaAPI
 	if orgID > 0 {
 		client = client.WithOrgID(orgID)
@@ -33,7 +49,9 @@ func ClientFromOSSOrgID(meta interface{}, id string) (*gapi.Client, int64, strin
 	return client, orgID, restOfID
 }
 
-func ClientFromOrgIDAttr(meta interface{}, d *schema.ResourceData) (*gapi.Client, int64) {
+// ClientFromNewOrgResource creates a client from the `org_id` attribute of a resource
+// This client is meant to be used in `Create` functions when the ID hasn't already been baked into the resource ID
+func ClientFromNewOrgResource(meta interface{}, d *schema.ResourceData) (*gapi.Client, int64) {
 	orgID, _ := strconv.ParseInt(d.Get("org_id").(string), 10, 64)
 	client := meta.(*common.Client).GrafanaAPI
 	if orgID > 0 {

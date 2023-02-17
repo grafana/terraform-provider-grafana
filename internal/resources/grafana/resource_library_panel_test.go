@@ -166,7 +166,7 @@ func testAccLibraryPanelCheckExists(rn string, panel *gapi.LibraryPanel) resourc
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource id not set")
 		}
-		client, _, uid := grafana.ClientFromOSSOrgID(testutils.Provider.Meta(), rs.Primary.ID)
+		client, _, uid := grafana.ClientFromExistingOrgResource(testutils.Provider.Meta(), rs.Primary.ID)
 		gotLibraryPanel, err := client.LibraryPanelByUID(uid)
 		if err != nil {
 			return fmt.Errorf("error getting panel: %s", err)

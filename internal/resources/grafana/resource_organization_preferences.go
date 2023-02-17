@@ -28,12 +28,7 @@ func ResourceOrganizationPreferences() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"org_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Organization ID. If not set, the Org ID defined in the provider block will be used.",
-				ForceNew:    true,
-			},
+			"org_id": orgIDAttribute(),
 			"theme": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -77,7 +72,7 @@ func ResourceOrganizationPreferences() *schema.Resource {
 }
 
 func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromOrgIDAttr(meta, d)
+	client, orgID := ClientFromNewOrgResource(meta, d)
 
 	_, err := client.UpdateAllOrgPreferences(gapi.Preferences{
 		Theme:            d.Get("theme").(string),

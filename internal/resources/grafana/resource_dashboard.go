@@ -40,12 +40,7 @@ Manages Grafana dashboards.
 		},
 
 		Schema: map[string]*schema.Schema{
-			"org_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Organization ID. If not set, the Org ID defined in the provider block will be used.",
-				ForceNew:    true,
-			},
+			"org_id": orgIDAttribute(),
 			"uid": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -187,7 +182,7 @@ func resourceDashboardStateUpgradeV0(ctx context.Context, rawState map[string]in
 }
 
 func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromOrgIDAttr(meta, d)
+	client, orgID := ClientFromNewOrgResource(meta, d)
 
 	dashboard, err := makeDashboard(d)
 	if err != nil {
@@ -197,13 +192,13 @@ func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(MakeOSSOrgID(orgID, resp.UID))
+	d.SetId(MakeOrgResourceID(orgID, resp.UID))
 	return ReadDashboard(ctx, d, meta)
 }
 
 func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	gapiURL := meta.(*common.Client).GrafanaAPIURL
-	client, _, uid := ClientFromOSSOrgID(meta, d.Id())
+	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
 
 	dashboard, err := client.DashboardByUID(uid)
 	var diags diag.Diagnostics
@@ -265,7 +260,7 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 }
 
 func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromOrgIDAttr(meta, d)
+	client, orgID := ClientFromNewOrgResource(meta, d)
 
 	dashboard, err := makeDashboard(d)
 	if err != nil {
@@ -277,12 +272,12 @@ func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(MakeOSSOrgID(orgID, resp.UID))
+	d.SetId(MakeOrgResourceID(orgID, resp.UID))
 	return ReadDashboard(ctx, d, meta)
 }
 
 func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := ClientFromOSSOrgID(meta, d.Id())
+	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
 
 	err := client.DeleteDashboardByUID(uid)
 	var diags diag.Diagnostics
