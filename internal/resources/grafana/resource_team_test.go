@@ -32,6 +32,9 @@ func TestAccTeam_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamName+"@example.com"),
 					resource.TestMatchResourceAttr("grafana_team.test", "id", common.IDRegexp),
+					resource.TestMatchResourceAttr("grafana_team.test", "preferences.0.home_dashboard_uid", common.UIDRegexp),
+					resource.TestCheckResourceAttr("grafana_team.test", "preferences.0.theme", "dark"),
+					resource.TestCheckResourceAttr("grafana_team.test", "preferences.0.timezone", "utc"),
 				),
 			},
 			{
@@ -41,6 +44,9 @@ func TestAccTeam_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamNameUpdated),
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamNameUpdated+"@example.com"),
 					resource.TestMatchResourceAttr("grafana_team.test", "id", common.IDRegexp),
+					resource.TestMatchResourceAttr("grafana_team.test", "preferences.0.home_dashboard_uid", common.UIDRegexp),
+					resource.TestCheckResourceAttr("grafana_team.test", "preferences.0.theme", "dark"),
+					resource.TestCheckResourceAttr("grafana_team.test", "preferences.0.timezone", "utc"),
 				),
 			},
 			{
@@ -211,10 +217,22 @@ func testAccTeamCheckDestroy(a *gapi.Team) resource.TestCheckFunc {
 
 func testAccTeamDefinition(name string, teamMembers []string) string {
 	definition := fmt.Sprintf(`
+resource "grafana_dashboard" "test" {
+	config_json = jsonencode({
+		title = "dashboard-%[1]s"
+	})
+}
+
 resource "grafana_team" "test" {
 	name    = "%[1]s"
 	email   = "%[1]s@example.com"
 	members = [ %[2]s ]
+
+	preferences {
+		theme              = "dark"
+		timezone           = "utc"
+		home_dashboard_uid = grafana_dashboard.test.uid
+	}
 }
 `, name, strings.Join(teamMembers, `, `))
 

@@ -26,6 +26,8 @@ func ResourceTeamPreferences() *schema.Resource {
 		UpdateContext: UpdateTeamPreferences,
 		DeleteContext: DeleteTeamPreferences,
 
+		DeprecationMessage: "Use the `preferences` attribute of the `grafana_team` resource",
+
 		Schema: map[string]*schema.Schema{
 			"team_id": {
 				Type:        schema.TypeInt,

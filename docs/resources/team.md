@@ -38,10 +38,20 @@ Team Sync can be provisioned using [grafana_team_external_group resource](https:
  Defaults to `true`.
 - `members` (Set of String) A set of email addresses corresponding to users who should be given membership
 to the team. Note: users specified here must already exist in Grafana.
+- `preferences` (Block List, Max: 1) (see [below for nested schema](#nestedblock--preferences))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
 - `team_id` (Number) The team id assigned to this team by Grafana.
+
+<a id="nestedblock--preferences"></a>
+### Nested Schema for `preferences`
+
+Optional:
+
+- `home_dashboard_uid` (String) The UID of the dashboard to display when a team member logs in. Defaults to ``.
+- `theme` (String) The default theme for this team. Available themes are `light`, `dark`, or an empty string for the default theme. Defaults to ``.
+- `timezone` (String) The default timezone for this team. Available values are `utc`, `browser`, or an empty string for the default. Defaults to ``.
 
 
