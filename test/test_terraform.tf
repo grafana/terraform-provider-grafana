@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     grafana = {
-      source  = "grafana.com/test/grafana"
+      source  = "grafana.com/grafana/grafana"
       version = "0.1"
     }
   }
@@ -39,6 +39,61 @@ data "grafana_text_panel" "welcome_panel" {
   EOT
   transparent = true
   mode = "html"
+}
+
+resource "grafana_data_source" "terraform_postgres" {
+  type                = "postgres"
+  name                = "terraform-postgres"
+  uid                 = "terraform-postgres-uid"
+  url                 = "localhost:5432"
+  username = "grafana"
+  database_name = "grafana"
+  json_data_encoded   = jsonencode({
+    database = "grafana"
+    sslmode        = "disable"
+  })
+  secure_json_data_encoded = jsonencode({
+    password = "password"
+  })
+}
+
+data "grafana_table_panel" "terraform_table" {
+  title = "Table with Terraform"
+  datasource_type = grafana_data_source.terraform_postgres.type
+  datasource_uid = grafana_data_source.terraform_postgres.uid
+  target_json =<<EOT
+[
+    {
+      "editorMode": "builder",
+      "format": "table",
+      "rawSql": "SELECT value FROM grafana_metric LIMIT 50 ",
+      "refId": "A",
+      "sql": {
+        "columns": [
+          {
+            "parameters": [
+              {
+                "name": "value",
+                "type": "functionParameter"
+              }
+            ],
+            "type": "function"
+          }
+        ],
+        "groupBy": [
+          {
+            "property": {
+              "type": "string"
+            },
+            "type": "groupBy"
+          }
+        ],
+        "limit": 50
+      },
+      "table": "grafana_metric"
+    }
+  ]
+EOT
 }
 
 resource "grafana_dashboard" "dashboard_terraform" {
@@ -99,4 +154,14 @@ EOT
       y = 0
     }
   }
+  panels {
+    config_json = data.grafana_table_panel.terraform_table.config_json
+    grid_pos {
+      h = 8
+      w = 8
+      x = 0
+      y = 9
+    }
+  }
+  depends_on = [grafana_data_source.terraform_postgres]
 }
