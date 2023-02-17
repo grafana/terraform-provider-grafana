@@ -1,16 +1,18 @@
 package grafana_test
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 )
 
@@ -18,27 +20,20 @@ func TestAccServiceAccount_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
 
-	sa := gapi.ServiceAccountDTO{}
+	name := acctest.RandString(10)
+
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccServiceAccountCheckDestroy(&sa),
+		CheckDestroy:      testAccServiceAccountCheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testServiceAccountConfigBasic,
+				Config: testServiceAccountConfig(name, "Editor"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccServiceAccountCheckExists("grafana_service_account.test", &sa),
-					resource.TestCheckResourceAttr(
-						"grafana_service_account.test", "name", "sa-terraform-test",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_service_account.test", "role", "Editor",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_service_account.test", "is_disabled", "false",
-					),
-					resource.TestMatchResourceAttr(
-						"grafana_service_account.test", "id", common.IDRegexp,
-					),
+					testAccServiceAccountCheckExists,
+					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "Editor"),
+					resource.TestCheckResourceAttr("grafana_service_account.test", "is_disabled", "false"),
+					resource.TestMatchResourceAttr("grafana_service_account.test", "id", defaultOrgIDRegexp),
 				),
 			},
 		},
@@ -48,81 +43,84 @@ func TestAccServiceAccount_basic(t *testing.T) {
 func TestAccServiceAccount_invalid_role(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	sa := gapi.ServiceAccountDTO{}
-
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccServiceAccountCheckDestroy(&sa),
+		CheckDestroy:      testAccServiceAccountCheckDestroy,
 		Steps: []resource.TestStep{
 			{
 				ExpectError: regexp.MustCompile(`expected role to be one of \[Viewer Editor Admin], got InvalidRole`),
-				Config:      testServiceAccountConfigInvalidRole,
+				Config:      testServiceAccountConfig("any", "InvalidRole"),
 			},
 		},
 	})
 }
 
-func testAccServiceAccountCheckExists(rn string, a *gapi.ServiceAccountDTO) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[rn]
-		if !ok {
-			return fmt.Errorf("resource not found: %s", rn)
-		}
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("resource id not set")
-		}
-		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
-		if err != nil {
-			return fmt.Errorf("resource id is malformed")
-		}
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		sas, err := client.GetServiceAccounts()
-		for _, sa := range sas {
-			if sa.ID == id {
-				*a = sa
-				a.Name = rs.Primary.Attributes["name"]
-				a.Role = rs.Primary.Attributes["role"]
-				d, err := strconv.ParseBool(rs.Primary.Attributes["is_disabled"])
-				if err != nil {
-					return fmt.Errorf("error parsing is_disabled field: %s", err)
-				}
-				a.IsDisabled = d
-				return nil
-			}
-		}
-
-		return fmt.Errorf("error getting service account: %s", err)
-	}
+func testAccServiceAccountCheckExists(s *terraform.State) error {
+	return testAccServiceAccountCheckExistsBool(s, true)
 }
 
-func testAccServiceAccountCheckDestroy(a *gapi.ServiceAccountDTO) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		sas, err := client.GetServiceAccounts()
+func testAccServiceAccountCheckDestroy(s *terraform.State) error {
+	return testAccServiceAccountCheckExistsBool(s, false)
+}
+
+func testAccServiceAccountCheckExistsBool(s *terraform.State, shouldExist bool) error {
+	c := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "grafana_service_account" {
+			continue
+		}
+
+		orgID, idStr := grafana.SplitOrgResourceID(rs.Primary.ID)
+		id, err := strconv.ParseInt(idStr, 10, 32)
+		if err != nil {
+			return err
+		}
+
+		// If orgID > 1, always check that the SA doesn't exist in the default org
+		if orgID > 1 {
+			sas, err := c.GetServiceAccounts()
+			if err != nil {
+				return err
+			}
+
+			for _, sa := range sas {
+				if sa.ID == id {
+					return errors.New("Service account exists in the default org")
+				}
+			}
+
+			c = c.WithOrgID(orgID)
+		}
+
+		sas, err := c.GetServiceAccounts()
 		if err != nil {
 			return err
 		}
 
 		for _, sa := range sas {
-			if a.ID == sa.ID {
-				return fmt.Errorf("service account still exists")
+			if sa.ID == id {
+				if shouldExist {
+					return nil
+				} else {
+					return errors.New("Service account still exists")
+				}
 			}
 		}
 
-		return nil
+		if shouldExist {
+			return errors.New("Service account was not found")
+		}
 	}
+
+	return nil
 }
 
-const testServiceAccountConfigBasic = `
+func testServiceAccountConfig(name, role string) string {
+	return fmt.Sprintf(`
 resource "grafana_service_account" "test" {
-  name        = "sa-terraform-test"
-  role        = "Editor"
-  is_disabled = false
-}`
-
-const testServiceAccountConfigInvalidRole = `
-resource "grafana_service_account" "test" {
-  name        = "sa-terraform-test"
-  role        = "InvalidRole"
-  is_disabled = false
-}`
+	name        = "%[1]s"
+	role        = "%[2]s"
+	is_disabled = false
+}`, name, role)
+}

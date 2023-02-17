@@ -29,7 +29,7 @@ func ResourceServiceAccountPermission() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"service_account_id": {
-				Type:        schema.TypeInt,
+				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "The id of the service account.",
@@ -66,8 +66,9 @@ func ResourceServiceAccountPermission() *schema.Resource {
 }
 
 func ReadServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Id())
+	client := meta.(*common.Client).GrafanaAPI.WithOrgID(orgID)
+	id, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -96,19 +97,18 @@ func ReadServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, 
 		}
 		saPerms = append(saPerms, permMap)
 	}
-	if err = d.Set("permissions", saPerms); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("service_account_id", id); err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId(strconv.FormatInt(id, 10))
+	d.Set("permissions", saPerms)
 
 	return nil
 }
 
 func UpdateServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Get("service_account_id").(string))
+	client := meta.(*common.Client).GrafanaAPI.WithOrgID(orgID)
+	id, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Get a list of permissions from Grafana state (current permission setup)
 	state, config := d.GetChange("permissions")
@@ -172,19 +172,23 @@ func UpdateServiceAccountPermissions(ctx context.Context, d *schema.ResourceData
 		})
 	}
 
-	saID := int64(d.Get("service_account_id").(int))
-	err := client.UpdateServiceAccountPermissions(saID, &permissionList)
+	err = client.UpdateServiceAccountPermissions(id, &permissionList)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(saID, 10))
+	d.SetId(MakeOrgResourceID(orgID, id))
 
 	return ReadServiceAccountPermissions(ctx, d, meta)
 }
 
 func DeleteServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Get("service_account_id").(string))
+	client := meta.(*common.Client).GrafanaAPI.WithOrgID(orgID)
+	id, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	state, _ := d.GetChange("permissions")
 	permissionList := gapi.ServiceAccountPermissionItems{}
@@ -203,11 +207,5 @@ func DeleteServiceAccountPermissions(ctx context.Context, d *schema.ResourceData
 		permissionList.Permissions = append(permissionList.Permissions, &permissionItem)
 	}
 
-	id := int64(d.Get("service_account_id").(int))
-	err := client.UpdateServiceAccountPermissions(id, &permissionList)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	return diag.FromErr(client.UpdateServiceAccountPermissions(id, &permissionList))
 }

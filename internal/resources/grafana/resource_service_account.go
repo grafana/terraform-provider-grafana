@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -29,6 +28,7 @@ func ResourceServiceAccount() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -52,7 +52,7 @@ func ResourceServiceAccount() *schema.Resource {
 }
 
 func CreateServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID := ClientFromNewOrgResource(meta, d)
 	isDisabled := d.Get("is_disabled").(bool)
 	req := gapi.CreateServiceAccountRequest{
 		Name:       d.Get("name").(string),
@@ -64,13 +64,13 @@ func CreateServiceAccount(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(sa.ID, 10))
+	d.SetId(MakeOrgResourceID(orgID, sa.ID))
 	return ReadServiceAccount(ctx, d, meta)
 }
 
 func ReadServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -82,7 +82,6 @@ func ReadServiceAccount(ctx context.Context, d *schema.ResourceData, meta interf
 
 	for _, sa := range sas {
 		if sa.ID == id {
-			d.SetId(strconv.FormatInt(sa.ID, 10))
 			err = d.Set("name", sa.Name)
 			if err != nil {
 				return diag.FromErr(err)
@@ -106,8 +105,8 @@ func ReadServiceAccount(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func UpdateServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -129,15 +128,12 @@ func UpdateServiceAccount(ctx context.Context, d *schema.ResourceData, meta inte
 }
 
 func DeleteServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	if _, err = client.DeleteServiceAccount(id); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	_, err = client.DeleteServiceAccount(id)
+	return diag.FromErr(err)
 }
