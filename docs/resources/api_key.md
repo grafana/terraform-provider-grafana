@@ -49,6 +49,7 @@ output "api_key_bar" {
 ### Optional
 
 - `cloud_stack_slug` (String, Deprecated) Deprecated: Use the `grafana_cloud_stack_api_key` resource instead
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `seconds_to_live` (Number)
 
 ### Read-Only

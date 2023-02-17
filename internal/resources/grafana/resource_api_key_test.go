@@ -1,12 +1,16 @@
 package grafana_test
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"testing"
 
+	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -14,28 +18,76 @@ import (
 func TestAccGrafanaAuthKey(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	// TODO: Make parallelizable
-	resource.Test(t, resource.TestCase{
+	testName := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccGrafanaAuthKeyCheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGrafanaAuthKeyBasicConfig,
+				Config: testAccGrafanaAuthKeyConfig(testName, "Admin", 0, false),
 				Check: resource.ComposeTestCheckFunc(
-					testAccGrafanaAuthKeyCheckFields("grafana_api_key.foo", "foo-name", "Admin", false),
+					testAccGrafanaAuthKeyCheckExists,
+					resource.TestMatchResourceAttr("grafana_api_key.foo", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttrSet("grafana_api_key.foo", "key"),
+					resource.TestCheckResourceAttr("grafana_api_key.foo", "name", testName),
+					resource.TestCheckResourceAttr("grafana_api_key.foo", "role", "Admin"),
+					resource.TestCheckNoResourceAttr("grafana_api_key.foo", "expiration"),
 				),
 			},
 			{
-				Config: testAccGrafanaAuthKeyExpandedConfig,
+				Config: testAccGrafanaAuthKeyConfig(testName+"-modified", "Viewer", 300, false),
 				Check: resource.ComposeTestCheckFunc(
-					testAccGrafanaAuthKeyCheckFields("grafana_api_key.bar", "bar-name", "Viewer", true),
+					testAccGrafanaAuthKeyCheckExists,
+					resource.TestMatchResourceAttr("grafana_api_key.foo", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttrSet("grafana_api_key.foo", "key"),
+					resource.TestCheckResourceAttr("grafana_api_key.foo", "name", testName+"-modified"),
+					resource.TestCheckResourceAttr("grafana_api_key.foo", "role", "Viewer"),
+					resource.TestCheckResourceAttrSet("grafana_api_key.foo", "expiration"),
 				),
 			},
 		},
 	})
 }
 
+func TestAccGrafanaAuthKey_inOrg(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
+	var org gapi.Org
+	testName := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      testAccGrafanaAuthKeyCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGrafanaAuthKeyConfig(testName, "Admin", 0, true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccGrafanaAuthKeyCheckExists,
+					resource.TestCheckResourceAttrSet("grafana_api_key.foo", "key"),
+					resource.TestCheckResourceAttr("grafana_api_key.foo", "name", testName),
+					resource.TestCheckResourceAttr("grafana_api_key.foo", "role", "Admin"),
+					resource.TestCheckNoResourceAttr("grafana_api_key.foo", "expiration"),
+
+					// Check that the API key is in the correct organization
+					resource.TestMatchResourceAttr("grafana_api_key.foo", "id", nonDefaultOrgIDRegexp),
+					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					checkResourceIsInOrg("grafana_api_key.foo", "grafana_organization.test"),
+				),
+			},
+		},
+	})
+}
+
+func testAccGrafanaAuthKeyCheckExists(s *terraform.State) error {
+	return testAccGrafanaAuthKeyCheckExistsBool(s, true)
+}
+
 func testAccGrafanaAuthKeyCheckDestroy(s *terraform.State) error {
+	return testAccGrafanaAuthKeyCheckExistsBool(s, false)
+}
+
+func testAccGrafanaAuthKeyCheckExistsBool(s *terraform.State, shouldExist bool) error {
 	c := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 
 	for _, rs := range s.RootModule().Resources {
@@ -43,10 +95,26 @@ func testAccGrafanaAuthKeyCheckDestroy(s *terraform.State) error {
 			continue
 		}
 
-		idStr := rs.Primary.ID
+		orgID, idStr := grafana.SplitOrgResourceID(rs.Primary.ID)
 		id, err := strconv.ParseInt(idStr, 10, 32)
 		if err != nil {
 			return err
+		}
+
+		// If orgID > 1, always check that they key doesn't exist in the default org
+		if orgID > 1 {
+			keys, err := c.GetAPIKeys(false)
+			if err != nil {
+				return err
+			}
+
+			for _, key := range keys {
+				if key.ID == id {
+					return errors.New("API key exists in the default org")
+				}
+			}
+
+			c = c.WithOrgID(orgID)
 		}
 
 		keys, err := c.GetAPIKeys(false)
@@ -56,61 +124,47 @@ func testAccGrafanaAuthKeyCheckDestroy(s *terraform.State) error {
 
 		for _, key := range keys {
 			if key.ID == id {
-				return fmt.Errorf("API key still exists")
+				if shouldExist {
+					return nil
+				} else {
+					return errors.New("API key still exists")
+				}
 			}
+		}
+
+		if shouldExist {
+			return errors.New("API key was not found")
 		}
 	}
 
 	return nil
 }
 
-func testAccGrafanaAuthKeyCheckFields(n string, name string, role string, expires bool) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-		if !ok {
-			return fmt.Errorf("not found: %s", n)
-		}
+func testAccGrafanaAuthKeyConfig(name, role string, secondsToLive int, inOrg bool) string {
+	config := ""
 
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("no ID is set")
-		}
-
-		if rs.Primary.Attributes["key"] == "" {
-			return fmt.Errorf("no API key is set")
-		}
-
-		if rs.Primary.Attributes["name"] != name {
-			return fmt.Errorf("incorrect name field found: %s", rs.Primary.Attributes["name"])
-		}
-
-		if rs.Primary.Attributes["role"] != role {
-			return fmt.Errorf("incorrect role field found: %s", rs.Primary.Attributes["role"])
-		}
-
-		expiration := rs.Primary.Attributes["expiration"]
-		if expires && expiration == "" {
-			return fmt.Errorf("no expiration date set")
-		}
-
-		if !expires && expiration != "" {
-			return fmt.Errorf("expiration date set")
-		}
-
-		return nil
+	secondsToLiveAttr := ""
+	if secondsToLive > 0 {
+		secondsToLiveAttr = fmt.Sprintf("seconds_to_live = %d", secondsToLive)
 	}
-}
 
-const testAccGrafanaAuthKeyBasicConfig = `
-resource "grafana_api_key" "foo" {
-	name = "foo-name"
-	role = "Admin"
-}
-`
+	orgIDAttr := ""
+	if inOrg {
+		config = fmt.Sprintf(`
+resource "grafana_organization" "test" {
+	name = "%s"
+}`, name)
+		orgIDAttr = "org_id = grafana_organization.test.id"
+	}
 
-const testAccGrafanaAuthKeyExpandedConfig = `
-resource "grafana_api_key" "bar" {
-	name 			= "bar-name"
-	role 			= "Viewer"
-	seconds_to_live = 300
+	config += fmt.Sprintf(`
+	resource "grafana_api_key" "foo" {
+		name = "%s"
+		role = "%s"
+		%s
+		%s
+	}
+	`, name, role, secondsToLiveAttr, orgIDAttr)
+
+	return config
 }
-`
