@@ -45,7 +45,7 @@ output "service_account_token_bar" {
 ### Required
 
 - `name` (String)
-- `service_account_id` (Number)
+- `service_account_id` (String)
 
 ### Optional
 

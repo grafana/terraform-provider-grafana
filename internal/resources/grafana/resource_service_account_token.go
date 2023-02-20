@@ -69,7 +69,7 @@ func serviceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m in
 
 	request := gapi.CreateServiceAccountTokenRequest{
 		Name:             name,
-		ServiceAccountID: int64(serviceAccountID),
+		ServiceAccountID: serviceAccountID,
 		SecondsToLive:    int64(ttl),
 	}
 	response, err := c.CreateServiceAccountToken(request)
@@ -142,7 +142,7 @@ func serviceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, m in
 		return diag.FromErr(err)
 	}
 
-	_, err = c.DeleteServiceAccountToken(int64(serviceAccountID), id)
+	_, err = c.DeleteServiceAccountToken(serviceAccountID, id)
 	if err != nil {
 		return diag.FromErr(err)
 	}
