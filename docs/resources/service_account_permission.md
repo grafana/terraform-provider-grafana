@@ -52,7 +52,7 @@ resource "grafana_service_account_permission" "test_permissions" {
 ### Required
 
 - `permissions` (Block Set, Min: 1) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))
-- `service_account_id` (Number) The id of the service account.
+- `service_account_id` (String) The id of the service account.
 
 ### Read-Only
 

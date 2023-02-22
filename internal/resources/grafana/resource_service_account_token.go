@@ -30,7 +30,7 @@ func ResourceServiceAccountToken() *schema.Resource {
 				ForceNew: true,
 			},
 			"service_account_id": {
-				Type:     schema.TypeInt,
+				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
@@ -57,15 +57,19 @@ func ResourceServiceAccountToken() *schema.Resource {
 }
 
 func serviceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	name := d.Get("name").(string)
-	serviceAccountID := d.Get("service_account_id").(int)
-	ttl := d.Get("seconds_to_live").(int)
+	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Get("service_account_id").(string))
+	c := m.(*common.Client).GrafanaAPI.WithOrgID(orgID)
+	serviceAccountID, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
-	c := m.(*common.Client).GrafanaAPI
+	name := d.Get("name").(string)
+	ttl := d.Get("seconds_to_live").(int)
 
 	request := gapi.CreateServiceAccountTokenRequest{
 		Name:             name,
-		ServiceAccountID: int64(serviceAccountID),
+		ServiceAccountID: serviceAccountID,
 		SecondsToLive:    int64(ttl),
 	}
 	response, err := c.CreateServiceAccountToken(request)
@@ -84,10 +88,14 @@ func serviceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m in
 }
 
 func serviceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	serviceAccountID := d.Get("service_account_id").(int)
-	c := m.(*common.Client).GrafanaAPI
+	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Get("service_account_id").(string))
+	c := m.(*common.Client).GrafanaAPI.WithOrgID(orgID)
+	serviceAccountID, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
-	response, err := c.GetServiceAccountTokens(int64(serviceAccountID))
+	response, err := c.GetServiceAccountTokens(serviceAccountID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -122,15 +130,19 @@ func serviceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m inte
 }
 
 func serviceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	serviceAccountID := d.Get("service_account_id").(int)
+	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Get("service_account_id").(string))
+	c := m.(*common.Client).GrafanaAPI.WithOrgID(orgID)
+	serviceAccountID, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	id, err := strconv.ParseInt(d.Id(), 10, 32)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	c := m.(*common.Client).GrafanaAPI
-
-	_, err = c.DeleteServiceAccountToken(int64(serviceAccountID), id)
+	_, err = c.DeleteServiceAccountToken(serviceAccountID, id)
 	if err != nil {
 		return diag.FromErr(err)
 	}
