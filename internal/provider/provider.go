@@ -92,6 +92,7 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_cloud_api_key":             cloud.ResourceAPIKey(),
 			"grafana_cloud_plugin_installation": cloud.ResourcePluginInstallation(),
 			"grafana_cloud_stack":               cloud.ResourceStack(),
+			"grafana_cloud_stack_api_key":       cloud.ResourceStackAPIKey(),
 		})
 
 		// Resources that require the OnCall client to exist.
@@ -264,6 +265,7 @@ func Provider(version string) func() *schema.Provider {
 			ResourcesMap: mergeResourceMaps(
 				map[string]*schema.Resource{
 					// Special case, this resource supports both Grafana and Cloud (depending on context)
+					// TODO: Move back to Grafana resources once the `cloud_stack_slug` attribute is removed
 					"grafana_api_key": grafana.ResourceAPIKey(),
 					// This one installs SM on a cloud instance, everything it needs is in its attributes
 					"grafana_synthetic_monitoring_installation": cloud.ResourceInstallation(),

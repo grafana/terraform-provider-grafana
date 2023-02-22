@@ -32,7 +32,10 @@ func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
 				Config: testAccGrafanaAuthKeyFromCloud(slug, slug),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
-					testAccGrafanaAuthKeyCheckFields("grafana_api_key.management", "management-key", "Admin", false),
+					resource.TestCheckResourceAttrSet("grafana_api_key.foo", "key"),
+					resource.TestCheckResourceAttr("grafana_api_key.foo", "name", "management-key"),
+					resource.TestCheckResourceAttr("grafana_api_key.foo", "role", "Admin"),
+					resource.TestCheckNoResourceAttr("grafana_api_key.foo", "expiration"),
 				),
 			},
 			{
@@ -46,47 +49,11 @@ func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
 func testAccGrafanaAuthKeyFromCloud(name, slug string) string {
 	return testAccStackConfigBasic(name, slug) + `
 	resource "grafana_api_key" "management" {
-		cloud_stack_slug = grafana_cloud_stack.test.slug
-		name             = "management-key"
-		role             = "Admin"
+		stack_slug = grafana_cloud_stack.test.slug
+		name       = "management-key"
+		role       = "Admin"
 	}
 	`
-}
-
-func testAccGrafanaAuthKeyCheckFields(n string, name string, role string, expires bool) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-		if !ok {
-			return fmt.Errorf("not found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("no ID is set")
-		}
-
-		if rs.Primary.Attributes["key"] == "" {
-			return fmt.Errorf("no API key is set")
-		}
-
-		if rs.Primary.Attributes["name"] != name {
-			return fmt.Errorf("incorrect name field found: %s", rs.Primary.Attributes["name"])
-		}
-
-		if rs.Primary.Attributes["role"] != role {
-			return fmt.Errorf("incorrect role field found: %s", rs.Primary.Attributes["role"])
-		}
-
-		expiration := rs.Primary.Attributes["expiration"]
-		if expires && expiration == "" {
-			return fmt.Errorf("no expiration date set")
-		}
-
-		if !expires && expiration != "" {
-			return fmt.Errorf("expiration date set")
-		}
-
-		return nil
-	}
 }
 
 // Checks that all API keys are deleted, to be called before the stack is completely destroyed
