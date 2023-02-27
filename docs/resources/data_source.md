@@ -138,8 +138,9 @@ Optional:
 - `external_id` (String) (CloudWatch, Athena) If you are assuming a role in another account, that has been created with an external ID, specify the external ID here.
 - `github_url` (String) (Github) Github URL
 - `graphite_version` (String) (Graphite) Graphite version.
+- `handleGrafanaManagedAlerts` (Boolean) (Alertmanager) Allows Grafana alerts to be managed by this alertmanager data source. Defaults to `false`.
 - `http_method` (String) (Prometheus) HTTP method to use for making requests.
-- `implementation` (String) (Alertmanager) Implementation of Alertmanager. Either 'cortex' or 'prometheus'
+- `implementation` (String) (Alertmanager) Implementation of Alertmanager. Either 'mimir', 'cortex' or 'prometheus'
 - `interval` (String) (Elasticsearch) Index date time format. nil(No Pattern), 'Hourly', 'Daily', 'Weekly', 'Monthly' or 'Yearly'.
 - `log_level_field` (String) (Elasticsearch) Which field should be used to indicate the priority of the log message.
 - `log_message_field` (String) (Elasticsearch) Which field should be used as the log message.

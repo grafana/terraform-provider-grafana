@@ -265,7 +265,12 @@ source selected (via the 'type' argument).
 						"implementation": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "(Alertmanager) Implementation of Alertmanager. Either 'cortex' or 'prometheus'",
+							Description: "(Alertmanager) Implementation of Alertmanager. Either 'mimir', 'cortex' or 'prometheus'",
+						},
+						"handleGrafanaManagedAlerts": {
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Description: "(Alertmanager) Allows Grafana alerts to be managed by this alertmanager data source. Defaults to `false`.",
 						},
 						"log_level_field": {
 							Type:        schema.TypeString,
