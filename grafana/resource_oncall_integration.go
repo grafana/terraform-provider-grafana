@@ -179,6 +179,16 @@ func ResourceOnCallIntegration() *schema.Resource {
 							Optional:    true,
 							Description: "Template for the key by which alerts are grouped.",
 						},
+						"acknowledge_signal": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Template for sending a signal to acknowledge the Incident.",
+						},
+						"source_link": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Template for a source link.",
+						},
 						"slack": {
 							Type:        schema.TypeList,
 							Optional:    true,
@@ -199,6 +209,131 @@ func ResourceOnCallIntegration() *schema.Resource {
 										Type:        schema.TypeString,
 										Optional:    true,
 										Description: "Template for Alert image url.",
+									},
+								},
+							},
+							MaxItems: 1,
+						},
+						"web": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: "Templates for Web.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"title": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Template for Alert title.",
+									},
+									"message": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Template for Alert message.",
+									},
+									"image_url": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Template for Alert image url.",
+									},
+								},
+							},
+							MaxItems: 1,
+						},
+						"telegram": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: "Templates for Telegram.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"title": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Template for Alert title.",
+									},
+									"message": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Template for Alert message.",
+									},
+									"image_url": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Template for Alert image url.",
+									},
+								},
+							},
+							MaxItems: 1,
+						},
+						"microsoft_teams": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: "Templates for Micrisoft Teams.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"title": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Template for Alert title.",
+									},
+									"message": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Template for Alert message.",
+									},
+									"image_url": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Template for Alert image url.",
+									},
+								},
+							},
+							MaxItems: 1,
+						},
+						"phone_call": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: "Templates for Phone Call",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"title": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Template for Alert title.",
+									},
+								},
+							},
+							MaxItems: 1,
+						},
+						"sms": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: "Templates for SMS",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"title": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Template for Alert title.",
+									},
+								},
+							},
+							MaxItems: 1,
+						},
+						"email": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: "Templates for Email",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"title": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Template for Alert title.",
+									},
+									"message": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Template for Alert message.",
 									},
 								},
 							},
@@ -391,11 +526,6 @@ func expandRouteMSTeams(in []interface{}) *onCallAPI.MSTeamsRoute {
 func flattenTemplates(in *onCallAPI.Templates) []map[string]interface{} {
 	templates := make([]map[string]interface{}, 0, 1)
 	out := make(map[string]interface{})
-
-	out["grouping_key"] = in.GroupingKey
-	out["resolve_signal"] = in.ResolveSignal
-	out["slack"] = flattenSlackTemplate(in.Slack)
-
 	add := false
 
 	if in.GroupingKey != nil {
@@ -406,14 +536,68 @@ func flattenTemplates(in *onCallAPI.Templates) []map[string]interface{} {
 		out["resolve_signal"] = in.ResolveSignal
 		add = true
 	}
+	if in.AcknowledgeSignal != nil {
+		out["acknowledge_signal"] = in.AcknowledgeSignal
+		add = true
+	}
+	if in.SourceLink != nil {
+		out["source_link"] = in.SourceLink
+		add = true
+	}
 	if in.Slack != nil {
-		flattenSlackTemplate := flattenSlackTemplate(in.Slack)
+		flattenSlackTemplate := flattenTitleMessageImageTemplate(in.Slack)
 		if len(flattenSlackTemplate) > 0 {
-			out["resolve_signal"] = in.ResolveSignal
+			out["slack"] = flattenSlackTemplate
 			add = true
 		}
 	}
 
+	if in.Web != nil {
+		flattenWebTemplate := flattenTitleMessageImageTemplate(in.Web)
+		if len(flattenWebTemplate) > 0 {
+			out["web"] = flattenWebTemplate
+			add = true
+		}
+	}
+
+	if in.MSTeams != nil {
+		flattenMSTeamsTemplate := flattenTitleMessageImageTemplate(in.MSTeams)
+		if len(flattenMSTeamsTemplate) > 0 {
+			out["microsoft_teams"] = flattenMSTeamsTemplate
+			add = true
+		}
+	}
+
+	if in.Telegram != nil {
+		flattenTelegramTemplate := flattenTitleMessageImageTemplate(in.Telegram)
+		if len(flattenTelegramTemplate) > 0 {
+			out["telegram"] = flattenTelegramTemplate
+			add = true
+		}
+	}
+
+	if in.Email != nil {
+		flattenEmailTemplate := flattenTitleMessageTemplate(in.Email)
+		if len(flattenEmailTemplate) > 0 {
+			out["email"] = flattenEmailTemplate
+			add = true
+		}
+	}
+
+	if in.PhoneCall != nil {
+		flattenPhoneCallTemplate := flattenTitleTemplate(in.PhoneCall)
+		if len(flattenPhoneCallTemplate) > 0 {
+			out["phone_call"] = flattenPhoneCallTemplate
+			add = true
+		}
+	}
+	if in.SMS != nil {
+		flattenSMSTemplate := flattenTitleTemplate(in.SMS)
+		if len(flattenSMSTemplate) > 0 {
+			out["sms"] = flattenSMSTemplate
+			add = true
+		}
+	}
 	if add {
 		templates = append(templates, out)
 	}
@@ -421,31 +605,70 @@ func flattenTemplates(in *onCallAPI.Templates) []map[string]interface{} {
 	return templates
 }
 
-func flattenSlackTemplate(in *onCallAPI.SlackTemplate) []map[string]interface{} {
-	slackTemplates := make([]map[string]interface{}, 0, 1)
+func flattenTitleMessageImageTemplate(in *onCallAPI.TitleMessageImageTemplate) []map[string]interface{} {
+	templates := make([]map[string]interface{}, 0, 1)
 
 	add := false
 
-	slackTemplate := make(map[string]interface{})
+	template := make(map[string]interface{})
 
 	if in.Title != nil {
-		slackTemplate["title"] = in.Title
+		template["title"] = in.Title
 		add = true
 	}
 	if in.ImageURL != nil {
-		slackTemplate["image_url"] = in.ImageURL
+		template["image_url"] = in.ImageURL
 		add = true
 	}
 	if in.Message != nil {
-		slackTemplate["message"] = in.Message
+		template["message"] = in.Message
 		add = true
 	}
-
 	if add {
-		slackTemplates = append(slackTemplates, slackTemplate)
+		templates = append(templates, template)
 	}
 
-	return slackTemplates
+	return templates
+}
+
+func flattenTitleMessageTemplate(in *onCallAPI.TitleMessageTemplate) []map[string]interface{} {
+	templates := make([]map[string]interface{}, 0, 1)
+
+	add := false
+
+	template := make(map[string]interface{})
+
+	if in.Title != nil {
+		template["title"] = in.Title
+		add = true
+	}
+	if in.Message != nil {
+		template["message"] = in.Message
+		add = true
+	}
+	if add {
+		templates = append(templates, template)
+	}
+
+	return templates
+}
+
+func flattenTitleTemplate(in *onCallAPI.TitleTemplate) []map[string]interface{} {
+	templates := make([]map[string]interface{}, 0, 1)
+
+	add := false
+
+	template := make(map[string]interface{})
+
+	if in.Title != nil {
+		template["title"] = in.Title
+		add = true
+	}
+	if add {
+		templates = append(templates, template)
+	}
+
+	return templates
 }
 
 func expandTemplates(input []interface{}) *onCallAPI.Templates {
@@ -461,33 +684,106 @@ func expandTemplates(input []interface{}) *onCallAPI.Templates {
 			rs := inputMap["resolve_signal"].(string)
 			templates.ResolveSignal = &rs
 		}
+		if inputMap["acknowledge_signal"] != "" {
+			rs := inputMap["acknowledge_signal"].(string)
+			templates.AcknowledgeSignal = &rs
+		}
+		if inputMap["source_link"] != "" {
+			rs := inputMap["source_link"].(string)
+			templates.SourceLink = &rs
+		}
+
 		if inputMap["slack"] == nil {
 			templates.Slack = nil
 		} else {
-			templates.Slack = expandSlackTemplate(inputMap["slack"].([]interface{}))
+			templates.Slack = expandTitleMessageImageTemplate(inputMap["slack"].([]interface{}))
+		}
+
+		if inputMap["web"] == nil {
+			templates.Web = nil
+		} else {
+			templates.Web = expandTitleMessageImageTemplate(inputMap["web"].([]interface{}))
+		}
+
+		if inputMap["microsoft_teams"] == nil {
+			templates.MSTeams = nil
+		} else {
+			templates.MSTeams = expandTitleMessageImageTemplate(inputMap["microsoft_teams"].([]interface{}))
+		}
+
+		if inputMap["telegram"] == nil {
+			templates.Telegram = nil
+		} else {
+			templates.Telegram = expandTitleMessageImageTemplate(inputMap["telegram"].([]interface{}))
+		}
+
+		if inputMap["phone_call"] == nil {
+			templates.PhoneCall = nil
+		} else {
+			templates.PhoneCall = expandTitleTemplate(inputMap["phone_call"].([]interface{}))
+		}
+
+		if inputMap["sms"] == nil {
+			templates.SMS = nil
+		} else {
+			templates.SMS = expandTitleTemplate(inputMap["sms"].([]interface{}))
+		}
+
+		if inputMap["email"] == nil {
+			templates.Email = nil
+		} else {
+			templates.Email = expandTitleMessageTemplate(inputMap["email"].([]interface{}))
 		}
 	}
 	return &templates
 }
 
-func expandSlackTemplate(in []interface{}) *onCallAPI.SlackTemplate {
-	slackTemplate := onCallAPI.SlackTemplate{}
+func expandTitleMessageImageTemplate(in []interface{}) *onCallAPI.TitleMessageImageTemplate {
+	template := onCallAPI.TitleMessageImageTemplate{}
 	for _, r := range in {
 		inputMap := r.(map[string]interface{})
 		if inputMap["title"] != "" {
 			t := inputMap["title"].(string)
-			slackTemplate.Title = &t
+			template.Title = &t
 		}
 		if inputMap["message"] != "" {
 			m := inputMap["message"].(string)
-			slackTemplate.Message = &m
+			template.Message = &m
 		}
 		if inputMap["image_url"] != "" {
 			iu := inputMap["image_url"].(string)
-			slackTemplate.ImageURL = &iu
+			template.ImageURL = &iu
 		}
 	}
-	return &slackTemplate
+	return &template
+}
+
+func expandTitleTemplate(in []interface{}) *onCallAPI.TitleTemplate {
+	template := onCallAPI.TitleTemplate{}
+	for _, r := range in {
+		inputMap := r.(map[string]interface{})
+		if inputMap["title"] != "" {
+			t := inputMap["title"].(string)
+			template.Title = &t
+		}
+	}
+	return &template
+}
+
+func expandTitleMessageTemplate(in []interface{}) *onCallAPI.TitleMessageTemplate {
+	template := onCallAPI.TitleMessageTemplate{}
+	for _, r := range in {
+		inputMap := r.(map[string]interface{})
+		if inputMap["title"] != "" {
+			t := inputMap["title"].(string)
+			template.Title = &t
+		}
+		if inputMap["message"] != "" {
+			m := inputMap["message"].(string)
+			template.Message = &m
+		}
+	}
+	return &template
 }
 
 func flattenDefaultRoute(in *onCallAPI.DefaultRoute, d *schema.ResourceData) []map[string]interface{} {
