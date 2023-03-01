@@ -17,12 +17,12 @@ resource "grafana_oncall_integration" "integration_with_templates" {
   templates {
     grouping_key = "{{ payload.group_id }}"
     slack {
-        title = "Slack title"
-        message = <<-EOT
+      title     = "Slack title"
+      message   = <<-EOT
           This is example of multiline template
           {{ payload.message }}
         EOT
-        image_url = "{{ payload.image_url }}"
+      image_url = "{{ payload.image_url }}"
     }
   }
 }
