@@ -29,7 +29,7 @@ data "grafana_library_panel" "from_name" {
 }
 
 data "grafana_library_panel" "from_uid" {
-  uid = grafana_library_panel.test.id
+  uid = grafana_library_panel.test.uid
 }
 
 // create library panels to be added to a dashboard
@@ -89,6 +89,7 @@ data "grafana_dashboard" "from_library_panel_connection" {
 ### Optional
 
 - `name` (String) Name of the library panel.
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `uid` (String) The unique identifier (UID) of the library panel.
 
 ### Read-Only
@@ -101,7 +102,6 @@ data "grafana_dashboard" "from_library_panel_connection" {
 - `folder_uid` (String) Unique ID (UID) of the folder containing the library panel.
 - `id` (String) The ID of this resource.
 - `model_json` (String) The JSON model for the library panel.
-- `org_id` (Number) The numeric ID of the library panel computed by Grafana.
 - `panel_id` (Number) The numeric ID of the library panel computed by Grafana.
 - `type` (String) Type of the library panel (eg. text).
 - `updated` (String) Timestamp when the library panel was last modified.

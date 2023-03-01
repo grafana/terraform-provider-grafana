@@ -4,7 +4,7 @@ page_title: "grafana_rule_group Resource - terraform-provider-grafana"
 subcategory: "Alerting"
 description: |-
   Manages Grafana Alerting rule groups.
-  Official documentation https://grafana.com/docs/grafana/latest/alerting/alerting-rulesHTTP API https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#alert-rules
+  Official documentation https://grafana.com/docs/grafana/latest/alerting/alerting-rules/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#alert-rules
   This resource requires Grafana 9.1.0 or later.
 ---
 
@@ -12,7 +12,7 @@ description: |-
 
 Manages Grafana Alerting rule groups.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/alerting-rules)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/alerting-rules/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#alert-rules)
 
 This resource requires Grafana 9.1.0 or later.
@@ -43,6 +43,7 @@ resource "grafana_rule_group" "my_alert_rule" {
       "e" = "f"
       "g" = "h"
     }
+    is_paused = false
     data {
       ref_id     = "A"
       query_type = ""
@@ -115,7 +116,7 @@ EOT
 - `folder_uid` (String) The UID of the folder that the group belongs to.
 - `interval_seconds` (Number) The interval, in seconds, at which all rules in the group are evaluated. If a group contains many rules, the rules are evaluated sequentially.
 - `name` (String) The name of the rule group.
-- `org_id` (Number) The ID of the org to which the group belongs.
+- `org_id` (String) The ID of the org to which the group belongs.
 - `rule` (Block List, Min: 1) The rules within the group. (see [below for nested schema](#nestedblock--rule))
 
 ### Read-Only
@@ -136,6 +137,7 @@ Optional:
 - `annotations` (Map of String) Key-value pairs of metadata to attach to the alert rule that may add user-defined context, but cannot be used for matching, grouping, or routing. Defaults to `map[]`.
 - `exec_err_state` (String) Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, and Alerting. Defaults to `Alerting`.
 - `for` (String) The amount of time for which the rule must be breached for the rule to be considered to be Firing. Before this time has elapsed, the rule is only considered to be Pending. Defaults to `0`.
+- `is_paused` (Boolean) Sets whether the alert should be paused or not. Defaults to `false`.
 - `labels` (Map of String) Key-value pairs to attach to the alert rule that can be used in matching, grouping, and routing. Defaults to `map[]`.
 - `no_data_state` (String) Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, and Alerting. Defaults to `NoData`.
 

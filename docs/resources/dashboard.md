@@ -4,7 +4,7 @@ page_title: "grafana_dashboard Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
   Manages Grafana dashboards.
-  Official documentation https://grafana.com/docs/grafana/latest/dashboards/HTTP API https://grafana.com/docs/grafana/latest/http_api/dashboard/
+  Official documentation https://grafana.com/docs/grafana/latest/dashboards/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/
 ---
 
 # grafana_dashboard (Resource)
@@ -12,7 +12,7 @@ description: |-
 Manages Grafana dashboards.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/dashboard/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/)
 
 ## Example Usage
 
@@ -33,7 +33,7 @@ resource "grafana_dashboard" "metrics" {
 
 - `folder` (String) The id of the folder to save the dashboard in. This attribute is a string to reflect the type of the folder's id.
 - `message` (String) Set a commit message for the version history.
-- `org_id` (Number) The Organization ID. If not set, the Org ID defined in the provider block will be used.
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `overwrite` (Boolean) Set to true if you want to overwrite existing dashboard with newer version, same dashboard title in folder or same dashboard uid.
 
 ### Read-Only

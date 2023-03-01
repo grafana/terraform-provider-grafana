@@ -4,14 +4,14 @@ page_title: "grafana_api_key Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
   Manages Grafana API Keys.
-  HTTP API https://grafana.com/docs/grafana/latest/http_api/auth/
+  HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/auth/
 ---
 
 # grafana_api_key (Resource)
 
 Manages Grafana API Keys.
 
-* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/auth/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/auth/)
 
 ## Example Usage
 
@@ -48,7 +48,7 @@ output "api_key_bar" {
 
 ### Optional
 
-- `cloud_stack_slug` (String) If set, the API key will be created for the given Cloud stack. This can be used to bootstrap a management API key for a new stack. **Note**: This requires a cloud token to be configured.
+- `cloud_stack_slug` (String, Deprecated) Deprecated: Use the `grafana_cloud_stack_api_key` resource instead
 - `seconds_to_live` (Number)
 
 ### Read-Only
