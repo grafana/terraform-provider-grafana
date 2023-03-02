@@ -113,7 +113,7 @@ Optional:
 - `acknowledge_signal` (String) Template for sending a signal to acknowledge the Incident.
 - `email` (Block List, Max: 1) Templates for Email (see [below for nested schema](#nestedblock--templates--email))
 - `grouping_key` (String) Template for the key by which alerts are grouped.
-- `microsoft_teams` (Block List, Max: 1) Templates for Micrisoft Teams. (see [below for nested schema](#nestedblock--templates--microsoft_teams))
+- `microsoft_teams` (Block List, Max: 1) Templates for Microsoft Teams. (see [below for nested schema](#nestedblock--templates--microsoft_teams))
 - `phone_call` (Block List, Max: 1) Templates for Phone Call (see [below for nested schema](#nestedblock--templates--phone_call))
 - `resolve_signal` (String) Template for sending a signal to resolve the Incident.
 - `slack` (Block List, Max: 1) Templates for Slack. (see [below for nested schema](#nestedblock--templates--slack))

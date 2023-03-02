@@ -268,7 +268,7 @@ func ResourceIntegration() *schema.Resource {
 						"microsoft_teams": {
 							Type:        schema.TypeList,
 							Optional:    true,
-							Description: "Templates for Micrisoft Teams.",
+							Description: "Templates for Microsoft Teams.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"title": {
