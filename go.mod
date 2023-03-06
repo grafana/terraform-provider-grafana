@@ -7,7 +7,7 @@ require (
 	github.com/grafana/amixr-api-go-client v0.0.7
 	github.com/grafana/grafana-api-golang-client v0.18.3
 	github.com/grafana/machine-learning-go-client v0.4.0
-	github.com/grafana/synthetic-monitoring-agent v0.14.1
+	github.com/grafana/synthetic-monitoring-agent v0.14.2
 	github.com/grafana/synthetic-monitoring-api-go-client v0.7.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
@@ -73,6 +73,6 @@ require (
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20221207170731-23e4bf6bdc37 // indirect
-	google.golang.org/grpc v1.52.1 // indirect
+	google.golang.org/grpc v1.52.3 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 )
