@@ -190,156 +190,13 @@ func ResourceIntegration() *schema.Resource {
 							Optional:    true,
 							Description: "Template for a source link.",
 						},
-						"slack": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							Description: "Templates for Slack.",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"title": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Template for Alert title.",
-									},
-									"message": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Template for Alert message.",
-									},
-									"image_url": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Template for Alert image url.",
-									},
-								},
-							},
-							MaxItems: 1,
-						},
-						"web": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							Description: "Templates for Web.",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"title": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Template for Alert title.",
-									},
-									"message": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Template for Alert message.",
-									},
-									"image_url": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Template for Alert image url.",
-									},
-								},
-							},
-							MaxItems: 1,
-						},
-						"telegram": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							Description: "Templates for Telegram.",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"title": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Template for Alert title.",
-									},
-									"message": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Template for Alert message.",
-									},
-									"image_url": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Template for Alert image url.",
-									},
-								},
-							},
-							MaxItems: 1,
-						},
-						"microsoft_teams": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							Description: "Templates for Microsoft Teams.",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"title": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Template for Alert title.",
-									},
-									"message": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Template for Alert message.",
-									},
-									"image_url": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Template for Alert image url.",
-									},
-								},
-							},
-							MaxItems: 1,
-						},
-						"phone_call": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							Description: "Templates for Phone Call",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"title": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Template for Alert title.",
-									},
-								},
-							},
-							MaxItems: 1,
-						},
-						"sms": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							Description: "Templates for SMS",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"title": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Template for Alert title.",
-									},
-								},
-							},
-							MaxItems: 1,
-						},
-						"email": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							Description: "Templates for Email",
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"title": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Template for Alert title.",
-									},
-									"message": {
-										Type:        schema.TypeString,
-										Optional:    true,
-										Description: "Template for Alert message.",
-									},
-								},
-							},
-							MaxItems: 1,
-						},
+						"slack":           onCallTemplate("Templates for Slack.", true, true),
+						"web":             onCallTemplate("Templates for Web.", true, true),
+						"telegram":        onCallTemplate("Templates for Telegram.", true, true),
+						"microsoft_teams": onCallTemplate("Templates for Microsoft Teams.", true, true),
+						"phone_call":      onCallTemplate("Templates for Phone Call.", false, false),
+						"sms":             onCallTemplate("Templates for SMS.", false, false),
+						"email":           onCallTemplate("Templates for Email.", true, false),
 					},
 				},
 				MaxItems:    1,
@@ -347,6 +204,44 @@ func ResourceIntegration() *schema.Resource {
 			},
 		},
 	}
+}
+
+func onCallTemplate(description string, hasMessage, hasImage bool) *schema.Schema {
+	elem := map[string]*schema.Schema{
+		"title": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Template for Alert title.",
+		},
+	}
+
+	if hasMessage {
+		elem["message"] = &schema.Schema{
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Template for Alert message.",
+		}
+	}
+
+	if hasImage {
+		elem["image_url"] = &schema.Schema{
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Template for Alert image url.",
+		}
+	}
+
+	templateSchema := schema.Schema{
+		Type:        schema.TypeList,
+		Optional:    true,
+		Description: description,
+		Elem: &schema.Resource{
+			Schema: elem,
+		},
+		MaxItems: 1,
+	}
+
+	return &templateSchema
 }
 
 func ResourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
