@@ -72,7 +72,7 @@ func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	role := d.Get("role").(string)
 	ttl := d.Get("seconds_to_live").(int)
 
-	c, cleanup, err, orgID := getClientForAPIKeyManagement(d, m)
+	c, orgID, cleanup, err := getClientForAPIKeyManagement(d, m)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -92,7 +92,7 @@ func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 }
 
 func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c, cleanup, err, _ := getClientForAPIKeyManagement(d, m)
+	c, _, cleanup, err := getClientForAPIKeyManagement(d, m)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -134,7 +134,7 @@ func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	c, cleanup, err, _ := getClientForAPIKeyManagement(d, m)
+	c, _, cleanup, err := getClientForAPIKeyManagement(d, m)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -148,7 +148,7 @@ func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	return nil
 }
 
-func getClientForAPIKeyManagement(d *schema.ResourceData, m interface{}) (c *gapi.Client, cleanup func() error, err error, orgID int64) {
+func getClientForAPIKeyManagement(d *schema.ResourceData, m interface{}) (c *gapi.Client, orgID int64, cleanup func() error, err error) {
 	// TODO: Remove this client management once `cloud_stack_slug` is removed
 	if cloudStackSlug, ok := d.GetOk("cloud_stack_slug"); ok && cloudStackSlug.(string) != "" {
 		cloudClient := m.(*common.Client).GrafanaCloudAPI
