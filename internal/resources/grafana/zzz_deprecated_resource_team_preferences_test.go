@@ -10,6 +10,7 @@ import (
 
 func TestAccTeamPreferences_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, "<9.4.0") // Home dashboard ID is removed in 9.4.0, and this resource is deprecated in favor of `grafana_team.preferences`
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,

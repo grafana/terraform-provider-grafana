@@ -1,4 +1,4 @@
-local grafanaVersions = ['9.3.2', '9.2.8', '9.1.8', '8.5.15', '7.5.17'];
+local grafanaVersions = ['9.4.3', '9.3.8', '9.2.13', '8.5.21', '7.5.17'];
 local images = {
   go: 'golang:1.18',
   python: 'python:3.9-alpine',
@@ -58,6 +58,16 @@ local pipeline(name, steps, services=[]) = {
   trigger: {
     branch: ['master'],
     event: ['pull_request', 'push'],
+  },
+};
+
+local withConcurrencyLimit(limit) = {
+  concurrency: { limit: limit },
+};
+
+local onPromoteTrigger = {
+  trigger: {
+    event: ['promote'],
   },
 };
 
@@ -145,12 +155,9 @@ local pipeline(name, steps, services=[]) = {
         },
       },
     ]
-  ) + {
-    trigger: {
-      event: ['promote'],
-    },
-    concurrency: { limit: 1 },
-  },
+  )
+  + withConcurrencyLimit(1)
+  + onPromoteTrigger,
 
   pipeline(
     'cloud instance tests',
@@ -178,9 +185,8 @@ local pipeline(name, steps, services=[]) = {
         },
       },
     ]
-  ) + {
-    concurrency: { limit: 1 },
-  },
+  )
+  + withConcurrencyLimit(1),
 ]
 + [
   pipeline(
