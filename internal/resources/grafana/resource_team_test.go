@@ -26,19 +26,59 @@ func TestAccTeam_basic(t *testing.T) {
 		CheckDestroy:      testAccTeamCheckDestroy(&team),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccTeamDefinition(teamName, nil),
+				Config: testAccTeamDefinition(teamName, nil, false),
 				Check: resource.ComposeTestCheckFunc(
 					testAccTeamCheckExists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamName+"@example.com"),
 					resource.TestMatchResourceAttr("grafana_team.test", "id", common.IDRegexp),
-					resource.TestMatchResourceAttr("grafana_team.test", "preferences.0.home_dashboard_uid", common.UIDRegexp),
-					resource.TestCheckResourceAttr("grafana_team.test", "preferences.0.theme", "dark"),
-					resource.TestCheckResourceAttr("grafana_team.test", "preferences.0.timezone", "utc"),
 				),
 			},
 			{
-				Config: testAccTeamDefinition(teamNameUpdated, nil),
+				Config: testAccTeamDefinition(teamNameUpdated, nil, false),
+				Check: resource.ComposeTestCheckFunc(
+					testAccTeamCheckExists("grafana_team.test", &team),
+					resource.TestCheckResourceAttr("grafana_team.test", "name", teamNameUpdated),
+					resource.TestCheckResourceAttr("grafana_team.test", "email", teamNameUpdated+"@example.com"),
+					resource.TestMatchResourceAttr("grafana_team.test", "id", common.IDRegexp),
+				),
+			},
+			{
+				ResourceName:            "grafana_team.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"ignore_externally_synced_members"},
+			},
+		},
+	})
+}
+
+func TestAccTeam_preferences(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">= 9.0.0") // Dashboard UID is only available in Grafana 9.0.0+
+
+	var team gapi.Team
+	teamName := acctest.RandString(5)
+	teamNameUpdated := acctest.RandString(5)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      testAccTeamCheckDestroy(&team),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccTeamDefinition(teamName, nil, false),
+				Check: resource.ComposeTestCheckFunc(
+					testAccTeamCheckExists("grafana_team.test", &team),
+					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
+					resource.TestCheckResourceAttr("grafana_team.test", "email", teamName+"@example.com"),
+					resource.TestMatchResourceAttr("grafana_team.test", "id", common.IDRegexp),
+					resource.TestCheckNoResourceAttr("grafana_team.test", "preferences.0.home_dashboard_uid"),
+					resource.TestCheckNoResourceAttr("grafana_team.test", "preferences.0.theme"),
+					resource.TestCheckNoResourceAttr("grafana_team.test", "preferences.0.timezone"),
+				),
+			},
+			{
+				Config: testAccTeamDefinition(teamNameUpdated, nil, true),
 				Check: resource.ComposeTestCheckFunc(
 					testAccTeamCheckExists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamNameUpdated),
@@ -73,7 +113,7 @@ func TestAccTeam_Members(t *testing.T) {
 				Config: testAccTeamDefinition(teamName, []string{
 					"grafana_user.users.0.email",
 					"grafana_user.users.1.email",
-				}),
+				}, false),
 				Check: resource.ComposeTestCheckFunc(
 					testAccTeamCheckExists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
@@ -87,7 +127,7 @@ func TestAccTeam_Members(t *testing.T) {
 				Config: testAccTeamDefinition(teamName, []string{
 					"grafana_user.users.1.email",
 					"grafana_user.users.0.email",
-				}),
+				}, false),
 				PlanOnly: true,
 			},
 			// When adding a new member, the state should be updated and re-sorted.
@@ -96,7 +136,7 @@ func TestAccTeam_Members(t *testing.T) {
 					"grafana_user.users.1.email",
 					"grafana_user.users.0.email",
 					"grafana_user.users.2.email",
-				}),
+				}, false),
 				Check: resource.ComposeTestCheckFunc(
 					testAccTeamCheckExists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
@@ -114,7 +154,7 @@ func TestAccTeam_Members(t *testing.T) {
 				ImportStateVerifyIgnore: []string{"ignore_externally_synced_members"},
 			},
 			{
-				Config: testAccTeamDefinition(teamName, nil),
+				Config: testAccTeamDefinition(teamName, nil, false),
 				Check: resource.ComposeTestCheckFunc(
 					testAccTeamCheckExists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
@@ -153,7 +193,7 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 						t.Fatal(err)
 					}
 				},
-				Config: testAccTeamDefinition(teamName, []string{`"user1@grafana.com"`}),
+				Config: testAccTeamDefinition(teamName, []string{`"user1@grafana.com"`}, false),
 				Check: resource.ComposeTestCheckFunc(
 					testAccTeamCheckExists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "1"),
@@ -167,7 +207,7 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 						t.Fatal(err)
 					}
 				},
-				Config: testAccTeamDefinition(teamName, nil),
+				Config: testAccTeamDefinition(teamName, nil, false),
 				Check: resource.ComposeTestCheckFunc(
 					testAccTeamCheckExists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "0"),
@@ -215,7 +255,18 @@ func testAccTeamCheckDestroy(a *gapi.Team) resource.TestCheckFunc {
 	}
 }
 
-func testAccTeamDefinition(name string, teamMembers []string) string {
+func testAccTeamDefinition(name string, teamMembers []string, withPreferences bool) string {
+	withPreferencesBlock := ""
+	if withPreferences {
+		withPreferencesBlock = `
+	preferences {
+		theme              = "dark"
+		timezone           = "utc"
+		home_dashboard_uid = grafana_dashboard.test.uid
+	}
+`
+	}
+
 	definition := fmt.Sprintf(`
 resource "grafana_dashboard" "test" {
 	config_json = jsonencode({
@@ -228,13 +279,9 @@ resource "grafana_team" "test" {
 	email   = "%[1]s@example.com"
 	members = [ %[2]s ]
 
-	preferences {
-		theme              = "dark"
-		timezone           = "utc"
-		home_dashboard_uid = grafana_dashboard.test.uid
-	}
+	%[3]s // withPreferencesBlock
 }
-`, name, strings.Join(teamMembers, `, `))
+`, name, strings.Join(teamMembers, `, `), withPreferencesBlock)
 
 	// If we're referencing a grafana_user resource, we need to create those users
 	if len(teamMembers) > 0 && strings.Contains(teamMembers[0], "grafana_user") {
