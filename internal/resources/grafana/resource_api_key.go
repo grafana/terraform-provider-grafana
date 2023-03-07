@@ -25,6 +25,7 @@ Manages Grafana API Keys.
 		DeleteContext: resourceAPIKeyDelete,
 
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -71,7 +72,7 @@ func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	role := d.Get("role").(string)
 	ttl := d.Get("seconds_to_live").(int)
 
-	c, cleanup, err := getClientForAPIKeyManagement(d, m)
+	c, orgID, cleanup, err := getClientForAPIKeyManagement(d, m)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -83,7 +84,7 @@ func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(response.ID, 10))
+	d.SetId(MakeOrgResourceID(orgID, response.ID))
 	d.Set("key", response.Key)
 
 	// Fill the true resource's state after a create by performing a read
@@ -91,7 +92,7 @@ func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 }
 
 func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c, cleanup, err := getClientForAPIKeyManagement(d, m)
+	c, _, cleanup, err := getClientForAPIKeyManagement(d, m)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -102,13 +103,13 @@ func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	_, idStr := SplitOrgResourceID(d.Id())
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	for _, key := range response {
 		if id == key.ID {
-			d.SetId(strconv.FormatInt(key.ID, 10))
 			d.Set("name", key.Name)
 			d.Set("role", key.Role)
 
@@ -127,12 +128,13 @@ func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 }
 
 func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	id, err := strconv.ParseInt(d.Id(), 10, 32)
+	_, idStr := SplitOrgResourceID(d.Id())
+	id, err := strconv.ParseInt(idStr, 10, 32)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	c, cleanup, err := getClientForAPIKeyManagement(d, m)
+	c, _, cleanup, err := getClientForAPIKeyManagement(d, m)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -146,13 +148,19 @@ func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	return nil
 }
 
-func getClientForAPIKeyManagement(d *schema.ResourceData, m interface{}) (c *gapi.Client, cleanup func() error, err error) {
+func getClientForAPIKeyManagement(d *schema.ResourceData, m interface{}) (c *gapi.Client, orgID int64, cleanup func() error, err error) {
 	// TODO: Remove this client management once `cloud_stack_slug` is removed
-	c = m.(*common.Client).GrafanaAPI
-	cleanup = func() error { return nil }
 	if cloudStackSlug, ok := d.GetOk("cloud_stack_slug"); ok && cloudStackSlug.(string) != "" {
 		cloudClient := m.(*common.Client).GrafanaCloudAPI
 		c, cleanup, err = cloudClient.CreateTemporaryStackGrafanaClient(cloudStackSlug.(string), "terraform-temp-", 60*time.Second)
+		return
+	}
+
+	cleanup = func() error { return nil }
+	if d.Id() != "" {
+		c, orgID, _ = ClientFromExistingOrgResource(m, d.Id())
+	} else {
+		c, orgID = ClientFromNewOrgResource(m, d)
 	}
 
 	return
