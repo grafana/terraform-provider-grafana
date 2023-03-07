@@ -165,14 +165,14 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: pipeline
-name: 'oss tests: 9.3.2'
+name: 'oss tests: 9.4.3'
 platform:
   arch: amd64
   os: linux
 services:
 - environment:
     GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
-  image: grafana/grafana:9.3.2
+  image: grafana/grafana:9.4.3
   name: grafana
 steps:
 - commands:
@@ -187,7 +187,7 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
-    GRAFANA_VERSION: 9.3.2
+    GRAFANA_VERSION: 9.4.3
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.18
   name: tests
@@ -202,14 +202,14 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: pipeline
-name: 'oss tests: 9.2.8'
+name: 'oss tests: 9.3.8'
 platform:
   arch: amd64
   os: linux
 services:
 - environment:
     GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
-  image: grafana/grafana:9.2.8
+  image: grafana/grafana:9.3.8
   name: grafana
 steps:
 - commands:
@@ -224,7 +224,7 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
-    GRAFANA_VERSION: 9.2.8
+    GRAFANA_VERSION: 9.3.8
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.18
   name: tests
@@ -239,14 +239,14 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: pipeline
-name: 'oss tests: 9.1.8'
+name: 'oss tests: 9.2.13'
 platform:
   arch: amd64
   os: linux
 services:
 - environment:
     GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
-  image: grafana/grafana:9.1.8
+  image: grafana/grafana:9.2.13
   name: grafana
 steps:
 - commands:
@@ -261,7 +261,7 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
-    GRAFANA_VERSION: 9.1.8
+    GRAFANA_VERSION: 9.2.13
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.18
   name: tests
@@ -276,14 +276,14 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: pipeline
-name: 'oss tests: 8.5.15'
+name: 'oss tests: 8.5.21'
 platform:
   arch: amd64
   os: linux
 services:
 - environment:
     GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
-  image: grafana/grafana:8.5.15
+  image: grafana/grafana:8.5.21
   name: grafana
 steps:
 - commands:
@@ -298,7 +298,7 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
-    GRAFANA_VERSION: 8.5.15
+    GRAFANA_VERSION: 8.5.21
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.18
   name: tests
@@ -386,6 +386,6 @@ kind: secret
 name: grafana-sm-token
 ---
 kind: signature
-hmac: 704130d97109eeb943529e12dd37ac883795b94803967dce71317e57526c5b05
+hmac: 7ab2509c5c2bafb65a9efd5ac3cad08d9af6514714c7e4d7b6865c2dfe97ea07
 
 ...
