@@ -7,9 +7,11 @@ import (
 	"strconv"
 	"strings"
 
+	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 type TeamMember struct {
@@ -87,6 +89,35 @@ Ignores team members that have been added to team by [Team Sync](https://grafana
 Team Sync can be provisioned using [grafana_team_external_group resource](https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/team_external_group).
 `,
 			},
+			"preferences": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"theme": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validation.StringInSlice([]string{"light", "dark", ""}, false),
+							Description:  "The default theme for this team. Available themes are `light`, `dark`, or an empty string for the default theme.",
+							Default:      "",
+						},
+						"home_dashboard_uid": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "The UID of the dashboard to display when a team member logs in.",
+							Default:     "",
+						},
+						"timezone": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validation.StringInSlice([]string{"utc", "browser", ""}, false),
+							Description:  "The default timezone for this team. Available values are `utc`, `browser`, or an empty string for the default.",
+							Default:      "",
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -106,7 +137,11 @@ func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		return diag.FromErr(err)
 	}
 
-	return diag.Diagnostics{}
+	if err := updateTeamPreferences(client, teamID, d); err != nil {
+		return err
+	}
+
+	return ReadTeam(ctx, d, meta)
 }
 
 func ReadTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -126,10 +161,23 @@ func ReadTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 	if resp.Email != "" {
 		d.Set("email", resp.Email)
 	}
-	if err := ReadMembers(d, meta); err != nil {
+
+	preferences, err := client.TeamPreferences(teamID)
+	if err != nil {
 		return diag.FromErr(err)
 	}
-	return nil
+
+	if preferences.Theme+preferences.Timezone+preferences.HomeDashboardUID != "" {
+		d.Set("preferences", []map[string]interface{}{
+			{
+				"theme":              preferences.Theme,
+				"home_dashboard_uid": preferences.HomeDashboardUID,
+				"timezone":           preferences.Timezone,
+			},
+		})
+	}
+
+	return readTeamMembers(d, meta)
 }
 
 func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -147,7 +195,11 @@ func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		return diag.FromErr(err)
 	}
 
-	return diag.Diagnostics{}
+	if err := updateTeamPreferences(client, teamID, d); err != nil {
+		return err
+	}
+
+	return ReadTeam(ctx, d, meta)
 }
 
 func DeleteTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -160,12 +212,26 @@ func DeleteTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	return diag.Diagnostics{}
 }
 
-func ReadMembers(d *schema.ResourceData, meta interface{}) error {
+func updateTeamPreferences(client *gapi.Client, teamID int64, d *schema.ResourceData) diag.Diagnostics {
+	if d.IsNewResource() || d.HasChanges("preferences.0.theme", "preferences.0.home_dashboard_uid", "preferences.0.timezone") {
+		preferences := gapi.Preferences{
+			Theme:            d.Get("preferences.0.theme").(string),
+			HomeDashboardUID: d.Get("preferences.0.home_dashboard_uid").(string),
+			Timezone:         d.Get("preferences.0.timezone").(string),
+		}
+
+		return diag.FromErr(client.UpdateTeamPreferences(teamID, preferences))
+	}
+
+	return nil
+}
+
+func readTeamMembers(d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaAPI
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	teamMembers, err := client.TeamMembers(teamID)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	memberSlice := []string{}
 	for _, teamMember := range teamMembers {

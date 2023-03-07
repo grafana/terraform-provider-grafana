@@ -43,6 +43,10 @@ func testAccTeamPreferencesCheckDestroy() resource.TestCheckFunc {
 const testAccTeamPreferencesConfig_Basic = `
 resource "grafana_team" "testTeam" {
   name = "terraform-test-team-preferences"
+
+  lifecycle {
+	ignore_changes = ["preferences"]
+  }
 }
 
 resource "grafana_dashboard" "test" {
@@ -66,6 +70,10 @@ resource "grafana_team_preferences" "testTeamPreferences" {
 const testAccTeamPreferencesConfig_Update = `
 resource "grafana_team" "testTeam" {
   name = "terraform-test-team-preferences"
+
+  lifecycle {
+	ignore_changes = ["preferences"]
+  }
 }
 
 resource "grafana_dashboard" "test" {
