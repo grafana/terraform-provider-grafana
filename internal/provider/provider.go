@@ -163,7 +163,7 @@ func Provider(version string) func() *schema.Provider {
 					Optional:     true,
 					Sensitive:    true,
 					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_AUTH", nil),
-					Description:  "API token or basic auth `username:password`. May alternatively be set via the `GRAFANA_AUTH` environment variable.",
+					Description:  "API token, basic auth in the `username:password` format or `anonymous` (string literal). May alternatively be set via the `GRAFANA_AUTH` environment variable.",
 					AtLeastOneOf: []string{"auth", "cloud_api_key", "sm_access_token", "oncall_access_token"},
 				},
 				"http_headers": {
@@ -376,7 +376,7 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 	if len(auth) == 2 {
 		cfg.BasicAuth = url.UserPassword(auth[0], auth[1])
 		cfg.OrgID = int64(d.Get("org_id").(int))
-	} else {
+	} else if auth[0] != "anonymous" {
 		cfg.APIKey = auth[0]
 	}
 
