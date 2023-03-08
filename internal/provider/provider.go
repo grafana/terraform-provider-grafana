@@ -341,6 +341,9 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 	cli := cleanhttp.DefaultClient()
 	transport := cleanhttp.DefaultTransport()
 	transport.TLSClientConfig = &tls.Config{}
+	// limiting the amount of concurrent HTTP connections from the provider
+	// makes it not overload the API and DB
+	transport.MaxConnsPerHost = 2
 
 	// TLS Config
 	tlsKey := d.Get("tls_key").(string)
