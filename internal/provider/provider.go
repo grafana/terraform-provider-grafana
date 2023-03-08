@@ -340,6 +340,7 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 	auth := strings.SplitN(d.Get("auth").(string), ":", 2)
 	cli := cleanhttp.DefaultClient()
 	transport := cleanhttp.DefaultTransport()
+	transport.MaxConnsPerHost = 2
 	transport.TLSClientConfig = &tls.Config{}
 
 	// TLS Config

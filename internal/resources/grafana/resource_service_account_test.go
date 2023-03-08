@@ -40,6 +40,27 @@ func TestAccServiceAccount_basic(t *testing.T) {
 	})
 }
 
+func TestAccServiceAccount_many(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
+
+	name := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      testAccServiceAccountCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testManyServiceAccountsConfig(name, 60),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_service_account.test_1", "name", name+"-1"),
+					resource.TestCheckResourceAttr("grafana_service_account.test_2", "name", name+"-2"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccServiceAccount_invalid_role(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
@@ -53,6 +74,22 @@ func TestAccServiceAccount_invalid_role(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testManyServiceAccountsConfig(prefix string, count int) string {
+	config := ``
+
+	for i := 0; i < count; i++ {
+		config += fmt.Sprintf(`
+		resource "grafana_service_account" "test_%[2]d" {
+			name        = "%[1]s-%[2]d"
+			is_disabled = false
+			role        = "Viewer"
+		}
+`, prefix, i)
+	}
+
+	return config
 }
 
 func testAccServiceAccountCheckExists(s *terraform.State) error {
