@@ -376,10 +376,14 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 		Client:     cli,
 		NumRetries: d.Get("retries").(int),
 	}
+	orgID := d.Get("org_id").(int)
 	if len(auth) == 2 {
 		cfg.BasicAuth = url.UserPassword(auth[0], auth[1])
-		cfg.OrgID = int64(d.Get("org_id").(int))
+		cfg.OrgID = int64(orgID)
 	} else if auth[0] != "anonymous" {
+		if orgID > 1 {
+			return "", nil, nil, fmt.Errorf("org_id is only supported with basic auth. API keys are already org-scoped")
+		}
 		cfg.APIKey = auth[0]
 	}
 
