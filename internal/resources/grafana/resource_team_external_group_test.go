@@ -1,16 +1,13 @@
 package grafana_test
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
@@ -43,43 +40,6 @@ func TestAccTeamExternalGroup_basic(t *testing.T) {
 						"grafana_team_external_group.test", "groups.#", "0",
 					),
 				),
-			},
-		},
-	})
-}
-
-func TestAccExampleThing_basic(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
-
-	ctx := context.Background()
-	d := &schema.ResourceData{}
-	teamName := "testTeam"
-	groupName := "test"
-	d.Set("name", teamName)
-	d.Set("email", "test-team@team.com")
-	grafana.CreateTeam(ctx, d, "")
-	d.Set("groups", []string{groupName})
-	grafana.CreateTeamExternalGroup(ctx, d, "")
-
-	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		/* ... existing TestCase functions ... */
-		Steps: []resource.TestStep{
-			/* ... existing TestStep ... */
-			{
-				ResourceName:      fmt.Sprintf("grafana_team.%s", teamName),
-				ImportState:       true,
-				ImportStateId:     d.Get("team_id").(string),
-				ImportStateVerify: true,
-			},
-			{
-				ResourceName:      fmt.Sprintf("grafana_team_external_group.%s", groupName),
-				ImportState:       true,
-				ImportStateId:     d.Get("team_id").(string),
-				ImportStateVerify: true,
-			},
-			{
-				Config: testAccTeamConfig_groupRemove,
 			},
 		},
 	})
