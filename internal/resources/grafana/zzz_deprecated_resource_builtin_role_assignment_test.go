@@ -124,6 +124,7 @@ func TestAccBuiltInRoleAssignmentUpdate(t *testing.T) {
 	})
 }
 
+// nolint: unused
 func prepareDefaultAssignments() error {
 	client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 	r1 := gapi.Role{
@@ -179,6 +180,7 @@ func prepareDefaultAssignments() error {
 	return nil
 }
 
+// nolint: unused
 func testAccBuiltInRoleAssignmentWereNotDestroyed(brName string, roleUIDs ...string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
@@ -190,6 +192,7 @@ func testAccBuiltInRoleAssignmentWereNotDestroyed(brName string, roleUIDs ...str
 	}
 }
 
+// nolint: unused
 func testAccBuiltInRoleAssignmentCheckExists(rn string, brAssignments *map[string][]*gapi.Role) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
@@ -214,6 +217,7 @@ func testAccBuiltInRoleAssignmentCheckExists(rn string, brAssignments *map[strin
 	}
 }
 
+// nolint: unused
 func testAccBuiltInRoleAssignmentCheckDestroy(brAssignments *map[string][]*gapi.Role, destroyedUIDs []string, preservedRoleUIDs []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
@@ -244,6 +248,7 @@ func testAccBuiltInRoleAssignmentCheckDestroy(brAssignments *map[string][]*gapi.
 	}
 }
 
+// nolint: unused
 func checkAssignmentsDoNotExist(roles []*gapi.Role, roleUIDs ...string) error {
 	for _, uid := range roleUIDs {
 		if contains(roles, uid) {
@@ -253,6 +258,7 @@ func checkAssignmentsDoNotExist(roles []*gapi.Role, roleUIDs ...string) error {
 	return nil
 }
 
+// nolint: unused
 func checkAssignmentsExists(roles []*gapi.Role, roleUIDs ...string) error {
 	for _, uid := range roleUIDs {
 		if !contains(roles, uid) {
@@ -262,6 +268,7 @@ func checkAssignmentsExists(roles []*gapi.Role, roleUIDs ...string) error {
 	return nil
 }
 
+// nolint: unused
 func contains(roles []*gapi.Role, uid string) bool {
 	for _, r := range roles {
 		if r.UID == uid {
@@ -271,6 +278,7 @@ func contains(roles []*gapi.Role, uid string) bool {
 	return false
 }
 
+// nolint: unused
 const builtInRoleAssignmentConfig = `
 resource "grafana_role" "test_role" {
   name  = "test_role"
@@ -315,6 +323,7 @@ resource "grafana_builtin_role_assignment" "test_assignment" {
 }
 `
 
+// nolint: unused
 const builtInRoleAssignmentUpdatePreConfig = `
 resource "grafana_role" "viewer_test" {
   name  = "viewer_test"
@@ -336,6 +345,7 @@ resource "grafana_builtin_role_assignment" "test_builtin_assignment" {
 }
 `
 
+// nolint: unused
 const builtInRoleAssignmentUpdateConfig = `
 resource "grafana_role" "viewer_test" {
   name  = "viewer_test"

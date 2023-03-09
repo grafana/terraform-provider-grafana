@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
@@ -16,16 +17,18 @@ func TestRoleAssignments(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 	var roleAssignment gapi.RoleAssignments
 
+	testName := acctest.RandString(10)
+
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testRoleAssignmentCheckDestroy(&roleAssignment),
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(roleAssignmentConfig, roleUID),
+				Config: roleAssignmentConfig(testName),
 				Check: resource.ComposeTestCheckFunc(
 					testRoleAssignmentCheckExists("grafana_role_assignment.test", &roleAssignment),
 					resource.TestCheckResourceAttr(
-						"grafana_role_assignment.test", "role_uid", roleUID,
+						"grafana_role_assignment.test", "role_uid", testName,
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_role_assignment.test", "users.#", "2",
@@ -39,7 +42,7 @@ func TestRoleAssignments(t *testing.T) {
 				),
 			},
 			{
-				Config:  fmt.Sprintf(roleAssignmentConfig, roleUID),
+				Config:  roleAssignmentConfig(testName),
 				Destroy: true,
 			},
 		},
@@ -81,28 +84,39 @@ func testRoleAssignmentCheckDestroy(ra *gapi.RoleAssignments) resource.TestCheck
 	}
 }
 
-var roleUID = "terraform_test_role"
+func roleAssignmentConfig(name string) string {
+	return fmt.Sprintf(`
+resource "grafana_role" "test" {
+	name  = "%[1]s"
+	description = "test desc"
+	version = 1
+	uid = "%[1]s"
+	global = true
+	group = "testgroup"
+	display_name = "testdisplay"
+	hidden = true
+  }
 
-var roleAssignmentConfig = `
 resource "grafana_team" "test_team" {
-	name = "terraform_test_team"
+	name = "%[1]s"
 }
 
 resource "grafana_user" "test_user" {
-	email = "terraform_user@test.com"
-	login    = "terraform_user@test.com"
+	email = "%[1]s-1@test.com"
+	login    = "%[1]s-1@test.com"
 	password = "12345"
 }
 
 resource "grafana_user" "test_user2" {
-	email = "terraform_user2@test.com"
-	login    = "terraform_user2@test.com"
+	email = "%[1]s-2@test.com"
+	login    = "%[1]s-2@test.com"
 	password = "12345"
 }
 
 resource "grafana_role_assignment" "test" {
-  role_uid = "%s"
+  role_uid = grafana_role.test.uid
   users = [grafana_user.test_user.id, grafana_user.test_user2.id]
   teams = [grafana_team.test_team.id]
 }
-`
+`, name)
+}
