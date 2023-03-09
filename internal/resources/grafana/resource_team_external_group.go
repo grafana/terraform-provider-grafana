@@ -67,6 +67,7 @@ func ReadTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta int
 	for _, teamGroup := range teamGroups {
 		groupIDs = append(groupIDs, teamGroup.GroupID)
 	}
+	d.Set("team_id", teamID)
 	d.Set("groups", groupIDs)
 
 	return diag.Diagnostics{}
