@@ -24,6 +24,7 @@ const (
 )
 
 func TestAccBuiltInRoleAssignment(t *testing.T) {
+	t.Skip("This resource is deprecated and will be removed in a future release")
 	testutils.CheckEnterpriseTestsEnabled(t)
 
 	var assignments map[string][]*gapi.Role
@@ -61,6 +62,7 @@ func TestAccBuiltInRoleAssignment(t *testing.T) {
 }
 
 func TestAccBuiltInRoleAssignmentUpdate(t *testing.T) {
+	t.Skip("This resource is deprecated and will be removed in a future release")
 	testutils.CheckEnterpriseTestsEnabled(t)
 
 	var assignments map[string][]*gapi.Role
