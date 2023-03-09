@@ -41,6 +41,11 @@ func TestAccTeamExternalGroup_basic(t *testing.T) {
 					),
 				),
 			},
+			{
+				ResourceName:      "grafana_team_external_group.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
