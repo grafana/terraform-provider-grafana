@@ -32,10 +32,10 @@ func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
 				Config: testAccGrafanaAuthKeyFromCloud(slug, slug),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
-					resource.TestCheckResourceAttrSet("grafana_api_key.foo", "key"),
-					resource.TestCheckResourceAttr("grafana_api_key.foo", "name", "management-key"),
-					resource.TestCheckResourceAttr("grafana_api_key.foo", "role", "Admin"),
-					resource.TestCheckNoResourceAttr("grafana_api_key.foo", "expiration"),
+					resource.TestCheckResourceAttrSet("grafana_cloud_stack_api_key.management", "key"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack_api_key.management", "name", "management-key"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack_api_key.management", "role", "Admin"),
+					resource.TestCheckNoResourceAttr("grafana_cloud_stack_api_key.management", "expiration"),
 				),
 			},
 			{
@@ -48,7 +48,7 @@ func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
 
 func testAccGrafanaAuthKeyFromCloud(name, slug string) string {
 	return testAccStackConfigBasic(name, slug) + `
-	resource "grafana_api_key" "management" {
+	resource "grafana_cloud_stack_api_key" "management" {
 		stack_slug = grafana_cloud_stack.test.slug
 		name       = "management-key"
 		role       = "Admin"
