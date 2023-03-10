@@ -3,11 +3,13 @@ package cloud
 import (
 	"context"
 	"strconv"
+	"strings"
 	"time"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -77,13 +79,24 @@ func resourceStackAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m in
 	defer cleanup()
 
 	request := gapi.CreateAPIKeyRequest{Name: name, Role: role, SecondsToLive: int64(ttl)}
-	response, err := c.CreateAPIKey(request)
+	err = resource.RetryContext(ctx, 2*time.Minute, func() *resource.RetryError {
+		response, err := c.CreateAPIKey(request)
+
+		if err != nil {
+			if strings.Contains(err.Error(), "Your instance is loading, and will be ready shortly.") {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+
+		d.SetId(strconv.FormatInt(response.ID, 10))
+		d.Set("key", response.Key)
+		return nil
+	})
+
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	d.SetId(strconv.FormatInt(response.ID, 10))
-	d.Set("key", response.Key)
 
 	// Fill the true resource's state after a create by performing a read
 	return resourceStackAPIKeyRead(ctx, d, m)
