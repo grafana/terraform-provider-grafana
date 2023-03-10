@@ -147,5 +147,5 @@ func resourceStackAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m in
 
 func getClientForAPIKeyManagement(d *schema.ResourceData, m interface{}) (c *gapi.Client, cleanup func() error, err error) {
 	cloudClient := m.(*common.Client).GrafanaCloudAPI
-	return cloudClient.CreateTemporaryStackGrafanaClient(d.Get("stack-slug").(string), "terraform-temp-", 60*time.Second)
+	return cloudClient.CreateTemporaryStackGrafanaClient(d.Get("stack_slug").(string), "terraform-temp-", 60*time.Second)
 }
