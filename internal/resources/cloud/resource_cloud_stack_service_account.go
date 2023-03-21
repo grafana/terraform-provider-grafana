@@ -1,33 +1,42 @@
-package grafana
+package cloud
 
 import (
 	"context"
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"log"
 	"strconv"
+	"time"
 )
 
-func ResourceServiceAccount() *schema.Resource {
+func ResourceStackServiceAccount() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
 **Note:** This resource is available only with Grafana 9.1+.
 
+Manages service accounts of a Grafana Cloud stack using the Cloud API
+This can be used to bootstrap a management service account for a new stack
+
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/service-accounts/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/serviceaccount/#service-account-api)`,
 
-		CreateContext: CreateServiceAccount,
-		ReadContext:   ReadServiceAccount,
-		UpdateContext: UpdateServiceAccount,
-		DeleteContext: DeleteServiceAccount,
+		CreateContext: createStackServiceAccount,
+		ReadContext:   readStackServiceAccount,
+		UpdateContext: updateStackServiceAccount,
+		DeleteContext: deleteStackServiceAccount,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
-			"org_id": orgIDAttribute(),
+			"stack_slug": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -50,8 +59,13 @@ func ResourceServiceAccount() *schema.Resource {
 	}
 }
 
-func CreateServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
+func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, cleanup, err := getClientForSAManagement(d, meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	defer cleanup()
+
 	isDisabled := d.Get("is_disabled").(bool)
 	req := gapi.CreateServiceAccountRequest{
 		Name:       d.Get("name").(string),
@@ -63,13 +77,18 @@ func CreateServiceAccount(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	d.SetId(MakeOrgResourceID(orgID, sa.ID))
-	return ReadServiceAccount(ctx, d, meta)
+	d.SetId(strconv.FormatInt(sa.ID, 10))
+	return readStackServiceAccount(ctx, d, meta)
 }
 
-func ReadServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
-	id, err := strconv.ParseInt(idStr, 10, 64)
+func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, cleanup, err := getClientForSAManagement(d, meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	defer cleanup()
+
+	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -103,9 +122,14 @@ func ReadServiceAccount(ctx context.Context, d *schema.ResourceData, meta interf
 	return nil
 }
 
-func UpdateServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
-	id, err := strconv.ParseInt(idStr, 10, 64)
+func updateStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, cleanup, err := getClientForSAManagement(d, meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	defer cleanup()
+
+	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -126,16 +150,26 @@ func UpdateServiceAccount(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	return ReadServiceAccount(ctx, d, meta)
+	return readStackServiceAccount(ctx, d, meta)
 }
 
-func DeleteServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
-	id, err := strconv.ParseInt(idStr, 10, 64)
+func deleteStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, cleanup, err := getClientForSAManagement(d, meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	defer cleanup()
+
+	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	_, err = client.DeleteServiceAccount(id)
 	return diag.FromErr(err)
+}
+
+func getClientForSAManagement(d *schema.ResourceData, m interface{}) (c *gapi.Client, cleanup func() error, err error) {
+	cloudClient := m.(*common.Client).GrafanaCloudAPI
+	return cloudClient.CreateTemporaryStackGrafanaClient(d.Get("stack_slug").(string), "terraform-temp-sa-", 60*time.Second)
 }
