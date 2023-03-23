@@ -24,8 +24,6 @@ Manages Grafana API Keys.
 		ReadContext:   resourceAPIKeyRead,
 		DeleteContext: resourceAPIKeyDelete,
 
-		DeprecationMessage: "Use `grafana_service_account` and `grafana_service_account_token` resources instead",
-
 		Schema: map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"name": {
