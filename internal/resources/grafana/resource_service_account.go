@@ -2,12 +2,13 @@ package grafana
 
 import (
 	"context"
+	"log"
+	"strconv"
+
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"log"
-	"strconv"
 )
 
 func ResourceServiceAccount() *schema.Resource {

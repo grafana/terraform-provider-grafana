@@ -35,7 +35,7 @@ resource "grafana_service_account_token" "foo" {
   service_account_id = grafana_cloud_stack_service_account.cloud_sa.id
 }
 
-output "service_account_token_foo_key_only" {
+output "service_account_token_foo_key" {
   value     = grafana_service_account_token.foo.key
   sensitive = true
 }
