@@ -2,14 +2,15 @@ package cloud
 
 import (
 	"context"
+	"log"
+	"strconv"
+	"time"
+
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"log"
-	"strconv"
-	"time"
 )
 
 func ResourceStackServiceAccount() *schema.Resource {
