@@ -27,6 +27,8 @@ This can be used to bootstrap a management API key for a new stack
 		ReadContext:   resourceStackAPIKeyRead,
 		DeleteContext: resourceStackAPIKeyDelete,
 
+		DeprecationMessage: "Use `grafana_cloud_stack_service_account` and `grafana_cloud_stack_service_account_token` resources instead",
+
 		Schema: map[string]*schema.Schema{
 			"stack_slug": {
 				Type:     schema.TypeString,
