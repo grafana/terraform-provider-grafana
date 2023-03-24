@@ -13,7 +13,7 @@ import (
 )
 
 func TestAccResourceReport(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t)
 
 	var report gapi.Report
 
@@ -98,7 +98,7 @@ func TestAccResourceReport(t *testing.T) {
 // Testing the deprecated case of using a dashboard ID instead of a dashboard UID
 // TODO: Remove in next major version
 func TestAccResourceReport_CreateFromDashboardID(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t)
 
 	var report gapi.Report
 
