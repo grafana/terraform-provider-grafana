@@ -9,7 +9,7 @@ import (
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -79,14 +79,14 @@ func resourceStackAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m in
 	defer cleanup()
 
 	request := gapi.CreateAPIKeyRequest{Name: name, Role: role, SecondsToLive: int64(ttl)}
-	err = resource.RetryContext(ctx, 2*time.Minute, func() *resource.RetryError {
+	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		response, err := c.CreateAPIKey(request)
 
 		if err != nil {
 			if strings.Contains(err.Error(), "Your instance is loading, and will be ready shortly.") {
-				return resource.RetryableError(err)
+				return retry.RetryableError(err)
 			}
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 
 		d.SetId(strconv.FormatInt(response.ID, 10))

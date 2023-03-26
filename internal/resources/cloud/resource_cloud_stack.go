@@ -16,7 +16,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -414,14 +414,14 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 	if timeoutVal := d.Get("wait_for_readiness_timeout").(string); timeoutVal != "" {
 		timeout, _ = time.ParseDuration(timeoutVal)
 	}
-	err := resource.RetryContext(ctx, timeout, func() *resource.RetryError {
+	err := retry.RetryContext(ctx, timeout, func() *retry.RetryError {
 		req, err := http.NewRequestWithContext(ctx, http.MethodHead, d.Get("url").(string), nil)
 		if err != nil {
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			return resource.NonRetryableError(err)
+			return retry.NonRetryableError(err)
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
@@ -433,7 +433,7 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 			} else {
 				body = buf.String()
 			}
-			return resource.RetryableError(fmt.Errorf("stack was not ready in %s. Status code: %d, Body: %s", timeout, resp.StatusCode, body))
+			return retry.RetryableError(fmt.Errorf("stack was not ready in %s. Status code: %d, Body: %s", timeout, resp.StatusCode, body))
 		}
 
 		return nil
