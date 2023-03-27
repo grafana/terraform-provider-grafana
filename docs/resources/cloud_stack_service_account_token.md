@@ -30,13 +30,13 @@ resource "grafana_cloud_stack_service_account" "cloud_sa" {
   is_disabled = false
 }
 
-resource "grafana_service_account_token" "foo" {
+resource "grafana_cloud_stack_service_account_token" "foo" {
   name               = "key_foo"
   service_account_id = grafana_cloud_stack_service_account.cloud_sa.id
 }
 
 output "service_account_token_foo_key" {
-  value     = grafana_service_account_token.foo.key
+  value     = grafana_cloud_stack_service_account_token.foo.key
   sensitive = true
 }
 ```
