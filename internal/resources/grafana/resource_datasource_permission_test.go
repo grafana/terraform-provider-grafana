@@ -12,8 +12,7 @@ import (
 )
 
 func TestAccDatasourcePermission_basic(t *testing.T) {
-	t.Skip("This test is failing in Grafana Cloud 9.3+")
-	testutils.CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t)
 
 	datasourceID := int64(-1)
 
