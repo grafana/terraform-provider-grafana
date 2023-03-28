@@ -160,11 +160,13 @@ func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	client := m.(*common.Client).OnCallClient
 
 	nameData := d.Get("name").(string)
+	teamIDData := d.Get("team_id").(string)
 	slackData := d.Get("slack").([]interface{})
 	typeData := d.Get("type").(string)
 
 	updateOptions := &onCallAPI.UpdateScheduleOptions{
 		Name:  nameData,
+		TeamId: teamIDData,
 		Slack: expandScheduleSlack(slackData),
 	}
 

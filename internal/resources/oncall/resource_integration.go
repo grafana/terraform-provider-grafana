@@ -275,11 +275,13 @@ func ResourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, m in
 	client := m.(*common.Client).OnCallClient
 
 	nameData := d.Get("name").(string)
+	TeamIDData := d.Get("team_id").(string)
 	templateData := d.Get("templates").([]interface{})
 	defaultRouteData := d.Get("default_route").([]interface{})
 
 	updateOptions := &onCallAPI.UpdateIntegrationOptions{
 		Name:         nameData,
+		TeamID:       TeamIdData,	
 		Templates:    expandTemplates(templateData),
 		DefaultRoute: expandDefaultRoute(defaultRouteData),
 	}

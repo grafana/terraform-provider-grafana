@@ -145,11 +145,13 @@ func ResourceOutgoingWebhookUpdate(ctx context.Context, d *schema.ResourceData, 
 	client := m.(*common.Client).OnCallClient
 
 	name := d.Get("name").(string)
+	teamIDData := d.Get("team_id").(string)
 	url := d.Get("url").(string)
 	forwardWholePayload := d.Get("forward_whole_payload").(bool)
 
 	updateOptions := &onCallAPI.UpdateCustomActionOptions{
 		Name:                name,
+		TeamId:              teamIDData,
 		Url:                 url,
 		ForwardWholePayload: forwardWholePayload,
 	}
