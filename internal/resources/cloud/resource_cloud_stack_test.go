@@ -79,6 +79,13 @@ func TestResourceStack_Basic(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
+			// Test import from slug
+			{
+				ResourceName:      "grafana_cloud_stack.test",
+				ImportStateId:     resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }

@@ -73,5 +73,6 @@ available at “https://<stack_slug>.grafana.net".
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_cloud_stack.stack_name {{stack_id}}
+terraform import grafana_cloud_stack.stack_name {{stack_id}} // import by numerical ID
+terraform import grafana_cloud_stack.stack_name {{stack_slug}} // or import by slug
 ```

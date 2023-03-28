@@ -37,8 +37,21 @@ func ResourceStack() *schema.Resource {
 		DeleteContext: DeleteStack,
 		ReadContext:   ReadStack,
 
+		// Import either by ID or slug
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: func(c context.Context, rd *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				_, err := strconv.ParseInt(rd.Id(), 10, 64)
+				if err != nil {
+					// If the ID is not a number, then it may be a slug
+					client := meta.(*common.Client).GrafanaCloudAPI
+					stack, err := client.StackBySlug(rd.Id())
+					if err != nil {
+						return nil, fmt.Errorf("failed to find stack by ID or slug '%s': %w", rd.Id(), err)
+					}
+					rd.SetId(strconv.FormatInt(stack.ID, 10))
+				}
+				return []*schema.ResourceData{rd}, nil
+			},
 		},
 
 		Schema: map[string]*schema.Schema{
