@@ -25,6 +25,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/machinelearning"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/oncall"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/slo"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/syntheticmonitoring"
 )
 
@@ -146,6 +147,10 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_oncall_team":             oncall.DataSourceTeam(),
 		})
 	)
+
+	// Needs to be Refactored to match how Resources are Set Up
+	sloDatasources := make(map[string]*schema.Resource)
+	sloDatasources["grafana_slo"] = slo.DatasourceSlo()
 
 	return func() *schema.Provider {
 		p := &schema.Provider{
@@ -281,6 +286,7 @@ func Provider(version string) func() *schema.Provider {
 				smClientDatasources,
 				onCallClientDatasources,
 				cloudClientDatasources,
+				sloDatasources,
 			),
 		}
 
