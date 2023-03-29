@@ -6,13 +6,13 @@ resource "grafana_data_source" "foo" {
   type = "cloudwatch"
   name = "cw-example"
 
-  json_data {
-    default_region = "us-east-1"
-    auth_type      = "keys"
-  }
+  json_data_encoded = jsonencode({
+    defaultRegion = "us-east-1"
+    authType      = "keys"
+  })
 
-  secure_json_data {
-    access_key = "123"
-    secret_key = "456"
-  }
+  secure_json_data_encoded = jsonencode({
+    accessKey = "123"
+    secretKey = "456"
+  })
 }
