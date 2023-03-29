@@ -13,22 +13,22 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func ResourceStackServiceAccount() *schema.Resource {
+func ResourceStackManagementToken() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
 **Note:** This resource is available only with Grafana 9.1+.
 
-Manages service accounts of a Grafana Cloud stack using the Cloud API
-This can be used to bootstrap a management service account for a new stack
+Manages service accounts and the associated service account tokens of a Grafana Cloud stack using the Cloud API
+This can be used to bootstrap a management service account token for a new stack
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/service-accounts/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/serviceaccount/#service-account-api)`,
 
-		CreateContext: createStackServiceAccount,
-		ReadContext:   readStackServiceAccount,
-		UpdateContext: updateStackServiceAccount,
-		DeleteContext: deleteStackServiceAccount,
+		CreateContext: createStackManagementToken,
+		ReadContext:   readStackManagementToken,
+		UpdateContext: updateStackManagementToken,
+		DeleteContext: deleteStackManagementToken,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -42,7 +42,7 @@ This can be used to bootstrap a management service account for a new stack
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The name of the service account.",
+				Description: "The name of the associated service account and service account token.",
 			},
 			"role": {
 				Type:         schema.TypeString,
@@ -56,12 +56,34 @@ This can be used to bootstrap a management service account for a new stack
 				Default:     false,
 				Description: "The disabled status for the service account.",
 			},
+			"seconds_to_live": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Duration for which the service account token will be valid.",
+			},
+			"token": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
+				Description: "Service account token value.",
+			},
+			"expiration": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Time when service account token expires.",
+			},
+			"has_expired": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "True if service account token has expired.",
+			},
 		},
 	}
 }
 
-func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, cleanup, err := getClientForSAManagement(d, meta)
+func createStackManagementToken(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, cleanup, err := getClientForTokenManagement(d, meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -78,12 +100,26 @@ func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(err)
 	}
 
+	tokenReq := gapi.CreateServiceAccountTokenRequest{
+		Name:             d.Get("name").(string),
+		ServiceAccountID: sa.ID,
+		SecondsToLive:    int64(d.Get("seconds_to_live").(int)),
+	}
+	response, err := client.CreateServiceAccountToken(tokenReq)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = d.Set("token", response.Key)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	d.SetId(strconv.FormatInt(sa.ID, 10))
-	return readStackServiceAccount(ctx, d, meta)
+	return readStackManagementToken(ctx, d, meta)
 }
 
-func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, cleanup, err := getClientForSAManagement(d, meta)
+func readStackManagementToken(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, cleanup, err := getClientForTokenManagement(d, meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -114,6 +150,31 @@ func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta i
 				return diag.FromErr(err)
 			}
 
+			tokens, err := client.GetServiceAccountTokens(sa.ID)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			foundToken := false
+			for _, t := range tokens {
+				if t.Name == d.Get("name") {
+					if t.Expiration != nil && !t.Expiration.IsZero() {
+						err = d.Set("expiration", t.Expiration.String())
+						if err != nil {
+							return diag.FromErr(err)
+						}
+					}
+					err = d.Set("has_expired", t.HasExpired)
+					if err != nil {
+						return diag.FromErr(err)
+					}
+					foundToken = true
+					break
+				}
+			}
+			if !foundToken {
+				log.Printf("[WARN] removing service account %d from state because no tokens associated with it exist in grafana", id)
+				d.SetId("")
+			}
 			return nil
 		}
 	}
@@ -123,8 +184,8 @@ func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta i
 	return nil
 }
 
-func updateStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, cleanup, err := getClientForSAManagement(d, meta)
+func updateStackManagementToken(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, cleanup, err := getClientForTokenManagement(d, meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -136,9 +197,6 @@ func updateStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta
 	}
 
 	updateRequest := gapi.UpdateServiceAccountRequest{}
-	if d.HasChange("name") {
-		updateRequest.Name = d.Get("name").(string)
-	}
 	if d.HasChange("role") {
 		updateRequest.Role = d.Get("role").(string)
 	}
@@ -151,11 +209,11 @@ func updateStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(err)
 	}
 
-	return readStackServiceAccount(ctx, d, meta)
+	return readStackManagementToken(ctx, d, meta)
 }
 
-func deleteStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, cleanup, err := getClientForSAManagement(d, meta)
+func deleteStackManagementToken(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, cleanup, err := getClientForTokenManagement(d, meta)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -170,7 +228,7 @@ func deleteStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta
 	return diag.FromErr(err)
 }
 
-func getClientForSAManagement(d *schema.ResourceData, m interface{}) (c *gapi.Client, cleanup func() error, err error) {
+func getClientForTokenManagement(d *schema.ResourceData, m interface{}) (c *gapi.Client, cleanup func() error, err error) {
 	cloudClient := m.(*common.Client).GrafanaCloudAPI
 	return cloudClient.CreateTemporaryStackGrafanaClient(d.Get("stack_slug").(string), "terraform-temp-sa-", 60*time.Second)
 }

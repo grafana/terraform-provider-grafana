@@ -13,12 +13,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestAccGrafanaServiceAccountFromCloud(t *testing.T) {
+func TestAccStackManagementToken(t *testing.T) {
 	testutils.CheckCloudAPITestsEnabled(t)
 	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
 
 	var stack gapi.Stack
-	prefix := "tfserviceaccounttest"
+	prefix := "tfstacktokentest"
 	slug := GetRandomStackName(prefix)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -29,43 +29,38 @@ func TestAccGrafanaServiceAccountFromCloud(t *testing.T) {
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGrafanaServiceAccountFromCloud(slug, slug),
+				Config: testAccStackManagementToken(slug, slug),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
-					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "name", "management-sa"),
-					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "role", "Admin"),
-					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "is_disabled", "false"),
-					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account_token.management_token", "name", "management-sa-token"),
-					resource.TestCheckNoResourceAttr("grafana_cloud_stack_service_account_token.management_token", "expiration"),
-					resource.TestCheckResourceAttrSet("grafana_cloud_stack_service_account_token.management_token", "key"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack_management_token.management_token", "name", "management-sa"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack_management_token.management_token", "role", "Admin"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack_management_token.management_token", "is_disabled", "false"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack_management_token.management_token", "seconds_to_live", "900"),
+					resource.TestCheckResourceAttrSet("grafana_cloud_stack_management_token.management_token", "expiration"),
+					resource.TestCheckResourceAttrSet("grafana_cloud_stack_management_token.management_token", "key"),
 				),
 			},
 			{
 				Config: testAccStackConfigBasic(slug, slug),
-				Check:  testAccGrafanaServiceAccountCheckDestroyCloud,
+				Check:  testAccStackManagementTokenDestroy,
 			},
 		},
 	})
 }
 
-func testAccGrafanaServiceAccountFromCloud(name, slug string) string {
+func testAccStackManagementToken(name, slug string) string {
 	return testAccStackConfigBasic(name, slug) + `
-	resource "grafana_cloud_stack_service_account" "management" {
+	resource "grafana_cloud_stack_management_token" "management_token" {
 		stack_slug = grafana_cloud_stack.test.slug
 		name       = "management-sa"
 		role       = "Admin"
-	}
-
-	resource "grafana_cloud_stack_service_account_token" "management_token" {
-		stack_slug = grafana_cloud_stack.test.slug
-		service_account_id = grafana_cloud_stack_service_account.management.id
-		name       = "management-sa-token"
+		seconds_to_live = 900
 	}
 	`
 }
 
 // Checks that all service accounts and service account tokens are deleted, to be called before the stack is completely destroyed
-func testAccGrafanaServiceAccountCheckDestroyCloud(s *terraform.State) error {
+func testAccStackManagementTokenDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_cloud_stack" {
 			continue

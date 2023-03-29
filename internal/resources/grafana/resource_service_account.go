@@ -112,9 +112,6 @@ func UpdateServiceAccount(ctx context.Context, d *schema.ResourceData, meta inte
 	}
 
 	updateRequest := gapi.UpdateServiceAccountRequest{}
-	if d.HasChange("name") {
-		updateRequest.Name = d.Get("name").(string)
-	}
 	if d.HasChange("role") {
 		updateRequest.Role = d.Get("role").(string)
 	}
