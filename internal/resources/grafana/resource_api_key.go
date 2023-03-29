@@ -46,8 +46,8 @@ Manages Grafana API Keys.
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
-				Description: "Deprecated: Use `grafana_cloud_stack_service_account` and `grafana_cloud_stack_service_account_token` resources instead",
-				Deprecated:  "Use `grafana_cloud_stack_service_account` and `grafana_cloud_stack_service_account_token` resources instead",
+				Description: "Deprecated: Use `grafana_cloud_stack_management_token` resource instead",
+				Deprecated:  "Use `grafana_cloud_stack_management_token` resource instead",
 			},
 
 			"id": {
