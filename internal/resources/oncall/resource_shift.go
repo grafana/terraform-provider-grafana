@@ -311,7 +311,7 @@ func ResourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, m in
 	updateOptions := &onCallAPI.UpdateOnCallShiftOptions{
 		Type:     typeData,
 		Name:     nameData,
-		teamId:   teamIDData,
+		TeamId:   teamIDData,
 		Start:    startData,
 		Duration: durationData,
 		Source:   sourceTerraform,
