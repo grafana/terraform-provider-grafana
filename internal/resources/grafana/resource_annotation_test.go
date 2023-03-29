@@ -88,33 +88,6 @@ func TestAccAnnotation_basic(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				// Test resource creation with declared dashboard_uid.
-				Config: testAnnotationConfigWithDashboardUID(orgName, testAccAnnotationInitialText),
-				Check: resource.ComposeTestCheckFunc(
-					testAccAnnotationCheckExists("grafana_annotation.test_with_dashboard_uid", &annotation),
-					resource.TestCheckResourceAttr("grafana_annotation.test_with_dashboard_uid", "text", testAccAnnotationInitialText),
-				),
-			},
-			{
-				// Updates text in resource with declared dashboard_id.
-				Config: testAnnotationConfigWithDashboardUID(orgName, testAccAnnotationUpdatedText),
-				Check: resource.ComposeTestCheckFunc(
-					testAccAnnotationCheckExists("grafana_annotation.test_with_dashboard_uid", &annotation),
-					resource.TestCheckResourceAttr("grafana_annotation.test_with_dashboard_uid", "text", testAccAnnotationUpdatedText),
-
-					// Check that the annotation is in the correct organization
-					resource.TestMatchResourceAttr("grafana_annotation.test_with_dashboard_uid", "id", nonDefaultOrgIDRegexp),
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
-					checkResourceIsInOrg("grafana_annotation.test_with_dashboard_uid", "grafana_organization.test"),
-				),
-			},
-			{
-				// Importing matches the state of the previous step.
-				ResourceName:      "grafana_annotation.test_with_dashboard_uid",
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-			{
 				// Test resource creation with declared panel_id.
 				Config: testAnnotationConfigWithPanelID(orgName, testAccAnnotationInitialText),
 				Check: resource.ComposeTestCheckFunc(
@@ -138,6 +111,50 @@ func TestAccAnnotation_basic(t *testing.T) {
 			{
 				// Importing matches the state of the previous step.
 				ResourceName:      "grafana_annotation.test_with_panel_id",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccAnnotation_dashboardUID(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.0.0")
+
+	var annotation gapi.Annotation
+	var org gapi.Org
+
+	orgName := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      testAccAnnotationCheckDestroy(&annotation),
+		Steps: []resource.TestStep{
+			{
+				// Test resource creation with declared dashboard_uid.
+				Config: testAnnotationConfigWithDashboardUID(orgName, testAccAnnotationInitialText),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAnnotationCheckExists("grafana_annotation.test_with_dashboard_uid", &annotation),
+					resource.TestCheckResourceAttr("grafana_annotation.test_with_dashboard_uid", "text", testAccAnnotationInitialText),
+				),
+			},
+			{
+				// Updates text in resource with declared dashboard_id.
+				Config: testAnnotationConfigWithDashboardUID(orgName, testAccAnnotationUpdatedText),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAnnotationCheckExists("grafana_annotation.test_with_dashboard_uid", &annotation),
+					resource.TestCheckResourceAttr("grafana_annotation.test_with_dashboard_uid", "text", testAccAnnotationUpdatedText),
+
+					// Check that the annotation is in the correct organization
+					resource.TestMatchResourceAttr("grafana_annotation.test_with_dashboard_uid", "id", nonDefaultOrgIDRegexp),
+					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					checkResourceIsInOrg("grafana_annotation.test_with_dashboard_uid", "grafana_organization.test"),
+				),
+			},
+			{
+				// Importing matches the state of the previous step.
+				ResourceName:      "grafana_annotation.test_with_dashboard_uid",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
