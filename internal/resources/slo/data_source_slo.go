@@ -356,12 +356,12 @@ func unpackAlertingMetadata(Metadata AlertMetadata) []map[string]interface{} {
 	labelsAnnotsStruct := make(map[string]interface{})
 
 	if Metadata.Annotations != nil {
-		retAnnotations := unpackLabels(Metadata.Labels)
+		retAnnotations := unpackLabels(Metadata.Annotations)
 		labelsAnnotsStruct["annotations"] = retAnnotations
 	}
 
 	if Metadata.Labels != nil {
-		retLabels := unpackLabels(Metadata.Annotations)
+		retLabels := unpackLabels(Metadata.Labels)
 		labelsAnnotsStruct["labels"] = retLabels
 	}
 

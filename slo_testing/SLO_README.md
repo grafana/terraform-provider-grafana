@@ -68,4 +68,20 @@ POST Request: http://grafana.k3d.localhost:3000/api/plugins/grafana-slo-app/reso
 2. Client Wrapper - I am currently just sending requests by creating an HTTP Client, ideally we should create a Go Client wrapper around our API. This will be done and refactored at a later point in time. 
 3. CREATE, UPDATE, and DELETE methods TBD. 
 4. Tests TBD.
-5. Authentication - currently it appears that our API endpoint isn't protected at all - a user doesn't need to send a Grafana Token or anything in order to access our API Endpoint. Did we want to change this? 
+
+-- Questions -- 
+1. Why is our `Objectives` within the Slo struct a slice of Objectives? Shouldn't each Slo only have one Objective? 
+type Slo struct {
+	Uuid                  string        `json:"uuid"`
+	Name                  string        `json:"name"`
+	Description           string        `json:"description"`
+	Service               string        `json:"service,omitempty"`
+	Query                 Query         `json:"query"`
+	Alerting              *Alerting     `json:"alerting,omitempty"`
+	Labels                *[]Label      `json:"labels,omitempty"`
+	Objectives            []Objective   `json:"objectives"`
+	DrilldownDashboardUid string        `json:"dashboardUid,omitempty"`
+	DrilldownDashboardRef *DashboardRef `json:"drillDownDashboardRef,omitempty"`
+}
+
+2. I cannot seem to add custom labels to the "Alerting" structure for some reason. Might be something wrong with the API. 

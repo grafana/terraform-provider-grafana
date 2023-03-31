@@ -150,7 +150,10 @@ func Provider(version string) func() *schema.Provider {
 
 	// Needs to be Refactored to match how Resources are Set Up
 	sloDatasources := make(map[string]*schema.Resource)
-	sloDatasources["grafana_slo"] = slo.DatasourceSlo()
+	sloDatasources["grafana_slo_datasource"] = slo.DatasourceSlo()
+
+	sloResources := make(map[string]*schema.Resource)
+	sloResources["grafana_slo_resource"] = slo.ResourceSlo()
 
 	return func() *schema.Provider {
 		p := &schema.Provider{
@@ -279,6 +282,7 @@ func Provider(version string) func() *schema.Provider {
 				smClientResources,
 				onCallClientResources,
 				cloudClientResources,
+				sloResources,
 			),
 
 			DataSourcesMap: mergeResourceMaps(
