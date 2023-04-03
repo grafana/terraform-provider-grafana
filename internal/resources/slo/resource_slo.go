@@ -405,13 +405,31 @@ func resourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{})
 	return diags
 }
 
-func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	return resourceSloRead(ctx, d, m)
-}
-
 func resourceSloDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	// Warning or errors can be collected in a slice type
+	sloID := d.Id()
+
 	var diags diag.Diagnostics
 
+	serverPort := 3000
+	requestURL := fmt.Sprintf("http://localhost:%d/api/plugins/grafana-slo-app/resources/v1/slo/%s", serverPort, sloID)
+	req, err := http.NewRequest(http.MethodDelete, requestURL, nil)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	defer resp.Body.Close()
+
+	d.SetId("")
+
 	return diags
+}
+
+func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	return resourceSloRead(ctx, d, m)
 }
