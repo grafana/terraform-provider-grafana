@@ -66,7 +66,7 @@ POST Request: http://grafana.k3d.localhost:3000/api/plugins/grafana-slo-app/reso
 -- TBD -- 
 1. Currently - I am just doing this in local dev, I need to set this up and test it with a HG Account
 2. Client Wrapper - I am currently just sending requests by creating an HTTP Client, ideally we should create a Go Client wrapper around our API. This will be done and refactored at a later point in time. 
-3. CREATE, UPDATE, and DELETE methods TBD. 
+3. UPDATE, and DELETE methods TBD. 
 4. Tests TBD.
 
 -- Questions -- 

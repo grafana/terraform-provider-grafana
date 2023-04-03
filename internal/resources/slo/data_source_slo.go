@@ -243,13 +243,13 @@ func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{
 		fmt.Println("error:", err)
 	}
 
-	terrformSlos := []interface{}{}
+	terraformSlos := []interface{}{}
 	for _, slo := range sloList.Slos {
 		terraformSlo := convertDatasourceSlo(slo)
-		terrformSlos = append(terrformSlos, terraformSlo)
+		terraformSlos = append(terraformSlos, terraformSlo)
 	}
 
-	d.Set("slos", terrformSlos)
+	d.Set("slos", terraformSlos)
 	d.SetId(sloList.Slos[0].Uuid)
 
 	var diags diag.Diagnostics

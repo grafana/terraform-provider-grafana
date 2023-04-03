@@ -242,6 +242,7 @@ func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{
 	}
 
 	d.SetId(response.Uuid)
+	resourceSloRead(ctx, d, m)
 
 	return diags
 }
@@ -365,9 +366,42 @@ func packAlertMetadata(metadata []interface{}) AlertMetadata {
 }
 
 func resourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	// Warning or errors can be collected in a slice type
-	var diags diag.Diagnostics
+	sloID := d.Id()
 
+	serverPort := 3000
+	requestURL := fmt.Sprintf("http://localhost:%d/api/plugins/grafana-slo-app/resources/v1/slo/%s", serverPort, sloID)
+	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	defer resp.Body.Close()
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	var slo Slo
+
+	err = json.Unmarshal(b, &slo)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+
+	// When you return this, you only need to set the Id and the Dashboard - the information you get back from the API
+	retDashboard := unpackDashboard(slo)
+
+	d.Set("dashboard_ref", retDashboard)
+	d.Set("name", slo.Name)
+
+	var diags diag.Diagnostics
 	return diags
 }
 
