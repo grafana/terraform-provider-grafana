@@ -207,6 +207,9 @@ func ResourceSlo() *schema.Resource {
 				Computed: true,
 			},
 		},
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 	}
 }
 
@@ -331,6 +334,19 @@ func packLabels(tfLabels []interface{}) []Label {
 	return labelSlice
 }
 
+// func unpackLabels(labels []Label) []map[string]interface{} {
+// 	tfLabels := []map[string]interface{}{}
+
+// 	for _, label := range labels {
+// 		tfLabel := map[string]interface{}{}
+// 		tfLabel["key"] = label.Key
+// 		tfLabel["value"] = label.Value
+// 		tfLabels = append(tfLabels, tfLabel)
+// 	}
+
+// 	return tfLabels
+// }
+
 func packAlerting(tfAlerting map[string]interface{}) Alerting {
 	annots := tfAlerting["annotations"].([]interface{})
 	tfAnnots := packLabels(annots)
@@ -372,6 +388,7 @@ func packAlertMetadata(metadata []interface{}) AlertMetadata {
 	return apiMetadata
 }
 
+// resourceSloRead - sends a GET Request to the single SLO Endpoint
 func resourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	sloID := d.Id()
 
@@ -402,14 +419,29 @@ func resourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{})
 		fmt.Println("error:", err)
 	}
 
-	// When you return this, you only need to set the Id and the Dashboard - the information you get back from the API
-	retDashboard := unpackDashboard(slo)
-
-	d.Set("dashboard_ref", retDashboard)
-	d.Set("name", slo.Name)
+	setTerraformState(d, slo)
 
 	var diags diag.Diagnostics
 	return diags
+}
+
+func setTerraformState(d *schema.ResourceData, slo Slo) {
+	d.Set("name", slo.Name)
+	d.Set("description", slo.Description)
+	d.Set("service", slo.Service)
+	d.Set("query", unpackQuery(slo.Query))
+	retLabels := unpackLabels(slo.Labels)
+
+	d.Set("labels", retLabels)
+
+	retDashboard := unpackDashboard(slo)
+	d.Set("dashboard_ref", retDashboard)
+
+	retObjectives := unpackObjectives(slo.Objectives)
+	d.Set("objectives", retObjectives)
+
+	retAlerting := unpackAlerting(slo.Alerting)
+	d.Set("alerting", retAlerting)
 }
 
 func resourceSloDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

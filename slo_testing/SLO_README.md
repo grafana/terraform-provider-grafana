@@ -3,10 +3,10 @@
 2. Send a POST Request with a sample request body 
 POST Request: http://grafana.k3d.localhost:3000/api/plugins/grafana-slo-app/resources/v1/slo
 {
-   "name":"test name",
-   "description":"test description",
+   "name":"test slo name",
+   "description":"test slo description",
    "service":"service",
-   "labels": [{"key": "name", "value": "testslo"}],
+   "labels": [{"key": "custom", "value": "value"}],
    "objectives":[
       {
          "value":0.995,
@@ -20,36 +20,28 @@ POST Request: http://grafana.k3d.localhost:3000/api/plugins/grafana-slo-app/reso
       "fastBurn":{
          "annotations":[
             {
-               "key":"annots-key",
-               "value":"annots-Fast Burn"
-            },
-            {
-               "key":"Description",
-               "value":"Fast Burn Description"
+               "key":"annotsfastburnkey",
+               "value":"annotsfastburnvalue"
             }
          ],
          "labels":[
             {
-               "key":"Type",
-               "value":"SLO"
+               "key":"type",
+               "value":"slo"
             }
          ]
       },
       "slowBurn":{
          "annotations":[
             {
-               "key":"Name",
-               "value":"Slow Burn"
-            },
-            {
-               "key":"Description",
-               "value":"Slow Burn Description"
+               "key":"annotsslowburnkey",
+               "value":"annotsslowburnvalue"
             }
          ],
          "labels":[
             {
-               "key":"Type",
-               "value":"SLO"
+               "key":"type",
+               "value":"slo"
             }
          ]
       }
