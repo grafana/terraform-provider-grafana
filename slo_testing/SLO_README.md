@@ -66,8 +66,7 @@ POST Request: http://grafana.k3d.localhost:3000/api/plugins/grafana-slo-app/reso
 -- TBD -- 
 1. Currently - I am just doing this in local dev, I need to set this up and test it with a HG Account
 2. Client Wrapper - I am currently just sending requests by creating an HTTP Client, ideally we should create a Go Client wrapper around our API. This will be done and refactored at a later point in time. 
-3. UPDATE, and DELETE methods TBD. 
-4. Tests TBD.
+3. Tests TBD.
 
 -- Questions -- 
 1. Why is our `Objectives` within the Slo struct a slice of Objectives? Shouldn't each Slo only have one Objective? 

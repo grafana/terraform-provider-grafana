@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -200,6 +201,11 @@ func ResourceSlo() *schema.Resource {
 					},
 				},
 			},
+			"last_updated": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -272,6 +278,7 @@ func packSloResource(d *schema.ResourceData) Slo {
 	tfalerting := packAlerting(alert)
 
 	sloPost := Slo{
+		Uuid:        d.Id(),
 		Name:        tfname,
 		Description: tfdescription,
 		Service:     tfservice,
@@ -431,5 +438,32 @@ func resourceSloDelete(ctx context.Context, d *schema.ResourceData, m interface{
 }
 
 func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	sloID := d.Id()
+
+	if d.HasChange("name") || d.HasChange("description") || d.HasChange("service") || d.HasChange("query") || d.HasChange("labels") || d.HasChange("objectives") || d.HasChange("alerting") {
+		sloPut := packSloResource(d)
+
+		body, err := json.Marshal(sloPut)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		bodyReader := bytes.NewReader(body)
+
+		serverPort := 3000
+		requestURL := fmt.Sprintf("http://localhost:%d/api/plugins/grafana-slo-app/resources/v1/slo/%s", serverPort, sloID)
+		req, err := http.NewRequest(http.MethodPut, requestURL, bodyReader)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		client := &http.Client{}
+		_, err = client.Do(req)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		d.Set("last_updated", time.Now().Format(time.RFC850))
+	}
+
 	return resourceSloRead(ctx, d, m)
 }
