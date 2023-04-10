@@ -282,5 +282,5 @@ https://grafana.com/orgs/<org-slug>/hosted-logs/<logs-instance-id>
 
 ### `oncall_access_token`
 
-[Grafana OnCall](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/)
+[Grafana OnCall](https://grafana.com/docs/oncall/latest/oncall-api-reference/)
 uses API keys to allow access to the API. You can request a new OnCall API key in OnCall -> Settings page.

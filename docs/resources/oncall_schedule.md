@@ -3,12 +3,12 @@
 page_title: "grafana_oncall_schedule Resource - terraform-provider-grafana"
 subcategory: "OnCall"
 description: |-
-  HTTP API https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/schedules/
+  HTTP API https://grafana.com/docs/oncall/latest/oncall-api-reference/schedules/
 ---
 
 # grafana_oncall_schedule (Resource)
 
-* [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/schedules/)
+* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/schedules/)
 
 ## Example Usage
 

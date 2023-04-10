@@ -12,8 +12,8 @@ import (
 func DataSourceSchedule() *schema.Resource {
 	return &schema.Resource{
 		Description: `
-* [Official documentation](https://grafana.com/docs/grafana-cloud/oncall/calendar-schedules/)
-* [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/schedules/)
+* [Official documentation](https://grafana.com/docs/oncall/latest/calendar-schedules/)
+* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/schedules/)
 `,
 		ReadContext: DataSourceScheduleRead,
 		Schema: map[string]*schema.Schema{

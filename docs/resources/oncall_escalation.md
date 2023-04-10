@@ -3,13 +3,13 @@
 page_title: "grafana_oncall_escalation Resource - terraform-provider-grafana"
 subcategory: "OnCall"
 description: |-
-  Official documentation https://grafana.com/docs/grafana-cloud/oncall/escalation-policies/HTTP API https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/escalation_policies/
+  Official documentation https://grafana.com/docs/oncall/latest/escalation-policies/HTTP API https://grafana.com/docs/oncall/latest/oncall-api-reference/escalation_policies/
 ---
 
 # grafana_oncall_escalation (Resource)
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/oncall/escalation-policies/)
-* [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/escalation_policies/)
+* [Official documentation](https://grafana.com/docs/oncall/latest/escalation-policies/)
+* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/escalation_policies/)
 
 ## Example Usage
 

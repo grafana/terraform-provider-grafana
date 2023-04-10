@@ -3,12 +3,12 @@
 page_title: "grafana_oncall_on_call_shift Resource - terraform-provider-grafana"
 subcategory: "OnCall"
 description: |-
-  HTTP API https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/on_call_shifts/
+  HTTP API https://grafana.com/docs/oncall/latest/oncall-api-reference/on_call_shifts/
 ---
 
 # grafana_oncall_on_call_shift (Resource)
 
-* [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/on_call_shifts/)
+* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/on_call_shifts/)
 
 ## Example Usage
 

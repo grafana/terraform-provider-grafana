@@ -3,13 +3,13 @@
 page_title: "grafana_oncall_integration Resource - terraform-provider-grafana"
 subcategory: "OnCall"
 description: |-
-  Official documentation https://grafana.com/docs/grafana-cloud/oncall/integrations/HTTP API https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/
+  Official documentation https://grafana.com/docs/oncall/latest/integrations/HTTP API https://grafana.com/docs/oncall/latest/oncall-api-reference/
 ---
 
 # grafana_oncall_integration (Resource)
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/oncall/integrations/)
-* [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/)
+* [Official documentation](https://grafana.com/docs/oncall/latest/integrations/)
+* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/)
 
 ## Example Usage
 

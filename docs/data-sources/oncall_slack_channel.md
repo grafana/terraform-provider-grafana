@@ -3,12 +3,12 @@
 page_title: "grafana_oncall_slack_channel Data Source - terraform-provider-grafana"
 subcategory: "OnCall"
 description: |-
-  HTTP API https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/slack_channels/
+  HTTP API https://grafana.com/docs/oncall/latest/oncall-api-reference/slack_channels/
 ---
 
 # grafana_oncall_slack_channel (Data Source)
 
-* [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/slack_channels/)
+* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/slack_channels/)
 
 ## Example Usage
 
