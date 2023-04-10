@@ -3,12 +3,12 @@
 page_title: "grafana_oncall_escalation_chain Resource - terraform-provider-grafana"
 subcategory: "OnCall"
 description: |-
-  HTTP API https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/escalation_chains/
+  HTTP API https://grafana.com/docs/oncall/latest/oncall-api-reference/escalation_chains/
 ---
 
 # grafana_oncall_escalation_chain (Resource)
 
-* [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/escalation_chains/)
+* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/escalation_chains/)
 
 ## Example Usage
 

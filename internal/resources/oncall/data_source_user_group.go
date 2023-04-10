@@ -12,7 +12,7 @@ import (
 func DataSourceUserGroup() *schema.Resource {
 	return &schema.Resource{
 		Description: `
-* [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/user_groups/)
+* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/user_groups/)
 `,
 		ReadContext: DataSourceUserGroupRead,
 		Schema: map[string]*schema.Schema{

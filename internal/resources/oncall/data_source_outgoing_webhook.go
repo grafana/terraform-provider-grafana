@@ -13,7 +13,7 @@ import (
 func DataSourceOutgoingWebhook() *schema.Resource {
 	return &schema.Resource{
 		Description: `
-* [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/outgoing_webhooks/)
+* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/outgoing_webhooks/)
 `,
 		ReadContext: DataSourceOutgoingWebhookRead,
 		Schema: map[string]*schema.Schema{

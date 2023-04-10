@@ -12,7 +12,7 @@ import (
 func DataSourceEscalationChain() *schema.Resource {
 	return &schema.Resource{
 		Description: `
-* [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/escalation_chains/)
+* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/escalation_chains/)
 `,
 		ReadContext: dataSourceEscalationChainRead,
 		Schema: map[string]*schema.Schema{

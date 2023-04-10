@@ -40,8 +40,8 @@ var durationOptions = []int{
 func ResourceEscalation() *schema.Resource {
 	return &schema.Resource{
 		Description: `
-* [Official documentation](https://grafana.com/docs/grafana-cloud/oncall/escalation-policies/)
-* [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/escalation_policies/)
+* [Official documentation](https://grafana.com/docs/oncall/latest/escalation-policies/)
+* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/escalation_policies/)
 `,
 		CreateContext: resourceEscalationCreate,
 		ReadContext:   resourceEscalationRead,
