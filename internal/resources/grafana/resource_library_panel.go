@@ -32,6 +32,7 @@ Manages Grafana library panels.
 		},
 
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"uid": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -45,7 +46,6 @@ Manages Grafana library panels.
 				Computed:    true,
 				Description: "The numeric ID of the library panel computed by Grafana.",
 			},
-			"org_id": orgIDAttribute(),
 			"folder_id": {
 				Type:        schema.TypeInt,
 				Optional:    true,
