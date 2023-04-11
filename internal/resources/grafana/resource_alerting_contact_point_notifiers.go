@@ -1405,6 +1405,16 @@ func (w webhookNotifier) schema() *schema.Resource {
 		Optional:    true,
 		Description: "The maximum number of alerts to send in a single request. This can be helpful in limiting the size of the request body. The default is 0, which indicates no limit.",
 	}
+	r.Schema["message"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Custom message. You can use template variables.",
+	}
+	r.Schema["title"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Templated title of the message.",
+	}
 	return r
 }
 
@@ -1417,6 +1427,8 @@ func (w webhookNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
 	packNotifierStringField(&p.Settings, &notifier, "password", "basic_auth_password")
 	packNotifierStringField(&p.Settings, &notifier, "authorization_scheme", "authorization_scheme")
 	packNotifierStringField(&p.Settings, &notifier, "authorization_credentials", "authorization_credentials")
+	packNotifierStringField(&p.Settings, &notifier, "message", "message")
+	packNotifierStringField(&p.Settings, &notifier, "title", "title")
 	if v, ok := p.Settings["maxAlerts"]; ok && v != nil {
 		switch typ := v.(type) {
 		case int:
@@ -1443,6 +1455,8 @@ func (w webhookNotifier) unpack(raw interface{}, name string) gapi.ContactPoint 
 	unpackNotifierStringField(&json, &settings, "basic_auth_password", "password")
 	unpackNotifierStringField(&json, &settings, "authorization_scheme", "authorization_scheme")
 	unpackNotifierStringField(&json, &settings, "authorization_credentials", "authorization_credentials")
+	unpackNotifierStringField(&json, &settings, "message", "message")
+	unpackNotifierStringField(&json, &settings, "title", "title")
 	if v, ok := json["max_alerts"]; ok && v != nil {
 		switch typ := v.(type) {
 		case int:

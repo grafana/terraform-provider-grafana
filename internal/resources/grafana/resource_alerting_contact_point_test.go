@@ -262,6 +262,8 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.basic_auth_user", "user"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.basic_auth_password", "[REDACTED]"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.max_alerts", "100"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.message", "Custom message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.title", "Custom title"),
 					// wecom
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.url", "[REDACTED]"),
