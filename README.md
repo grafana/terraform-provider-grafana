@@ -39,7 +39,7 @@ provider_installation {
 ```
 2. Run `go build` in this directory to get the binary, Terraform will use the binary you just built (it should print out a warning)
 
-## testing the grafana-api-client together with the terraform provider
+## Testing the `grafana-api-golang-client` Together with the Terraform Provider
 As for testing the client, make a branch and open the provider PR with a `TODO:` to remove the replace operator, because the best way to test the changes you just made in the client is to integrate everything in the provider
 
 1. create a branch `api-client-branchname` with your changes
