@@ -23,7 +23,7 @@ Manages Grafana API Keys.
 		CreateContext:      resourceAPIKeyCreate,
 		ReadContext:        resourceAPIKeyRead,
 		DeleteContext:      resourceAPIKeyDelete,
-		DeprecationMessage: "Use `grafana_service_account` together with `grafana_cloud_stack_service_account_token` resources instead see https://grafana.com/docs/grafana/next/administration/api-keys/#migrate-api-keys-to-grafana-service-accounts-using-terraform",
+		DeprecationMessage: "Use `grafana_service_account` together with `grafana_service_account_token` instead, see https://grafana.com/docs/grafana/next/administration/api-keys/#migrate-api-keys-to-grafana-service-accounts-using-terraform",
 
 		Schema: map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
