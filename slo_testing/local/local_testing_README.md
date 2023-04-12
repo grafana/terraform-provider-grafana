@@ -90,3 +90,4 @@ Testing the DELETE Method / terraform destroy
 5. Execute the command `terraform init`
 6. Within the Terraform CLI directly, type in the command: `terraform import grafana_slo_resource.sample slo_UUID`
 7. Now execute the command: `terraform state show grafana_slo_resource.sample` - you should see the data from the imported Resource. 
+8. To verify that this resource is now under Terraform control, within the `slo-resource-import.tf` file, comment out lines 14-18. Then, within the CLI run `terraform destroy`. This should destroy the resource from within the Terraform CLI. 

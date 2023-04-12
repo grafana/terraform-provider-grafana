@@ -8,7 +8,7 @@ terraform {
 }
 
 provider "grafana" {
-  url = "http://localhost:3000/api/plugins/grafana-slo-app/resources/v1/slo"
+  url = "https://elainetest.grafana.net"
 }
 
 resource "grafana_slo_resource" "sample" {}

@@ -2,6 +2,7 @@
 
 ## Create your HG Account and Get the SLO Plugin Deployed
 Generate a new Service Account Token, and set the environment variable GRAFANA_AUTH to the value of your token (or you can specify the `auth` field within the Terraform State file). 
+Within the `.tf` files within `slo_testing/hg`, ensure that you set the `url` field to be the `url` of your HG Instance.
 
 ## Understanding Terraform Provider Code Flow
 1. Within the terraform root directory, run `make install`. This command creates a binary of the Terraform Provider and moves it into the appropriate Terraform plugin directory, which allows for testing of a custom provider. 
@@ -67,18 +68,27 @@ Testing the CREATE Method
 5. To ensure that the PUT endpoint works, modify any of the values within the resource below, and re-run `terraform apply`. 
 6. Make a GET Request to the API Endpoint to ensure the resource was properly modified. 
 
-## Testing the DELETE Method
+## Testing the DELETE/DESTROY Method
 Objective - we want to be able to delete a SLO Resource that was created with Terraform. 
 After creating the two SLO resources from the CREATE Method, we will DELETE them. 
 
-Testing the DELETE Method / terraform destroy
 1. Delete any `.terraform.lock.hcl` and `terraform.tfstate` and `terraform.tfstate.backup` files
-2. Within the `slo_testing` directory, run the commands `terraform init`. Keep the `slo-resource-create.tf` file open, and execute `terraform apply`. This creates two new SLOs from the Terraform CLI.
+2. Within the `slo_testing/hg` directory, ensure the `slo-resource-create.tf` file is uncommented. Run the commands `terraform init` and execute `terraform apply`. This creates two new SLOs from the Terraform CLI.
 3. Create a regular SLO using the UI. At this point, you should have 3 SLOs - 2 created from Terraform, and 1 created from the UI
 4. To delete all Terraformed SLO resources, execute the command `terraform destroy`, and type `yes` in the terminal to confirm the delete
-5. The two newly created Terraformed SLO Resources should be deleted, and you should still have the SLO that was created through the UI remaining.
+5. The two newly created Terraformed SLO Resources should be deleted, and you should still see the SLO that was created through the UI remaining.
+
+### Testing the IMPORT Method
+1. Within the terraform-provider-grafana root directory, run `make install`.
+2. Change to the `slo_testing/hg` directory. 
+3. Comment out all the `.tf` files within the `slo_testing/local` folder, EXCEPT for the `slo-resource-import.tf` file
+4. Create a SLO using the UI or Postman. Take note of the SLO's UUID
+5. Execute the command `terraform init`
+6. Within the Terraform CLI directly, type in the command: `terraform import grafana_slo_resource.sample slo_UUID`
+7. Now execute the command: `terraform state show grafana_slo_resource.sample` - you should see the data from the imported Resource. 
+8. To verify that this resource is now under Terraform control, within the `slo-resource-import.tf` file, comment out lines 14-18. Then, within the CLI run `terraform destroy`. This should destroy the resource from within the Terraform CLI. 
 
 ### TBD ###
-1. Testing HG for the SLO Resources for Delete, and Import. 
-2. Client Wrapper - I am currently just sending requests by creating an HTTP Client, ideally we should create a Go Client wrapper around our API. This will be done and refactored at a later point in time. 
+2. Figure out the Bug after Creating Terraform Resources (cannot go and Edit a SLO - why?).
+2. Integrate into the existing Grafana Golang Client (https://github.com/grafana/grafana-api-golang-client)
 3. Tests.
