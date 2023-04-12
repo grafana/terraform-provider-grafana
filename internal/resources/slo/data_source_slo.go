@@ -17,9 +17,6 @@ import (
 func DatasourceSlo() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: datasourceSloRead,
-		// Importer: &schema.ResourceImporter{
-		// 	StateContext: schema.ImportStatePassthroughContext,
-		// },
 		Schema: map[string]*schema.Schema{
 			"slos": &schema.Schema{
 				Type:     schema.TypeList,
@@ -232,7 +229,7 @@ func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{
 		log.Fatalln(err)
 	}
 
-	// If testing on Local Dev, comment on Lines 236-238 - it does not work if the Authorization Header is set
+	// If testing on Local Dev, comment out the three lines below - it does not work if the Authorization Header is set
 	token := grafanaClient.GrafanaAPIConfig.APIKey
 	bearer := "Bearer " + token
 	req.Header.Add("Authorization", bearer)

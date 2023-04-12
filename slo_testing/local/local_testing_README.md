@@ -42,27 +42,28 @@ Objective - we want to send a GET Request to the SLO Endpoint that returns a lis
 2. Create a SLO / Send a POST Request to the endpoint (see `slo_sample.json` for an example) 
 3. Change to the `slo_testing/local` directory. 
 4. Comment out all the `.tf` files within the `slo_testing/local` folder, EXCEPT for the `slo-datasource-read.tf` file
-5. Within `data_source_slo.go` - you MUST comment out L236-238 - for some reason, there is a bug that does not work if the Authorization Header is set. 
+5. Within `data_source_slo.go` - you MUST comment out L233-235 - for some reason, there is a bug that does not work if the Authorization Header is set. 
 6. Within the `slo_testing/local` directory, run the commands `terraform init` and `terraform apply`. Ensure to remove the `.terraform.lock.hcl` and any `terraform.tfstate` files.
 7. You should see a list of all SLOs within the terminal that you've run terraform from. 
 
 Elaine Questions - I'm open to modifying the shape of the Schema returned by Terraform on the read, so any thoughts here are welcome! Right now - I've just mirrored the structure we get back from the API. 
 
-## Testing Resource - CREATE
+## Testing SLO Resource
+
+### Testing the CREATE Method
 Objective - we want to be able to define a SLO Resource within Terraform that should be created. Once the resource has successfully been created, we want to display the newly created SLO resource within the Terraform interface. 
 
 The `slo-resource-create.tf` file will create two SLOs. 
 
-Testing the CREATE Method
-1. Within `resource_slo.go` - you MUST comment out Lines 244-246 and Lines 408-411, there is a bug that does not work if the Authorization Header is set. 
+1. Within `resource_slo.go` - you MUST comment out Lines 244-246, Lines 408-410, Line 473-475, and Lines 514-516, there is a bug that does not work if the Authorization Header is set. 
 2. Delete any `.terraform.lock.hcl` and `terraform.tfstate` and `terraform.tfstate.backup` files. Within the terraform-provider-grafana root directory, run `make install`.
 3. Change to the `slo_testing/local` directory. 
 4. Comment out all the `.tf` files within the `slo_testing/local` folder, EXCEPT for the `slo-resource-create.tf` file
 5. Within the `slo_testing` directory, run the commands `terraform init` and `terraform apply`. Ensure to remove the `.terraform.lock.hcl` and any `terraform.tfstate` files.
 6. Within your terminal, you should see the output of the two newly created SLO from within Terraform, and two new SLOs within the SLO UI.
 
-## Testing the UPDATE Method
-1. Within `resource_slo.go` - you MUST comment out Lines 244-246, Lines 408-411, and Lines 505-507, there is a bug that does not work if the Authorization Header is set. 
+### Testing the UPDATE Method
+1. Within `resource_slo.go` - you MUST comment out Lines 244-246, Lines 408-410, Line 473-475, and Lines 514-516, there is a bug that does not work if the Authorization Header is set. 
 2. Within the terraform-provider-grafana root directory, run `make install`.
 3. Change to the `slo_testing/local` directory. 
 4. Comment out all the `.tf` files within the `slo_testing/local` folder, EXCEPT for the `slo-resource-update.tf` file
@@ -70,7 +71,7 @@ Testing the CREATE Method
 6. Run the command `terraform apply`. This creates the resource specified below. 
 7. To ensure that the PUT endpoint works, modify any of the values within the resource below, and re-run `terraform apply`. 
 
-## Testing the DELETE Method
+### Testing the DELETE Method
 Objective - we want to be able to delete a SLO Resource that was created with Terraform. 
 After creating the two SLO resources from the CREATE Method, we will DELETE them. 
 
@@ -81,7 +82,7 @@ Testing the DELETE Method / terraform destroy
 4. To delete all Terraformed SLO resources, execute the command `terraform destroy`, and type `yes` in the terminal to confirm the delete
 5. The two newly created Terraformed SLO Resources should be deleted, and you should still have the SLO that was created through the UI remaining.
 
-## Testing the IMPORT Method
+### Testing the IMPORT Method
 1. Within the terraform-provider-grafana root directory, run `make install`.
 2. Change to the `slo_testing/local` directory. 
 3. Comment out all the `.tf` files within the `slo_testing/local` folder, EXCEPT for the `slo-resource-import.tf` file

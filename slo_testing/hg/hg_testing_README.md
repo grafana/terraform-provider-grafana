@@ -1,6 +1,7 @@
 # How to Test the SLO Terraform Provider - Hosted Grafana
 
 ## Create your HG Account and Get the SLO Plugin Deployed
+Generate a new Service Account Token, and set the environment variable GRAFANA_AUTH to the value of your token (or you can specify the `auth` field within the Terraform State file). 
 
 ## Understanding Terraform Provider Code Flow
 1. Within the terraform root directory, run `make install`. This command creates a binary of the Terraform Provider and moves it into the appropriate Terraform plugin directory, which allows for testing of a custom provider. 
@@ -65,6 +66,17 @@ Testing the CREATE Method
 4. Within the `slo_testing/hg` directory, run the commands `terraform init` and `terraform apply`. This creates the resource specified below in the terraform state file.
 5. To ensure that the PUT endpoint works, modify any of the values within the resource below, and re-run `terraform apply`. 
 6. Make a GET Request to the API Endpoint to ensure the resource was properly modified. 
+
+## Testing the DELETE Method
+Objective - we want to be able to delete a SLO Resource that was created with Terraform. 
+After creating the two SLO resources from the CREATE Method, we will DELETE them. 
+
+Testing the DELETE Method / terraform destroy
+1. Delete any `.terraform.lock.hcl` and `terraform.tfstate` and `terraform.tfstate.backup` files
+2. Within the `slo_testing` directory, run the commands `terraform init`. Keep the `slo-resource-create.tf` file open, and execute `terraform apply`. This creates two new SLOs from the Terraform CLI.
+3. Create a regular SLO using the UI. At this point, you should have 3 SLOs - 2 created from Terraform, and 1 created from the UI
+4. To delete all Terraformed SLO resources, execute the command `terraform destroy`, and type `yes` in the terminal to confirm the delete
+5. The two newly created Terraformed SLO Resources should be deleted, and you should still have the SLO that was created through the UI remaining.
 
 ### TBD ###
 1. Testing HG for the SLO Resources for Delete, and Import. 
