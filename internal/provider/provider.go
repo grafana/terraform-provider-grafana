@@ -78,6 +78,9 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_machine_learning_job":              machinelearning.ResourceJob(),
 			"grafana_machine_learning_holiday":          machinelearning.ResourceHoliday(),
 			"grafana_machine_learning_outlier_detector": machinelearning.ResourceOutlierDetector(),
+
+			// SLO
+			"grafana_slo_resource": slo.ResourceSlo(),
 		})
 
 		// Resources that require the Synthetic Monitoring client to exist.
@@ -120,6 +123,9 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_team":                     grafana.DatasourceTeam(),
 			"grafana_organization":             grafana.DatasourceOrganization(),
 			"grafana_organization_preferences": grafana.DatasourceOrganizationPreferences(),
+
+			// SLO
+			"grafana_slo_datasource": slo.DatasourceSlo(),
 		})
 
 		// Datasources that require the Synthetic Monitoring client to exist.
@@ -147,13 +153,6 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_oncall_team":             oncall.DataSourceTeam(),
 		})
 	)
-
-	// Needs to be Refactored to match how Resources are Set Up
-	sloDatasources := make(map[string]*schema.Resource)
-	sloDatasources["grafana_slo_datasource"] = slo.DatasourceSlo()
-
-	sloResources := make(map[string]*schema.Resource)
-	sloResources["grafana_slo_resource"] = slo.ResourceSlo()
 
 	return func() *schema.Provider {
 		p := &schema.Provider{
@@ -282,7 +281,6 @@ func Provider(version string) func() *schema.Provider {
 				smClientResources,
 				onCallClientResources,
 				cloudClientResources,
-				sloResources,
 			),
 
 			DataSourcesMap: mergeResourceMaps(
@@ -290,7 +288,6 @@ func Provider(version string) func() *schema.Provider {
 				smClientDatasources,
 				onCallClientDatasources,
 				cloudClientDatasources,
-				sloDatasources,
 			),
 		}
 

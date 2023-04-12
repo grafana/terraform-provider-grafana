@@ -1,19 +1,3 @@
-# Testing the CREATE Method
-# 1. When testing the Create Method, start up the Local Dev Environment. Comment out the `slo-ds-read.tf` file. 
-# 2. Within the root directory of the terraform-provider-grafana, run `make install`. This creates a Grafana Terraform Provider.
-# 3. Switch to the slo_testing directory `cd slo_testing`
-# 4. Run the command `terraform init`
-# 5. Run the command `terraform apply slo-create.tf`. This sends the information below as a POST request to the API at http://grafana.k3d.localhost:3000/api/plugins/grafana-slo-app/resources/v1/slo
-# 6. Ensure to delete the `.terraform.lock.hcl` and any hidden terraform (terraform.tfstate) state files that exists before rebuilding the terraform provider. 
-# 7. Within your terminal, you should see the output of the two newly created SLO from within Terraform
-
-# Testing the DELETE Method / terraform destroy
-# 1. Repeat the steps for the CREATE Method
-# 2. Create a regular SLO using the UI. At this point, you should have 3 SLOs - 2 created from Terraform, and 1 created from the UI
-# 3. Delete any `.terraform.lock.hcl` and `terraform.tfstate` and `terraform.tfstate.backup` files
-# 4. To delete all Terraformed SLO resources, execute the command `terraform destroy`, and type `yes` in the terminal to confirm the delete
-# 5. The two newly created Terraformed SLO Resources should be automatically deleted.
-
 # terraform {
 #   required_providers {
 #     grafana = { 
@@ -24,6 +8,7 @@
 # }
 
 # provider "grafana" {
+#   url = "http://localhost:3000/api/plugins/grafana-slo-app/resources/v1/slo"
 #   auth = "auth"
 # }
 
@@ -37,18 +22,14 @@
 #     objective_window = "28d"
 #   }
 #   labels {
-#     key   = "label1a"
-#     value = "value1a"
-#   }
-#   labels {
-#     key   = "label2a"
-#     value = "value2a"
+#     key   = "name"
+#     value = "testslolabel"
 #   }
 #   alerting {
 #     name = "hihialerting1"
 #     labels {
-#       key   = "alertinglabel1"
-#       value = "alertingvalue1"
+#       key   = "name"
+#       value = "testsloalertinglabel"
 #     }
 
 #     annotations {

@@ -1,0 +1,26 @@
+{
+    "name":"test name",
+    "description":"test description",
+    "service":"service",
+    "labels": [{"key": "name", "value": "testslo"}],
+    "objectives":[
+       {
+          "value":0.995,
+          "window":"30d"
+       }
+    ],
+    "query":{
+       "freeFormQuery":"sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+    },
+    "alerting":{
+        "labels": [{"key": "name", "value": "testslo"}],
+       "fastBurn":{
+          "annotations":[{ "key": "name", "value": "Custom Fast-burn Name"}, { "key": "description", "value": "Custom Fast-burn Desc"}],
+          "labels":[{"key":"type", "value":"slo"}]
+       },
+       "slowBurn":{
+          "annotations":[{ "key": "name", "value": "Custom Slow-burn Name"}, { "key": "description", "value": "Custom Slow-burn Desc"}],
+          "labels":[{"key":"type", "value":"slo"}]
+       }
+    }
+ }

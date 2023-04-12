@@ -213,12 +213,17 @@ func ResourceSlo() *schema.Resource {
 	}
 }
 
+// SLO Resource is defined by the user within the Terraform State file
+// When 'terraform apply' is executed, it sends a POST Request and converts
+// the data within the Terraform State into a JSON Object which is then sent to the API
+// Following this, a READ is executed for the newly created SLO, which is then displayed within the
+// terminal that Terraform is running in
 func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
 	sloPost := packSloResource(d)
 
+	// TBD - replace with a Go API Client Wrapper
 	body, err := json.Marshal(sloPost)
 	if err != nil {
 		log.Fatalln(err)
@@ -250,17 +255,17 @@ func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{
 		fmt.Println("error:", err)
 	}
 
+	// Get the response back from the API, we need to set the ID of the Terraform Resource
 	d.SetId(response.Uuid)
+
+	// Executes a READ, displays the newly created SLO Resource within Terraform
 	resourceSloRead(ctx, d, m)
 
 	return diags
 }
 
-type POSTResponse struct {
-	Message string `json:"message,omitempty"`
-	Uuid    string `json:"uuid,omitempty"`
-}
-
+// Fetches all the Properties defined on the Terraform SLO State Object and converts it
+// to a Slo so that it can be converted to JSON and sent to the API
 func packSloResource(d *schema.ResourceData) Slo {
 	tfname := d.Get("name").(string)
 	tfdescription := d.Get("description").(string)
@@ -268,7 +273,7 @@ func packSloResource(d *schema.ResourceData) Slo {
 	query := d.Get("query").(string)
 	tfquery := packQuery(query)
 
-	// Assumes that each SLO only have one Objective Value and one Objective Window
+	// Assumes that each SLO only has one Objective Value and one Objective Window
 	objectives := d.Get("objectives").([]interface{})
 	objective := objectives[0].(map[string]interface{})
 	tfobjective := packObjective(objective)
@@ -292,7 +297,6 @@ func packSloResource(d *schema.ResourceData) Slo {
 	}
 
 	return sloPost
-
 }
 
 func packQuery(query string) Query {
@@ -333,19 +337,6 @@ func packLabels(tfLabels []interface{}) []Label {
 
 	return labelSlice
 }
-
-// func unpackLabels(labels []Label) []map[string]interface{} {
-// 	tfLabels := []map[string]interface{}{}
-
-// 	for _, label := range labels {
-// 		tfLabel := map[string]interface{}{}
-// 		tfLabel["key"] = label.Key
-// 		tfLabel["value"] = label.Value
-// 		tfLabels = append(tfLabels, tfLabel)
-// 	}
-
-// 	return tfLabels
-// }
 
 func packAlerting(tfAlerting map[string]interface{}) Alerting {
 	annots := tfAlerting["annotations"].([]interface{})

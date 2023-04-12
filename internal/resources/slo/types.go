@@ -1,3 +1,4 @@
+// file to be deleted, Types will be defined within the SLO API Go Client Wrapper
 package slo
 
 type SloList struct {
@@ -80,4 +81,9 @@ type Query struct {
 	FreeformQuery
 	Threshold     *Threshold `json:"threshold,omitempty"`
 	GroupByLabels []string   `json:"groupBy,omitempty"`
+}
+
+type POSTResponse struct {
+	Message string `json:"message,omitempty"`
+	Uuid    string `json:"uuid,omitempty"`
 }

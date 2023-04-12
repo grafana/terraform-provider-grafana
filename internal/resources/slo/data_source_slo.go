@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -16,9 +17,9 @@ import (
 func DatasourceSlo() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: datasourceSloRead,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
+		// Importer: &schema.ResourceImporter{
+		// 	StateContext: schema.ImportStatePassthroughContext,
+		// },
 		Schema: map[string]*schema.Schema{
 			"slos": &schema.Schema{
 				Type:     schema.TypeList,
@@ -215,13 +216,26 @@ func DatasourceSlo() *schema.Resource {
 	}
 }
 
+// Function sends a GET request to the SLO API Endpoint which returns a list of all SLOs
+// Maps the API Response body to the Terraform Schema and displays as a READ in the terminal
 func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	serverPort := 3000
-	requestURL := fmt.Sprintf("http://localhost:%d/api/plugins/grafana-slo-app/resources/v1/slo", serverPort)
+	grafanaClient := m.(*common.Client)
+	grafanaURL := grafanaClient.GrafanaAPIURL
+
+	var diags diag.Diagnostics
+
+	sloPath := "/api/plugins/grafana-slo-app/resources/v1/slo"
+	requestURL := grafanaURL + sloPath
+
 	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	// If testing on Local Dev, comment on Lines 236-238 - it does not work if the Authorization Header is set
+	// token := grafanaClient.GrafanaAPIConfig.APIKey
+	// bearer := "Bearer " + token
+	// req.Header.Add("Authorization", bearer)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -252,7 +266,6 @@ func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{
 	d.Set("slos", terraformSlos)
 	d.SetId(sloList.Slos[0].Uuid)
 
-	var diags diag.Diagnostics
 	return diags
 }
 
@@ -346,9 +359,7 @@ func unpackAlerting(AlertData *Alerting) []map[string]interface{} {
 	alertObject["slowburn"] = unpackAlertingMetadata(*AlertData.SlowBurn)
 
 	retAlertData = append(retAlertData, alertObject)
-
 	return retAlertData
-
 }
 
 func unpackAlertingMetadata(Metadata AlertMetadata) []map[string]interface{} {
@@ -366,6 +377,5 @@ func unpackAlertingMetadata(Metadata AlertMetadata) []map[string]interface{} {
 	}
 
 	retAlertMetaData = append(retAlertMetaData, labelsAnnotsStruct)
-
 	return retAlertMetaData
 }

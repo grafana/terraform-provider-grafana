@@ -1,12 +1,3 @@
-# Testing the UPDATE Method 
-# 1. When testing the UPDATE Method, start up the Local Dev Environment. Comment out all the other `.tf` files. 
-# 2. Within the root directory of the terraform-provider-grafana, run `make install`. This creates a Grafana Terraform Provider.
-# 3. Switch to the slo_testing directory `cd slo_testing`
-# 4. Run the command `terraform init`
-# 5. Run the command `terraform apply`. This creates the resource specified below. 
-# 6. To ensure that the PUT endpoint works, modify any of the values within the resource below, and re-run `terraform apply`. 
-# 7. Using Postman, send a GET Request to the endpoint to ensure that the resource was appropriately modified within the API. 
-
 # terraform {
 #   required_providers {
 #     grafana = { 
@@ -17,11 +8,12 @@
 # }
 
 # provider "grafana" {
+#   url = "http://localhost:3000/api/plugins/grafana-slo-app/resources/v1/slo"
 #   auth = "auth"
 # }
 
 # resource "grafana_slo_resource" "test1" {
-#   name        = "Hello1"
+#   name        = "Hello2"
 #   description = "Testing Hello 1 - I hope this works!"
 #   service     = "service1"
 #   query       = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
