@@ -46,6 +46,19 @@ Objective - we want to send a GET Request to the SLO Endpoint that returns a lis
 7. Within the `slo_testing/hg` directory, run the commands `terraform init` and `terraform apply`. Ensure to remove the `.terraform.lock.hcl` and any `terraform.tfstate` files.
 8. You should see a list of all SLOs within your Terraform CLI.
 
+## Testing Resource - CREATE
+Objective - we want to be able to define a SLO Resource within Terraform state that should be created. Once the resource has successfully been created, we want to display the newly created SLO resource within the Terraform CLI. 
+
+The `slo-resource-create.tf` file will create two SLOs. 
+
+Testing the CREATE Method
+1. Delete any `.terraform.lock.hcl` and `terraform.tfstate` and `terraform.tfstate.backup` files. Within the terraform-provider-grafana root directory, run `make install`.
+2. Change to the `slo_testing/hg` directory. 
+3. Comment out all the `.tf` files within the `slo_testing/hg` folder, EXCEPT for the `slo-resource-create.tf` file
+4. Within the `slo_testing/hg` directory, run the commands `terraform init` and `terraform apply`. 
+5. Within your terminal, you should see the output of the two newly created SLO from within Terraform, and two newly created SLOs within the SLO UI.
+
+
 ### TBD ###
 1. Testing HG for the SLO Resources for Create, Read, Update, and Import. 
 2. Client Wrapper - I am currently just sending requests by creating an HTTP Client, ideally we should create a Go Client wrapper around our API. This will be done and refactored at a later point in time. 

@@ -54,11 +54,12 @@ Objective - we want to be able to define a SLO Resource within Terraform that sh
 The `slo-resource-create.tf` file will create two SLOs. 
 
 Testing the CREATE Method
-1. Delete any `.terraform.lock.hcl` and `terraform.tfstate` and `terraform.tfstate.backup` files. Within the terraform-provider-grafana root directory, run `make install`.
-2. Change to the `slo_testing/local` directory. 
-3. Comment out all the `.tf` files within the `slo_testing/local` folder, EXCEPT for the `slo-resource-create.tf` file
-4. Within the `slo_testing` directory, run the commands `terraform init` and `terraform apply`. Ensure to remove the `.terraform.lock.hcl` and any `terraform.tfstate` files.
-5. Within your terminal, you should see the output of the two newly created SLO from within Terraform, and within the SLO UI.
+1. Within `resource_slo.go` - you MUST comment out Lines 244-246 and Lines 408-411, there is a bug that does not work if the Authorization Header is set. 
+2. Delete any `.terraform.lock.hcl` and `terraform.tfstate` and `terraform.tfstate.backup` files. Within the terraform-provider-grafana root directory, run `make install`.
+3. Change to the `slo_testing/local` directory. 
+4. Comment out all the `.tf` files within the `slo_testing/local` folder, EXCEPT for the `slo-resource-create.tf` file
+5. Within the `slo_testing` directory, run the commands `terraform init` and `terraform apply`. Ensure to remove the `.terraform.lock.hcl` and any `terraform.tfstate` files.
+6. Within your terminal, you should see the output of the two newly created SLO from within Terraform, and two new SLOs within the SLO UI.
 
 ## Testing the DELETE Method
 Objective - we want to be able to delete a SLO Resource that was created with Terraform. 

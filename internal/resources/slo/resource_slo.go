@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -222,20 +223,27 @@ func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{
 	var diags diag.Diagnostics
 
 	sloPost := packSloResource(d)
-
-	// TBD - replace with a Go API Client Wrapper
 	body, err := json.Marshal(sloPost)
 	if err != nil {
 		log.Fatalln(err)
 	}
 	bodyReader := bytes.NewReader(body)
 
-	serverPort := 3000
-	requestURL := fmt.Sprintf("http://localhost:%d/api/plugins/grafana-slo-app/resources/v1/slo", serverPort)
+	grafanaClient := m.(*common.Client)
+	grafanaURL := grafanaClient.GrafanaAPIURL
+
+	sloPath := "/api/plugins/grafana-slo-app/resources/v1/slo"
+	requestURL := fmt.Sprintf("%s%s", grafanaURL, sloPath)
+
 	req, err := http.NewRequest(http.MethodPost, requestURL, bodyReader)
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	// If testing on Local Dev, comment on Lines 244-246 - it does not work if the Authorization Header is set
+	token := grafanaClient.GrafanaAPIConfig.APIKey
+	bearer := "Bearer " + token
+	req.Header.Add("Authorization", bearer)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -381,14 +389,25 @@ func packAlertMetadata(metadata []interface{}) AlertMetadata {
 
 // resourceSloRead - sends a GET Request to the single SLO Endpoint
 func resourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
 	sloID := d.Id()
 
-	serverPort := 3000
-	requestURL := fmt.Sprintf("http://localhost:%d/api/plugins/grafana-slo-app/resources/v1/slo/%s", serverPort, sloID)
+	grafanaClient := m.(*common.Client)
+	grafanaURL := grafanaClient.GrafanaAPIURL
+
+	sloPath := "/api/plugins/grafana-slo-app/resources/v1/slo/"
+	requestURL := fmt.Sprintf("%s%s%s", grafanaURL, sloPath, sloID)
+
 	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	// If testing on Local Dev, comment on Lines 408-411 - it does not work if the Authorization Header is set
+	token := grafanaClient.GrafanaAPIConfig.APIKey
+	bearer := "Bearer " + token
+	req.Header.Add("Authorization", bearer)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -412,7 +431,6 @@ func resourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{})
 
 	setTerraformState(d, slo)
 
-	var diags diag.Diagnostics
 	return diags
 }
 

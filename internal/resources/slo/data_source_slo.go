@@ -219,10 +219,10 @@ func DatasourceSlo() *schema.Resource {
 // Function sends a GET request to the SLO API Endpoint which returns a list of all SLOs
 // Maps the API Response body to the Terraform Schema and displays as a READ in the terminal
 func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
 	grafanaClient := m.(*common.Client)
 	grafanaURL := grafanaClient.GrafanaAPIURL
-
-	var diags diag.Diagnostics
 
 	sloPath := "/api/plugins/grafana-slo-app/resources/v1/slo"
 	requestURL := grafanaURL + sloPath
@@ -233,9 +233,9 @@ func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{
 	}
 
 	// If testing on Local Dev, comment on Lines 236-238 - it does not work if the Authorization Header is set
-	// token := grafanaClient.GrafanaAPIConfig.APIKey
-	// bearer := "Bearer " + token
-	// req.Header.Add("Authorization", bearer)
+	token := grafanaClient.GrafanaAPIConfig.APIKey
+	bearer := "Bearer " + token
+	req.Header.Add("Authorization", bearer)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
