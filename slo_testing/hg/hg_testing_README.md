@@ -58,8 +58,15 @@ Testing the CREATE Method
 4. Within the `slo_testing/hg` directory, run the commands `terraform init` and `terraform apply`. 
 5. Within your terminal, you should see the output of the two newly created SLO from within Terraform, and two newly created SLOs within the SLO UI.
 
+## Testing the UPDATE Method
+1. Delete any `.terraform.lock.hcl` and `terraform.tfstate` and `terraform.tfstate.backup` files. Within the terraform-provider-grafana root directory, run `make install`.
+2. Change to the `slo_testing/hg` directory. 
+3. Comment out all the `.tf` files within the `slo_testing/local` folder, EXCEPT for the `slo-resource-update.tf` file
+4. Within the `slo_testing/hg` directory, run the commands `terraform init` and `terraform apply`. This creates the resource specified below in the terraform state file.
+5. To ensure that the PUT endpoint works, modify any of the values within the resource below, and re-run `terraform apply`. 
+6. Make a GET Request to the API Endpoint to ensure the resource was properly modified. 
 
 ### TBD ###
-1. Testing HG for the SLO Resources for Create, Read, Update, and Import. 
+1. Testing HG for the SLO Resources for Delete, and Import. 
 2. Client Wrapper - I am currently just sending requests by creating an HTTP Client, ideally we should create a Go Client wrapper around our API. This will be done and refactored at a later point in time. 
 3. Tests.

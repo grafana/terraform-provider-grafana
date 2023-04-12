@@ -8,17 +8,16 @@ terraform {
 }
 
 provider "grafana" {
-  url = "http://localhost:3000"
-  auth = "auth"
+  url = "https://elainetest.grafana.net"
 }
 
 resource "grafana_slo_resource" "test1" {
   name        = "Hello1"
   description = "Testing Hello 1 - I hope this works!"
-  service     = "service1"
-  query       = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+  service     = "service5"
+  query       = "sum(rate(apiserver_request_total{code!=\"300\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
   objectives {
-    objective_value  = 0.85
+    objective_value  = 0.95
     objective_window = "28d"
   }
   labels {
@@ -58,7 +57,7 @@ resource "grafana_slo_resource" "test1" {
         value = "labelsslowburnvalue1"
       }
       annotations {
-        key   = "annotsslowburnannot1"
+        key   = "annotsslowburnannot2"
         value = "annotsslowburnvalue1"
       }
     }

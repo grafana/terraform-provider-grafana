@@ -61,6 +61,15 @@ Testing the CREATE Method
 5. Within the `slo_testing` directory, run the commands `terraform init` and `terraform apply`. Ensure to remove the `.terraform.lock.hcl` and any `terraform.tfstate` files.
 6. Within your terminal, you should see the output of the two newly created SLO from within Terraform, and two new SLOs within the SLO UI.
 
+## Testing the UPDATE Method
+1. Within `resource_slo.go` - you MUST comment out Lines 244-246, Lines 408-411, and Lines 505-507, there is a bug that does not work if the Authorization Header is set. 
+2. Within the terraform-provider-grafana root directory, run `make install`.
+3. Change to the `slo_testing/local` directory. 
+4. Comment out all the `.tf` files within the `slo_testing/local` folder, EXCEPT for the `slo-resource-update.tf` file
+5. Run the command `terraform init`
+6. Run the command `terraform apply`. This creates the resource specified below. 
+7. To ensure that the PUT endpoint works, modify any of the values within the resource below, and re-run `terraform apply`. 
+
 ## Testing the DELETE Method
 Objective - we want to be able to delete a SLO Resource that was created with Terraform. 
 After creating the two SLO resources from the CREATE Method, we will DELETE them. 
@@ -71,14 +80,6 @@ Testing the DELETE Method / terraform destroy
 3. Create a regular SLO using the UI. At this point, you should have 3 SLOs - 2 created from Terraform, and 1 created from the UI
 4. To delete all Terraformed SLO resources, execute the command `terraform destroy`, and type `yes` in the terminal to confirm the delete
 5. The two newly created Terraformed SLO Resources should be deleted, and you should still have the SLO that was created through the UI remaining.
-
-## Testing the UPDATE Method
-1. Within the terraform-provider-grafana root directory, run `make install`.
-2. Change to the `slo_testing/local` directory. 
-3. Comment out all the `.tf` files within the `slo_testing/local` folder, EXCEPT for the `slo-resource-update.tf` file
-4. Run the command `terraform init`
-5. Run the command `terraform apply`. This creates the resource specified below. 
-6. To ensure that the PUT endpoint works, modify any of the values within the resource below, and re-run `terraform apply`. 
 
 ## Testing the IMPORT Method
 1. Within the terraform-provider-grafana root directory, run `make install`.

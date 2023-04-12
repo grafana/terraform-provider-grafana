@@ -490,12 +490,21 @@ func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{
 		}
 		bodyReader := bytes.NewReader(body)
 
-		serverPort := 3000
-		requestURL := fmt.Sprintf("http://localhost:%d/api/plugins/grafana-slo-app/resources/v1/slo/%s", serverPort, sloID)
+		grafanaClient := m.(*common.Client)
+		grafanaURL := grafanaClient.GrafanaAPIURL
+
+		sloPath := "/api/plugins/grafana-slo-app/resources/v1/slo/"
+		requestURL := fmt.Sprintf("%s%s%s", grafanaURL, sloPath, sloID)
+
 		req, err := http.NewRequest(http.MethodPut, requestURL, bodyReader)
 		if err != nil {
 			log.Fatalln(err)
 		}
+
+		// If testing on Local Dev, comment on Lines 505-507 - it does not work if the Authorization Header is set
+		token := grafanaClient.GrafanaAPIConfig.APIKey
+		bearer := "Bearer " + token
+		req.Header.Add("Authorization", bearer)
 
 		client := &http.Client{}
 		_, err = client.Do(req)
