@@ -4,7 +4,7 @@ page_title: "grafana_team_preferences Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
   Official documentation https://grafana.com/docs/grafana/latest/administration/organization-preferences/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/team/
-  |> Deprecated: Use the preferences attribute of the grafana_team resource instead.
+  !> Deprecated: Use the preferences attribute of the grafana_team resource instead.
 ---
 
 # grafana_team_preferences (Resource)
@@ -12,7 +12,7 @@ description: |-
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/organization-preferences/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team/)
 
-|> Deprecated: Use the `preferences` attribute of the `grafana_team` resource instead.
+!> Deprecated: Use the `preferences` attribute of the `grafana_team` resource instead.
 
 ## Example Usage
 
