@@ -221,7 +221,6 @@ func unpackContactPoints(data *schema.ResourceData) []statePair {
 					tfState: p.(map[string]interface{}),
 					gfState: unpackPointConfig(n, p, name),
 				})
-
 			}
 		}
 	}
