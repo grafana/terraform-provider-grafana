@@ -60,7 +60,7 @@ func (a alertmanagerNotifier) pack(p gapi.ContactPoint, data *schema.ResourceDat
 		delete(p.Settings, "basicAuthPassword")
 	}
 
-	packSecureFields(&notifier, unpackContactPoint(data, p.UID).Settings, a.meta().secureFields)
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, a, p.UID), a.meta().secureFields)
 
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
@@ -547,7 +547,7 @@ func (o opsGenieNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (
 		delete(p.Settings, "sendTagsAs")
 	}
 
-	packSecureFields(&notifier, unpackContactPoint(data, p.UID).Settings, o.meta().secureFields)
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, o, p.UID), o.meta().secureFields)
 
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
@@ -663,7 +663,7 @@ func (n pagerDutyNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) 
 		delete(p.Settings, "summary")
 	}
 
-	packSecureFields(&notifier, unpackContactPoint(data, p.UID).Settings, n.meta().secureFields)
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, n, p.UID), n.meta().secureFields)
 
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
@@ -827,7 +827,7 @@ func (n pushoverNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (
 		delete(p.Settings, "message")
 	}
 
-	packSecureFields(&notifier, unpackContactPoint(data, p.UID).Settings, n.meta().secureFields)
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, n, p.UID), n.meta().secureFields)
 
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
@@ -958,7 +958,7 @@ func (s sensugoNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (i
 		delete(p.Settings, "message")
 	}
 
-	packSecureFields(&notifier, unpackContactPoint(data, p.UID).Settings, s.meta().secureFields)
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, s, p.UID), s.meta().secureFields)
 
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
@@ -1090,9 +1090,10 @@ func (s slackNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (int
 	packNotifierStringField(&p.Settings, &notifier, "mentionUsers", "mention_users")
 	packNotifierStringField(&p.Settings, &notifier, "mentionGroups", "mention_groups")
 
-	packSecureFields(&notifier, unpackContactPoint(data, p.UID).Settings, s.meta().secureFields)
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, s, p.UID), s.meta().secureFields)
 
 	notifier["settings"] = packSettings(&p)
+
 	return notifier, nil
 }
 
@@ -1231,7 +1232,7 @@ func (t telegramNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (
 	packNotifierStringField(&p.Settings, &notifier, "chatid", "chat_id")
 	packNotifierStringField(&p.Settings, &notifier, "message", "message")
 
-	packSecureFields(&notifier, unpackContactPoint(data, p.UID).Settings, t.meta().secureFields)
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, t, p.UID), t.meta().secureFields)
 
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
@@ -1295,7 +1296,7 @@ func (t threemaNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (i
 	packNotifierStringField(&p.Settings, &notifier, "recipient_id", "recipient_id")
 	packNotifierStringField(&p.Settings, &notifier, "api_secret", "api_secret")
 
-	packSecureFields(&notifier, unpackContactPoint(data, p.UID).Settings, t.meta().secureFields)
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, t, p.UID), t.meta().secureFields)
 
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
@@ -1447,7 +1448,7 @@ func (w webhookNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (i
 		delete(p.Settings, "maxAlerts")
 	}
 
-	packSecureFields(&notifier, unpackContactPoint(data, p.UID).Settings, w.meta().secureFields)
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, w, p.UID), w.meta().secureFields)
 
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
@@ -1524,7 +1525,7 @@ func (w wecomNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (int
 	packNotifierStringField(&p.Settings, &notifier, "message", "message")
 	packNotifierStringField(&p.Settings, &notifier, "title", "title")
 
-	packSecureFields(&notifier, unpackContactPoint(data, p.UID).Settings, w.meta().secureFields)
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, w, p.UID), w.meta().secureFields)
 
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
