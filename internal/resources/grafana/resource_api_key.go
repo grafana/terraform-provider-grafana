@@ -18,6 +18,8 @@ func ResourceAPIKey() *schema.Resource {
 Manages Grafana API Keys.
 
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/auth/)
+
+!> Deprecated: please use ` + "`grafana_service_account`" + ` and ` + "`grafana_service_account_token`" + ` instead, see [Migrate API keys to Grafana service accounts using Terraform](https://grafana.com/docs/grafana/latest/administration/api-keys/#migrate-api-keys-to-grafana-service-accounts-using-terraform) for more information.
 `,
 
 		CreateContext:      resourceAPIKeyCreate,

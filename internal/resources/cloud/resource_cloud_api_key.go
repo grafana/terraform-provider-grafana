@@ -18,6 +18,8 @@ func ResourceAPIKey() *schema.Resource {
 	return &schema.Resource{
 		Description: `Manages a single API key on the Grafana Cloud portal (on the organization level)
 * [API documentation](https://grafana.com/docs/grafana-cloud/reference/cloud-api/#api-keys)
+
+!> Deprecated: please use ` + "`grafana_cloud_stack_service_account`" + ` and ` + "`grafana_cloud_stack_service_account_token`" + ` instead, see [Migrate API keys to Grafana service accounts using Terraform](https://grafana.com/docs/grafana-cloud/reference/migrate-api-keys-to-service-accounts/) for more information.
 `,
 		CreateContext: ResourceAPIKeyCreate,
 		ReadContext:   ResourceAPIKeyRead,
