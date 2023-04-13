@@ -6,7 +6,7 @@ description: |-
   Manages API keys of a Grafana Cloud stack using the Cloud API
   This can be used to bootstrap a management API key for a new stack
   HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/auth/
-  |> Deprecated: please use grafana_cloud_stack_service_account and grafana_cloud_stack_service_account_token instead, see https://grafana.com/docs/grafana/next/administration/api-keys/#migrate-api-keys-to-grafana-service-accounts-using-terraform.
+  !> Deprecated: please use grafana_cloud_stack_service_account and grafana_cloud_stack_service_account_token instead, see https://grafana.com/docs/grafana/next/administration/api-keys/#migrate-api-keys-to-grafana-service-accounts-using-terraform.
 ---
 
 # grafana_cloud_stack_api_key (Resource)
@@ -16,7 +16,7 @@ This can be used to bootstrap a management API key for a new stack
 
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/auth/)
 
-|> Deprecated: please use `grafana_cloud_stack_service_account` and `grafana_cloud_stack_service_account_token` instead, see https://grafana.com/docs/grafana/next/administration/api-keys/#migrate-api-keys-to-grafana-service-accounts-using-terraform.
+!> Deprecated: please use `grafana_cloud_stack_service_account` and `grafana_cloud_stack_service_account_token` instead, see https://grafana.com/docs/grafana/next/administration/api-keys/#migrate-api-keys-to-grafana-service-accounts-using-terraform.
 
 
 

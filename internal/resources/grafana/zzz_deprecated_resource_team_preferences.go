@@ -20,7 +20,7 @@ func ResourceTeamPreferences() *schema.Resource {
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/organization-preferences/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team/)
 
-|> Deprecated: Use the ` + "`preferences`" + ` attribute of the ` + "`grafana_team`" + ` resource instead.
+!> Deprecated: Use the ` + "`preferences`" + ` attribute of the ` + "`grafana_team`" + ` resource instead.
 `,
 
 		CreateContext: UpdateTeamPreferences,

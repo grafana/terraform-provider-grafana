@@ -5,7 +5,7 @@ subcategory: "OnCall"
 description: |-
   Note: This data source is going to be deprecated, please use outgoing webhook data source instead.
   * HTTP API https://grafana.com/docs/oncall/latest/oncall-api-reference/outgoing_webhooks/
-  |> Deprecated: Use the grafana_oncall_outgoing_webhook data source instead.
+  !> Deprecated: Use the grafana_oncall_outgoing_webhook data source instead.
 ---
 
 # grafana_oncall_action (Data Source)
@@ -13,7 +13,7 @@ description: |-
 **Note:** This data source is going to be deprecated, please use outgoing webhook data source instead.
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/outgoing_webhooks/)
 
-|> Deprecated: Use the `grafana_oncall_outgoing_webhook` data source instead.
+!> Deprecated: Use the `grafana_oncall_outgoing_webhook` data source instead.
 
 
 
