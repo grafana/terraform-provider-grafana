@@ -219,6 +219,22 @@ func unpackContactPoints(data *schema.ResourceData) []gapi.ContactPoint {
 	return result
 }
 
+func unpackContactPoint(data *schema.ResourceData, uid string) gapi.ContactPoint {
+	name := data.Get("name").(string)
+	for _, n := range notifiers {
+		if points, ok := data.GetOk(n.meta().field); ok {
+			for _, p := range points.([]interface{}) {
+				pt := unpackPointConfig(n, p, name)
+				if pt.UID == uid {
+					return pt
+				}
+			}
+		}
+	}
+
+	return gapi.ContactPoint{}
+}
+
 func unpackPointConfig(n notifier, data interface{}, name string) gapi.ContactPoint {
 	pt := n.unpack(data, name)
 	// Treat settings like `omitempty`. Workaround for versions affected by https://github.com/grafana/grafana/issues/55139
@@ -237,7 +253,7 @@ func packContactPoints(ps []gapi.ContactPoint, data *schema.ResourceData) error 
 
 		for _, n := range notifiers {
 			if p.Type == n.meta().typeStr {
-				packed, err := n.pack(p)
+				packed, err := n.pack(p, data)
 				if err != nil {
 					return err
 				}
@@ -301,12 +317,6 @@ func commonNotifierResource() *schema.Resource {
 	}
 }
 
-const RedactedContactPointField = "[REDACTED]"
-
-func redactedContactPointDiffSuppress(k, oldValue, newValue string, d *schema.ResourceData) bool {
-	return oldValue == RedactedContactPointField
-}
-
 const UIDSeparator = ";"
 
 func packUIDs(uids []string) string {
@@ -328,20 +338,29 @@ func toUIDSet(uids []string) map[string]bool {
 type notifier interface {
 	meta() notifierMeta
 	schema() *schema.Resource
-	pack(p gapi.ContactPoint) (interface{}, error)
+	pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error)
 	unpack(raw interface{}, name string) gapi.ContactPoint
 }
 
 type notifierMeta struct {
-	field   string
-	typeStr string
-	desc    string
+	field        string
+	typeStr      string
+	desc         string
+	secureFields []string
 }
 
 func packNotifierStringField(gfSettings, tfSettings *map[string]interface{}, gfKey, tfKey string) {
 	if v, ok := (*gfSettings)[gfKey]; ok && v != nil {
 		(*tfSettings)[tfKey] = v.(string)
 		delete(*gfSettings, gfKey)
+	}
+}
+
+func packSecureFields(tfSettings *map[string]interface{}, state map[string]interface{}, secureFields []string) {
+	for _, f := range secureFields {
+		if v, ok := state[f]; ok && v != nil {
+			(*tfSettings)[f] = v.(string)
+		}
 	}
 }
 
