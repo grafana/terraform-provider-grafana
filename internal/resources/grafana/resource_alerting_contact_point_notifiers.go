@@ -17,9 +17,10 @@ var _ notifier = (*alertmanagerNotifier)(nil)
 
 func (a alertmanagerNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:   "alertmanager",
-		typeStr: "prometheus-alertmanager",
-		desc:    "A contact point that sends notifications to other Alertmanager instances.",
+		field:        "alertmanager",
+		typeStr:      "prometheus-alertmanager",
+		desc:         "A contact point that sends notifications to other Alertmanager instances.",
+		secureFields: []string{"basic_auth_password"},
 	}
 }
 
@@ -36,16 +37,15 @@ func (a alertmanagerNotifier) schema() *schema.Resource {
 		Description: "The username component of the basic auth credentials to use.",
 	}
 	r.Schema["basic_auth_password"] = &schema.Schema{
-		Type:             schema.TypeString,
-		Optional:         true,
-		Sensitive:        true,
-		DiffSuppressFunc: redactedContactPointDiffSuppress,
-		Description:      "The password component of the basic auth credentials to use.",
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "The password component of the basic auth credentials to use.",
 	}
 	return r
 }
 
-func (a alertmanagerNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+func (a alertmanagerNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
@@ -59,6 +59,9 @@ func (a alertmanagerNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
 		notifier["basic_auth_password"] = v.(string)
 		delete(p.Settings, "basicAuthPassword")
 	}
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, a, p.UID), a.meta().secureFields)
+
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
 }
@@ -115,7 +118,7 @@ func (d dingDingNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (d dingDingNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+func (d dingDingNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
@@ -194,7 +197,7 @@ func (d discordNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (d discordNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+func (d discordNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
@@ -285,7 +288,7 @@ func (e emailNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (e emailNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+func (e emailNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["addresses"]; ok && v != nil {
 		notifier["addresses"] = packAddrs(v.(string))
@@ -371,7 +374,7 @@ func (g googleChatNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (g googleChatNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+func (g googleChatNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
@@ -430,7 +433,7 @@ func (k kafkaNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (k kafkaNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+func (k kafkaNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["kafkaRestProxy"]; ok && v != nil {
 		notifier["rest_proxy_url"] = v.(string)
@@ -465,9 +468,10 @@ var _ notifier = (*opsGenieNotifier)(nil)
 
 func (o opsGenieNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:   "opsgenie",
-		typeStr: "opsgenie",
-		desc:    "A contact point that sends notifications to OpsGenie.",
+		field:        "opsgenie",
+		typeStr:      "opsgenie",
+		desc:         "A contact point that sends notifications to OpsGenie.",
+		secureFields: []string{"api_key"},
 	}
 }
 
@@ -479,11 +483,10 @@ func (o opsGenieNotifier) schema() *schema.Resource {
 		Description: "Allows customization of the OpsGenie API URL.",
 	}
 	r.Schema["api_key"] = &schema.Schema{
-		Type:             schema.TypeString,
-		Required:         true,
-		Sensitive:        true,
-		DiffSuppressFunc: redactedContactPointDiffSuppress,
-		Description:      "The OpsGenie API key to use.",
+		Type:        schema.TypeString,
+		Required:    true,
+		Sensitive:   true,
+		Description: "The OpsGenie API key to use.",
 	}
 	r.Schema["message"] = &schema.Schema{
 		Type:        schema.TypeString,
@@ -513,7 +516,7 @@ func (o opsGenieNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (o opsGenieNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+func (o opsGenieNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["apiUrl"]; ok && v != nil {
 		notifier["url"] = v.(string)
@@ -543,6 +546,9 @@ func (o opsGenieNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
 		notifier["send_tags_as"] = v.(string)
 		delete(p.Settings, "sendTagsAs")
 	}
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, o, p.UID), o.meta().secureFields)
+
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
 }
@@ -587,20 +593,20 @@ var _ notifier = (*pagerDutyNotifier)(nil)
 
 func (n pagerDutyNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:   "pagerduty",
-		typeStr: "pagerduty",
-		desc:    "A contact point that sends notifications to PagerDuty.",
+		field:        "pagerduty",
+		typeStr:      "pagerduty",
+		desc:         "A contact point that sends notifications to PagerDuty.",
+		secureFields: []string{"integration_key"},
 	}
 }
 
 func (n pagerDutyNotifier) schema() *schema.Resource {
 	r := commonNotifierResource()
 	r.Schema["integration_key"] = &schema.Schema{
-		Type:             schema.TypeString,
-		Required:         true,
-		Sensitive:        true,
-		DiffSuppressFunc: redactedContactPointDiffSuppress,
-		Description:      "The PagerDuty API key.",
+		Type:        schema.TypeString,
+		Required:    true,
+		Sensitive:   true,
+		Description: "The PagerDuty API key.",
 	}
 	r.Schema["severity"] = &schema.Schema{
 		Type:        schema.TypeString,
@@ -630,7 +636,7 @@ func (n pagerDutyNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (n pagerDutyNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+func (n pagerDutyNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["integrationKey"]; ok && v != nil {
 		notifier["integration_key"] = v.(string)
@@ -656,6 +662,9 @@ func (n pagerDutyNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
 		notifier["summary"] = v.(string)
 		delete(p.Settings, "summary")
 	}
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, n, p.UID), n.meta().secureFields)
+
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
 }
@@ -695,27 +704,26 @@ var _ notifier = (*pushoverNotifier)(nil)
 
 func (n pushoverNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:   "pushover",
-		typeStr: "pushover",
-		desc:    "A contact point that sends notifications to Pushover.",
+		field:        "pushover",
+		typeStr:      "pushover",
+		desc:         "A contact point that sends notifications to Pushover.",
+		secureFields: []string{"user_key", "api_token"},
 	}
 }
 
 func (n pushoverNotifier) schema() *schema.Resource {
 	r := commonNotifierResource()
 	r.Schema["user_key"] = &schema.Schema{
-		Type:             schema.TypeString,
-		Required:         true,
-		Sensitive:        true,
-		DiffSuppressFunc: redactedContactPointDiffSuppress,
-		Description:      "The Pushover user key.",
+		Type:        schema.TypeString,
+		Required:    true,
+		Sensitive:   true,
+		Description: "The Pushover user key.",
 	}
 	r.Schema["api_token"] = &schema.Schema{
-		Type:             schema.TypeString,
-		Required:         true,
-		Sensitive:        true,
-		DiffSuppressFunc: redactedContactPointDiffSuppress,
-		Description:      "The Pushover API token.",
+		Type:        schema.TypeString,
+		Required:    true,
+		Sensitive:   true,
+		Description: "The Pushover API token.",
 	}
 	r.Schema["priority"] = &schema.Schema{
 		Type:        schema.TypeInt,
@@ -760,7 +768,7 @@ func (n pushoverNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (n pushoverNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+func (n pushoverNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["userKey"]; ok && v != nil {
 		notifier["user_key"] = v.(string)
@@ -818,6 +826,9 @@ func (n pushoverNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
 		notifier["message"] = v.(string)
 		delete(p.Settings, "message")
 	}
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, n, p.UID), n.meta().secureFields)
+
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
 }
@@ -868,9 +879,10 @@ var _ notifier = (*sensugoNotifier)(nil)
 
 func (s sensugoNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:   "sensugo",
-		typeStr: "sensugo",
-		desc:    "A contact point that sends notifications to SensuGo.",
+		field:        "sensugo",
+		typeStr:      "sensugo",
+		desc:         "A contact point that sends notifications to SensuGo.",
+		secureFields: []string{"api_key"},
 	}
 }
 
@@ -882,11 +894,10 @@ func (s sensugoNotifier) schema() *schema.Resource {
 		Description: "The SensuGo URL to send requests to.",
 	}
 	r.Schema["api_key"] = &schema.Schema{
-		Type:             schema.TypeString,
-		Required:         true,
-		Sensitive:        true,
-		DiffSuppressFunc: redactedContactPointDiffSuppress,
-		Description:      "The SensuGo API key.",
+		Type:        schema.TypeString,
+		Required:    true,
+		Sensitive:   true,
+		Description: "The SensuGo API key.",
 	}
 	r.Schema["entity"] = &schema.Schema{
 		Type:        schema.TypeString,
@@ -916,7 +927,7 @@ func (s sensugoNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (s sensugoNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+func (s sensugoNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 	if v, ok := p.Settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
@@ -946,6 +957,9 @@ func (s sensugoNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
 		notifier["message"] = v.(string)
 		delete(p.Settings, "message")
 	}
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, s, p.UID), s.meta().secureFields)
+
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
 }
@@ -986,9 +1000,10 @@ var _ notifier = (*slackNotifier)(nil)
 
 func (s slackNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:   "slack",
-		typeStr: "slack",
-		desc:    "A contact point that sends notifications to Slack.",
+		field:        "slack",
+		typeStr:      "slack",
+		desc:         "A contact point that sends notifications to Slack.",
+		secureFields: []string{"url", "token"},
 	}
 }
 
@@ -1000,18 +1015,16 @@ func (s slackNotifier) schema() *schema.Resource {
 		Description: "Use this to override the Slack API endpoint URL to send requests to.",
 	}
 	r.Schema["url"] = &schema.Schema{
-		Type:             schema.TypeString,
-		Optional:         true,
-		Sensitive:        true,
-		DiffSuppressFunc: redactedContactPointDiffSuppress,
-		Description:      "A Slack webhook URL,for sending messages via the webhook method.",
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "A Slack webhook URL,for sending messages via the webhook method.",
 	}
 	r.Schema["token"] = &schema.Schema{
-		Type:             schema.TypeString,
-		Optional:         true,
-		Sensitive:        true,
-		DiffSuppressFunc: redactedContactPointDiffSuppress,
-		Description:      "A Slack API token,for sending messages directly without the webhook method.",
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "A Slack API token,for sending messages directly without the webhook method.",
 	}
 	r.Schema["recipient"] = &schema.Schema{
 		Type:        schema.TypeString,
@@ -1061,7 +1074,7 @@ func (s slackNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (s slackNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+func (s slackNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 
 	packNotifierStringField(&p.Settings, &notifier, "endpointUrl", "endpoint_url")
@@ -1077,7 +1090,10 @@ func (s slackNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
 	packNotifierStringField(&p.Settings, &notifier, "mentionUsers", "mention_users")
 	packNotifierStringField(&p.Settings, &notifier, "mentionGroups", "mention_groups")
 
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, s, p.UID), s.meta().secureFields)
+
 	notifier["settings"] = packSettings(&p)
+
 	return notifier, nil
 }
 
@@ -1145,7 +1161,7 @@ func (t teamsNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (t teamsNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+func (t teamsNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 
 	packNotifierStringField(&p.Settings, &notifier, "url", "url")
@@ -1181,20 +1197,20 @@ var _ notifier = (*telegramNotifier)(nil)
 
 func (t telegramNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:   "telegram",
-		typeStr: "telegram",
-		desc:    "A contact point that sends notifications to Telegram.",
+		field:        "telegram",
+		typeStr:      "telegram",
+		desc:         "A contact point that sends notifications to Telegram.",
+		secureFields: []string{"token"},
 	}
 }
 
 func (t telegramNotifier) schema() *schema.Resource {
 	r := commonNotifierResource()
 	r.Schema["token"] = &schema.Schema{
-		Type:             schema.TypeString,
-		Required:         true,
-		Sensitive:        true,
-		DiffSuppressFunc: redactedContactPointDiffSuppress,
-		Description:      "The Telegram bot token.",
+		Type:        schema.TypeString,
+		Required:    true,
+		Sensitive:   true,
+		Description: "The Telegram bot token.",
 	}
 	r.Schema["chat_id"] = &schema.Schema{
 		Type:        schema.TypeString,
@@ -1209,12 +1225,14 @@ func (t telegramNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (t telegramNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+func (t telegramNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 
 	packNotifierStringField(&p.Settings, &notifier, "bottoken", "token")
 	packNotifierStringField(&p.Settings, &notifier, "chatid", "chat_id")
 	packNotifierStringField(&p.Settings, &notifier, "message", "message")
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, t, p.UID), t.meta().secureFields)
 
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
@@ -1243,9 +1261,10 @@ var _ notifier = (*threemaNotifier)(nil)
 
 func (t threemaNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:   "threema",
-		typeStr: "threema",
-		desc:    "A contact point that sends notifications to Threema.",
+		field:        "threema",
+		typeStr:      "threema",
+		desc:         "A contact point that sends notifications to Threema.",
+		secureFields: []string{"api_secret"},
 	}
 }
 
@@ -1262,21 +1281,22 @@ func (t threemaNotifier) schema() *schema.Resource {
 		Description: "The ID of the recipient of the message.",
 	}
 	r.Schema["api_secret"] = &schema.Schema{
-		Type:             schema.TypeString,
-		Required:         true,
-		Sensitive:        true,
-		DiffSuppressFunc: redactedContactPointDiffSuppress,
-		Description:      "The Threema API key.",
+		Type:        schema.TypeString,
+		Required:    true,
+		Sensitive:   true,
+		Description: "The Threema API key.",
 	}
 	return r
 }
 
-func (t threemaNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+func (t threemaNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 
 	packNotifierStringField(&p.Settings, &notifier, "gateway_id", "gateway_id")
 	packNotifierStringField(&p.Settings, &notifier, "recipient_id", "recipient_id")
 	packNotifierStringField(&p.Settings, &notifier, "api_secret", "api_secret")
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, t, p.UID), t.meta().secureFields)
 
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
@@ -1326,7 +1346,7 @@ func (v victorOpsNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (v victorOpsNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+func (v victorOpsNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 
 	packNotifierStringField(&p.Settings, &notifier, "url", "url")
@@ -1358,9 +1378,10 @@ var _ notifier = (*webhookNotifier)(nil)
 
 func (w webhookNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:   "webhook",
-		typeStr: "webhook",
-		desc:    "A contact point that sends notifications to an arbitrary webhook, using the Prometheus webhook format defined here: https://prometheus.io/docs/alerting/latest/configuration/#webhook_config",
+		field:        "webhook",
+		typeStr:      "webhook",
+		desc:         "A contact point that sends notifications to an arbitrary webhook, using the Prometheus webhook format defined here: https://prometheus.io/docs/alerting/latest/configuration/#webhook_config",
+		secureFields: []string{"basic_auth_password", "authorization_credentials"},
 	}
 }
 
@@ -1382,11 +1403,10 @@ func (w webhookNotifier) schema() *schema.Resource {
 		Description: "The username to use in basic auth headers attached to the request. If omitted, basic auth will not be used.",
 	}
 	r.Schema["basic_auth_password"] = &schema.Schema{
-		Type:             schema.TypeString,
-		Optional:         true,
-		Sensitive:        true,
-		DiffSuppressFunc: redactedContactPointDiffSuppress,
-		Description:      "The username to use in basic auth headers attached to the request. If omitted, basic auth will not be used.",
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "The username to use in basic auth headers attached to the request. If omitted, basic auth will not be used.",
 	}
 	r.Schema["authorization_scheme"] = &schema.Schema{
 		Type:        schema.TypeString,
@@ -1394,11 +1414,10 @@ func (w webhookNotifier) schema() *schema.Resource {
 		Description: "Allows a custom authorization scheme - attaches an auth header with this name. Do not use in conjunction with basic auth parameters.",
 	}
 	r.Schema["authorization_credentials"] = &schema.Schema{
-		Type:             schema.TypeString,
-		Optional:         true,
-		Sensitive:        true,
-		DiffSuppressFunc: redactedContactPointDiffSuppress,
-		Description:      "Allows a custom authorization scheme - attaches an auth header with this value. Do not use in conjunction with basic auth parameters.",
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "Allows a custom authorization scheme - attaches an auth header with this value. Do not use in conjunction with basic auth parameters.",
 	}
 	r.Schema["max_alerts"] = &schema.Schema{
 		Type:        schema.TypeInt,
@@ -1418,7 +1437,7 @@ func (w webhookNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (w webhookNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+func (w webhookNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 
 	packNotifierStringField(&p.Settings, &notifier, "url", "url")
@@ -1440,6 +1459,8 @@ func (w webhookNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
 		}
 		delete(p.Settings, "maxAlerts")
 	}
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, w, p.UID), w.meta().secureFields)
 
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
@@ -1483,20 +1504,20 @@ var _ notifier = (*wecomNotifier)(nil)
 
 func (w wecomNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:   "wecom",
-		typeStr: "wecom",
-		desc:    "A contact point that sends notifications to WeCom.",
+		field:        "wecom",
+		typeStr:      "wecom",
+		desc:         "A contact point that sends notifications to WeCom.",
+		secureFields: []string{"url"},
 	}
 }
 
 func (w wecomNotifier) schema() *schema.Resource {
 	r := commonNotifierResource()
 	r.Schema["url"] = &schema.Schema{
-		Type:             schema.TypeString,
-		Required:         true,
-		Sensitive:        true,
-		DiffSuppressFunc: redactedContactPointDiffSuppress,
-		Description:      "The WeCom webhook URL.",
+		Type:        schema.TypeString,
+		Required:    true,
+		Sensitive:   true,
+		Description: "The WeCom webhook URL.",
 	}
 	r.Schema["message"] = &schema.Schema{
 		Type:        schema.TypeString,
@@ -1511,12 +1532,14 @@ func (w wecomNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (w wecomNotifier) pack(p gapi.ContactPoint) (interface{}, error) {
+func (w wecomNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
 	notifier := packCommonNotifierFields(&p)
 
 	packNotifierStringField(&p.Settings, &notifier, "url", "url")
 	packNotifierStringField(&p.Settings, &notifier, "message", "message")
 	packNotifierStringField(&p.Settings, &notifier, "title", "title")
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, w, p.UID), w.meta().secureFields)
 
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil

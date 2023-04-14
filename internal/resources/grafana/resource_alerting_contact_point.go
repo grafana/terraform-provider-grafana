@@ -136,11 +136,16 @@ func createContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 	lock.Lock()
 	defer lock.Unlock()
 	for i := range ps {
-		uid, err := client.NewContactPoint(&ps[i])
+		p := ps[i]
+		uid, err := client.NewContactPoint(&p.gfState)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 		uids = append(uids, uid)
+
+		// Since this is a new resource, the proposed state won't have a UID.
+		// We need the UID so that we can later associate it with the config returned in the api response.
+		p.tfState["uid"] = uid
 	}
 
 	data.SetId(packUIDs(uids))
@@ -159,11 +164,12 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 	lock.Lock()
 	defer lock.Unlock()
 	for i := range ps {
-		delete(unprocessedUIDs, ps[i].UID)
-		err := client.UpdateContactPoint(&ps[i])
+		p := ps[i].gfState
+		delete(unprocessedUIDs, p.UID)
+		err := client.UpdateContactPoint(&p)
 		if err != nil {
 			if strings.HasPrefix(err.Error(), "status: 404") {
-				uid, err := client.NewContactPoint(&ps[i])
+				uid, err := client.NewContactPoint(&p)
 				newUIDs = append(newUIDs, uid)
 				if err != nil {
 					return diag.FromErr(err)
@@ -172,7 +178,7 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 			}
 			return diag.FromErr(err)
 		}
-		newUIDs = append(newUIDs, ps[i].UID)
+		newUIDs = append(newUIDs, p.UID)
 	}
 
 	// Any UIDs still left in the state that we haven't seen must map to deleted receivers.
@@ -205,13 +211,16 @@ func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 	return diag.Diagnostics{}
 }
 
-func unpackContactPoints(data *schema.ResourceData) []gapi.ContactPoint {
-	result := make([]gapi.ContactPoint, 0)
+func unpackContactPoints(data *schema.ResourceData) []statePair {
+	result := make([]statePair, 0)
 	name := data.Get("name").(string)
 	for _, n := range notifiers {
 		if points, ok := data.GetOk(n.meta().field); ok {
 			for _, p := range points.([]interface{}) {
-				result = append(result, unpackPointConfig(n, p, name))
+				result = append(result, statePair{
+					tfState: p.(map[string]interface{}),
+					gfState: unpackPointConfig(n, p, name),
+				})
 			}
 		}
 	}
@@ -237,7 +246,7 @@ func packContactPoints(ps []gapi.ContactPoint, data *schema.ResourceData) error 
 
 		for _, n := range notifiers {
 			if p.Type == n.meta().typeStr {
-				packed, err := n.pack(p)
+				packed, err := n.pack(p, data)
 				if err != nil {
 					return err
 				}
@@ -301,12 +310,6 @@ func commonNotifierResource() *schema.Resource {
 	}
 }
 
-const RedactedContactPointField = "[REDACTED]"
-
-func redactedContactPointDiffSuppress(k, oldValue, newValue string, d *schema.ResourceData) bool {
-	return oldValue == RedactedContactPointField
-}
-
 const UIDSeparator = ";"
 
 func packUIDs(uids []string) string {
@@ -328,14 +331,20 @@ func toUIDSet(uids []string) map[string]bool {
 type notifier interface {
 	meta() notifierMeta
 	schema() *schema.Resource
-	pack(p gapi.ContactPoint) (interface{}, error)
+	pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error)
 	unpack(raw interface{}, name string) gapi.ContactPoint
 }
 
 type notifierMeta struct {
-	field   string
-	typeStr string
-	desc    string
+	field        string
+	typeStr      string
+	desc         string
+	secureFields []string
+}
+
+type statePair struct {
+	tfState map[string]interface{}
+	gfState gapi.ContactPoint
 }
 
 func packNotifierStringField(gfSettings, tfSettings *map[string]interface{}, gfKey, tfKey string) {
@@ -345,8 +354,29 @@ func packNotifierStringField(gfSettings, tfSettings *map[string]interface{}, gfK
 	}
 }
 
+func packSecureFields(tfSettings, state map[string]interface{}, secureFields []string) {
+	for _, tfKey := range secureFields {
+		if v, ok := state[tfKey]; ok && v != nil {
+			tfSettings[tfKey] = v.(string)
+		}
+	}
+}
+
 func unpackNotifierStringField(tfSettings, gfSettings *map[string]interface{}, tfKey, gfKey string) {
 	if v, ok := (*tfSettings)[tfKey]; ok && v != nil {
 		(*gfSettings)[gfKey] = v.(string)
 	}
+}
+
+func getNotifierConfigFromStateWithUID(data *schema.ResourceData, n notifier, uid string) map[string]interface{} {
+	if points, ok := data.GetOk(n.meta().field); ok {
+		for _, pt := range points.([]interface{}) {
+			config := pt.(map[string]interface{})
+			if config["uid"] == uid {
+				return config
+			}
+		}
+	}
+
+	return nil
 }
