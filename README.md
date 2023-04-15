@@ -23,7 +23,7 @@ Terraform](https://www.terraform.io/docs/extend/index.html) docs.
 Set up your local environment by installing [Go](http://www.golang.org). Also
 [Docker](https://docs.docker.com/install/) can be used for running tests.
 
-## Local Development with Frafana
+## Local Development with Grafana
 If you develop the provider and want to test locally with your grafana provider
 1. create a `.terraformrc` and paste the following
 ```
