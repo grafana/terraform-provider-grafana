@@ -390,7 +390,7 @@ func FlattenStack(d *schema.ResourceData, stack gapi.Stack) error {
 
 func getStackFromIDOrSlug(client *gapi.Client, id string) (*gapi.Stack, error) {
 	numericalID, err := strconv.ParseInt(id, 10, 64)
-	if err == nil {
+	if err != nil {
 		// If the ID is not a number, then it may be a slug
 		stack, err := client.StackBySlug(id)
 		if err != nil {
