@@ -339,9 +339,6 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 }
 
 func FlattenStack(d *schema.ResourceData, stack gapi.Stack) error {
-	id := strconv.FormatInt(stack.ID, 10)
-
-	d.SetId(id)
 	d.Set("name", stack.Name)
 	d.Set("slug", stack.Slug)
 	d.Set("url", stack.URL)
