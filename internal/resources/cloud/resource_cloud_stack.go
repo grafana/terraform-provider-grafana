@@ -265,10 +265,7 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 
 func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaCloudAPI
-	stack, err := getStackFromIDOrSlug(client, d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	stackID, _ := strconv.ParseInt(d.Id(), 10, 64)
 
 	// The underlying API olnly allows to update the name and description.
 	allowedChanges := []string{"name", "description", "slug"}
@@ -277,12 +274,12 @@ func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 	}
 
 	if d.HasChange("name") || d.HasChange("description") || d.HasChanges("slug") {
-		payload := &gapi.UpdateStackInput{
+		stack := &gapi.UpdateStackInput{
 			Name:        d.Get("name").(string),
 			Slug:        d.Get("slug").(string),
 			Description: d.Get("description").(string),
 		}
-		err := client.UpdateStack(stack.ID, payload)
+		err := client.UpdateStack(stackID, stack)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -297,12 +294,7 @@ func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 
 func DeleteStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaCloudAPI
-	stack, err := getStackFromIDOrSlug(client, d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := client.DeleteStack(stack.Slug); err != nil {
+	if err := client.DeleteStack(d.Id()); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -339,6 +331,8 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 }
 
 func FlattenStack(d *schema.ResourceData, stack gapi.Stack) error {
+	id := strconv.FormatInt(stack.ID, 10)
+	d.SetId(id)
 	d.Set("name", stack.Name)
 	d.Set("slug", stack.Slug)
 	d.Set("url", stack.URL)
