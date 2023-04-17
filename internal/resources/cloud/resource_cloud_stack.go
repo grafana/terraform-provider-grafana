@@ -36,22 +36,8 @@ func ResourceStack() *schema.Resource {
 		UpdateContext: UpdateStack,
 		DeleteContext: DeleteStack,
 		ReadContext:   ReadStack,
-
-		// Import either by ID or slug
 		Importer: &schema.ResourceImporter{
-			StateContext: func(c context.Context, rd *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				_, err := strconv.ParseInt(rd.Id(), 10, 64)
-				if err != nil {
-					// If the ID is not a number, then it may be a slug
-					client := meta.(*common.Client).GrafanaCloudAPI
-					stack, err := client.StackBySlug(rd.Id())
-					if err != nil {
-						return nil, fmt.Errorf("failed to find stack by ID or slug '%s': %w", rd.Id(), err)
-					}
-					rd.SetId(strconv.FormatInt(stack.ID, 10))
-				}
-				return []*schema.ResourceData{rd}, nil
-			},
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -279,7 +265,10 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 
 func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaCloudAPI
-	stackID, _ := strconv.ParseInt(d.Id(), 10, 64)
+	stack, err := getStackFromIDOrSlug(client, d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	// The underlying API olnly allows to update the name and description.
 	allowedChanges := []string{"name", "description", "slug"}
@@ -288,12 +277,12 @@ func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 	}
 
 	if d.HasChange("name") || d.HasChange("description") || d.HasChanges("slug") {
-		stack := &gapi.UpdateStackInput{
+		payload := &gapi.UpdateStackInput{
 			Name:        d.Get("name").(string),
 			Slug:        d.Get("slug").(string),
 			Description: d.Get("description").(string),
 		}
-		err := client.UpdateStack(stackID, stack)
+		err := client.UpdateStack(stack.ID, payload)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -308,8 +297,12 @@ func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 
 func DeleteStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaCloudAPI
-	slug := d.Get("slug").(string)
-	if err := client.DeleteStack(slug); err != nil {
+	stack, err := getStackFromIDOrSlug(client, d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := client.DeleteStack(stack.Slug); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -318,14 +311,8 @@ func DeleteStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 
 func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaCloudAPI
+	stack, err := getStackFromIDOrSlug(client, d.Id())
 
-	idStr := d.Id()
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return diag.Errorf("Invalid id: %#v", idStr)
-	}
-
-	stack, err := client.StackByID(id)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
 			log.Printf("[WARN] removing stack %s from state because it no longer exists in grafana", d.Get("name").(string))
@@ -341,7 +328,7 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 		return nil
 	}
 
-	if err := FlattenStack(d, stack); err != nil {
+	if err := FlattenStack(d, *stack); err != nil {
 		return diag.FromErr(err)
 	}
 	// Always set the wait attribute to true after creation
@@ -402,6 +389,25 @@ func FlattenStack(d *schema.ResourceData, stack gapi.Stack) error {
 	d.Set("graphite_status", stack.HmInstanceGraphiteStatus)
 
 	return nil
+}
+
+func getStackFromIDOrSlug(client *gapi.Client, id string) (*gapi.Stack, error) {
+	numericalID, err := strconv.ParseInt(id, 10, 64)
+	if err == nil {
+		// If the ID is not a number, then it may be a slug
+		stack, err := client.StackBySlug(id)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find stack by ID or slug '%s': %w", id, err)
+		}
+		return &stack, nil
+	}
+
+	stack, err := client.StackByID(numericalID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &stack, nil
 }
 
 // Append path to baseurl
