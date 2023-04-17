@@ -3,6 +3,7 @@ package cloud_test
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"strconv"
 	"testing"
@@ -53,6 +54,7 @@ func TestResourceStack_Basic(t *testing.T) {
 				// Terraform should detect that it's gone and recreate it (status should be active at all times)
 				PreConfig: func() {
 					testAccDeleteExistingStacks(t, prefix)
+					time.Sleep(10 * time.Second)
 				},
 				Config: testAccStackConfigBasic(resourceName, resourceName),
 				Check: resource.ComposeTestCheckFunc(
@@ -74,6 +76,7 @@ func TestResourceStack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
 				),
 			},
+			// Test import from ID
 			{
 				ResourceName:      "grafana_cloud_stack.test",
 				ImportState:       true,
