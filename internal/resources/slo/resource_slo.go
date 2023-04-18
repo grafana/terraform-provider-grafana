@@ -250,6 +250,59 @@ func resourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{})
 	return diags
 }
 
+func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	sloID := d.Id()
+
+	if d.HasChange("name") || d.HasChange("description") || d.HasChange("service") || d.HasChange("query") || d.HasChange("labels") || d.HasChange("objectives") || d.HasChange("alerting") {
+		sloPut := packSloResource(d)
+
+		body, err := json.Marshal(sloPut)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		bodyReader := bytes.NewReader(body)
+
+		grafanaClient := m.(*common.Client)
+		grafanaURL := grafanaClient.GrafanaAPIURL
+
+		sloPath := "/api/plugins/grafana-slo-app/resources/v1/slo/"
+		requestURL := fmt.Sprintf("%s%s%s", grafanaURL, sloPath, sloID)
+
+		req, err := http.NewRequest(http.MethodPut, requestURL, bodyReader)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		// If testing on Local Dev, comment out the three lines below - it does not work if the Authorization Header is set
+		token := grafanaClient.GrafanaAPIConfig.APIKey
+		bearer := "Bearer " + token
+		req.Header.Add("Authorization", bearer)
+
+		client := &http.Client{}
+		_, err = client.Do(req)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		d.Set("last_updated", time.Now().Format(time.RFC850))
+	}
+
+	return resourceSloRead(ctx, d, m)
+}
+
+func resourceSloDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	sloID := d.Id()
+
+	grafanaClient := m.(*common.Client)
+	grafanaClient.GrafanaAPI.DeleteSLO(sloID)
+
+	d.SetId("")
+
+	return diags
+}
+
 // Fetches all the Properties defined on the Terraform SLO State Object and converts it
 // to a Slo so that it can be converted to JSON and sent to the API
 func packSloResource(d *schema.ResourceData) gapi.Slo {
@@ -382,78 +435,4 @@ func setTerraformState(d *schema.ResourceData, slo gapi.Slo) {
 
 	retAlerting := unpackAlerting(slo.Alerting)
 	d.Set("alerting", retAlerting)
-}
-
-func resourceSloDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	sloID := d.Id()
-
-	grafanaClient := m.(*common.Client)
-	grafanaURL := grafanaClient.GrafanaAPIURL
-
-	sloPath := "/api/plugins/grafana-slo-app/resources/v1/slo/"
-	requestURL := fmt.Sprintf("%s%s%s", grafanaURL, sloPath, sloID)
-
-	req, err := http.NewRequest(http.MethodDelete, requestURL, nil)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	// If testing on Local Dev, comment out the three lines below - it does not work if the Authorization Header is set
-	token := grafanaClient.GrafanaAPIConfig.APIKey
-	bearer := "Bearer " + token
-	req.Header.Add("Authorization", bearer)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	defer resp.Body.Close()
-
-	d.SetId("")
-
-	return diags
-}
-
-func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	sloID := d.Id()
-
-	if d.HasChange("name") || d.HasChange("description") || d.HasChange("service") || d.HasChange("query") || d.HasChange("labels") || d.HasChange("objectives") || d.HasChange("alerting") {
-		sloPut := packSloResource(d)
-
-		body, err := json.Marshal(sloPut)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		bodyReader := bytes.NewReader(body)
-
-		grafanaClient := m.(*common.Client)
-		grafanaURL := grafanaClient.GrafanaAPIURL
-
-		sloPath := "/api/plugins/grafana-slo-app/resources/v1/slo/"
-		requestURL := fmt.Sprintf("%s%s%s", grafanaURL, sloPath, sloID)
-
-		req, err := http.NewRequest(http.MethodPut, requestURL, bodyReader)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		// If testing on Local Dev, comment out the three lines below - it does not work if the Authorization Header is set
-		token := grafanaClient.GrafanaAPIConfig.APIKey
-		bearer := "Bearer " + token
-		req.Header.Add("Authorization", bearer)
-
-		client := &http.Client{}
-		_, err = client.Do(req)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		d.Set("last_updated", time.Now().Format(time.RFC850))
-	}
-
-	return resourceSloRead(ctx, d, m)
 }
