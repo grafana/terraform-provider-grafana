@@ -306,7 +306,7 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 	stack, err := getStackFromIDOrSlug(client, d.Id())
 
 	if err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
+		if strings.Contains(err.Error(), "404") {
 			log.Printf("[WARN] removing stack %s from state because it no longer exists in grafana", d.Get("name").(string))
 			d.SetId("")
 			return nil
