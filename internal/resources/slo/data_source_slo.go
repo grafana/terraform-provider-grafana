@@ -2,7 +2,6 @@ package slo
 
 import (
 	"context"
-	"strconv"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -12,6 +11,10 @@ import (
 
 func DatasourceSlo() *schema.Resource {
 	return &schema.Resource{
+		Description: `
+		* [Official documentation](https://grafana.com/docs/grafana-cloud/slo/)
+		* [API documentation](https://grafana.com/docs/grafana-cloud/slo/api/)
+		`,
 		ReadContext: datasourceSloRead,
 		Schema: map[string]*schema.Schema{
 			"slos": &schema.Schema{
@@ -71,12 +74,9 @@ func DatasourceSlo() *schema.Resource {
 								},
 							},
 						},
-						"dashboard_ref": {
-							Type:     schema.TypeMap,
-							Optional: true,
-							Elem: &schema.Schema{
-								Type: schema.TypeString,
-							},
+						"dashboard_uid": {
+							Type:     schema.TypeString,
+							Computed: true,
 						},
 						"alerting": &schema.Schema{
 							Type:     schema.TypeList,
@@ -243,7 +243,7 @@ func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 	ret["labels"] = retLabels
 
 	retDashboard := unpackDashboard(slo)
-	ret["dashboard_ref"] = retDashboard
+	ret["dashboard_uid"] = retDashboard
 
 	retObjectives := unpackObjectives(slo.Objectives)
 	ret["objectives"] = retObjectives
@@ -262,7 +262,6 @@ func unpackQuery(query gapi.Query) string {
 	}
 
 	return "Query Type Not Implemented"
-
 }
 
 func unpackObjectives(objectives []gapi.Objective) []map[string]interface{} {
@@ -294,19 +293,18 @@ func unpackLabels(labels *[]gapi.Label) []map[string]interface{} {
 	return nil
 }
 
-func unpackDashboard(slo gapi.Slo) map[string]interface{} {
-	retDashboard := make(map[string]interface{})
+func unpackDashboard(slo gapi.Slo) string {
+	var dashboard string
 
 	if slo.DrilldownDashboardRef != nil {
-		retDashboard["dashboard_id"] = strconv.Itoa(slo.DrilldownDashboardRef.ID)
-		retDashboard["dashboard_uid"] = slo.DrilldownDashboardRef.UID
+		dashboard = slo.DrilldownDashboardRef.UID
 	}
 
 	if slo.DrilldownDashboardUid != "" {
-		retDashboard["dashboard_uid"] = slo.DrilldownDashboardUid
+		dashboard = slo.DrilldownDashboardUid
 	}
 
-	return retDashboard
+	return dashboard
 }
 
 func unpackAlerting(AlertData *gapi.Alerting) []map[string]interface{} {

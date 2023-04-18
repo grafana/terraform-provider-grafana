@@ -12,6 +12,10 @@ import (
 
 func ResourceSlo() *schema.Resource {
 	return &schema.Resource{
+		Description: `
+		* [Official documentation](https://grafana.com/docs/grafana-cloud/slo/)
+		* [API documentation](https://grafana.com/docs/grafana-cloud/slo/api/)
+		`,
 		CreateContext: resourceSloCreate,
 		ReadContext:   resourceSloRead,
 		UpdateContext: resourceSloUpdate,
@@ -34,7 +38,7 @@ func ResourceSlo() *schema.Resource {
 			},
 			"query": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
+				Required: true,
 			},
 			"labels": &schema.Schema{
 				Type:     schema.TypeList,
@@ -69,12 +73,9 @@ func ResourceSlo() *schema.Resource {
 					},
 				},
 			},
-			"dashboard_ref": {
-				Type:     schema.TypeMap,
-				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
+			"dashboard_uid": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"alerting": &schema.Schema{
 				Type:     schema.TypeList,
@@ -294,7 +295,7 @@ func packSloResource(d *schema.ResourceData) gapi.Slo {
 	alert := alerting[0].(map[string]interface{})
 	tfalerting := packAlerting(alert)
 
-	sloPost := gapi.Slo{
+	slo := gapi.Slo{
 		Uuid:        d.Id(),
 		Name:        tfname,
 		Description: tfdescription,
@@ -305,7 +306,7 @@ func packSloResource(d *schema.ResourceData) gapi.Slo {
 		Labels:      &tflabels,
 	}
 
-	return sloPost
+	return slo
 }
 
 func packQuery(query string) gapi.Query {
@@ -398,7 +399,7 @@ func setTerraformState(d *schema.ResourceData, slo gapi.Slo) {
 	d.Set("labels", retLabels)
 
 	retDashboard := unpackDashboard(slo)
-	d.Set("dashboard_ref", retDashboard)
+	d.Set("dashboard_uid", retDashboard)
 
 	retObjectives := unpackObjectives(slo.Objectives)
 	d.Set("objectives", retObjectives)
