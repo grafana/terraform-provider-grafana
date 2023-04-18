@@ -2,6 +2,8 @@ module github.com/grafana/terraform-provider-grafana
 
 go 1.18
 
+replace github.com/grafana/grafana-api-golang-client => /Users/elainevuong/go/src/github.com/grafana/grafana-api-golang-client
+
 require (
 	github.com/Masterminds/semver/v3 v3.2.0
 	github.com/grafana/amixr-api-go-client v0.0.7

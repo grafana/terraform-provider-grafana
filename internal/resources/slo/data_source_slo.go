@@ -2,13 +2,9 @@ package slo
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"io"
-	"log"
-	"net/http"
 	"strconv"
 
+	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -219,54 +215,22 @@ func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{
 	var diags diag.Diagnostics
 
 	grafanaClient := m.(*common.Client)
-	grafanaURL := grafanaClient.GrafanaAPIURL
-
-	sloPath := "/api/plugins/grafana-slo-app/resources/v1/slo"
-	requestURL := grafanaURL + sloPath
-
-	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	// If testing on Local Dev, comment out the three lines below - it does not work if the Authorization Header is set
-	token := grafanaClient.GrafanaAPIConfig.APIKey
-	bearer := "Bearer " + token
-	req.Header.Add("Authorization", bearer)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	defer resp.Body.Close()
-
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	var sloList SloList
-
-	err = json.Unmarshal(b, &sloList)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
+	apiSlos, _ := grafanaClient.GrafanaAPI.ListSLOs()
 
 	terraformSlos := []interface{}{}
-	for _, slo := range sloList.Slos {
+
+	for _, slo := range apiSlos.Slos {
 		terraformSlo := convertDatasourceSlo(slo)
 		terraformSlos = append(terraformSlos, terraformSlo)
 	}
 
 	d.Set("slos", terraformSlos)
-	d.SetId(sloList.Slos[0].Uuid)
+	d.SetId(apiSlos.Slos[0].Uuid)
 
 	return diags
 }
 
-func convertDatasourceSlo(slo Slo) map[string]interface{} {
+func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 	ret := make(map[string]interface{})
 
 	ret["uuid"] = slo.Uuid
@@ -292,7 +256,7 @@ func convertDatasourceSlo(slo Slo) map[string]interface{} {
 }
 
 // TBD for Other Query Types Once Implemented
-func unpackQuery(query Query) string {
+func unpackQuery(query gapi.Query) string {
 	if query.FreeformQuery.Query != "" {
 		return query.FreeformQuery.Query
 	}
@@ -301,7 +265,7 @@ func unpackQuery(query Query) string {
 
 }
 
-func unpackObjectives(objectives []Objective) []map[string]interface{} {
+func unpackObjectives(objectives []gapi.Objective) []map[string]interface{} {
 	retObjectives := []map[string]interface{}{}
 
 	for _, objective := range objectives {
@@ -314,7 +278,7 @@ func unpackObjectives(objectives []Objective) []map[string]interface{} {
 	return retObjectives
 }
 
-func unpackLabels(labels *[]Label) []map[string]interface{} {
+func unpackLabels(labels *[]gapi.Label) []map[string]interface{} {
 	retLabels := []map[string]interface{}{}
 
 	if labels != nil {
@@ -330,7 +294,7 @@ func unpackLabels(labels *[]Label) []map[string]interface{} {
 	return nil
 }
 
-func unpackDashboard(slo Slo) map[string]interface{} {
+func unpackDashboard(slo gapi.Slo) map[string]interface{} {
 	retDashboard := make(map[string]interface{})
 
 	if slo.DrilldownDashboardRef != nil {
@@ -345,7 +309,7 @@ func unpackDashboard(slo Slo) map[string]interface{} {
 	return retDashboard
 }
 
-func unpackAlerting(AlertData *Alerting) []map[string]interface{} {
+func unpackAlerting(AlertData *gapi.Alerting) []map[string]interface{} {
 	retAlertData := []map[string]interface{}{}
 
 	alertObject := make(map[string]interface{})
@@ -359,7 +323,7 @@ func unpackAlerting(AlertData *Alerting) []map[string]interface{} {
 	return retAlertData
 }
 
-func unpackAlertingMetadata(Metadata AlertMetadata) []map[string]interface{} {
+func unpackAlertingMetadata(Metadata gapi.AlertMetadata) []map[string]interface{} {
 	retAlertMetaData := []map[string]interface{}{}
 	labelsAnnotsStruct := make(map[string]interface{})
 
