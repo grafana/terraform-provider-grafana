@@ -80,7 +80,7 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_machine_learning_outlier_detector": machinelearning.ResourceOutlierDetector(),
 
 			// SLO
-			// "grafana_slo_resource": slo.ResourceSlo(),
+			"grafana_slo_resource": slo.ResourceSlo(),
 		})
 
 		// Resources that require the Synthetic Monitoring client to exist.
