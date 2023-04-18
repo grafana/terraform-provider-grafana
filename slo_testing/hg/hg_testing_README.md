@@ -89,6 +89,4 @@ After creating the two SLO resources from the CREATE Method, we will DELETE them
 8. To verify that this resource is now under Terraform control, within the `slo-resource-import.tf` file, comment out lines 14-18. Then, within the CLI run `terraform destroy`. This should destroy the resource from within the Terraform CLI. 
 
 ### TBD ###
-2. Figure out the Bug after Creating Terraform Resources (cannot go and Edit a SLO - why?).
-2. Integrate into the existing Grafana Golang Client (https://github.com/grafana/grafana-api-golang-client)
-3. Tests.
+1. Tests.
