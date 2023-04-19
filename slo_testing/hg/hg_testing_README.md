@@ -2,14 +2,27 @@
 
 ## Create your HG Account and Get the SLO Plugin Deployed
 Generate a new Service Account Token, and set the environment variable GRAFANA_AUTH to the value of your token (or you can specify the `auth` field within the Terraform State file). 
+`export GRAFANA_AUTH=<YOUR_SERVICE_ACCOUNT_TOKEN_HERE>
 Within the `.tf` files within `slo_testing/hg`, ensure that you set the `url` field to be the `url` of your HG Instance.
 
 ## Understanding Terraform Provider Code Flow
-1. Within the terraform root directory, run `make install`. This command creates a binary of the Terraform Provider and moves it into the appropriate Terraform plugin directory, which allows for testing of a custom provider. 
+1. Within the terraform provider root directory, run `go build`. This creates a binary of the terraform-provider-grafana.
+2. Within the terraform provider root directory, create a file called `.terraformrc` with the following contents. This ensures that it will use the local binary version of the terraform-provider-grafana.
+```
+provider_installation {
+   dev_overrides {
+      "grafana/grafana" = "/Users/elainevuong/go/src/github.com/grafana/terraform-provider-grafana" // use the path specifies for where you built the binary for the terraform-provider-grafana
+  }
+  # For all other providers, install them directly from their origin provider
+  # registries as normal. If you omit this, Terraform will _only_ use
+  # the dev_overrides block, and so no other providers will be available.
+  direct {}
+}
+```
 
-   * Note: you may need to modify the `OS_ARCH=darwin_arm64` property within the Makefile to match your operating system
+3. Using the Grafana HTTP Golang API Client - within the `go.mod` file of the `terraform-provider-grafana`, insert the following line (point it to the path of your gapi client, which should be from this branch https://github.com/grafana/grafana-api-golang-client/tree/elainevuong/slo)
+`replace github.com/grafana/grafana-api-golang-client => /Users/elainevuong/go/src/github.com/grafana/grafana-api-golang-client`
 
-2. Within `provider.go`, we create two resources - a `grafana_slo_datasource` and a `grafana_slo_resource`. 
 
 ### Types of Resources
 Datasource - datasources are resources that are external to Terraform (i.e. not managed by Terraform state). When interacting with a Datasource, they can be used to READ information, and datasources can also be imported (i.e. converted) into Resources, which allows Terraform state to control them. 
@@ -17,8 +30,6 @@ Datasource - datasources are resources that are external to Terraform (i.e. not 
 Resources - these are resources that can be managed by Terraform state. This means that you CREATE, READ, UPDATE, DELETE. If an IMPORT method is defined, you can also convert Datasources into Resources (i.e. this means that if you import a resource created by the UI (i.e. a Datasource) it can be converted into a Resrouce, which can be managed by Terraform).
 
 ## Testing Datasource - READ
-`internal/resources/slo/data_source_slo.go`
-
 This file defines a schema, that matches the response shape of a GET request to the SLO Endpoint. 
 ```
 {
@@ -84,9 +95,11 @@ After creating the two SLO resources from the CREATE Method, we will DELETE them
 3. Comment out all the `.tf` files within the `slo_testing/local` folder, EXCEPT for the `slo-resource-import.tf` file
 4. Create a SLO using the UI or Postman. Take note of the SLO's UUID
 5. Execute the command `terraform init`
-6. Within the Terraform CLI directly, type in the command: `terraform import grafana_slo_resource.sample slo_UUID`
+6. Within the Terraform CLI directly, execute the command: `terraform import grafana_slo_resource.sample slo_UUID`
 7. Now execute the command: `terraform state show grafana_slo_resource.sample` - you should see the data from the imported Resource. 
 8. To verify that this resource is now under Terraform control, within the `slo-resource-import.tf` file, comment out lines 14-18. Then, within the CLI run `terraform destroy`. This should destroy the resource from within the Terraform CLI. 
 
 ### TBD ###
-1. Tests.
+1. Testing.
+2. Remove `slo_testing` folder
+3. Documentation.
