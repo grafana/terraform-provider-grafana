@@ -214,8 +214,8 @@ func DatasourceSlo() *schema.Resource {
 func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	grafanaClient := m.(*common.Client)
-	apiSlos, _ := grafanaClient.GrafanaAPI.ListSlos()
+	client := m.(*common.Client).GrafanaAPI
+	apiSlos, _ := client.ListSlos()
 
 	terraformSlos := []interface{}{}
 

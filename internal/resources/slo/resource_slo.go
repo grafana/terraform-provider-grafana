@@ -220,8 +220,8 @@ func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{
 
 	slo := packSloResource(d)
 
-	grafanaClient := m.(*common.Client)
-	response, _ := grafanaClient.GrafanaAPI.CreateSlo(slo)
+	client := m.(*common.Client).GrafanaAPI
+	response, _ := client.CreateSlo(slo)
 
 	// Get the response back from the API, we need to set the ID of the Terraform Resource
 	d.SetId(response.Uuid)
@@ -238,8 +238,8 @@ func resourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{})
 
 	sloId := d.Id()
 
-	grafanaClient := m.(*common.Client)
-	slo, _ := grafanaClient.GrafanaAPI.GetSlo(sloId)
+	client := m.(*common.Client).GrafanaAPI
+	slo, _ := client.GetSlo(sloId)
 
 	setTerraformState(d, slo)
 
@@ -266,8 +266,8 @@ func resourceSloDelete(ctx context.Context, d *schema.ResourceData, m interface{
 
 	sloID := d.Id()
 
-	grafanaClient := m.(*common.Client)
-	grafanaClient.GrafanaAPI.DeleteSlo(sloID)
+	client := m.(*common.Client).GrafanaAPI
+	client.DeleteSlo(sloID)
 
 	d.SetId("")
 
