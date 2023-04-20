@@ -11,11 +11,10 @@ import (
 
 func DatasourceSlo() *schema.Resource {
 	return &schema.Resource{
-		Description: `
-		* [Official documentation](https://grafana.com/docs/grafana-cloud/slo/)
-		* [API documentation](https://grafana.com/docs/grafana-cloud/slo/api/)
-		`,
 		ReadContext: datasourceSloRead,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 		Schema: map[string]*schema.Schema{
 			"slos": &schema.Schema{
 				Type:     schema.TypeList,
@@ -50,10 +49,6 @@ func DatasourceSlo() *schema.Resource {
 								},
 							},
 						},
-						"service": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
 						"query": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
@@ -74,9 +69,9 @@ func DatasourceSlo() *schema.Resource {
 								},
 							},
 						},
-						"dashboard_uid": {
+						"dashboard_uid": &schema.Schema{
 							Type:     schema.TypeString,
-							Computed: true,
+							Optional: true,
 						},
 						"alerting": &schema.Schema{
 							Type:     schema.TypeList,
@@ -236,14 +231,11 @@ func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 	ret["uuid"] = slo.Uuid
 	ret["name"] = slo.Name
 	ret["description"] = slo.Description
-	ret["service"] = slo.Service
+	ret["dashboard_uid"] = slo.DrilldownDashboardRef.UID
 	ret["query"] = unpackQuery(slo.Query)
 
 	retLabels := unpackLabels(slo.Labels)
 	ret["labels"] = retLabels
-
-	retDashboard := unpackDashboard(slo)
-	ret["dashboard_uid"] = retDashboard
 
 	retObjectives := unpackObjectives(slo.Objectives)
 	ret["objectives"] = retObjectives
@@ -291,20 +283,6 @@ func unpackLabels(labels *[]gapi.Label) []map[string]interface{} {
 	}
 
 	return nil
-}
-
-func unpackDashboard(slo gapi.Slo) string {
-	var dashboard string
-
-	if slo.DrilldownDashboardRef != nil {
-		dashboard = slo.DrilldownDashboardRef.UID
-	}
-
-	if slo.DrilldownDashboardUid != "" {
-		dashboard = slo.DrilldownDashboardUid
-	}
-
-	return dashboard
 }
 
 func unpackAlerting(AlertData *gapi.Alerting) []map[string]interface{} {

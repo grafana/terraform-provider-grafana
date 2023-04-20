@@ -20,9 +20,6 @@ func ResourceSlo() *schema.Resource {
 		ReadContext:   resourceSloRead,
 		UpdateContext: resourceSloUpdate,
 		DeleteContext: resourceSloDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -32,13 +29,9 @@ func ResourceSlo() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"service": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
 			"query": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 			"labels": &schema.Schema{
 				Type:     schema.TypeList,
@@ -73,7 +66,7 @@ func ResourceSlo() *schema.Resource {
 					},
 				},
 			},
-			"dashboard_uid": {
+			"dashboard_uid": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -249,11 +242,11 @@ func resourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{})
 func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	sloID := d.Id()
 
-	if d.HasChange("name") || d.HasChange("description") || d.HasChange("service") || d.HasChange("query") || d.HasChange("labels") || d.HasChange("objectives") || d.HasChange("alerting") {
+	if d.HasChange("name") || d.HasChange("description") || d.HasChange("query") || d.HasChange("labels") || d.HasChange("objectives") || d.HasChange("alerting") {
 		slo := packSloResource(d)
 
 		grafanaClient := m.(*common.Client)
-		grafanaClient.GrafanaAPI.UpdateSlo(sloID, slo)
+		grafanaClient.GrafanaAPI.UpdateSlo(string(sloID), slo)
 
 		d.Set("last_updated", time.Now().Format(time.RFC850))
 	}
@@ -279,7 +272,6 @@ func resourceSloDelete(ctx context.Context, d *schema.ResourceData, m interface{
 func packSloResource(d *schema.ResourceData) gapi.Slo {
 	tfname := d.Get("name").(string)
 	tfdescription := d.Get("description").(string)
-	tfservice := d.Get("service").(string)
 	query := d.Get("query").(string)
 	tfquery := packQuery(query)
 
@@ -296,10 +288,9 @@ func packSloResource(d *schema.ResourceData) gapi.Slo {
 	tfalerting := packAlerting(alert)
 
 	slo := gapi.Slo{
-		Uuid:        d.Id(),
+		Uuid:        string(d.Id()),
 		Name:        tfname,
 		Description: tfdescription,
-		Service:     tfservice,
 		Objectives:  tfobjective,
 		Query:       tfquery,
 		Alerting:    &tfalerting,
@@ -392,14 +383,11 @@ func packAlertMetadata(metadata []interface{}) gapi.AlertMetadata {
 func setTerraformState(d *schema.ResourceData, slo gapi.Slo) {
 	d.Set("name", slo.Name)
 	d.Set("description", slo.Description)
-	d.Set("service", slo.Service)
+	d.Set("dashboard_uid", slo.DrilldownDashboardRef.UID)
 	d.Set("query", unpackQuery(slo.Query))
+
 	retLabels := unpackLabels(slo.Labels)
-
 	d.Set("labels", retLabels)
-
-	retDashboard := unpackDashboard(slo)
-	d.Set("dashboard_uid", retDashboard)
 
 	retObjectives := unpackObjectives(slo.Objectives)
 	d.Set("objectives", retObjectives)
