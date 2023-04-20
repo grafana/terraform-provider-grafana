@@ -244,7 +244,6 @@ func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 	ret["alerting"] = retAlerting
 
 	return ret
-
 }
 
 // TBD for Other Query Types Once Implemented
@@ -285,31 +284,31 @@ func unpackLabels(labels *[]gapi.Label) []map[string]interface{} {
 	return nil
 }
 
-func unpackAlerting(AlertData *gapi.Alerting) []map[string]interface{} {
+func unpackAlerting(alertData *gapi.Alerting) []map[string]interface{} {
 	retAlertData := []map[string]interface{}{}
 
 	alertObject := make(map[string]interface{})
-	alertObject["name"] = AlertData.Name
-	alertObject["labels"] = unpackLabels(AlertData.Labels)
-	alertObject["annotations"] = unpackLabels(AlertData.Annotations)
-	alertObject["fastburn"] = unpackAlertingMetadata(*AlertData.FastBurn)
-	alertObject["slowburn"] = unpackAlertingMetadata(*AlertData.SlowBurn)
+	alertObject["name"] = alertData.Name
+	alertObject["labels"] = unpackLabels(alertData.Labels)
+	alertObject["annotations"] = unpackLabels(alertData.Annotations)
+	alertObject["fastburn"] = unpackAlertingMetadata(*alertData.FastBurn)
+	alertObject["slowburn"] = unpackAlertingMetadata(*alertData.SlowBurn)
 
 	retAlertData = append(retAlertData, alertObject)
 	return retAlertData
 }
 
-func unpackAlertingMetadata(Metadata gapi.AlertMetadata) []map[string]interface{} {
+func unpackAlertingMetadata(metaData gapi.AlertMetadata) []map[string]interface{} {
 	retAlertMetaData := []map[string]interface{}{}
 	labelsAnnotsStruct := make(map[string]interface{})
 
-	if Metadata.Annotations != nil {
-		retAnnotations := unpackLabels(Metadata.Annotations)
+	if metaData.Annotations != nil {
+		retAnnotations := unpackLabels(metaData.Annotations)
 		labelsAnnotsStruct["annotations"] = retAnnotations
 	}
 
-	if Metadata.Labels != nil {
-		retLabels := unpackLabels(Metadata.Labels)
+	if metaData.Labels != nil {
+		retLabels := unpackLabels(metaData.Labels)
 		labelsAnnotsStruct["labels"] = retLabels
 	}
 

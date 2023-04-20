@@ -229,10 +229,10 @@ func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{
 func resourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	sloId := d.Id()
+	sloID := d.Id()
 
 	client := m.(*common.Client).GrafanaAPI
-	slo, _ := client.GetSlo(sloId)
+	slo, _ := client.GetSlo(sloID)
 
 	setTerraformState(d, slo)
 
@@ -245,8 +245,8 @@ func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{
 	if d.HasChange("name") || d.HasChange("description") || d.HasChange("query") || d.HasChange("labels") || d.HasChange("objectives") || d.HasChange("alerting") {
 		slo := packSloResource(d)
 
-		grafanaClient := m.(*common.Client)
-		grafanaClient.GrafanaAPI.UpdateSlo(string(sloID), slo)
+		client := m.(*common.Client).GrafanaAPI
+		client.UpdateSlo(sloID, slo)
 
 		d.Set("last_updated", time.Now().Format(time.RFC850))
 	}
@@ -333,7 +333,6 @@ func packLabels(tfLabels []interface{}) []gapi.Label {
 		}
 
 		labelSlice = append(labelSlice, curr)
-
 	}
 
 	return labelSlice

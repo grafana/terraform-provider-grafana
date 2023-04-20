@@ -66,10 +66,10 @@ func testAccSloCheckExists(rn string, slo *gapi.Slo) resource.TestCheckFunc {
 func testAccSloCheckDestroy(slo *gapi.Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		err := client.DeleteSlo(slo.Uuid)
+		err := client.DeleteSlo(slo.UUID)
 
 		if err == nil {
-			return fmt.Errorf("SLO with a UUID %s still exists after destroy", slo.Uuid)
+			return fmt.Errorf("SLO with a UUID %s still exists after destroy", slo.UUID)
 		}
 
 		return nil
