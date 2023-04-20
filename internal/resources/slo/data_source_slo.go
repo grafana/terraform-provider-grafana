@@ -220,7 +220,7 @@ func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{
 	}
 
 	d.Set("slos", terraformSlos)
-	d.SetId(apiSlos.Slos[0].Uuid)
+	d.SetId(apiSlos.Slos[0].UUID)
 
 	return diags
 }
@@ -228,7 +228,7 @@ func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{
 func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 	ret := make(map[string]interface{})
 
-	ret["uuid"] = slo.Uuid
+	ret["uuid"] = slo.UUID
 	ret["name"] = slo.Name
 	ret["description"] = slo.Description
 	ret["dashboard_uid"] = slo.DrilldownDashboardRef.UID

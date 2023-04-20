@@ -217,7 +217,7 @@ func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{
 	response, _ := client.CreateSlo(slo)
 
 	// Get the response back from the API, we need to set the ID of the Terraform Resource
-	d.SetId(response.Uuid)
+	d.SetId(response.UUID)
 
 	// Executes a READ, displays the newly created SLO Resource within Terraform
 	resourceSloRead(ctx, d, m)
@@ -288,7 +288,7 @@ func packSloResource(d *schema.ResourceData) gapi.Slo {
 	tfalerting := packAlerting(alert)
 
 	slo := gapi.Slo{
-		Uuid:        string(d.Id()),
+		UUID:        d.Id(),
 		Name:        tfname,
 		Description: tfdescription,
 		Objectives:  tfobjective,
