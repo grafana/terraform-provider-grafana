@@ -30,6 +30,7 @@ func ResourceAnnotation() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"text": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -53,10 +54,28 @@ func ResourceAnnotation() *schema.Resource {
 			},
 
 			"dashboard_id": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				ForceNew:    true,
-				Description: "The ID of the dashboard on which to create the annotation.",
+				Type:          schema.TypeInt,
+				Optional:      true,
+				ForceNew:      true,
+				Deprecated:    "Use dashboard_uid instead.",
+				Description:   "The ID of the dashboard on which to create the annotation. Deprecated: Use dashboard_uid instead.",
+				ConflictsWith: []string{"dashboard_uid"},
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					_, ok := d.GetOk("dashboard_uid")
+					return ok
+				},
+			},
+
+			"dashboard_uid": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Description:   "The ID of the dashboard on which to create the annotation.",
+				ConflictsWith: []string{"dashboard_id"},
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					_, ok := d.GetOk("dashboard_id")
+					return ok
+				},
 			},
 
 			"panel_id": {
@@ -79,7 +98,7 @@ func ResourceAnnotation() *schema.Resource {
 }
 
 func CreateAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID := ClientFromNewOrgResource(meta, d)
 
 	annotation, err := makeAnnotation(ctx, d)
 	if err != nil {
@@ -91,37 +110,31 @@ func CreateAnnotation(ctx context.Context, d *schema.ResourceData, meta interfac
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(id, 10))
+	d.SetId(MakeOrgResourceID(orgID, id))
 
 	return ReadAnnotation(ctx, d, meta)
 }
 
 func UpdateAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
 
 	annotation, err := makeAnnotation(ctx, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return diag.Errorf("invalid Grafana annotation ID: %#v", idStr)
 	}
 
 	_, err = client.UpdateAnnotation(id, annotation)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return diag.Diagnostics{}
+	return diag.FromErr(err)
 }
 
 func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID, idStr := ClientFromExistingOrgResource(meta, d.Id())
 
-	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return diag.Errorf("invalid Grafana annotation ID: %#v", idStr)
@@ -131,6 +144,10 @@ func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{
 		"dashboardId": []string{strconv.FormatInt(int64(d.Get("dashboard_id").(int)), 10)},
 		"panelId":     []string{strconv.FormatInt(int64(d.Get("panel_id").(int)), 10)},
 		"limit":       []string{"100"},
+	}
+	if v, ok := d.GetOk("dashboard_uid"); ok {
+		params.Set("dashboardUid", v.(string))
+		params.Del("dashboardId")
 	}
 	annotations, err := client.Annotations(params)
 	if err != nil {
@@ -154,19 +171,19 @@ func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{
 
 	d.Set("text", annotation.Text)
 	d.Set("dashboard_id", annotation.DashboardID)
+	d.Set("dashboard_uid", annotation.DashboardUID)
 	d.Set("panel_id", annotation.PanelID)
 	d.Set("tags", annotation.Tags)
 	d.Set("time", t.Format(time.RFC3339))
 	d.Set("time_end", tEnd.Format(time.RFC3339))
-	d.SetId(strconv.FormatInt(annotation.ID, 10))
+	d.Set("org_id", strconv.FormatInt(orgID, 10))
 
 	return nil
 }
 
 func DeleteAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
 
-	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return diag.Errorf("invalid Grafana annotation ID: %#v", idStr)
@@ -184,15 +201,17 @@ func makeAnnotation(_ context.Context, d *schema.ResourceData) (*gapi.Annotation
 	var id int64
 	var err error
 	if idStr != "" {
+		_, idStr = SplitOrgResourceID(idStr)
 		id, err = strconv.ParseInt(idStr, 10, 64)
 	}
 
 	a := &gapi.Annotation{
-		ID:          id,
-		Text:        d.Get("text").(string),
-		PanelID:     int64(d.Get("panel_id").(int)),
-		DashboardID: int64(d.Get("dashboard_id").(int)),
-		Tags:        common.SetToStringSlice(d.Get("tags").(*schema.Set)),
+		ID:           id,
+		Text:         d.Get("text").(string),
+		PanelID:      int64(d.Get("panel_id").(int)),
+		DashboardID:  int64(d.Get("dashboard_id").(int)),
+		DashboardUID: d.Get("dashboard_uid").(string),
+		Tags:         common.SetToStringSlice(d.Get("tags").(*schema.Set)),
 	}
 
 	start := d.Get("time").(string)

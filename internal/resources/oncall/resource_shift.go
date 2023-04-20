@@ -51,7 +51,7 @@ var sourceTerraform = 3
 func ResourceOnCallShift() *schema.Resource {
 	return &schema.Resource{
 		Description: `
-* [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/on_call_shifts/)
+* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/on_call_shifts/)
 `,
 		CreateContext: ResourceOnCallShiftCreate,
 		ReadContext:   ResourceOnCallShiftRead,

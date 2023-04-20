@@ -389,7 +389,9 @@ Optional:
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `http_method` (String) The HTTP method to use in the request. Defaults to `POST`.
 - `max_alerts` (Number) The maximum number of alerts to send in a single request. This can be helpful in limiting the size of the request body. The default is 0, which indicates no limit.
+- `message` (String) Custom message. You can use template variables.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `title` (String) Templated title of the message.
 
 Read-Only:
 

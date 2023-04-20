@@ -5,6 +5,7 @@ subcategory: "Grafana OSS"
 description: |-
   Manages Grafana API Keys.
   HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/auth/
+  !> Deprecated: please use grafana_service_account and grafana_service_account_token instead, see Migrate API keys to Grafana service accounts using Terraform https://grafana.com/docs/grafana/latest/administration/api-keys/#migrate-api-keys-to-grafana-service-accounts-using-terraform for more information.
 ---
 
 # grafana_api_key (Resource)
@@ -12,6 +13,8 @@ description: |-
 Manages Grafana API Keys.
 
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/auth/)
+
+!> Deprecated: please use `grafana_service_account` and `grafana_service_account_token` instead, see [Migrate API keys to Grafana service accounts using Terraform](https://grafana.com/docs/grafana/latest/administration/api-keys/#migrate-api-keys-to-grafana-service-accounts-using-terraform) for more information.
 
 ## Example Usage
 
@@ -48,7 +51,7 @@ output "api_key_bar" {
 
 ### Optional
 
-- `cloud_stack_slug` (String, Deprecated) Deprecated: Use the `grafana_cloud_stack_api_key` resource instead
+- `cloud_stack_slug` (String, Deprecated) Deprecated: Use `grafana_cloud_stack_service_account` and `grafana_cloud_stack_service_account_token` resources instead
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `seconds_to_live` (Number)
 

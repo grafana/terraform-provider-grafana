@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Generate docs!
-go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs -ignore-deprecated
+go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
 
 # Generate subcategories
 # Follow https://github.com/hashicorp/terraform-plugin-docs/issues/156 to see if anything is merged upstream. If so, we should use that.

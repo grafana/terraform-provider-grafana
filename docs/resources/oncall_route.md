@@ -3,12 +3,12 @@
 page_title: "grafana_oncall_route Resource - terraform-provider-grafana"
 subcategory: "OnCall"
 description: |-
-  HTTP API https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/routes/
+  HTTP API https://grafana.com/docs/oncall/latest/oncall-api-reference/routes/
 ---
 
 # grafana_oncall_route (Resource)
 
-* [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/routes/)
+* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/routes/)
 
 ## Example Usage
 

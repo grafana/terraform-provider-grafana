@@ -28,7 +28,9 @@ resource "grafana_annotation" "test" {
 
 ### Optional
 
-- `dashboard_id` (Number) The ID of the dashboard on which to create the annotation.
+- `dashboard_id` (Number, Deprecated) The ID of the dashboard on which to create the annotation. Deprecated: Use dashboard_uid instead.
+- `dashboard_uid` (String) The ID of the dashboard on which to create the annotation.
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `panel_id` (Number) The ID of the dashboard panel on which to create the annotation.
 - `tags` (Set of String) The tags to associate with the annotation.
 - `time` (String) The RFC 3339-formatted time string indicating the annotation's time.
