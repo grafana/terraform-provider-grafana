@@ -20,7 +20,7 @@ var scheduleTypeOptions = []string{
 func ResourceSchedule() *schema.Resource {
 	return &schema.Resource{
 		Description: `
-* [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/schedules/)
+* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/schedules/)
 `,
 		CreateContext: resourceScheduleCreate,
 		ReadContext:   resourceScheduleRead,

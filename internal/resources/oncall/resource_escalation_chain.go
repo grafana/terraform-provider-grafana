@@ -14,7 +14,7 @@ import (
 func ResourceEscalationChain() *schema.Resource {
 	return &schema.Resource{
 		Description: `
-* [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/escalation_chains/)
+* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/escalation_chains/)
 `,
 		CreateContext: ResourceEscalationChainCreate,
 		ReadContext:   ResourceEscalationChainRead,

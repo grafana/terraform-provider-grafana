@@ -5,9 +5,9 @@ go 1.18
 replace github.com/grafana/grafana-api-golang-client => github.com/grafana/grafana-api-golang-client v0.19.1-0.20230420203910-394bebdb48f2
 
 require (
-	github.com/Masterminds/semver/v3 v3.2.0
+	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/grafana/amixr-api-go-client v0.0.7
-	github.com/grafana/grafana-api-golang-client v0.18.4
+	github.com/grafana/grafana-api-golang-client v0.19.0
 	github.com/grafana/machine-learning-go-client v0.4.0
 	github.com/grafana/synthetic-monitoring-agent v0.14.3
 	github.com/grafana/synthetic-monitoring-api-go-client v0.7.0
@@ -15,7 +15,7 @@ require (
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/terraform-plugin-docs v0.14.1
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.26.1
-	golang.org/x/text v0.8.0
+	golang.org/x/text v0.9.0
 )
 
 require (

@@ -91,12 +91,14 @@ func Provider(version string) func() *schema.Provider {
 
 		// Resources that require the Cloud client to exist.
 		cloudClientResources = addResourcesMetadataValidation(cloudClientPresent, map[string]*schema.Resource{
-			"grafana_cloud_access_policy":       cloud.ResourceAccessPolicy(),
-			"grafana_cloud_access_policy_token": cloud.ResourceAccessPolicyToken(),
-			"grafana_cloud_api_key":             cloud.ResourceAPIKey(),
-			"grafana_cloud_plugin_installation": cloud.ResourcePluginInstallation(),
-			"grafana_cloud_stack":               cloud.ResourceStack(),
-			"grafana_cloud_stack_api_key":       cloud.ResourceStackAPIKey(),
+			"grafana_cloud_access_policy":               cloud.ResourceAccessPolicy(),
+			"grafana_cloud_access_policy_token":         cloud.ResourceAccessPolicyToken(),
+			"grafana_cloud_api_key":                     cloud.ResourceAPIKey(),
+			"grafana_cloud_plugin_installation":         cloud.ResourcePluginInstallation(),
+			"grafana_cloud_stack":                       cloud.ResourceStack(),
+			"grafana_cloud_stack_api_key":               cloud.ResourceStackAPIKey(),
+			"grafana_cloud_stack_service_account":       cloud.ResourceStackServiceAccount(),
+			"grafana_cloud_stack_service_account_token": cloud.ResourceStackServiceAccountToken(),
 		})
 
 		// Resources that require the OnCall client to exist.

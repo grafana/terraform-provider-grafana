@@ -3,12 +3,12 @@
 page_title: "grafana_oncall_user_group Data Source - terraform-provider-grafana"
 subcategory: "OnCall"
 description: |-
-  HTTP API https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/user_groups/
+  HTTP API https://grafana.com/docs/oncall/latest/oncall-api-reference/user_groups/
 ---
 
 # grafana_oncall_user_group (Data Source)
 
-* [HTTP API](https://grafana.com/docs/grafana-cloud/oncall/oncall-api-reference/user_groups/)
+* [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/user_groups/)
 
 ## Example Usage
 

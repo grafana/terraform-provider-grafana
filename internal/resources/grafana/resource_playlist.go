@@ -27,6 +27,7 @@ func ResourcePlaylist() *schema.Resource {
 `,
 
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -65,7 +66,6 @@ func ResourcePlaylist() *schema.Resource {
 					},
 				},
 			},
-			"org_id": orgIDAttribute(),
 		},
 	}
 }

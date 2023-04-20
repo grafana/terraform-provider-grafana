@@ -18,11 +18,14 @@ func ResourceAPIKey() *schema.Resource {
 Manages Grafana API Keys.
 
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/auth/)
+
+!> Deprecated: please use ` + "`grafana_service_account`" + ` and ` + "`grafana_service_account_token`" + ` instead, see [Migrate API keys to Grafana service accounts using Terraform](https://grafana.com/docs/grafana/latest/administration/api-keys/#migrate-api-keys-to-grafana-service-accounts-using-terraform) for more information.
 `,
 
-		CreateContext: resourceAPIKeyCreate,
-		ReadContext:   resourceAPIKeyRead,
-		DeleteContext: resourceAPIKeyDelete,
+		CreateContext:      resourceAPIKeyCreate,
+		ReadContext:        resourceAPIKeyRead,
+		DeleteContext:      resourceAPIKeyDelete,
+		DeprecationMessage: "Use `grafana_service_account` together with `grafana_service_account_token` instead, see https://grafana.com/docs/grafana/next/administration/api-keys/#migrate-api-keys-to-grafana-service-accounts-using-terraform",
 
 		Schema: map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
@@ -46,8 +49,8 @@ Manages Grafana API Keys.
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
-				Description: "Deprecated: Use the `grafana_cloud_stack_api_key` resource instead",
-				Deprecated:  "Use the `grafana_cloud_stack_api_key` resource instead",
+				Description: "Deprecated: Use `grafana_cloud_stack_service_account` and `grafana_cloud_stack_service_account_token` resources instead",
+				Deprecated:  "Use `grafana_cloud_stack_service_account` and `grafana_cloud_stack_service_account_token` resources instead",
 			},
 
 			"id": {
