@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
+	// todo: replace to new version
 	github.com/grafana/amixr-api-go-client v0.0.7
 	github.com/grafana/grafana-api-golang-client v0.19.0
 	github.com/grafana/machine-learning-go-client v0.4.0
@@ -15,6 +16,9 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.26.1
 	golang.org/x/text v0.9.0
 )
+
+// todo: remove after amixr-api-go-client upgrade
+replace github.com/grafana/amixr-api-go-client => github.com/hunterlong/amixr-api-go-client v0.0.0-20230410183822-4b93b135985e
 
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect

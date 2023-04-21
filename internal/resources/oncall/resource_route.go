@@ -2,14 +2,24 @@ package oncall
 
 import (
 	"context"
+	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"log"
 	"net/http"
+	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+var routeTypeOptions = []string{
+	"jinja2",
+	"regex",
+}
+
+var routeTypeOptionsVerbal = strings.Join(routeTypeOptions, ", ")
 
 func ResourceRoute() *schema.Resource {
 	return &schema.Resource{
@@ -40,6 +50,12 @@ func ResourceRoute() *schema.Resource {
 				Type:        schema.TypeInt,
 				Required:    true,
 				Description: "The position of the route (starts from 0).",
+			},
+			"routing_type": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice(routeTypeOptions, false),
+				Description:  fmt.Sprintf("The type of route. Can be %s", routeTypeOptions),
 			},
 			"routing_regex": {
 				Type:        schema.TypeString,
@@ -118,6 +134,7 @@ func ResourceRouteCreate(ctx context.Context, d *schema.ResourceData, m interfac
 
 	integrationID := d.Get("integration_id").(string)
 	escalationChainID := d.Get("escalation_chain_id").(string)
+	routingType := d.Get("routing_type").(string)
 	routingRegex := d.Get("routing_regex").(string)
 	position := d.Get("position").(int)
 	slack := d.Get("slack").([]interface{})
@@ -127,6 +144,7 @@ func ResourceRouteCreate(ctx context.Context, d *schema.ResourceData, m interfac
 	createOptions := &onCallAPI.CreateRouteOptions{
 		IntegrationId:     integrationID,
 		EscalationChainId: escalationChainID,
+		RoutingType:       routingType,
 		RoutingRegex:      routingRegex,
 		Position:          &position,
 		ManualOrder:       true,
@@ -160,6 +178,7 @@ func ResourceRouteRead(ctx context.Context, d *schema.ResourceData, m interface{
 
 	d.Set("integration_id", route.IntegrationId)
 	d.Set("escalation_chain_id", route.EscalationChainId)
+	d.Set("routing_type", route.RoutingType)
 	d.Set("routing_regex", route.RoutingRegex)
 	d.Set("position", route.Position)
 
@@ -184,6 +203,7 @@ func ResourceRouteUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 	client := m.(*common.Client).OnCallClient
 
 	escalationChainID := d.Get("escalation_chain_id").(string)
+	routingType := d.Get("routing_type").(string)
 	routingRegex := d.Get("routing_regex").(string)
 	position := d.Get("position").(int)
 	slack := d.Get("slack").([]interface{})
@@ -192,6 +212,7 @@ func ResourceRouteUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 
 	updateOptions := &onCallAPI.UpdateRouteOptions{
 		EscalationChainId: escalationChainID,
+		RoutingType:       routingType,
 		RoutingRegex:      routingRegex,
 		Position:          &position,
 		ManualOrder:       true,
