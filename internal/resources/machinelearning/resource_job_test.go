@@ -61,6 +61,7 @@ func TestAccResourceJob(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "training_window", "7776000"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "hyper_params.daily_seasonality", "15"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "hyper_params.weekly_seasonality", "10"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "custom_labels.example_label", "example_value"),
 				),
 			},
 			{
