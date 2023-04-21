@@ -59,6 +59,7 @@ resource "grafana_oncall_route" "example_route" {
 ### Optional
 
 - `msteams` (Block List, Max: 1) MS teams-specific settings for a route. (see [below for nested schema](#nestedblock--msteams))
+- `routing_type` (String) The type of route. Can be [jinja2 regex]
 - `slack` (Block List, Max: 1) Slack-specific settings for a route. (see [below for nested schema](#nestedblock--slack))
 - `telegram` (Block List, Max: 1) Telegram-specific settings for a route. (see [below for nested schema](#nestedblock--telegram))
 
