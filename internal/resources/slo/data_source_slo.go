@@ -116,7 +116,7 @@ func DatasourceSlo() *schema.Resource {
 									},
 									"fastburn": &schema.Schema{
 										Type:     schema.TypeList,
-										Computed: true,
+										Optional: true,
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
 												"labels": &schema.Schema{
@@ -156,7 +156,7 @@ func DatasourceSlo() *schema.Resource {
 									},
 									"slowburn": &schema.Schema{
 										Type:     schema.TypeList,
-										Computed: true,
+										Optional: true,
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
 												"labels": &schema.Schema{
@@ -231,7 +231,7 @@ func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 	ret["uuid"] = slo.UUID
 	ret["name"] = slo.Name
 	ret["description"] = slo.Description
-	ret["dashboard_uid"] = slo.DrilldownDashboardRef.UID
+	ret["dashboard_uid"] = slo.DrilldownDashboardRef.Uid
 	ret["query"] = unpackQuery(slo.Query)
 
 	retLabels := unpackLabels(slo.Labels)

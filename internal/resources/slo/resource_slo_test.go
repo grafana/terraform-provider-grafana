@@ -27,7 +27,6 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttrSet("grafana_slo_resource.test", "dashboard_uid"),
 					resource.TestCheckResourceAttr("grafana_slo_resource.test", "name", "Terraform Testing"),
 					resource.TestCheckResourceAttr("grafana_slo_resource.test", "description", "Terraform Description"),
-					resource.TestCheckResourceAttr("grafana_slo_resource.test", "service", "serviceA"),
 					resource.TestCheckResourceAttr("grafana_slo_resource.test", "query", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
 					resource.TestCheckResourceAttr("grafana_slo_resource.test", "objectives.0.objective_value", "0.995"),
 					resource.TestCheckResourceAttr("grafana_slo_resource.test", "objectives.0.objective_window", "30d"),

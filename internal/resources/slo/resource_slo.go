@@ -2,7 +2,6 @@ package slo
 
 import (
 	"context"
-	"time"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -194,11 +193,6 @@ func ResourceSlo() *schema.Resource {
 					},
 				},
 			},
-			"last_updated": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
 		},
 	}
 }
@@ -248,7 +242,6 @@ func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{
 		client := m.(*common.Client).GrafanaAPI
 		client.UpdateSlo(sloID, slo)
 
-		d.Set("last_updated", time.Now().Format(time.RFC850))
 	}
 
 	return resourceSloRead(ctx, d, m)
@@ -382,7 +375,7 @@ func packAlertMetadata(metadata []interface{}) gapi.AlertMetadata {
 func setTerraformState(d *schema.ResourceData, slo gapi.Slo) {
 	d.Set("name", slo.Name)
 	d.Set("description", slo.Description)
-	d.Set("dashboard_uid", slo.DrilldownDashboardRef.UID)
+	d.Set("dashboard_uid", slo.DrilldownDashboardRef.Uid)
 	d.Set("query", unpackQuery(slo.Query))
 
 	retLabels := unpackLabels(slo.Labels)
