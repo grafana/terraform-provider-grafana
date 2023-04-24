@@ -34,6 +34,21 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_slo_resource.test", "labels.0.value", "value"),
 				),
 			},
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_update.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo_resource.update", &slo),
+					resource.TestCheckResourceAttrSet("grafana_slo_resource.update", "id"),
+					resource.TestCheckResourceAttrSet("grafana_slo_resource.update", "dashboard_uid"),
+					resource.TestCheckResourceAttr("grafana_slo_resource.update", "name", "Modified - Terraform Testing"),
+					resource.TestCheckResourceAttr("grafana_slo_resource.update", "description", "Modified - Terraform Description"),
+					resource.TestCheckResourceAttr("grafana_slo_resource.update", "query", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
+					resource.TestCheckResourceAttr("grafana_slo_resource.update", "objectives.0.objective_value", "0.9995"),
+					resource.TestCheckResourceAttr("grafana_slo_resource.update", "objectives.0.objective_window", "7d"),
+					resource.TestCheckResourceAttr("grafana_slo_resource.update", "labels.0.key", "customkey"),
+					resource.TestCheckResourceAttr("grafana_slo_resource.update", "labels.0.value", "customvalue"),
+				),
+			},
 		},
 	})
 }
