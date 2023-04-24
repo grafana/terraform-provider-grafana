@@ -103,6 +103,18 @@ resource  "grafana_slo_resource" "invalid" {
 }
 `
 
+const sloObjectivesInvalid = `
+resource  "grafana_slo_resource" "invalid" {
+  name            = "Test SLO"
+  description     = "Description Test SLO"
+  query           = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+  objectives {
+	objective_value  = 1.5
+    objective_window = "1m"
+  }
+}
+`
+
 func TestAccResourceInvalidSlo(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
@@ -111,6 +123,10 @@ func TestAccResourceInvalidSlo(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      sloQueryInvalid,
+				ExpectError: regexp.MustCompile("Unable to create SLO"),
+			},
+			{
+				Config:      sloObjectivesInvalid,
 				ExpectError: regexp.MustCompile("Unable to create SLO"),
 			},
 		},

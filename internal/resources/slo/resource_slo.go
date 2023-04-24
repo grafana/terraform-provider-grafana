@@ -31,7 +31,7 @@ func ResourceSlo() *schema.Resource {
 			},
 			"query": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
+				Required: true,
 			},
 			"labels": &schema.Schema{
 				Type:     schema.TypeList,
@@ -214,7 +214,7 @@ func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Unable to create SLO",
+			Summary:  "Unable to create SLO - API",
 			Detail:   fmt.Sprintf("API Error Message:%s", err.Error()),
 		})
 
