@@ -291,12 +291,22 @@ func unpackLabels(labels *[]gapi.Label) []map[string]interface{} {
 func unpackAlerting(alertData *gapi.Alerting) []map[string]interface{} {
 	retAlertData := []map[string]interface{}{}
 
+	if alertData == nil {
+		return retAlertData
+	}
+
 	alertObject := make(map[string]interface{})
 	alertObject["name"] = alertData.Name
 	alertObject["labels"] = unpackLabels(alertData.Labels)
 	alertObject["annotations"] = unpackLabels(alertData.Annotations)
-	alertObject["fastburn"] = unpackAlertingMetadata(*alertData.FastBurn)
-	alertObject["slowburn"] = unpackAlertingMetadata(*alertData.SlowBurn)
+
+	if alertData.FastBurn != nil {
+		alertObject["fastburn"] = unpackAlertingMetadata(*alertData.FastBurn)
+	}
+
+	if alertData.SlowBurn != nil {
+		alertObject["slowburn"] = unpackAlertingMetadata(*alertData.SlowBurn)
+	}
 
 	retAlertData = append(retAlertData, alertObject)
 	return retAlertData

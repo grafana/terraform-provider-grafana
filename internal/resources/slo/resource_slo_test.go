@@ -2,6 +2,7 @@ package slo_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -88,4 +89,30 @@ func testAccSloCheckDestroy(slo *gapi.Slo) resource.TestCheckFunc {
 
 		return nil
 	}
+}
+
+const sloQueryInvalid = `
+resource  "grafana_slo_resource" "invalid" {
+  name            = "Test SLO"
+  description     = "Description Test SLO"
+  query           = "Invalid Query"
+  objectives {
+	objective_value  = 0.995
+    objective_window = "30d"
+  }
+}
+`
+
+func TestAccResourceInvalidSlo(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      sloQueryInvalid,
+				ExpectError: regexp.MustCompile("Unable to create SLO"),
+			},
+		},
+	})
 }

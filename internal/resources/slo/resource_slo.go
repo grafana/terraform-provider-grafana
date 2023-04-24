@@ -2,6 +2,7 @@ package slo
 
 import (
 	"context"
+	"fmt"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -208,7 +209,17 @@ func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{
 	slo := packSloResource(d)
 
 	client := m.(*common.Client).GrafanaAPI
-	response, _ := client.CreateSlo(slo)
+	response, err := client.CreateSlo(slo)
+
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Unable to create SLO",
+			Detail:   fmt.Sprintf("API Error Message:%s", err.Error()),
+		})
+
+		return diags
+	}
 
 	// Get the response back from the API, we need to set the ID of the Terraform Resource
 	d.SetId(response.UUID)
@@ -263,6 +274,11 @@ func resourceSloDelete(ctx context.Context, d *schema.ResourceData, m interface{
 // Fetches all the Properties defined on the Terraform SLO State Object and converts it
 // to a Slo so that it can be converted to JSON and sent to the API
 func packSloResource(d *schema.ResourceData) gapi.Slo {
+	var (
+		tfalerting gapi.Alerting
+		tflabels   []gapi.Label
+	)
+
 	tfname := d.Get("name").(string)
 	tfdescription := d.Get("description").(string)
 	query := d.Get("query").(string)
@@ -274,11 +290,15 @@ func packSloResource(d *schema.ResourceData) gapi.Slo {
 	tfobjective := packObjective(objective)
 
 	labels := d.Get("labels").([]interface{})
-	tflabels := packLabels(labels)
+	if labels != nil {
+		tflabels = packLabels(labels)
+	}
 
 	alerting := d.Get("alerting").([]interface{})
-	alert := alerting[0].(map[string]interface{})
-	tfalerting := packAlerting(alert)
+	if len(alerting) > 0 {
+		alert := alerting[0].(map[string]interface{})
+		tfalerting = packAlerting(alert)
+	}
 
 	slo := gapi.Slo{
 		UUID:        d.Id(),
