@@ -214,6 +214,10 @@ func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{
 
 	terraformSlos := []interface{}{}
 
+	if len(apiSlos.Slos) == 0 {
+		return diags
+	}
+
 	for _, slo := range apiSlos.Slos {
 		terraformSlo := convertDatasourceSlo(slo)
 		terraformSlos = append(terraformSlos, terraformSlo)
