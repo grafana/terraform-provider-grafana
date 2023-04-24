@@ -231,7 +231,7 @@ func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 	ret["uuid"] = slo.UUID
 	ret["name"] = slo.Name
 	ret["description"] = slo.Description
-	ret["dashboard_uid"] = slo.DrilldownDashboardRef.Uid
+	ret["dashboard_uid"] = slo.DrilldownDashboardRef.UID
 	ret["query"] = unpackQuery(slo.Query)
 
 	retLabels := unpackLabels(slo.Labels)

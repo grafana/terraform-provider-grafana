@@ -375,7 +375,7 @@ func packAlertMetadata(metadata []interface{}) gapi.AlertMetadata {
 func setTerraformState(d *schema.ResourceData, slo gapi.Slo) {
 	d.Set("name", slo.Name)
 	d.Set("description", slo.Description)
-	d.Set("dashboard_uid", slo.DrilldownDashboardRef.Uid)
+	d.Set("dashboard_uid", slo.DrilldownDashboardRef.UID)
 	d.Set("query", unpackQuery(slo.Query))
 
 	retLabels := unpackLabels(slo.Labels)
