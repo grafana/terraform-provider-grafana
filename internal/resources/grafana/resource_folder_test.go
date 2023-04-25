@@ -99,6 +99,56 @@ func TestAccFolder_basic(t *testing.T) {
 	})
 }
 
+func TestAccFolder_PreventDeletion(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
+	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+	var folder gapi.Folder
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFolderExample_PreventDeletion(name, true), // Create protected folder
+			},
+			{
+				Config:  testAccFolderExample_PreventDeletion(name, true), // Create protected folder
+				Destroy: true,
+			},
+			{
+				Config: testAccFolderExample_PreventDeletion(name, true), // Create protected folder again
+				Check: resource.ComposeTestCheckFunc(
+					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
+					// Create a dashboard in the protected folder
+					func(s *terraform.State) error {
+						client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+						_, err := client.NewDashboard(gapi.Dashboard{
+							FolderUID: folder.UID, Model: map[string]interface{}{
+								"uid":   name + "-dashboard",
+								"title": name + "-dashboard",
+							}})
+						return err
+					},
+				),
+			},
+			{
+				Config:  testAccFolderExample_PreventDeletion(name, true),
+				Destroy: true, // Try to delete the protected folder
+				ExpectError: regexp.MustCompile(
+					fmt.Sprintf(`.+folder %s is not empty and prevent_destroy_if_not_empty is set.+`, name),
+				), // Fail because it's protected
+			},
+			{
+				Config: testAccFolderExample_PreventDeletion(name, false), // Remove protected flag
+			},
+			{
+				Config:  testAccFolderExample_PreventDeletion(name, false),
+				Destroy: true, // No error if the folder is not protected
+			},
+		},
+	})
+}
+
 // This is a bug in Grafana, not the provider. It was fixed in 9.2.7+ and 9.3.0+, this test will check for regressions
 func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
@@ -217,4 +267,19 @@ func testAccFolderCheckDestroy(folder *gapi.Folder) resource.TestCheckFunc {
 		}
 		return nil
 	}
+}
+
+func testAccFolderExample_PreventDeletion(name string, preventDeletion bool) string {
+	preventDeletionStr := ""
+	if preventDeletion {
+		preventDeletionStr = "prevent_destroy_if_not_empty = true"
+	}
+
+	return fmt.Sprintf(`
+		resource "grafana_folder" "test_folder" {
+			uid      = "%[1]s"
+			title    = "%[1]s"
+			%[2]s
+		}
+	`, name, preventDeletionStr)
 }

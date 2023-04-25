@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -66,6 +67,12 @@ func ResourceFolder() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The full URL of the folder.",
+			},
+			"prevent_destroy_if_not_empty": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Prevent deletion of the folder if it is not empty (contains dashboards or alert rules).",
 			},
 		},
 	}
@@ -138,7 +145,29 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaAPI
 
-	if err := client.DeleteFolder(d.Get("uid").(string)); err != nil {
+	deleteParams := []url.Values{}
+	if d.Get("prevent_destroy_if_not_empty").(bool) {
+		// Search for dashboards and fail if any are found
+		dashboards, err := client.FolderDashboardSearch(url.Values{
+			"type":      []string{"dash-db"},
+			"folderIds": []string{d.Get("uid").(string)},
+		})
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		if len(dashboards) > 0 {
+			var dashboardNames []string
+			for _, dashboard := range dashboards {
+				dashboardNames = append(dashboardNames, dashboard.Title)
+			}
+			return diag.Errorf("folder %s is not empty and prevent_destroy_if_not_empty is set. It contains the following dashboards: %v", d.Get("uid").(string), dashboardNames)
+		}
+	} else {
+		// If we're not preventing destroys, then we can force delete folders that have alert rules
+		deleteParams = append(deleteParams, gapi.ForceDeleteFolderRules())
+	}
+
+	if err := client.DeleteFolder(d.Get("uid").(string), deleteParams...); err != nil {
 		return diag.FromErr(err)
 	}
 
