@@ -150,7 +150,7 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 		// Search for dashboards and fail if any are found
 		dashboards, err := client.FolderDashboardSearch(url.Values{
 			"type":      []string{"dash-db"},
-			"folderIds": []string{d.Get("uid").(string)},
+			"folderIds": []string{d.Id()},
 		})
 		if err != nil {
 			return diag.FromErr(err)
