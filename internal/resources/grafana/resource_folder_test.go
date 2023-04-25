@@ -123,7 +123,9 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 					func(s *terraform.State) error {
 						client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 						_, err := client.NewDashboard(gapi.Dashboard{
-							FolderUID: folder.UID, Model: map[string]interface{}{
+							FolderUID: folder.UID,
+							FolderID:  folder.ID,
+							Model: map[string]interface{}{
 								"uid":   name + "-dashboard",
 								"title": name + "-dashboard",
 							}})
