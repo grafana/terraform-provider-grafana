@@ -6,6 +6,7 @@ description: |-
   Sets up Synthetic Monitoring on a Grafana cloud stack and generates a token.
   Once a Grafana Cloud stack is created, a user can either use this resource or go into the UI to install synthetic monitoring.
   This resource cannot be imported but it can be used on an existing Synthetic Monitoring installation without issues.
+  Note that this resource must be used on a provider configured with Grafana Cloud credentials.
   Official documentation https://grafana.com/docs/grafana-cloud/synthetic-monitoring/installation/API documentation https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#apiv1registerinstall
 ---
 
@@ -14,6 +15,8 @@ description: |-
 Sets up Synthetic Monitoring on a Grafana cloud stack and generates a token. 
 Once a Grafana Cloud stack is created, a user can either use this resource or go into the UI to install synthetic monitoring.
 This resource cannot be imported but it can be used on an existing Synthetic Monitoring installation without issues.
+
+**Note that this resource must be used on a provider configured with Grafana Cloud credentials.**
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/synthetic-monitoring/installation/)
 * [API documentation](https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#apiv1registerinstall)
@@ -34,10 +37,14 @@ resource "grafana_cloud_api_key" "metrics_publish" {
 }
 
 resource "grafana_synthetic_monitoring_installation" "sm_stack" {
-  stack_id              = grafana_cloud_stack.sm_stack.id
-  metrics_instance_id   = grafana_cloud_stack.sm_stack.prometheus_user_id
-  logs_instance_id      = grafana_cloud_stack.sm_stack.logs_user_id
-  metrics_publisher_key = grafana_cloud_api_key.metrics_publish.key
+  stack_id = grafana_cloud_stack.sm_stack.id
+}
+
+// Create a new provider instance to interact with Synthetic Monitoring
+provider "grafana" {
+  alias           = "sm"
+  sm_access_token = grafana_synthetic_monitoring_installation.sm_stack.sm_access_token
+  sm_url          = "grafana_synthetic_monitoring_installation.sm_stack.stack_sm_api_url"
 }
 ```
 
@@ -46,10 +53,14 @@ resource "grafana_synthetic_monitoring_installation" "sm_stack" {
 
 ### Required
 
-- `logs_instance_id` (Number) The ID of the logs instance to install SM on (stack's `logs_user_id` attribute).
-- `metrics_instance_id` (Number) The ID of the metrics instance to install SM on (stack's `prometheus_user_id` attribute).
 - `metrics_publisher_key` (String, Sensitive) The Cloud API Key with the `MetricsPublisher` role used to publish metrics to the SM API
-- `stack_id` (Number) The ID of the stack to install SM on.
+- `stack_id` (String) The ID or slug of the stack to install SM on.
+
+### Optional
+
+- `logs_instance_id` (Number, Deprecated) Deprecated: Not used anymore.
+- `metrics_instance_id` (Number, Deprecated) Deprecated: Not used anymore.
+- `stack_sm_api_url` (String) The URL of the SM API to install SM on. This depends on the stack region, find the list of API URLs here: https://grafana.com/docs/grafana-cloud/synthetic-monitoring/private-probes/#probe-api-server-url. A static mapping exists in the provider but it may not contain all the regions. If it does contain the stack's region, this field is computed automatically and readable.
 
 ### Read-Only
 
