@@ -47,14 +47,16 @@ func TestAccFolder_basic(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      "grafana_folder.test_folder",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "grafana_folder.test_folder",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"prevent_destroy_if_not_empty"},
 			},
 			{
-				ResourceName:      "grafana_folder.test_folder_with_uid",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "grafana_folder.test_folder_with_uid",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"prevent_destroy_if_not_empty"},
 			},
 			// Change the title of one folder, change the UID of the other. They shouldn't change IDs (the folder doesn't have to be recreated)
 			{
