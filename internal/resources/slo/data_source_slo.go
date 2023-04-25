@@ -215,6 +215,12 @@ func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{
 	terraformSlos := []interface{}{}
 
 	if len(apiSlos.Slos) == 0 {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "No SLOs Exist",
+			Detail:   "No SLOs currently exist. Create a new one.",
+		})
+
 		return diags
 	}
 
@@ -223,8 +229,8 @@ func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{
 		terraformSlos = append(terraformSlos, terraformSlo)
 	}
 
+	d.SetId("slos")
 	d.Set("slos", terraformSlos)
-	d.SetId(apiSlos.Slos[0].UUID)
 
 	return diags
 }

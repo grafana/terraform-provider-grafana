@@ -237,7 +237,17 @@ func resourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{})
 	sloID := d.Id()
 
 	client := m.(*common.Client).GrafanaAPI
-	slo, _ := client.GetSlo(sloID)
+	slo, err := client.GetSlo(sloID)
+
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  fmt.Sprintf("Unable to Fetch Slo with ID: %s", sloID),
+			Detail:   fmt.Sprintf("API Error Message:%s", err.Error()),
+		})
+
+		return diags
+	}
 
 	setTerraformState(d, slo)
 
@@ -245,13 +255,24 @@ func resourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{})
 }
 
 func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
 	sloID := d.Id()
 
 	if d.HasChange("name") || d.HasChange("description") || d.HasChange("query") || d.HasChange("labels") || d.HasChange("objectives") || d.HasChange("alerting") {
 		slo := packSloResource(d)
 
 		client := m.(*common.Client).GrafanaAPI
-		client.UpdateSlo(sloID, slo)
+		err := client.UpdateSlo(sloID, slo)
+
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  fmt.Sprintf("Unable to Update Slo with ID: %s", sloID),
+				Detail:   fmt.Sprintf("API Error Message:%s", err.Error()),
+			})
+
+			return diags
+		}
 
 	}
 

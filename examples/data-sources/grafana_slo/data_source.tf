@@ -1,0 +1,1 @@
+data "grafana_slo_datasource" "slos" {}
