@@ -10,4 +10,7 @@ resource "grafana_machine_learning_job" "test_job" {
     daily_seasonality  = 15
     weekly_seasonality = 10
   }
+  custom_labels = {
+    example_label = "example_value"
+  }
 }

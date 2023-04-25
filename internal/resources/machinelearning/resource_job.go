@@ -69,6 +69,12 @@ A job defines the queries and model parameters for a machine learning task.
 				Type:        schema.TypeMap,
 				Required:    true,
 			},
+			"custom_labels": {
+				Description: "An object representing the custom labels added on the forecast.",
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Default:     nil,
+			},
 			"interval": {
 				Description: "The data interval in seconds to train the data on.",
 				Type:        schema.TypeInt,
@@ -148,6 +154,7 @@ func ResourceJobRead(ctx context.Context, d *schema.ResourceData, meta interface
 	d.Set("query_params", job.QueryParams)
 	d.Set("interval", job.Interval)
 	d.Set("hyper_params", job.HyperParams)
+	d.Set("custom_labels", job.CustomLabels)
 	d.Set("training_window", job.TrainingWindow)
 	d.Set("holidays", job.Holidays)
 
@@ -196,6 +203,7 @@ func makeMLJob(d *schema.ResourceData, meta interface{}) (mlapi.Job, error) {
 		Interval:          uint(d.Get("interval").(int)),
 		Algorithm:         "grafana_prophet_1_0_1",
 		HyperParams:       d.Get("hyper_params").(map[string]interface{}),
+		CustomLabels:      d.Get("custom_labels").(map[string]interface{}),
 		TrainingWindow:    uint(d.Get("training_window").(int)),
 		TrainingFrequency: uint(24 * time.Hour / time.Second),
 		Holidays:          common.ListToStringSlice(d.Get("holidays").([]interface{})),
