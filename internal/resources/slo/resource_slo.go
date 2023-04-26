@@ -299,7 +299,6 @@ func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{
 
 			return diags
 		}
-
 	}
 
 	return resourceSloRead(ctx, d, m)
