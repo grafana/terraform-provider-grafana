@@ -47,6 +47,7 @@
     "resources/oncall_outgoing_webhook": "OnCall",
     "resources/oncall_route": "OnCall",
     "resources/oncall_schedule": "OnCall",
+    "resources/slo": "SLO",
     "resources/synthetic_monitoring_check": "Synthetic Monitoring",
     "resources/synthetic_monitoring_installation": "Synthetic Monitoring",
     "resources/synthetic_monitoring_probe": "Synthetic Monitoring",
@@ -72,6 +73,7 @@
     "data-sources/oncall_team": "OnCall",
     "data-sources/oncall_user": "OnCall",
     "data-sources/oncall_user_group": "OnCall",
+    "data-sources/slo": "SLO",
     "data-sources/synthetic_monitoring_probe": "Synthetic Monitoring",
     "data-sources/synthetic_monitoring_probes": "Synthetic Monitoring"
 }

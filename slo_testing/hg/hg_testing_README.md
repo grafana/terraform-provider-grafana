@@ -1,4 +1,4 @@
-# How to Test the SLO Terraform Provider - Hosted Grafana
+gr# How to Test the SLO Terraform Provider - Hosted Grafana
 
 ## Create your HG Account and Get the SLO Plugin Deployed
 Generate a new Service Account Token, and set the environment variable GRAFANA_AUTH to the value of your token (or you can specify the `auth` field within the Terraform State file). 

@@ -1,0 +1,1 @@
+data "grafana_slo" "slos" {}

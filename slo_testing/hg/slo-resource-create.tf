@@ -11,8 +11,8 @@ provider "grafana" {
 }
 
 resource "grafana_slo_resource" "test1" {
-  name        = "Terraform - 99.5% of Responses from Kubernetes API Server Valid"
-  description = "Terraform - Measures that 99.5% of responses from the Kubernetes API Server are valid (i.e. not HTTP 500 Errors)"
+  name        = "Terraform - Name Test"
+  description = "Terraform - Description Test"
   query       = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
   objectives {
     objective_value  = 0.995
@@ -30,7 +30,7 @@ resource "grafana_slo_resource" "test1" {
       }
       annotations {
         key   = "description"
-        value = "Error Budget is burning at a rate greater than 14.4x. This means that within 1 Hour, 2% of your SLO Error Budget may be consumed. Recommended action: Page"
+        value = "Error Budget Burning Very Quickly"
       }
       labels {
         key   = "type"
@@ -45,7 +45,7 @@ resource "grafana_slo_resource" "test1" {
       }
       annotations {
         key   = "description"
-        value = "Error Budget is burning at a rate greater than 1x.  This means that within 72 Hours, 10% of your SLO Error Budget may be consumed. Recommended action: Page/Ticket"
+        value = "Error Budget Burning Quickly"
       }
       labels {
         key   = "type"

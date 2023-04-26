@@ -23,27 +23,27 @@ func TestAccResourceSlo(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccSloCheckExists("grafana_slo_resource.test", &slo),
-					resource.TestCheckResourceAttrSet("grafana_slo_resource.test", "id"),
-					resource.TestCheckResourceAttrSet("grafana_slo_resource.test", "dashboard_uid"),
-					resource.TestCheckResourceAttr("grafana_slo_resource.test", "name", "Terraform Testing"),
-					resource.TestCheckResourceAttr("grafana_slo_resource.test", "description", "Terraform Description"),
-					resource.TestCheckResourceAttr("grafana_slo_resource.test", "query", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
-					resource.TestCheckResourceAttr("grafana_slo_resource.test", "objectives.0.objective_value", "0.995"),
-					resource.TestCheckResourceAttr("grafana_slo_resource.test", "objectives.0.objective_window", "30d"),
+					testAccSloCheckExists("grafana_slo.test", &slo),
+					resource.TestCheckResourceAttrSet("grafana_slo.test", "id"),
+					resource.TestCheckResourceAttrSet("grafana_slo.test", "dashboard_uid"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "name", "Terraform Testing"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "description", "Terraform Description"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "query", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.objective_value", "0.995"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.objective_window", "30d"),
 				),
 			},
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_update.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccSloCheckExists("grafana_slo_resource.update", &slo),
-					resource.TestCheckResourceAttrSet("grafana_slo_resource.update", "id"),
-					resource.TestCheckResourceAttrSet("grafana_slo_resource.update", "dashboard_uid"),
-					resource.TestCheckResourceAttr("grafana_slo_resource.update", "name", "Updated - Terraform Testing"),
-					resource.TestCheckResourceAttr("grafana_slo_resource.update", "description", "Updated - Terraform Description"),
-					resource.TestCheckResourceAttr("grafana_slo_resource.update", "query", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
-					resource.TestCheckResourceAttr("grafana_slo_resource.update", "objectives.0.objective_value", "0.9995"),
-					resource.TestCheckResourceAttr("grafana_slo_resource.update", "objectives.0.objective_window", "7d"),
+					testAccSloCheckExists("grafana_slo.update", &slo),
+					resource.TestCheckResourceAttrSet("grafana_slo.update", "id"),
+					resource.TestCheckResourceAttrSet("grafana_slo.update", "dashboard_uid"),
+					resource.TestCheckResourceAttr("grafana_slo.update", "name", "Updated - Terraform Testing"),
+					resource.TestCheckResourceAttr("grafana_slo.update", "description", "Updated - Terraform Description"),
+					resource.TestCheckResourceAttr("grafana_slo.update", "query", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
+					resource.TestCheckResourceAttr("grafana_slo.update", "objectives.0.objective_value", "0.9995"),
+					resource.TestCheckResourceAttr("grafana_slo.update", "objectives.0.objective_window", "7d"),
 				),
 			},
 		},
@@ -88,7 +88,7 @@ func testAccSloCheckDestroy(slo *gapi.Slo) resource.TestCheckFunc {
 }
 
 const sloQueryInvalid = `
-resource  "grafana_slo_resource" "invalid" {
+resource  "grafana_slo" "invalid" {
   name            = "Test SLO"
   description     = "Description Test SLO"
   query           = "Invalid Query"
@@ -100,7 +100,7 @@ resource  "grafana_slo_resource" "invalid" {
 `
 
 const sloObjectivesInvalid = `
-resource  "grafana_slo_resource" "invalid" {
+resource  "grafana_slo" "invalid" {
   name            = "Test SLO"
   description     = "Description Test SLO"
   query           = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"

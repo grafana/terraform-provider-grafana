@@ -1,4 +1,4 @@
-resource "grafana_slo_resource" "update" {
+resource "grafana_slo" "update" {
   name        = "Updated - Terraform Testing"
   description = "Updated - Terraform Description"
   query       = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"

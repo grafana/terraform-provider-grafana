@@ -11,6 +11,12 @@ import (
 
 func DatasourceSlo() *schema.Resource {
 	return &schema.Resource{
+		Description: `
+Datasource for retrieving all SLOs.
+		
+* [Official documentation](https://grafana.com/docs/grafana-cloud/slo/)
+* [API documentation](https://grafana.com/docs/grafana-cloud/slo/api/)
+				`,
 		ReadContext: datasourceSloRead,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
