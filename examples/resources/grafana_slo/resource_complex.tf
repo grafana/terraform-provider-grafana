@@ -12,7 +12,7 @@ resource "grafana_slo" "test" {
   }
   alerting {
     name = "alertingname"
-    
+
     labels {
       key   = "alertingkey"
       value = "alertingvalue"
