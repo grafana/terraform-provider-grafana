@@ -132,30 +132,6 @@ steps:
   - chmod a+x /drone/terraform-provider-grafana/terraform
   image: hashicorp/terraform
   name: download-terraform
-  
-- name: install-SLO-plugin
-  image: grafana/grafana-plugin-ci:1.7.3-alpine
-  commands:
-    - yarn install --immutable
-- name: package-SLO-plugin
-  image: grafana/grafana-plugin-ci:1.7.3-alpine
-  environment:
-    GCOM_TOKEN:
-      from_secret: gcom_api_key
-  commands:
-    - make package
-  depends_on:
-    - install-SLO-plugin
-- name: upload-plugin
-  image: plugins/gcs
-  settings:
-    source: artifact/
-    target: grafana-slo-app-dev/builds/
-    token:
-      from_secret: plugin_gcs_service_account
-  depends_on:
-    - package-SLO-plugin
-
 - commands:
   - .drone/wait-for-instance.sh $${GRAFANA_URL}
   environment:
