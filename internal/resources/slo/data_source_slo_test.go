@@ -15,7 +15,7 @@ func TestAccDataSourceSlo(t *testing.T) {
 		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testutils.TestAccExample(t, "data-sources/grafana_slo/data_source.tf"),
+				Config:      testutils.TestAccExample(t, "data-sources/grafana_slo/data-source.tf"),
 				ExpectError: regexp.MustCompile(`No SLOs Exist`),
 			},
 		},

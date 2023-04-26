@@ -102,7 +102,7 @@ Optional:
 <a id="nestedblock--alerting--annotations"></a>
 ### Nested Schema for `alerting.annotations`
 
-Optional:
+Required:
 
 - `key` (String)
 - `value` (String)
@@ -119,7 +119,7 @@ Optional:
 <a id="nestedblock--alerting--fastburn--annotations"></a>
 ### Nested Schema for `alerting.fastburn.annotations`
 
-Optional:
+Required:
 
 - `key` (String)
 - `value` (String)
@@ -128,7 +128,7 @@ Optional:
 <a id="nestedblock--alerting--fastburn--labels"></a>
 ### Nested Schema for `alerting.fastburn.labels`
 
-Optional:
+Required:
 
 - `key` (String)
 - `value` (String)
@@ -138,7 +138,7 @@ Optional:
 <a id="nestedblock--alerting--labels"></a>
 ### Nested Schema for `alerting.labels`
 
-Optional:
+Required:
 
 - `key` (String)
 - `value` (String)
@@ -155,7 +155,7 @@ Optional:
 <a id="nestedblock--alerting--slowburn--annotations"></a>
 ### Nested Schema for `alerting.slowburn.annotations`
 
-Optional:
+Required:
 
 - `key` (String)
 - `value` (String)
@@ -164,7 +164,7 @@ Optional:
 <a id="nestedblock--alerting--slowburn--labels"></a>
 ### Nested Schema for `alerting.slowburn.labels`
 
-Optional:
+Required:
 
 - `key` (String)
 - `value` (String)
@@ -175,7 +175,7 @@ Optional:
 <a id="nestedblock--labels"></a>
 ### Nested Schema for `labels`
 
-Optional:
+Required:
 
 - `key` (String)
 - `value` (String)

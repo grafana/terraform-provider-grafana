@@ -26,7 +26,7 @@ data "grafana_slo" "slos" {}
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `slos` (List of Object) (see [below for nested schema](#nestedatt--slos))
+- `slos` (List of Object) Returns a list of all SLOs" (see [below for nested schema](#nestedatt--slos))
 
 <a id="nestedatt--slos"></a>
 ### Nested Schema for `slos`

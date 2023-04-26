@@ -49,11 +49,11 @@ Resource manages Grafana SLOs.
 					Schema: map[string]*schema.Schema{
 						"key": &schema.Schema{
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 						},
 						"value": &schema.Schema{
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 						},
 					},
 				},
@@ -105,11 +105,11 @@ Resource manages Grafana SLOs.
 								Schema: map[string]*schema.Schema{
 									"key": &schema.Schema{
 										Type:     schema.TypeString,
-										Optional: true,
+										Required: true,
 									},
 									"value": &schema.Schema{
 										Type:     schema.TypeString,
-										Optional: true,
+										Required: true,
 									},
 								},
 							},
@@ -122,11 +122,11 @@ Resource manages Grafana SLOs.
 								Schema: map[string]*schema.Schema{
 									"key": &schema.Schema{
 										Type:     schema.TypeString,
-										Optional: true,
+										Required: true,
 									},
 									"value": &schema.Schema{
 										Type:     schema.TypeString,
-										Optional: true,
+										Required: true,
 									},
 								},
 							},
@@ -145,11 +145,11 @@ Resource manages Grafana SLOs.
 											Schema: map[string]*schema.Schema{
 												"key": &schema.Schema{
 													Type:     schema.TypeString,
-													Optional: true,
+													Required: true,
 												},
 												"value": &schema.Schema{
 													Type:     schema.TypeString,
-													Optional: true,
+													Required: true,
 												},
 											},
 										},
@@ -162,11 +162,11 @@ Resource manages Grafana SLOs.
 											Schema: map[string]*schema.Schema{
 												"key": &schema.Schema{
 													Type:     schema.TypeString,
-													Optional: true,
+													Required: true,
 												},
 												"value": &schema.Schema{
 													Type:     schema.TypeString,
-													Optional: true,
+													Required: true,
 												},
 											},
 										},
@@ -188,11 +188,11 @@ Resource manages Grafana SLOs.
 											Schema: map[string]*schema.Schema{
 												"key": &schema.Schema{
 													Type:     schema.TypeString,
-													Optional: true,
+													Required: true,
 												},
 												"value": &schema.Schema{
 													Type:     schema.TypeString,
-													Optional: true,
+													Required: true,
 												},
 											},
 										},
@@ -205,11 +205,11 @@ Resource manages Grafana SLOs.
 											Schema: map[string]*schema.Schema{
 												"key": &schema.Schema{
 													Type:     schema.TypeString,
-													Optional: true,
+													Required: true,
 												},
 												"value": &schema.Schema{
 													Type:     schema.TypeString,
-													Optional: true,
+													Required: true,
 												},
 											},
 										},
