@@ -14,6 +14,21 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+// TODO: Automate finding the correct API URL based on the stack region
+var smAPIURLs = map[string]string{
+	"us":                  "https://synthetic-monitoring-api.grafana.net",
+	"us-azure":            "https://synthetic-monitoring-api-us-central2.grafana.net",
+	"eu":                  "https://synthetic-monitoring-api-eu-west.grafana.net",
+	"au":                  "https://synthetic-monitoring-api-au-southeast.grafana.net",
+	"prod-ap-southeast-0": "https://synthetic-monitoring-api-ap-southeast-0.grafana.net",
+	"prod-gb-south-0":     "https://synthetic-monitoring-api-gb-south.grafana.net",
+	"prod-eu-west-2":      "https://synthetic-monitoring-api-eu-west-2.grafana.net",
+	"prod-eu-west-3":      "https://synthetic-monitoring-api-eu-west-3.grafana.net",
+	"prod-ap-south-0":     "https://synthetic-monitoring-api-ap-south-0.grafana.net",
+	"prod-sa-east-0":      "https://synthetic-monitoring-api-sa-east-0.grafana.net",
+	"prod-us-east-0":      "https://synthetic-monitoring-api-us-east-0.grafana.net",
+}
+
 func ResourceInstallation() *schema.Resource {
 	return &schema.Resource{
 
@@ -88,22 +103,9 @@ func ResourceInstallationCreate(ctx context.Context, d *schema.ResourceData, met
 		return diag.FromErr(err)
 	}
 
-	// TODO: Automate finding the correct API URL based on the stack region
 	apiURL := d.Get("stack_sm_api_url").(string)
 	if apiURL == "" {
-		apiURL = map[string]string{
-			"us":                  "https://synthetic-monitoring-api.grafana.net",
-			"us-azure":            "https://synthetic-monitoring-api-us-central2.grafana.net",
-			"eu":                  "https://synthetic-monitoring-api-eu-west.grafana.net",
-			"au":                  "https://synthetic-monitoring-api-au-southeast.grafana.net",
-			"prod-ap-southeast-0": "https://synthetic-monitoring-api-ap-southeast-0.grafana.net",
-			"prod-gb-south-0":     "https://synthetic-monitoring-api-gb-south.grafana.net",
-			"prod-eu-west-2":      "https://synthetic-monitoring-api-eu-west-2.grafana.net",
-			"prod-eu-west-3":      "https://synthetic-monitoring-api-eu-west-3.grafana.net",
-			"prod-ap-south-0":     "https://synthetic-monitoring-api-ap-south-0.grafana.net",
-			"prod-sa-east-0":      "https://synthetic-monitoring-api-sa-east-0.grafana.net",
-			"prod-us-east-0":      "https://synthetic-monitoring-api-us-east-0.grafana.net",
-		}[stack.RegionSlug]
+		apiURL = smAPIURLs[stack.RegionSlug]
 	}
 	if apiURL == "" {
 		return diag.Errorf("could not find a valid SM API URL for stack region %s", stack.RegionSlug)
