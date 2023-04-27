@@ -15,8 +15,7 @@ type Client struct {
 	GrafanaAPI       *gapi.Client
 	GrafanaCloudAPI  *gapi.Client
 
-	SMAPI    *SMAPI.Client
-	SMAPIURL string
+	SMAPI *SMAPI.Client
 
 	MLAPI *mlapi.Client
 
