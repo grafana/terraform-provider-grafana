@@ -32,7 +32,7 @@ resource "grafana_synthetic_monitoring_installation" "sm_stack" {
 provider "grafana" {
   alias           = "sm"
   sm_access_token = grafana_synthetic_monitoring_installation.sm_stack.sm_access_token
-  sm_url          = "grafana_synthetic_monitoring_installation.sm_stack.stack_sm_api_url"
+  sm_url          = grafana_synthetic_monitoring_installation.sm_stack.stack_sm_api_url
 }
 
 data "grafana_synthetic_monitoring_probes" "main" {
