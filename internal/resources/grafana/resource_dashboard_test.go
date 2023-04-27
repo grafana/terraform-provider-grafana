@@ -174,12 +174,41 @@ func TestAccDashboard_folder(t *testing.T) {
 					testAccDashboardCheckExists("grafana_dashboard.test_folder", &dashboard),
 					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
 					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
-					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "0:folder"), // <org id>:<uid>
-					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", "folder"),
-					resource.TestMatchResourceAttr(
-						"grafana_dashboard.test_folder", "folder", common.IDRegexp,
-					),
+					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "0:folder-dashboard-test-ref-with-id"), // <org id>:<uid>
+					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", "folder-dashboard-test-ref-with-id"),
+					resource.TestMatchResourceAttr("grafana_dashboard.test_folder", "folder", common.IDRegexp),
 				),
+			},
+		},
+	})
+}
+
+func TestAccDashboard_folder_uid(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=8.0.0") // UID in folders were added in v8
+
+	var dashboard gapi.Dashboard
+	var folder gapi.Folder
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      testAccDashboardFolderCheckDestroy(&dashboard, &folder),
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_folder_uid_ref.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
+					testAccDashboardCheckExists("grafana_dashboard.test_folder", &dashboard),
+					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
+					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "0:folder-dashboard-test-ref-with-uid"), // <org id>:<uid>
+					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", "folder-dashboard-test-ref-with-uid"),
+					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "folder", "folder-dashboard-uid-test"),
+				),
+			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_dashboard.test_folder",
+				ImportStateVerify: true,
 			},
 		},
 	})
