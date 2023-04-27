@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -71,11 +70,10 @@ Manages Grafana dashboards.
 					"so that previous versions of your dashboard are not lost.",
 			},
 			"folder": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				Description:  "The id of the folder to save the dashboard in. This attribute is a string to reflect the type of the folder's id.",
-				ValidateFunc: validation.StringMatch(common.IDRegexp, "must be a valid folder id"),
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "The id or UID of the folder to save the dashboard in.",
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					return old == "0" && new == "" || old == "" && new == "0"
 				},
@@ -221,10 +219,13 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
 	d.Set("version", int64(dashboard.Model["version"].(float64)))
 	d.Set("url", strings.TrimRight(gapiURL, "/")+dashboard.Meta.URL)
-	if dashboard.FolderID > 0 {
+
+	// If the folder was originally set to a numeric ID, we read the folder ID
+	// Othwerwise, we read the folder UID
+	if common.IDRegexp.MatchString(d.Get("folder").(string)) && dashboard.Meta.Folder > 0 {
 		d.Set("folder", strconv.FormatInt(dashboard.FolderID, 10))
 	} else {
-		d.Set("folder", "")
+		d.Set("folder", dashboard.Meta.FolderUID)
 	}
 
 	configJSONBytes, err := json.Marshal(dashboard.Model)
@@ -288,20 +289,17 @@ func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 }
 
 func makeDashboard(d *schema.ResourceData) (gapi.Dashboard, error) {
-	var parsedFolder int64 = 0
-	var err error
-	if folderStr := d.Get("folder").(string); folderStr != "" {
-		parsedFolder, err = strconv.ParseInt(d.Get("folder").(string), 10, 64)
-		if err != nil {
-			return gapi.Dashboard{}, fmt.Errorf("error parsing folder: %s", err)
-		}
-	}
-
 	dashboard := gapi.Dashboard{
-		FolderID:  parsedFolder,
 		Overwrite: d.Get("overwrite").(bool),
 		Message:   d.Get("message").(string),
 	}
+
+	if folderInt, err := strconv.ParseInt(d.Get("folder").(string), 10, 64); err == nil {
+		dashboard.FolderID = folderInt
+	} else {
+		dashboard.FolderUID = d.Get("folder").(string)
+	}
+
 	configJSON := d.Get("config_json").(string)
 	dashboardJSON, err := UnmarshalDashboardConfigJSON(configJSON)
 	if err != nil {
