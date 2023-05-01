@@ -1,4 +1,4 @@
-resource "grafana_slo" "test" {
+resource "grafana_slo" "complex" {
   name        = "Complex Resource - Terraform Testing"
   description = "Complex Resource - Terraform Description"
   query {
@@ -35,7 +35,7 @@ resource "grafana_slo" "test" {
         value = "slo"
       }
     }
-
+    
     slowburn {
       annotations {
         key   = "name"

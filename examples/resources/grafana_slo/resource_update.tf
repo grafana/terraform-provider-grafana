@@ -24,7 +24,6 @@ resource "grafana_slo" "update" {
         value = "slo"
       }
     }
-
     slowburn {
       annotations {
         key   = "name"
