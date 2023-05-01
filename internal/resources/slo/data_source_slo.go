@@ -99,10 +99,6 @@ Datasource for retrieving all SLOs.
 								error budget is below a certain threshold.`,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"name": &schema.Schema{
-										Type:     schema.TypeString,
-										Computed: true,
-									},
 									"labels": &schema.Schema{
 										Type:        schema.TypeList,
 										Computed:    true,
@@ -270,10 +266,10 @@ func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 	ret["uuid"] = slo.UUID
 	ret["name"] = slo.Name
 	ret["description"] = slo.Description
-	ret["dashboard_uid"] = slo.DrilldownDashboardRef.UID
+	ret["dashboard_uid"] = slo.DrillDownDashboardRef.UID
 	ret["query"] = unpackQuery(slo.Query)
 
-	retLabels := unpackLabels(slo.Labels)
+	retLabels := unpackLabels(&slo.Labels)
 	ret["labels"] = retLabels
 
 	retObjectives := unpackObjectives(slo.Objectives)
@@ -331,7 +327,6 @@ func unpackAlerting(alertData *gapi.Alerting) []map[string]interface{} {
 	}
 
 	alertObject := make(map[string]interface{})
-	alertObject["name"] = alertData.Name
 	alertObject["labels"] = unpackLabels(alertData.Labels)
 	alertObject["annotations"] = unpackLabels(alertData.Annotations)
 

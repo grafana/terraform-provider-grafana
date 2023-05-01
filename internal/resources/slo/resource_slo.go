@@ -37,9 +37,137 @@ Resource manages Grafana SLOs.
 				Description: `Description is a free-text field that can provide more context to an SLO.`,
 			},
 			"query": &schema.Schema{
-				Type:        schema.TypeString,
+				Type:        schema.TypeList,
 				Required:    true,
-				Description: `Query describes the indicator that will be measured against the objective. Freeform Query types are currently supported.`,
+				Description: `Query describes the indicator that will be measured against the objective.`,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"query_type": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: `Query type must be one of freeform, ratio, percentile, or threshold Queries.`,
+						},
+						"freeform_query": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"ratio_query": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"success_metric": &schema.Schema{
+										Type:     schema.TypeList,
+										Optional: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"metric": &schema.Schema{
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+												"type": &schema.Schema{
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+											},
+										},
+									},
+									"total_metric": &schema.Schema{
+										Type:     schema.TypeList,
+										Optional: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"metric": &schema.Schema{
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+												"type": &schema.Schema{
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+						"percentile_query": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"histogram_metric": &schema.Schema{
+										Type:     schema.TypeList,
+										Optional: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"metric": &schema.Schema{
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+												"type": &schema.Schema{
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+											},
+										},
+									},
+									"percentile": {
+										Type:     schema.TypeFloat,
+										Optional: true,
+									},
+								},
+							},
+						},
+						"threshold_query": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"threshold_metric": &schema.Schema{
+										Type:     schema.TypeList,
+										Optional: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"metric": &schema.Schema{
+													Type:     schema.TypeString,
+													Required: true,
+												},
+												"type": &schema.Schema{
+													Type:     schema.TypeString,
+													Required: true,
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+						"threshold": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"value": &schema.Schema{
+										Type:     schema.TypeFloat,
+										Optional: true,
+									},
+									"operator": &schema.Schema{
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
+							},
+						},
+						"group_by_labels": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
+					},
+				},
 			},
 			"labels": &schema.Schema{
 				Type:        schema.TypeList,
@@ -93,10 +221,6 @@ Resource manages Grafana SLOs.
 				error budget is below a certain threshold.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
 						"labels": &schema.Schema{
 							Type:        schema.TypeList,
 							Optional:    true,
@@ -327,10 +451,16 @@ func packSloResource(d *schema.ResourceData) gapi.Slo {
 
 	tfname := d.Get("name").(string)
 	tfdescription := d.Get("description").(string)
-	query := d.Get("query").(string)
-	tfquery := packQuery(query)
+
+	// query := d.Get("query").(string)
+	// tfquery := packQuery(query)
+
+	query := d.Get("query").([]interface{}) // type assertion
+	queryElements := query[0].(map[string]interface{})
+	tfquery := packQuery(queryElements)
 
 	// Assumes that each SLO only has one Objective Value and one Objective Window
+	// Need to Adjust this for Multiple Objectives(?)
 	objectives := d.Get("objectives").([]interface{})
 	objective := objectives[0].(map[string]interface{})
 	tfobjective := packObjective(objective)
@@ -353,20 +483,62 @@ func packSloResource(d *schema.ResourceData) gapi.Slo {
 		Objectives:  tfobjective,
 		Query:       tfquery,
 		Alerting:    &tfalerting,
-		Labels:      &tflabels,
+		Labels:      tflabels,
 	}
 
 	return slo
 }
 
-func packQuery(query string) gapi.Query {
-	sloQuery := gapi.Query{
-		FreeformQuery: gapi.FreeformQuery{
-			Query: query,
-		},
-	}
+func packQuery(tfquery map[string]interface{}) gapi.Query {
+	var query gapi.Query
 
-	return sloQuery
+	querytype := tfquery["query_type"].(string)
+	// querythresholdstruct := tfquery["threshold"].([]interface{})
+	// querylabelsstruct := tfquery["group_by_labels"].([]interface{})
+
+	switch querytype {
+	case "freeform":
+		freeformQuery := tfquery["freeform_query"].(string)
+		query = gapi.Query{
+			FreeformQuery: generateFreeformQuery(freeformQuery),
+			// GroupByLabels: generateQueryLabels(querylabelsstruct),
+		}
+		return query
+
+	// case "ratio":
+	// 	ratioQuery := tfquery["ratio_query"].([]interface{})[0].(map[string]interface{})
+
+	// 	query = gapi.Query{
+	// 		RatioQuery:    generateRatioQuery(ratioQuery),
+	// 		GroupByLabels: generateQueryLabels(querylabelsstruct),
+	// 	}
+	// 	return query
+	// case "percentile":
+	// 	percentileQuery := tfquery["percentile_query"].([]interface{})[0].(map[string]interface{})
+
+	// 	query = gapi.Query{
+	// 		PercentileQuery: generatePercentileQuery(percentileQuery),
+	// 		GroupByLabels:   generateQueryLabels(querylabelsstruct),
+	// 	}
+	// case "threshold":
+	// 	thresholdQuery := tfquery["threshold_query"].([]interface{})[0].(map[string]interface{})
+
+	// 	query = gapi.Query{
+	// 		ThresholdQuery: generateThresholdQuery(thresholdQuery),
+	// 		Threshold:      generateThreshold(querythresholdstruct),
+	// 		GroupByLabels:  generateQueryLabels(querylabelsstruct),
+	// 	}
+	// 	return query
+
+	default:
+		return query
+	}
+}
+
+func generateFreeformQuery(query string) gapi.FreeformQuery {
+	return gapi.FreeformQuery{
+		Query: query,
+	}
 }
 
 func packObjective(tfobjective map[string]interface{}) []gapi.Objective {
@@ -411,7 +583,6 @@ func packAlerting(tfAlerting map[string]interface{}) gapi.Alerting {
 	tfSlowBurn := packAlertMetadata(slowBurn)
 
 	alerting := gapi.Alerting{
-		Name:        tfAlerting["name"].(string),
 		Annotations: &tfAnnots,
 		Labels:      &tfLabels,
 		FastBurn:    &tfFastBurn,
@@ -441,10 +612,10 @@ func packAlertMetadata(metadata []interface{}) gapi.AlertMetadata {
 func setTerraformState(d *schema.ResourceData, slo gapi.Slo) {
 	d.Set("name", slo.Name)
 	d.Set("description", slo.Description)
-	d.Set("dashboard_uid", slo.DrilldownDashboardRef.UID)
+	d.Set("dashboard_uid", slo.DrillDownDashboardRef.UID)
 	d.Set("query", unpackQuery(slo.Query))
 
-	retLabels := unpackLabels(slo.Labels)
+	retLabels := unpackLabels(&slo.Labels)
 	d.Set("labels", retLabels)
 
 	retObjectives := unpackObjectives(slo.Objectives)
