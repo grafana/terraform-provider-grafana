@@ -194,12 +194,12 @@ Resource manages Grafana SLOs.
 				Description: `Over each rolling time window, the remaining error budget will be calculated, and separate alerts can be generated for each time window based on the SLO burn rate or remaining error budget.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"objective_value": &schema.Schema{
+						"value": &schema.Schema{
 							Type:        schema.TypeFloat,
 							Required:    true,
 							Description: `Value between 0 and 1. If the value of the query is above the objective, the SLO is met.`,
 						},
-						"objective_window": &schema.Schema{
+						"window": &schema.Schema{
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: `A Prometheus-parsable time duration string like 24h, 60m. This is the time window the objective is measured over.`,
