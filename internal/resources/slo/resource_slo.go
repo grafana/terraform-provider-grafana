@@ -160,13 +160,6 @@ Resource manages Grafana SLOs.
 								},
 							},
 						},
-						"group_by_labels": &schema.Schema{
-							Type:     schema.TypeList,
-							Optional: true,
-							Elem: &schema.Schema{
-								Type: schema.TypeString,
-							},
-						},
 					},
 				},
 			},
@@ -356,7 +349,7 @@ func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Unable to Pack SLO",
+			Summary:  "Unable to create SLO",
 			Detail:   fmt.Sprintf("Error Message:%s", err.Error()),
 		})
 	}
@@ -367,7 +360,7 @@ func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
-			Summary:  "Unable to create SLO - API",
+			Summary:  "Unable to create SLO",
 			Detail:   fmt.Sprintf("API Error Message:%s", err.Error()),
 		})
 
@@ -492,16 +485,13 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 
 func packQuery(tfquery map[string]interface{}) (gapi.Query, error) {
 	var query gapi.Query
-
 	queryType := tfquery["query_type"].(string)
-	queryLabelsStruct := tfquery["group_by_labels"].([]interface{})
 
 	switch queryType {
 	case "freeform":
 		freeformQuery := tfquery["freeform_query"].(string)
 		query = gapi.Query{
 			FreeformQuery: packFreeformQuery(freeformQuery),
-			GroupByLabels: packQueryLabels(queryLabelsStruct),
 		}
 		return query, nil
 	case "ratio":
@@ -513,16 +503,6 @@ func packQuery(tfquery map[string]interface{}) (gapi.Query, error) {
 	default:
 		return query, errors.New("query must be of type freeform, ratio, percentile, or threshold")
 	}
-}
-
-func packQueryLabels(tfquerylabels []interface{}) []string {
-	var retQueryLabels []string
-
-	for _, label := range tfquerylabels {
-		strLabel := label.(string)
-		retQueryLabels = append(retQueryLabels, strLabel)
-	}
-	return retQueryLabels
 }
 
 func packFreeformQuery(query string) gapi.FreeformQuery {

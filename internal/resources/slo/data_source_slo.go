@@ -44,9 +44,130 @@ Datasource for retrieving all SLOs.
 							Description: `Description is a free-text field that can provide more context to an SLO.`,
 						},
 						"query": &schema.Schema{
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: `Query describes the indicator that will be measured against the objective. Freeform Query types are currently supported.`,
+							Type:        schema.TypeList,
+							Required:    true,
+							Description: `Query describes the indicator that will be measured against the objective.`,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"query_type": {
+										Type:        schema.TypeString,
+										Required:    true,
+										Description: `Query type must be one of freeform, ratio, percentile, or threshold Queries.`,
+									},
+									"freeform_query": &schema.Schema{
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+									"ratio_query": &schema.Schema{
+										Type:     schema.TypeList,
+										Optional: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"success_metric": &schema.Schema{
+													Type:     schema.TypeList,
+													Optional: true,
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"metric": &schema.Schema{
+																Type:     schema.TypeString,
+																Optional: true,
+															},
+															"type": &schema.Schema{
+																Type:     schema.TypeString,
+																Optional: true,
+															},
+														},
+													},
+												},
+												"total_metric": &schema.Schema{
+													Type:     schema.TypeList,
+													Optional: true,
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"metric": &schema.Schema{
+																Type:     schema.TypeString,
+																Optional: true,
+															},
+															"type": &schema.Schema{
+																Type:     schema.TypeString,
+																Optional: true,
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+									"percentile_query": &schema.Schema{
+										Type:     schema.TypeList,
+										Optional: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"histogram_metric": &schema.Schema{
+													Type:     schema.TypeList,
+													Optional: true,
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"metric": &schema.Schema{
+																Type:     schema.TypeString,
+																Optional: true,
+															},
+															"type": &schema.Schema{
+																Type:     schema.TypeString,
+																Optional: true,
+															},
+														},
+													},
+												},
+												"percentile": {
+													Type:     schema.TypeFloat,
+													Optional: true,
+												},
+											},
+										},
+									},
+									"threshold_query": &schema.Schema{
+										Type:     schema.TypeList,
+										Optional: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"threshold_metric": &schema.Schema{
+													Type:     schema.TypeList,
+													Optional: true,
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"metric": &schema.Schema{
+																Type:     schema.TypeString,
+																Required: true,
+															},
+															"type": &schema.Schema{
+																Type:     schema.TypeString,
+																Required: true,
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+									"threshold": &schema.Schema{
+										Type:     schema.TypeList,
+										Optional: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"value": &schema.Schema{
+													Type:     schema.TypeFloat,
+													Optional: true,
+												},
+												"operator": &schema.Schema{
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+											},
+										},
+									},
+								},
+							},
 						},
 						"labels": &schema.Schema{
 							Type:        schema.TypeList,
@@ -276,13 +397,17 @@ func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 	return ret
 }
 
-// TBD for Other Query Types Once Implemented
-func unpackQuery(query gapi.Query) string {
+func unpackQuery(query gapi.Query) []map[string]interface{} {
+	retQueries := []map[string]interface{}{}
+
 	if query.FreeformQuery.Query != "" {
-		return query.FreeformQuery.Query
+		retQuery := make(map[string]interface{})
+		retQuery["query_type"] = "freeform"
+		retQuery["freeform_query"] = query.FreeformQuery.Query
+		retQueries = append(retQueries, retQuery)
 	}
 
-	return "Query Type Not Implemented"
+	return retQueries
 }
 
 func unpackObjectives(objectives []gapi.Objective) []map[string]interface{} {
@@ -290,8 +415,8 @@ func unpackObjectives(objectives []gapi.Objective) []map[string]interface{} {
 
 	for _, objective := range objectives {
 		retObjective := make(map[string]interface{})
-		retObjective["objective_value"] = objective.Value
-		retObjective["objective_window"] = objective.Window
+		retObjective["value"] = objective.Value
+		retObjective["window"] = objective.Window
 		retObjectives = append(retObjectives, retObjective)
 	}
 
