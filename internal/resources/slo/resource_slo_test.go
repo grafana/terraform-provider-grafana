@@ -96,8 +96,8 @@ resource  "grafana_slo" "invalid" {
     freeform_query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
   }
   objectives {
-	objective_value  = 0.995
-    objective_window = "30d"
+	value  = 0.995
+    window = "30d"
   }
 }
 `
@@ -111,8 +111,8 @@ resource  "grafana_slo" "invalid" {
     freeform_query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
   }
   objectives {
-	objective_value  = 1.5
-    objective_window = "1m"
+	value  = 1.5
+    window = "1m"
   }
 }
 `
