@@ -93,7 +93,7 @@ resource  "grafana_slo" "invalid" {
   description     = "Description Test SLO"
   query {
     query_type = "freeform"
-    freeform_query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+    freeform_query = "Invalid Query"
   }
   objectives {
 	value  = 0.995
