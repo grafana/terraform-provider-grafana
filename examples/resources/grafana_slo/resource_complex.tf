@@ -2,7 +2,7 @@ resource "grafana_slo" "test" {
   name        = "Complex Resource - Terraform Testing"
   description = "Complex Resource - Terraform Description"
   query {
-    query_type = "freeform"
+    query_type     = "freeform"
     freeform_query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
   }
   objectives {

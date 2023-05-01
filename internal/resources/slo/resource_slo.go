@@ -533,8 +533,8 @@ func packFreeformQuery(query string) gapi.FreeformQuery {
 
 func packObjective(tfobjective map[string]interface{}) []gapi.Objective {
 	objective := gapi.Objective{
-		Value:  tfobjective["objective_value"].(float64),
-		Window: tfobjective["objective_window"].(string),
+		Value:  tfobjective["value"].(float64),
+		Window: tfobjective["window"].(string),
 	}
 
 	objectiveSlice := []gapi.Objective{}

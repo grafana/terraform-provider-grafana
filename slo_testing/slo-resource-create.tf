@@ -1,7 +1,7 @@
 terraform {
   required_providers {
-    grafana = { 
-      source  = "registry.terraform.io/grafana/grafana"
+    grafana = {
+      source = "registry.terraform.io/grafana/grafana"
     }
   }
 }
@@ -14,7 +14,7 @@ resource "grafana_slo" "test1" {
   name        = "Terraform - Name Test"
   description = "Terraform - Description Test"
   query {
-    query_type = "freeform"
+    query_type     = "freeform"
     freeform_query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
   }
   objectives {
