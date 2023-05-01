@@ -28,7 +28,7 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttrSet("grafana_slo.test", "dashboard_uid"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "name", "Terraform Testing"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "description", "Terraform Description"),
-					resource.TestCheckResourceAttr("grafana_slo.test", "query", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "query.0.freeform_query", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.objective_value", "0.995"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.objective_window", "30d"),
 				),
@@ -41,7 +41,7 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttrSet("grafana_slo.update", "dashboard_uid"),
 					resource.TestCheckResourceAttr("grafana_slo.update", "name", "Updated - Terraform Testing"),
 					resource.TestCheckResourceAttr("grafana_slo.update", "description", "Updated - Terraform Description"),
-					resource.TestCheckResourceAttr("grafana_slo.update", "query", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
+					resource.TestCheckResourceAttr("grafana_slo.update", "query.0.freeform_query", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
 					resource.TestCheckResourceAttr("grafana_slo.update", "objectives.0.objective_value", "0.9995"),
 					resource.TestCheckResourceAttr("grafana_slo.update", "objectives.0.objective_window", "7d"),
 				),
@@ -91,7 +91,10 @@ const sloQueryInvalid = `
 resource  "grafana_slo" "invalid" {
   name            = "Test SLO"
   description     = "Description Test SLO"
-  query           = "Invalid Query"
+  query {
+    query_type = "freeform"
+    freeform_query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+  }
   objectives {
 	objective_value  = 0.995
     objective_window = "30d"
@@ -103,7 +106,10 @@ const sloObjectivesInvalid = `
 resource  "grafana_slo" "invalid" {
   name            = "Test SLO"
   description     = "Description Test SLO"
-  query           = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+  query {
+    query_type = "freeform"
+    freeform_query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+  }
   objectives {
 	objective_value  = 1.5
     objective_window = "1m"

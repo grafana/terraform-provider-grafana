@@ -229,8 +229,6 @@ Datasource for retrieving all SLOs.
 	}
 }
 
-// Function sends a GET request to the SLO API Endpoint which returns a list of all SLOs
-// Maps the API Response body to the Terraform Schema and displays as a READ in the terminal
 func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
@@ -240,11 +238,8 @@ func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{
 	terraformSlos := []interface{}{}
 
 	if len(apiSlos.Slos) == 0 {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "No SLOs Exist",
-			Detail:   "No SLOs currently exist. Create a new one.",
-		})
+		d.SetId("slos")
+		d.Set("slos", terraformSlos)
 
 		return diags
 	}
