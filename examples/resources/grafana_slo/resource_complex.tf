@@ -6,8 +6,8 @@ resource "grafana_slo" "test" {
     freeform_query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
   }
   objectives {
-    objective_value  = 0.995
-    objective_window = "30d"
+    value  = 0.995
+    window = "30d"
   }
   labels {
     key   = "slokey"

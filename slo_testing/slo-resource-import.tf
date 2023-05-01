@@ -13,7 +13,10 @@ provider "grafana" {
 resource "grafana_slo" "sample" {
   name        = "Terraform - Import Test Name"
   description = "Terraform - Import Test Description"
-  query       = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+  query {
+    query_type = "freeform"
+    freeform_query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+  }
   objectives {
     objective_value  = 0.995
     objective_window = "30d"

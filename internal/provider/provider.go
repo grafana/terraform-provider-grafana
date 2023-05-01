@@ -127,7 +127,7 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_organization_preferences": grafana.DatasourceOrganizationPreferences(),
 
 			// SLO
-			"grafana_slo": slo.DatasourceSlo(),
+			"grafana_slos": slo.DatasourceSlo(),
 		})
 
 		// Datasources that require the Synthetic Monitoring client to exist.

@@ -521,7 +521,6 @@ func packQueryLabels(tfquerylabels []interface{}) []string {
 	for _, label := range tfquerylabels {
 		strLabel := label.(string)
 		retQueryLabels = append(retQueryLabels, strLabel)
-
 	}
 	return retQueryLabels
 }
