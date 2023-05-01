@@ -452,10 +452,7 @@ func packSloResource(d *schema.ResourceData) gapi.Slo {
 	tfname := d.Get("name").(string)
 	tfdescription := d.Get("description").(string)
 
-	// query := d.Get("query").(string)
-	// tfquery := packQuery(query)
-
-	query := d.Get("query").([]interface{}) // type assertion
+	query := d.Get("query").([]interface{})
 	queryElements := query[0].(map[string]interface{})
 	tfquery := packQuery(queryElements)
 
@@ -492,16 +489,16 @@ func packSloResource(d *schema.ResourceData) gapi.Slo {
 func packQuery(tfquery map[string]interface{}) gapi.Query {
 	var query gapi.Query
 
-	querytype := tfquery["query_type"].(string)
-	// querythresholdstruct := tfquery["threshold"].([]interface{})
-	// querylabelsstruct := tfquery["group_by_labels"].([]interface{})
+	queryType := tfquery["query_type"].(string)
+	// queryThresholdStruct := tfquery["threshold"].([]interface{})
+	queryLabelsStruct := tfquery["group_by_labels"].([]interface{})
 
-	switch querytype {
+	switch queryType {
 	case "freeform":
 		freeformQuery := tfquery["freeform_query"].(string)
 		query = gapi.Query{
-			FreeformQuery: generateFreeformQuery(freeformQuery),
-			// GroupByLabels: generateQueryLabels(querylabelsstruct),
+			FreeformQuery: packFreeformQuery(freeformQuery),
+			GroupByLabels: packQueryLabels(queryLabelsStruct),
 		}
 		return query
 
@@ -535,7 +532,18 @@ func packQuery(tfquery map[string]interface{}) gapi.Query {
 	}
 }
 
-func generateFreeformQuery(query string) gapi.FreeformQuery {
+func packQueryLabels(tfquerylabels []interface{}) []string {
+	var retQueryLabels []string
+
+	for _, label := range tfquerylabels {
+		strLabel := label.(string)
+		retQueryLabels = append(retQueryLabels, strLabel)
+
+	}
+	return retQueryLabels
+}
+
+func packFreeformQuery(query string) gapi.FreeformQuery {
 	return gapi.FreeformQuery{
 		Query: query,
 	}
