@@ -203,7 +203,7 @@ func testAccLibraryPanelFolderCheckDestroy(panel *gapi.LibraryPanel, folder *gap
 		if err == nil {
 			return fmt.Errorf("panel still exists")
 		}
-		folder, err = grafana.GetFolderByID(client, folder.ID)
+		folder, err = grafana.GetFolderByIDorUID(client, folder.UID)
 		if err == nil {
 			return fmt.Errorf("the following folder still exists: %s", folder.Title)
 		}
