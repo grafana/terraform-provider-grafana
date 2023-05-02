@@ -4,8 +4,9 @@ page_title: "grafana_user Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
   Official documentation https://grafana.com/docs/grafana/latest/administration/user-management/server-user-management/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/user/
-  This resource uses Grafana's admin APIs for creating and updating users which
-  does not currently work with API Tokens. You must use basic auth.
+  This resource represents an instance-scoped resource and uses Grafana's admin APIs.
+  It does not work with API tokens or service accounts which are org-scoped.
+  You must use basic auth.
 ---
 
 # grafana_user (Resource)
@@ -13,8 +14,9 @@ description: |-
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/user-management/server-user-management/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/user/)
 
-This resource uses Grafana's admin APIs for creating and updating users which
-does not currently work with API Tokens. You must use basic auth.
+This resource represents an instance-scoped resource and uses Grafana's admin APIs.
+It does not work with API tokens or service accounts which are org-scoped. 
+You must use basic auth.
 
 ## Example Usage
 
