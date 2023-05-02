@@ -9,7 +9,7 @@ steps:
 - commands:
   - golangci-lint --version
   - golangci-lint run ./...
-  image: golangci/golangci-lint:v1.49
+  image: golangci/golangci-lint:v1.52
   name: lint
 - commands:
   - |
@@ -42,12 +42,12 @@ steps:
   - '  echo "docs are out of sync, run \"go generate\""'
   - '  exit 1'
   - fi
-  image: golang:1.18
+  image: golang:1.20
   name: check for drift
 - commands:
   - pip3 install linkchecker
   - linkchecker --config ./.linkcheckerrc docs/
-  image: python:3.9-alpine
+  image: python:3.11-alpine
   name: check for broken links
 trigger:
   branch:
@@ -75,7 +75,7 @@ steps:
   - go test ./...
   environment:
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.18
+  image: golang:1.20
   name: tests
 trigger:
   branch:
@@ -109,7 +109,7 @@ steps:
     GRAFANA_CLOUD_ORG:
       from_secret: grafana-cloud-org
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.18
+  image: golang:1.20
   name: tests
 trigger:
   event:
@@ -137,7 +137,7 @@ steps:
   environment:
     GRAFANA_URL:
       from_secret: grafana-cloud-instance-url
-  image: golang:1.18
+  image: golang:1.20
   name: wait for instance
 - commands:
   - make testacc-cloud-instance
@@ -152,7 +152,7 @@ steps:
     GRAFANA_URL:
       from_secret: grafana-cloud-instance-url
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.18
+  image: golang:1.20
   name: tests
 trigger:
   branch:
@@ -192,7 +192,7 @@ steps:
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 9.4.3
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.18
+  image: golang:1.20
   name: tests
 trigger:
   branch:
@@ -230,7 +230,7 @@ steps:
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 9.4.3
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.18
+  image: golang:1.20
   name: tests
 trigger:
   branch:
@@ -268,7 +268,7 @@ steps:
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 9.3.8
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.18
+  image: golang:1.20
   name: tests
 trigger:
   branch:
@@ -306,7 +306,7 @@ steps:
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 9.2.13
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.18
+  image: golang:1.20
   name: tests
 trigger:
   branch:
@@ -344,7 +344,7 @@ steps:
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 8.5.21
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.18
+  image: golang:1.20
   name: tests
 trigger:
   branch:
@@ -382,7 +382,7 @@ steps:
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 7.5.17
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.18
+  image: golang:1.20
   name: tests
 trigger:
   branch:
@@ -437,6 +437,6 @@ kind: secret
 name: grafana-sm-token
 ---
 kind: signature
-hmac: 31e7676bf05214d323f3b26d66c84c6e111f193e924db7f491e1de7210992d05
+hmac: 8f1bd6cb722602fa9b162dc0f186bffd2112cec7c2e41544066beb82e09d08b7
 
 ...
