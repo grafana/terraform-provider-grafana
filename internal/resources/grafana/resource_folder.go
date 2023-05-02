@@ -200,6 +200,7 @@ func GetFolderByIDorUID(client *gapi.Client, id string) (*gapi.Folder, error) {
 		for _, folder := range folders {
 			if folder.ID == numericalID {
 				uid = folder.UID
+				break
 			}
 		}
 	}
