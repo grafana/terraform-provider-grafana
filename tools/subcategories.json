@@ -73,7 +73,7 @@
     "data-sources/oncall_team": "OnCall",
     "data-sources/oncall_user": "OnCall",
     "data-sources/oncall_user_group": "OnCall",
-    "data-sources/slo": "SLO",
+    "data-sources/slos": "SLO",
     "data-sources/synthetic_monitoring_probe": "Synthetic Monitoring",
     "data-sources/synthetic_monitoring_probes": "Synthetic Monitoring"
 }

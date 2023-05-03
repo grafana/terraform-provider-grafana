@@ -38,4 +38,4 @@ resource "grafana_slo" "test" {
   }
 }
 
-data "grafana_slo" "slos" {}
+data "grafana_slos" "slos" {}

@@ -27,12 +27,12 @@ func TestAccDataSourceSlo(t *testing.T) {
 			},
 			{
 				// Verifies that the created SLO Resource is read by the Datasource Read Method
-				Config: testutils.TestAccExample(t, "data-sources/grafana_slo/data-source.tf"),
+				Config: testutils.TestAccExample(t, "data-sources/grafana_slos/data-source.tf"),
 				Check: resource.ComposeTestCheckFunc(
 
-					resource.TestCheckResourceAttrSet("data.grafana_slo.slos", "slos.0.uuid"),
-					resource.TestCheckResourceAttr("data.grafana_slo.slos", "slos.0.name", "Terraform Testing"),
-					resource.TestCheckResourceAttr("data.grafana_slo.slos", "slos.0.description", "Terraform Description"),
+					resource.TestCheckResourceAttrSet("data.grafana_slos.slos", "slos.0.uuid"),
+					resource.TestCheckResourceAttr("data.grafana_slos.slos", "slos.0.name", "Terraform Testing"),
+					resource.TestCheckResourceAttr("data.grafana_slos.slos", "slos.0.description", "Terraform Description"),
 				),
 			},
 		},

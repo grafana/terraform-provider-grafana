@@ -10,9 +10,9 @@ provider "grafana" {
   url = "https://elainetest.grafana.net/"
 }
 
-data "grafana_slo" "test1" {
+data "grafana_slos" "test1" {
 }
 
 output "test1" {
-  value = data.grafana_slo.test1
+  value = data.grafana_slos.test1
 }
