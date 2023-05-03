@@ -84,12 +84,12 @@ Datasource for retrieving all SLOs.
 							Description: `Over each rolling time window, the remaining error budget will be calculated, and separate alerts can be generated for each time window based on the SLO burn rate or remaining error budget.`,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"objective_value": &schema.Schema{
+									"value": &schema.Schema{
 										Type:        schema.TypeFloat,
 										Computed:    true,
 										Description: `Value between 0 and 1. If the value of the query is above the objective, the SLO is met.`,
 									},
-									"objective_window": &schema.Schema{
+									"window": &schema.Schema{
 										Type:        schema.TypeString,
 										Computed:    true,
 										Description: `A Prometheus-parsable time duration string like 24h, 60m. This is the time window the objective is measured over.`,
@@ -279,7 +279,11 @@ func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 	ret["uuid"] = slo.UUID
 	ret["name"] = slo.Name
 	ret["description"] = slo.Description
-	ret["dashboard_uid"] = slo.DrillDownDashboardRef.UID
+
+	if slo.DrillDownDashboardRef != nil {
+		ret["dashboard_uid"] = slo.DrillDownDashboardRef.UID
+	}
+
 	ret["query"] = unpackQuery(slo.Query)
 
 	retLabels := unpackLabels(&slo.Labels)
@@ -312,8 +316,8 @@ func unpackObjectives(objectives []gapi.Objective) []map[string]interface{} {
 
 	for _, objective := range objectives {
 		retObjective := make(map[string]interface{})
-		retObjective["objective_value"] = objective.Value
-		retObjective["objective_window"] = objective.Window
+		retObjective["value"] = objective.Value
+		retObjective["window"] = objective.Window
 		retObjectives = append(retObjectives, retObjective)
 	}
 

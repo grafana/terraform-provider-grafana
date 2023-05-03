@@ -6,8 +6,8 @@ resource "grafana_slo" "update" {
     type = "freeform"
   }
   objectives {
-    objective_value  = 0.9995
-    objective_window = "7d"
+    value  = 0.9995
+    window = "7d"
   }
   labels {
     key   = "customkey"

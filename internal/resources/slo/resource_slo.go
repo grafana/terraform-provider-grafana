@@ -75,17 +75,16 @@ Resource manages Grafana SLOs.
 			},
 			"objectives": &schema.Schema{
 				Type:        schema.TypeList,
-				MaxItems:    1,
 				Required:    true,
 				Description: `Over each rolling time window, the remaining error budget will be calculated, and separate alerts can be generated for each time window based on the SLO burn rate or remaining error budget.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"objective_value": &schema.Schema{
+						"value": &schema.Schema{
 							Type:        schema.TypeFloat,
 							Required:    true,
 							Description: `Value between 0 and 1. If the value of the query is above the objective, the SLO is met.`,
 						},
-						"objective_window": &schema.Schema{
+						"window": &schema.Schema{
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: `A Prometheus-parsable time duration string like 24h, 60m. This is the time window the objective is measured over.`,
@@ -356,8 +355,8 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 
 	// Assumes that each SLO only has one Objective Value and one Objective Window
 	objectives := d.Get("objectives").([]interface{})
-	objective := objectives[0].(map[string]interface{})
-	tfobjective := packObjective(objective)
+	// objective := objectives[0].(map[string]interface{})
+	tfobjective := packObjectives(objectives)
 
 	labels := d.Get("labels").([]interface{})
 	if labels != nil {
@@ -396,16 +395,19 @@ func packQuery(query map[string]interface{}) (gapi.Query, error) {
 	return gapi.Query{}, errors.New("Query type not implemented")
 }
 
-func packObjective(tfobjective map[string]interface{}) []gapi.Objective {
-	objective := gapi.Objective{
-		Value:  tfobjective["objective_value"].(float64),
-		Window: tfobjective["objective_window"].(string),
+func packObjectives(tfobjectives []interface{}) []gapi.Objective {
+	objectives := []gapi.Objective{}
+
+	for ind := range tfobjectives {
+		tfobjective := tfobjectives[ind].(map[string]interface{})
+		objective := gapi.Objective{
+			Value:  tfobjective["value"].(float64),
+			Window: tfobjective["window"].(string),
+		}
+		objectives = append(objectives, objective)
 	}
 
-	objectiveSlice := []gapi.Objective{}
-	objectiveSlice = append(objectiveSlice, objective)
-
-	return objectiveSlice
+	return objectives
 }
 
 func packLabels(tfLabels []interface{}) []gapi.Label {

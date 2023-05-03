@@ -6,8 +6,8 @@ resource "grafana_slo" "test" {
     type = "freeform"
   }
   objectives {
-    objective_value  = 0.995
-    objective_window = "30d"
+    value  = 0.995
+    window = "30d"
   }
   labels {
     key   = "custom"
