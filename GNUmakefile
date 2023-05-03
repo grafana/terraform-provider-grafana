@@ -1,4 +1,4 @@
-GRAFANA_VERSION ?= 9.4.3
+GRAFANA_VERSION ?= 9.5.1
 
 testacc:
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
@@ -56,7 +56,8 @@ golangci-lint:
 		--rm \
 		--volume "$(shell pwd):/src" \
 		--workdir "/src" \
-		golangci/golangci-lint:v1.49 golangci-lint run ./...
+		golangci/golangci-lint:v1.52 golangci-lint run ./...
 
 linkcheck:
-	docker run -it --entrypoint sh -v "$$PWD:$$PWD" -w "$$PWD" python:3.9-alpine -c "pip3 install linkchecker && linkchecker --config .linkcheckerrc docs"
+	docker run -it --entrypoint sh -v "$$PWD:$$PWD" -w "$$PWD" python:3.11-alpine -c "pip3 install linkchecker && linkchecker --config .linkcheckerrc docs"
+
