@@ -2,6 +2,7 @@ package slo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -37,9 +38,23 @@ Resource manages Grafana SLOs.
 				Description: `Description is a free-text field that can provide more context to an SLO.`,
 			},
 			"query": &schema.Schema{
-				Type:        schema.TypeString,
+				Type:        schema.TypeList,
+				MaxItems:    1,
 				Required:    true,
 				Description: `Query describes the indicator that will be measured against the objective. Freeform Query types are currently supported.`,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": &schema.Schema{
+							Type:        schema.TypeString,
+							Description: `Query type must be one of: "freeform", "query", "ratio", or "threshold"`,
+							Required:    true,
+						},
+						"freeformquery": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
 			},
 			"labels": &schema.Schema{
 				Type:        schema.TypeList,
@@ -93,10 +108,6 @@ Resource manages Grafana SLOs.
 				error budget is below a certain threshold.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
 						"labels": &schema.Schema{
 							Type:        schema.TypeList,
 							Optional:    true,
@@ -232,7 +243,15 @@ Resource manages Grafana SLOs.
 func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	slo := packSloResource(d)
+	slo, err := packSloResource(d)
+	if err != nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Unable to Pack SLO",
+			Detail:   err.Error(),
+		})
+		return diags
+	}
 
 	client := m.(*common.Client).GrafanaAPI
 	response, err := client.CreateSlo(slo)
@@ -243,14 +262,10 @@ func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{
 			Summary:  "Unable to create SLO - API",
 			Detail:   fmt.Sprintf("API Error Message:%s", err.Error()),
 		})
-
 		return diags
 	}
 
-	// Get the response back from the API, we need to set the ID of the Terraform Resource
 	d.SetId(response.UUID)
-
-	// Executes a READ, displays the newly created SLO Resource within Terraform
 	resourceSloRead(ctx, d, m)
 
 	return diags
@@ -271,7 +286,6 @@ func resourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{})
 			Summary:  fmt.Sprintf("Unable to Fetch Slo with ID: %s", sloID),
 			Detail:   fmt.Sprintf("API Error Message:%s", err.Error()),
 		})
-
 		return diags
 	}
 
@@ -285,18 +299,25 @@ func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{
 	sloID := d.Id()
 
 	if d.HasChange("name") || d.HasChange("description") || d.HasChange("query") || d.HasChange("labels") || d.HasChange("objectives") || d.HasChange("alerting") {
-		slo := packSloResource(d)
+		slo, err := packSloResource(d)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Unable to Pack SLO",
+				Detail:   err.Error(),
+			})
+			return diags
+		}
 
 		client := m.(*common.Client).GrafanaAPI
-		err := client.UpdateSlo(sloID, slo)
 
+		err = client.UpdateSlo(sloID, slo)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary:  fmt.Sprintf("Unable to Update Slo with ID: %s", sloID),
 				Detail:   fmt.Sprintf("API Error Message:%s", err.Error()),
 			})
-
 			return diags
 		}
 	}
@@ -319,7 +340,7 @@ func resourceSloDelete(ctx context.Context, d *schema.ResourceData, m interface{
 
 // Fetches all the Properties defined on the Terraform SLO State Object and converts it
 // to a Slo so that it can be converted to JSON and sent to the API
-func packSloResource(d *schema.ResourceData) gapi.Slo {
+func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 	var (
 		tfalerting gapi.Alerting
 		tflabels   []gapi.Label
@@ -327,8 +348,11 @@ func packSloResource(d *schema.ResourceData) gapi.Slo {
 
 	tfname := d.Get("name").(string)
 	tfdescription := d.Get("description").(string)
-	query := d.Get("query").(string)
-	tfquery := packQuery(query)
+	query := d.Get("query").([]interface{})[0].(map[string]interface{})
+	tfquery, err := packQuery(query)
+	if err != nil {
+		return gapi.Slo{}, err
+	}
 
 	// Assumes that each SLO only has one Objective Value and one Objective Window
 	objectives := d.Get("objectives").([]interface{})
@@ -353,20 +377,23 @@ func packSloResource(d *schema.ResourceData) gapi.Slo {
 		Objectives:  tfobjective,
 		Query:       tfquery,
 		Alerting:    &tfalerting,
-		Labels:      &tflabels,
+		Labels:      tflabels,
 	}
 
-	return slo
+	return slo, nil
 }
 
-func packQuery(query string) gapi.Query {
-	sloQuery := gapi.Query{
-		FreeformQuery: gapi.FreeformQuery{
-			Query: query,
-		},
+func packQuery(query map[string]interface{}) (gapi.Query, error) {
+
+	if query["type"] == "freeform" {
+		sloQuery := gapi.Query{
+			Freeform: &gapi.FreeformQuery{Query: query["freeformquery"].(string)},
+			Type:     gapi.QueryTypeFreeform,
+		}
+		return sloQuery, nil
 	}
 
-	return sloQuery
+	return gapi.Query{}, errors.New("Query type not implemented")
 }
 
 func packObjective(tfobjective map[string]interface{}) []gapi.Objective {
@@ -411,9 +438,8 @@ func packAlerting(tfAlerting map[string]interface{}) gapi.Alerting {
 	tfSlowBurn := packAlertMetadata(slowBurn)
 
 	alerting := gapi.Alerting{
-		Name:        tfAlerting["name"].(string),
-		Annotations: &tfAnnots,
-		Labels:      &tfLabels,
+		Annotations: tfAnnots,
+		Labels:      tfLabels,
 		FastBurn:    &tfFastBurn,
 		SlowBurn:    &tfSlowBurn,
 	}
@@ -421,7 +447,7 @@ func packAlerting(tfAlerting map[string]interface{}) gapi.Alerting {
 	return alerting
 }
 
-func packAlertMetadata(metadata []interface{}) gapi.AlertMetadata {
+func packAlertMetadata(metadata []interface{}) gapi.AlertingMetadata {
 	meta := metadata[0].(map[string]interface{})
 
 	labels := meta["labels"].([]interface{})
@@ -430,9 +456,9 @@ func packAlertMetadata(metadata []interface{}) gapi.AlertMetadata {
 	annots := meta["annotations"].([]interface{})
 	tfannots := packLabels(annots)
 
-	apiMetadata := gapi.AlertMetadata{
-		Labels:      &tflabels,
-		Annotations: &tfannots,
+	apiMetadata := gapi.AlertingMetadata{
+		Labels:      tflabels,
+		Annotations: tfannots,
 	}
 
 	return apiMetadata
@@ -441,10 +467,10 @@ func packAlertMetadata(metadata []interface{}) gapi.AlertMetadata {
 func setTerraformState(d *schema.ResourceData, slo gapi.Slo) {
 	d.Set("name", slo.Name)
 	d.Set("description", slo.Description)
-	d.Set("dashboard_uid", slo.DrilldownDashboardRef.UID)
+	d.Set("dashboard_uid", slo.DrillDownDashboardRef.UID)
 	d.Set("query", unpackQuery(slo.Query))
 
-	retLabels := unpackLabels(slo.Labels)
+	retLabels := unpackLabels(&slo.Labels)
 	d.Set("labels", retLabels)
 
 	retObjectives := unpackObjectives(slo.Objectives)

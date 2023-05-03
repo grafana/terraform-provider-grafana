@@ -28,7 +28,8 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttrSet("grafana_slo.test", "dashboard_uid"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "name", "Terraform Testing"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "description", "Terraform Description"),
-					resource.TestCheckResourceAttr("grafana_slo.test", "query", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "query.0.type", "freeform"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "query.0.freeformquery", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.objective_value", "0.995"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.objective_window", "30d"),
 				),
@@ -41,7 +42,8 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttrSet("grafana_slo.update", "dashboard_uid"),
 					resource.TestCheckResourceAttr("grafana_slo.update", "name", "Updated - Terraform Testing"),
 					resource.TestCheckResourceAttr("grafana_slo.update", "description", "Updated - Terraform Description"),
-					resource.TestCheckResourceAttr("grafana_slo.update", "query", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
+					resource.TestCheckResourceAttr("grafana_slo.update", "query.0.type", "freeform"),
+					resource.TestCheckResourceAttr("grafana_slo.update", "query.0.freeformquery", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
 					resource.TestCheckResourceAttr("grafana_slo.update", "objectives.0.objective_value", "0.9995"),
 					resource.TestCheckResourceAttr("grafana_slo.update", "objectives.0.objective_window", "7d"),
 				),
@@ -87,23 +89,14 @@ func testAccSloCheckDestroy(slo *gapi.Slo) resource.TestCheckFunc {
 	}
 }
 
-const sloQueryInvalid = `
-resource  "grafana_slo" "invalid" {
-  name            = "Test SLO"
-  description     = "Description Test SLO"
-  query           = "Invalid Query"
-  objectives {
-	objective_value  = 0.995
-    objective_window = "30d"
-  }
-}
-`
-
 const sloObjectivesInvalid = `
 resource  "grafana_slo" "invalid" {
   name            = "Test SLO"
   description     = "Description Test SLO"
-  query           = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+  query {
+    freeformquery = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+    type = "freeform"
+  }
   objectives {
 	objective_value  = 1.5
     objective_window = "1m"
@@ -117,10 +110,6 @@ func TestAccResourceInvalidSlo(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
-			{
-				Config:      sloQueryInvalid,
-				ExpectError: regexp.MustCompile("Unable to create SLO"),
-			},
 			{
 				Config:      sloObjectivesInvalid,
 				ExpectError: regexp.MustCompile("Unable to create SLO"),

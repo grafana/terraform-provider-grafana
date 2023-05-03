@@ -44,9 +44,22 @@ Datasource for retrieving all SLOs.
 							Description: `Description is a free-text field that can provide more context to an SLO.`,
 						},
 						"query": &schema.Schema{
-							Type:        schema.TypeString,
-							Computed:    true,
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Required:    true,
 							Description: `Query describes the indicator that will be measured against the objective. Freeform Query types are currently supported.`,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"type": &schema.Schema{
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"freeformquery": &schema.Schema{
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
 						},
 						"labels": &schema.Schema{
 							Type:        schema.TypeList,
@@ -244,12 +257,8 @@ func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{
 	terraformSlos := []interface{}{}
 
 	if len(apiSlos.Slos) == 0 {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "No SLOs Exist",
-			Detail:   "No SLOs currently exist. Create a new one.",
-		})
-
+		d.SetId("slos")
+		d.Set("slos", terraformSlos)
 		return diags
 	}
 
@@ -270,10 +279,10 @@ func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 	ret["uuid"] = slo.UUID
 	ret["name"] = slo.Name
 	ret["description"] = slo.Description
-	ret["dashboard_uid"] = slo.DrilldownDashboardRef.UID
+	ret["dashboard_uid"] = slo.DrillDownDashboardRef.UID
 	ret["query"] = unpackQuery(slo.Query)
 
-	retLabels := unpackLabels(slo.Labels)
+	retLabels := unpackLabels(&slo.Labels)
 	ret["labels"] = retLabels
 
 	retObjectives := unpackObjectives(slo.Objectives)
@@ -286,12 +295,16 @@ func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 }
 
 // TBD for Other Query Types Once Implemented
-func unpackQuery(query gapi.Query) string {
-	if query.FreeformQuery.Query != "" {
-		return query.FreeformQuery.Query
+func unpackQuery(apiquery gapi.Query) []map[string]interface{} {
+	retQuery := []map[string]interface{}{}
+	if apiquery.Freeform.Query != "" {
+		query := make(map[string]interface{})
+		query["freeformquery"] = apiquery.Freeform.Query
+		query["type"] = "freeform"
+		retQuery = append(retQuery, query)
 	}
 
-	return "Query Type Not Implemented"
+	return retQuery
 }
 
 func unpackObjectives(objectives []gapi.Objective) []map[string]interface{} {
@@ -331,9 +344,8 @@ func unpackAlerting(alertData *gapi.Alerting) []map[string]interface{} {
 	}
 
 	alertObject := make(map[string]interface{})
-	alertObject["name"] = alertData.Name
-	alertObject["labels"] = unpackLabels(alertData.Labels)
-	alertObject["annotations"] = unpackLabels(alertData.Annotations)
+	alertObject["labels"] = unpackLabels(&alertData.Labels)
+	alertObject["annotations"] = unpackLabels(&alertData.Annotations)
 
 	if alertData.FastBurn != nil {
 		alertObject["fastburn"] = unpackAlertingMetadata(*alertData.FastBurn)
@@ -347,17 +359,17 @@ func unpackAlerting(alertData *gapi.Alerting) []map[string]interface{} {
 	return retAlertData
 }
 
-func unpackAlertingMetadata(metaData gapi.AlertMetadata) []map[string]interface{} {
+func unpackAlertingMetadata(metaData gapi.AlertingMetadata) []map[string]interface{} {
 	retAlertMetaData := []map[string]interface{}{}
 	labelsAnnotsStruct := make(map[string]interface{})
 
 	if metaData.Annotations != nil {
-		retAnnotations := unpackLabels(metaData.Annotations)
+		retAnnotations := unpackLabels(&metaData.Annotations)
 		labelsAnnotsStruct["annotations"] = retAnnotations
 	}
 
 	if metaData.Labels != nil {
-		retLabels := unpackLabels(metaData.Labels)
+		retLabels := unpackLabels(&metaData.Labels)
 		labelsAnnotsStruct["labels"] = retLabels
 	}
 
