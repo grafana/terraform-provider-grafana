@@ -17,7 +17,7 @@ Datasource for retrieving all SLOs.
 ## Example Usage
 
 ```terraform
-resource "grafana_slos" "test" {
+resource "grafana_slo" "test" {
   name        = "Terraform Testing"
   description = "Terraform Description"
   query {

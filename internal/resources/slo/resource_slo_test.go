@@ -18,7 +18,7 @@ func TestAccResourceSlo(t *testing.T) {
 	var slo gapi.Slo
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		// CheckDestroy:      testAccSloCheckDestroy(&slo),
+		CheckDestroy:      testAccSloCheckDestroy(&slo),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource.tf"),

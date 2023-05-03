@@ -383,7 +383,6 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 }
 
 func packQuery(query map[string]interface{}) (gapi.Query, error) {
-
 	if query["type"] == "freeform" {
 		sloQuery := gapi.Query{
 			Freeform: &gapi.FreeformQuery{Query: query["freeformquery"].(string)},
@@ -392,7 +391,7 @@ func packQuery(query map[string]interface{}) (gapi.Query, error) {
 		return sloQuery, nil
 	}
 
-	return gapi.Query{}, errors.New("Query type not implemented")
+	return gapi.Query{}, errors.New("query type not implemented")
 }
 
 func packObjectives(tfobjectives []interface{}) []gapi.Objective {
