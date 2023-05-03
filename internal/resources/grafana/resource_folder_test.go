@@ -243,15 +243,7 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 		}
 
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
-		if err != nil {
-			return err
-		}
-
-		if id == 0 {
-			return fmt.Errorf("got a folder id of 0")
-		}
-		gotFolder, err := grafana.GetFolderByID(client, id)
+		gotFolder, err := grafana.GetFolderByIDorUID(client, rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting folder: %s", err)
 		}
@@ -265,7 +257,7 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 func testAccFolderCheckDestroy(folder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		_, err := grafana.GetFolderByID(client, folder.ID)
+		_, err := grafana.GetFolderByIDorUID(client, folder.UID)
 		if err == nil {
 			return fmt.Errorf("folder still exists")
 		}

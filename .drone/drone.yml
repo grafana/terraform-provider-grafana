@@ -9,7 +9,7 @@ steps:
 - commands:
   - golangci-lint --version
   - golangci-lint run ./...
-  image: golangci/golangci-lint:v1.49
+  image: golangci/golangci-lint:v1.52
   name: lint
 - commands:
   - |
@@ -42,12 +42,12 @@ steps:
   - '  echo "docs are out of sync, run \"go generate\""'
   - '  exit 1'
   - fi
-  image: golang:1.18
+  image: golang:1.20
   name: check for drift
 - commands:
   - pip3 install linkchecker
   - linkchecker --config ./.linkcheckerrc docs/
-  image: python:3.9-alpine
+  image: python:3.11-alpine
   name: check for broken links
 trigger:
   branch:
@@ -75,7 +75,7 @@ steps:
   - go test ./...
   environment:
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.18
+  image: golang:1.20
   name: tests
 trigger:
   branch:
@@ -109,7 +109,7 @@ steps:
     GRAFANA_CLOUD_ORG:
       from_secret: grafana-cloud-org
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.18
+  image: golang:1.20
   name: tests
 trigger:
   event:
@@ -137,7 +137,7 @@ steps:
   environment:
     GRAFANA_URL:
       from_secret: grafana-cloud-instance-url
-  image: golang:1.18
+  image: golang:1.20
   name: wait for instance
 - commands:
   - make testacc-cloud-instance
@@ -152,7 +152,7 @@ steps:
     GRAFANA_URL:
       from_secret: grafana-cloud-instance-url
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.18
+  image: golang:1.20
   name: tests
 trigger:
   branch:
@@ -175,7 +175,7 @@ services:
     GF_ENTERPRISE_LICENSE_TEXT:
       from_secret: grafana-enterprise-license
     GF_SERVER_ROOT_URL: http://grafana:3000
-  image: grafana/grafana-enterprise:9.4.3
+  image: grafana/grafana-enterprise:9.5.1
   name: grafana
 steps:
 - commands:
@@ -190,9 +190,9 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
-    GRAFANA_VERSION: 9.4.3
+    GRAFANA_VERSION: 9.5.1
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.18
+  image: golang:1.20
   name: tests
 trigger:
   branch:
@@ -205,7 +205,7 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: pipeline
-name: 'oss tests: 9.4.3'
+name: 'oss tests: 9.5.1'
 platform:
   arch: amd64
   os: linux
@@ -213,7 +213,7 @@ services:
 - environment:
     GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
     GF_SERVER_ROOT_URL: http://grafana:3000
-  image: grafana/grafana:9.4.3
+  image: grafana/grafana:9.5.1
   name: grafana
 steps:
 - commands:
@@ -228,9 +228,9 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
-    GRAFANA_VERSION: 9.4.3
+    GRAFANA_VERSION: 9.5.1
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.18
+  image: golang:1.20
   name: tests
 trigger:
   branch:
@@ -243,7 +243,7 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: pipeline
-name: 'oss tests: 9.3.8'
+name: 'oss tests: 9.4.9'
 platform:
   arch: amd64
   os: linux
@@ -251,7 +251,7 @@ services:
 - environment:
     GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
     GF_SERVER_ROOT_URL: http://grafana:3000
-  image: grafana/grafana:9.3.8
+  image: grafana/grafana:9.4.9
   name: grafana
 steps:
 - commands:
@@ -266,9 +266,47 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
-    GRAFANA_VERSION: 9.3.8
+    GRAFANA_VERSION: 9.4.9
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.18
+  image: golang:1.20
+  name: tests
+trigger:
+  branch:
+  - master
+  event:
+  - pull_request
+  - push
+type: docker
+workspace:
+  path: /drone/terraform-provider-grafana
+---
+kind: pipeline
+name: 'oss tests: 9.3.13'
+platform:
+  arch: amd64
+  os: linux
+services:
+- environment:
+    GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
+    GF_SERVER_ROOT_URL: http://grafana:3000
+  image: grafana/grafana:9.3.13
+  name: grafana
+steps:
+- commands:
+  - cp /bin/terraform /drone/terraform-provider-grafana/terraform
+  - chmod a+x /drone/terraform-provider-grafana/terraform
+  image: hashicorp/terraform
+  name: download-terraform
+- commands:
+  - sleep 5
+  - make testacc-oss
+  environment:
+    GRAFANA_AUTH: admin:admin
+    GRAFANA_ORG_ID: 1
+    GRAFANA_URL: http://grafana:3000
+    GRAFANA_VERSION: 9.3.13
+    TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
+  image: golang:1.20
   name: tests
 trigger:
   branch:
@@ -306,7 +344,7 @@ steps:
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 9.2.13
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.18
+  image: golang:1.20
   name: tests
 trigger:
   branch:
@@ -319,7 +357,7 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: pipeline
-name: 'oss tests: 8.5.21'
+name: 'oss tests: 8.5.24'
 platform:
   arch: amd64
   os: linux
@@ -327,7 +365,7 @@ services:
 - environment:
     GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
     GF_SERVER_ROOT_URL: http://grafana:3000
-  image: grafana/grafana:8.5.21
+  image: grafana/grafana:8.5.24
   name: grafana
 steps:
 - commands:
@@ -342,9 +380,9 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
-    GRAFANA_VERSION: 8.5.21
+    GRAFANA_VERSION: 8.5.24
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.18
+  image: golang:1.20
   name: tests
 trigger:
   branch:
@@ -382,7 +420,7 @@ steps:
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 7.5.17
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.18
+  image: golang:1.20
   name: tests
 trigger:
   branch:
@@ -437,6 +475,6 @@ kind: secret
 name: grafana-sm-token
 ---
 kind: signature
-hmac: 31e7676bf05214d323f3b26d66c84c6e111f193e924db7f491e1de7210992d05
+hmac: 8572c85ad5383fdfca39f76bd5615e26bf5e11936980629d4050d5bc49f95d70
 
 ...

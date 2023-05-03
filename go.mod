@@ -1,6 +1,6 @@
 module github.com/grafana/terraform-provider-grafana
 
-go 1.18
+go 1.20
 
 replace github.com/grafana/grafana-api-golang-client => github.com/grafana/grafana-api-golang-client v0.20.2-0.20230502174907-adbfb5ee6ca1
 
@@ -9,7 +9,7 @@ require (
 	github.com/grafana/amixr-api-go-client v0.0.7
 	github.com/grafana/grafana-api-golang-client v0.20.1
 	github.com/grafana/machine-learning-go-client v0.5.0
-	github.com/grafana/synthetic-monitoring-agent v0.14.4
+	github.com/grafana/synthetic-monitoring-agent v0.14.5
 	github.com/grafana/synthetic-monitoring-api-go-client v0.7.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
@@ -70,8 +70,8 @@ require (
 	github.com/zclconf/go-cty v1.13.1 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/mod v0.9.0 // indirect
-	golang.org/x/net v0.8.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
+	golang.org/x/net v0.9.0 // indirect
+	golang.org/x/sys v0.7.0 // indirect
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230306155012-7f2fa6fef1f4 // indirect

@@ -1,8 +1,8 @@
-local grafanaVersions = ['9.4.3', '9.3.8', '9.2.13', '8.5.21', '7.5.17'];
+local grafanaVersions = ['9.5.1', '9.4.9', '9.3.13', '9.2.13', '8.5.24', '7.5.17'];
 local images = {
-  go: 'golang:1.18',
-  python: 'python:3.9-alpine',
-  lint: 'golangci/golangci-lint:v1.49',
+  go: 'golang:1.20',
+  python: 'python:3.11-alpine',
+  lint: 'golangci/golangci-lint:v1.52',
   terraform: 'hashicorp/terraform',
   grafana(version): 'grafana/grafana:' + version,
   grafanaEnterprise(version): 'grafana/grafana-enterprise:' + version,

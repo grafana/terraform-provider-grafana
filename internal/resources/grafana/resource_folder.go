@@ -3,8 +3,6 @@ package grafana
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"log"
 	"net/url"
 	"strconv"
@@ -28,22 +26,8 @@ func ResourceFolder() *schema.Resource {
 		DeleteContext: DeleteFolder,
 		ReadContext:   ReadFolder,
 		UpdateContext: UpdateFolder,
-
-		// Import either by ID or UID
 		Importer: &schema.ResourceImporter{
-			StateContext: func(c context.Context, rd *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				_, err := strconv.ParseInt(rd.Id(), 10, 64)
-				if err != nil {
-					// If the ID is not a number, then it may be a UID
-					client := meta.(*common.Client).GrafanaAPI
-					folder, err := client.FolderByUID(rd.Id())
-					if err != nil {
-						return nil, fmt.Errorf("failed to find folder by ID or UID '%s': %w", rd.Id(), err)
-					}
-					rd.SetId(strconv.FormatInt(folder.ID, 10))
-				}
-				return []*schema.ResourceData{rd}, nil
-			},
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -118,15 +102,10 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	gapiURL := meta.(*common.Client).GrafanaAPIURL
 	client := meta.(*common.Client).GrafanaAPI
 
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	folder, err := GetFolderByIDorUID(client, d.Id())
 	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	folder, err := GetFolderByID(client, id)
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing folder %d from state because it no longer exists in grafana", id)
+		if strings.Contains(err.Error(), "status: 404") {
+			log.Printf("[WARN] removing folder %s from state because it no longer exists in grafana", d.Id())
 			d.SetId("")
 			return nil
 		}
@@ -208,22 +187,23 @@ func NormalizeFolderConfigJSON(configI interface{}) string {
 	return string(ret)
 }
 
-// Hackish way to get the folder by ID.
-// TODO: Revert to using the specific folder ID GET endpoint once it's fixed
-// Broken in 8.5.0
-func GetFolderByID(client *gapi.Client, id int64) (*gapi.Folder, error) {
-	folders, err := client.Folders()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, folder := range folders {
-		if folder.ID == id {
-			// Need to use another API call, because the "list" call doesn't have all the info
-			return client.FolderByUID(folder.UID)
+func GetFolderByIDorUID(client *gapi.Client, id string) (*gapi.Folder, error) {
+	// If the ID is a number, find the folder UID
+	// Getting the folder by ID is broken in some versions, but getting by UID works in all versions
+	// We need to use two API calls in the numerical ID case, because the "list" call doesn't have all the info
+	uid := id
+	if numericalID, err := strconv.ParseInt(id, 10, 64); err == nil {
+		folders, err := client.Folders()
+		if err != nil {
+			return nil, err
+		}
+		for _, folder := range folders {
+			if folder.ID == numericalID {
+				uid = folder.UID
+				break
+			}
 		}
 	}
 
-	// Replicating the error that would usually be returned by the API call on a missing folder
-	return nil, errors.New(`status: 404, body: {"message":"folder not found","status":"not-found"}`)
+	return client.FolderByUID(uid)
 }
