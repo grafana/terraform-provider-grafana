@@ -234,11 +234,6 @@ Resource manages Grafana SLOs.
 	}
 }
 
-// SLO Resource is defined by the user within the Terraform State file
-// When 'terraform apply' is executed, it sends a POST Request and converts
-// the data within the Terraform State into a JSON Object which is then sent to the API
-// Following this, a READ is executed for the newly created SLO, which is then displayed within the
-// terminal that Terraform is running in
 func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
