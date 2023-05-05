@@ -14,6 +14,7 @@ func TestAccDataSourceSlo(t *testing.T) {
 	var slo gapi.Slo
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      testAccSloCheckDestroy(&slo),
 		Steps: []resource.TestStep{
 			{
 				// Creates a SLO Resource

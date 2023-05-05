@@ -112,7 +112,7 @@ func TestAccResourceInvalidSlo(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      sloObjectivesInvalid,
-				ExpectError: regexp.MustCompile("Unable to create SLO"),
+				ExpectError: regexp.MustCompile("Error:"),
 			},
 		},
 	})

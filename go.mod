@@ -2,12 +2,10 @@ module github.com/grafana/terraform-provider-grafana
 
 go 1.20
 
-replace github.com/grafana/grafana-api-golang-client => github.com/grafana/grafana-api-golang-client v0.20.2-0.20230502174907-adbfb5ee6ca1
-
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/grafana/amixr-api-go-client v0.0.7
-	github.com/grafana/grafana-api-golang-client v0.20.1
+	github.com/grafana/grafana-api-golang-client v0.21.0
 	github.com/grafana/machine-learning-go-client v0.5.0
 	github.com/grafana/synthetic-monitoring-agent v0.14.5
 	github.com/grafana/synthetic-monitoring-api-go-client v0.7.0
