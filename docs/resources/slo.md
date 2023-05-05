@@ -66,7 +66,7 @@ resource "grafana_slo" "test" {
 - `description` (String) Description is a free-text field that can provide more context to an SLO.
 - `name` (String) Name should be a short description of your indicator. Consider names like "API Availability"
 - `objectives` (Block List, Min: 1) Over each rolling time window, the remaining error budget will be calculated, and separate alerts can be generated for each time window based on the SLO burn rate or remaining error budget. (see [below for nested schema](#nestedblock--objectives))
-- `query` (Block List, Min: 1, Max: 1) Query describes the indicator that will be measured against the objective. Freeform Query types are currently supported. (see [below for nested schema](#nestedblock--query))
+- `query` (Block List, Min: 1) Query describes the indicator that will be measured against the objective. Freeform Query types are currently supported. (see [below for nested schema](#nestedblock--query))
 
 ### Optional
 

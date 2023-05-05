@@ -2,7 +2,6 @@ package slo
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"regexp"
 
@@ -322,7 +321,7 @@ func packQuery(query map[string]interface{}) (gapi.Query, error) {
 		return sloQuery, nil
 	}
 
-	return gapi.Query{}, errors.New(fmt.Sprintf("%s query type not implemented", query["type"]))
+	return gapi.Query{}, fmt.Errorf("%s query type not implemented", query["type"])
 }
 
 func packObjectives(tfobjectives []interface{}) []gapi.Objective {
