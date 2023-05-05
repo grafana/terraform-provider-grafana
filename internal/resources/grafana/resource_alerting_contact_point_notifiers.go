@@ -633,6 +633,15 @@ func (n pagerDutyNotifier) schema() *schema.Resource {
 		Optional:    true,
 		Description: "The templated summary message of the event.",
 	}
+	r.Schema["details"] = &schema.Schema{
+		Type:        schema.TypeMap,
+		Optional:    true,
+		Default:     nil,
+		Description: "A set of arbitrary key/value pairs that provide further detail about the incident.",
+		Elem: &schema.Schema{
+			Type: schema.TypeString,
+		},
+	}
 	return r
 }
 
@@ -662,6 +671,10 @@ func (n pagerDutyNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) 
 		notifier["summary"] = v.(string)
 		delete(p.Settings, "summary")
 	}
+	if v, ok := p.Settings["details"]; ok && v != nil {
+		notifier["details"] = unpackMap(v)
+		delete(p.Settings, "details")
+	}
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, n, p.UID), n.meta().secureFields)
 
@@ -688,6 +701,9 @@ func (n pagerDutyNotifier) unpack(raw interface{}, name string) gapi.ContactPoin
 	}
 	if v, ok := json["summary"]; ok && v != nil {
 		settings["summary"] = v.(string)
+	}
+	if v, ok := json["details"]; ok && v != nil {
+		settings["details"] = unpackMap(v)
 	}
 	return gapi.ContactPoint{
 		UID:                   uid,

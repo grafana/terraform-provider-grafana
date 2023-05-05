@@ -201,6 +201,8 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.0.component", "mysql"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.0.group", "my service"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.0.summary", "message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.0.details.one", "two"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.0.details.three", "four"),
 					// pushover
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.user_key", "userkey"),
