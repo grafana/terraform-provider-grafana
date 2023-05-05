@@ -56,9 +56,9 @@ resource "grafana_contact_point" "receiver_types" {
     component       = "mysql"
     group           = "my service"
     summary         = "message"
-    details         = {
-        "one" = "two"
-        "three" = "four"
+    details = {
+      "one"   = "two"
+      "three" = "four"
     }
   }
 
