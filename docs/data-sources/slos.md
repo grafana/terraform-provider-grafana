@@ -90,7 +90,6 @@ Read-Only:
 - `annotations` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--annotations))
 - `fastburn` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--fastburn))
 - `labels` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--labels))
-- `name` (String)
 - `slowburn` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--slowburn))
 
 <a id="nestedobjatt--slos--alerting--annotations"></a>
