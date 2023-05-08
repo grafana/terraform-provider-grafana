@@ -439,7 +439,10 @@ func createOnCallClient(d *schema.ResourceData) (*onCallAPI.Client, error) {
 	return onCallAPI.New(baseURL, aToken)
 }
 
+// Sets a custom HTTP Header on all requests coming from the Grafana Terraform Provider to Grafana-Terraform-Provider: true
+// in addition to any headers set within the `http_headers` field or the `GRAFANA_HTTP_HEADERS` environment variable
 func getHTTPHeadersMap(d *schema.ResourceData) (map[string]string, error) {
+	headers := map[string]string{"Grafana-Terraform-Provider": "true"}
 	headersMap := d.Get("http_headers").(map[string]interface{})
 	if len(headersMap) == 0 {
 		// We cannot use a DefaultFunc because they do not work on maps
@@ -449,16 +452,16 @@ func getHTTPHeadersMap(d *schema.ResourceData) (map[string]string, error) {
 			return nil, fmt.Errorf("invalid http_headers config: %w", err)
 		}
 	}
+
 	if len(headersMap) > 0 {
-		headers := make(map[string]string)
 		for k, v := range headersMap {
 			if v, ok := v.(string); ok {
 				headers[k] = v
 			}
 		}
-		return headers, nil
 	}
-	return map[string]string{}, nil
+
+	return headers, nil
 }
 
 // getJSONMap is a helper function that parses the given environment variable as a JSON object
