@@ -18,9 +18,6 @@ Datasource for retrieving all SLOs.
 * [API documentation](https://grafana.com/docs/grafana-cloud/slo/api/)
 				`,
 		ReadContext: datasourceSloRead,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
 		Schema: map[string]*schema.Schema{
 			"slos": &schema.Schema{
 				Type:        schema.TypeList,
@@ -81,7 +78,7 @@ func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 	ret["query"] = unpackQuery(slo.Query)
 
 	retLabels := unpackLabels(&slo.Labels)
-	ret["labels"] = retLabels
+	ret["label"] = retLabels
 
 	retObjectives := unpackObjectives(slo.Objectives)
 	ret["objectives"] = retObjectives
@@ -92,13 +89,16 @@ func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 	return ret
 }
 
-// TBD for Other Query Types Once Implemented
 func unpackQuery(apiquery gapi.Query) []map[string]interface{} {
 	retQuery := []map[string]interface{}{}
 	if apiquery.Freeform.Query != "" {
-		query := make(map[string]interface{})
-		query["freeformquery"] = apiquery.Freeform.Query
-		query["type"] = "freeform"
+		query := map[string]interface{}{"type": "freeform"}
+
+		freeformquerystring := map[string]interface{}{"query": apiquery.Freeform.Query}
+		freeform := []map[string]interface{}{}
+		freeform = append(freeform, freeformquerystring)
+		query["freeformquery"] = freeform
+
 		retQuery = append(retQuery, query)
 	}
 
@@ -142,8 +142,8 @@ func unpackAlerting(alertData *gapi.Alerting) []map[string]interface{} {
 	}
 
 	alertObject := make(map[string]interface{})
-	alertObject["labels"] = unpackLabels(&alertData.Labels)
-	alertObject["annotations"] = unpackLabels(&alertData.Annotations)
+	alertObject["label"] = unpackLabels(&alertData.Labels)
+	alertObject["annotation"] = unpackLabels(&alertData.Annotations)
 
 	if alertData.FastBurn != nil {
 		alertObject["fastburn"] = unpackAlertingMetadata(*alertData.FastBurn)
@@ -163,12 +163,12 @@ func unpackAlertingMetadata(metaData gapi.AlertingMetadata) []map[string]interfa
 
 	if metaData.Annotations != nil {
 		retAnnotations := unpackLabels(&metaData.Annotations)
-		labelsAnnotsStruct["annotations"] = retAnnotations
+		labelsAnnotsStruct["annotation"] = retAnnotations
 	}
 
 	if metaData.Labels != nil {
 		retLabels := unpackLabels(&metaData.Labels)
-		labelsAnnotsStruct["labels"] = retLabels
+		labelsAnnotsStruct["label"] = retLabels
 	}
 
 	retAlertMetaData = append(retAlertMetaData, labelsAnnotsStruct)

@@ -29,7 +29,7 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_slo.test", "name", "Terraform Testing"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "description", "Terraform Description"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "query.0.type", "freeform"),
-					resource.TestCheckResourceAttr("grafana_slo.test", "query.0.freeformquery", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "query.0.freeformquery.0.query", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.value", "0.995"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.window", "30d"),
 				),
@@ -43,7 +43,7 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_slo.update", "name", "Updated - Terraform Testing"),
 					resource.TestCheckResourceAttr("grafana_slo.update", "description", "Updated - Terraform Description"),
 					resource.TestCheckResourceAttr("grafana_slo.update", "query.0.type", "freeform"),
-					resource.TestCheckResourceAttr("grafana_slo.update", "query.0.freeformquery", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
+					resource.TestCheckResourceAttr("grafana_slo.update", "query.0.freeformquery.0.query", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
 					resource.TestCheckResourceAttr("grafana_slo.update", "objectives.0.value", "0.9995"),
 					resource.TestCheckResourceAttr("grafana_slo.update", "objectives.0.window", "7d"),
 				),
@@ -94,7 +94,9 @@ resource  "grafana_slo" "invalid" {
   name            = "Test SLO"
   description     = "Description Test SLO"
   query {
-    freeformquery = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+	freeformquery {
+		query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+	}
     type = "freeform"
   }
   objectives {

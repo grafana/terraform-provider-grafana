@@ -21,35 +21,37 @@ resource "grafana_slo" "test" {
   name        = "Terraform Testing"
   description = "Terraform Description"
   query {
-    freeformquery = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+    freeformquery {
+      query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+    }
     type          = "freeform"
   }
   objectives {
     value  = 0.995
     window = "30d"
   }
-  labels {
+  label {
     key   = "custom"
     value = "value"
   }
   alerting {
     fastburn {
-      annotations {
+      annotation {
         key   = "name"
         value = "Critical - SLO Burn Rate Alert"
       }
-      labels {
+      label {
         key   = "type"
         value = "slo"
       }
     }
 
     slowburn {
-      annotations {
+      annotation {
         key   = "name"
         value = "Warning - SLO Burn Rate Alert"
       }
-      labels {
+      label {
         key   = "type"
         value = "slo"
       }
@@ -76,7 +78,7 @@ Read-Only:
 - `alerting` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting))
 - `dashboard_uid` (String)
 - `description` (String)
-- `labels` (List of Object) (see [below for nested schema](#nestedobjatt--slos--labels))
+- `label` (List of Object) (see [below for nested schema](#nestedobjatt--slos--label))
 - `name` (String)
 - `objectives` (List of Object) (see [below for nested schema](#nestedobjatt--slos--objectives))
 - `query` (List of Object) (see [below for nested schema](#nestedobjatt--slos--query))
@@ -87,13 +89,13 @@ Read-Only:
 
 Read-Only:
 
-- `annotations` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--annotations))
+- `annotation` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--annotation))
 - `fastburn` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--fastburn))
-- `labels` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--labels))
+- `label` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--label))
 - `slowburn` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--slowburn))
 
-<a id="nestedobjatt--slos--alerting--annotations"></a>
-### Nested Schema for `slos.alerting.annotations`
+<a id="nestedobjatt--slos--alerting--annotation"></a>
+### Nested Schema for `slos.alerting.annotation`
 
 Read-Only:
 
@@ -106,20 +108,11 @@ Read-Only:
 
 Read-Only:
 
-- `annotations` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--fastburn--annotations))
-- `labels` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--fastburn--labels))
+- `annotation` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--fastburn--annotation))
+- `label` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--fastburn--label))
 
-<a id="nestedobjatt--slos--alerting--fastburn--annotations"></a>
-### Nested Schema for `slos.alerting.fastburn.labels`
-
-Read-Only:
-
-- `key` (String)
-- `value` (String)
-
-
-<a id="nestedobjatt--slos--alerting--fastburn--labels"></a>
-### Nested Schema for `slos.alerting.fastburn.labels`
+<a id="nestedobjatt--slos--alerting--fastburn--annotation"></a>
+### Nested Schema for `slos.alerting.fastburn.label`
 
 Read-Only:
 
@@ -127,9 +120,18 @@ Read-Only:
 - `value` (String)
 
 
+<a id="nestedobjatt--slos--alerting--fastburn--label"></a>
+### Nested Schema for `slos.alerting.fastburn.label`
 
-<a id="nestedobjatt--slos--alerting--labels"></a>
-### Nested Schema for `slos.alerting.labels`
+Read-Only:
+
+- `key` (String)
+- `value` (String)
+
+
+
+<a id="nestedobjatt--slos--alerting--label"></a>
+### Nested Schema for `slos.alerting.label`
 
 Read-Only:
 
@@ -142,20 +144,11 @@ Read-Only:
 
 Read-Only:
 
-- `annotations` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--slowburn--annotations))
-- `labels` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--slowburn--labels))
+- `annotation` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--slowburn--annotation))
+- `label` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--slowburn--label))
 
-<a id="nestedobjatt--slos--alerting--slowburn--annotations"></a>
-### Nested Schema for `slos.alerting.slowburn.labels`
-
-Read-Only:
-
-- `key` (String)
-- `value` (String)
-
-
-<a id="nestedobjatt--slos--alerting--slowburn--labels"></a>
-### Nested Schema for `slos.alerting.slowburn.labels`
+<a id="nestedobjatt--slos--alerting--slowburn--annotation"></a>
+### Nested Schema for `slos.alerting.slowburn.label`
 
 Read-Only:
 
@@ -163,10 +156,19 @@ Read-Only:
 - `value` (String)
 
 
+<a id="nestedobjatt--slos--alerting--slowburn--label"></a>
+### Nested Schema for `slos.alerting.slowburn.label`
+
+Read-Only:
+
+- `key` (String)
+- `value` (String)
 
 
-<a id="nestedobjatt--slos--labels"></a>
-### Nested Schema for `slos.labels`
+
+
+<a id="nestedobjatt--slos--label"></a>
+### Nested Schema for `slos.label`
 
 Read-Only:
 
@@ -188,7 +190,14 @@ Read-Only:
 
 Read-Only:
 
-- `freeformquery` (String)
+- `freeformquery` (List of Object) (see [below for nested schema](#nestedobjatt--slos--query--freeformquery))
 - `type` (String)
+
+<a id="nestedobjatt--slos--query--freeformquery"></a>
+### Nested Schema for `slos.query.freeformquery`
+
+Read-Only:
+
+- `query` (String)
 
 
