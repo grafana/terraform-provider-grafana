@@ -53,7 +53,7 @@ Resource manages Grafana SLOs.
 							ValidateFunc: validation.StringInSlice([]string{"freeform", "query", "ratio", "threshold"}, false),
 							Required:     true,
 						},
-						"freeformquery": &schema.Schema{
+						"freeform": &schema.Schema{
 							Type:     schema.TypeList,
 							MaxItems: 1,
 							Required: true,
@@ -324,7 +324,7 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 
 func packQuery(query map[string]interface{}) (gapi.Query, error) {
 	if query["type"] == "freeform" {
-		freeformquery := query["freeformquery"].([]interface{})[0].(map[string]interface{})
+		freeformquery := query["freeform"].([]interface{})[0].(map[string]interface{})
 		querystring := freeformquery["query"].(string)
 
 		sloQuery := gapi.Query{

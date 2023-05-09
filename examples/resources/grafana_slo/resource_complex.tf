@@ -2,7 +2,7 @@ resource "grafana_slo" "test" {
   name        = "Complex Resource - Terraform Testing"
   description = "Complex Resource - Terraform Description"
   query {
-    freeformquery {
+    freeform {
       query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
     }
     type = "freeform"
@@ -16,8 +16,6 @@ resource "grafana_slo" "test" {
     value = "slokey"
   }
   alerting {
-    name = "alertingname"
-
     label {
       key   = "alertingkey"
       value = "alertingvalue"

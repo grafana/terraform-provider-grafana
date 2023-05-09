@@ -21,7 +21,7 @@ resource "grafana_slo" "test" {
   name        = "Terraform Testing"
   description = "Terraform Description"
   query {
-    freeformquery {
+    freeform {
       query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
     }
     type = "freeform"
@@ -98,11 +98,11 @@ Required:
 
 Required:
 
-- `freeformquery` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--query--freeformquery))
+- `freeform` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--query--freeform))
 - `type` (String) Query type must be one of: "freeform", "query", "ratio", or "threshold"
 
-<a id="nestedblock--query--freeformquery"></a>
-### Nested Schema for `query.freeformquery`
+<a id="nestedblock--query--freeform"></a>
+### Nested Schema for `query.freeform`
 
 Optional:
 

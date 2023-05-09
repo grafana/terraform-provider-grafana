@@ -21,7 +21,7 @@ resource "grafana_slo" "test" {
   name        = "Terraform Testing"
   description = "Terraform Description"
   query {
-    freeformquery {
+    freeform {
       query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
     }
     type = "freeform"
@@ -190,11 +190,11 @@ Read-Only:
 
 Read-Only:
 
-- `freeformquery` (List of Object) (see [below for nested schema](#nestedobjatt--slos--query--freeformquery))
+- `freeform` (List of Object) (see [below for nested schema](#nestedobjatt--slos--query--freeform))
 - `type` (String)
 
-<a id="nestedobjatt--slos--query--freeformquery"></a>
-### Nested Schema for `slos.query.freeformquery`
+<a id="nestedobjatt--slos--query--freeform"></a>
+### Nested Schema for `slos.query.freeform`
 
 Read-Only:
 

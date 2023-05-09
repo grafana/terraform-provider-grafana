@@ -97,7 +97,7 @@ func unpackQuery(apiquery gapi.Query) []map[string]interface{} {
 		freeformquerystring := map[string]interface{}{"query": apiquery.Freeform.Query}
 		freeform := []map[string]interface{}{}
 		freeform = append(freeform, freeformquerystring)
-		query["freeformquery"] = freeform
+		query["freeform"] = freeform
 
 		retQuery = append(retQuery, query)
 	}
