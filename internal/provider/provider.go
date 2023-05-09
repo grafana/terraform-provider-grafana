@@ -25,6 +25,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/machinelearning"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/oncall"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/slo"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/syntheticmonitoring"
 )
 
@@ -77,6 +78,9 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_machine_learning_job":              machinelearning.ResourceJob(),
 			"grafana_machine_learning_holiday":          machinelearning.ResourceHoliday(),
 			"grafana_machine_learning_outlier_detector": machinelearning.ResourceOutlierDetector(),
+
+			// SLO
+			"grafana_slo": slo.ResourceSlo(),
 		})
 
 		// Resources that require the Synthetic Monitoring client to exist.
@@ -121,6 +125,9 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_team":                     grafana.DatasourceTeam(),
 			"grafana_organization":             grafana.DatasourceOrganization(),
 			"grafana_organization_preferences": grafana.DatasourceOrganizationPreferences(),
+
+			// SLO
+			"grafana_slos": slo.DatasourceSlo(),
 		})
 
 		// Datasources that require the Synthetic Monitoring client to exist.
