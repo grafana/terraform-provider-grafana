@@ -212,6 +212,7 @@ Optional:
 
 - `class` (String) The class or type of event, for example `ping failure`.
 - `component` (String) The component being affected by the event.
+- `details` (Map of String) A set of arbitrary key/value pairs that provide further detail about the incident.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `group` (String) The group to which the provided component belongs to.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
