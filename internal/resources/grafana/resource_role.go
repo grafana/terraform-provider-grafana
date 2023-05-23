@@ -147,7 +147,7 @@ func ReadRole(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 	r, err := client.GetRole(uid)
 
 	if err != nil {
-		if strings.Contains(err.Error(), "role not found") {
+		if strings.Contains(err.Error(), "status: 404") {
 			log.Printf("[WARN] removing role %s from state because it no longer exists in grafana", uid)
 			d.SetId("")
 			return nil
