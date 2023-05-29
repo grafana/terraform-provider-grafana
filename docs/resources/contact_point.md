@@ -96,6 +96,7 @@ Optional:
 - `message` (String) The templated content of the message.
 - `message_type` (String) The format of message to send - either 'link' or 'actionCard'
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `title` (String) The templated title of the message.
 
 Read-Only:
 
@@ -211,12 +212,15 @@ Required:
 Optional:
 
 - `class` (String) The class or type of event, for example `ping failure`.
+- `client` (String) The name of the monitoring client that is triggering this event.
+- `client_url` (String) The URL of the monitoring client that is triggering this event.
 - `component` (String) The component being affected by the event.
 - `details` (Map of String) A set of arbitrary key/value pairs that provide further detail about the incident.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `group` (String) The group to which the provided component belongs to.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `severity` (String) The PagerDuty event severity level. Default is `critical`.
+- `source` (String) The unique location of the affected system.
 - `summary` (String) The templated summary message of the event.
 
 Read-Only:
@@ -244,6 +248,7 @@ Optional:
 - `retry` (Number) How often, in seconds, the Pushover servers will send the same notification to the user.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `sound` (String) The sound associated with the notification.
+- `title` (String) The templated title of the message.
 
 Read-Only:
 
@@ -343,8 +348,10 @@ Read-Only:
 Required:
 
 - `api_secret` (String, Sensitive) The Threema API key.
+- `description` (String, Sensitive) The templated description of the message.
 - `gateway_id` (String) The Threema gateway ID.
 - `recipient_id` (String) The ID of the recipient of the message.
+- `title` (String, Sensitive) The templated title of the message.
 
 Optional:
 
@@ -365,9 +372,11 @@ Required:
 
 Optional:
 
+- `description` (String) Templated description of the message.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `message_type` (String) The VictorOps alert state - typically either `CRITICAL` or `RECOVERY`.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `title` (String) Templated title to display.
 
 Read-Only:
 

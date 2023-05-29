@@ -11,6 +11,7 @@ resource "grafana_contact_point" "receiver_types" {
     url          = "http://dingding-url"
     message_type = "link"
     message      = "message"
+    title        = "title"
   }
 
   discord {
@@ -56,6 +57,9 @@ resource "grafana_contact_point" "receiver_types" {
     component       = "mysql"
     group           = "my service"
     summary         = "message"
+    source          = "source"
+    client          = "client"
+    client_url      = "http://pagerduty"
     details = {
       "one"   = "two"
       "three" = "four"
@@ -72,6 +76,7 @@ resource "grafana_contact_point" "receiver_types" {
     device      = "device"
     sound       = "bugle"
     ok_sound    = "cashregister"
+    title       = "title"
     message     = "message"
   }
 
@@ -116,11 +121,15 @@ resource "grafana_contact_point" "receiver_types" {
     gateway_id   = "*gateway"
     recipient_id = "*target1"
     api_secret   = "secret"
+    title        = "title"
+    description  = "description"
   }
 
   victorops {
     url          = "http://victor-ops-url"
     message_type = "CRITICAL"
+    title        = "title"
+    description  = "description"
   }
 
   webhook {

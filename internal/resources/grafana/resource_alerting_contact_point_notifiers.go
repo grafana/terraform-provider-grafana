@@ -115,6 +115,11 @@ func (d dingDingNotifier) schema() *schema.Resource {
 		Optional:    true,
 		Description: "The templated content of the message.",
 	}
+	r.Schema["title"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated title of the message.",
+	}
 	return r
 }
 
@@ -132,6 +137,10 @@ func (d dingDingNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (
 		notifier["message"] = v.(string)
 		delete(p.Settings, "message")
 	}
+	if v, ok := p.Settings["title"]; ok && v != nil {
+		notifier["title"] = v.(string)
+		delete(p.Settings, "title")
+	}
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
 }
@@ -146,6 +155,9 @@ func (d dingDingNotifier) unpack(raw interface{}, name string) gapi.ContactPoint
 	}
 	if v, ok := json["message"]; ok && v != nil {
 		settings["message"] = v.(string)
+	}
+	if v, ok := json["title"]; ok && v != nil {
+		settings["title"] = v.(string)
 	}
 	return gapi.ContactPoint{
 		UID:                   uid,
@@ -633,6 +645,21 @@ func (n pagerDutyNotifier) schema() *schema.Resource {
 		Optional:    true,
 		Description: "The templated summary message of the event.",
 	}
+	r.Schema["source"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The unique location of the affected system.",
+	}
+	r.Schema["client"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The name of the monitoring client that is triggering this event.",
+	}
+	r.Schema["client_url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The URL of the monitoring client that is triggering this event.",
+	}
 	r.Schema["details"] = &schema.Schema{
 		Type:        schema.TypeMap,
 		Optional:    true,
@@ -671,6 +698,18 @@ func (n pagerDutyNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) 
 		notifier["summary"] = v.(string)
 		delete(p.Settings, "summary")
 	}
+	if v, ok := p.Settings["source"]; ok && v != nil {
+		notifier["source"] = v.(string)
+		delete(p.Settings, "source")
+	}
+	if v, ok := p.Settings["client"]; ok && v != nil {
+		notifier["client"] = v.(string)
+		delete(p.Settings, "client")
+	}
+	if v, ok := p.Settings["client_url"]; ok && v != nil {
+		notifier["client_url"] = v.(string)
+		delete(p.Settings, "client_url")
+	}
 	if v, ok := p.Settings["details"]; ok && v != nil {
 		notifier["details"] = unpackMap(v)
 		delete(p.Settings, "details")
@@ -701,6 +740,15 @@ func (n pagerDutyNotifier) unpack(raw interface{}, name string) gapi.ContactPoin
 	}
 	if v, ok := json["summary"]; ok && v != nil {
 		settings["summary"] = v.(string)
+	}
+	if v, ok := json["source"]; ok && v != nil {
+		settings["source"] = v.(string)
+	}
+	if v, ok := json["client"]; ok && v != nil {
+		settings["client"] = v.(string)
+	}
+	if v, ok := json["client_url"]; ok && v != nil {
+		settings["client_url"] = v.(string)
 	}
 	if v, ok := json["details"]; ok && v != nil {
 		settings["details"] = unpackMap(v)
@@ -776,6 +824,11 @@ func (n pushoverNotifier) schema() *schema.Resource {
 		Optional:    true,
 		Description: "The sound associated with the resolved notification.",
 	}
+	r.Schema["title"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated title of the message.",
+	}
 	r.Schema["message"] = &schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    true,
@@ -838,6 +891,10 @@ func (n pushoverNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (
 		notifier["ok_sound"] = v.(string)
 		delete(p.Settings, "okSound")
 	}
+	if v, ok := p.Settings["title"]; ok && v != nil {
+		notifier["title"] = v.(string)
+		delete(p.Settings, "title")
+	}
 	if v, ok := p.Settings["message"]; ok && v != nil {
 		notifier["message"] = v.(string)
 		delete(p.Settings, "message")
@@ -875,6 +932,9 @@ func (n pushoverNotifier) unpack(raw interface{}, name string) gapi.ContactPoint
 	}
 	if v, ok := json["ok_sound"]; ok && v != nil {
 		settings["okSound"] = v.(string)
+	}
+	if v, ok := json["title"]; ok && v != nil {
+		settings["title"] = v.(string)
 	}
 	if v, ok := json["message"]; ok && v != nil {
 		settings["message"] = v.(string)
@@ -1302,6 +1362,18 @@ func (t threemaNotifier) schema() *schema.Resource {
 		Sensitive:   true,
 		Description: "The Threema API key.",
 	}
+	r.Schema["title"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Sensitive:   true,
+		Description: "The templated title of the message.",
+	}
+	r.Schema["description"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Sensitive:   true,
+		Description: "The templated description of the message.",
+	}
 	return r
 }
 
@@ -1311,6 +1383,8 @@ func (t threemaNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (i
 	packNotifierStringField(&p.Settings, &notifier, "gateway_id", "gateway_id")
 	packNotifierStringField(&p.Settings, &notifier, "recipient_id", "recipient_id")
 	packNotifierStringField(&p.Settings, &notifier, "api_secret", "api_secret")
+	packNotifierStringField(&p.Settings, &notifier, "title", "title")
+	packNotifierStringField(&p.Settings, &notifier, "description", "description")
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, t, p.UID), t.meta().secureFields)
 
@@ -1325,6 +1399,8 @@ func (t threemaNotifier) unpack(raw interface{}, name string) gapi.ContactPoint 
 	unpackNotifierStringField(&json, &settings, "gateway_id", "gateway_id")
 	unpackNotifierStringField(&json, &settings, "recipient_id", "recipient_id")
 	unpackNotifierStringField(&json, &settings, "api_secret", "api_secret")
+	unpackNotifierStringField(&json, &settings, "title", "title")
+	unpackNotifierStringField(&json, &settings, "description", "description")
 
 	return gapi.ContactPoint{
 		UID:                   uid,
@@ -1359,6 +1435,16 @@ func (v victorOpsNotifier) schema() *schema.Resource {
 		Optional:    true,
 		Description: "The VictorOps alert state - typically either `CRITICAL` or `RECOVERY`.",
 	}
+	r.Schema["title"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Templated title to display.",
+	}
+	r.Schema["description"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Templated description of the message.",
+	}
 	return r
 }
 
@@ -1367,6 +1453,8 @@ func (v victorOpsNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) 
 
 	packNotifierStringField(&p.Settings, &notifier, "url", "url")
 	packNotifierStringField(&p.Settings, &notifier, "messageType", "message_type")
+	packNotifierStringField(&p.Settings, &notifier, "title", "title")
+	packNotifierStringField(&p.Settings, &notifier, "description", "description")
 
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
@@ -1378,6 +1466,8 @@ func (v victorOpsNotifier) unpack(raw interface{}, name string) gapi.ContactPoin
 
 	unpackNotifierStringField(&json, &settings, "url", "url")
 	unpackNotifierStringField(&json, &settings, "message_type", "messageType")
+	unpackNotifierStringField(&json, &settings, "title", "title")
+	unpackNotifierStringField(&json, &settings, "description", "description")
 
 	return gapi.ContactPoint{
 		UID:                   uid,
