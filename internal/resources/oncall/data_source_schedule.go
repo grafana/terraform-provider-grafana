@@ -12,7 +12,7 @@ import (
 func DataSourceSchedule() *schema.Resource {
 	return &schema.Resource{
 		Description: `
-* [Official documentation](https://grafana.com/docs/oncall/latest/calendar-schedules/)
+* [Official documentation](https://grafana.com/docs/oncall/latest/on-call-schedules/)
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/schedules/)
 `,
 		ReadContext: DataSourceScheduleRead,
