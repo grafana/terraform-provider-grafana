@@ -76,7 +76,6 @@ data "grafana_slos" "slos" {}
 Read-Only:
 
 - `alerting` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting))
-- `dashboard_uid` (String)
 - `description` (String)
 - `label` (List of Object) (see [below for nested schema](#nestedobjatt--slos--label))
 - `name` (String)
