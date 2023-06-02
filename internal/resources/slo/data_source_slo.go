@@ -71,10 +71,6 @@ func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 	ret["name"] = slo.Name
 	ret["description"] = slo.Description
 
-	if slo.DrillDownDashboardRef != nil {
-		ret["dashboard_uid"] = slo.DrillDownDashboardRef.UID
-	}
-
 	ret["query"] = unpackQuery(slo.Query)
 
 	retLabels := unpackLabels(&slo.Labels)
