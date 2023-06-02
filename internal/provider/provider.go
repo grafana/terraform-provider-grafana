@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -198,19 +199,19 @@ func Provider(version string) func() *schema.Provider {
 					Type:        schema.TypeString,
 					Optional:    true,
 					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_TLS_KEY", nil),
-					Description: "Client TLS key file to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.",
+					Description: "Client TLS key (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.",
 				},
 				"tls_cert": {
 					Type:        schema.TypeString,
 					Optional:    true,
 					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_TLS_CERT", nil),
-					Description: "Client TLS certificate file to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.",
+					Description: "Client TLS certificate (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.",
 				},
 				"ca_cert": {
 					Type:        schema.TypeString,
 					Optional:    true,
 					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_CA_CERT", nil),
-					Description: "Certificate CA bundle to use to verify the Grafana server's certificate. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.",
+					Description: "Certificate CA bundle (file path or literal value) to use to verify the Grafana server's certificate. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.",
 				},
 				"insecure_skip_verify": {
 					Type:        schema.TypeBool,
@@ -354,12 +355,31 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 	transport.MaxConnsPerHost = 2
 
 	// TLS Config
-	tlsKey := d.Get("tls_key").(string)
-	tlsCert := d.Get("tls_cert").(string)
-	caCert := d.Get("ca_cert").(string)
+	tlsKeyFile, tempFile, err := createTempFileIfLiteral(d.Get("tls_key").(string))
+	if err != nil {
+		return "", nil, nil, err
+	}
+	if tempFile {
+		defer os.Remove(tlsKeyFile)
+	}
+	tlsCertFile, tempFile, err := createTempFileIfLiteral(d.Get("tls_cert").(string))
+	if err != nil {
+		return "", nil, nil, err
+	}
+	if tempFile {
+		defer os.Remove(tlsCertFile)
+	}
+	caCertFile, tempFile, err := createTempFileIfLiteral(d.Get("ca_cert").(string))
+	if err != nil {
+		return "", nil, nil, err
+	}
+	if tempFile {
+		defer os.Remove(caCertFile)
+	}
+
 	insecure := d.Get("insecure_skip_verify").(bool)
-	if caCert != "" {
-		ca, err := os.ReadFile(caCert)
+	if caCertFile != "" {
+		ca, err := os.ReadFile(caCertFile)
 		if err != nil {
 			return "", nil, nil, err
 		}
@@ -367,8 +387,8 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 		pool.AppendCertsFromPEM(ca)
 		transport.TLSClientConfig.RootCAs = pool
 	}
-	if tlsKey != "" && tlsCert != "" {
-		cert, err := tls.LoadX509KeyPair(tlsCert, tlsKey)
+	if tlsKeyFile != "" && tlsCertFile != "" {
+		cert, err := tls.LoadX509KeyPair(tlsCertFile, tlsKeyFile)
 		if err != nil {
 			return "", nil, nil, err
 		}
@@ -395,7 +415,6 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 		cfg.APIKey = auth[0]
 	}
 
-	var err error
 	if cfg.HTTPHeaders, err = getHTTPHeadersMap(d); err != nil {
 		return "", nil, nil, err
 	}
@@ -492,4 +511,27 @@ func mergeResourceMaps(maps ...map[string]*schema.Resource) map[string]*schema.R
 		}
 	}
 	return result
+}
+
+func createTempFileIfLiteral(value string) (path string, tempFile bool, err error) {
+	if value == "" {
+		return "", false, nil
+	}
+
+	if _, err := os.Stat(value); errors.Is(err, os.ErrNotExist) {
+		// value is not a file path, assume it's a literal
+		f, err := os.CreateTemp("", "grafana-provider-tls")
+		if err != nil {
+			return "", false, err
+		}
+		if _, err := f.WriteString(value); err != nil {
+			return "", false, err
+		}
+		if err := f.Close(); err != nil {
+			return "", false, err
+		}
+		return f.Name(), true, nil
+	}
+
+	return value, false, nil
 }
