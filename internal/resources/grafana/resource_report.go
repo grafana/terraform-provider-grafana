@@ -43,6 +43,7 @@ var (
 	reportLayouts      = []string{reportLayoutSimple, reportLayoutGrid}
 	reportOrientations = []string{reportOrientationLandscape, reportOrientationPortrait}
 	reportFrequencies  = []string{reportFrequencyNever, reportFrequencyOnce, reportFrequencyHourly, reportFrequencyDaily, reportFrequencyWeekly, reportFrequencyMonthly, reportFrequencyCustom}
+	reportFormats      = []string{reportFormatPDF, reportFormatCSV, reportFormatImage}
 )
 
 func ResourceReport() *schema.Resource {
@@ -137,10 +138,10 @@ func ResourceReport() *schema.Resource {
 			"formats": {
 				Type:        schema.TypeSet,
 				Optional:    true,
-				Description: "specifies what kind of attachment to generate for the report",
+				Description: common.AllowedValuesDescription("Specifies what kind of attachment to generate for the report", reportFormats),
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
-					ValidateFunc: validation.StringInSlice([]string{reportFormatPDF, reportFormatCSV, reportFormatImage}, false),
+					ValidateFunc: validation.StringInSlice(reportFormats, false),
 				},
 			},
 			"time_range": {
