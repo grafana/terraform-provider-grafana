@@ -33,6 +33,10 @@ const (
 
 	reportLayoutGrid   = "grid"
 	reportLayoutSimple = "simple"
+
+	reportFormatPDF   = "pdf"
+	reportFormatCSV   = "csv"
+	reportFormatImage = "image"
 )
 
 var (
@@ -129,6 +133,15 @@ func ResourceReport() *schema.Resource {
 				Description:  common.AllowedValuesDescription("Orientation of the report", reportOrientations),
 				Default:      reportOrientationLandscape,
 				ValidateFunc: validation.StringInSlice(reportOrientations, false),
+			},
+			"formats": {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Description: "specifies what kind of attachment to generate for the report",
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validation.StringInSlice([]string{reportFormatPDF, reportFormatCSV, reportFormatImage}, false),
+				},
 			},
 			"time_range": {
 				Type:        schema.TypeList,
@@ -273,6 +286,10 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	d.Set("orientation", r.Options.Orientation)
 	d.Set("org_id", strconv.FormatInt(r.OrgID, 10))
 
+	if _, ok := d.GetOk("formats"); ok {
+		d.Set("formats", common.StringSliceToSet(r.Formats))
+	}
+
 	timeRange := r.Dashboards[0].TimeRange
 	if timeRange.From != "" {
 		d.Set("time_range", []interface{}{
@@ -380,6 +397,11 @@ func schemaToReport(client *gapi.Client, d *schema.ResourceData) (gapi.Report, e
 			Frequency: frequency,
 			TimeZone:  "GMT",
 		},
+		Formats: []string{reportFormatPDF},
+	}
+
+	if v, ok := d.GetOk("formats"); ok && v != nil {
+		report.Formats = common.SetToStringSlice(v.(*schema.Set))
 	}
 
 	// Set dashboard time range

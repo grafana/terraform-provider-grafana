@@ -69,6 +69,10 @@ func TestAccResourceReport(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_report.test", "include_table_csv", "true"),
 					resource.TestCheckResourceAttr("grafana_report.test", "time_range.0.from", "now-1h"),
 					resource.TestCheckResourceAttr("grafana_report.test", "time_range.0.to", "now"),
+					resource.TestCheckResourceAttr("grafana_report.test", "formats.#", "3"),
+					resource.TestCheckResourceAttr("grafana_report.test", "formats.0", "csv"),
+					resource.TestCheckResourceAttr("grafana_report.test", "formats.1", "image"),
+					resource.TestCheckResourceAttr("grafana_report.test", "formats.2", "pdf"),
 				),
 			},
 			{
