@@ -62,9 +62,9 @@ This resource requires Grafana 9.1.0 or later.
 	}
 
 	// Build list of available notifier fields, at least one has to be specified
-	notifierFields := []string{}
-	for _, n := range notifiers {
-		notifierFields = append(notifierFields, n.meta().field)
+	notifierFields := make([]string{}, len(notifiers))
+	for i, n := range notifiers {
+		notifierFields[i] = n.meta().field
 	}
 
 	for _, n := range notifiers {
