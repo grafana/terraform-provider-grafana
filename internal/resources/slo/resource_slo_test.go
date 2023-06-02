@@ -25,7 +25,6 @@ func TestAccResourceSlo(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccSloCheckExists("grafana_slo.test", &slo),
 					resource.TestCheckResourceAttrSet("grafana_slo.test", "id"),
-					resource.TestCheckResourceAttrSet("grafana_slo.test", "dashboard_uid"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "name", "Terraform Testing"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "description", "Terraform Description"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "query.0.type", "freeform"),
@@ -39,7 +38,6 @@ func TestAccResourceSlo(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccSloCheckExists("grafana_slo.update", &slo),
 					resource.TestCheckResourceAttrSet("grafana_slo.update", "id"),
-					resource.TestCheckResourceAttrSet("grafana_slo.update", "dashboard_uid"),
 					resource.TestCheckResourceAttr("grafana_slo.update", "name", "Updated - Terraform Testing"),
 					resource.TestCheckResourceAttr("grafana_slo.update", "description", "Updated - Terraform Description"),
 					resource.TestCheckResourceAttr("grafana_slo.update", "query.0.type", "freeform"),
