@@ -316,7 +316,7 @@ func UpdateReport(ctx context.Context, d *schema.ResourceData, meta interface{})
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	report.ID = int64(id)
+	report.ID = id
 
 	if err := client.UpdateReport(report); err != nil {
 		data, _ := json.Marshal(report)
