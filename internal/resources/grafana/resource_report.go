@@ -57,6 +57,7 @@ func ResourceReport() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"id": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -226,7 +227,7 @@ func ResourceReport() *schema.Resource {
 }
 
 func CreateReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID := ClientFromNewOrgResource(meta, d)
 
 	report, err := schemaToReport(client, d)
 	if err != nil {
@@ -238,13 +239,13 @@ func CreateReport(ctx context.Context, d *schema.ResourceData, meta interface{})
 		data, _ := json.Marshal(report)
 		return diag.Errorf("error creating the following report:\n%s\n%v", string(data), err)
 	}
-	d.SetId(strconv.FormatInt(id, 10))
+	d.SetId(MakeOrgResourceID(orgID, id))
 	return ReadReport(ctx, d, meta)
 }
 
 func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -270,6 +271,7 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	d.Set("include_table_csv", r.EnableCSV)
 	d.Set("layout", r.Options.Layout)
 	d.Set("orientation", r.Options.Orientation)
+	d.Set("org_id", strconv.FormatInt(r.OrgID, 10))
 
 	timeRange := r.Dashboards[0].TimeRange
 	if timeRange.From != "" {
@@ -304,17 +306,17 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func UpdateReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	report, err := schemaToReport(client, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	id, err := strconv.Atoi(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	report.ID = int64(id)
+	report.ID = id
 
 	if err := client.UpdateReport(report); err != nil {
 		data, _ := json.Marshal(report)
@@ -324,8 +326,8 @@ func UpdateReport(ctx context.Context, d *schema.ResourceData, meta interface{})
 }
 
 func DeleteReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}

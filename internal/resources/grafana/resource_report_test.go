@@ -7,7 +7,9 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -49,7 +51,7 @@ func TestAccResourceReport(t *testing.T) {
 						// Check that the ID and dashboard ID are the same as the first run
 						// This is a custom function to delay the report ID evaluation, because it is generated after the first run
 						return resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr("grafana_report.test", "id", strconv.FormatInt(report.ID, 10)),
+							resource.TestCheckResourceAttr("grafana_report.test", "id", "0:"+strconv.FormatInt(report.ID, 10)), // <orgid>:<reportid> (0 being the default org)
 							resource.TestCheckResourceAttr("grafana_report.test", "dashboard_id", strconv.FormatInt(report.Dashboards[0].Dashboard.ID, 10)),
 						)(s)
 					},
@@ -118,6 +120,33 @@ func TestAccResourceReport_CreateFromDashboardID(t *testing.T) {
 	})
 }
 
+func TestAccResourceReport_InOrg(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t)
+
+	var report gapi.Report
+	var org gapi.Org
+	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      testAccReportCheckDestroy(&report),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccReportCreateInOrg(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccReportCheckExists("grafana_report.test", &report),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", "report-in-org"),
+
+					// Check that the dashboard is in the correct organization
+					resource.TestMatchResourceAttr("grafana_report.test", "id", nonDefaultOrgIDRegexp),
+					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					checkResourceIsInOrg("grafana_report.test", "grafana_organization.test"),
+				),
+			},
+		},
+	})
+}
+
 func testAccReportCheckExists(rn string, report *gapi.Report) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
@@ -130,17 +159,24 @@ func testAccReportCheckExists(rn string, report *gapi.Report) resource.TestCheck
 		}
 
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
+		orgID, reportIDStr := grafana.SplitOrgResourceID(rs.Primary.ID)
+		reportID, err := strconv.ParseInt(reportIDStr, 10, 64)
 		if err != nil {
 			return err
 		}
 
-		if id == 0 {
-			return fmt.Errorf("got a report id of 0")
+		// If the org ID is set, check that the report doesn't exist in the default org
+		if orgID > 0 {
+			report, err := client.Report(reportID)
+			if err == nil || report != nil {
+				return fmt.Errorf("expected no report with ID %s in default org but found one", reportIDStr)
+			}
+			client = client.WithOrgID(orgID)
 		}
-		gotReport, err := client.Report(id)
+
+		gotReport, err := client.Report(reportID)
 		if err != nil {
-			return fmt.Errorf("error getting report: %s", err)
+			return fmt.Errorf("error getting report: %w", err)
 		}
 
 		*report = *gotReport
@@ -180,3 +216,31 @@ resource "grafana_dashboard" "test" {
 	}
   }
   `
+
+func testAccReportCreateInOrg(name string) string {
+	return fmt.Sprintf(`
+resource "grafana_organization" "test" {
+	name = "%s"
+}
+
+resource "grafana_dashboard" "test" {
+	org_id      = grafana_organization.test.id
+	config_json = <<EOD
+{
+	"title": "Dashboard for report in org",
+	"uid": "report-in-org"
+}
+EOD
+	message     = "initial commit."
+}
+
+resource "grafana_report" "test" {
+	org_id      = grafana_organization.test.id
+	name         = "my report"
+	dashboard_uid = grafana_dashboard.test.uid
+	recipients   = ["some@email.com"]
+	schedule {
+		frequency = "hourly"
+	}
+}`, name)
+}
