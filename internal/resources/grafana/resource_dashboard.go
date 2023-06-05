@@ -362,7 +362,7 @@ func NormalizeDashboardConfigJSON(config interface{}) string {
 	// from the dashboard JSON other than "name" or "uid".
 	// Grafana will populate all other libraryPanel attributes, so delete them to avoid diff.
 	panels, hasPanels := dashboardJSON["panels"]
-	if hasPanels {
+	if hasPanels && panels != nil {
 		for _, panel := range panels.([]interface{}) {
 			panelMap := panel.(map[string]interface{})
 			delete(panelMap, "id")
