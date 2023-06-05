@@ -68,20 +68,30 @@ resource "grafana_cloud_stack" "my_stack" {
   region_slug = "us"
 }
 
-resource "grafana_cloud_stack_api_key" "management" {
-  provider = grafana.cloud
-
+// Step 2: Create a service account and key for the stack
+resource "grafana_cloud_stack_service_account" "cloud_sa" {
+  provider   = grafana.cloud
   stack_slug = grafana_cloud_stack.my_stack.slug
-  name       = "management-key"
-  role       = "Admin"
+
+  name        = "cloud service account"
+  role        = "Admin"
+  is_disabled = false
 }
 
-// Step 2: Create resources within the stack
+resource "grafana_cloud_stack_service_account_token" "cloud_sa" {
+  provider   = grafana.cloud
+  stack_slug = grafana_cloud_stack.my_stack.slug
+
+  name               = "my_stack cloud_sa key"
+  service_account_id = grafana_cloud_stack_service_account.cloud_sa.id
+}
+
+// Step 3: Create resources within the stack
 provider "grafana" {
   alias = "my_stack"
 
   url  = grafana_cloud_stack.my_stack.url
-  auth = grafana_api_key.management.key
+  auth = grafana_cloud_stack_service_account_token.cloud_sa.key
 }
 
 resource "grafana_folder" "my_folder" {
