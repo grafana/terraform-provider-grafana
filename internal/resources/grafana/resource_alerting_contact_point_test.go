@@ -2,6 +2,7 @@ package grafana_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -313,6 +314,22 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 	})
 }
 
+func TestAccContactPoint_empty(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		Steps: []resource.TestStep{
+			// Test creation.
+			{
+				Config:      testAccEmptyContactPoint,
+				ExpectError: regexp.MustCompile(`Missing required argument`),
+			},
+		},
+	})
+}
+
 func testContactPointCheckExists(rname string, pts *[]gapi.ContactPoint, expCount int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		resource, ok := s.RootModule().Resources[rname]
@@ -384,3 +401,9 @@ func testContactPointCheckAllDestroy(name string) resource.TestCheckFunc {
 		return nil
 	}
 }
+
+const testAccEmptyContactPoint = `
+resource "grafana_contact_point" "dev_null" {
+	name = "empty-test"
+}
+`
