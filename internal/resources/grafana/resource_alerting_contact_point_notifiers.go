@@ -174,9 +174,10 @@ var _ notifier = (*discordNotifier)(nil)
 
 func (d discordNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:   "discord",
-		typeStr: "discord",
-		desc:    "A contact point that sends notifications as Discord messages",
+		field:        "discord",
+		typeStr:      "discord",
+		desc:         "A contact point that sends notifications as Discord messages",
+		secureFields: []string{"url"},
 	}
 }
 
@@ -227,6 +228,8 @@ func (d discordNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (i
 		notifier["use_discord_username"] = v.(bool)
 		delete(p.Settings, "use_discord_username")
 	}
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, d, p.UID), d.meta().secureFields)
 
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
