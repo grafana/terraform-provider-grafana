@@ -206,8 +206,9 @@ available at “https://<stack_slug>.grafana.net".`,
 				Computed: true,
 			},
 			"traces_url": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Base URL of the Traces instance configured for this stack. To use this in the Tempo data source in Grafana, append `/tempo` to the URL.",
 			},
 			"traces_status": {
 				Type:     schema.TypeString,
