@@ -99,7 +99,7 @@ func testAccSloCheckExists(rn string, slo *gapi.Slo) resource.TestCheckFunc {
 
 func testAlertingExists(expectation bool, rn string, slo *gapi.Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, _ := s.RootModule().Resources[rn]
+		rs := s.RootModule().Resources[rn]
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		gotSlo, _ := client.GetSlo(rs.Primary.ID)
 		*slo = gotSlo
