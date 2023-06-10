@@ -25,9 +25,9 @@ Resource manages Grafana SLOs.
 		ReadContext:   resourceSloRead,
 		UpdateContext: resourceSloUpdate,
 		DeleteContext: resourceSloDelete,
-		// Importer: &schema.ResourceImporter{
-		// 	StateContext: schema.ImportStatePassthroughContext,
-		// },
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:         schema.TypeString,
