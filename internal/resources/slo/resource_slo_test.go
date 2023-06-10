@@ -79,7 +79,7 @@ func testAccSloCheckDestroy(slo *gapi.Slo) resource.TestCheckFunc {
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		err := client.DeleteSlo(slo.UUID)
 
-		if err == nil {
+		if err != nil {
 			return fmt.Errorf("SLO with a UUID %s still exists after destroy", slo.UUID)
 		}
 
