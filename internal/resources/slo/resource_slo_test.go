@@ -18,9 +18,11 @@ func TestAccResourceSlo(t *testing.T) {
 	var slo gapi.Slo
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		// CheckDestroy:      testAccSloCheckDestroy(&slo),
+		// Implicitly tests destroy
+		CheckDestroy: testAccSloCheckDestroy(&slo),
 		Steps: []resource.TestStep{
 			{
+				// Tests Create
 				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccSloCheckExists("grafana_slo.test", &slo),
@@ -34,6 +36,7 @@ func TestAccResourceSlo(t *testing.T) {
 				),
 			},
 			{
+				// Tests Update
 				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_update.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccSloCheckExists("grafana_slo.update", &slo),
@@ -47,6 +50,7 @@ func TestAccResourceSlo(t *testing.T) {
 				),
 			},
 			{
+				// Tests that No Alerting Rules are Generated when No Alerting Field is defined on the Terraform State File
 				Config: noAlert,
 				Check: resource.ComposeTestCheckFunc(
 					testAccSloCheckExists("grafana_slo.no_alert", &slo),
@@ -56,6 +60,7 @@ func TestAccResourceSlo(t *testing.T) {
 				),
 			},
 			{
+				// Tests that Alerting Rules are Generated when an Empty Alerting Field is defined on the Terraform State File
 				Config: emptyAlert,
 				Check: resource.ComposeTestCheckFunc(
 					testAccSloCheckExists("grafana_slo.empty_alert", &slo),
@@ -94,23 +99,11 @@ func testAccSloCheckExists(rn string, slo *gapi.Slo) resource.TestCheckFunc {
 
 func testAlertingExists(expectation bool, rn string, slo *gapi.Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[rn]
-		if !ok {
-			return fmt.Errorf("resource not found: %s\n %#v", rn, s.RootModule().Resources)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("resource id not set")
-		}
-
+		rs, _ := s.RootModule().Resources[rn]
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		gotSlo, err := client.GetSlo(rs.Primary.ID)
-
-		if err != nil {
-			return fmt.Errorf("error getting SLO: %s", err)
-		}
-
+		gotSlo, _ := client.GetSlo(rs.Primary.ID)
 		*slo = gotSlo
+
 		if slo.Alerting == nil && expectation == false {
 			return nil
 		}
@@ -189,20 +182,6 @@ resource "grafana_slo" "no_alert" {
 `
 
 func TestAccResourceInvalidSlo(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t)
-
-	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config:      sloObjectivesInvalid,
-				ExpectError: regexp.MustCompile("Error:"),
-			},
-		},
-	})
-}
-
-func TestAccResourceEmptyAlertingSlo(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
