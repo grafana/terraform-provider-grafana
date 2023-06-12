@@ -76,10 +76,16 @@ This resource requires Grafana 9.1.0 or later.
 							Description: "The name of the alert rule.",
 						},
 						"for": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Default:     0,
-							Description: "The amount of time for which the rule must be breached for the rule to be considered to be Firing. Before this time has elapsed, the rule is only considered to be Pending.",
+							Type:             schema.TypeString,
+							Optional:         true,
+							Default:          0,
+							Description:      "The amount of time for which the rule must be breached for the rule to be considered to be Firing. Before this time has elapsed, the rule is only considered to be Pending.",
+							ValidateDiagFunc: common.ValidateDuration,
+							DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+								oldDuration, _ := time.ParseDuration(oldValue)
+								newDuration, _ := time.ParseDuration(newValue)
+								return oldDuration == newDuration
+							},
 						},
 						"no_data_state": {
 							Type:        schema.TypeString,
