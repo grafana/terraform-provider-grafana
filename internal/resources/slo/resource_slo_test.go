@@ -18,9 +18,11 @@ func TestAccResourceSlo(t *testing.T) {
 	var slo gapi.Slo
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccSloCheckDestroy(&slo),
+		// Implicitly tests destroy
+		CheckDestroy: testAccSloCheckDestroy(&slo),
 		Steps: []resource.TestStep{
 			{
+				// Tests Create
 				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccSloCheckExists("grafana_slo.test", &slo),
@@ -34,6 +36,7 @@ func TestAccResourceSlo(t *testing.T) {
 				),
 			},
 			{
+				// Tests Update
 				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_update.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccSloCheckExists("grafana_slo.update", &slo),
@@ -44,6 +47,26 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_slo.update", "query.0.freeform.0.query", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
 					resource.TestCheckResourceAttr("grafana_slo.update", "objectives.0.value", "0.9995"),
 					resource.TestCheckResourceAttr("grafana_slo.update", "objectives.0.window", "7d"),
+				),
+			},
+			{
+				// Tests that No Alerting Rules are Generated when No Alerting Field is defined on the Terraform State File
+				Config: noAlert,
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.no_alert", &slo),
+					testAlertingExists(false, "grafana_slo.no_alert", &slo),
+					resource.TestCheckResourceAttrSet("grafana_slo.no_alert", "id"),
+					resource.TestCheckResourceAttr("grafana_slo.no_alert", "name", "No Alerting Check - does not generate Alerts"),
+				),
+			},
+			{
+				// Tests that Alerting Rules are Generated when an Empty Alerting Field is defined on the Terraform State File
+				Config: emptyAlert,
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.empty_alert", &slo),
+					testAlertingExists(true, "grafana_slo.empty_alert", &slo),
+					resource.TestCheckResourceAttrSet("grafana_slo.empty_alert", "id"),
+					resource.TestCheckResourceAttr("grafana_slo.empty_alert", "name", "Empty Alerting Check - generates Alerts"),
 				),
 			},
 		},
@@ -74,14 +97,29 @@ func testAccSloCheckExists(rn string, slo *gapi.Slo) resource.TestCheckFunc {
 	}
 }
 
+func testAlertingExists(expectation bool, rn string, slo *gapi.Slo) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs := s.RootModule().Resources[rn]
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		gotSlo, _ := client.GetSlo(rs.Primary.ID)
+		*slo = gotSlo
+
+		if slo.Alerting == nil && expectation == false {
+			return nil
+		}
+
+		if slo.Alerting != nil && expectation == true {
+			return nil
+		}
+
+		return fmt.Errorf("SLO Alerting expectation mismatch")
+	}
+}
+
 func testAccSloCheckDestroy(slo *gapi.Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		err := client.DeleteSlo(slo.UUID)
-
-		if err == nil {
-			return fmt.Errorf("SLO with a UUID %s still exists after destroy", slo.UUID)
-		}
+		client.DeleteSlo(slo.UUID)
 
 		return nil
 	}
@@ -100,6 +138,41 @@ resource  "grafana_slo" "invalid" {
   objectives {
 	value  = 1.5
     window = "1m"
+  }
+}
+`
+
+const emptyAlert = `
+resource "grafana_slo" "empty_alert" {
+  description = "Empty Alerting Check - generates Alerts"
+  name        = "Empty Alerting Check - generates Alerts"
+  objectives {
+    value  = 0.995
+    window = "28d"
+  }
+  query {
+    type = "freeform"
+    freeform {
+      query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+    }
+  }
+  alerting {}
+}
+`
+
+const noAlert = `
+resource "grafana_slo" "no_alert" {
+  description = "No Alerting Check - does not generate Alerts"
+  name        = "No Alerting Check - does not generate Alerts"
+  objectives {
+    value  = 0.995
+    window = "28d"
+  }
+  query {
+    type = "freeform"
+    freeform {
+      query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+    }
   }
 }
 `

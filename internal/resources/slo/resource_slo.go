@@ -298,20 +298,27 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 		tflabels = packLabels(labels)
 	}
 
-	alerting := d.Get("alerting").([]interface{})
-	if len(alerting) > 0 {
-		alert := alerting[0].(map[string]interface{})
-		tfalerting = packAlerting(alert)
-	}
-
 	slo := gapi.Slo{
 		UUID:        d.Id(),
 		Name:        tfname,
 		Description: tfdescription,
 		Objectives:  tfobjective,
 		Query:       tfquery,
-		Alerting:    &tfalerting,
+		Alerting:    nil,
 		Labels:      tflabels,
+	}
+
+	if alerting, ok := d.GetOk("alerting"); ok {
+		alertData := alerting.([]interface{})
+
+		// if the Alerting field is an empty block, alertData[0] has a value of nil
+		if alertData[0] != nil {
+			// only pack the Alerting TF fields if the user populates the Alerting field with blocks
+			alert := alertData[0].(map[string]interface{})
+			tfalerting = packAlerting(alert)
+		}
+
+		slo.Alerting = &tfalerting
 	}
 
 	return slo, nil
