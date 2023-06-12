@@ -322,47 +322,6 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 	}
 
 	return slo, nil
-
-	// alerting, alertingOK := d.GetOk("alerting")
-
-	// // means that the Alerting field on the Terraform State File was defined by the user
-	// // it is either populated or is an empty block {}
-	// if alertingOK {
-	// 	alertData := alerting.([]interface{})
-
-	// 	// if the Alerting field is an empty block, alertData[0] has a value of nil
-	// 	if alertData[0] != nil {
-	// 		// only pack the Alerting TF fields if the user populates the Alerting field with blocks
-	// 		alert := alertData[0].(map[string]interface{})
-	// 		tfalerting = packAlerting(alert)
-	// 	}
-
-	// 	slo := gapi.Slo{
-	// 		UUID:        d.Id(),
-	// 		Name:        tfname,
-	// 		Description: tfdescription,
-	// 		Objectives:  tfobjective,
-	// 		Query:       tfquery,
-	// 		Alerting:    &tfalerting,
-	// 		Labels:      tflabels,
-	// 	}
-
-	// 	return slo, nil
-	// }
-
-	// // Code only executes if the Alerting field is not specified in the Terraform state file
-	// // in which case the Alerting field is explicitly set to nil, ensuring no alerting rules are created
-	// slo := gapi.Slo{
-	// 	UUID:        d.Id(),
-	// 	Name:        tfname,
-	// 	Description: tfdescription,
-	// 	Objectives:  tfobjective,
-	// 	Query:       tfquery,
-	// 	Alerting:    nil,
-	// 	Labels:      tflabels,
-	// }
-
-	// return slo, nil
 }
 
 func packQuery(query map[string]interface{}) (gapi.Query, error) {
