@@ -57,5 +57,3 @@ output "service_account_token_bar" {
 - `has_expired` (Boolean)
 - `id` (String) The ID of this resource.
 - `key` (String, Sensitive)
-
-

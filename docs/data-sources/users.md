@@ -51,5 +51,3 @@ Read-Only:
 - `is_admin` (Boolean)
 - `login` (String)
 - `name` (String)
-
-

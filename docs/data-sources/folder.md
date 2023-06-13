@@ -36,5 +36,3 @@ data "grafana_folder" "from_title" {
 - `id` (Number) The numerical ID of the Grafana folder.
 - `uid` (String) The uid of the Grafana folder.
 - `url` (String) The full URL of the folder.
-
-

@@ -49,5 +49,3 @@ Read-Only:
 - `title` (String)
 - `uid` (String)
 - `url` (String)
-
-

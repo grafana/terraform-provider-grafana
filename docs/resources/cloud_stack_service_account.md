@@ -47,5 +47,3 @@ resource "grafana_cloud_stack_service_account" "cloud_sa" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-
-
