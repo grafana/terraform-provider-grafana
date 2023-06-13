@@ -88,5 +88,3 @@ Optional:
 
 - `from` (String) Start of the time range.
 - `to` (String) End of the time range.
-
-

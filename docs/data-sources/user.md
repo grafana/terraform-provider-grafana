@@ -54,5 +54,3 @@ data "grafana_user" "from_login" {
 - `id` (String) The ID of this resource.
 - `is_admin` (Boolean) Whether the user is an admin.
 - `name` (String) The display name for the Grafana user.
-
-

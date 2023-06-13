@@ -49,5 +49,3 @@ resource "grafana_team_preferences" "team_preferences" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-
-

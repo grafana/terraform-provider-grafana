@@ -106,5 +106,3 @@ data "grafana_dashboard" "from_library_panel_connection" {
 - `type` (String) Type of the library panel (eg. text).
 - `updated` (String) Timestamp when the library panel was last modified.
 - `version` (Number) Version of the library panel.
-
-

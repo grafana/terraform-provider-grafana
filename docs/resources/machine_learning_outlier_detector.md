@@ -58,5 +58,3 @@ Optional:
 Required:
 
 - `epsilon` (Number) Specify the epsilon parameter (positive float)
-
-

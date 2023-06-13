@@ -60,5 +60,3 @@ output "service_account_token_foo_key" {
 - `has_expired` (Boolean)
 - `id` (String) The ID of this resource.
 - `key` (String, Sensitive)
-
-

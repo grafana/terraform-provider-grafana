@@ -102,5 +102,3 @@ Read-Only:
 - `folder_title` (String)
 - `title` (String)
 - `uid` (String)
-
-
