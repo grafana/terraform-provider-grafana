@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -49,4 +52,13 @@ func CloneResourceSchemaForDatasource(r *schema.Resource, updates map[string]*sc
 
 func AllowedValuesDescription(description string, allowedValues []string) string {
 	return fmt.Sprintf("%s. Allowed values: `%s`.", description, strings.Join(allowedValues, "`, `"))
+}
+
+func ValidateDuration(i interface{}, p cty.Path) diag.Diagnostics {
+	v := i.(string)
+	_, err := time.ParseDuration(v)
+	if err != nil {
+		return diag.Errorf("%q is not a valid duration: %s", v, err)
+	}
+	return nil
 }
