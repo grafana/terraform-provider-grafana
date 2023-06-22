@@ -129,9 +129,11 @@ This resource requires Grafana 9.1.0 or later.
 										Description: "An optional identifier for the type of query being executed.",
 									},
 									"model": {
-										Required:    true,
-										Type:        schema.TypeString,
-										Description: "Custom JSON data to send to the specified datasource when querying.",
+										Required:     true,
+										Type:         schema.TypeString,
+										Description:  "Custom JSON data to send to the specified datasource when querying.",
+										ValidateFunc: validateModelJSON,
+										StateFunc:    normalizeModelJSON,
 									},
 									"relative_time_range": {
 										Type:        schema.TypeList,
@@ -372,6 +374,7 @@ func packRuleData(queries []*gapi.AlertQuery) (interface{}, error) {
 		if queries[i] == nil {
 			continue
 		}
+		log.Printf("[DEBUG] PACKING!!!\n")
 
 		model, err := json.Marshal(queries[i].Model)
 		if err != nil {
@@ -386,7 +389,7 @@ func packRuleData(queries []*gapi.AlertQuery) (interface{}, error) {
 		timeRange["from"] = int(queries[i].RelativeTimeRange.From)
 		timeRange["to"] = int(queries[i].RelativeTimeRange.To)
 		data["relative_time_range"] = []interface{}{timeRange}
-		data["model"] = string(model)
+		data["model"] = normalizeModelJSON(string(model))
 		result = append(result, data)
 	}
 	return result, nil
@@ -420,6 +423,60 @@ func unpackRuleData(raw interface{}) ([]*gapi.AlertQuery, error) {
 		result = append(result, stage)
 	}
 	return result, nil
+}
+
+// validateModelJSON is the ValidateFunc for `model`. It ensures its value is valid JSON.
+func validateModelJSON(model interface{}, k string) ([]string, []error) {
+	modelJSON := model.(string)
+	modelMap := map[string]interface{}{}
+	err := json.Unmarshal([]byte(modelJSON), &modelMap)
+	if err != nil {
+		return nil, []error{err}
+	}
+	return nil, nil
+}
+
+// normalizeModelJSON is the StateFunc for the `model`. It removes well-known default
+// values from the model json, so that users do not see perma-diffs when not specifying
+// the values explicitly in their Terraform.
+func normalizeModelJSON(model interface{}) string {
+	modelJSON := model.(string)
+	var modelMap map[string]interface{}
+	err := json.Unmarshal([]byte(modelJSON), &modelMap)
+	if err != nil {
+		// This should never happen if the field passes validation.
+		log.Printf("[ERROR] Unexpected unmarshal failure for model: %v\n", err)
+		return modelJSON
+	}
+
+	// The default values taken from:
+	//   https://github.com/grafana/grafana/blob/ae688adabcfacd8bd0ac6ebaf8b78506f67962a9/pkg/services/ngalert/models/alert_query.go#L12-L13
+	const defaultMaxDataPoints float64 = 43200
+	const defaultIntervalMS float64 = 1000
+
+	// https://github.com/grafana/grafana/blob/ae688adabcfacd8bd0ac6ebaf8b78506f67962a9/pkg/services/ngalert/models/alert_query.go#L127-L134
+	iMaxDataPoints, ok := modelMap["maxDataPoints"]
+	if ok {
+		maxDataPoints, ok := iMaxDataPoints.(float64)
+		if ok && maxDataPoints == defaultMaxDataPoints {
+			log.Printf("[DEBUG] Removing maxDataPoints from state due to being set to default value (%f)", defaultMaxDataPoints)
+			delete(modelMap, "maxDataPoints")
+		}
+	}
+
+	// https://github.com/grafana/grafana/blob/ae688adabcfacd8bd0ac6ebaf8b78506f67962a9/pkg/services/ngalert/models/alert_query.go#L159-L166
+	iIntervalMs, ok := modelMap["intervalMs"]
+	if ok {
+		intervalMs, ok := iIntervalMs.(float64)
+		if ok && intervalMs == defaultIntervalMS {
+			log.Printf("[DEBUG] Removing intervalMs from state due to being set to default value (%f)", defaultIntervalMS)
+			delete(modelMap, "intervalMs")
+		}
+	}
+
+	j, _ := json.Marshal(modelMap)
+	resultJSON := string(j)
+	return resultJSON
 }
 
 func unpackMap(raw interface{}) map[string]string {
