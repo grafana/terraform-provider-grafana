@@ -13,6 +13,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func ResourceRuleGroup() *schema.Resource {
@@ -132,7 +133,7 @@ This resource requires Grafana 9.1.0 or later.
 										Required:     true,
 										Type:         schema.TypeString,
 										Description:  "Custom JSON data to send to the specified datasource when querying.",
-										ValidateFunc: validateModelJSON,
+										ValidateFunc: validation.StringIsJSON,
 										StateFunc:    normalizeModelJSON,
 									},
 									"relative_time_range": {
@@ -423,17 +424,6 @@ func unpackRuleData(raw interface{}) ([]*gapi.AlertQuery, error) {
 		result = append(result, stage)
 	}
 	return result, nil
-}
-
-// validateModelJSON is the ValidateFunc for `model`. It ensures its value is valid JSON.
-func validateModelJSON(model interface{}, k string) ([]string, []error) {
-	modelJSON := model.(string)
-	modelMap := map[string]interface{}{}
-	err := json.Unmarshal([]byte(modelJSON), &modelMap)
-	if err != nil {
-		return nil, []error{err}
-	}
-	return nil, nil
 }
 
 // normalizeModelJSON is the StateFunc for the `model`. It removes well-known default
