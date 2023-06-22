@@ -375,7 +375,6 @@ func packRuleData(queries []*gapi.AlertQuery) (interface{}, error) {
 		if queries[i] == nil {
 			continue
 		}
-		log.Printf("[DEBUG] PACKING!!!\n")
 
 		model, err := json.Marshal(queries[i].Model)
 		if err != nil {
