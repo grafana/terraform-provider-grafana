@@ -29,4 +29,5 @@ resource "grafana_report" "test" {
     from = "now-1h"
     to   = "now"
   }
+  formats = ["csv", "image", "pdf"]
 }

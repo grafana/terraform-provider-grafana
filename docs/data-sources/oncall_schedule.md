@@ -3,12 +3,12 @@
 page_title: "grafana_oncall_schedule Data Source - terraform-provider-grafana"
 subcategory: "OnCall"
 description: |-
-  Official documentation https://grafana.com/docs/oncall/latest/calendar-schedules/HTTP API https://grafana.com/docs/oncall/latest/oncall-api-reference/schedules/
+  Official documentation https://grafana.com/docs/oncall/latest/on-call-schedules/HTTP API https://grafana.com/docs/oncall/latest/oncall-api-reference/schedules/
 ---
 
 # grafana_oncall_schedule (Data Source)
 
-* [Official documentation](https://grafana.com/docs/oncall/latest/calendar-schedules/)
+* [Official documentation](https://grafana.com/docs/oncall/latest/on-call-schedules/)
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/schedules/)
 
 ## Example Usage
@@ -30,5 +30,3 @@ data "grafana_oncall_schedule" "schedule" {
 
 - `id` (String) The ID of this resource.
 - `type` (String) The schedule type.
-
-

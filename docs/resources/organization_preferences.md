@@ -36,5 +36,3 @@ resource "grafana_organization_preferences" "test" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-
-

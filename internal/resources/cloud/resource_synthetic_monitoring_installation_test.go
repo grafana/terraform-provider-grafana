@@ -30,6 +30,7 @@ func TestAccSyntheticMonitoringInstallation(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_installation.test", "sm_access_token"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_installation.test", "stack_sm_api_url"),
 				),
 			},
 			// Test deletion
@@ -50,8 +51,6 @@ func testAccSyntheticMonitoringInstallation(stackSlug, apiKeyName string) string
 		`
 	resource "grafana_synthetic_monitoring_installation" "test" {
 		stack_id              = grafana_cloud_stack.test.id
-		metrics_instance_id   = grafana_cloud_stack.test.prometheus_user_id
-		logs_instance_id      = grafana_cloud_stack.test.logs_user_id
 		metrics_publisher_key = grafana_cloud_api_key.test.key
 	}
 	`

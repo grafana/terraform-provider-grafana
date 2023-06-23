@@ -65,5 +65,3 @@ data "grafana_data_source" "from_uid" {
 - `type` (String) The data source type. Must be one of the supported data source keywords.
 - `url` (String) The URL for the data source. The type of URL required varies depending on the chosen data source type.
 - `username` (String) (Required by some data source types) The username to use to authenticate to the data source.
-
-

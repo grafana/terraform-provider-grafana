@@ -14,7 +14,6 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -86,17 +85,10 @@ available at “https://<stack_slug>.grafana.net".`,
 				DiffSuppressFunc: func(_, _, newValue string, _ *schema.ResourceData) bool { return newValue == "false" },
 			},
 			"wait_for_readiness_timeout": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  defaultReadinessTimeout.String(),
-				ValidateDiagFunc: func(i interface{}, p cty.Path) diag.Diagnostics {
-					v := i.(string)
-					_, err := time.ParseDuration(v)
-					if err != nil {
-						return diag.Errorf("%q is not a valid duration: %s", v, err)
-					}
-					return nil
-				},
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          defaultReadinessTimeout.String(),
+				ValidateDiagFunc: common.ValidateDuration,
 				// Only used when wait_for_readiness is true
 				DiffSuppressFunc: func(_, _, newValue string, d *schema.ResourceData) bool {
 					return newValue == defaultReadinessTimeout.String()
@@ -206,8 +198,9 @@ available at “https://<stack_slug>.grafana.net".`,
 				Computed: true,
 			},
 			"traces_url": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Base URL of the Traces instance configured for this stack. To use this in the Tempo data source in Grafana, append `/tempo` to the URL.",
 			},
 			"traces_status": {
 				Type:     schema.TypeString,

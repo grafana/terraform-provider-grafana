@@ -68,5 +68,3 @@ resource "grafana_role_assignment" "test" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-
-

@@ -31,7 +31,7 @@ resource "grafana_dashboard" "metrics" {
 
 ### Optional
 
-- `folder` (String) The id of the folder to save the dashboard in. This attribute is a string to reflect the type of the folder's id.
+- `folder` (String) The id or UID of the folder to save the dashboard in.
 - `message` (String) Set a commit message for the version history.
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `overwrite` (Boolean) Set to true if you want to overwrite existing dashboard with newer version, same dashboard title in folder or same dashboard uid.

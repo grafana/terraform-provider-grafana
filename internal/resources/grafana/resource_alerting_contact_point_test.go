@@ -2,6 +2,7 @@ package grafana_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -164,6 +165,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "dingding.0.url", "http://dingding-url"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "dingding.0.message_type", "link"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "dingding.0.message", "message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "dingding.0.title", "title"),
 					// discord
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.url", "http://discord-url"),
@@ -201,6 +203,11 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.0.component", "mysql"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.0.group", "my service"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.0.summary", "message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.0.source", "source"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.0.client", "client"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.0.client_url", "http://pagerduty"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.0.details.one", "two"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pagerduty.0.details.three", "four"),
 					// pushover
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.user_key", "userkey"),
@@ -212,6 +219,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.device", "device"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.sound", "bugle"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.ok_sound", "cashregister"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.title", "title"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "pushover.0.message", "message"),
 					// sensugo
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "sensugo.#", "1"),
@@ -251,6 +259,8 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "threema.0.gateway_id", "*gateway"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "threema.0.recipient_id", "*target1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "threema.0.api_secret", "secret"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "threema.0.title", "title"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "threema.0.description", "description"),
 					// victorops
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "victorops.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "victorops.0.url", "http://victor-ops-url"),
@@ -299,6 +309,22 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 						return nil
 					},
 				),
+			},
+		},
+	})
+}
+
+func TestAccContactPoint_empty(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		Steps: []resource.TestStep{
+			// Test creation.
+			{
+				Config:      testAccEmptyContactPoint,
+				ExpectError: regexp.MustCompile(`Missing required argument`),
 			},
 		},
 	})
@@ -375,3 +401,9 @@ func testContactPointCheckAllDestroy(name string) resource.TestCheckFunc {
 		return nil
 	}
 }
+
+const testAccEmptyContactPoint = `
+resource "grafana_contact_point" "dev_null" {
+	name = "empty-test"
+}
+`

@@ -42,5 +42,3 @@ data "grafana_organization" "from_name" {
 - `editors` (Set of String) A list of email addresses corresponding to users given editor access to the organization.
 - `id` (String) The ID of this resource.
 - `viewers` (Set of String) A list of email addresses corresponding to users given viewer access to the organization.
-
-

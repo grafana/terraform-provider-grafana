@@ -43,6 +43,7 @@ resource "grafana_folder" "test_folder_with_uid" {
 
 ### Optional
 
+- `prevent_destroy_if_not_empty` (Boolean) Prevent deletion of the folder if it is not empty (contains dashboards or alert rules). Defaults to `false`.
 - `uid` (String) Unique identifier.
 
 ### Read-Only

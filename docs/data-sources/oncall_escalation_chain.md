@@ -28,5 +28,3 @@ data "grafana_oncall_escalation_chain" "default" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-
-

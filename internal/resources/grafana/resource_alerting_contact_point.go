@@ -61,12 +61,19 @@ This resource requires Grafana 9.1.0 or later.
 		},
 	}
 
+	// Build list of available notifier fields, at least one has to be specified
+	notifierFields := make([]string, len(notifiers))
+	for i, n := range notifiers {
+		notifierFields[i] = n.meta().field
+	}
+
 	for _, n := range notifiers {
 		resource.Schema[n.meta().field] = &schema.Schema{
-			Type:        schema.TypeList,
-			Optional:    true,
-			Description: n.meta().desc,
-			Elem:        n.schema(),
+			Type:         schema.TypeList,
+			Optional:     true,
+			Description:  n.meta().desc,
+			Elem:         n.schema(),
+			AtLeastOneOf: notifierFields,
 		}
 	}
 

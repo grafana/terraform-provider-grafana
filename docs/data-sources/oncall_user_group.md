@@ -29,5 +29,3 @@ data "grafana_oncall_user_group" "example_user_group" {
 
 - `id` (String) The ID of this resource.
 - `slack_id` (String)
-
-

@@ -28,5 +28,3 @@ data "grafana_oncall_outgoing_webhook" "example_outgoing_webhook" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-
-

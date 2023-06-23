@@ -24,6 +24,7 @@ A job defines the queries and model parameters for a machine learning task.
 
 ### Optional
 
+- `custom_labels` (Map of String) An object representing the custom labels added on the forecast.
 - `datasource_id` (Number) The id of the datasource to query.
 - `datasource_uid` (String) The uid of the datasource to query.
 - `description` (String) A description of the job.
@@ -35,5 +36,3 @@ A job defines the queries and model parameters for a machine learning task.
 ### Read-Only
 
 - `id` (String) The ID of the job.
-
-

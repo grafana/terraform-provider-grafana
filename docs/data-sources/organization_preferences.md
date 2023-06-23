@@ -29,5 +29,3 @@ data "grafana_organization_preferences" "test" {}
 - `theme` (String) The Organization theme. Available values are `light`, `dark`, or an empty string for the default.
 - `timezone` (String) The Organization timezone. Available values are `utc`, `browser`, or an empty string for the default.
 - `week_start` (String) The Organization week start.
-
-

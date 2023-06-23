@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -25,6 +26,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/machinelearning"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/oncall"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/slo"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/syntheticmonitoring"
 )
 
@@ -77,6 +79,9 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_machine_learning_job":              machinelearning.ResourceJob(),
 			"grafana_machine_learning_holiday":          machinelearning.ResourceHoliday(),
 			"grafana_machine_learning_outlier_detector": machinelearning.ResourceOutlierDetector(),
+
+			// SLO
+			"grafana_slo": slo.ResourceSlo(),
 		})
 
 		// Resources that require the Synthetic Monitoring client to exist.
@@ -121,6 +126,9 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_team":                     grafana.DatasourceTeam(),
 			"grafana_organization":             grafana.DatasourceOrganization(),
 			"grafana_organization_preferences": grafana.DatasourceOrganizationPreferences(),
+
+			// SLO
+			"grafana_slos": slo.DatasourceSlo(),
 		})
 
 		// Datasources that require the Synthetic Monitoring client to exist.
@@ -181,6 +189,12 @@ func Provider(version string) func() *schema.Provider {
 					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_RETRIES", 3),
 					Description: "The amount of retries to use for Grafana API and Grafana Cloud API calls. May alternatively be set via the `GRAFANA_RETRIES` environment variable.",
 				},
+				"retry_status_codes": {
+					Type:        schema.TypeSet,
+					Optional:    true,
+					Description: "The status codes to retry on for Grafana API and Grafana Cloud API calls. Use `x` as a digit wildcard. Defaults to 429 and 5xx. May alternatively be set via the `GRAFANA_RETRY_STATUS_CODES` environment variable.",
+					Elem:        &schema.Schema{Type: schema.TypeString},
+				},
 				"org_id": {
 					Type:        schema.TypeInt,
 					Optional:    true,
@@ -191,19 +205,19 @@ func Provider(version string) func() *schema.Provider {
 					Type:        schema.TypeString,
 					Optional:    true,
 					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_TLS_KEY", nil),
-					Description: "Client TLS key file to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.",
+					Description: "Client TLS key (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.",
 				},
 				"tls_cert": {
 					Type:        schema.TypeString,
 					Optional:    true,
 					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_TLS_CERT", nil),
-					Description: "Client TLS certificate file to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.",
+					Description: "Client TLS certificate (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.",
 				},
 				"ca_cert": {
 					Type:        schema.TypeString,
 					Optional:    true,
 					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_CA_CERT", nil),
-					Description: "Certificate CA bundle to use to verify the Grafana server's certificate. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.",
+					Description: "Certificate CA bundle (file path or literal value) to use to verify the Grafana server's certificate. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.",
 				},
 				"insecure_skip_verify": {
 					Type:        schema.TypeBool,
@@ -318,9 +332,8 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 				return nil, diag.FromErr(err)
 			}
 		}
-		c.SMAPIURL = d.Get("sm_url").(string)
 		if smToken := d.Get("sm_access_token").(string); smToken != "" {
-			c.SMAPI = SMAPI.NewClient(c.SMAPIURL, smToken, nil)
+			c.SMAPI = SMAPI.NewClient(d.Get("sm_url").(string), smToken, nil)
 		}
 		if d.Get("oncall_access_token").(string) != "" {
 			var onCallClient *onCallAPI.Client
@@ -348,12 +361,31 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 	transport.MaxConnsPerHost = 2
 
 	// TLS Config
-	tlsKey := d.Get("tls_key").(string)
-	tlsCert := d.Get("tls_cert").(string)
-	caCert := d.Get("ca_cert").(string)
+	tlsKeyFile, tempFile, err := createTempFileIfLiteral(d.Get("tls_key").(string))
+	if err != nil {
+		return "", nil, nil, err
+	}
+	if tempFile {
+		defer os.Remove(tlsKeyFile)
+	}
+	tlsCertFile, tempFile, err := createTempFileIfLiteral(d.Get("tls_cert").(string))
+	if err != nil {
+		return "", nil, nil, err
+	}
+	if tempFile {
+		defer os.Remove(tlsCertFile)
+	}
+	caCertFile, tempFile, err := createTempFileIfLiteral(d.Get("ca_cert").(string))
+	if err != nil {
+		return "", nil, nil, err
+	}
+	if tempFile {
+		defer os.Remove(caCertFile)
+	}
+
 	insecure := d.Get("insecure_skip_verify").(bool)
-	if caCert != "" {
-		ca, err := os.ReadFile(caCert)
+	if caCertFile != "" {
+		ca, err := os.ReadFile(caCertFile)
 		if err != nil {
 			return "", nil, nil, err
 		}
@@ -361,8 +393,8 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 		pool.AppendCertsFromPEM(ca)
 		transport.TLSClientConfig.RootCAs = pool
 	}
-	if tlsKey != "" && tlsCert != "" {
-		cert, err := tls.LoadX509KeyPair(tlsCert, tlsKey)
+	if tlsKeyFile != "" && tlsCertFile != "" {
+		cert, err := tls.LoadX509KeyPair(tlsCertFile, tlsKeyFile)
 		if err != nil {
 			return "", nil, nil, err
 		}
@@ -378,6 +410,9 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 		Client:     cli,
 		NumRetries: d.Get("retries").(int),
 	}
+	if v, ok := d.GetOk("retry_status_codes"); ok {
+		cfg.RetryStatusCodes = common.SetToStringSlice(v.(*schema.Set))
+	}
 	orgID := d.Get("org_id").(int)
 	if len(auth) == 2 {
 		cfg.BasicAuth = url.UserPassword(auth[0], auth[1])
@@ -389,7 +424,6 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 		cfg.APIKey = auth[0]
 	}
 
-	var err error
 	if cfg.HTTPHeaders, err = getHTTPHeadersMap(d); err != nil {
 		return "", nil, nil, err
 	}
@@ -440,7 +474,10 @@ func createOnCallClient(d *schema.ResourceData) (*onCallAPI.Client, error) {
 	return onCallAPI.New(baseURL, aToken)
 }
 
+// Sets a custom HTTP Header on all requests coming from the Grafana Terraform Provider to Grafana-Terraform-Provider: true
+// in addition to any headers set within the `http_headers` field or the `GRAFANA_HTTP_HEADERS` environment variable
 func getHTTPHeadersMap(d *schema.ResourceData) (map[string]string, error) {
+	headers := map[string]string{"Grafana-Terraform-Provider": "true"}
 	headersMap := d.Get("http_headers").(map[string]interface{})
 	if len(headersMap) == 0 {
 		// We cannot use a DefaultFunc because they do not work on maps
@@ -450,16 +487,16 @@ func getHTTPHeadersMap(d *schema.ResourceData) (map[string]string, error) {
 			return nil, fmt.Errorf("invalid http_headers config: %w", err)
 		}
 	}
+
 	if len(headersMap) > 0 {
-		headers := make(map[string]string)
 		for k, v := range headersMap {
 			if v, ok := v.(string); ok {
 				headers[k] = v
 			}
 		}
-		return headers, nil
 	}
-	return map[string]string{}, nil
+
+	return headers, nil
 }
 
 // getJSONMap is a helper function that parses the given environment variable as a JSON object
@@ -483,4 +520,27 @@ func mergeResourceMaps(maps ...map[string]*schema.Resource) map[string]*schema.R
 		}
 	}
 	return result
+}
+
+func createTempFileIfLiteral(value string) (path string, tempFile bool, err error) {
+	if value == "" {
+		return "", false, nil
+	}
+
+	if _, err := os.Stat(value); errors.Is(err, os.ErrNotExist) {
+		// value is not a file path, assume it's a literal
+		f, err := os.CreateTemp("", "grafana-provider-tls")
+		if err != nil {
+			return "", false, err
+		}
+		if _, err := f.WriteString(value); err != nil {
+			return "", false, err
+		}
+		if err := f.Close(); err != nil {
+			return "", false, err
+		}
+		return f.Name(), true, nil
+	}
+
+	return value, false, nil
 }

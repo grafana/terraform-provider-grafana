@@ -60,5 +60,3 @@ Required:
 Optional:
 
 - `name` (String) The name of the custom period.
-
-

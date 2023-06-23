@@ -58,5 +58,3 @@ data "grafana_dashboard" "from_uid" {
 - `title` (String) The title of the Grafana dashboard.
 - `url` (String) The full URL of the dashboard.
 - `version` (Number) The numerical version of the Grafana dashboard.
-
-
