@@ -86,7 +86,7 @@ func ResourceEscalationChainUpdate(ctx context.Context, d *schema.ResourceData, 
 	teamIDData := d.Get("team_id").(string)
 
 	updateOptions := &onCallAPI.UpdateEscalationChainOptions{
-		Name: nameData,
+		Name:   nameData,
 		TeamId: teamIDData,
 	}
 
