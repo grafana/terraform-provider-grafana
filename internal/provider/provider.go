@@ -189,6 +189,12 @@ func Provider(version string) func() *schema.Provider {
 					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_RETRIES", 3),
 					Description: "The amount of retries to use for Grafana API and Grafana Cloud API calls. May alternatively be set via the `GRAFANA_RETRIES` environment variable.",
 				},
+				"retry_status_codes": {
+					Type:        schema.TypeSet,
+					Optional:    true,
+					Description: "The status codes to retry on for Grafana API and Grafana Cloud API calls. Use `x` as a digit wildcard. Defaults to 429 and 5xx. May alternatively be set via the `GRAFANA_RETRY_STATUS_CODES` environment variable.",
+					Elem:        &schema.Schema{Type: schema.TypeString},
+				},
 				"org_id": {
 					Type:        schema.TypeInt,
 					Optional:    true,
@@ -403,6 +409,9 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 	cfg := gapi.Config{
 		Client:     cli,
 		NumRetries: d.Get("retries").(int),
+	}
+	if v, ok := d.GetOk("retry_status_codes"); ok {
+		cfg.RetryStatusCodes = common.SetToStringSlice(v.(*schema.Set))
 	}
 	orgID := d.Get("org_id").(int)
 	if len(auth) == 2 {

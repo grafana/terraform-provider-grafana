@@ -66,5 +66,3 @@ provider "grafana" {
 
 - `id` (String) The ID of this resource.
 - `sm_access_token` (String) Generated token to access the SM API.
-
-

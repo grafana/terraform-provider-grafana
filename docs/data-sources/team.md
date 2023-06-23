@@ -34,5 +34,3 @@ data "grafana_team" "from_name" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-
-

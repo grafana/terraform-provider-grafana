@@ -60,5 +60,3 @@ output "api_key_bar" {
 - `expiration` (String)
 - `id` (String) The ID of this resource.
 - `key` (String, Sensitive)
-
-

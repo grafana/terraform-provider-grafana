@@ -198,5 +198,3 @@ Read-Only:
 Read-Only:
 
 - `query` (String)
-
-

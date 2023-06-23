@@ -30,5 +30,3 @@ data "grafana_oncall_user" "alex" {
 - `email` (String) The email of the user.
 - `id` (String) The ID of this resource.
 - `role` (String) The role of the user.
-
-

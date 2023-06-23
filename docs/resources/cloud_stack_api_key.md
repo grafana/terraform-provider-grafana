@@ -38,5 +38,3 @@ This can be used to bootstrap a management API key for a new stack
 - `expiration` (String)
 - `id` (String) The ID of this resource.
 - `key` (String, Sensitive)
-
-

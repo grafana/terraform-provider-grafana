@@ -65,7 +65,7 @@ available at “https://<stack_slug>.grafana.net".
 - `status` (String) Status of the stack.
 - `traces_name` (String)
 - `traces_status` (String)
-- `traces_url` (String)
+- `traces_url` (String) Base URL of the Traces instance configured for this stack. To use this in the Tempo data source in Grafana, append `/tempo` to the URL.
 - `traces_user_id` (Number)
 
 ## Import

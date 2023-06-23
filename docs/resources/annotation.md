@@ -39,5 +39,3 @@ resource "grafana_annotation" "test" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-
-

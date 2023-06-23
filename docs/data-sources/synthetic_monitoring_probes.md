@@ -27,5 +27,3 @@ data "grafana_synthetic_monitoring_probes" "main" {}
 
 - `id` (String) The ID of this resource.
 - `probes` (Map of Number) Map of probes with their names as keys and IDs as values.
-
-

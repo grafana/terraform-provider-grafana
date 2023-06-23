@@ -30,5 +30,3 @@ data "grafana_oncall_schedule" "schedule" {
 
 - `id` (String) The ID of this resource.
 - `type` (String) The schedule type.
-
-

@@ -30,5 +30,3 @@ data "grafana_oncall_team" "example_team" {
 - `avatar_url` (String)
 - `email` (String)
 - `id` (String) The ID of this resource.
-
-

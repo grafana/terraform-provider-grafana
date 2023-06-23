@@ -32,5 +32,3 @@ data "grafana_cloud_organization" "test" {
 - `name` (String)
 - `updated_at` (String)
 - `url` (String)
-
-
