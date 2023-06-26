@@ -16,6 +16,7 @@ Datasource for retrieving all SLOs.
 		
 * [Official documentation](https://grafana.com/docs/grafana-cloud/slo/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/slo/api/)
+* [Additional Information On Alerting Rule Annotations and Labels](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/#templating/)
 				`,
 		ReadContext: datasourceSloRead,
 		Schema: map[string]*schema.Schema{

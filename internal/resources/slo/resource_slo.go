@@ -104,7 +104,7 @@ Resource manages Grafana SLOs.
 				time window associated with the SLO. Grafana SLOs can generate
 				alerts when the short-term error budget burn is very high, the
 				long-term error budget burn rate is high, or when the remaining
-				error budget is below a certain threshold.`,
+				error budget is below a certain threshold. Annotations and Labels support templating.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"label": &schema.Schema{
