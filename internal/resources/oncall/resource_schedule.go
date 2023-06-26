@@ -160,12 +160,14 @@ func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, m inter
 	client := m.(*common.Client).OnCallClient
 
 	nameData := d.Get("name").(string)
+	teamIDData := d.Get("team_id").(string)
 	slackData := d.Get("slack").([]interface{})
 	typeData := d.Get("type").(string)
 
 	updateOptions := &onCallAPI.UpdateScheduleOptions{
-		Name:  nameData,
-		Slack: expandScheduleSlack(slackData),
+		Name:   nameData,
+		TeamId: teamIDData,
+		Slack:  expandScheduleSlack(slackData),
 	}
 
 	iCalURLPrimaryData, iCalURLPrimaryOk := d.GetOk("ical_url_primary")

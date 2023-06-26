@@ -304,12 +304,14 @@ func ResourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, m in
 
 	typeData := d.Get("type").(string)
 	nameData := d.Get("name").(string)
+	teamIDData := d.Get("team_id").(string)
 	startData := d.Get("start").(string)
 	durationData := d.Get("duration").(int)
 
 	updateOptions := &onCallAPI.UpdateOnCallShiftOptions{
 		Type:     typeData,
 		Name:     nameData,
+		TeamId:   teamIDData,
 		Start:    startData,
 		Duration: durationData,
 		Source:   sourceTerraform,
