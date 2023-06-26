@@ -56,6 +56,7 @@ func ResourceRoute() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice(routeTypeOptions, false),
+				Default:      "regex",
 				Description:  fmt.Sprintf("The type of route. Can be %s", routeTypeOptionsVerbal),
 			},
 			"routing_regex": {
