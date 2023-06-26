@@ -33,6 +33,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "interval_seconds", "240"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "org_id", "1"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.#", "1"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.data.0.model", "{\"hide\":false,\"refId\":\"A\"}"),
 				),
 			},
 			// Test import.
@@ -53,6 +54,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.#", "1"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.name", "A Different Rule"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.for", "2m"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.data.0.model", "{\"hide\":false,\"refId\":\"A\"}"),
 				),
 			},
 			// Test rename group.
@@ -67,6 +69,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.#", "1"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.name", "My Alert Rule 1"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.for", "2m"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.data.0.model", "{\"hide\":false,\"refId\":\"A\"}"),
 				),
 			},
 			// Test change interval.
@@ -92,7 +95,53 @@ func TestAccAlertRule_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.#", "1"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.name", "My Alert Rule 1"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.for", "2m"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.data.0.model", "{\"hide\":false,\"refId\":\"A\"}"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAlertRule_model(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
+
+	var group gapi.RuleGroup
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: testAlertRuleCheckDestroy(&group),
+		Steps: []resource.TestStep{
+			// Test creation.
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_rule_group/_acc_model_normalization.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					// Model normalization means that default values for fields in the model JSON are not
+					// included in the state, to prevent permadiffs, but non-default values must be included.
+					resource.TestCheckResourceAttr("grafana_rule_group.rg_model_params_defaults",
+						"rule.0.data.0.model", "{\"hide\":false,\"refId\":\"A\"}"),
+					resource.TestCheckResourceAttr("grafana_rule_group.rg_model_params_omitted",
+						"rule.0.data.0.model", "{\"hide\":false,\"refId\":\"A\"}"),
+					resource.TestCheckResourceAttr("grafana_rule_group.rg_model_params_non_default",
+						"rule.0.data.0.model", "{\"hide\":false,\"intervalMs\":1001,\"maxDataPoints\":43201,\"refId\":\"A\"}"),
+				),
+			},
+			// Test import.
+			{
+				ResourceName:      "grafana_rule_group.rg_model_params_defaults",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				ResourceName:      "grafana_rule_group.rg_model_params_omitted",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				ResourceName:      "grafana_rule_group.rg_model_params_non_default",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
