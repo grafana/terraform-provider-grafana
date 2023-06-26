@@ -24,7 +24,7 @@ resource "grafana_slo" "test" {
     fastburn {
       annotation {
         key   = "name"
-        value = "Critical - SLO Burn Rate Alert"
+        value = "Critical - SLO Burn Rate Alert - {{$labels.instance}}"
       }
       annotation {
         key   = "description"
@@ -39,7 +39,7 @@ resource "grafana_slo" "test" {
     slowburn {
       annotation {
         key   = "name"
-        value = "Warning - SLO Burn Rate Alert"
+        value = "Warning - SLO Burn Rate Alert - {{$labels.instance}}"
       }
       annotation {
         key   = "description"
