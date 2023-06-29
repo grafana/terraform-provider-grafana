@@ -85,7 +85,7 @@ EOT
 
   rule {
     name           = "My Alert Rule 2"
-    for            = "4m"
+    for            = "6d"
     condition      = "B"
     no_data_state  = "NoData"
     exec_err_state = "Alerting"
