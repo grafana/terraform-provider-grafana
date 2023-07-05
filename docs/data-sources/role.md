@@ -69,5 +69,3 @@ Read-Only:
 
 - `action` (String)
 - `scope` (String)
-
-
