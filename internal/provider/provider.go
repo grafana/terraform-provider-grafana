@@ -47,8 +47,6 @@ func Provider(version string) func() *schema.Provider {
 		grafanaClientResources = addResourcesMetadataValidation(grafanaClientPresent, map[string]*schema.Resource{
 			// Grafana
 			"grafana_annotation":                 grafana.ResourceAnnotation(),
-			"grafana_alert_notification":         grafana.ResourceAlertNotification(),
-			"grafana_builtin_role_assignment":    grafana.ResourceBuiltInRoleAssignment(),
 			"grafana_contact_point":              grafana.ResourceContactPoint(),
 			"grafana_dashboard":                  grafana.ResourceDashboard(),
 			"grafana_dashboard_permission":       grafana.ResourceDashboardPermission(),
@@ -68,7 +66,6 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_role_assignment":            grafana.ResourceRoleAssignment(),
 			"grafana_rule_group":                 grafana.ResourceRuleGroup(),
 			"grafana_team":                       grafana.ResourceTeam(),
-			"grafana_team_preferences":           grafana.ResourceTeamPreferences(),
 			"grafana_team_external_group":        grafana.ResourceTeamExternalGroup(),
 			"grafana_service_account_token":      grafana.ResourceServiceAccountToken(),
 			"grafana_service_account":            grafana.ResourceServiceAccount(),
