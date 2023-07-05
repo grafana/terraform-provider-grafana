@@ -68,18 +68,6 @@ This resource cannot be imported but it can be used on an existing Synthetic Mon
 				ForceNew:    true,
 				Description: "The ID or slug of the stack to install SM on.",
 			},
-			"metrics_instance_id": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Deprecated:  "Not used anymore.",
-				Description: "Deprecated: Not used anymore.",
-			},
-			"logs_instance_id": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Deprecated:  "Not used anymore.",
-				Description: "Deprecated: Not used anymore.",
-			},
 			"sm_access_token": {
 				Type:        schema.TypeString,
 				Computed:    true,
