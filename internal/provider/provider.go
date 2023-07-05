@@ -48,6 +48,7 @@ func Provider(version string) func() *schema.Provider {
 			// Grafana
 			"grafana_annotation":                 grafana.ResourceAnnotation(),
 			"grafana_alert_notification":         grafana.ResourceAlertNotification(),
+			"grafana_api_key":                    grafana.ResourceAPIKey(),
 			"grafana_builtin_role_assignment":    grafana.ResourceBuiltInRoleAssignment(),
 			"grafana_contact_point":              grafana.ResourceContactPoint(),
 			"grafana_dashboard":                  grafana.ResourceDashboard(),
@@ -280,9 +281,6 @@ func Provider(version string) func() *schema.Provider {
 
 			ResourcesMap: mergeResourceMaps(
 				map[string]*schema.Resource{
-					// Special case, this resource supports both Grafana and Cloud (depending on context)
-					// TODO: Move back to Grafana resources once the `cloud_stack_slug` attribute is removed
-					"grafana_api_key": grafana.ResourceAPIKey(),
 					// This one installs SM on a cloud instance, everything it needs is in its attributes
 					"grafana_synthetic_monitoring_installation": cloud.ResourceInstallation(),
 				},
