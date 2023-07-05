@@ -3,10 +3,8 @@ package grafana
 import (
 	"context"
 	"strconv"
-	"time"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -45,14 +43,6 @@ Manages Grafana API Keys.
 				Optional: true,
 				ForceNew: true,
 			},
-			"cloud_stack_slug": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    true,
-				Description: "Deprecated: Use `grafana_cloud_stack_service_account` and `grafana_cloud_stack_service_account_token` resources instead",
-				Deprecated:  "Use `grafana_cloud_stack_service_account` and `grafana_cloud_stack_service_account_token` resources instead",
-			},
-
 			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -71,17 +61,13 @@ Manages Grafana API Keys.
 }
 
 func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	name := d.Get("name").(string)
-	role := d.Get("role").(string)
-	ttl := d.Get("seconds_to_live").(int)
+	c, orgID := ClientFromNewOrgResource(m, d)
 
-	c, orgID, cleanup, err := getClientForAPIKeyManagement(d, m)
-	if err != nil {
-		return diag.FromErr(err)
+	request := gapi.CreateAPIKeyRequest{
+		Name:          d.Get("name").(string),
+		Role:          d.Get("role").(string),
+		SecondsToLive: int64(d.Get("seconds_to_live").(int)),
 	}
-	defer cleanup()
-
-	request := gapi.CreateAPIKeyRequest{Name: name, Role: role, SecondsToLive: int64(ttl)}
 	response, err := c.CreateAPIKey(request)
 	if err != nil {
 		return diag.FromErr(err)
@@ -95,18 +81,13 @@ func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 }
 
 func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c, _, cleanup, err := getClientForAPIKeyManagement(d, m)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	defer cleanup()
+	c, _, idStr := ClientFromExistingOrgResource(m, d.Id())
 
 	response, err := c.GetAPIKeys(true)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	_, idStr := SplitOrgResourceID(d.Id())
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -131,17 +112,11 @@ func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 }
 
 func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	_, idStr := SplitOrgResourceID(d.Id())
+	c, _, idStr := ClientFromExistingOrgResource(m, d.Id())
 	id, err := strconv.ParseInt(idStr, 10, 32)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	c, _, cleanup, err := getClientForAPIKeyManagement(d, m)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	defer cleanup()
 
 	_, err = c.DeleteAPIKey(id)
 	if err != nil {
@@ -149,22 +124,4 @@ func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	return nil
-}
-
-func getClientForAPIKeyManagement(d *schema.ResourceData, m interface{}) (c *gapi.Client, orgID int64, cleanup func() error, err error) {
-	// TODO: Remove this client management once `cloud_stack_slug` is removed
-	if cloudStackSlug, ok := d.GetOk("cloud_stack_slug"); ok && cloudStackSlug.(string) != "" {
-		cloudClient := m.(*common.Client).GrafanaCloudAPI
-		c, cleanup, err = cloudClient.CreateTemporaryStackGrafanaClient(cloudStackSlug.(string), "terraform-temp-", 60*time.Second)
-		return
-	}
-
-	cleanup = func() error { return nil }
-	if d.Id() != "" {
-		c, orgID, _ = ClientFromExistingOrgResource(m, d.Id())
-	} else {
-		c, orgID = ClientFromNewOrgResource(m, d)
-	}
-
-	return
 }
