@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -46,12 +45,6 @@ Manages Grafana dashboards.
 				Description: "The unique identifier of a dashboard. This is used to construct its URL. " +
 					"It's automatically generated if not provided when creating a dashboard. " +
 					"The uid allows having consistent URLs for accessing dashboards and when syncing dashboards between multiple Grafana installs. ",
-			},
-			"slug": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "URL friendly version of the dashboard title. This field is deprecated, please use `uid` instead.",
-				Deprecated:  "Use `uid` instead.",
 			},
 			"dashboard_id": {
 				Type:        schema.TypeInt,
@@ -96,87 +89,8 @@ Manages Grafana dashboards.
 				Description: "Set a commit message for the version history.",
 			},
 		},
-		SchemaVersion: 1,
-		StateUpgraders: []schema.StateUpgrader{
-			{
-				Type:    resourceDashboardV0().CoreConfigSchema().ImpliedType(),
-				Upgrade: resourceDashboardStateUpgradeV0,
-				Version: 0,
-			},
-		},
+		SchemaVersion: 1, // The state upgrader was removed in v2. To upgrade, users can first upgrade to the last v1 release, apply, then upgrade to v2.
 	}
-}
-
-// resourceDashboardV0 is the original schema for this resource. For a long
-// time we relied on the `slug` field as our ID - even long after it was
-// deprecated in Grafana. In Grafana 8, slug endpoints were completely removed
-// so we had to finally move away from it and start using UID.
-func resourceDashboardV0() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"slug": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"dashboard_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-			"folder": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
-			},
-			"config_json": {
-				Type:         schema.TypeString,
-				Required:     true,
-				StateFunc:    NormalizeDashboardConfigJSON,
-				ValidateFunc: validateDashboardConfigJSON,
-			},
-			"overwrite": {
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-		},
-	}
-}
-
-// resourceDashboardStateUpgradeV0 migrates from version 0 of this resource's
-// schema to version 1.
-//   - Use UID instead of slug. Slug was deprecated in Grafana 5 in favor of UID.
-//     Slug API endpoints were removed in Grafana 8.
-//   - Version field added to schema.
-func resourceDashboardStateUpgradeV0(ctx context.Context, rawState map[string]interface{}, meta interface{}) (map[string]interface{}, error) {
-	client := meta.(*common.Client).GrafanaAPI
-	dashboardID := int64(rawState["dashboard_id"].(float64))
-	query := url.Values{
-		"type":         {"dash-db"},
-		"dashboardIds": {strconv.FormatInt(dashboardID, 10)},
-	}
-	resp, err := client.FolderDashboardSearch(query)
-	if err != nil {
-		return nil, fmt.Errorf("error attempting to migrate state. Grafana returned an error while searching for dashboard with ID %s: %s", query.Get("dashboardIds"), err)
-	}
-	switch {
-	case len(resp) > 1:
-		// Search endpoint returned multiple dashboards. This is not likely.
-		return nil, fmt.Errorf("error attempting to migrate state. Many dashboards returned by Grafana while searching for dashboard with ID, %s", query.Get("dashboardIds"))
-	case len(resp) == 0:
-		// Dashboard does not exist. Let Terraform recreate it.
-		return rawState, nil
-	}
-	uid := resp[0].UID
-	rawState["id"] = uid
-	rawState["uid"] = uid
-	dashboard, err := client.DashboardByUID(uid)
-	// Set version if we can.
-	// In the unlikely event that we don't get a dashboard back, we don't return
-	// an error because Terraform will be able to reconcile this field without
-	// much trouble.
-	if err == nil && dashboard != nil {
-		rawState["version"] = int64(dashboard.Model["version"].(float64))
-	}
-	return rawState, nil
 }
 
 func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -215,7 +129,6 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	}
 
 	d.Set("uid", dashboard.Model["uid"].(string))
-	d.Set("slug", dashboard.Meta.Slug)
 	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
 	d.Set("version", int64(dashboard.Model["version"].(float64)))
 	d.Set("url", strings.TrimRight(gapiURL, "/")+dashboard.Meta.URL)
