@@ -44,7 +44,6 @@ This resource cannot be imported but it can be used on an existing Synthetic Mon
 `,
 		CreateContext: ResourceInstallationCreate,
 		ReadContext:   ResourceInstallationRead,
-		UpdateContext: ResourceInstallationRead,
 		DeleteContext: ResourceInstallationDelete,
 
 		Schema: map[string]*schema.Schema{
