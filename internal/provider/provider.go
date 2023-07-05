@@ -47,9 +47,7 @@ func Provider(version string) func() *schema.Provider {
 		grafanaClientResources = addResourcesMetadataValidation(grafanaClientPresent, map[string]*schema.Resource{
 			// Grafana
 			"grafana_annotation":                 grafana.ResourceAnnotation(),
-			"grafana_alert_notification":         grafana.ResourceAlertNotification(),
 			"grafana_api_key":                    grafana.ResourceAPIKey(),
-			"grafana_builtin_role_assignment":    grafana.ResourceBuiltInRoleAssignment(),
 			"grafana_contact_point":              grafana.ResourceContactPoint(),
 			"grafana_dashboard":                  grafana.ResourceDashboard(),
 			"grafana_dashboard_permission":       grafana.ResourceDashboardPermission(),
@@ -69,7 +67,6 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_role_assignment":            grafana.ResourceRoleAssignment(),
 			"grafana_rule_group":                 grafana.ResourceRuleGroup(),
 			"grafana_team":                       grafana.ResourceTeam(),
-			"grafana_team_preferences":           grafana.ResourceTeamPreferences(),
 			"grafana_team_external_group":        grafana.ResourceTeamExternalGroup(),
 			"grafana_service_account_token":      grafana.ResourceServiceAccountToken(),
 			"grafana_service_account":            grafana.ResourceServiceAccount(),
@@ -124,6 +121,7 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_library_panel":            grafana.DatasourceLibraryPanel(),
 			"grafana_user":                     grafana.DatasourceUser(),
 			"grafana_users":                    grafana.DatasourceUsers(),
+			"grafana_role":                     grafana.DatasourceRole(),
 			"grafana_team":                     grafana.DatasourceTeam(),
 			"grafana_organization":             grafana.DatasourceOrganization(),
 			"grafana_organization_preferences": grafana.DatasourceOrganizationPreferences(),
