@@ -14,7 +14,7 @@ require (
 	github.com/hashicorp/terraform-plugin-docs v0.15.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.27.0
 	github.com/prometheus/common v0.44.0
-	golang.org/x/text v0.10.0
+	golang.org/x/text v0.11.0
 )
 
 require (
