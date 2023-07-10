@@ -17,6 +17,11 @@ description: |-
 resource "grafana_team" "test" {
   name  = "test-team"
   email = "test-team-email@test.com"
+
+  preferences {
+    theme    = "dark"
+    timezone = "utc"
+  }
 }
 
 data "grafana_team" "from_name" {
@@ -29,8 +34,22 @@ data "grafana_team" "from_name" {
 
 ### Required
 
-- `name` (String) The name of the Grafana team.
+- `name` (String) The name of the Grafana team
 
 ### Read-Only
 
+- `email` (String) An email address for the team.
 - `id` (String) The ID of this resource.
+- `members` (Set of String) A set of email addresses corresponding to users who should be given membership
+to the team. Note: users specified here must already exist in Grafana.
+- `preferences` (List of Object) (see [below for nested schema](#nestedatt--preferences))
+- `team_id` (Number) The team id assigned to this team by Grafana.
+
+<a id="nestedatt--preferences"></a>
+### Nested Schema for `preferences`
+
+Read-Only:
+
+- `home_dashboard_uid` (String)
+- `theme` (String)
+- `timezone` (String)

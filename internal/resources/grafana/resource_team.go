@@ -145,8 +145,12 @@ func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func ReadTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
+	return readTeamFromID(teamID, d, meta)
+}
+
+func readTeamFromID(teamID int64, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*common.Client).GrafanaAPI
 	resp, err := client.Team(teamID)
 	if err != nil && strings.HasPrefix(err.Error(), "status: 404") {
 		log.Printf("[WARN] removing team %s from state because it no longer exists in grafana", d.Id())
@@ -156,6 +160,7 @@ func ReadTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	d.SetId(strconv.FormatInt(teamID, 10))
 	d.Set("team_id", teamID)
 	d.Set("name", resp.Name)
 	if resp.Email != "" {
