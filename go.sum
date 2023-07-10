@@ -61,8 +61,8 @@ github.com/grafana/grafana-api-golang-client v0.23.0 h1:Uta0dSkxWYf1D83/E7MRLCG6
 github.com/grafana/grafana-api-golang-client v0.23.0/go.mod h1:24W29gPe9yl0/3A9X624TPkAOR8DpHno490cPwnkv8E=
 github.com/grafana/machine-learning-go-client v0.5.0 h1:Q1K+MPSy8vfMm2jsk3WQ7O77cGr2fM5hxwtPSoPc5NU=
 github.com/grafana/machine-learning-go-client v0.5.0/go.mod h1:QFfZz8NkqVF8++skjkKQXJEZfpCYd8S0yTWJUpsLLTA=
-github.com/grafana/synthetic-monitoring-agent v0.16.3 h1:N1Me9yjXpfJ1IjLFx++I29RUAuvM5OPL7gx15ZeBZo4=
-github.com/grafana/synthetic-monitoring-agent v0.16.3/go.mod h1:fphFOescJVbTwqRsXFsRypNsRjbcoYqfuW2X7QsQEpo=
+github.com/grafana/synthetic-monitoring-agent v0.16.4 h1:4K2fT+kxrTEUq4zCgdYkfI5DBnJPX+58ijR9wFaOYdU=
+github.com/grafana/synthetic-monitoring-agent v0.16.4/go.mod h1:fphFOescJVbTwqRsXFsRypNsRjbcoYqfuW2X7QsQEpo=
 github.com/grafana/synthetic-monitoring-api-go-client v0.7.0 h1:3ZfQzmXDBPcQTTgMAIIiTw5Dwxm/B4lzf34Sto0d0YY=
 github.com/grafana/synthetic-monitoring-api-go-client v0.7.0/go.mod h1:ET64tbp14yq3U8X97/IO/KbG+FqU5Z8DigWrzGUHX40=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
