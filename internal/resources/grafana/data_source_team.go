@@ -40,5 +40,5 @@ func dataSourceTeamRead(ctx context.Context, d *schema.ResourceData, meta interf
 		}
 	}
 
-	return diag.Errorf("no role with name %q", name)
+	return diag.Errorf("no team with name %q", name)
 }
