@@ -117,6 +117,26 @@ Team Sync can be provisioned using [grafana_team_external_group resource](https:
 					},
 				},
 			},
+			"team_sync": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"groups": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
+					},
+				},
+				Description: `Sync external auth provider groups with this Grafana team. Only available in Grafana Enterprise.
+	* [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/)
+	* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/external_group_sync/)
+`,
+			},
 		},
 	}
 }
@@ -140,15 +160,22 @@ func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		return err
 	}
 
+	if _, ok := d.GetOk("team_sync"); ok {
+		if err := manageTeamExternalGroup(d, meta, "team_sync.0.groups"); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
 	return ReadTeam(ctx, d, meta)
 }
 
 func ReadTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	return readTeamFromID(teamID, d, meta)
+	_, readTeamSync := d.GetOk("team_sync")
+	return readTeamFromID(teamID, d, meta, readTeamSync)
 }
 
-func readTeamFromID(teamID int64, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func readTeamFromID(teamID int64, d *schema.ResourceData, meta interface{}, readTeamSync bool) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaAPI
 	resp, err := client.Team(teamID)
 	if err, shouldReturn := common.CheckReadError("team", d, err); shouldReturn {
@@ -165,6 +192,23 @@ func readTeamFromID(teamID int64, d *schema.ResourceData, meta interface{}) diag
 	preferences, err := client.TeamPreferences(teamID)
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if readTeamSync {
+		teamGroups, err := client.TeamGroups(teamID)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		groupIDs := make([]string, 0, len(teamGroups))
+		for _, teamGroup := range teamGroups {
+			groupIDs = append(groupIDs, teamGroup.GroupID)
+		}
+		d.Set("team_sync", []map[string]interface{}{
+			{
+				"groups": groupIDs,
+			},
+		})
 	}
 
 	if preferences.Theme+preferences.Timezone+preferences.HomeDashboardUID != "" {
@@ -197,6 +241,12 @@ func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 
 	if err := updateTeamPreferences(client, teamID, d); err != nil {
 		return err
+	}
+
+	if _, ok := d.GetOk("team_sync"); ok {
+		if err := manageTeamExternalGroup(d, meta, "team_sync.0.groups"); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return ReadTeam(ctx, d, meta)

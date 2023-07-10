@@ -39,6 +39,9 @@ Team Sync can be provisioned using [grafana_team_external_group resource](https:
 - `members` (Set of String) A set of email addresses corresponding to users who should be given membership
 to the team. Note: users specified here must already exist in Grafana.
 - `preferences` (Block List, Max: 1) (see [below for nested schema](#nestedblock--preferences))
+- `team_sync` (Block List, Max: 1) Sync external auth provider groups with this Grafana team. Only available in Grafana Enterprise.
+	* [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/)
+	* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/external_group_sync/) (see [below for nested schema](#nestedblock--team_sync))
 
 ### Read-Only
 
@@ -53,3 +56,11 @@ Optional:
 - `home_dashboard_uid` (String) The UID of the dashboard to display when a team member logs in. Defaults to ``.
 - `theme` (String) The default theme for this team. Available themes are `light`, `dark`, or an empty string for the default theme. Defaults to ``.
 - `timezone` (String) The default timezone for this team. Available values are `utc`, `browser`, or an empty string for the default. Defaults to ``.
+
+
+<a id="nestedblock--team_sync"></a>
+### Nested Schema for `team_sync`
+
+Optional:
+
+- `groups` (Set of String)

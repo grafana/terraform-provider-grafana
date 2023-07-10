@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -12,10 +13,7 @@ import (
 func ResourceTeamExternalGroup() *schema.Resource {
 	return &schema.Resource{
 
-		Description: `
-* [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/external_group_sync/)
-`,
+		Description: "Use the `team_sync` attribute of the `grafana_team` resource instead.",
 
 		CreateContext: CreateTeamExternalGroup,
 		UpdateContext: UpdateTeamExternalGroup,
@@ -24,6 +22,7 @@ func ResourceTeamExternalGroup() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+		DeprecationMessage: "Use the `team_sync` attribute of the `grafana_team` resource instead.",
 
 		Schema: map[string]*schema.Schema{
 			"team_id": {
@@ -48,7 +47,7 @@ func ResourceTeamExternalGroup() *schema.Resource {
 func CreateTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	teamID := d.Get("team_id").(int)
 	d.SetId(strconv.FormatInt(int64(teamID), 10))
-	if err := manageTeamExternalGroup(d, meta); err != nil {
+	if err := manageTeamExternalGroup(d, meta, "groups"); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -74,39 +73,39 @@ func ReadTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func UpdateTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	if err := manageTeamExternalGroup(d, meta); err != nil {
+	if err := manageTeamExternalGroup(d, meta, "groups"); err != nil {
 		return diag.FromErr(err)
 	}
 
 	return diag.Diagnostics{}
 }
 
-func manageTeamExternalGroup(d *schema.ResourceData, meta interface{}) error {
+func manageTeamExternalGroup(d *schema.ResourceData, meta interface{}, groupsAttr string) error {
 	client := meta.(*common.Client).GrafanaAPI
 
-	addGroups, removeGroups := groupChangesTeamExternalGroup(d)
+	addGroups, removeGroups := groupChangesTeamExternalGroup(d, groupsAttr)
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
 
 	for _, group := range addGroups {
 		err := client.NewTeamGroup(teamID, group)
 		if err != nil {
-			return err
+			return fmt.Errorf("error adding group %s to team %d: %w", group, teamID, err)
 		}
 	}
 
 	for _, group := range removeGroups {
 		err := client.DeleteTeamGroup(teamID, group)
 		if err != nil {
-			return err
+			return fmt.Errorf("error removing group %s from team %d: %w", group, teamID, err)
 		}
 	}
 
 	return nil
 }
 
-func groupChangesTeamExternalGroup(d *schema.ResourceData) ([]string, []string) {
+func groupChangesTeamExternalGroup(d *schema.ResourceData, attr string) ([]string, []string) {
 	// Get the lists of team groups read in from Grafana state (old) and configured (new)
-	state, config := d.GetChange("groups")
+	state, config := d.GetChange(attr)
 
 	currentGroups := make([]string, state.(*schema.Set).Len())
 	for i, v := range state.(*schema.Set).List() {
