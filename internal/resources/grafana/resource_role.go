@@ -143,7 +143,10 @@ func permissions(d *schema.ResourceData) []gapi.Permission {
 
 func ReadRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaAPI
-	uid := d.Id()
+	return readRoleFromUID(client, d.Id(), d)
+}
+
+func readRoleFromUID(client *gapi.Client, uid string, d *schema.ResourceData) diag.Diagnostics {
 	r, err := client.GetRole(uid)
 
 	if err != nil {
@@ -200,6 +203,7 @@ func ReadRole(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 		return diag.FromErr(err)
 	}
 	d.SetId(r.UID)
+
 	return nil
 }
 

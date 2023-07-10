@@ -25,72 +25,32 @@ func TestAccRole(t *testing.T) {
 				Config: roleConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccRoleCheckExists("grafana_role.test", &role),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "name", "terraform-acc-test",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "description", "test desc",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "display_name", "testdisplay",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "group", "testgroup",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "version", "1",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "uid", "testuid",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "global", "true",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "hidden", "true",
-					),
+					resource.TestCheckResourceAttr("grafana_role.test", "name", "terraform-acc-test"),
+					resource.TestCheckResourceAttr("grafana_role.test", "description", "test desc"),
+					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
+					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
+					resource.TestCheckResourceAttr("grafana_role.test", "version", "1"),
+					resource.TestCheckResourceAttr("grafana_role.test", "uid", "testuid"),
+					resource.TestCheckResourceAttr("grafana_role.test", "global", "true"),
+					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
 				),
 			},
 			{
 				Config: roleConfigWithPermissions,
 				Check: resource.ComposeTestCheckFunc(
 					testAccRoleCheckExists("grafana_role.test", &role),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "name", "terraform-acc-test",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "description", "test desc",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "display_name", "testdisplay",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "group", "testgroup",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "version", "2",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "uid", "testuid",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "global", "true",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "hidden", "true",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "permissions.#", "2",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "permissions.0.action", "users:create",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "permissions.1.scope", "global.users:*",
-					),
-					resource.TestCheckResourceAttr(
-						"grafana_role.test", "permissions.1.action", "users:read",
-					),
+					resource.TestCheckResourceAttr("grafana_role.test", "name", "terraform-acc-test"),
+					resource.TestCheckResourceAttr("grafana_role.test", "description", "test desc"),
+					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
+					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
+					resource.TestCheckResourceAttr("grafana_role.test", "version", "2"),
+					resource.TestCheckResourceAttr("grafana_role.test", "uid", "testuid"),
+					resource.TestCheckResourceAttr("grafana_role.test", "global", "true"),
+					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
+					resource.TestCheckResourceAttr("grafana_role.test", "permissions.#", "2"),
+					resource.TestCheckResourceAttr("grafana_role.test", "permissions.0.action", "users:create"),
+					resource.TestCheckResourceAttr("grafana_role.test", "permissions.1.scope", "global.users:*"),
+					resource.TestCheckResourceAttr("grafana_role.test", "permissions.1.action", "users:read"),
 				),
 			},
 		},
