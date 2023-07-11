@@ -100,7 +100,7 @@ func TestAccLibraryPanel_folder(t *testing.T) {
 					testAccLibraryPanelCheckExistsInFolder(&panel, &folder),
 					resource.TestCheckResourceAttr("grafana_library_panel.test_folder", "name", "test-folder"),
 					resource.TestMatchResourceAttr(
-						"grafana_library_panel.test_folder", "folder_id", common.IDRegexp,
+						"grafana_library_panel.test_folder", "folder_id", defaultOrgIDRegexp,
 					),
 				),
 			},

@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
 func ResourceFolderPermission() *schema.Resource {
@@ -27,6 +26,7 @@ func ResourceFolderPermission() *schema.Resource {
 		DeleteContext: DeleteFolderPermissions,
 
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"folder_uid": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -71,7 +71,7 @@ func ResourceFolderPermission() *schema.Resource {
 }
 
 func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID := ClientFromNewOrgResource(meta, d)
 
 	v, ok := d.GetOk("permissions")
 	if !ok {
@@ -101,15 +101,13 @@ func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 		return diag.FromErr(err)
 	}
 
-	d.SetId(folderUID)
+	d.SetId(MakeOrgResourceID(orgID, folderUID))
 
 	return ReadFolderPermissions(ctx, d, meta)
 }
 
 func ReadFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-
-	folderUID := d.Get("folder_uid").(string)
+	client, _, folderUID := ClientFromExistingOrgResource(meta, d.Id())
 
 	folderPermissions, err := client.FolderPermissions(folderUID)
 	if err != nil {
@@ -146,9 +144,7 @@ func DeleteFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 	// since permissions are tied to folders, we can't really delete the permissions.
 	// we will simply remove all permissions, leaving a folder that only an admin can access.
 	// if for some reason the parent folder doesn't exist, we'll just ignore the error
-	client := meta.(*common.Client).GrafanaAPI
-
-	folderUID := d.Get("folder_uid").(string)
+	client, _, folderUID := ClientFromExistingOrgResource(meta, d.Id())
 	emptyPermissions := gapi.PermissionItems{}
 
 	err := client.UpdateFolderPermissions(folderUID, &emptyPermissions)

@@ -35,8 +35,8 @@ func TestAccDatasourceFolders(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
-			testAccFolderCheckDestroy(&folderA),
-			testAccFolderCheckDestroy(&folderB),
+			testAccFolderCheckDestroy(&folderA, 0),
+			testAccFolderCheckDestroy(&folderB, 0),
 		),
 		Steps: []resource.TestStep{
 			{

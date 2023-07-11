@@ -218,24 +218,35 @@ func TestAccDashboard_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	var dashboard gapi.Dashboard
+	var folder gapi.Folder
 	var org gapi.Org
 
 	orgName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard, org.ID),
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			testAccDashboardCheckDestroy(&dashboard, org.ID),
+			testAccFolderCheckDestroy(&folder, org.ID),
+		),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDashboardInOrganization(orgName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "dashboard-"+orgName),
+					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					// Check that the folder is in the correct organization
+					testAccFolderCheckExists("grafana_folder.test", &folder),
+					resource.TestCheckResourceAttr("grafana_folder.test", "uid", "folder-"+orgName),
+					resource.TestMatchResourceAttr("grafana_folder.test", "id", nonDefaultOrgIDRegexp),
+					checkResourceIsInOrg("grafana_folder.test", "grafana_organization.test"),
 
 					// Check that the dashboard is in the correct organization
+					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
+					resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "dashboard-"+orgName),
 					resource.TestMatchResourceAttr("grafana_dashboard.test", "id", nonDefaultOrgIDRegexp),
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_dashboard.test", "grafana_organization.test"),
+
+					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
 				),
 			},
 		},
@@ -385,8 +396,15 @@ resource "grafana_organization" "test" {
 	name = "%[1]s"
 }
 
+resource "grafana_folder" "test" {
+	org_id  = grafana_organization.test.id
+	title   = "folder-%[1]s"
+	uid     = "folder-%[1]s"
+}
+
 resource "grafana_dashboard" "test" {
 	org_id      = grafana_organization.test.id
+	folder      = grafana_folder.test.id
 	config_json = jsonencode({
 	  title = "dashboard-%[1]s"
 	  uid   = "dashboard-%[1]s"

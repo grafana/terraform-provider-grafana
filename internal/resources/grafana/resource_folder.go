@@ -31,11 +31,7 @@ func ResourceFolder() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"id": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Unique internal identifier.",
-			},
+			"org_id": orgIDAttribute(),
 			"uid": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -63,7 +59,7 @@ func ResourceFolder() *schema.Resource {
 }
 
 func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID := ClientFromNewOrgResource(meta, d)
 
 	var resp gapi.Folder
 	var err error
@@ -74,12 +70,10 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 		resp, err = client.NewFolder(title)
 	}
 	if err != nil {
-		return diag.FromErr(err)
+		return diag.Errorf("failed to create folder: %s", err)
 	}
 
-	id := strconv.FormatInt(resp.ID, 10)
-	d.SetId(id)
-	d.Set("id", id)
+	d.SetId(MakeOrgResourceID(orgID, resp.ID))
 	d.Set("uid", resp.UID)
 	d.Set("title", resp.Title)
 
@@ -87,11 +81,14 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 }
 
 func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
 
-	oldUID, newUID := d.GetChange("uid")
+	folder, err := GetFolderByIDorUID(client, idStr)
+	if err != nil {
+		return diag.Errorf("failed to get folder %s: %s", idStr, err)
+	}
 
-	if err := client.UpdateFolder(oldUID.(string), d.Get("title").(string), newUID.(string)); err != nil {
+	if err := client.UpdateFolder(folder.UID, d.Get("title").(string), d.Get("uid").(string)); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -100,9 +97,9 @@ func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 
 func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	gapiURL := meta.(*common.Client).GrafanaAPIURL
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID, idStr := ClientFromExistingOrgResource(meta, d.Id())
 
-	folder, err := GetFolderByIDorUID(client, d.Id())
+	folder, err := GetFolderByIDorUID(client, idStr)
 	if err != nil {
 		if strings.Contains(err.Error(), "status: 404") {
 			log.Printf("[WARN] removing folder %s from state because it no longer exists in grafana", d.Id())
@@ -110,10 +107,10 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 			return nil
 		}
 
-		return diag.FromErr(err)
+		return diag.Errorf("failed to get folder %s: %s", d.Id(), err)
 	}
 
-	d.SetId(strconv.FormatInt(folder.ID, 10))
+	d.SetId(MakeOrgResourceID(orgID, folder.ID))
 	d.Set("title", folder.Title)
 	d.Set("uid", folder.UID)
 	d.Set("url", strings.TrimRight(gapiURL, "/")+folder.URL)
@@ -122,17 +119,17 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
 
 	deleteParams := []url.Values{}
 	if d.Get("prevent_destroy_if_not_empty").(bool) {
 		// Search for dashboards and fail if any are found
 		dashboards, err := client.FolderDashboardSearch(url.Values{
 			"type":      []string{"dash-db"},
-			"folderIds": []string{d.Id()},
+			"folderIds": []string{idStr},
 		})
 		if err != nil {
-			return diag.FromErr(err)
+			return diag.Errorf("failed to search for dashboards in folder: %s", err)
 		}
 		if len(dashboards) > 0 {
 			var dashboardNames []string
@@ -147,7 +144,7 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 	}
 
 	if err := client.DeleteFolder(d.Get("uid").(string), deleteParams...); err != nil {
-		return diag.FromErr(err)
+		return diag.Errorf("failed to delete folder: %s", err)
 	}
 
 	return diag.Diagnostics{}

@@ -47,9 +47,14 @@ Manages Grafana library panels.
 				Description: "The numeric ID of the library panel computed by Grafana.",
 			},
 			"folder_id": {
-				Type:        schema.TypeInt,
+				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "ID of the folder where the library panel is stored.",
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					_, old = SplitOrgResourceID(old)
+					_, new = SplitOrgResourceID(new)
+					return old == "0" && new == "" || old == "" && new == "0" || old == new
+				},
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -121,7 +126,7 @@ func createLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
+	client, orgID, uid := ClientFromExistingOrgResource(meta, d.Id())
 
 	panel, err := client.LibraryPanelByUID(uid)
 	var diags diag.Diagnostics
@@ -152,7 +157,7 @@ func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 	d.Set("uid", panel.UID)
 	d.Set("panel_id", panel.ID)
 	d.Set("org_id", strconv.FormatInt(panel.OrgID, 10))
-	d.Set("folder_id", panel.Folder)
+	d.Set("folder_id", MakeOrgResourceID(orgID, panel.Folder))
 	d.Set("description", panel.Description)
 	d.Set("type", panel.Type)
 	d.Set("name", panel.Name)
@@ -199,10 +204,12 @@ func makeLibraryPanel(d *schema.ResourceData) gapi.LibraryPanel {
 	modelJSON := d.Get("model_json").(string)
 	panelJSON, err := unmarshalLibraryPanelModelJSON(modelJSON)
 
+	_, folderIDStr := SplitOrgResourceID(d.Get("folder_id").(string))
+	folderID, _ := strconv.ParseInt(folderIDStr, 10, 64)
 	panel := gapi.LibraryPanel{
 		UID:    d.Get("uid").(string),
 		Name:   d.Get("name").(string),
-		Folder: int64(d.Get("folder_id").(int)),
+		Folder: folderID,
 		Model:  panelJSON,
 	}
 	if err != nil {

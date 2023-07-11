@@ -43,12 +43,13 @@ resource "grafana_folder" "test_folder_with_uid" {
 
 ### Optional
 
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `prevent_destroy_if_not_empty` (Boolean) Prevent deletion of the folder if it is not empty (contains dashboards or alert rules). Defaults to `false`.
 - `uid` (String) Unique identifier.
 
 ### Read-Only
 
-- `id` (String) Unique internal identifier.
+- `id` (String) The ID of this resource.
 - `url` (String) The full URL of the folder.
 
 ## Import
