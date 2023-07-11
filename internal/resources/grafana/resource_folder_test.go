@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -27,20 +26,20 @@ func TestAccFolder_basic(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
-			testAccFolderCheckDestroy(&folder),
-			testAccFolderCheckDestroy(&folderWithUID),
+			testAccFolderCheckDestroy(&folder, 0),
+			testAccFolderCheckDestroy(&folderWithUID, 0),
 		),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_folder/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
-					resource.TestMatchResourceAttr("grafana_folder.test_folder", "id", common.IDRegexp),
+					resource.TestMatchResourceAttr("grafana_folder.test_folder", "id", defaultOrgIDRegexp),
 					resource.TestMatchResourceAttr("grafana_folder.test_folder", "uid", common.UIDRegexp),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder", "title", "Terraform Test Folder"),
 
 					testAccFolderCheckExists("grafana_folder.test_folder_with_uid", &folderWithUID),
-					resource.TestMatchResourceAttr("grafana_folder.test_folder_with_uid", "id", common.IDRegexp),
+					resource.TestMatchResourceAttr("grafana_folder.test_folder_with_uid", "id", defaultOrgIDRegexp),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "uid", "test-folder-uid"),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "title", "Terraform Test Folder With UID"),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "url", strings.TrimRight(os.Getenv("GRAFANA_URL"), "/")+"/dashboards/f/test-folder-uid/terraform-test-folder-with-uid"),
@@ -66,12 +65,12 @@ func TestAccFolder_basic(t *testing.T) {
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccFolderIDDidntChange("grafana_folder.test_folder", &folder),
-					resource.TestMatchResourceAttr("grafana_folder.test_folder", "id", common.IDRegexp),
+					resource.TestMatchResourceAttr("grafana_folder.test_folder", "id", defaultOrgIDRegexp),
 					resource.TestMatchResourceAttr("grafana_folder.test_folder", "uid", common.UIDRegexp),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder", "title", "Terraform Test Folder Updated"),
 
 					testAccFolderIDDidntChange("grafana_folder.test_folder_with_uid", &folderWithUID),
-					resource.TestMatchResourceAttr("grafana_folder.test_folder_with_uid", "id", common.IDRegexp),
+					resource.TestMatchResourceAttr("grafana_folder.test_folder_with_uid", "id", defaultOrgIDRegexp),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "uid", "test-folder-uid-other"),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "title", "Terraform Test Folder Updated With UID"),
 				),
@@ -198,7 +197,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 			resource.Test(t, resource.TestCase{
 				ProviderFactories: testutils.ProviderFactories,
 				CheckDestroy: resource.ComposeTestCheckFunc(
-					testAccFolderCheckDestroy(&folder),
+					testAccFolderCheckDestroy(&folder, 0),
 				),
 				Steps: []resource.TestStep{
 					{
@@ -206,7 +205,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 						ExpectError: tc.expectError,
 						Check: resource.ComposeTestCheckFunc(
 							testAccFolderCheckExists("grafana_folder.bar", &folder),
-							resource.TestMatchResourceAttr("grafana_folder.bar", "id", common.IDRegexp),
+							resource.TestMatchResourceAttr("grafana_folder.bar", "id", defaultOrgIDRegexp),
 							resource.TestMatchResourceAttr("grafana_folder.bar", "uid", common.UIDRegexp),
 							resource.TestCheckResourceAttr("grafana_folder.bar", "title", name),
 						),
@@ -217,15 +216,20 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 	}
 }
 
-func testAccFolderIDDidntChange(rn string, folder *gapi.Folder) resource.TestCheckFunc {
+func testAccFolderIDDidntChange(rn string, oldFolder *gapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		oldID := strconv.FormatInt(folder.ID, 10)
-		newFolder, ok := s.RootModule().Resources[rn]
+		newFolderResource, ok := s.RootModule().Resources[rn]
 		if !ok {
 			return fmt.Errorf("folder not found: %s", rn)
 		}
-		if newFolder.Primary.ID != oldID {
-			return fmt.Errorf("folder id has changed: %s -> %s", oldID, newFolder.Primary.ID)
+		orgID, folderUID := grafana.SplitOrgResourceID(newFolderResource.Primary.ID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
+		newFolder, err := grafana.GetFolderByIDorUID(client, folderUID)
+		if err != nil {
+			return fmt.Errorf("error getting folder: %s", err)
+		}
+		if newFolder.ID != oldFolder.ID {
+			return fmt.Errorf("folder id has changed: %d -> %d", oldFolder.ID, newFolder.ID)
 		}
 		return nil
 	}
@@ -242,8 +246,9 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		gotFolder, err := grafana.GetFolderByIDorUID(client, rs.Primary.ID)
+		orgID, folderID := grafana.SplitOrgResourceID(rs.Primary.ID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
+		gotFolder, err := grafana.GetFolderByIDorUID(client, folderID)
 		if err != nil {
 			return fmt.Errorf("error getting folder: %s", err)
 		}
@@ -254,9 +259,9 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 	}
 }
 
-func testAccFolderCheckDestroy(folder *gapi.Folder) resource.TestCheckFunc {
+func testAccFolderCheckDestroy(folder *gapi.Folder, orgID int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
 		_, err := grafana.GetFolderByIDorUID(client, folder.UID)
 		if err == nil {
 			return fmt.Errorf("folder still exists")

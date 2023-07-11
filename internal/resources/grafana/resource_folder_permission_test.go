@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -47,9 +48,9 @@ func testAccFolderPermissionsCheckExists(rn string, folderUID *string) resource.
 			return fmt.Errorf("Resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		orgID, gotFolderUID := grafana.SplitOrgResourceID(rs.Primary.ID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
 
-		gotFolderUID := rs.Primary.ID
 		_, err := client.FolderPermissions(gotFolderUID)
 		if err != nil {
 			return fmt.Errorf("Error getting folder permissions: %s", err)

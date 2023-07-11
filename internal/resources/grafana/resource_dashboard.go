@@ -68,7 +68,9 @@ Manages Grafana dashboards.
 				ForceNew:    true,
 				Description: "The id or UID of the folder to save the dashboard in.",
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					return old == "0" && new == "" || old == "" && new == "0"
+					_, old = SplitOrgResourceID(old)
+					_, new = SplitOrgResourceID(new)
+					return old == "0" && new == "" || old == "" && new == "0" || old == new
 				},
 			},
 			"config_json": {
@@ -135,7 +137,8 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 
 	// If the folder was originally set to a numeric ID, we read the folder ID
 	// Othwerwise, we read the folder UID
-	if common.IDRegexp.MatchString(d.Get("folder").(string)) && dashboard.Meta.Folder > 0 {
+	_, folderID := SplitOrgResourceID(d.Get("folder").(string))
+	if common.IDRegexp.MatchString(folderID) && dashboard.Meta.Folder > 0 {
 		d.Set("folder", strconv.FormatInt(dashboard.FolderID, 10))
 	} else {
 		d.Set("folder", dashboard.Meta.FolderUID)
@@ -207,10 +210,11 @@ func makeDashboard(d *schema.ResourceData) (gapi.Dashboard, error) {
 		Message:   d.Get("message").(string),
 	}
 
-	if folderInt, err := strconv.ParseInt(d.Get("folder").(string), 10, 64); err == nil {
+	_, folderID := SplitOrgResourceID(d.Get("folder").(string))
+	if folderInt, err := strconv.ParseInt(folderID, 10, 64); err == nil {
 		dashboard.FolderID = folderInt
 	} else {
-		dashboard.FolderUID = d.Get("folder").(string)
+		dashboard.FolderUID = folderID
 	}
 
 	configJSON := d.Get("config_json").(string)

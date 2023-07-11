@@ -33,7 +33,7 @@ func TestAccDatasourceFolder(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccFolderCheckDestroy(&folder),
+		CheckDestroy:      testAccFolderCheckDestroy(&folder, 0),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_folder/data-source.tf"),
