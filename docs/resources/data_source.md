@@ -100,6 +100,7 @@ resource "grafana_data_source" "prometheus" {
 - `http_headers` (Map of String, Sensitive) Custom HTTP headers
 - `is_default` (Boolean) Whether to set the data source as default. This should only be `true` to a single data source. Defaults to `false`.
 - `json_data_encoded` (String) Serialized JSON string containing the json data. This attribute can be used to pass configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `secure_json_data_encoded` (String, Sensitive) Serialized JSON string containing the secure json data. This attribute can be used to pass secure configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.
 - `uid` (String) Unique identifier. If unset, this will be automatically generated.
 - `url` (String) The URL for the data source. The type of URL required varies depending on the chosen data source type.

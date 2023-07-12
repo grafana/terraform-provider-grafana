@@ -54,8 +54,12 @@ resource "grafana_data_source_permission" "fooPermissions" {
 
 ### Required
 
-- `datasource_id` (Number) ID of the datasource to apply permissions to.
+- `datasource_id` (String) ID of the datasource to apply permissions to.
 - `permissions` (Block Set, Min: 1) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))
+
+### Optional
+
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 
 ### Read-Only
 

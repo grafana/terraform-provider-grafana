@@ -51,6 +51,7 @@ data "grafana_data_source" "from_uid" {
 ### Optional
 
 - `name` (String)
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `uid` (String)
 
 ### Read-Only

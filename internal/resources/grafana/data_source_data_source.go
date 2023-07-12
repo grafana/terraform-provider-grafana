@@ -15,6 +15,7 @@ func DatasourceDatasource() *schema.Resource {
 		Description: "Get details about a Grafana Datasource querying by either name, uid or ID",
 		ReadContext: datasourceDatasourceRead,
 		Schema: common.CloneResourceSchemaForDatasource(ResourceDataSource(), map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"id": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -40,7 +41,7 @@ func DatasourceDatasource() *schema.Resource {
 }
 
 func datasourceDatasourceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _ := ClientFromNewOrgResource(meta, d)
 
 	var (
 		dataSource *gapi.DataSource
@@ -54,7 +55,8 @@ func datasourceDatasourceRead(ctx context.Context, d *schema.ResourceData, meta 
 		}
 		dataSource, err = client.DataSource(id)
 	} else if id, ok := d.GetOk("id"); ok {
-		idInt, parseErr := strconv.ParseInt(id.(string), 10, 64)
+		_, idStr := SplitOrgResourceID(id.(string))
+		idInt, parseErr := strconv.ParseInt(idStr, 10, 64)
 		if parseErr != nil {
 			return diag.FromErr(parseErr)
 		}
