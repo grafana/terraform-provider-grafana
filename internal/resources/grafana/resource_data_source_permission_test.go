@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -46,9 +47,10 @@ func testAccDatasourcePermissionsCheckExists(rn string, datasourceID *int64) res
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		orgID, datasourceIDStr := grafana.SplitOrgResourceID(rs.Primary.ID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
 
-		gotDatasourceID, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
+		gotDatasourceID, err := strconv.ParseInt(datasourceIDStr, 10, 64)
 		if err != nil {
 			return fmt.Errorf("datasource id is malformed")
 		}

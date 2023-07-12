@@ -34,24 +34,29 @@ source selected (via the 'type' argument).
 		ReadContext:   ReadDataSource,
 		SchemaVersion: 1,
 
-		// Import either by ID or UID
 		Importer: &schema.ResourceImporter{
-			StateContext: func(c context.Context, rd *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				_, err := strconv.ParseInt(rd.Id(), 10, 64)
-				if err != nil {
-					// If the ID is not a number, then it may be a UID
-					client := meta.(*common.Client).GrafanaAPI
-					ds, err := client.DataSourceByUID(rd.Id())
-					if err != nil {
-						return nil, fmt.Errorf("failed to find datasource by ID or UID '%s': %w", rd.Id(), err)
-					}
-					rd.SetId(strconv.FormatInt(ds.ID, 10))
-				}
-				return []*schema.ResourceData{rd}, nil
-			},
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
+			"uid": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				ForceNew:    true,
+				Description: "Unique identifier. If unset, this will be automatically generated.",
+			},
+			"name": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "A unique name for the data source.",
+			},
+			"type": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The data source type. Must be one of the supported data source keywords.",
+			},
 			"access_mode": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -90,23 +95,6 @@ source selected (via the 'type' argument).
 				Optional:    true,
 				Default:     false,
 				Description: "Whether to set the data source as default. This should only be `true` to a single data source.",
-			},
-			"uid": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				ForceNew:    true,
-				Description: "Unique identifier. If unset, this will be automatically generated.",
-			},
-			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "A unique name for the data source.",
-			},
-			"type": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The data source type. Must be one of the supported data source keywords.",
 			},
 			"url": {
 				Type:        schema.TypeString,
@@ -158,9 +146,9 @@ source selected (via the 'type' argument).
 
 // CreateDataSource creates a Grafana datasource
 func CreateDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID := ClientFromNewOrgResource(meta, d)
 
-	dataSource, err := makeDataSource(d)
+	dataSource, err := makeDataSource("", d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -170,38 +158,36 @@ func CreateDataSource(ctx context.Context, d *schema.ResourceData, meta interfac
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(id, 10))
-
+	d.SetId(MakeOrgResourceID(orgID, id))
 	return ReadDataSource(ctx, d, meta)
 }
 
 // UpdateDataSource updates a Grafana datasource
 func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
 
-	dataSource, err := makeDataSource(d)
+	dataSource, err := makeDataSource(idStr, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	if err = client.UpdateDataSource(dataSource); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return diag.Diagnostics{}
+	return diag.FromErr(client.UpdateDataSource(dataSource))
 }
 
 // ReadDataSource reads a Grafana datasource
 func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
 
-	idStr := d.Id()
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return diag.Errorf("Invalid id: %#v", idStr)
+	var dataSource *gapi.DataSource
+	var err error
+	// Support both numerical and UID IDs, so that we can import an existing datasource with either.
+	// Following the read, it's normalized to a numerical ID.
+	if numericalID, parseErr := strconv.ParseInt(idStr, 10, 64); parseErr == nil {
+		dataSource, err = client.DataSource(numericalID)
+	} else {
+		dataSource, err = client.DataSourceByUID(idStr)
 	}
 
-	dataSource, err := client.DataSource(id)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
 			log.Printf("[WARN] removing datasource %s from state because it no longer exists in grafana", d.Get("name").(string))
@@ -216,23 +202,18 @@ func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{
 
 // DeleteDataSource deletes a Grafana datasource
 func DeleteDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
 
-	idStr := d.Id()
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return diag.Errorf("Invalid id: %#v", idStr)
 	}
 
-	if err = client.DeleteDataSource(id); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return diag.Diagnostics{}
+	return diag.FromErr(client.DeleteDataSource(id))
 }
 
 func readDatasource(d *schema.ResourceData, dataSource *gapi.DataSource) diag.Diagnostics {
-	d.SetId(strconv.FormatInt(dataSource.ID, 10))
+	d.SetId(MakeOrgResourceID(dataSource.OrgID, dataSource.ID))
 	d.Set("access_mode", dataSource.Access)
 	d.Set("database_name", dataSource.Database)
 	d.Set("is_default", dataSource.IsDefault)
@@ -241,6 +222,7 @@ func readDatasource(d *schema.ResourceData, dataSource *gapi.DataSource) diag.Di
 	d.Set("url", dataSource.URL)
 	d.Set("username", dataSource.User)
 	d.Set("uid", dataSource.UID)
+	d.Set("org_id", strconv.FormatInt(dataSource.OrgID, 10))
 
 	gottenJSONData, _, gottenHeaders := gapi.ExtractHeadersFromJSONData(dataSource.JSONData, dataSource.SecureJSONData)
 	encodedJSONData, err := json.Marshal(gottenJSONData)
@@ -267,8 +249,7 @@ func readDatasource(d *schema.ResourceData, dataSource *gapi.DataSource) diag.Di
 	return nil
 }
 
-func makeDataSource(d *schema.ResourceData) (*gapi.DataSource, error) {
-	idStr := d.Id()
+func makeDataSource(idStr string, d *schema.ResourceData) (*gapi.DataSource, error) {
 	var id int64
 	var err error
 	if idStr != "" {

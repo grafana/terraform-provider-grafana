@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
 func ResourceDatasourcePermission() *schema.Resource {
@@ -28,8 +27,9 @@ func ResourceDatasourcePermission() *schema.Resource {
 		DeleteContext: DeleteDatasourcePermissions,
 
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"datasource_id": {
-				Type:        schema.TypeInt,
+				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "ID of the datasource to apply permissions to.",
@@ -73,13 +73,15 @@ func ResourceDatasourcePermission() *schema.Resource {
 }
 
 func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID := ClientFromNewOrgResource(meta, d)
 
 	v, ok := d.GetOk("permissions")
 	if !ok {
 		return nil
 	}
-	datasourceID := int64(d.Get("datasource_id").(int))
+
+	_, datasourceIDStr := SplitOrgResourceID(d.Get("datasource_id").(string))
+	datasourceID, _ := strconv.ParseInt(datasourceIDStr, 10, 64)
 
 	configuredPermissions := []*gapi.DatasourcePermissionAddPayload{}
 	for _, permission := range v.(*schema.Set).List() {
@@ -105,15 +107,15 @@ func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(datasourceID, 10))
+	d.SetId(MakeOrgResourceID(orgID, datasourceID))
 
 	return ReadDatasourcePermissions(ctx, d, meta)
 }
 
 func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
 
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -149,13 +151,16 @@ func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta
 }
 
 func DeleteDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
 
-	datasourceID := int64(d.Get("datasource_id").(int))
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
-	if err := updateDatasourcePermissions(client, datasourceID, []*gapi.DatasourcePermissionAddPayload{}, false, true); err != nil {
+	if err := updateDatasourcePermissions(client, id, []*gapi.DatasourcePermissionAddPayload{}, false, true); err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing datasource permissions %d from state because it no longer exists in grafana", datasourceID)
+			log.Printf("[WARN] removing datasource permissions %d from state because it no longer exists in grafana", id)
 			d.SetId("")
 			return nil
 		}
