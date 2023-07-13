@@ -3,7 +3,6 @@ package grafana
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"net/url"
 	"strconv"
 	"strings"
@@ -100,14 +99,8 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	client, orgID, idStr := ClientFromExistingOrgResource(meta, d.Id())
 
 	folder, err := GetFolderByIDorUID(client, idStr)
-	if err != nil {
-		if strings.Contains(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing folder %s from state because it no longer exists in grafana", d.Id())
-			d.SetId("")
-			return nil
-		}
-
-		return diag.Errorf("failed to get folder %s: %s", d.Id(), err)
+	if err, shouldReturn := common.CheckReadError("folder", d, err); shouldReturn {
+		return err
 	}
 
 	d.SetId(MakeOrgResourceID(orgID, folder.ID))

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -152,14 +151,10 @@ func ReadTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 func readTeamFromID(teamID int64, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaAPI
 	resp, err := client.Team(teamID)
-	if err != nil && strings.HasPrefix(err.Error(), "status: 404") {
-		log.Printf("[WARN] removing team %s from state because it no longer exists in grafana", d.Id())
-		d.SetId("")
-		return nil
+	if err, shouldReturn := common.CheckReadError("team", d, err); shouldReturn {
+		return err
 	}
-	if err != nil {
-		return diag.FromErr(err)
-	}
+
 	d.SetId(strconv.FormatInt(teamID, 10))
 	d.Set("team_id", teamID)
 	d.Set("name", resp.Name)

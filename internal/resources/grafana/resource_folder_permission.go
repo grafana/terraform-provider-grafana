@@ -2,14 +2,13 @@ package grafana
 
 import (
 	"context"
-	"log"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
 func ResourceFolderPermission() *schema.Resource {
@@ -110,14 +109,8 @@ func ReadFolderPermissions(ctx context.Context, d *schema.ResourceData, meta int
 	client, _, folderUID := ClientFromExistingOrgResource(meta, d.Id())
 
 	folderPermissions, err := client.FolderPermissions(folderUID)
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing folder %s from state because it no longer exists in grafana", folderUID)
-			d.SetId("")
-			return nil
-		}
-
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("folder permissions", d, err); shouldReturn {
+		return err
 	}
 
 	permissionItems := make([]interface{}, len(folderPermissions))
@@ -146,17 +139,9 @@ func DeleteFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 	// if for some reason the parent folder doesn't exist, we'll just ignore the error
 	client, _, folderUID := ClientFromExistingOrgResource(meta, d.Id())
 	emptyPermissions := gapi.PermissionItems{}
-
 	err := client.UpdateFolderPermissions(folderUID, &emptyPermissions)
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			d.SetId("")
-			return nil
-		}
-		return diag.FromErr(err)
-	}
-
-	return nil
+	diags, _ := common.CheckReadError("folder permissions", d, err)
+	return diags
 }
 
 func mapPermissionStringToInt64(permission string) int64 {

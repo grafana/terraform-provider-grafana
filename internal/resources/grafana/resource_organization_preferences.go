@@ -97,9 +97,8 @@ func ReadOrganizationPreferences(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	prefs, err := client.OrgPreferences()
-
-	if err != nil {
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("organization preferences", d, err); shouldReturn {
+		return err
 	}
 
 	d.Set("theme", prefs.Theme)

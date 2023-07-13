@@ -115,19 +115,8 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
 
 	dashboard, err := client.DashboardByUID(uid)
-	var diags diag.Diagnostics
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Warning,
-				Summary:  fmt.Sprintf("Dashboard %q is in state, but no longer exists in grafana", uid),
-				Detail:   fmt.Sprintf("%q will be recreated when you apply", uid),
-			})
-			d.SetId("")
-			return diags
-		} else {
-			return diag.FromErr(err)
-		}
+	if err, shouldReturn := common.CheckReadError("dashboard", d, err); shouldReturn {
+		return err
 	}
 
 	d.Set("uid", dashboard.Model["uid"].(string))
@@ -173,7 +162,7 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	configJSON = NormalizeDashboardConfigJSON(remoteDashJSON)
 	d.Set("config_json", configJSON)
 
-	return diags
+	return nil
 }
 
 func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -195,13 +184,7 @@ func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 
 func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
-
-	err := client.DeleteDashboardByUID(uid)
-	var diags diag.Diagnostics
-	if err != nil && !strings.HasPrefix(err.Error(), "status: 404") {
-		return diag.FromErr(err)
-	}
-	return diags
+	return diag.FromErr(client.DeleteDashboardByUID(uid))
 }
 
 func makeDashboard(d *schema.ResourceData) (gapi.Dashboard, error) {

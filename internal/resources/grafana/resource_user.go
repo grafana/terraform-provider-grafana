@@ -2,9 +2,7 @@ package grafana
 
 import (
 	"context"
-	"log"
 	"strconv"
-	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -97,14 +95,8 @@ func ReadUser(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 		return diag.FromErr(err)
 	}
 	user, err := client.User(id)
-	if err != nil {
-		if strings.Contains(err.Error(), "404") {
-			d.SetId("")
-			log.Printf("[WARN] removing user %s from state because it no longer exists in grafana", d.Id())
-			return nil
-		}
-
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("user", d, err); shouldReturn {
+		return err
 	}
 
 	d.Set("user_id", user.ID)

@@ -2,9 +2,7 @@ package grafana
 
 import (
 	"context"
-	"log"
 	"strconv"
-	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -74,14 +72,8 @@ func ReadServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	saPermissions, err := client.GetServiceAccountPermissions(id)
-	if err != nil {
-		if strings.Contains(err.Error(), "404") {
-			d.SetId("")
-			log.Printf("[WARN] removing permissions for account with ID %d from state because the service account no longer exists in grafana", id)
-			return nil
-		}
-
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("service account permissions", d, err); shouldReturn {
+		return err
 	}
 
 	saPerms := make([]interface{}, 0)

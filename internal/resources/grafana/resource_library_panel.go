@@ -3,14 +3,13 @@ package grafana
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
 func ResourceLibraryPanel() *schema.Resource {
@@ -130,18 +129,8 @@ func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 
 	panel, err := client.LibraryPanelByUID(uid)
 	var diags diag.Diagnostics
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Warning,
-				Summary:  fmt.Sprintf("Library Panel %s is in state, but no longer exists in grafana", uid),
-				Detail:   fmt.Sprintf("%s will be recreated when you apply", uid),
-			})
-			d.SetId("")
-			return diags
-		} else {
-			return diag.FromErr(err)
-		}
+	if err, shouldReturn := common.CheckReadError("library panel", d, err); shouldReturn {
+		return err
 	}
 
 	modelJSONBytes, err := json.Marshal(panel.Model)

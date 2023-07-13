@@ -2,8 +2,6 @@ package grafana
 
 import (
 	"context"
-	"log"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -148,16 +146,10 @@ func ReadRole(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 
 func readRoleFromUID(client *gapi.Client, uid string, d *schema.ResourceData) diag.Diagnostics {
 	r, err := client.GetRole(uid)
-
-	if err != nil {
-		if strings.Contains(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing role %s from state because it no longer exists in grafana", uid)
-			d.SetId("")
-			return nil
-		}
-
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("role", d, err); shouldReturn {
+		return err
 	}
+
 	err = d.Set("version", r.Version)
 	if err != nil {
 		return diag.FromErr(err)

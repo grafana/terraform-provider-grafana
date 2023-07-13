@@ -2,7 +2,6 @@ package cloud
 
 import (
 	"context"
-	"log"
 	"strings"
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -71,14 +70,8 @@ func ResourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData,
 	stackSlug, pluginSlug := splitID[0], splitID[1]
 
 	installation, err := client.GetCloudPluginInstallation(stackSlug, pluginSlug)
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing plugin %s from state because it no longer exists in stack %s", pluginSlug, stackSlug)
-			d.SetId("")
-			return nil
-		}
-
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("plugin", d, err); shouldReturn {
+		return err
 	}
 
 	d.Set("stack_slug", installation.InstanceSlug)
