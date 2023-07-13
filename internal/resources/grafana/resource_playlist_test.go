@@ -176,7 +176,7 @@ func testAccPlaylistCheckExists() resource.TestCheckFunc {
 		orgID, playlistID := grafana.SplitOrgResourceID(rs.Primary.ID)
 
 		// If the org ID is set, check that the playlist doesn't exist in the default org
-		if orgID > 0 {
+		if orgID > 1 {
 			playlist, err := client.Playlist(playlistID)
 			if err == nil || playlist != nil {
 				return fmt.Errorf("expected no playlist with ID %s in default org but found one", playlistID)

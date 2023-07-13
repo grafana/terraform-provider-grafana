@@ -31,6 +31,7 @@ func TestAccServiceAccount_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccServiceAccountCheckExists,
 					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_service_account.test", "org_id", "1"),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "Editor"),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "is_disabled", "false"),
 					resource.TestMatchResourceAttr("grafana_service_account.test", "id", defaultOrgIDRegexp),

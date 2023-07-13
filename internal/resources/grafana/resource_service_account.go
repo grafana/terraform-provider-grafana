@@ -82,6 +82,8 @@ func ReadServiceAccount(ctx context.Context, d *schema.ResourceData, meta interf
 
 	for _, sa := range sas {
 		if sa.ID == id {
+			d.SetId(MakeOrgResourceID(sa.OrgID, id))
+			d.Set("org_id", strconv.FormatInt(sa.OrgID, 10))
 			err = d.Set("name", sa.Name)
 			if err != nil {
 				return diag.FromErr(err)

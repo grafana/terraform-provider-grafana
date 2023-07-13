@@ -82,7 +82,7 @@ func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 }
 
 func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c, _, idStr := ClientFromExistingOrgResource(m, d.Id())
+	c, orgID, idStr := ClientFromExistingOrgResource(m, d.Id())
 
 	response, err := c.GetAPIKeys(true)
 	if err, shouldReturn := common.CheckReadError("API key", d, err); shouldReturn {
@@ -95,6 +95,8 @@ func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 	}
 	for _, key := range response {
 		if id == key.ID {
+			d.SetId(MakeOrgResourceID(orgID, key.ID))
+			d.Set("org_id", strconv.FormatInt(orgID, 10))
 			d.Set("name", key.Name)
 			d.Set("role", key.Role)
 

@@ -102,6 +102,7 @@ func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta interface{})
 		return err
 	}
 
+	d.SetId(MakeOrgResourceID(orgID, id))
 	d.Set("name", resp.Name)
 	d.Set("interval", resp.Interval)
 	d.Set("org_id", strconv.FormatInt(orgID, 10))

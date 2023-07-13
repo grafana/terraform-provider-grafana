@@ -177,7 +177,7 @@ func testAccAnnotationCheckExists(rn string, annotation *gapi.Annotation) resour
 
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		// If the org ID is set, check that the annotation doesn't exist in the default org
-		if orgID > 0 {
+		if orgID > 1 {
 			annotations, err := client.Annotations(url.Values{})
 			if err != nil {
 				return fmt.Errorf("error getting annotations: %s", err)

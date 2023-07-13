@@ -104,6 +104,7 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	}
 
 	d.SetId(MakeOrgResourceID(orgID, folder.ID))
+	d.Set("org_id", strconv.FormatInt(orgID, 10))
 	d.Set("title", folder.Title)
 	d.Set("uid", folder.UID)
 	d.Set("url", strings.TrimRight(gapiURL, "/")+folder.URL)

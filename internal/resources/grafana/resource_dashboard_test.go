@@ -45,7 +45,8 @@ func TestAccDashboard_basic(t *testing.T) {
 						Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_basic.tf"),
 						Check: resource.ComposeTestCheckFunc(
 							testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "0:basic"), // <org id>:<uid>
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "1:basic"), // <org id>:<uid>
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "org_id", "1"),
 							resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic"),
 							resource.TestCheckResourceAttr("grafana_dashboard.test", "url", strings.TrimRight(os.Getenv("GRAFANA_URL"), "/")+"/d/basic/terraform-acceptance-test"),
 							resource.TestCheckResourceAttr(
@@ -58,7 +59,7 @@ func TestAccDashboard_basic(t *testing.T) {
 						Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_basic_update.tf"),
 						Check: resource.ComposeTestCheckFunc(
 							testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "0:basic"), // <org id>:<uid>
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "1:basic"), // <org id>:<uid>
 							resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic"),
 							resource.TestCheckResourceAttr(
 								"grafana_dashboard.test", "config_json", expectedUpdatedTitleConfig,
@@ -72,7 +73,7 @@ func TestAccDashboard_basic(t *testing.T) {
 						Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_basic_update_uid.tf"),
 						Check: resource.ComposeTestCheckFunc(
 							testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
-							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "0:basic-update"), // <org id>:<uid>
+							resource.TestCheckResourceAttr("grafana_dashboard.test", "id", "1:basic-update"), // <org id>:<uid>
 							resource.TestCheckResourceAttr("grafana_dashboard.test", "uid", "basic-update"),
 							resource.TestCheckResourceAttr("grafana_dashboard.test", "url", strings.TrimRight(os.Getenv("GRAFANA_URL"), "/")+"/d/basic-update/updated-title"),
 							resource.TestCheckResourceAttr(
@@ -174,7 +175,7 @@ func TestAccDashboard_folder(t *testing.T) {
 					testAccDashboardCheckExists("grafana_dashboard.test_folder", &dashboard),
 					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
 					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
-					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "0:folder-dashboard-test-ref-with-id"), // <org id>:<uid>
+					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "1:folder-dashboard-test-ref-with-id"), // <org id>:<uid>
 					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", "folder-dashboard-test-ref-with-id"),
 					resource.TestMatchResourceAttr("grafana_dashboard.test_folder", "folder", common.IDRegexp),
 				),
@@ -200,7 +201,7 @@ func TestAccDashboard_folder_uid(t *testing.T) {
 					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
 					testAccDashboardCheckExists("grafana_dashboard.test_folder", &dashboard),
 					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
-					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "0:folder-dashboard-test-ref-with-uid"), // <org id>:<uid>
+					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "1:folder-dashboard-test-ref-with-uid"), // <org id>:<uid>
 					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", "folder-dashboard-test-ref-with-uid"),
 					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "folder", "folder-dashboard-uid-test"),
 				),
@@ -266,7 +267,7 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		// If the org ID is set, check that the dashboard doesn't exist in the default org
-		if orgID > 0 {
+		if orgID > 1 {
 			dashboard, err := client.DashboardByUID(dashboardUID)
 			if err == nil || dashboard != nil {
 				return fmt.Errorf("dashboard %s exists in the default org", dashboardUID)

@@ -29,6 +29,7 @@ func TestAccGrafanaAuthKey(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccGrafanaAuthKeyCheckExists,
 					resource.TestMatchResourceAttr("grafana_api_key.foo", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_api_key.foo", "org_id", "1"),
 					resource.TestCheckResourceAttrSet("grafana_api_key.foo", "key"),
 					resource.TestCheckResourceAttr("grafana_api_key.foo", "name", testName),
 					resource.TestCheckResourceAttr("grafana_api_key.foo", "role", "Admin"),

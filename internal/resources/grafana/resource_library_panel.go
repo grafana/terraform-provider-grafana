@@ -143,6 +143,7 @@ func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 	}
 	modelJSON := normalizeLibraryPanelModelJSON(remotePanelJSON)
 
+	d.SetId(MakeOrgResourceID(orgID, uid))
 	d.Set("uid", panel.UID)
 	d.Set("panel_id", panel.ID)
 	d.Set("org_id", strconv.FormatInt(panel.OrgID, 10))
