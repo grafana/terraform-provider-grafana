@@ -3,7 +3,6 @@ package machinelearning
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -121,19 +120,8 @@ func ResourceHolidayCreate(ctx context.Context, d *schema.ResourceData, meta int
 func ResourceHolidayRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	holiday, err := c.Holiday(ctx, d.Id())
-	if err != nil {
-		var diags diag.Diagnostics
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			name := d.Get("name").(string)
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Warning,
-				Summary:  fmt.Sprintf("Holiday %q is in Terraform state, but no longer exists in Grafana ML", name),
-				Detail:   fmt.Sprintf("%q will be recreated when you apply", name),
-			})
-			d.SetId("")
-			return diags
-		}
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("holiday", d, err); shouldReturn {
+		return err
 	}
 
 	customPeriods := make([]interface{}, 0, len(holiday.CustomPeriods))

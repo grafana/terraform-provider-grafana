@@ -3,7 +3,6 @@ package grafana
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -116,13 +115,8 @@ func readMuteTiming(ctx context.Context, data *schema.ResourceData, meta interfa
 
 	name := data.Id()
 	mt, err := client.MuteTiming(name)
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing mute timing %s from state because it no longer exists in grafana", name)
-			data.SetId("")
-			return nil
-		}
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("mute timing", data, err); shouldReturn {
+		return err
 	}
 
 	data.SetId(mt.Name)

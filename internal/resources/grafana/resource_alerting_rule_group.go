@@ -197,13 +197,8 @@ func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta int
 	key := UnpackGroupID(data.Id())
 
 	group, err := client.AlertRuleGroup(key.FolderUID, key.Name)
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing rule group %s/%s from state because it no longer exists in grafana", key.FolderUID, key.Name)
-			data.SetId("")
-			return nil
-		}
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("rule group", data, err); shouldReturn {
+		return err
 	}
 
 	if err := packRuleGroup(group, data); err != nil {

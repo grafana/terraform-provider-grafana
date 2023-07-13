@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -264,15 +263,8 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		return diag.FromErr(err)
 	}
 	r, err := client.Report(id)
-
-	if err != nil {
-		if strings.Contains(err.Error(), "role not found") {
-			log.Printf("[WARN] removing role %s from state because it no longer exists in grafana", d.Id())
-			d.SetId("")
-			return nil
-		}
-
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("report", d, err); shouldReturn {
+		return err
 	}
 
 	d.Set("dashboard_id", r.Dashboards[0].Dashboard.ID)

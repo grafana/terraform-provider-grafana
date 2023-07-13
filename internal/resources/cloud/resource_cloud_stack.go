@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -297,14 +296,8 @@ func DeleteStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaCloudAPI
 	stack, err := getStackFromIDOrSlug(client, d.Id())
-
-	if err != nil {
-		if strings.Contains(err.Error(), "404") {
-			log.Printf("[WARN] removing stack %s from state because it no longer exists in grafana", d.Get("name").(string))
-			d.SetId("")
-			return nil
-		}
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("stack", d, err); shouldReturn {
+		return err
 	}
 
 	if stack.Status == "deleted" {

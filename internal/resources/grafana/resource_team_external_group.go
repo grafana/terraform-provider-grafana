@@ -59,8 +59,8 @@ func ReadTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta int
 	client := meta.(*common.Client).GrafanaAPI
 	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	teamGroups, err := client.TeamGroups(teamID)
-	if err != nil {
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("team groups", d, err); shouldReturn {
+		return err
 	}
 
 	groupIDs := make([]string, 0, len(teamGroups))

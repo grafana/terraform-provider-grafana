@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"context"
-	"log"
 	"strings"
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -53,13 +52,8 @@ func readMessageTemplate(ctx context.Context, data *schema.ResourceData, meta in
 
 	name := data.Id()
 	tmpl, err := client.MessageTemplate(name)
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing template %s from state because it no longer exists in grafana", name)
-			data.SetId("")
-			return nil
-		}
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("message template", data, err); shouldReturn {
+		return err
 	}
 
 	data.SetId(tmpl.Name)

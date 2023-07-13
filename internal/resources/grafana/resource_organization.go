@@ -153,13 +153,8 @@ func ReadOrganization(ctx context.Context, d *schema.ResourceData, meta interfac
 	client := meta.(*common.Client).GrafanaAPI
 	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	resp, err := client.Org(orgID)
-	if err != nil && strings.HasPrefix(err.Error(), "status: 404") {
-		log.Printf("[WARN] removing organization %s from state because it no longer exists in grafana", d.Id())
-		d.SetId("")
-		return nil
-	}
-	if err != nil {
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("organization", d, err); shouldReturn {
+		return err
 	}
 	d.Set("org_id", resp.ID)
 	d.Set("name", resp.Name)

@@ -3,7 +3,6 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -143,15 +142,8 @@ func ReadCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, met
 	region, id, _ := strings.Cut(d.Id(), "/")
 
 	result, err := client.CloudAccessPolicyTokenByID(region, id)
-
-	if result.ID == "" || (err != nil && strings.HasPrefix(err.Error(), "status: 404")) {
-		log.Printf("[WARN] removing cloud access policy token %s from state because it no longer exists", d.Get("name").(string))
-		d.SetId("")
-		return nil
-	}
-
-	if err != nil {
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("policy token", d, err); shouldReturn {
+		return err
 	}
 
 	d.Set("access_policy_id", result.AccessPolicyID)

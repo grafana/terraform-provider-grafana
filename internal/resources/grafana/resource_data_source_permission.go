@@ -3,15 +3,14 @@ package grafana
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
 func ResourceDatasourcePermission() *schema.Resource {
@@ -121,14 +120,8 @@ func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta
 	}
 
 	response, err := client.DatasourcePermissions(id)
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing datasource permissions %d from state because it no longer exists in grafana", id)
-			d.SetId("")
-			return nil
-		}
-
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("datasource permissions", d, err); shouldReturn {
+		return err
 	}
 
 	permissionItems := make([]interface{}, len(response.Permissions))
@@ -157,17 +150,9 @@ func DeleteDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	if err := updateDatasourcePermissions(client, id, []*gapi.DatasourcePermissionAddPayload{}, false, true); err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing datasource permissions %d from state because it no longer exists in grafana", id)
-			d.SetId("")
-			return nil
-		}
-		return diag.FromErr(err)
-	}
-
-	return nil
+	err = updateDatasourcePermissions(client, id, []*gapi.DatasourcePermissionAddPayload{}, false, true)
+	diags, _ := common.CheckReadError("datasource permissions", d, err)
+	return diags
 }
 
 func updateDatasourcePermissions(client *gapi.Client, id int64, permissions []*gapi.DatasourcePermissionAddPayload, enable, disable bool) error {

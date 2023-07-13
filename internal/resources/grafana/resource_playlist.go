@@ -2,11 +2,11 @@ package grafana
 
 import (
 	"context"
-	"log"
+	"errors"
 	"strconv"
-	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -94,14 +94,12 @@ func ReadPlaylist(ctx context.Context, d *schema.ResourceData, meta interface{})
 	client, orgID, id := ClientFromExistingOrgResource(meta, d.Id())
 
 	resp, err := client.Playlist(id)
-
-	// In Grafana 9.0+, if the playlist doesn't exist, the API returns an empty playlist but not a 404
-	if (err != nil && strings.HasPrefix(err.Error(), "status: 404")) || (resp.ID == 0 && resp.UID == "") {
-		log.Printf("[WARN] removing playlist %s from state because it no longer exists in grafana", id)
-		d.SetId("")
-		return nil
-	} else if err != nil {
-		return diag.Errorf("error reading Playlist (%s): %v", id, err)
+	// In Grafana 9.0+, if the playlist doesn't exist, the API returns an empty playlist but not a notfound error
+	if resp != nil && resp.ID == 0 && resp.UID == "" {
+		err = errors.New(common.NotFoundError)
+	}
+	if err, shouldReturn := common.CheckReadError("playlist", d, err); shouldReturn {
+		return err
 	}
 
 	d.Set("name", resp.Name)
@@ -140,15 +138,7 @@ func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 
 func DeletePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, id := ClientFromExistingOrgResource(meta, d.Id())
-
-	if err := client.DeletePlaylist(id); err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			return nil
-		}
-		return diag.Errorf("error deleting Playlist (%s): %v", id, err)
-	}
-
-	return nil
+	return diag.FromErr(client.DeletePlaylist(id))
 }
 
 func expandPlaylistItems(items []interface{}) []gapi.PlaylistItem {

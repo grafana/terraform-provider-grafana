@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -84,8 +85,8 @@ func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 	c, _, idStr := ClientFromExistingOrgResource(m, d.Id())
 
 	response, err := c.GetAPIKeys(true)
-	if err != nil {
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("API key", d, err); shouldReturn {
+		return err
 	}
 
 	id, err := strconv.ParseInt(idStr, 10, 64)

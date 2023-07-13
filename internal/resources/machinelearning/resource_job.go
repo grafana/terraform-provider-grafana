@@ -3,7 +3,6 @@ package machinelearning
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -122,19 +121,8 @@ func ResourceJobCreate(ctx context.Context, d *schema.ResourceData, meta interfa
 func ResourceJobRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	job, err := c.Job(ctx, d.Id())
-	if err != nil {
-		var diags diag.Diagnostics
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			name := d.Get("name").(string)
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Warning,
-				Summary:  fmt.Sprintf("Job %q is in Terraform state, but no longer exists in Grafana ML", name),
-				Detail:   fmt.Sprintf("%q will be recreated when you apply", name),
-			})
-			d.SetId("")
-			return diags
-		}
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("job", d, err); shouldReturn {
+		return err
 	}
 
 	d.Set("name", job.Name)

@@ -139,19 +139,8 @@ func ResourceOutlierCreate(ctx context.Context, d *schema.ResourceData, meta int
 func ResourceOutlierRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	outlier, err := c.OutlierDetector(ctx, d.Id())
-	if err != nil {
-		var diags diag.Diagnostics
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			name := d.Get("name").(string)
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Warning,
-				Summary:  fmt.Sprintf("Outlier Detector %q is in Terraform state, but no longer exists in Grafana ML", name),
-				Detail:   fmt.Sprintf("%q will be recreated when you apply", name),
-			})
-			d.SetId("")
-			return diags
-		}
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("outlier detector", d, err); shouldReturn {
+		return err
 	}
 
 	d.Set("name", outlier.Name)

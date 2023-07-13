@@ -2,9 +2,7 @@ package grafana
 
 import (
 	"context"
-	"log"
 	"strconv"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -144,15 +142,8 @@ func ReadDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta 
 	} else {
 		dashboardPermissions, err = client.DashboardPermissions(int64(idInt))
 	}
-
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			log.Printf("[WARN] removing dashboard permissions %s from state because it no longer exists in grafana", id)
-			d.SetId("")
-			return nil
-		}
-
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("dashboard permissions", d, err); shouldReturn {
+		return err
 	}
 
 	permissionItems := make([]interface{}, len(dashboardPermissions))
@@ -191,13 +182,6 @@ func DeleteDashboardPermissions(ctx context.Context, d *schema.ResourceData, met
 	} else {
 		err = client.UpdateDashboardPermissions(int64(d.Get("dashboard_id").(int)), &emptyPermissions)
 	}
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
-			d.SetId("")
-			return nil
-		}
-		return diag.FromErr(err)
-	}
-
-	return nil
+	diags, _ := common.CheckReadError("dashboard permissions", d, err)
+	return diags
 }

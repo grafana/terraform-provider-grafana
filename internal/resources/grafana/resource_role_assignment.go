@@ -66,8 +66,8 @@ func ReadRoleAssignments(ctx context.Context, d *schema.ResourceData, meta inter
 	client := meta.(*common.Client).GrafanaAPI
 	uid := d.Id()
 	assignments, err := client.GetRoleAssignments(uid)
-	if err != nil {
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("role assignments", d, err); shouldReturn {
+		return err
 	}
 
 	if err := setRoleAssignments(assignments, d); err != nil {

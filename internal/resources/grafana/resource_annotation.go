@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"log"
 	"net/url"
 	"strconv"
 	"time"
@@ -163,7 +164,9 @@ func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{
 	}
 
 	if annotation.ID <= 0 {
-		return diag.Errorf("unable to find Grafana annotation ID %d", id)
+		log.Printf("[WARN] removing annotation %v from state because it no longer exists in grafana", idStr)
+		d.SetId("")
+		return nil
 	}
 
 	t := time.UnixMilli(annotation.Time)
