@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -61,9 +62,10 @@ func testAccTeamExternalGroupCheckExists(rn string, teamID *int64) resource.Test
 			return fmt.Errorf("Resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		orgID, teamIDStr := grafana.SplitOrgResourceID(rs.Primary.ID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
 
-		gotTeamID, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
+		gotTeamID, err := strconv.ParseInt(teamIDStr, 10, 64)
 		if err != nil {
 			return fmt.Errorf("team id is malformed")
 		}

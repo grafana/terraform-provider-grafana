@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -76,9 +77,8 @@ func testAccDashboardPermissionsCheckExistsUID(rn string, dashboardUID *string) 
 			return fmt.Errorf("Resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-
-		gotDashboardUID := rs.Primary.ID
+		orgID, gotDashboardUID := grafana.SplitOrgResourceID(rs.Primary.ID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
 
 		_, err := client.DashboardPermissionsByUID(gotDashboardUID)
 		if err != nil {
@@ -102,9 +102,10 @@ func testAccDashboardPermissionsCheckExists(rn string, dashboardID *int64) resou
 			return fmt.Errorf("Resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		orgID, dashboardIDStr := grafana.SplitOrgResourceID(rs.Primary.ID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
 
-		gotDashboardID, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
+		gotDashboardID, err := strconv.ParseInt(dashboardIDStr, 10, 64)
 		if err != nil {
 			return fmt.Errorf("dashboard id is malformed")
 		}

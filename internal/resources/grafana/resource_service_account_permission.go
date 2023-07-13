@@ -26,6 +26,7 @@ func ResourceServiceAccountPermission() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"service_account_id": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -36,12 +37,18 @@ func ResourceServiceAccountPermission() *schema.Resource {
 				Type:        schema.TypeSet,
 				Required:    true,
 				Description: "The permission items to add/update. Items that are omitted from the list will be removed.",
+				// Ignore the org ID of the team when hashing. It works with or without it.
+				Set: func(i interface{}) int {
+					m := i.(map[string]interface{})
+					_, teamID := SplitOrgResourceID(m["team_id"].(string))
+					return schema.HashString(teamID + strconv.Itoa(m["user_id"].(int)) + m["permission"].(string))
+				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"team_id": {
-							Type:        schema.TypeInt,
+							Type:        schema.TypeString,
 							Optional:    true,
-							Default:     0,
+							Default:     "0",
 							Description: "ID of the team to manage permissions for. Specify either this or `user_id`.",
 						},
 						"user_id": {
@@ -83,7 +90,7 @@ func ReadServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, 
 			continue
 		}
 		permMap := map[string]interface{}{
-			"team_id":    p.TeamID,
+			"team_id":    strconv.FormatInt(p.TeamID, 10),
 			"user_id":    p.UserID,
 			"permission": p.Permission,
 		}
@@ -108,7 +115,8 @@ func UpdateServiceAccountPermissions(ctx context.Context, d *schema.ResourceData
 	oldUserPerms := make(map[int64]string, 0)
 	for _, p := range state.(*schema.Set).List() {
 		perm := p.(map[string]interface{})
-		teamID := int64(perm["team_id"].(int))
+		_, teamIDStr := SplitOrgResourceID(perm["team_id"].(string))
+		teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
 		userID := int64(perm["user_id"].(int))
 		if teamID > 0 {
 			oldTeamPerms[teamID] = perm["permission"].(string)
@@ -124,7 +132,8 @@ func UpdateServiceAccountPermissions(ctx context.Context, d *schema.ResourceData
 	for _, p := range config.(*schema.Set).List() {
 		permission := p.(map[string]interface{})
 		permissionItem := gapi.ServiceAccountPermissionItem{}
-		teamID := int64(permission["team_id"].(int))
+		_, teamIDStr := SplitOrgResourceID(permission["team_id"].(string))
+		teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
 		userID := int64(permission["user_id"].(int))
 		if teamID > 0 {
 			perm, has := oldTeamPerms[teamID]
@@ -186,7 +195,8 @@ func DeleteServiceAccountPermissions(ctx context.Context, d *schema.ResourceData
 	permissionList := gapi.ServiceAccountPermissionItems{}
 	for _, p := range state.(*schema.Set).List() {
 		perm := p.(map[string]interface{})
-		teamID := int64(perm["team_id"].(int))
+		_, teamIDStr := SplitOrgResourceID(perm["team_id"].(string))
+		teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
 		userID := int64(perm["user_id"].(int))
 		permissionItem := gapi.ServiceAccountPermissionItem{}
 

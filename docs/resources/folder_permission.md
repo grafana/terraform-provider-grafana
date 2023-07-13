@@ -69,5 +69,5 @@ Required:
 Optional:
 
 - `role` (String) Manage permissions for `Viewer` or `Editor` roles.
-- `team_id` (Number) ID of the team to manage permissions for. Defaults to `0`.
+- `team_id` (String) ID of the team to manage permissions for. Defaults to `0`.
 - `user_id` (Number) ID of the user to manage permissions for. Defaults to `0`.

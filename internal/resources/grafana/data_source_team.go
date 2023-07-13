@@ -16,6 +16,7 @@ func DatasourceTeam() *schema.Resource {
 `,
 		ReadContext: dataSourceTeamRead,
 		Schema: common.CloneResourceSchemaForDatasource(ResourceTeam(), map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -33,7 +34,7 @@ func DatasourceTeam() *schema.Resource {
 }
 
 func dataSourceTeamRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _ := ClientFromNewOrgResource(meta, d)
 	name := d.Get("name").(string)
 	searchTeam, err := client.SearchTeam(name)
 	if err != nil {
@@ -42,7 +43,7 @@ func dataSourceTeamRead(ctx context.Context, d *schema.ResourceData, meta interf
 
 	for _, r := range searchTeam.Teams {
 		if r.Name == name {
-			return readTeamFromID(r.ID, d, meta, d.Get("read_team_sync").(bool))
+			return readTeamFromID(client, r.ID, d, d.Get("read_team_sync").(bool))
 		}
 	}
 

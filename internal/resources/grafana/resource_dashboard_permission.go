@@ -29,6 +29,7 @@ func ResourceDashboardPermission() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"dashboard_id": {
 				Type:         schema.TypeInt,
 				ForceNew:     true,
@@ -50,6 +51,12 @@ func ResourceDashboardPermission() *schema.Resource {
 				Type:        schema.TypeSet,
 				Required:    true,
 				Description: "The permission items to add/update. Items that are omitted from the list will be removed.",
+				// Ignore the org ID of the team when hashing. It works with or without it.
+				Set: func(i interface{}) int {
+					m := i.(map[string]interface{})
+					_, teamID := SplitOrgResourceID(m["team_id"].(string))
+					return schema.HashString(m["role"].(string) + teamID + strconv.Itoa(m["user_id"].(int)) + m["permission"].(string))
+				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"role": {
@@ -59,9 +66,9 @@ func ResourceDashboardPermission() *schema.Resource {
 							Description:  "Manage permissions for `Viewer` or `Editor` roles.",
 						},
 						"team_id": {
-							Type:        schema.TypeInt,
+							Type:        schema.TypeString,
 							Optional:    true,
-							Default:     0,
+							Default:     "0",
 							Description: "ID of the team to manage permissions for.",
 						},
 						"user_id": {
@@ -84,7 +91,7 @@ func ResourceDashboardPermission() *schema.Resource {
 }
 
 func UpdateDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID := ClientFromNewOrgResource(meta, d)
 
 	v, ok := d.GetOk("permissions")
 	if !ok {
@@ -97,8 +104,10 @@ func UpdateDashboardPermissions(ctx context.Context, d *schema.ResourceData, met
 		if permission["role"].(string) != "" {
 			permissionItem.Role = permission["role"].(string)
 		}
-		if permission["team_id"].(int) != -1 {
-			permissionItem.TeamID = int64(permission["team_id"].(int))
+		_, teamIDStr := SplitOrgResourceID(permission["team_id"].(string))
+		teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
+		if teamID > 0 {
+			permissionItem.TeamID = teamID
 		}
 		if permission["user_id"].(int) != -1 {
 			permissionItem.UserID = int64(permission["user_id"].(int))
@@ -123,24 +132,23 @@ func UpdateDashboardPermissions(ctx context.Context, d *schema.ResourceData, met
 		return diag.FromErr(err)
 	}
 
-	d.SetId(id)
+	d.SetId(MakeOrgResourceID(orgID, id))
 
 	return ReadDashboardPermissions(ctx, d, meta)
 }
 
 func ReadDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
 	var (
 		dashboardPermissions []*gapi.DashboardPermission
 		err                  error
 	)
 
-	id := d.Id()
-	if idInt, _ := strconv.Atoi(id); idInt == 0 {
+	if idInt, _ := strconv.ParseInt(idStr, 10, 64); idInt == 0 {
 		// id is not an int, so it must be a uid
-		dashboardPermissions, err = client.DashboardPermissionsByUID(id)
+		dashboardPermissions, err = client.DashboardPermissionsByUID(idStr)
 	} else {
-		dashboardPermissions, err = client.DashboardPermissions(int64(idInt))
+		dashboardPermissions, err = client.DashboardPermissions(idInt)
 	}
 	if err, shouldReturn := common.CheckReadError("dashboard permissions", d, err); shouldReturn {
 		return err
@@ -152,7 +160,7 @@ func ReadDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta 
 		if permission.DashboardID != -1 {
 			permissionItem := make(map[string]interface{})
 			permissionItem["role"] = permission.Role
-			permissionItem["team_id"] = permission.TeamID
+			permissionItem["team_id"] = strconv.FormatInt(permission.TeamID, 10)
 			permissionItem["user_id"] = permission.UserID
 			permissionItem["permission"] = mapPermissionInt64ToString(permission.Permission)
 
@@ -172,13 +180,13 @@ func DeleteDashboardPermissions(ctx context.Context, d *schema.ResourceData, met
 	// since permissions are tied to dashboards, we can't really delete the permissions.
 	// we will simply remove all permissions, leaving a dashboard that only an admin can access.
 	// if for some reason the parent dashboard doesn't exist, we'll just ignore the error
-	client := meta.(*common.Client).GrafanaAPI
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
 
 	emptyPermissions := gapi.PermissionItems{}
 
 	var err error
-	if uid, ok := d.GetOk("dashboard_uid"); ok {
-		err = client.UpdateDashboardPermissionsByUID(uid.(string), &emptyPermissions)
+	if idInt, _ := strconv.ParseInt(idStr, 10, 64); idInt == 0 {
+		err = client.UpdateDashboardPermissionsByUID(idStr, &emptyPermissions)
 	} else {
 		err = client.UpdateDashboardPermissions(int64(d.Get("dashboard_id").(int)), &emptyPermissions)
 	}
