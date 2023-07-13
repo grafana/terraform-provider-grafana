@@ -16,19 +16,21 @@ const NotFoundError = "status: 404"
 // - If there is an error, return the error.
 // - Otherwise, do not return to continue processing the read.
 func CheckReadError(resourceType string, d *schema.ResourceData, err error) (returnValue diag.Diagnostics, shouldReturn bool) {
-	if err != nil {
-		if strings.Contains(err.Error(), NotFoundError) {
-			log.Printf("[WARN] removing %s with ID %q from state because it no longer exists in grafana", resourceType, d.Id())
-			var diags diag.Diagnostics
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Warning,
-				Summary:  fmt.Sprintf("%s with ID %q is in Terraform state, but no longer exists in Grafana", resourceType, d.Id()),
-				Detail:   fmt.Sprintf("%q will be recreated when you apply", d.Id()),
-			})
-			d.SetId("")
-			return diags, true
-		}
+	if err == nil {
+		return nil, false
+	}
+
+	if !strings.Contains(err.Error(), NotFoundError) {
 		return diag.Errorf("error reading %s with ID`%s`: %v", resourceType, d.Id(), err), true
 	}
-	return nil, false
+
+	log.Printf("[WARN] removing %s with ID %q from state because it no longer exists in grafana", resourceType, d.Id())
+	var diags diag.Diagnostics
+	diags = append(diags, diag.Diagnostic{
+		Severity: diag.Warning,
+		Summary:  fmt.Sprintf("%s with ID %q is in Terraform state, but no longer exists in Grafana", resourceType, d.Id()),
+		Detail:   fmt.Sprintf("%q will be recreated when you apply", d.Id()),
+	})
+	d.SetId("")
+	return diags, true
 }
