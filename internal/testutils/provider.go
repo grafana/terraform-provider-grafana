@@ -123,7 +123,6 @@ func CheckOSSTestsEnabled(t *testing.T) {
 	CheckEnvVarsSet(t,
 		"GRAFANA_URL",
 		"GRAFANA_AUTH",
-		"GRAFANA_ORG_ID",
 		"GRAFANA_VERSION",
 	)
 }
@@ -167,7 +166,6 @@ func CheckCloudInstanceTestsEnabled(t *testing.T) {
 	CheckEnvVarsSet(t,
 		"GRAFANA_URL",
 		"GRAFANA_AUTH",
-		"GRAFANA_ORG_ID",
 		"GRAFANA_SM_ACCESS_TOKEN",
 		"GRAFANA_ONCALL_ACCESS_TOKEN",
 	)
@@ -184,6 +182,5 @@ func CheckEnterpriseTestsEnabled(t *testing.T) {
 	CheckEnvVarsSet(t,
 		"GRAFANA_URL",
 		"GRAFANA_AUTH",
-		"GRAFANA_ORG_ID",
 	)
 }
