@@ -15,12 +15,13 @@ func TestAccDatasourceTeam(t *testing.T) {
 	var team gapi.Team
 	checks := []resource.TestCheckFunc{
 		testAccTeamCheckExists("grafana_team.test", &team),
-		resource.TestCheckResourceAttr(
-			"data.grafana_team.from_name", "name", "test-team",
-		),
-		resource.TestMatchResourceAttr(
-			"data.grafana_team.from_name", "id", common.IDRegexp,
-		),
+		resource.TestCheckResourceAttr("data.grafana_team.from_name", "name", "test-team"),
+		resource.TestMatchResourceAttr("data.grafana_team.from_name", "id", common.IDRegexp),
+		resource.TestCheckResourceAttr("data.grafana_team.from_name", "email", "test-team-email@test.com"),
+		resource.TestCheckResourceAttr("data.grafana_team.from_name", "members.#", "0"),
+		resource.TestCheckResourceAttr("data.grafana_team.from_name", "preferences.#", "1"),
+		resource.TestCheckResourceAttr("data.grafana_team.from_name", "preferences.0.theme", "dark"),
+		resource.TestCheckResourceAttr("data.grafana_team.from_name", "preferences.0.timezone", "utc"),
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
