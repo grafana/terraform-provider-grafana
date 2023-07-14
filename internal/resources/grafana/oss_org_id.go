@@ -43,7 +43,9 @@ func SplitOrgResourceID(id string) (int64, string) {
 func ClientFromExistingOrgResource(meta interface{}, id string) (*gapi.Client, int64, string) {
 	orgID, restOfID := SplitOrgResourceID(id)
 	client := meta.(*common.Client).GrafanaAPI
-	if orgID > 0 {
+	if orgID == 0 {
+		orgID = meta.(*common.Client).GrafanaAPIConfig.OrgID // It's configured globally. TODO: Remove this once we drop support for the global org_id
+	} else if orgID > 0 {
 		client = client.WithOrgID(orgID)
 	}
 	return client, orgID, restOfID
@@ -54,7 +56,9 @@ func ClientFromExistingOrgResource(meta interface{}, id string) (*gapi.Client, i
 func ClientFromNewOrgResource(meta interface{}, d *schema.ResourceData) (*gapi.Client, int64) {
 	orgID, _ := strconv.ParseInt(d.Get("org_id").(string), 10, 64)
 	client := meta.(*common.Client).GrafanaAPI
-	if orgID > 0 {
+	if orgID == 0 {
+		orgID = meta.(*common.Client).GrafanaAPIConfig.OrgID // It's configured globally. TODO: Remove this once we drop support for the global org_id
+	} else if orgID > 0 {
 		client = client.WithOrgID(orgID)
 	}
 	return client, orgID

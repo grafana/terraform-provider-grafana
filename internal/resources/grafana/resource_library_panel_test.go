@@ -30,6 +30,7 @@ func TestAccLibraryPanel_basic(t *testing.T) {
 				Config: testutils.TestAccExample(t, "resources/grafana_library_panel/_acc_basic.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestMatchResourceAttr("grafana_library_panel.test", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_library_panel.test", "org_id", "1"),
 					testAccLibraryPanelCheckExists("grafana_library_panel.test", &panel),
 					resource.TestCheckResourceAttr("grafana_library_panel.test", "name", "basic"),
 					resource.TestCheckResourceAttr("grafana_library_panel.test", "version", "1"),

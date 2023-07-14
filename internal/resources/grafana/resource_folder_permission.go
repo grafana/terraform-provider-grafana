@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -106,7 +107,7 @@ func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func ReadFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, folderUID := ClientFromExistingOrgResource(meta, d.Id())
+	client, orgID, folderUID := ClientFromExistingOrgResource(meta, d.Id())
 
 	folderPermissions, err := client.FolderPermissions(folderUID)
 	if err, shouldReturn := common.CheckReadError("folder permissions", d, err); shouldReturn {
@@ -128,6 +129,8 @@ func ReadFolderPermissions(ctx context.Context, d *schema.ResourceData, meta int
 		}
 	}
 
+	d.SetId(MakeOrgResourceID(orgID, folderUID))
+	d.Set("org_id", strconv.FormatInt(orgID, 10))
 	d.Set("permissions", permissionItems)
 
 	return nil

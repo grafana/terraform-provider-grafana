@@ -28,6 +28,7 @@ func TestAccResourceReport(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccReportCheckExists("grafana_report.test", &report),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "id"),
+					resource.TestCheckResourceAttr("grafana_report.test", "org_id", "1"),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "dashboard_id"),
 					resource.TestCheckResourceAttr("grafana_report.test", "name", "my report"),
 					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", "report"),
@@ -51,7 +52,7 @@ func TestAccResourceReport(t *testing.T) {
 						// Check that the ID and dashboard ID are the same as the first run
 						// This is a custom function to delay the report ID evaluation, because it is generated after the first run
 						return resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr("grafana_report.test", "id", "0:"+strconv.FormatInt(report.ID, 10)), // <orgid>:<reportid> (0 being the default org)
+							resource.TestCheckResourceAttr("grafana_report.test", "id", "1:"+strconv.FormatInt(report.ID, 10)), // <orgid>:<reportid> (1 being the default org)
 							resource.TestCheckResourceAttr("grafana_report.test", "dashboard_id", strconv.FormatInt(report.Dashboards[0].Dashboard.ID, 10)),
 						)(s)
 					},
@@ -170,7 +171,7 @@ func testAccReportCheckExists(rn string, report *gapi.Report) resource.TestCheck
 		}
 
 		// If the org ID is set, check that the report doesn't exist in the default org
-		if orgID > 0 {
+		if orgID > 1 {
 			report, err := client.Report(reportID)
 			if err == nil || report != nil {
 				return fmt.Errorf("expected no report with ID %s in default org but found one", reportIDStr)

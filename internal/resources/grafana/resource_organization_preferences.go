@@ -101,6 +101,7 @@ func ReadOrganizationPreferences(ctx context.Context, d *schema.ResourceData, me
 		return err
 	}
 
+	d.Set("org_id", d.Id())
 	d.Set("theme", prefs.Theme)
 	d.Set("home_dashboard_id", prefs.HomeDashboardID)
 	d.Set("home_dashboard_uid", prefs.HomeDashboardUID)

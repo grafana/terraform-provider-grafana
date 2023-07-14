@@ -112,13 +112,15 @@ func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 
 func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	gapiURL := meta.(*common.Client).GrafanaAPIURL
-	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
+	client, orgID, uid := ClientFromExistingOrgResource(meta, d.Id())
 
 	dashboard, err := client.DashboardByUID(uid)
 	if err, shouldReturn := common.CheckReadError("dashboard", d, err); shouldReturn {
 		return err
 	}
 
+	d.SetId(MakeOrgResourceID(orgID, uid))
+	d.Set("org_id", strconv.FormatInt(orgID, 10))
 	d.Set("uid", dashboard.Model["uid"].(string))
 	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
 	d.Set("version", int64(dashboard.Model["version"].(float64)))

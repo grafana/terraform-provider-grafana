@@ -267,6 +267,7 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		return err
 	}
 
+	d.SetId(MakeOrgResourceID(r.OrgID, id))
 	d.Set("dashboard_id", r.Dashboards[0].Dashboard.ID)
 	d.Set("dashboard_uid", r.Dashboards[0].Dashboard.UID)
 	d.Set("name", r.Name)
