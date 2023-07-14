@@ -37,6 +37,12 @@ func ResourceFolderPermission() *schema.Resource {
 				Type:        schema.TypeSet,
 				Required:    true,
 				Description: "The permission items to add/update. Items that are omitted from the list will be removed.",
+				// Ignore the org ID of the team when hashing. It works with or without it.
+				Set: func(i interface{}) int {
+					m := i.(map[string]interface{})
+					_, teamID := SplitOrgResourceID(m["team_id"].(string))
+					return schema.HashString(m["role"].(string) + teamID + strconv.Itoa(m["user_id"].(int)) + m["permission"].(string))
+				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"role": {
@@ -46,9 +52,9 @@ func ResourceFolderPermission() *schema.Resource {
 							Description:  "Manage permissions for `Viewer` or `Editor` roles.",
 						},
 						"team_id": {
-							Type:        schema.TypeInt,
+							Type:        schema.TypeString,
 							Optional:    true,
-							Default:     0,
+							Default:     "0",
 							Description: "ID of the team to manage permissions for.",
 						},
 						"user_id": {
@@ -84,8 +90,10 @@ func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 		if permission["role"].(string) != "" {
 			permissionItem.Role = permission["role"].(string)
 		}
-		if permission["team_id"].(int) != -1 {
-			permissionItem.TeamID = int64(permission["team_id"].(int))
+		_, teamIDStr := SplitOrgResourceID(permission["team_id"].(string))
+		teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
+		if teamID > 0 {
+			permissionItem.TeamID = teamID
 		}
 		if permission["user_id"].(int) != -1 {
 			permissionItem.UserID = int64(permission["user_id"].(int))
@@ -120,7 +128,7 @@ func ReadFolderPermissions(ctx context.Context, d *schema.ResourceData, meta int
 		if permission.FolderUID != "" {
 			permissionItem := make(map[string]interface{})
 			permissionItem["role"] = permission.Role
-			permissionItem["team_id"] = permission.TeamID
+			permissionItem["team_id"] = strconv.FormatInt(permission.TeamID, 10)
 			permissionItem["user_id"] = permission.UserID
 			permissionItem["permission"] = mapPermissionInt64ToString(permission.Permission)
 

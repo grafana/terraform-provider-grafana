@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
@@ -16,7 +15,7 @@ func TestAccDatasourceTeam(t *testing.T) {
 	checks := []resource.TestCheckFunc{
 		testAccTeamCheckExists("grafana_team.test", &team),
 		resource.TestCheckResourceAttr("data.grafana_team.from_name", "name", "test-team"),
-		resource.TestMatchResourceAttr("data.grafana_team.from_name", "id", common.IDRegexp),
+		resource.TestMatchResourceAttr("data.grafana_team.from_name", "id", defaultOrgIDRegexp),
 		resource.TestCheckResourceAttr("data.grafana_team.from_name", "email", "test-team-email@test.com"),
 		resource.TestCheckResourceAttr("data.grafana_team.from_name", "members.#", "0"),
 		resource.TestCheckResourceAttr("data.grafana_team.from_name", "preferences.#", "1"),
@@ -43,7 +42,7 @@ func TestAccDatasourceTeam_teamSync(t *testing.T) {
 	checks := []resource.TestCheckFunc{
 		testAccTeamCheckExists("grafana_team.test", &team),
 		resource.TestCheckResourceAttr("data.grafana_team.from_name", "name", "test-team"),
-		resource.TestMatchResourceAttr("data.grafana_team.from_name", "id", common.IDRegexp),
+		resource.TestMatchResourceAttr("data.grafana_team.from_name", "id", defaultOrgIDRegexp),
 		resource.TestCheckResourceAttr("data.grafana_team.from_name", "email", "test-team-email@test.com"),
 		resource.TestCheckResourceAttr("data.grafana_team.from_name", "members.#", "0"),
 		resource.TestCheckResourceAttr("data.grafana_team.from_name", "preferences.#", "1"),

@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -45,8 +46,13 @@ func ResourceRoleAssignment() *schema.Resource {
 				Optional:    true,
 				ForceNew:    false,
 				Description: "IDs of teams that the role should be assigned to.",
+				// Ignore the org ID of the team when hashing. It works with or without it.
+				Set: func(i interface{}) int {
+					_, teamID := SplitOrgResourceID(i.(string))
+					return schema.HashString(teamID)
+				},
 				Elem: &schema.Schema{
-					Type: schema.TypeInt,
+					Type: schema.TypeString,
 				},
 			},
 			"service_accounts": {
@@ -88,9 +94,11 @@ func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 	if err != nil {
 		return diag.Errorf("invalid user IDs specified %v", err)
 	}
-	teams, err := collectRoleAssignmentsToFn(d.Get("teams"))
-	if err != nil {
-		return diag.Errorf("invalid team IDs specified %v", err)
+	teamsStrings := d.Get("teams").(*schema.Set).List()
+	teams := make([]int, len(teamsStrings))
+	for i, t := range teamsStrings {
+		_, teamIDStr := SplitOrgResourceID(t.(string))
+		teams[i], _ = strconv.Atoi(teamIDStr)
 	}
 	serviceAccounts, err := collectRoleAssignmentsToFn(d.Get("service_accounts"))
 	if err != nil {
@@ -136,7 +144,11 @@ func setRoleAssignments(assignments *gapi.RoleAssignments, d *schema.ResourceDat
 	if err := d.Set("users", assignments.Users); err != nil {
 		return err
 	}
-	if err := d.Set("teams", assignments.Teams); err != nil {
+	teams := make([]string, len(assignments.Teams))
+	for i, t := range assignments.Teams {
+		teams[i] = strconv.Itoa(t)
+	}
+	if err := d.Set("teams", teams); err != nil {
 		return err
 	}
 	if err := d.Set("service_accounts", assignments.ServiceAccounts); err != nil {

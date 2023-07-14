@@ -8,6 +8,7 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -31,7 +32,8 @@ func TestAccTeam_basic(t *testing.T) {
 					testAccTeamCheckExists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamName+"@example.com"),
-					resource.TestMatchResourceAttr("grafana_team.test", "id", common.IDRegexp),
+					resource.TestMatchResourceAttr("grafana_team.test", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_team.test", "org_id", "1"),
 				),
 			},
 			{
@@ -40,7 +42,8 @@ func TestAccTeam_basic(t *testing.T) {
 					testAccTeamCheckExists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamNameUpdated),
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamNameUpdated+"@example.com"),
-					resource.TestMatchResourceAttr("grafana_team.test", "id", common.IDRegexp),
+					resource.TestMatchResourceAttr("grafana_team.test", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_team.test", "org_id", "1"),
 				),
 			},
 			{
@@ -71,7 +74,8 @@ func TestAccTeam_preferences(t *testing.T) {
 					testAccTeamCheckExists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamName+"@example.com"),
-					resource.TestMatchResourceAttr("grafana_team.test", "id", common.IDRegexp),
+					resource.TestMatchResourceAttr("grafana_team.test", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_team.test", "org_id", "1"),
 					resource.TestCheckNoResourceAttr("grafana_team.test", "preferences.0.home_dashboard_uid"),
 					resource.TestCheckNoResourceAttr("grafana_team.test", "preferences.0.theme"),
 					resource.TestCheckNoResourceAttr("grafana_team.test", "preferences.0.timezone"),
@@ -83,7 +87,8 @@ func TestAccTeam_preferences(t *testing.T) {
 					testAccTeamCheckExists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamNameUpdated),
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamNameUpdated+"@example.com"),
-					resource.TestMatchResourceAttr("grafana_team.test", "id", common.IDRegexp),
+					resource.TestMatchResourceAttr("grafana_team.test", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_team.test", "org_id", "1"),
 					resource.TestMatchResourceAttr("grafana_team.test", "preferences.0.home_dashboard_uid", common.UIDRegexp),
 					resource.TestCheckResourceAttr("grafana_team.test", "preferences.0.theme", "dark"),
 					resource.TestCheckResourceAttr("grafana_team.test", "preferences.0.timezone", "utc"),
@@ -117,7 +122,7 @@ func TestAccTeam_teamSync(t *testing.T) {
 					testAccTeamCheckExists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamName+"@example.com"),
-					resource.TestMatchResourceAttr("grafana_team.test", "id", common.IDRegexp),
+					resource.TestMatchResourceAttr("grafana_team.test", "id", defaultOrgIDRegexp),
 					resource.TestCheckResourceAttr("grafana_team.test", "team_sync.0.groups.#", "0"),
 				),
 			},
@@ -128,7 +133,7 @@ func TestAccTeam_teamSync(t *testing.T) {
 					testAccTeamCheckExists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamName+"@example.com"),
-					resource.TestMatchResourceAttr("grafana_team.test", "id", common.IDRegexp),
+					resource.TestMatchResourceAttr("grafana_team.test", "id", defaultOrgIDRegexp),
 					resource.TestCheckResourceAttr("grafana_team.test", "team_sync.0.groups.#", "2"),
 					resource.TestCheckResourceAttr("grafana_team.test", "team_sync.0.groups.0", "group1"),
 					resource.TestCheckResourceAttr("grafana_team.test", "team_sync.0.groups.1", "group2"),
@@ -141,7 +146,7 @@ func TestAccTeam_teamSync(t *testing.T) {
 					testAccTeamCheckExists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamName+"@example.com"),
-					resource.TestMatchResourceAttr("grafana_team.test", "id", common.IDRegexp),
+					resource.TestMatchResourceAttr("grafana_team.test", "id", defaultOrgIDRegexp),
 					resource.TestCheckResourceAttr("grafana_team.test", "team_sync.0.groups.#", "2"),
 					resource.TestCheckResourceAttr("grafana_team.test", "team_sync.0.groups.0", "group2"),
 					resource.TestCheckResourceAttr("grafana_team.test", "team_sync.0.groups.1", "group3"),
@@ -154,7 +159,7 @@ func TestAccTeam_teamSync(t *testing.T) {
 					testAccTeamCheckExists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamName+"@example.com"),
-					resource.TestMatchResourceAttr("grafana_team.test", "id", common.IDRegexp),
+					resource.TestMatchResourceAttr("grafana_team.test", "id", defaultOrgIDRegexp),
 					resource.TestCheckResourceAttr("grafana_team.test", "team_sync.0.groups.#", "0"),
 				),
 			},
@@ -280,6 +285,32 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 	})
 }
 
+func TestAccResourceTeam_InOrg(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
+	var team gapi.Team
+	var org gapi.Org
+	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      testAccTeamCheckDestroy(&team),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccTeamInOrganization(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccTeamCheckExists("grafana_team.test", &team),
+
+					// Check that the team is in the correct organization
+					resource.TestMatchResourceAttr("grafana_team.test", "id", nonDefaultOrgIDRegexp),
+					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					checkResourceIsInOrg("grafana_team.test", "grafana_organization.test"),
+				),
+			},
+		},
+	})
+}
+
 func testAccTeamCheckExists(rn string, a *gapi.Team) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
@@ -290,15 +321,26 @@ func testAccTeamCheckExists(rn string, a *gapi.Team) resource.TestCheckFunc {
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource id not set")
 		}
-		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
+
+		orgID, teamIDStr := grafana.SplitOrgResourceID(rs.Primary.ID)
+		id, err := strconv.ParseInt(teamIDStr, 10, 64)
 		if err != nil {
 			return fmt.Errorf("resource id is malformed")
 		}
 
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		// If the org ID is set, check that the team doesn't exist in the default org
+		if orgID > 1 {
+			team, err := client.Team(id)
+			if err == nil || team != nil {
+				return fmt.Errorf("team %d exists in the default org", id)
+			}
+			client = client.WithOrgID(orgID)
+		}
+
 		team, err := client.Team(id)
 		if err != nil {
-			return fmt.Errorf("error getting data source: %s", err)
+			return fmt.Errorf("error getting team: %s", err)
 		}
 
 		*a = *team
@@ -376,4 +418,18 @@ resource "grafana_user" "users" {
 	}
 
 	return definition
+}
+
+func testAccTeamInOrganization(orgName string) string {
+	return fmt.Sprintf(`
+resource "grafana_organization" "test" {
+	name = "%[1]s"
+}
+
+resource "grafana_team" "test" {
+	org_id  = grafana_organization.test.id
+	name    = "%[1]s"
+	email   = "%[1]s@example.com"
+	members = [ ]
+}`, orgName)
 }

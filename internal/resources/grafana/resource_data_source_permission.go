@@ -37,12 +37,18 @@ func ResourceDatasourcePermission() *schema.Resource {
 				Type:        schema.TypeSet,
 				Required:    true,
 				Description: "The permission items to add/update. Items that are omitted from the list will be removed.",
+				// Ignore the org ID of the team when hashing. It works with or without it.
+				Set: func(i interface{}) int {
+					m := i.(map[string]interface{})
+					_, teamID := SplitOrgResourceID(m["team_id"].(string))
+					return schema.HashString(m["built_in_role"].(string) + teamID + strconv.Itoa(m["user_id"].(int)) + m["permission"].(string))
+				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"team_id": {
-							Type:        schema.TypeInt,
+							Type:        schema.TypeString,
 							Optional:    true,
-							Default:     0,
+							Default:     "0",
 							Description: "ID of the team to manage permissions for.",
 						},
 						"user_id": {
@@ -86,8 +92,10 @@ func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 	for _, permission := range v.(*schema.Set).List() {
 		permission := permission.(map[string]interface{})
 		permissionItem := gapi.DatasourcePermissionAddPayload{}
-		if permission["team_id"].(int) != -1 {
-			permissionItem.TeamID = int64(permission["team_id"].(int))
+		_, teamIDStr := SplitOrgResourceID(permission["team_id"].(string))
+		teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
+		if teamID > 0 {
+			permissionItem.TeamID = teamID
 		}
 		if permission["user_id"].(int) != -1 {
 			permissionItem.UserID = int64(permission["user_id"].(int))
@@ -128,7 +136,7 @@ func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta
 	for i, permission := range response.Permissions {
 		permissionItem := make(map[string]interface{})
 		permissionItem["built_in_role"] = permission.BuiltInRole
-		permissionItem["team_id"] = permission.TeamID
+		permissionItem["team_id"] = strconv.FormatInt(permission.TeamID, 10)
 		permissionItem["user_id"] = permission.UserID
 
 		if permissionItem["permission"], err = mapDatasourcePermissionTypeToString(permission.Permission); err != nil {

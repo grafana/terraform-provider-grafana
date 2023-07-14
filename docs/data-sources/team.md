@@ -38,6 +38,7 @@ data "grafana_team" "from_name" {
 
 ### Optional
 
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `read_team_sync` (Boolean) Whether to read the team sync settings. This is only available in Grafana Enterprise. Defaults to `false`.
 
 ### Read-Only

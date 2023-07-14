@@ -54,6 +54,7 @@ resource "grafana_dashboard_permission" "collectionPermission" {
 
 - `dashboard_id` (Number, Deprecated) ID of the dashboard to apply permissions to. Deprecated: use `dashboard_uid` instead.
 - `dashboard_uid` (String) UID of the dashboard to apply permissions to.
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 
 ### Read-Only
 
@@ -69,7 +70,7 @@ Required:
 Optional:
 
 - `role` (String) Manage permissions for `Viewer` or `Editor` roles.
-- `team_id` (Number) ID of the team to manage permissions for. Defaults to `0`.
+- `team_id` (String) ID of the team to manage permissions for. Defaults to `0`.
 - `user_id` (Number) ID of the user to manage permissions for. Defaults to `0`.
 
 ## Import

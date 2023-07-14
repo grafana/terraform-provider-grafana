@@ -54,6 +54,10 @@ resource "grafana_service_account_permission" "test_permissions" {
 - `permissions` (Block Set, Min: 1) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))
 - `service_account_id` (String) The id of the service account.
 
+### Optional
+
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
+
 ### Read-Only
 
 - `id` (String) The ID of this resource.
@@ -67,5 +71,5 @@ Required:
 
 Optional:
 
-- `team_id` (Number) ID of the team to manage permissions for. Specify either this or `user_id`. Defaults to `0`.
+- `team_id` (String) ID of the team to manage permissions for. Specify either this or `user_id`. Defaults to `0`.
 - `user_id` (Number) ID of the user to manage permissions for. Specify either this or `team_id`. Defaults to `0`.

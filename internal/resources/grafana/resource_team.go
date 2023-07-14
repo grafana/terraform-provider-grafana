@@ -47,6 +47,7 @@ func ResourceTeam() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"team_id": {
 				Type:        schema.TypeInt,
 				Computed:    true,
@@ -142,7 +143,7 @@ Team Sync can be provisioned using [grafana_team_external_group resource](https:
 }
 
 func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID := ClientFromNewOrgResource(meta, d)
 	name := d.Get("name").(string)
 	email := d.Get("email").(string)
 	teamID, err := client.AddTeam(name, email)
@@ -150,9 +151,9 @@ func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(teamID, 10))
+	d.SetId(MakeOrgResourceID(orgID, teamID))
 	d.Set("team_id", teamID)
-	if err = UpdateMembers(d, meta); err != nil {
+	if err = UpdateMembers(client, d); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -161,7 +162,7 @@ func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	}
 
 	if _, ok := d.GetOk("team_sync"); ok {
-		if err := manageTeamExternalGroup(d, meta, "team_sync.0.groups"); err != nil {
+		if err := manageTeamExternalGroup(client, teamID, d, "team_sync.0.groups"); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -170,21 +171,22 @@ func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func ReadTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	teamID, _ := strconv.ParseInt(idStr, 10, 64)
 	_, readTeamSync := d.GetOk("team_sync")
-	return readTeamFromID(teamID, d, meta, readTeamSync)
+	return readTeamFromID(client, teamID, d, readTeamSync)
 }
 
-func readTeamFromID(teamID int64, d *schema.ResourceData, meta interface{}, readTeamSync bool) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+func readTeamFromID(client *gapi.Client, teamID int64, d *schema.ResourceData, readTeamSync bool) diag.Diagnostics {
 	resp, err := client.Team(teamID)
 	if err, shouldReturn := common.CheckReadError("team", d, err); shouldReturn {
 		return err
 	}
 
-	d.SetId(strconv.FormatInt(teamID, 10))
+	d.SetId(MakeOrgResourceID(resp.OrgID, teamID))
 	d.Set("team_id", teamID)
 	d.Set("name", resp.Name)
+	d.Set("org_id", strconv.FormatInt(resp.OrgID, 10))
 	if resp.Email != "" {
 		d.Set("email", resp.Email)
 	}
@@ -221,12 +223,12 @@ func readTeamFromID(teamID int64, d *schema.ResourceData, meta interface{}, read
 		})
 	}
 
-	return readTeamMembers(d, meta)
+	return readTeamMembers(client, d)
 }
 
 func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	teamID, _ := strconv.ParseInt(idStr, 10, 64)
 	if d.HasChange("name") || d.HasChange("email") {
 		name := d.Get("name").(string)
 		email := d.Get("email").(string)
@@ -235,7 +237,7 @@ func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 			return diag.FromErr(err)
 		}
 	}
-	if err := UpdateMembers(d, meta); err != nil {
+	if err := UpdateMembers(client, d); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -244,7 +246,7 @@ func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	}
 
 	if _, ok := d.GetOk("team_sync"); ok {
-		if err := manageTeamExternalGroup(d, meta, "team_sync.0.groups"); err != nil {
+		if err := manageTeamExternalGroup(client, teamID, d, "team_sync.0.groups"); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -253,13 +255,9 @@ func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func DeleteTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	if err := client.DeleteTeam(teamID); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return diag.Diagnostics{}
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	teamID, _ := strconv.ParseInt(idStr, 10, 64)
+	return diag.FromErr(client.DeleteTeam(teamID))
 }
 
 func updateTeamPreferences(client *gapi.Client, teamID int64, d *schema.ResourceData) diag.Diagnostics {
@@ -276,10 +274,8 @@ func updateTeamPreferences(client *gapi.Client, teamID int64, d *schema.Resource
 	return nil
 }
 
-func readTeamMembers(d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	teamMembers, err := client.TeamMembers(teamID)
+func readTeamMembers(client *gapi.Client, d *schema.ResourceData) diag.Diagnostics {
+	teamMembers, err := client.TeamMembers(int64(d.Get("team_id").(int)))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -303,7 +299,7 @@ func readTeamMembers(d *schema.ResourceData, meta interface{}) diag.Diagnostics 
 	return nil
 }
 
-func UpdateMembers(d *schema.ResourceData, meta interface{}) error {
+func UpdateMembers(client *gapi.Client, d *schema.ResourceData) error {
 	stateMembers, configMembers, err := collectMembers(d)
 	if err != nil {
 		return err
@@ -311,13 +307,12 @@ func UpdateMembers(d *schema.ResourceData, meta interface{}) error {
 	// compile the list of differences between current state and config
 	changes := memberChanges(stateMembers, configMembers)
 	// retrieves the corresponding user IDs based on the email provided
-	changes, err = addMemberIdsToChanges(meta, changes)
+	changes, err = addMemberIdsToChanges(client, changes)
 	if err != nil {
 		return err
 	}
-	teamID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	// now we can make the corresponding updates so current state matches config
-	return applyMemberChanges(meta, teamID, changes)
+	return applyMemberChanges(client, int64(d.Get("team_id").(int)), changes)
 }
 
 func collectMembers(d *schema.ResourceData) (map[string]TeamMember, map[string]TeamMember, error) {
@@ -365,8 +360,7 @@ func memberChanges(stateMembers, configMembers map[string]TeamMember) []MemberCh
 	return changes
 }
 
-func addMemberIdsToChanges(meta interface{}, changes []MemberChange) ([]MemberChange, error) {
-	client := meta.(*common.Client).GrafanaAPI
+func addMemberIdsToChanges(client *gapi.Client, changes []MemberChange) ([]MemberChange, error) {
 	gUserMap := make(map[string]int64)
 	gUsers, err := client.OrgUsersCurrent()
 	if err != nil {
@@ -394,9 +388,8 @@ func addMemberIdsToChanges(meta interface{}, changes []MemberChange) ([]MemberCh
 	return output, nil
 }
 
-func applyMemberChanges(meta interface{}, teamID int64, changes []MemberChange) error {
+func applyMemberChanges(client *gapi.Client, teamID int64, changes []MemberChange) error {
 	var err error
-	client := meta.(*common.Client).GrafanaAPI
 	for _, change := range changes {
 		u := change.Member
 		switch change.Type {
