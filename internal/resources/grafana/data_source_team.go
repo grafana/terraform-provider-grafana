@@ -21,6 +21,12 @@ func DatasourceTeam() *schema.Resource {
 				Required:    true,
 				Description: "The name of the Grafana team",
 			},
+			"read_team_sync": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Whether to read the team sync settings. This is only available in Grafana Enterprise.",
+			},
 			"ignore_externally_synced_members": nil,
 		}),
 	}
@@ -36,7 +42,7 @@ func dataSourceTeamRead(ctx context.Context, d *schema.ResourceData, meta interf
 
 	for _, r := range searchTeam.Teams {
 		if r.Name == name {
-			return readTeamFromID(r.ID, d, meta)
+			return readTeamFromID(r.ID, d, meta, d.Get("read_team_sync").(bool))
 		}
 	}
 

@@ -3,13 +3,12 @@
 page_title: "grafana_team_external_group Resource - terraform-provider-grafana"
 subcategory: "Grafana Enterprise"
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/external_group_sync/
+  Use the team_sync attribute of the grafana_team resource instead.
 ---
 
 # grafana_team_external_group (Resource)
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/external_group_sync/)
+Use the `team_sync` attribute of the `grafana_team` resource instead.
 
 ## Example Usage
 
