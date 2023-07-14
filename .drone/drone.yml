@@ -146,7 +146,6 @@ steps:
       from_secret: grafana-api-token
     GRAFANA_ONCALL_ACCESS_TOKEN:
       from_secret: grafana-oncall-token
-    GRAFANA_ORG_ID: 1
     GRAFANA_SM_ACCESS_TOKEN:
       from_secret: grafana-sm-token
     GRAFANA_URL:
@@ -188,7 +187,6 @@ steps:
   - make testacc-enterprise
   environment:
     GRAFANA_AUTH: admin:admin
-    GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 10.0.1
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
@@ -226,7 +224,6 @@ steps:
   - make testacc-oss
   environment:
     GRAFANA_AUTH: admin:admin
-    GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 10.0.1
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
@@ -264,7 +261,6 @@ steps:
   - make testacc-oss
   environment:
     GRAFANA_AUTH: admin:admin
-    GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 9.5.5
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
@@ -302,7 +298,6 @@ steps:
   - make testacc-oss
   environment:
     GRAFANA_AUTH: admin:admin
-    GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 9.4.13
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
@@ -340,7 +335,6 @@ steps:
   - make testacc-oss
   environment:
     GRAFANA_AUTH: admin:admin
-    GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 9.3.16
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
@@ -378,7 +372,6 @@ steps:
   - make testacc-oss
   environment:
     GRAFANA_AUTH: admin:admin
-    GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 8.5.27
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
@@ -416,7 +409,6 @@ steps:
   - make testacc-oss
   environment:
     GRAFANA_AUTH: admin:admin
-    GRAFANA_ORG_ID: 1
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 7.5.17
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
@@ -475,6 +467,6 @@ kind: secret
 name: grafana-sm-token
 ---
 kind: signature
-hmac: 3c7fc35c0dff49399ef4c8614a9435f9285435f6e8a248c2de4c1960d3a448b4
+hmac: 81801e1fc60765938704576fee2d11b1cbd8b2f98d17342c013e526b6da5de38
 
 ...

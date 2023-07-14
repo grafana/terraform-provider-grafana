@@ -65,7 +65,6 @@ installation:
 
 GRAFANA_URL=http://localhost:3000 \
 GRAFANA_AUTH=admin:admin \
-GRAFANA_ORG_ID=1 \
 make testacc
 ```
 
@@ -80,7 +79,6 @@ It is only possible to run tests for Grafana Enterprise using local environment.
 
 GRAFANA_URL=http://localhost:3000 \
 GRAFANA_AUTH=admin:admin \
-GRAFANA_ORG_ID=1 \
 make testacc-enterprise
 ```
 

@@ -19,35 +19,16 @@ provider "grafana" {
   url  = "http://grafana.example.com/"
   auth = var.grafana_auth
 }
-```
 
-### Creating a Grafana organization provider (on-premise)
-
-```terraform
-// Step 1: Create an organization
-provider "grafana" {
-  alias = "base"
-  url   = "http://grafana.example.com/"
-  auth  = var.grafana_auth
-}
-
+// Optional (On-premise, not supported in Grafana Cloud): Create an organization
 resource "grafana_organization" "my_org" {
-  provider = grafana.base
-  name     = "my_org"
+  name = "my_org"
 }
 
-// Step 2: Create resources within the organization
-provider "grafana" {
-  alias  = "my_org"
-  url    = "http://grafana.example.com/"
-  auth   = var.grafana_auth
-  org_id = grafana_organization.my_org.org_id
-}
-
+// Create resources (optional: within the organization)
 resource "grafana_folder" "my_folder" {
-  provider = grafana.my_org
-
-  title = "Test Folder"
+  org_id = grafana_organization.my_org.org_id
+  title  = "Test Folder"
 }
 ```
 
@@ -219,7 +200,7 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 - `insecure_skip_verify` (Boolean) Skip TLS certificate verification. May alternatively be set via the `GRAFANA_INSECURE_SKIP_VERIFY` environment variable.
 - `oncall_access_token` (String, Sensitive) A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable.
 - `oncall_url` (String) An Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable.
-- `org_id` (Number) The default organization id to operate on within grafana. For resources that have an `org_id` attribute, the resource-level attribute has priority. May alternatively be set via the `GRAFANA_ORG_ID` environment variable.
+- `org_id` (Number, Deprecated) Deprecated: Use the `org_id` attributes on resources instead.
 - `retries` (Number) The amount of retries to use for Grafana API and Grafana Cloud API calls. May alternatively be set via the `GRAFANA_RETRIES` environment variable.
 - `retry_status_codes` (Set of String) The status codes to retry on for Grafana API and Grafana Cloud API calls. Use `x` as a digit wildcard. Defaults to 429 and 5xx. May alternatively be set via the `GRAFANA_RETRY_STATUS_CODES` environment variable.
 - `sm_access_token` (String, Sensitive) A Synthetic Monitoring access token. May alternatively be set via the `GRAFANA_SM_ACCESS_TOKEN` environment variable.
