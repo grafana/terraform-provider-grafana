@@ -198,7 +198,7 @@ func Provider(version string) func() *schema.Provider {
 					Type:        schema.TypeInt,
 					Optional:    true,
 					Deprecated:  "Use the `org_id` attributes on resources instead.",
-					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_ORG_ID", 1),
+					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_ORG_ID", nil),
 					Description: "Deprecated: Use the `org_id` attributes on resources instead.",
 				},
 				"tls_key": {
@@ -410,7 +410,10 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 	if v, ok := d.GetOk("retry_status_codes"); ok {
 		cfg.RetryStatusCodes = common.SetToStringSlice(v.(*schema.Set))
 	}
-	orgID := d.Get("org_id").(int)
+	orgID := 1
+	if v, ok := d.GetOk("org_id"); ok {
+		orgID = v.(int)
+	}
 	if len(auth) == 2 {
 		cfg.BasicAuth = url.UserPassword(auth[0], auth[1])
 		cfg.OrgID = int64(orgID)
