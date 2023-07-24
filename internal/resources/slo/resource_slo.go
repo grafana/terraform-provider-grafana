@@ -57,12 +57,12 @@ Resource manages Grafana SLOs.
 						"freeform": &schema.Schema{
 							Type:     schema.TypeList,
 							MaxItems: 1,
-							Required: false,
+							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"query": &schema.Schema{
 										Type:        schema.TypeString,
-										Optional:    true,
+										Required:    true,
 										Description: "Freeform Query Field",
 									},
 								},
@@ -71,23 +71,23 @@ Resource manages Grafana SLOs.
 						"ratio": &schema.Schema{
 							Type:     schema.TypeList,
 							MaxItems: 1,
-							Required: false,
+							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"successMetric": &schema.Schema{
+									"success_metric": &schema.Schema{
 										Type:        schema.TypeString,
 										Description: `Defines the Success Metric (numerator)`,
 										Required:    true,
 									},
-									"totalMetric": &schema.Schema{
+									"total_metric": &schema.Schema{
 										Type:        schema.TypeString,
 										Description: `Defines the Total Metric (denominator)`,
 										Required:    true,
 									},
-									"groupByLabels": &schema.Schema{
+									"group_by_labels": &schema.Schema{
 										Type:        schema.TypeList,
 										Description: `Defines Group By Labels for the Ratio Query`,
-										Required:    false,
+										Optional:    true,
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
 										},
@@ -360,6 +360,36 @@ func packQuery(query map[string]interface{}) (gapi.Query, error) {
 		sloQuery := gapi.Query{
 			Freeform: &gapi.FreeformQuery{Query: querystring},
 			Type:     gapi.QueryTypeFreeform,
+		}
+
+		return sloQuery, nil
+	}
+
+	if query["type"] == "ratio" {
+		ratioquery := query["ratio"].([]interface{})[0].(map[string]interface{})
+		successMetric := ratioquery["success_metric"].(string)
+		totalMetric := ratioquery["total_metric"].(string)
+		groupByLabels := ratioquery["group_by_labels"].([]interface{})
+
+		var labels []string
+
+		for ind := range groupByLabels {
+			labels = append(labels, groupByLabels[ind].(string))
+		}
+
+		sloQuery := gapi.Query{
+			Ratio: &gapi.RatioQuery{
+				SuccessMetric: gapi.MetricDef{
+					PrometheusMetric: successMetric,
+					Type:             nil,
+				},
+				TotalMetric: gapi.MetricDef{
+					PrometheusMetric: totalMetric,
+					Type:             nil,
+				},
+				GroupByLabels: labels,
+			},
+			Type: gapi.QueryTypeRatio,
 		}
 
 		return sloQuery, nil
