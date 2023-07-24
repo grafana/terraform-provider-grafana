@@ -76,17 +76,17 @@ Resource manages Grafana SLOs.
 								Schema: map[string]*schema.Schema{
 									"success_metric": &schema.Schema{
 										Type:        schema.TypeString,
-										Description: `Defines the Success Metric (numerator)`,
+										Description: `Metric for success events (numerator)`,
 										Required:    true,
 									},
 									"total_metric": &schema.Schema{
 										Type:        schema.TypeString,
-										Description: `Defines the Total Metric (denominator)`,
+										Description: `Metric for total events (denominator)`,
 										Required:    true,
 									},
 									"group_by_labels": &schema.Schema{
 										Type:        schema.TypeList,
-										Description: `Defines Group By Labels for the Ratio Query`,
+										Description: `Defines Group By Labels used for per-label alerting. Also appear as variables on SLO dashboards to enable filtering and aggregation `,
 										Optional:    true,
 										Elem: &schema.Schema{
 											Type: schema.TypeString,

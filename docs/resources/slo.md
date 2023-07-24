@@ -176,12 +176,12 @@ Required:
 
 Required:
 
-- `success_metric` (String) Defines the Success Metric (numerator)
-- `total_metric` (String) Defines the Total Metric (denominator)
+- `success_metric` (String) Metric for success events (numerator)
+- `total_metric` (String) Metric for total events (denominator)
 
 Optional:
 
-- `group_by_labels` (List of String) Defines Group By Labels for the Ratio Query
+- `group_by_labels` (List of String) Defines Group By Labels used for per-label alerting. Also appear as variables on SLO dashboards to enable filtering and aggregation
 
 
 
