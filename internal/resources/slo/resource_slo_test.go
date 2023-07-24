@@ -69,6 +69,21 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_slo.empty_alert", "name", "Empty Alerting Check - generates Alerts"),
 				),
 			},
+			{
+				// Tests Create
+				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_ratio.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.ratio", &slo),
+					resource.TestCheckResourceAttrSet("grafana_slo.ratio", "id"),
+					resource.TestCheckResourceAttr("grafana_slo.ratio", "name", "Terraform Testing - Ratio Query"),
+					resource.TestCheckResourceAttr("grafana_slo.ratio", "description", "Terraform Description - Ratio Query"),
+					resource.TestCheckResourceAttr("grafana_slo.ratio", "query.0.type", "ratio"),
+					resource.TestCheckResourceAttr("grafana_slo.ratio", "query.0.ratio.0.success_metric", "kubelet_http_requests_total{status!~\"5..\"}"),
+					resource.TestCheckResourceAttr("grafana_slo.ratio", "query.0.ratio.0.total_metric", "kubelet_http_requests_total"),
+					resource.TestCheckResourceAttr("grafana_slo.ratio", "query.0.ratio.0.group_by_labels.0", "job"),
+					resource.TestCheckResourceAttr("grafana_slo.ratio", "query.0.ratio.0.group_by_labels.1", "instance"),
+				),
+			},
 		},
 	})
 }

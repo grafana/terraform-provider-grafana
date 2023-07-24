@@ -1,11 +1,13 @@
-resource "grafana_slo" "test" {
-  name        = "Terraform Testing"
-  description = "Terraform Description"
+resource "grafana_slo" "ratio" {
+  name        = "Terraform Testing - Ratio Query"
+  description = "Terraform Description - Ratio Query"
   query {
-    freeform {
-      query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+    ratio {
+      success_metric = "kubelet_http_requests_total{status!~\"5..\"}"
+      total_metric   = "kubelet_http_requests_total"
+      group_by_labels = ["job","instance"]
     }
-    type = "freeform"
+    type          = "ratio"
   }
   objectives {
     value  = 0.995
@@ -13,7 +15,7 @@ resource "grafana_slo" "test" {
   }
   label {
     key   = "slokey"
-    value = "slokey"
+    value = "slovalue"
   }
     alerting {
     fastburn {
