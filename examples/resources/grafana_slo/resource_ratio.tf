@@ -3,11 +3,11 @@ resource "grafana_slo" "ratio" {
   description = "Terraform Description - Ratio Query"
   query {
     ratio {
-      success_metric = "kubelet_http_requests_total{status!~\"5..\"}"
-      total_metric   = "kubelet_http_requests_total"
-      group_by_labels = ["job","instance"]
+      success_metric  = "kubelet_http_requests_total{status!~\"5..\"}"
+      total_metric    = "kubelet_http_requests_total"
+      group_by_labels = ["job", "instance"]
     }
-    type          = "ratio"
+    type = "ratio"
   }
   objectives {
     value  = 0.995
@@ -17,7 +17,7 @@ resource "grafana_slo" "ratio" {
     key   = "slokey"
     value = "slovalue"
   }
-    alerting {
+  alerting {
     fastburn {
       annotation {
         key   = "name"

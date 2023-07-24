@@ -15,7 +15,7 @@ resource "grafana_slo" "test" {
     key   = "slokey"
     value = "slokey"
   }
-    alerting {
+  alerting {
     fastburn {
       annotation {
         key   = "name"

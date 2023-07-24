@@ -37,7 +37,7 @@ resource "grafana_slo" "test" {
     key   = "slokey"
     value = "slokey"
   }
-    alerting {
+  alerting {
     fastburn {
       annotation {
         key   = "name"
@@ -71,11 +71,11 @@ resource "grafana_slo" "test" {
   description = "Complex Resource - Terraform Ratio Query Description"
   query {
     ratio {
-      success_metric = "kubelet_http_requests_total{status!~\"5..\"}"
-      total_metric   = "kubelet_http_requests_total"
-      group_by_labels = ["job","instance"]
+      success_metric  = "kubelet_http_requests_total{status!~\"5..\"}"
+      total_metric    = "kubelet_http_requests_total"
+      group_by_labels = ["job", "instance"]
     }
-    type          = "ratio"
+    type = "ratio"
   }
   objectives {
     value  = 0.995
@@ -85,7 +85,7 @@ resource "grafana_slo" "test" {
     key   = "slo"
     value = "terraform"
   }
-    alerting {
+  alerting {
     fastburn {
       annotation {
         key   = "name"
