@@ -374,6 +374,10 @@ func packQuery(query map[string]interface{}) (gapi.Query, error) {
 		var labels []string
 
 		for ind := range groupByLabels {
+			if groupByLabels[ind] == nil {
+				labels = append(labels, "")
+				continue
+			}
 			labels = append(labels, groupByLabels[ind].(string))
 		}
 
