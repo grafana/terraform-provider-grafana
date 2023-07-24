@@ -12,8 +12,8 @@ resource "grafana_slo" "test" {
     window = "30d"
   }
   label {
-    key   = "slokey"
-    value = "slokey"
+    key   = "slo"
+    value = "terraform"
   }
   alerting {
     fastburn {

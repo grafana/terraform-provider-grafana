@@ -14,8 +14,8 @@ resource "grafana_slo" "ratio" {
     window = "30d"
   }
   label {
-    key   = "slokey"
-    value = "slovalue"
+    key   = "slo"
+    value = "terraform"
   }
   alerting {
     fastburn {

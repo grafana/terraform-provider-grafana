@@ -12,8 +12,8 @@ resource "grafana_slo" "update" {
     window = "7d"
   }
   label {
-    key   = "slokey"
-    value = "slovalue"
+    key   = "slo"
+    value = "terraform"
   }
   alerting {
     fastburn {
