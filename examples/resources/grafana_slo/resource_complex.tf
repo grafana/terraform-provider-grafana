@@ -1,34 +1,31 @@
 resource "grafana_slo" "test" {
-  name        = "Complex Resource - Terraform Testing"
-  description = "Complex Resource - Terraform Description"
+  name        = "Complex Resource - Terraform Ratio Query Example"
+  description = "Complex Resource - Terraform Ratio Query Description"
   query {
-    freeform {
-      query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+    ratio {
+      success_metric = "kubelet_http_requests_total{status!~\"5..\"}"
+      total_metric   = "kubelet_http_requests_total"
+      group_by_labels = ["job","instance"]
     }
-    type = "freeform"
+    type          = "ratio"
   }
   objectives {
     value  = 0.995
     window = "30d"
   }
   label {
-    key   = "slokey"
-    value = "slokey"
+    key   = "slo"
+    value = "terraform"
   }
-  alerting {
-    label {
-      key   = "alertingkey"
-      value = "alertingvalue"
-    }
-
+    alerting {
     fastburn {
       annotation {
         key   = "name"
-        value = "Critical - SLO Burn Rate Alert - {{$labels.instance}}"
+        value = "SLO Burn Rate Very High"
       }
       annotation {
-        key   = "description"
-        value = "Error Budget is burning at a rate greater than 14.4x."
+        key   = "name"
+        value = "Error budget is burning too fast"
       }
       label {
         key   = "type"
@@ -39,11 +36,11 @@ resource "grafana_slo" "test" {
     slowburn {
       annotation {
         key   = "name"
-        value = "Warning - SLO Burn Rate Alert - {{$labels.instance}}"
+        value = "SLO Burn Rate High"
       }
       annotation {
-        key   = "description"
-        value = "Error Budget is burning at a rate greater than 1x."
+        key   = "name"
+        value = "Error budget is burning too fast"
       }
       label {
         key   = "type"
