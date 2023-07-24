@@ -57,13 +57,40 @@ Resource manages Grafana SLOs.
 						"freeform": &schema.Schema{
 							Type:     schema.TypeList,
 							MaxItems: 1,
-							Required: true,
+							Required: false,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"query": &schema.Schema{
 										Type:        schema.TypeString,
 										Optional:    true,
 										Description: "Freeform Query Field",
+									},
+								},
+							},
+						},
+						"ratio": &schema.Schema{
+							Type:     schema.TypeList,
+							MaxItems: 1,
+							Required: false,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"successMetric": &schema.Schema{
+										Type:        schema.TypeString,
+										Description: `Defines the Success Metric (numerator)`,
+										Required:    true,
+									},
+									"totalMetric": &schema.Schema{
+										Type:        schema.TypeString,
+										Description: `Defines the Total Metric (denominator)`,
+										Required:    true,
+									},
+									"groupByLabels": &schema.Schema{
+										Type:        schema.TypeList,
+										Description: `Defines Group By Labels for the Ratio Query`,
+										Required:    false,
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
 									},
 								},
 							},
