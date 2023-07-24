@@ -88,13 +88,30 @@ func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 
 func unpackQuery(apiquery gapi.Query) []map[string]interface{} {
 	retQuery := []map[string]interface{}{}
-	if apiquery.Freeform.Query != "" {
-		query := map[string]interface{}{"type": "freeform"}
+
+	if apiquery.Type == gapi.QueryTypeFreeform {
+		query := map[string]interface{}{"type": gapi.QueryTypeFreeform}
 
 		freeformquerystring := map[string]interface{}{"query": apiquery.Freeform.Query}
 		freeform := []map[string]interface{}{}
 		freeform = append(freeform, freeformquerystring)
 		query["freeform"] = freeform
+
+		retQuery = append(retQuery, query)
+	}
+
+	if apiquery.Type == gapi.QueryTypeRatio {
+		query := map[string]interface{}{"type": gapi.QueryTypeRatio}
+
+		ratio := []map[string]interface{}{}
+		body := map[string]interface{}{
+			"success_metric":  apiquery.Ratio.SuccessMetric.PrometheusMetric,
+			"total_metric":    apiquery.Ratio.TotalMetric.PrometheusMetric,
+			"group_by_labels": apiquery.Ratio.GroupByLabels,
+		}
+
+		ratio = append(ratio, body)
+		query["ratio"] = ratio
 
 		retQuery = append(retQuery, query)
 	}
