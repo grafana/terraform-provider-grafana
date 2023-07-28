@@ -105,6 +105,13 @@ var (
 				MaxItems:    1,
 				Elem:        syntheticMonitoringCheckSettingsTraceroute,
 			},
+			"multihttp": {
+				Description: "Settings for MultiHTTP check. The target must be a URL (http or https)",
+				Type:        schema.TypeSet,
+				Optional:    true,
+				MaxItems:    1,
+				Elem:        syntheticMonitoringCheckSettingsMultiHTTP,
+			},
 		},
 	}
 
@@ -238,6 +245,14 @@ var (
 				Description: "Proxy URL.",
 				Type:        schema.TypeString,
 				Optional:    true,
+			},
+			"proxy_connect_headers": {
+				Description: "The HTTP headers sent to the proxy URL",
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"fail_if_ssl": {
 				Description: "Fail if SSL is present.",
@@ -426,6 +441,178 @@ var (
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     true,
+			},
+		},
+	}
+
+	syntheticMonitoringCheckSettingsMultiHTTP = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"entries": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     syntheticMonitoringCheckSettingsMultiHTTPEntry,
+			},
+		},
+	}
+
+	syntheticMonitoringCheckSettingsMultiHTTPEntry = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"request":   syntheticMonitoringMultiHTTPRequest,
+			"checks":    syntheticMonitoringMultiHTTPAssertion,
+			"variables": syntheticMonitoringMultiHTTPVariable,
+		},
+	}
+
+	syntheticMonitoringMultiHTTPRequestHeader = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"name": {
+				Description: "Name of the header to send",
+				Type:        schema.TypeString,
+				Required:    true,
+			},
+			"value": {
+				Description: "Value of the header to send",
+				Type:        schema.TypeString,
+				Required:    true,
+			},
+		},
+	}
+
+	syntheticMonitoringMultiHTTPRequestQueryField = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"name": {
+				Description: "Name of the query field to send",
+				Type:        schema.TypeString,
+				Required:    true,
+			},
+			"value": {
+				Description: "Value of the query field to send",
+				Type:        schema.TypeString,
+				Required:    true,
+			},
+		},
+	}
+
+	syntheticMonitoringMultiHTTPRequestBody = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"content_type": {
+				Description: "The content type of the body",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"content_encoding": {
+				Description: "The content encoding of the body",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"payload": {
+				Description: "The body payload",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+		},
+	}
+
+	syntheticMonitoringMultiHTTPRequest = &schema.Schema{
+		Description: "An individual MultiHTTP request",
+		Type:        schema.TypeSet,
+		Optional:    true,
+		MaxItems:    1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"method": {
+					Description: "The HTTP method to use",
+					Type:        schema.TypeString,
+					Required:    true,
+				},
+				"url": {
+					Description: "The URL for the request",
+					Type:        schema.TypeString,
+					Required:    true,
+				},
+				"headers": {
+					Description: "The headers to send with the request",
+					Type:        schema.TypeSet,
+					Optional:    true,
+					Elem:        syntheticMonitoringMultiHTTPRequestHeader,
+				},
+				"query_fields": {
+					Description: "Query fields to send with the request",
+					Type:        schema.TypeSet,
+					Optional:    true,
+					Elem:        syntheticMonitoringMultiHTTPRequestQueryField,
+				},
+				"body": {
+					Description: "The body of the HTTP request used in probe.",
+					Type:        schema.TypeSet,
+					Optional:    true,
+					Elem:        syntheticMonitoringMultiHTTPRequestBody,
+				},
+			},
+		},
+	}
+
+	syntheticMonitoringMultiHTTPAssertion = &schema.Schema{
+		Description: "Assertions to make on the request response",
+		Type:        schema.TypeList,
+		Optional:    true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"type": {
+					Description: "The type of assertion to make. TEXT = 0, JSON_PATH_VALUE = 1, JSON_PATH_ASSERTION = 2, REGEX_ASSERTION = 3",
+					Type:        schema.TypeInt,
+					Required:    true,
+				},
+				"subject": {
+					Description: "The subject of the assertion. RESPONSE_HEADERS = 1, HTTP_STATUS_CODE = 2, RESPONSE_BODY = 3",
+					Type:        schema.TypeInt,
+					Optional:    true,
+				},
+				"condition": {
+					Description: "The condition of the assertion. NOT_CONTAINS = 1, EQUALS = 2, STARTS_WITH = 3, ENDS_WITH = 4, TYPE_OF = 5, CONTAINS = 6",
+					Type:        schema.TypeInt,
+					Optional:    true,
+				},
+				"expression": {
+					Description: "The expression of the assertion. Should start with $.",
+					Type:        schema.TypeString,
+					Optional:    true,
+				},
+				"value": {
+					Description: "The value of the assertion",
+					Type:        schema.TypeString,
+					Optional:    true,
+				},
+			},
+		},
+	}
+
+	syntheticMonitoringMultiHTTPVariable = &schema.Schema{
+		Description: "Variables to extract from the request response",
+		Type:        schema.TypeList,
+		Optional:    true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"type": {
+					Description: "The method of finding the variable value to extract. JSON_PATH = 0, REGEX = 1, CSS_SELECTOR = 2",
+					Type:        schema.TypeInt,
+					Required:    true,
+				},
+				"name": {
+					Description: "The name of the variable to extract",
+					Type:        schema.TypeString,
+					Optional:    true,
+				},
+				"expression": {
+					Description: "The expression to when finding the variable. Should start with $. Only use when type is JSON_PATH or REGEX",
+					Type:        schema.TypeString,
+					Optional:    true,
+				},
+				"attribute": {
+					Description: "The attribute to use when finding the variable value. Only used when type is CSS_SELECTOR",
+					Type:        schema.TypeString,
+					Optional:    true,
+				},
 			},
 		},
 	}
@@ -684,6 +871,7 @@ func ResourceCheckRead(ctx context.Context, d *schema.ResourceData, meta interfa
 			"basic_auth":                        &basicAuth,
 			"bearer_token":                      chk.Settings.Http.BearerToken,
 			"proxy_url":                         chk.Settings.Http.ProxyURL,
+			"proxy_connect_headers":             common.StringSliceToSet(chk.Settings.Http.ProxyConnectHeaders),
 			"fail_if_ssl":                       chk.Settings.Http.FailIfSSL,
 			"fail_if_not_ssl":                   chk.Settings.Http.FailIfNotSSL,
 			"valid_status_codes":                common.Int32SliceToSet(chk.Settings.Http.ValidStatusCodes),
@@ -752,6 +940,92 @@ func ResourceCheckRead(ctx context.Context, d *schema.ResourceData, meta interfa
 		settings.Add(map[string]interface{}{
 			"traceroute": traceroute,
 		})
+	case chk.Settings.Multihttp != nil:
+		entries := []interface{}{}
+		for _, e := range chk.Settings.Multihttp.Entries {
+			requestSet := schema.NewSet(
+				schema.HashResource(syntheticMonitoringMultiHTTPRequest.Elem.(*schema.Resource)),
+				[]interface{}{},
+			)
+			request := map[string]interface{}{
+				"method": e.Request.Method.String(),
+				"url":    e.Request.Url,
+			}
+			if len(e.Request.Headers) > 0 {
+				headerSet := schema.NewSet(
+					schema.HashResource(syntheticMonitoringMultiHTTPRequestHeader),
+					[]interface{}{},
+				)
+				for _, h := range e.Request.Headers {
+					headerSet.Add(map[string]interface{}{
+						"name":  h.Name,
+						"value": h.Value,
+					})
+				}
+				request["headers"] = headerSet
+			}
+			if len(e.Request.QueryFields) > 0 {
+				querySet := schema.NewSet(
+					schema.HashResource(syntheticMonitoringMultiHTTPRequestQueryField),
+					[]interface{}{},
+				)
+				for _, q := range e.Request.QueryFields {
+					querySet.Add(map[string]interface{}{
+						"name":  q.Name,
+						"value": q.Value,
+					})
+				}
+				request["query_fields"] = querySet
+			}
+			if e.Request.Body != nil {
+				bodySet := schema.NewSet(
+					schema.HashResource(syntheticMonitoringMultiHTTPRequestBody),
+					[]interface{}{},
+				)
+				bodySet.Add(map[string]interface{}{
+					"content_type":     e.Request.Body.ContentType,
+					"content_encoding": e.Request.Body.ContentEncoding,
+					"payload":          string(e.Request.Body.Payload),
+				})
+				request["body"] = bodySet
+			}
+			requestSet.Add(request)
+			checks := []interface{}{}
+			for _, c := range e.Assertions {
+				checks = append(checks, map[string]interface{}{
+					"type":       int(c.Type),
+					"subject":    int(c.Subject),
+					"condition":  int(c.Condition),
+					"expression": c.Expression,
+					"value":      c.Value,
+				})
+			}
+			variables := []interface{}{}
+			for _, v := range e.Variables {
+				variables = append(variables, map[string]interface{}{
+					"type":       int(v.Type),
+					"name":       v.Name,
+					"expression": v.Expression,
+					"attribute":  v.Attribute,
+				})
+			}
+			entries = append(entries, map[string]interface{}{
+				"request":   requestSet,
+				"checks":    checks,
+				"variables": variables,
+			})
+		}
+
+		multiHTTP := schema.NewSet(
+			schema.HashResource(syntheticMonitoringCheckSettingsMultiHTTP),
+			[]interface{}{},
+		)
+		multiHTTP.Add(map[string]interface{}{
+			"entries": entries,
+		})
+		settings.Add(map[string]interface{}{
+			"multihttp": multiHTTP,
+		})
 	}
 
 	d.Set("settings", settings)
@@ -815,6 +1089,99 @@ func makeCheck(d *schema.ResourceData) *sm.Check {
 		Probes:           probes,
 		Labels:           labels,
 		Settings:         makeCheckSettings(d.Get("settings").(*schema.Set).List()[0].(map[string]interface{})),
+	}
+}
+
+func makeMultiHTTPSettings(settings map[string]interface{}, cs *sm.CheckSettings) {
+	cs.Multihttp = &sm.MultiHttpSettings{}
+
+	entries := settings["entries"].([]interface{})
+	if len(entries) > 0 {
+		for _, e := range entries {
+			entry := e.(map[string]interface{})
+			r := entry["request"].(*schema.Set)
+			request := r.List()[0].(map[string]interface{})
+			method := sm.HttpMethod(sm.HttpMethod_value[request["method"].(string)])
+			e := &sm.MultiHttpEntry{
+				Request: &sm.MultiHttpEntryRequest{
+					Method: method,
+					Url:    request["url"].(string),
+				},
+			}
+			headers := request["headers"].(*schema.Set).List()
+			if len(headers) > 0 {
+				e.Request.Headers = make([]*sm.HttpHeader, 0)
+				for _, header := range headers {
+					header := sm.HttpHeader{
+						Name:  header.(map[string]interface{})["name"].(string),
+						Value: header.(map[string]interface{})["value"].(string),
+					}
+					e.Request.Headers = append(e.Request.Headers, &header)
+				}
+			}
+
+			if request["query_fields"] != nil && len(request["query_fields"].(*schema.Set).List()) > 0 {
+				e.Request.QueryFields = make([]*sm.QueryField, 0)
+				for _, queryField := range request["query_fields"].(*schema.Set).List() {
+					queryField := sm.QueryField{
+						Name:  queryField.(map[string]interface{})["name"].(string),
+						Value: queryField.(map[string]interface{})["value"].(string),
+					}
+					e.Request.QueryFields = append(e.Request.QueryFields, &queryField)
+				}
+			}
+
+			reqBody := request["body"].(*schema.Set).List()
+			if len(reqBody) > 0 {
+				r := reqBody[0].(map[string]interface{})
+				body := &sm.HttpRequestBody{
+					ContentType:     r["content_type"].(string),
+					ContentEncoding: r["content_encoding"].(string),
+					Payload:         []byte(r["payload"].(string)),
+				}
+				e.Request.Body = body
+			}
+
+			variables := entry["variables"].([]interface{})
+			if len(variables) > 0 {
+				e.Variables = make([]*sm.MultiHttpEntryVariable, 0)
+				for _, variable := range variables {
+					c := variable.(map[string]interface{})
+					v := &sm.MultiHttpEntryVariable{
+						Name:       c["name"].(string),
+						Type:       sm.MultiHttpEntryVariableType(c["type"].(int)),
+						Expression: c["expression"].(string),
+						Attribute:  c["attribute"].(string),
+					}
+					e.Variables = append(e.Variables, v)
+				}
+			}
+
+			assertions := entry["checks"].([]interface{})
+			if len(assertions) > 0 {
+				e.Assertions = make([]*sm.MultiHttpEntryAssertion, 0)
+				for _, assert := range assertions {
+					assertion := assert.(map[string]interface{})
+					a := &sm.MultiHttpEntryAssertion{
+						Type: sm.MultiHttpEntryAssertionType(assertion["type"].(int)),
+					}
+					if assertion["expression"] != nil {
+						a.Expression = assertion["expression"].(string)
+					}
+					if assertion["value"] != nil {
+						a.Value = assertion["value"].(string)
+					}
+					if assertion["subject"] != nil {
+						a.Subject = sm.MultiHttpEntryAssertionSubjectVariant(assertion["subject"].(int))
+					}
+					if assertion["condition"] != nil {
+						a.Condition = sm.MultiHttpEntryAssertionConditionVariant(assertion["condition"].(int))
+					}
+					e.Assertions = append(e.Assertions, a)
+				}
+			}
+			cs.Multihttp.Entries = append(cs.Multihttp.Entries, e)
+		}
 	}
 }
 
@@ -959,6 +1326,12 @@ func makeCheckSettings(settings map[string]interface{}) sm.CheckSettings {
 			MaxUnknownHops: int64(t["max_unknown_hops"].(int)),
 			PtrLookup:      t["ptr_lookup"].(bool),
 		}
+	}
+
+	multihttp := settings["multihttp"].(*schema.Set).List()
+	if len(multihttp) > 0 {
+		m := multihttp[0].(map[string]interface{})
+		makeMultiHTTPSettings(m, &cs)
 	}
 
 	return cs

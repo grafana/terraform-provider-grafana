@@ -279,6 +279,70 @@ func TestAccResourceCheck_traceroute(t *testing.T) {
 	})
 }
 
+func TestAccResourceCheck_multihttp(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	// Inject random job names to avoid conflicts with other tests
+	jobName := acctest.RandomWithPrefix("multihttp")
+	jobNameUpdated := acctest.RandomWithPrefix("multihttp")
+	nameReplaceMap := map[string]string{
+		`"multihttp basic"`:   strconv.Quote(jobName),
+		`"multihttp complex"`: strconv.Quote(jobNameUpdated),
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/multihttp_basic.tf", nameReplaceMap),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.multihttp", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.multihttp", "tenant_id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "job", jobName),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "target", "https://www.grafana-dev.com"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "probes.0", "12"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "labels.foo", "bar"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.0.request.0.method", "GET"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.0.request.0.url", "https://www.grafana-dev.com"),
+				),
+			},
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/multihttp_complex.tf", nameReplaceMap),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.multihttp", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.multihttp", "tenant_id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "job", jobNameUpdated),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "target", "https://www.an-auth-endpoint.com"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "probes.0", "12"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "labels.foo", "bar"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.0.request.0.method", "POST"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.0.request.0.url", "https://www.an-auth-endpoint.com"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.0.request.0.query_fields.1.name", "username"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.0.request.0.query_fields.1.value", "steve"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.0.request.0.query_fields.0.name", "password"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.0.request.0.query_fields.0.value", "top_secret"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.0.request.0.body.0.content_type", "application/json"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.0.checks.0.type", "0"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.0.checks.0.subject", "2"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.0.checks.0.condition", "2"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.0.checks.0.value", "200"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.0.variables.0.type", "0"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.0.variables.0.name", "accessToken"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.0.variables.0.expression", "data.accessToken"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.1.request.0.method", "GET"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.1.request.0.url", "https://www.an-endpoint-that-requires-auth.com"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.1.request.0.headers.0.name", "Authorization"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.1.request.0.headers.0.value", "Bearer ${accessToken}"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.1.checks.0.type", "1"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.1.checks.0.condition", "6"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.1.checks.0.expression", "result"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.1.checks.0.value", "expected"),
+				),
+			},
+		},
+	})
+}
+
 // Test that a check is recreated if deleted outside the Terraform process
 func TestAccResourceCheck_recreate(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
