@@ -439,6 +439,7 @@ Optional:
 
 - `dns` (Block Set, Max: 1) Settings for DNS check. The target must be a valid hostname (or IP address for `PTR` records). (see [below for nested schema](#nestedblock--settings--dns))
 - `http` (Block Set, Max: 1) Settings for HTTP check. The target must be a URL (http or https). (see [below for nested schema](#nestedblock--settings--http))
+- `multihttp` (Block Set, Max: 1) Settings for MultiHTTP check. The target must be a URL (http or https) (see [below for nested schema](#nestedblock--settings--multihttp))
 - `ping` (Block Set, Max: 1) Settings for ping (ICMP) check. The target must be a valid hostname or IP address. (see [below for nested schema](#nestedblock--settings--ping))
 - `tcp` (Block Set, Max: 1) Settings for TCP check. The target must be of the form `<host>:<port>`, where the host portion must be a valid hostname or IP address. (see [below for nested schema](#nestedblock--settings--tcp))
 - `traceroute` (Block Set, Max: 1) Settings for traceroute check. The target must be a valid hostname or IP address (see [below for nested schema](#nestedblock--settings--traceroute))
@@ -506,6 +507,7 @@ Optional:
 - `ip_version` (String) Options are `V4`, `V6`, `Any`. Specifies whether the corresponding check will be performed using IPv4 or IPv6. The `Any` value indicates that IPv6 should be used, falling back to IPv4 if that's not available. Defaults to `V4`.
 - `method` (String) Request method. One of `GET`, `CONNECT`, `DELETE`, `HEAD`, `OPTIONS`, `POST`, `PUT`, `TRACE` Defaults to `GET`.
 - `no_follow_redirects` (Boolean) Do not follow redirects. Defaults to `false`.
+- `proxy_connect_headers` (Set of String) The HTTP headers sent to the proxy URL
 - `proxy_url` (String) Proxy URL.
 - `tls_config` (Block Set, Max: 1) TLS config. (see [below for nested schema](#nestedblock--settings--http--tls_config))
 - `valid_http_versions` (Set of String) List of valid HTTP versions. Options include `HTTP/1.0`, `HTTP/1.1`, `HTTP/2.0`
@@ -556,6 +558,96 @@ Optional:
 - `client_key` (String, Sensitive) Client key in PEM format.
 - `insecure_skip_verify` (Boolean) Disable target certificate validation. Defaults to `false`.
 - `server_name` (String) Used to verify the hostname for the targets.
+
+
+
+<a id="nestedblock--settings--multihttp"></a>
+### Nested Schema for `settings.multihttp`
+
+Optional:
+
+- `entries` (Block List) (see [below for nested schema](#nestedblock--settings--multihttp--entries))
+
+<a id="nestedblock--settings--multihttp--entries"></a>
+### Nested Schema for `settings.multihttp.entries`
+
+Optional:
+
+- `checks` (Block List) Assertions to make on the request response (see [below for nested schema](#nestedblock--settings--multihttp--entries--checks))
+- `request` (Block Set, Max: 1) An individual MultiHTTP request (see [below for nested schema](#nestedblock--settings--multihttp--entries--request))
+- `variables` (Block List) Variables to extract from the request response (see [below for nested schema](#nestedblock--settings--multihttp--entries--variables))
+
+<a id="nestedblock--settings--multihttp--entries--checks"></a>
+### Nested Schema for `settings.multihttp.entries.checks`
+
+Required:
+
+- `type` (Number) The type of assertion to make. TEXT = 0, JSON_PATH_VALUE = 1, JSON_PATH_ASSERTION = 2, REGEX_ASSERTION = 3
+
+Optional:
+
+- `condition` (Number) The condition of the assertion. NOT_CONTAINS = 1, EQUALS = 2, STARTS_WITH = 3, ENDS_WITH = 4, TYPE_OF = 5, CONTAINS = 6
+- `expression` (String) The expression of the assertion. Should start with $.
+- `subject` (Number) The subject of the assertion. RESPONSE_HEADERS = 1, HTTP_STATUS_CODE = 2, RESPONSE_BODY = 3
+- `value` (String) The value of the assertion
+
+
+<a id="nestedblock--settings--multihttp--entries--request"></a>
+### Nested Schema for `settings.multihttp.entries.request`
+
+Required:
+
+- `method` (String) The HTTP method to use
+- `url` (String) The URL for the request
+
+Optional:
+
+- `body` (Block Set) The body of the HTTP request used in probe. (see [below for nested schema](#nestedblock--settings--multihttp--entries--request--body))
+- `headers` (Block Set) The headers to send with the request (see [below for nested schema](#nestedblock--settings--multihttp--entries--request--headers))
+- `query_fields` (Block Set) Query fields to send with the request (see [below for nested schema](#nestedblock--settings--multihttp--entries--request--query_fields))
+
+<a id="nestedblock--settings--multihttp--entries--request--body"></a>
+### Nested Schema for `settings.multihttp.entries.request.body`
+
+Optional:
+
+- `content_encoding` (String) The content encoding of the body
+- `content_type` (String) The content type of the body
+- `payload` (String) The body payload
+
+
+<a id="nestedblock--settings--multihttp--entries--request--headers"></a>
+### Nested Schema for `settings.multihttp.entries.request.headers`
+
+Required:
+
+- `name` (String) Name of the header to send
+- `value` (String) Value of the header to send
+
+
+<a id="nestedblock--settings--multihttp--entries--request--query_fields"></a>
+### Nested Schema for `settings.multihttp.entries.request.query_fields`
+
+Required:
+
+- `name` (String) Name of the query field to send
+- `value` (String) Value of the query field to send
+
+
+
+<a id="nestedblock--settings--multihttp--entries--variables"></a>
+### Nested Schema for `settings.multihttp.entries.variables`
+
+Required:
+
+- `type` (Number) The method of finding the variable value to extract. JSON_PATH = 0, REGEX = 1, CSS_SELECTOR = 2
+
+Optional:
+
+- `attribute` (String) The attribute to use when finding the variable value. Only used when type is CSS_SELECTOR
+- `expression` (String) The expression to when finding the variable. Should start with $. Only use when type is JSON_PATH or REGEX
+- `name` (String) The name of the variable to extract
+
 
 
 
