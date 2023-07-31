@@ -136,7 +136,7 @@ resource "grafana_slo" "test" {
 				alerts when the short-term error budget burn is very high, the
 				long-term error budget burn rate is high, or when the remaining
 				error budget is below a certain threshold. Annotations and Labels support templating. (see [below for nested schema](#nestedblock--alerting))
-- `label` (Block List) Additional labels that will be attached to all metrics generated from the query. These labels are useful for grouping SLOs in dashboard views that you create by hand. (see [below for nested schema](#nestedblock--label))
+- `label` (Block List) Additional labels that will be attached to all metrics generated from the query. These labels are useful for grouping SLOs in dashboard views that you create by hand. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$" (see [below for nested schema](#nestedblock--label))
 
 ### Read-Only
 
@@ -176,12 +176,12 @@ Required:
 
 Required:
 
-- `success_metric` (String) Metric for success events (numerator)
+- `success_metric` (String) Counter metric for success events (numerator)
 - `total_metric` (String) Metric for total events (denominator)
 
 Optional:
 
-- `group_by_labels` (List of String) Defines Group By Labels used for per-label alerting. Also appear as variables on SLO dashboards to enable filtering and aggregation
+- `group_by_labels` (List of String) Defines Group By Labels used for per-label alerting. appear as variables on SLO dashboards to enable filtering and aggregation. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$"
 
 
 

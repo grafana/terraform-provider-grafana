@@ -57,7 +57,7 @@ Resource manages Grafana SLOs.
 						"freeform": &schema.Schema{
 							Type:     schema.TypeList,
 							MaxItems: 1,
-							Optional: true,
+							Required: false,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"query": &schema.Schema{
@@ -71,12 +71,12 @@ Resource manages Grafana SLOs.
 						"ratio": &schema.Schema{
 							Type:     schema.TypeList,
 							MaxItems: 1,
-							Optional: true,
+							Required: false,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"success_metric": &schema.Schema{
 										Type:        schema.TypeString,
-										Description: `Metric for success events (numerator)`,
+										Description: `Counter metric for success events (numerator)`,
 										Required:    true,
 									},
 									"total_metric": &schema.Schema{
@@ -86,7 +86,7 @@ Resource manages Grafana SLOs.
 									},
 									"group_by_labels": &schema.Schema{
 										Type:        schema.TypeList,
-										Description: `Defines Group By Labels used for per-label alerting. Also appear as variables on SLO dashboards to enable filtering and aggregation `,
+										Description: `Defines Group By Labels used for per-label alerting. appear as variables on SLO dashboards to enable filtering and aggregation. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$"`,
 										Optional:    true,
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
@@ -101,7 +101,7 @@ Resource manages Grafana SLOs.
 			"label": &schema.Schema{
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: `Additional labels that will be attached to all metrics generated from the query. These labels are useful for grouping SLOs in dashboard views that you create by hand.`,
+				Description: `Additional labels that will be attached to all metrics generated from the query. These labels are useful for grouping SLOs in dashboard views that you create by hand. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$"`,
 				Elem:        keyvalueSchema,
 			},
 			"objectives": &schema.Schema{
