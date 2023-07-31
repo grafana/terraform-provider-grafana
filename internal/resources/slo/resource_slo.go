@@ -86,7 +86,7 @@ Resource manages Grafana SLOs.
 									},
 									"group_by_labels": &schema.Schema{
 										Type:        schema.TypeList,
-										Description: `Defines Group By Labels used for per-label alerting. appear as variables on SLO dashboards to enable filtering and aggregation. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$"`,
+										Description: `Defines Group By Labels used for per-label alerting. These appear as variables on SLO dashboards to enable filtering and aggregation. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$"`,
 										Optional:    true,
 										Elem: &schema.Schema{
 											Type: schema.TypeString,

@@ -181,7 +181,7 @@ Required:
 
 Optional:
 
-- `group_by_labels` (List of String) Defines Group By Labels used for per-label alerting. appear as variables on SLO dashboards to enable filtering and aggregation. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$"
+- `group_by_labels` (List of String) Defines Group By Labels used for per-label alerting. These appear as variables on SLO dashboards to enable filtering and aggregation. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$"
 
 
 
