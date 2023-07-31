@@ -57,7 +57,7 @@ Resource manages Grafana SLOs.
 						"freeform": &schema.Schema{
 							Type:     schema.TypeList,
 							MaxItems: 1,
-							Required: false,
+							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"query": &schema.Schema{
@@ -71,7 +71,7 @@ Resource manages Grafana SLOs.
 						"ratio": &schema.Schema{
 							Type:     schema.TypeList,
 							MaxItems: 1,
-							Required: false,
+							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"success_metric": &schema.Schema{
