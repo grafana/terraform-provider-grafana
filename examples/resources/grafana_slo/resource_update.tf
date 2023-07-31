@@ -12,29 +12,28 @@ resource "grafana_slo" "update" {
     window = "7d"
   }
   label {
-    key   = "customkey"
-    value = "customvalue"
+    key   = "slo"
+    value = "terraform"
   }
   alerting {
     fastburn {
       annotation {
         key   = "name"
-        value = "Critical - SLO Burn Rate Alert"
+        value = "SLO Burn Rate Very High"
       }
-      label {
-        key   = "type"
-        value = "slo"
+      annotation {
+        key   = "description"
+        value = "Error budget is burning too fast"
       }
     }
-
     slowburn {
       annotation {
         key   = "name"
-        value = "Warning - SLO Burn Rate Alert"
+        value = "SLO Burn Rate High"
       }
-      label {
-        key   = "type"
-        value = "slo"
+      annotation {
+        key   = "description"
+        value = "Error budget is burning too fast"
       }
     }
   }

@@ -191,6 +191,7 @@ Read-Only:
 Read-Only:
 
 - `freeform` (List of Object) (see [below for nested schema](#nestedobjatt--slos--query--freeform))
+- `ratio` (List of Object) (see [below for nested schema](#nestedobjatt--slos--query--ratio))
 - `type` (String)
 
 <a id="nestedobjatt--slos--query--freeform"></a>
@@ -199,3 +200,13 @@ Read-Only:
 Read-Only:
 
 - `query` (String)
+
+
+<a id="nestedobjatt--slos--query--ratio"></a>
+### Nested Schema for `slos.query.ratio`
+
+Read-Only:
+
+- `group_by_labels` (List of String)
+- `success_metric` (String)
+- `total_metric` (String)

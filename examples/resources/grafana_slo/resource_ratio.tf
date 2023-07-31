@@ -1,6 +1,6 @@
-resource "grafana_slo" "test" {
-  name        = "Complex Resource - Terraform Ratio Query Example"
-  description = "Complex Resource - Terraform Ratio Query Description"
+resource "grafana_slo" "ratio" {
+  name        = "Terraform Testing - Ratio Query"
+  description = "Terraform Description - Ratio Query"
   query {
     ratio {
       success_metric  = "kubelet_http_requests_total{status!~\"5..\"}"
@@ -27,10 +27,6 @@ resource "grafana_slo" "test" {
         key   = "description"
         value = "Error budget is burning too fast"
       }
-      label {
-        key   = "type"
-        value = "slo"
-      }
     }
 
     slowburn {
@@ -41,10 +37,6 @@ resource "grafana_slo" "test" {
       annotation {
         key   = "description"
         value = "Error budget is burning too fast"
-      }
-      label {
-        key   = "type"
-        value = "slo"
       }
     }
   }

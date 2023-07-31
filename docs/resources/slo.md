@@ -34,29 +34,29 @@ resource "grafana_slo" "test" {
     window = "30d"
   }
   label {
-    key   = "custom"
-    value = "value"
+    key   = "slo"
+    value = "terraform"
   }
   alerting {
     fastburn {
       annotation {
         key   = "name"
-        value = "Critical - SLO Burn Rate Alert"
+        value = "SLO Burn Rate Very High"
       }
-      label {
-        key   = "type"
-        value = "slo"
+      annotation {
+        key   = "description"
+        value = "Error budget is burning too fast"
       }
     }
 
     slowburn {
       annotation {
         key   = "name"
-        value = "Warning - SLO Burn Rate Alert"
+        value = "SLO Burn Rate High"
       }
-      label {
-        key   = "type"
-        value = "slo"
+      annotation {
+        key   = "description"
+        value = "Error budget is burning too fast"
       }
     }
   }
@@ -67,36 +67,33 @@ resource "grafana_slo" "test" {
 
 ```terraform
 resource "grafana_slo" "test" {
-  name        = "Complex Resource - Terraform Testing"
-  description = "Complex Resource - Terraform Description"
+  name        = "Complex Resource - Terraform Ratio Query Example"
+  description = "Complex Resource - Terraform Ratio Query Description"
   query {
-    freeform {
-      query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+    ratio {
+      success_metric  = "kubelet_http_requests_total{status!~\"5..\"}"
+      total_metric    = "kubelet_http_requests_total"
+      group_by_labels = ["job", "instance"]
     }
-    type = "freeform"
+    type = "ratio"
   }
   objectives {
     value  = 0.995
     window = "30d"
   }
   label {
-    key   = "slokey"
-    value = "slokey"
+    key   = "slo"
+    value = "terraform"
   }
   alerting {
-    label {
-      key   = "alertingkey"
-      value = "alertingvalue"
-    }
-
     fastburn {
       annotation {
         key   = "name"
-        value = "Critical - SLO Burn Rate Alert - {{$labels.instance}}"
+        value = "SLO Burn Rate Very High"
       }
       annotation {
         key   = "description"
-        value = "Error Budget is burning at a rate greater than 14.4x."
+        value = "Error budget is burning too fast"
       }
       label {
         key   = "type"
@@ -107,11 +104,11 @@ resource "grafana_slo" "test" {
     slowburn {
       annotation {
         key   = "name"
-        value = "Warning - SLO Burn Rate Alert - {{$labels.instance}}"
+        value = "SLO Burn Rate High"
       }
       annotation {
         key   = "description"
-        value = "Error Budget is burning at a rate greater than 1x."
+        value = "Error budget is burning too fast"
       }
       label {
         key   = "type"
@@ -139,7 +136,7 @@ resource "grafana_slo" "test" {
 				alerts when the short-term error budget burn is very high, the
 				long-term error budget burn rate is high, or when the remaining
 				error budget is below a certain threshold. Annotations and Labels support templating. (see [below for nested schema](#nestedblock--alerting))
-- `label` (Block List) Additional labels that will be attached to all metrics generated from the query. These labels are useful for grouping SLOs in dashboard views that you create by hand. (see [below for nested schema](#nestedblock--label))
+- `label` (Block List) Additional labels that will be attached to all metrics generated from the query. These labels are useful for grouping SLOs in dashboard views that you create by hand. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$" (see [below for nested schema](#nestedblock--label))
 
 ### Read-Only
 
@@ -159,15 +156,32 @@ Required:
 
 Required:
 
-- `freeform` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--query--freeform))
 - `type` (String) Query type must be one of: "freeform", "query", "ratio", or "threshold"
+
+Optional:
+
+- `freeform` (Block List, Max: 1) (see [below for nested schema](#nestedblock--query--freeform))
+- `ratio` (Block List, Max: 1) (see [below for nested schema](#nestedblock--query--ratio))
 
 <a id="nestedblock--query--freeform"></a>
 ### Nested Schema for `query.freeform`
 
-Optional:
+Required:
 
 - `query` (String) Freeform Query Field
+
+
+<a id="nestedblock--query--ratio"></a>
+### Nested Schema for `query.ratio`
+
+Required:
+
+- `success_metric` (String) Counter metric for success events (numerator)
+- `total_metric` (String) Metric for total events (denominator)
+
+Optional:
+
+- `group_by_labels` (List of String) Defines Group By Labels used for per-label alerting. These appear as variables on SLO dashboards to enable filtering and aggregation. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$"
 
 
 
