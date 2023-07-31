@@ -44,7 +44,7 @@ resource "grafana_slo" "test" {
         value = "SLO Burn Rate Very High"
       }
       annotation {
-        key   = "name"
+        key   = "description"
         value = "Error budget is burning too fast"
       }
     }
@@ -55,7 +55,7 @@ resource "grafana_slo" "test" {
         value = "SLO Burn Rate High"
       }
       annotation {
-        key   = "name"
+        key   = "description"
         value = "Error budget is burning too fast"
       }
     }
@@ -92,7 +92,7 @@ resource "grafana_slo" "test" {
         value = "SLO Burn Rate Very High"
       }
       annotation {
-        key   = "name"
+        key   = "description"
         value = "Error budget is burning too fast"
       }
       label {
@@ -107,7 +107,7 @@ resource "grafana_slo" "test" {
         value = "SLO Burn Rate High"
       }
       annotation {
-        key   = "name"
+        key   = "description"
         value = "Error budget is burning too fast"
       }
       label {
