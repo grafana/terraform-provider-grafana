@@ -25,11 +25,11 @@ Set up your local environment by installing [Go](http://www.golang.org). Also
 
 ## Local Development with Grafana
 If you develop the provider and want to test locally with your grafana provider
-1. create a `.terraformrc` and paste the following
+1. create a `.terraformrc` in your home directory and paste the following
 ```
 provider_installation {
    dev_overrides {
-      "grafana/grafana" = "/path/to/your/grafana/terraform-provider" # this path is the diretory where the binary is built
+      "grafana/grafana" = "/path/to/your/grafana/terraform-provider" # this path is the directory where the binary is built
   }
   # For all other providers, install them directly from their origin provider
   # registries as normal. If you omit this, Terraform will _only_ use

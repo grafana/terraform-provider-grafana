@@ -21,8 +21,11 @@ import (
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
+
 	"github.com/grafana/terraform-provider-grafana/internal/common"
+	connectionsAPI "github.com/grafana/terraform-provider-grafana/internal/common/connections"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/cloud"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/connections"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/machinelearning"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/oncall"
@@ -109,6 +112,11 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_oncall_on_call_shift":    oncall.ResourceOnCallShift(),
 			"grafana_oncall_schedule":         oncall.ResourceSchedule(),
 			"grafana_oncall_outgoing_webhook": oncall.ResourceOutgoingWebhook(),
+		})
+
+		// Resources that require the HostedExporters client to exist.
+		connectionsClientResources = addResourcesMetadataValidation(connectionClientPresent, map[string]*schema.Resource{
+			"grafana_connections_aws": connections.ResourceConnectionAWS(),
 		})
 
 		// Datasources that require the Grafana client to exist.
@@ -276,6 +284,30 @@ func Provider(version string) func() *schema.Provider {
 					Description:  "An Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable.",
 					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 				},
+
+				"connections_access_token": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Sensitive:   true,
+					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_CONNECTIONS_ACCESS_TOKEN", nil),
+					Description: "A Grafana Connections access token. May alternatively be set via the `GRAFANA_CONNECTIONS_ACCESS_TOKEN` environment variable.",
+				},
+
+				"connections_integrations_url": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Sensitive:   true,
+					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_CONNECTIONS_INTEGRATIONS_URL", nil),
+					Description: "An Grafana Connections integrations backend address. May alternatively be set via the `GRAFANA_CONNECTIONS_INTEGRATIONS_URL` environment variable.",
+				},
+
+				"connections_hosted_exporters_url": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Sensitive:   true,
+					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_CONNECTIONS_HOSTED_EXPORTERS_URL", nil),
+					Description: "An Grafana Connections hosted exporters backend address. May alternatively be set via the `GRAFANA_CONNECTIONS_HOSTED_EXPORTERS_URL` environment variable.",
+				},
 			},
 
 			ResourcesMap: mergeResourceMaps(
@@ -287,6 +319,7 @@ func Provider(version string) func() *schema.Provider {
 				smClientResources,
 				onCallClientResources,
 				cloudClientResources,
+				connectionsClientResources,
 			),
 
 			DataSourcesMap: mergeResourceMaps(
@@ -309,7 +342,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			diags diag.Diagnostics
 			err   error
 		)
-		p.UserAgent("terraform-provider-grafana", version)
+		userAgent := p.UserAgent("terraform-provider-grafana", version)
 
 		c := &common.Client{}
 
@@ -338,8 +371,16 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			if err != nil {
 				return nil, diag.FromErr(err)
 			}
-			onCallClient.UserAgent = p.UserAgent("terraform-provider-grafana", version)
+			onCallClient.UserAgent = userAgent
 			c.OnCallClient = onCallClient
+		}
+
+		if d.Get("connections_access_token").(string) != "" {
+			connectionClient, err := createConnectionsClient(d, userAgent)
+			if err != nil {
+				return nil, diag.FromErr(err)
+			}
+			c.ConnectionsAPI = connectionClient
 		}
 
 		grafana.StoreDashboardSHA256 = d.Get("store_dashboard_sha256").(bool)
@@ -472,6 +513,17 @@ func createOnCallClient(d *schema.ResourceData) (*onCallAPI.Client, error) {
 	aToken := d.Get("oncall_access_token").(string)
 	baseURL := d.Get("oncall_url").(string)
 	return onCallAPI.New(baseURL, aToken)
+}
+
+func createConnectionsClient(d *schema.ResourceData, userAgent string) (*connectionsAPI.Client, error) {
+	token := d.Get("connections_access_token").(string)
+	i := d.Get("connections_integrations_url").(string)
+	he := d.Get("connections_hosted_exporters_url").(string)
+	heAPI, err := connectionsAPI.New(token, userAgent, i, he)
+	if err != nil {
+		return nil, err
+	}
+	return heAPI, nil
 }
 
 // Sets a custom HTTP Header on all requests coming from the Grafana Terraform Provider to Grafana-Terraform-Provider: true

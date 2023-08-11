@@ -7,6 +7,8 @@ import (
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
+
+	"github.com/grafana/terraform-provider-grafana/internal/common/connections"
 )
 
 type Client struct {
@@ -20,6 +22,8 @@ type Client struct {
 	MLAPI *mlapi.Client
 
 	OnCallClient *onCallAPI.Client
+
+	ConnectionsAPI *connections.Client
 
 	AlertingMutex sync.Mutex
 }

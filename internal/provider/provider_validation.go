@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
 // This file contains validations functions that can be added to a map of resources.
@@ -40,6 +41,13 @@ func cloudClientPresent(resourceName string, m interface{}) error {
 func onCallClientPresent(resourceName string, m interface{}) error {
 	if m.(*common.Client).OnCallClient == nil {
 		return fmt.Errorf("the Oncall client is required for `%s`. Set the oncall_access_token provider attribute", resourceName)
+	}
+	return nil
+}
+
+func connectionClientPresent(resourceName string, m interface{}) error {
+	if m.(*common.Client).ConnectionsAPI == nil {
+		return fmt.Errorf("the Connections client is required for `%s`. Set the connections_access_token provider attribute", resourceName)
 	}
 	return nil
 }
