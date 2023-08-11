@@ -116,7 +116,8 @@ func Provider(version string) func() *schema.Provider {
 
 		// Resources that require the HostedExporters client to exist.
 		connectionsClientResources = addResourcesMetadataValidation(connectionClientPresent, map[string]*schema.Resource{
-			"grafana_connections_aws": connections.ResourceConnectionAWS(),
+			"grafana_connections_aws":         connections.ResourceConnectionAWS(),
+			"grafana_connections_aws_service": connections.ResourceConnectionAWSService(),
 		})
 
 		// Datasources that require the Grafana client to exist.
@@ -293,20 +294,23 @@ func Provider(version string) func() *schema.Provider {
 					Description: "A Grafana Connections access token. May alternatively be set via the `GRAFANA_CONNECTIONS_ACCESS_TOKEN` environment variable.",
 				},
 
+				// TODO required when access_token is set
 				"connections_integrations_url": {
-					Type:        schema.TypeString,
-					Optional:    true,
-					Sensitive:   true,
-					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_CONNECTIONS_INTEGRATIONS_URL", nil),
-					Description: "An Grafana Connections integrations backend address. May alternatively be set via the `GRAFANA_CONNECTIONS_INTEGRATIONS_URL` environment variable.",
+					Type:         schema.TypeString,
+					Optional:     true,
+					Sensitive:    true,
+					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_CONNECTIONS_INTEGRATIONS_URL", nil),
+					Description:  "An Grafana Connections integrations backend address. May alternatively be set via the `GRAFANA_CONNECTIONS_INTEGRATIONS_URL` environment variable.",
+					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 				},
 
 				"connections_hosted_exporters_url": {
-					Type:        schema.TypeString,
-					Optional:    true,
-					Sensitive:   true,
-					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_CONNECTIONS_HOSTED_EXPORTERS_URL", nil),
-					Description: "An Grafana Connections hosted exporters backend address. May alternatively be set via the `GRAFANA_CONNECTIONS_HOSTED_EXPORTERS_URL` environment variable.",
+					Type:         schema.TypeString,
+					Optional:     true,
+					Sensitive:    true,
+					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_CONNECTIONS_HOSTED_EXPORTERS_URL", nil),
+					Description:  "An Grafana Connections hosted exporters backend address. May alternatively be set via the `GRAFANA_CONNECTIONS_HOSTED_EXPORTERS_URL` environment variable.",
+					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 				},
 			},
 

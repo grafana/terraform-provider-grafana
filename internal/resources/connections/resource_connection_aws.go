@@ -17,10 +17,10 @@ func ResourceConnectionAWS() *schema.Resource {
 An AWS connection defines a connection between Grafana Cloud and AWS   
 `,
 
-		CreateContext: ResourceCreate,
-		ReadContext:   ResourceRead,
-		UpdateContext: ResourceUpdate,
-		DeleteContext: ResourceDelete,
+		CreateContext: ConnectionCreate,
+		ReadContext:   ConnectionRead,
+		UpdateContext: ConnectionUpdate,
+		DeleteContext: ConnectionDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -33,11 +33,6 @@ An AWS connection defines a connection between Grafana Cloud and AWS
 			},
 			"name": {
 				Description: "The name of the AWS Connection.",
-				Type:        schema.TypeString,
-				Required:    true,
-			},
-			"aws_account_id": {
-				Description: "The AWS Account ID being connected to",
 				Type:        schema.TypeString,
 				Required:    true,
 			},
@@ -58,18 +53,18 @@ An AWS connection defines a connection between Grafana Cloud and AWS
 	}
 }
 
-func ResourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ConnectionCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).ConnectionsAPI
 	stackID, c := makeConnection(d)
 	err := client.CreateAWSConnection(ctx, stackID, c)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(toID(stackID, c.Name))
-	return ResourceRead(ctx, d, meta)
+	d.SetId(toConnectionID(stackID, c.Name))
+	return ConnectionRead(ctx, d, meta)
 }
 
-func ResourceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ConnectionRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).ConnectionsAPI
 	connection, err := c.GetAWSConnection(ctx, d.Get("stack_id").(string), d.Get("name").(string))
 	if err, shouldReturn := common.CheckReadError("AWSConnection", d, err); shouldReturn {
@@ -84,11 +79,7 @@ func ResourceRead(ctx context.Context, d *schema.ResourceData, meta interface{})
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("aws_account_id", connection.AWSAccountID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = d.Set("regions", common.StringSliceToList(connection.Regions))
+	err = d.Set("regions", connection.Regions)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -96,18 +87,18 @@ func ResourceRead(ctx context.Context, d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func ResourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ConnectionUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).ConnectionsAPI
 	stackID, c := makeConnection(d)
 	err := client.UpdateAWSConnection(ctx, stackID, c)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(toID(stackID, c.Name))
-	return ResourceRead(ctx, d, meta)
+	d.SetId(toConnectionID(stackID, c.Name))
+	return ConnectionRead(ctx, d, meta)
 }
 
-func ResourceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func ConnectionDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).ConnectionsAPI
 
 	err := client.DeleteAWSConnection(ctx, d.Get("stack_id").(string), d.Get("name").(string))
@@ -121,13 +112,12 @@ func ResourceDelete(ctx context.Context, d *schema.ResourceData, meta interface{
 func makeConnection(d *schema.ResourceData) (string, connections.AWSConnection) {
 	stackID := d.Get("stack_id").(string)
 	return stackID, connections.AWSConnection{
-		Name:         d.Get("name").(string),
-		AWSAccountID: d.Get("aws_account_id").(string),
-		RoleARN:      d.Get("role_arn").(string),
-		Regions:      common.ListToStringSlice(d.Get("regions").([]interface{})),
+		Name:    d.Get("name").(string),
+		RoleARN: d.Get("role_arn").(string),
+		Regions: common.ListToStringSlice(d.Get("regions").([]interface{})),
 	}
 }
 
-func toID(stackID, name string) string {
+func toConnectionID(stackID, name string) string {
 	return fmt.Sprintf("%s_%s", stackID, name)
 }
