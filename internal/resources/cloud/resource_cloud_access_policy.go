@@ -192,16 +192,9 @@ func DeleteCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func validateCloudAccessPolicyScope(v interface{}, path cty.Path) diag.Diagnostics {
-	service, permission, found := strings.Cut(v.(string), ":")
+	_, permission, found := strings.Cut(v.(string), ":")
 	if !found || strings.ContainsRune(permission, ':') {
 		return diag.Errorf("invalid scope: %s. Should be in the `service:permission` format", v.(string))
-	}
-
-	// Validate service
-	switch service {
-	case "metrics", "logs", "traces", "alerts", "rules", "accesspolicies":
-	default:
-		return diag.Errorf("invalid scope: %s. Service should be one of `metrics`, `logs`, `traces`, `alerts`, `rules`, `accesspolicies`", v.(string))
 	}
 
 	// Validate permission
