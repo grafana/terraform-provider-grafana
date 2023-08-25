@@ -17,10 +17,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
+	httptransport "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
+
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	gapi "github.com/grafana/grafana-api-golang-client"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
+
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
@@ -318,10 +323,15 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			if err != nil {
 				return nil, diag.FromErr(err)
 			}
+			c.GrafanaOAPI, err = createGrafanaOAPIClient(c.GrafanaAPIURL)
+			if err != nil {
+				return nil, diag.FromErr(err)
+			}
 			c.MLAPI, err = createMLClient(c.GrafanaAPIURL, c.GrafanaAPIConfig)
 			if err != nil {
 				return nil, diag.FromErr(err)
 			}
+
 		}
 		if d.Get("cloud_api_key").(string) != "" {
 			c.GrafanaCloudAPI, err = createCloudClient(d)
@@ -433,6 +443,17 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 		return "", nil, nil, err
 	}
 	return apiURL, &cfg, gclient, nil
+}
+
+func createGrafanaOAPIClient(apiURL string) (*goapi.GrafanaHTTPAPI, error) {
+	u, err := url.Parse(apiURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse API url: %v", err.Error())
+	}
+	tr := httptransport.New(u.Host, u.Path, []string{u.Scheme})
+	goapiClient := goapi.New(tr, strfmt.Default)
+
+	return goapiClient, nil
 }
 
 func createMLClient(url string, grafanaCfg *gapi.Config) (*mlapi.Client, error) {
