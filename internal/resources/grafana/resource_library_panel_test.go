@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	goapi "github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
@@ -85,7 +86,7 @@ func TestAccLibraryPanel_folder(t *testing.T) {
 	testutils.CheckOSSTestsSemver(t, ">=8.0.0")
 
 	var panel gapi.LibraryPanel
-	var folder gapi.Folder
+	var folder goapi.Folder
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
@@ -177,7 +178,7 @@ func testAccLibraryPanelCheckExists(rn string, panel *gapi.LibraryPanel) resourc
 	}
 }
 
-func testAccLibraryPanelCheckExistsInFolder(panel *gapi.LibraryPanel, folder *gapi.Folder) resource.TestCheckFunc {
+func testAccLibraryPanelCheckExistsInFolder(panel *gapi.LibraryPanel, folder *goapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if panel.Folder != folder.ID && folder.ID != 0 {
 			return fmt.Errorf("panel.Folder(%d) does not match folder.ID(%d)", panel.Folder, folder.ID)
@@ -197,14 +198,16 @@ func testAccLibraryPanelCheckDestroy(panel *gapi.LibraryPanel) resource.TestChec
 	}
 }
 
-func testAccLibraryPanelFolderCheckDestroy(panel *gapi.LibraryPanel, folder *gapi.Folder) resource.TestCheckFunc {
+func testAccLibraryPanelFolderCheckDestroy(panel *gapi.LibraryPanel, folder *goapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(panel.OrgID)
 		_, err := client.LibraryPanelByUID(panel.UID)
 		if err == nil {
 			return fmt.Errorf("panel still exists")
 		}
-		folder, err = grafana.GetFolderByIDorUID(client, folder.UID)
+
+		OAPIclient := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.Folders
+		folder, err = grafana.GetFolderByIDorUID(OAPIclient, folder.UID)
 		if err == nil {
 			return fmt.Errorf("the following folder still exists: %s", folder.Title)
 		}

@@ -8,6 +8,9 @@ import (
 	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	goapi "github.com/grafana/grafana-openapi-client-go/client/folders"
+	"github.com/grafana/grafana-openapi-client-go/models"
+
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -58,36 +61,47 @@ func ResourceFolder() *schema.Resource {
 }
 
 func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
-
-	var resp gapi.Folder
-	var err error
-	title := d.Get("title").(string)
-	if uid, ok := d.GetOk("uid"); ok {
-		resp, err = client.NewFolder(title, uid.(string))
-	} else {
-		resp, err = client.NewFolder(title)
+	orgID, err := ParseOrgID(d)
+	if err != nil {
+		return diag.Errorf("failed to parse orgID: %s", err)
 	}
+
+	var body *models.CreateFolderCommand
+	if title := d.Get("title").(string); title != "" {
+		body.Title = title
+	}
+
+	if uid, ok := d.GetOk("uid"); ok {
+		body.UID = uid.(string)
+	}
+
+	params := goapi.NewCreateFolderParams().WithBody(body)
+	resp, err := meta.(*common.Client).GrafanaOAPI.Folders.CreateFolder(params, nil)
 	if err != nil {
 		return diag.Errorf("failed to create folder: %s", err)
 	}
 
-	d.SetId(MakeOrgResourceID(orgID, resp.ID))
-	d.Set("uid", resp.UID)
-	d.Set("title", resp.Title)
+	folder := resp.GetPayload()
+	d.SetId(MakeOrgResourceID(orgID, folder.ID))
+	d.Set("uid", folder.UID)
+	d.Set("title", folder.Title)
 
 	return ReadFolder(ctx, d, meta)
 }
 
 func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
-
+	_, idStr := SplitOrgResourceID(d.Id())
+	client := meta.(*common.Client).GrafanaOAPI.Folders
 	folder, err := GetFolderByIDorUID(client, idStr)
 	if err != nil {
 		return diag.Errorf("failed to get folder %s: %s", idStr, err)
 	}
 
-	if err := client.UpdateFolder(folder.UID, d.Get("title").(string), d.Get("uid").(string)); err != nil {
+	params := goapi.NewUpdateFolderParams().WithBody(&models.UpdateFolderCommand{
+		UID:   folder.UID,
+		Title: d.Get("title").(string),
+	})
+	if _, err := client.UpdateFolder(params, nil); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -96,8 +110,9 @@ func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 
 func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	gapiURL := meta.(*common.Client).GrafanaAPIURL
-	client, orgID, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	orgID, idStr := SplitOrgResourceID(d.Id())
 
+	client := meta.(*common.Client).GrafanaOAPI.Folders
 	folder, err := GetFolderByIDorUID(client, idStr)
 	if err, shouldReturn := common.CheckReadError("folder", d, err); shouldReturn {
 		return err
@@ -178,16 +193,17 @@ func NormalizeFolderConfigJSON(configI interface{}) string {
 	return string(ret)
 }
 
-func GetFolderByIDorUID(client *gapi.Client, id string) (*gapi.Folder, error) {
+func GetFolderByIDorUID(client goapi.ClientService, id string) (*models.Folder, error) {
 	// If the ID is a number, find the folder UID
 	// Getting the folder by ID is broken in some versions, but getting by UID works in all versions
 	// We need to use two API calls in the numerical ID case, because the "list" call doesn't have all the info
 	uid := id
 	if numericalID, err := strconv.ParseInt(id, 10, 64); err == nil {
-		folders, err := client.Folders()
+		resp, err := client.GetFolders(goapi.NewGetFoldersParams(), nil)
 		if err != nil {
 			return nil, err
 		}
+		folders := resp.GetPayload()
 		for _, folder := range folders {
 			if folder.ID == numericalID {
 				uid = folder.UID
@@ -196,5 +212,10 @@ func GetFolderByIDorUID(client *gapi.Client, id string) (*gapi.Folder, error) {
 		}
 	}
 
-	return client.FolderByUID(uid)
+	params := goapi.NewGetFolderByUIDParams().WithFolderUID(uid)
+	resp, err := client.GetFolderByUID(params, nil)
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetPayload(), nil
 }

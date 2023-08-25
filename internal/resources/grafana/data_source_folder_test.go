@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	goapi "github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -14,7 +14,7 @@ import (
 func TestAccDatasourceFolder(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var folder gapi.Folder
+	var folder goapi.Folder
 	checks := []resource.TestCheckFunc{
 		testAccFolderCheckExists("grafana_folder.test", &folder),
 		resource.TestCheckResourceAttr(
