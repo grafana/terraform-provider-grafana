@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -193,6 +194,12 @@ func Provider(version string) func() *schema.Provider {
 					Optional:    true,
 					Description: "The status codes to retry on for Grafana API and Grafana Cloud API calls. Use `x` as a digit wildcard. Defaults to 429 and 5xx. May alternatively be set via the `GRAFANA_RETRY_STATUS_CODES` environment variable.",
 					Elem:        &schema.Schema{Type: schema.TypeString},
+				},
+				"retry_wait": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_RETRY_WAIT", 0),
+					Description: "The amount of time in seconds to wait between retries for Grafana API and Grafana Cloud API calls. May alternatively be set via the `GRAFANA_RETRY_WAIT` environment variable.",
 				},
 				"org_id": {
 					Type:        schema.TypeInt,
@@ -404,8 +411,9 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 	apiURL := d.Get("url").(string)
 	cli.Transport = logging.NewSubsystemLoggingHTTPTransport("Grafana", transport)
 	cfg := gapi.Config{
-		Client:     cli,
-		NumRetries: d.Get("retries").(int),
+		Client:       cli,
+		NumRetries:   d.Get("retries").(int),
+		RetryTimeout: time.Second * time.Duration(d.Get("retry_wait").(int)),
 	}
 	if v, ok := d.GetOk("retry_status_codes"); ok {
 		cfg.RetryStatusCodes = common.SetToStringSlice(v.(*schema.Set))
@@ -456,8 +464,9 @@ func createMLClient(url string, grafanaCfg *gapi.Config) (*mlapi.Client, error) 
 
 func createCloudClient(d *schema.ResourceData) (*gapi.Client, error) {
 	cfg := gapi.Config{
-		APIKey:     d.Get("cloud_api_key").(string),
-		NumRetries: d.Get("retries").(int),
+		APIKey:       d.Get("cloud_api_key").(string),
+		NumRetries:   d.Get("retries").(int),
+		RetryTimeout: time.Second * time.Duration(d.Get("retry_wait").(int)),
 	}
 
 	var err error
