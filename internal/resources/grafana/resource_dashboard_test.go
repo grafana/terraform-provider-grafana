@@ -328,8 +328,9 @@ func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *goapi
 			return fmt.Errorf("dashboard still exists")
 		}
 
-		OAPIclient := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.Folders
-		folder, err = grafana.GetFolderByIDorUID(OAPIclient, folder.UID)
+		orgID := testutils.Provider.Meta().(*common.Client).GrafanaAPIConfig.OrgID
+		OAPIclient := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(orgID)
+		folder, err = grafana.GetFolderByIDorUID(OAPIclient.Folders, folder.UID)
 		if err == nil {
 			return fmt.Errorf("the following folder still exists: %s", folder.Title)
 		}
