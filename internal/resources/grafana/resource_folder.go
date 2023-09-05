@@ -94,10 +94,17 @@ func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 		return diag.Errorf("failed to get folder %s: %s", idStr, err)
 	}
 
-	params := goapi.NewUpdateFolderParams().WithBody(&models.UpdateFolderCommand{
-		UID:   folder.UID,
-		Title: d.Get("title").(string),
-	})
+	params := goapi.NewUpdateFolderParams().
+		WithBody(&models.UpdateFolderCommand{
+			Overwrite: true,
+			Title:     d.Get("title").(string),
+		}).
+		WithFolderUID(folder.UID)
+
+	if newUID := d.Get("uid").(string); newUID != "" {
+		params.Body.UID = newUID
+	}
+
 	if _, err := client.Folders.UpdateFolder(params, nil); err != nil {
 		return diag.FromErr(err)
 	}
