@@ -154,8 +154,12 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 		deleteParams = append(deleteParams, gapi.ForceDeleteFolderRules())
 	}
 
+	var force bool
+	if len(deleteParams) > 0 {
+		force, _ = strconv.ParseBool(deleteParams[0].Get("forceDeleteRules"))
+	}
+
 	client, _, _ := OAPIClientFromExistingOrgResource(meta, d.Id())
-	force, _ := strconv.ParseBool(deleteParams[0].Get("forceDeleteRules"))
 	params := goapi.NewDeleteFolderParams().WithForceDeleteRules(&force).WithFolderUID(d.Get("uid").(string))
 	if _, err := client.Folders.DeleteFolder(params, nil); err != nil {
 		return diag.Errorf("failed to delete folder: %s", err)
