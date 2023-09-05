@@ -30,10 +30,10 @@ resource "grafana_oncall_outgoing_webhook" "test-acc-outgoing_webhook" {
 
 ### Optional
 
-- `authorization_header` (String) The auth data of the webhook. Used in Authorization header instead of user/password auth.
+- `authorization_header` (String, Sensitive) The auth data of the webhook. Used in Authorization header instead of user/password auth.
 - `data` (String) The data of the webhook.
 - `forward_whole_payload` (Boolean) Forwards whole payload of the alert to the webhook's url as POST data.
-- `password` (String) The auth data of the webhook. Used for Basic authentication
+- `password` (String, Sensitive) The auth data of the webhook. Used for Basic authentication
 - `team_id` (String) The ID of the OnCall team. To get one, create a team in Grafana, and navigate to the OnCall plugin (to sync the team with OnCall). You can then get the ID using the `grafana_oncall_team` datasource.
 - `user` (String) The auth data of the webhook. Used for Basic authentication.
 
