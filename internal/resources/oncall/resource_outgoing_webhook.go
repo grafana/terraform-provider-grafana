@@ -54,11 +54,13 @@ func ResourceOutgoingWebhook() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The auth data of the webhook. Used for Basic authentication",
+				Sensitive:   true,
 			},
 			"authorization_header": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The auth data of the webhook. Used in Authorization header instead of user/password auth.",
+				Sensitive:   true,
 			},
 			"forward_whole_payload": {
 				Type:        schema.TypeBool,
@@ -134,8 +136,6 @@ func ResourceOutgoingWebhookRead(ctx context.Context, d *schema.ResourceData, m 
 	d.Set("url", outgoingWebhook.Url)
 	d.Set("data", outgoingWebhook.Data)
 	d.Set("user", outgoingWebhook.User)
-	d.Set("password", outgoingWebhook.Password)
-	d.Set("authorization_header", outgoingWebhook.AuthorizationHeader)
 	d.Set("forward_whole_payload", outgoingWebhook.ForwardWholePayload)
 
 	return nil
