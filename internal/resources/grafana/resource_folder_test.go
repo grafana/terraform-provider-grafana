@@ -2,6 +2,7 @@ package grafana_test
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"regexp"
 	"strings"
@@ -166,7 +167,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 	}{
 		{
 			role:        "Viewer",
-			expectError: regexp.MustCompile(".*Access denied.*"),
+			expectError: regexp.MustCompile(fmt.Sprint(http.StatusForbidden)),
 		},
 		{
 			role:        "Editor",
