@@ -459,6 +459,9 @@ func createCloudClient(d *schema.ResourceData) (*gapi.Client, error) {
 		APIKey:     d.Get("cloud_api_key").(string),
 		NumRetries: d.Get("retries").(int),
 	}
+	if v, ok := d.GetOk("retry_status_codes"); ok {
+		cfg.RetryStatusCodes = common.SetToStringSlice(v.(*schema.Set))
+	}
 
 	var err error
 	if cfg.HTTPHeaders, err = getHTTPHeadersMap(d); err != nil {
