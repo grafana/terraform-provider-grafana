@@ -225,9 +225,9 @@ func testAccFolderIDDidntChange(rn string, oldFolder *goapi.Folder) resource.Tes
 		if !ok {
 			return fmt.Errorf("folder not found: %s", rn)
 		}
-		_, folderUID := grafana.SplitOrgResourceID(newFolderResource.Primary.ID)
-		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.Folders
-		newFolder, err := grafana.GetFolderByIDorUID(client, folderUID)
+		orgID, folderUID := grafana.SplitOrgResourceID(newFolderResource.Primary.ID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(orgID)
+		newFolder, err := grafana.GetFolderByIDorUID(client.Folders, folderUID)
 		if err != nil {
 			return fmt.Errorf("error getting folder: %s", err)
 		}
@@ -248,15 +248,14 @@ func testAccFolderCheckExists(rn string, folder *goapi.Folder) resource.TestChec
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource id not set")
 		}
-
-		_, folderID := grafana.SplitOrgResourceID(rs.Primary.ID)
-		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.Folders
-		gotFolder, err := grafana.GetFolderByIDorUID(client, folderID)
+		orgID, folderID := grafana.SplitOrgResourceID(rs.Primary.ID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(orgID)
+		gotFolder, err := grafana.GetFolderByIDorUID(client.Folders, folderID)
 		if err != nil {
 			return fmt.Errorf("error getting folder: %s", err)
 		}
 
-		folder.ID = gotFolder.ID
+		*folder = *gotFolder
 
 		return nil
 	}
@@ -264,8 +263,8 @@ func testAccFolderCheckExists(rn string, folder *goapi.Folder) resource.TestChec
 
 func testAccFolderCheckDestroy(folder *goapi.Folder, orgID int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.Folders
-		_, err := grafana.GetFolderByIDorUID(client, folder.UID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(orgID)
+		_, err := grafana.GetFolderByIDorUID(client.Folders, folder.UID)
 		if err == nil {
 			return fmt.Errorf("folder still exists")
 		}
