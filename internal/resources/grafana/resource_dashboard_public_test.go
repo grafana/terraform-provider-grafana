@@ -2,17 +2,18 @@ package grafana_test
 
 import (
 	"fmt"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"testing"
 
+	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccPublicDashboard_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=10.2.0") // Dashboard UIDs are only available as references in Grafana 9+
 
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -45,10 +46,10 @@ func testAccPublicDashboardCheckExistsUID(rn string) resource.TestCheckFunc {
 			return fmt.Errorf("Resource id not set")
 		}
 
-		dashboardUid, _ := grafana.SplitPublicDashboardId(rs.Primary.ID)
+		dashboardUID, _ := grafana.SplitPublicDashboardID(rs.Primary.ID)
 
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		pd, err := client.PublicDashboardbyUID(dashboardUid)
+		pd, err := client.PublicDashboardbyUID(dashboardUID)
 		if pd == nil || err != nil {
 			return fmt.Errorf("Error getting public dashboard: %s", err)
 		}

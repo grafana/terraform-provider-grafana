@@ -76,10 +76,10 @@ Manages Grafana public dashboards.
 
 func CreatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaAPI
-	dashboardUid := d.Get("dashboard_uid").(string)
+	dashboardUID := d.Get("dashboard_uid").(string)
 
 	publicDashboard := makePublicDashboard(d)
-	resp, err := client.NewPublicDashboard(dashboardUid, publicDashboard)
+	resp, err := client.NewPublicDashboard(dashboardUID, publicDashboard)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -89,10 +89,10 @@ func CreatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta int
 }
 func UpdatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaAPI
-	dashboardUid, publicDashboardUid := SplitPublicDashboardId(d.Id())
+	dashboardUID, publicDashboardUID := SplitPublicDashboardID(d.Id())
 
 	publicDashboard := makePublicDashboard(d)
-	dashboard, err := client.UpdatePublicDashboard(dashboardUid, publicDashboardUid, publicDashboard)
+	dashboard, err := client.UpdatePublicDashboard(dashboardUID, publicDashboardUID, publicDashboard)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -103,8 +103,8 @@ func UpdatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta int
 
 func DeletePublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaAPI
-	dashboardUid, publicDashboardUid := SplitPublicDashboardId(d.Id())
-	return diag.FromErr(client.DeletePublicDashboard(dashboardUid, publicDashboardUid))
+	dashboardUID, publicDashboardUID := SplitPublicDashboardID(d.Id())
+	return diag.FromErr(client.DeletePublicDashboard(dashboardUID, publicDashboardUID))
 }
 
 func makePublicDashboard(d *schema.ResourceData) gapi.PublicDashboardPayload {
@@ -120,8 +120,8 @@ func makePublicDashboard(d *schema.ResourceData) gapi.PublicDashboardPayload {
 
 func ReadPublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaAPI
-	dashboardUid, _ := SplitPublicDashboardId(d.Id())
-	dashboard, err := client.PublicDashboardbyUID(dashboardUid)
+	dashboardUID, _ := SplitPublicDashboardID(d.Id())
+	dashboard, err := client.PublicDashboardbyUID(dashboardUID)
 	if err, shouldReturn := common.CheckReadError("dashboard", d, err); shouldReturn {
 		return err
 	}
@@ -139,7 +139,7 @@ func ReadPublicDashboard(ctx context.Context, d *schema.ResourceData, meta inter
 	return nil
 }
 
-func SplitPublicDashboardId(id string) (string, string) {
+func SplitPublicDashboardID(id string) (string, string) {
 	d, pd, _ := strings.Cut(id, ":")
 	return d, pd
 }
