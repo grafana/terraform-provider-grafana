@@ -105,3 +105,6 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+// TODO: remove this replace operator before merge PR https://github.com/grafana/grafana/issues/74594
+replace github.com/grafana/grafana-api-golang-client => github.com/grafana/grafana-api-golang-client v0.23.1-0.20230908175004-b48e5446cf4e
