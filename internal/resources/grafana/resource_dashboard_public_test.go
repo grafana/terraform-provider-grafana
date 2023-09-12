@@ -31,6 +31,11 @@ func TestAccPublicDashboard_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_dashboard_public.my_public_dashboard", "annotations_enabled", "true"),
 				),
 			},
+			{
+				ResourceName:      "grafana_dashboard_public.my_public_dashboard",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
