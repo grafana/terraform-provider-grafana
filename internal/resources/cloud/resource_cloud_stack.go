@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -238,15 +239,20 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 	}
 
 	stackID, err := client.NewStack(stack)
-	if err != nil && err.Error() == "409 Conflict" {
+	switch {
+	case err != nil && strings.Contains(err.Error(), "409"):
 		return diag.Errorf("Error: A Grafana stack with the name '%s' already exists.", stack.Name)
+	case err != nil:
+		// If we had an error that isn't a 409 (already exists), try to read the stack
+		// Sometimes, the stack is created but the API returns an error (e.g. 504)
+		readStack, readErr := client.StackBySlug(stack.Slug)
+		if readErr != nil {
+			return diag.Errorf("Failed to create stack: %v", err)
+		}
+		d.SetId(strconv.FormatInt(readStack.ID, 10))
+	default:
+		d.SetId(strconv.FormatInt(stackID, 10))
 	}
-
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId(strconv.FormatInt(stackID, 10))
 
 	if diag := ReadStack(ctx, d, meta); diag != nil {
 		return diag
