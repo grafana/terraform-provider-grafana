@@ -46,10 +46,10 @@ resource "grafana_dashboard_public" "my_public_dashboard" {
 ### Optional
 
 - `access_token` (String) A public unique identifier of a public dashboard. This is used to construct its URL. It's automatically generated if not provided when creating a public dashboard.
-- `annotations_enabled` (Boolean) Optional. Set to `true` to show annotations. The default value is `false`.
-- `is_enabled` (Boolean) Optional. Set to `true` to enable the public dashboard. The default value is `false`.
-- `share` (String) Optional. Set the share mode. The default value is `public`.
-- `time_selection_enabled` (Boolean) Optional. Set to `true` to enable the time picker in the public dashboard. The default value is `false`.
+- `annotations_enabled` (Boolean) Set to `true` to show annotations. The default value is `false`.
+- `is_enabled` (Boolean) Set to `true` to enable the public dashboard. The default value is `false`.
+- `share` (String) Set the share mode. The default value is `public`.
+- `time_selection_enabled` (Boolean) Set to `true` to enable the time picker in the public dashboard. The default value is `false`.
 - `uid` (String) The unique identifier of a public dashboard. It's automatically generated if not provided when creating a public dashboard.
 
 ### Read-Only
