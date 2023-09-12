@@ -52,25 +52,24 @@ Manages Grafana public dashboards.
 			"time_selection_enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Optional. Set to `true` to enable the time picker in the public dashboard. The default value is `false`.",
+				Description: "Set to `true` to enable the time picker in the public dashboard. The default value is `false`.",
 			},
 			"is_enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Optional. Set to `true` to enable the public dashboard. The default value is `false`.",
+				Description: "Set to `true` to enable the public dashboard. The default value is `false`.",
 			},
 			"annotations_enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Optional. Set to `true` to show annotations. The default value is `false`.",
+				Description: "Set to `true` to show annotations. The default value is `false`.",
 			},
 			"share": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Optional. Set the share mode. The default value is `public`.",
+				Description: "Set the share mode. The default value is `public`.",
 			},
 		},
-		SchemaVersion: 1, // The state upgrader was removed in v2. To upgrade, users can first upgrade to the last v1 release, apply, then upgrade to v2.
 	}
 }
 
