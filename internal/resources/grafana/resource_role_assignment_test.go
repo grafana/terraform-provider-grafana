@@ -34,7 +34,7 @@ func TestRoleAssignments(t *testing.T) {
 						"grafana_role_assignment.test", "users.#", "2",
 					),
 					resource.TestCheckResourceAttr(
-						"grafana_role_assignment.test", "service_accounts.#", "0",
+						"grafana_role_assignment.test", "service_accounts.#", "1",
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_role_assignment.test", "teams.#", "1",
@@ -113,10 +113,17 @@ resource "grafana_user" "test_user2" {
 	password = "12345"
 }
 
+resource "grafana_service_account" "test" {
+	name        = "%[1]s-terraform-test"
+	role        = "Editor"
+	is_disabled = false
+  }
+
 resource "grafana_role_assignment" "test" {
   role_uid = grafana_role.test.uid
   users = [grafana_user.test_user.id, grafana_user.test_user2.id]
   teams = [grafana_team.test_team.id]
+  service_accounts = [grafana_service_account.test.id]
 }
 `, name)
 }
