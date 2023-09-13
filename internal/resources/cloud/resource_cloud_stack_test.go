@@ -2,6 +2,7 @@ package cloud_test
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -25,6 +26,21 @@ func TestResourceStack_Basic(t *testing.T) {
 	resourceName := GetRandomStackName(prefix)
 	stackDescription := "This is a test stack"
 
+	firstStepChecks := resource.ComposeTestCheckFunc(
+		testAccStackCheckExists("grafana_cloud_stack.test", &stack),
+		resource.TestMatchResourceAttr("grafana_cloud_stack.test", "id", common.IDRegexp),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "name", resourceName),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "slug", resourceName),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "prometheus_remote_endpoint", "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "prometheus_remote_write_endpoint", "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "prometheus_user_id"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "alertmanager_user_id"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "logs_user_id"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "traces_user_id"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "graphite_user_id"),
+	)
+
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
@@ -32,22 +48,25 @@ func TestResourceStack_Basic(t *testing.T) {
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
+			// Create a basic stack
 			{
 				Config: testAccStackConfigBasic(resourceName, resourceName),
-				Check: resource.ComposeTestCheckFunc(
-					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
-					resource.TestMatchResourceAttr("grafana_cloud_stack.test", "id", common.IDRegexp),
-					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "name", resourceName),
-					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "slug", resourceName),
-					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
-					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "prometheus_remote_endpoint", "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom"),
-					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "prometheus_remote_write_endpoint", "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push"),
-					resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "prometheus_user_id"),
-					resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "alertmanager_user_id"),
-					resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "logs_user_id"),
-					resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "traces_user_id"),
-					resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "graphite_user_id"),
-				),
+				Check:  firstStepChecks,
+			},
+			// Check that we can't takeover a stack without importing it
+			// The retrying logic for creation is very permissive,
+			// but it shouldn't allow to apply an already existing stack on a new resource
+			{
+				Config: testAccStackConfigBasic(resourceName, resourceName) +
+					testAccStackConfigBasicWithCustomResourceName(resourceName, resourceName, "test2"), // new stack with same name/slug
+				ExpectError: regexp.MustCompile(fmt.Sprintf(".*a stack with the name '%s' already exists.*", resourceName)),
+			},
+			// Test that the stack is correctly recreated if it's tainted and reapplied
+			// This is a special case because stack deletion is asynchronous
+			{
+				Config: testAccStackConfigBasic(resourceName, resourceName),
+				Check:  firstStepChecks,
+				Taint:  []string{"grafana_cloud_stack.test"},
 			},
 			{
 				// Delete the stack outside of the test and make sure it is recreated
@@ -65,6 +84,7 @@ func TestResourceStack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
 				),
 			},
+			// Update the stack
 			{
 				Config: testAccStackConfigUpdate(resourceName+"new", resourceName, stackDescription),
 				Check: resource.ComposeTestCheckFunc(
@@ -150,13 +170,17 @@ func testAccStackCheckDestroy(a *gapi.Stack) resource.TestCheckFunc {
 }
 
 func testAccStackConfigBasic(name string, slug string) string {
+	return testAccStackConfigBasicWithCustomResourceName(name, slug, "test")
+}
+
+func testAccStackConfigBasicWithCustomResourceName(name string, slug string, resourceName string) string {
 	return fmt.Sprintf(`
-	resource "grafana_cloud_stack" "test" {
+	resource "grafana_cloud_stack" "%s" {
 		name  = "%s"
 		slug  = "%s"
 		region_slug = "eu"
 	  }
-	`, name, slug)
+	`, resourceName, name, slug)
 }
 
 func testAccStackConfigUpdate(name string, slug string, description string) string {
