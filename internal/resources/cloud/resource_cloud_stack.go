@@ -238,20 +238,32 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 		Region: d.Get("region_slug").(string),
 	}
 
-	stackID, err := client.NewStack(stack)
-	switch {
-	case err != nil && strings.Contains(err.Error(), "409"):
-		return diag.Errorf("Error: A Grafana stack with the name '%s' already exists.", stack.Name)
-	case err != nil:
-		// If we had an error that isn't a 409 (already exists), try to read the stack
-		// Sometimes, the stack is created but the API returns an error (e.g. 504)
-		readStack, readErr := client.StackBySlug(stack.Slug)
-		if readErr != nil {
-			return diag.Errorf("Failed to create stack: %v", err)
+	err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
+		stackID, err := client.NewStack(stack)
+		switch {
+		case err != nil && strings.Contains(err.Error(), "409"):
+			// If the API returns a 409, it means that the stack already exists
+			// It may also mean that the stack was recently deleted and is still in the process of being deleted
+			// In that case, we want to retry
+			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
+			return retry.RetryableError(fmt.Errorf("a stack with the name '%s' already exists", stack.Name))
+		case err != nil:
+			// If we had an error that isn't a 409 (already exists), try to read the stack
+			// Sometimes, the stack is created but the API returns an error (e.g. 504)
+			readStack, readErr := client.StackBySlug(stack.Slug)
+			if readErr == nil {
+				d.SetId(strconv.FormatInt(readStack.ID, 10))
+				return nil
+			}
+			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
+			return retry.RetryableError(fmt.Errorf("failed to create stack: %v", err))
+		default:
+			d.SetId(strconv.FormatInt(stackID, 10))
 		}
-		d.SetId(strconv.FormatInt(readStack.ID, 10))
-	default:
-		d.SetId(strconv.FormatInt(stackID, 10))
+		return nil
+	})
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	if diag := ReadStack(ctx, d, meta); diag != nil {
