@@ -140,7 +140,7 @@ func TestAccLibraryPanel_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsSemver(t, ">=8.0.0")
 
 	var panel gapi.LibraryPanel
-	orgName := acctest.RandString(10)
+	orgName := acctest.RandomWithPrefix("panel")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,

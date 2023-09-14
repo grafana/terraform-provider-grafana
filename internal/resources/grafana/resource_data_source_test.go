@@ -21,7 +21,7 @@ func TestAccDataSource_Loki(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	var dataSource gapi.DataSource
-	dsName := acctest.RandString(10)
+	dsName := acctest.RandomWithPrefix("ds-loki")
 
 	config := fmt.Sprintf(`
 	resource "grafana_data_source" "tempo" {
@@ -125,7 +125,7 @@ func TestAccDataSource_TestData(t *testing.T) {
 
 	var dataSource gapi.DataSource
 
-	dsName := acctest.RandString(10)
+	dsName := acctest.RandomWithPrefix("ds-testdata")
 	config := fmt.Sprintf(`
 	resource "grafana_data_source" "testdata" {
 		type                = "testdata"
@@ -175,7 +175,7 @@ func TestAccDataSource_Influx(t *testing.T) {
 
 	var dataSource gapi.DataSource
 
-	dsName := acctest.RandString(10)
+	dsName := acctest.RandomWithPrefix("ds-influx")
 	config := fmt.Sprintf(`
 	resource "grafana_data_source" "influx" {
 		type         = "influxdb"
@@ -277,7 +277,7 @@ func TestAccDatasource_inOrg(t *testing.T) {
 	var datasource gapi.DataSource
 	var org gapi.Org
 
-	orgName := acctest.RandString(10)
+	orgName := acctest.RandomWithPrefix("ds-org")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,

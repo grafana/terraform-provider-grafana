@@ -46,7 +46,7 @@ func testAccResourceOrganizationPreferences(t *testing.T, withUID bool) {
 		WeekStart: "Monday",
 	}
 
-	testRandName := acctest.RandString(10)
+	testRandName := acctest.RandomWithPrefix("org-prefs")
 
 	// In versions < 9.0.0, the home dashboard UID is not returned by the API
 	dashboardCheck := resource.TestMatchResourceAttr("grafana_organization_preferences.test", "home_dashboard_id", common.IDRegexp)

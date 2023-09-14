@@ -18,7 +18,7 @@ import (
 func TestAccGrafanaAuthKey(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	testName := acctest.RandString(10)
+	testName := acctest.RandomWithPrefix("auth-key")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -55,7 +55,7 @@ func TestAccGrafanaAuthKey_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	var org gapi.Org
-	testName := acctest.RandString(10)
+	testName := acctest.RandomWithPrefix("auth-key-org")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,

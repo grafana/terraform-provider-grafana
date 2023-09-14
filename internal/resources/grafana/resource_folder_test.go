@@ -104,7 +104,7 @@ func TestAccFolder_basic(t *testing.T) {
 func TestAccFolder_PreventDeletion(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+	name := acctest.RandomWithPrefix("folder")
 	var folder gapi.Folder
 
 	resource.ParallelTest(t, resource.TestCase{

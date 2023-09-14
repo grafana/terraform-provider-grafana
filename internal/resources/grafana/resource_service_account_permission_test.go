@@ -20,7 +20,7 @@ func TestAccServiceAccountPermission(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 	testutils.CheckOSSTestsSemver(t, ">=9.2.4")
 
-	name := acctest.RandString(10)
+	name := acctest.RandomWithPrefix("sa-permissions")
 
 	var saPermission gapi.ServiceAccountPermission
 	resource.ParallelTest(t, resource.TestCase{

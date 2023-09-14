@@ -17,7 +17,7 @@ func TestRoleAssignments(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 	var roleAssignment gapi.RoleAssignments
 
-	testName := acctest.RandString(10)
+	testName := acctest.RandomWithPrefix("role-assignment")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,

@@ -222,7 +222,7 @@ func TestAccDashboard_inOrg(t *testing.T) {
 	var folder gapi.Folder
 	var org gapi.Org
 
-	orgName := acctest.RandString(10)
+	orgName := acctest.RandomWithPrefix("db-org")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,

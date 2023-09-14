@@ -20,7 +20,7 @@ func TestAccServiceAccount_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
 
-	name := acctest.RandString(10)
+	name := acctest.RandomWithPrefix("sa")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -45,7 +45,7 @@ func TestAccServiceAccount_many(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
 
-	name := acctest.RandString(10)
+	name := acctest.RandomWithPrefix("sa-many")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,

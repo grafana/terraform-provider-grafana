@@ -27,7 +27,7 @@ func TestAccAnnotation_basic(t *testing.T) {
 	var annotation gapi.Annotation
 	var org gapi.Org
 
-	orgName := acctest.RandString(10)
+	orgName := acctest.RandomWithPrefix("annotations")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -125,7 +125,7 @@ func TestAccAnnotation_dashboardUID(t *testing.T) {
 	var annotation gapi.Annotation
 	var org gapi.Org
 
-	orgName := acctest.RandString(10)
+	orgName := acctest.RandomWithPrefix("annotations-db-uid")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,

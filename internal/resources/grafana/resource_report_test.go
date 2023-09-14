@@ -130,7 +130,7 @@ func TestAccResourceReport_InOrg(t *testing.T) {
 
 	var report gapi.Report
 	var org gapi.Org
-	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+	name := acctest.RandomWithPrefix("report-org")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,

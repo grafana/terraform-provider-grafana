@@ -19,8 +19,8 @@ func TestAccTeam_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	var team gapi.Team
-	teamName := acctest.RandString(5)
-	teamNameUpdated := acctest.RandString(5)
+	teamName := acctest.RandomWithPrefix("team")
+	teamNameUpdated := acctest.RandomWithPrefix("team-updated")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -61,8 +61,8 @@ func TestAccTeam_preferences(t *testing.T) {
 	testutils.CheckOSSTestsSemver(t, ">= 9.0.0") // Dashboard UID is only available in Grafana 9.0.0+
 
 	var team gapi.Team
-	teamName := acctest.RandString(5)
-	teamNameUpdated := acctest.RandString(5)
+	teamName := acctest.RandomWithPrefix("team-pref")
+	teamNameUpdated := acctest.RandomWithPrefix("team-pref-updated")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -109,7 +109,7 @@ func TestAccTeam_teamSync(t *testing.T) {
 	testutils.CheckOSSTestsSemver(t, ">= 8.0.0")
 
 	var team gapi.Team
-	teamName := acctest.RandString(5)
+	teamName := acctest.RandomWithPrefix("team-sync")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -171,7 +171,7 @@ func TestAccTeam_Members(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	var team gapi.Team
-	teamName := acctest.RandString(5)
+	teamName := acctest.RandomWithPrefix("team-members")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -240,7 +240,7 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 
 	var team gapi.Team
 	var userID int64 = -1
-	teamName := acctest.RandString(5)
+	teamName := acctest.RandomWithPrefix("team-remove")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -290,7 +290,7 @@ func TestAccResourceTeam_InOrg(t *testing.T) {
 
 	var team gapi.Team
 	var org gapi.Org
-	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+	name := acctest.RandomWithPrefix("team-org")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
