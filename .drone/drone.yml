@@ -203,6 +203,70 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: pipeline
+name: tls proxy tests
+platform:
+  arch: amd64
+  os: linux
+services:
+- environment:
+    GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
+    GF_SERVER_ROOT_URL: http://grafana:3000
+  image: grafana/grafana:10.0.1
+  name: grafana
+steps:
+- commands:
+  - cd /drone/terraform-provider-grafana/testdata && go run . && ls -lah
+  depends_on:
+  - clone
+  image: golang:1.20
+  name: generate certs
+- command:
+  - server
+  - --listen=0.0.0.0:3001
+  - --target=grafana:3000
+  - --unsafe-target
+  - --key=/drone/terraform-provider-grafana/testdata/grafana.key
+  - --cert=/drone/terraform-provider-grafana/testdata/grafana.crt
+  - --cacert=/drone/terraform-provider-grafana/testdata/ca.crt
+  - --allow-cn=client
+  depends_on:
+  - generate certs
+  detach: true
+  image: squareup/ghostunnel:v1.5.2
+  name: mtls-proxy
+- commands:
+  - cp /bin/terraform /drone/terraform-provider-grafana/terraform
+  - chmod a+x /drone/terraform-provider-grafana/terraform
+  depends_on:
+  - generate certs
+  image: hashicorp/terraform
+  name: download-terraform
+- commands:
+  - sleep 5
+  - make testacc-oss
+  depends_on:
+  - generate certs
+  environment:
+    GRAFANA_AUTH: admin:admin
+    GRAFANA_CA_CERT: /drone/terraform-provider-grafana/testdata/ca.crt
+    GRAFANA_TLS_CERT: /drone/terraform-provider-grafana/testdata/client.crt
+    GRAFANA_TLS_KEY: /drone/terraform-provider-grafana/testdata/client.key
+    GRAFANA_URL: https://mtls-proxy:3001
+    GRAFANA_VERSION: 10.0.1
+    TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
+  image: golang:1.20
+  name: tests
+trigger:
+  branch:
+  - master
+  event:
+  - pull_request
+  - push
+type: docker
+workspace:
+  path: /drone/terraform-provider-grafana
+---
+kind: pipeline
 name: 'oss tests: 10.0.1'
 platform:
   arch: amd64
@@ -467,6 +531,6 @@ kind: secret
 name: grafana-sm-token
 ---
 kind: signature
-hmac: 81801e1fc60765938704576fee2d11b1cbd8b2f98d17342c013e526b6da5de38
+hmac: 8b3b69d2646974fbaa2e07c2d895dc94ef715495e61a216ebc7dd67f81bfcf78
 
 ...
