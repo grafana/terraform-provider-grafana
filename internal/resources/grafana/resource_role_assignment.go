@@ -60,8 +60,13 @@ func ResourceRoleAssignment() *schema.Resource {
 				Optional:    true,
 				ForceNew:    false,
 				Description: "IDs of service accounts that the role should be assigned to.",
+				// Ignore the org ID of the team when hashing. It works with or without it.
+				Set: func(i interface{}) int {
+					_, saID := SplitOrgResourceID(i.(string))
+					return schema.HashString(saID)
+				},
 				Elem: &schema.Schema{
-					Type: schema.TypeInt,
+					Type: schema.TypeString,
 				},
 			},
 		},
@@ -100,9 +105,11 @@ func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 		_, teamIDStr := SplitOrgResourceID(t.(string))
 		teams[i], _ = strconv.Atoi(teamIDStr)
 	}
-	serviceAccounts, err := collectRoleAssignmentsToFn(d.Get("service_accounts"))
-	if err != nil {
-		return diag.Errorf("invalid service account IDs specified %v", err)
+	serviceAccountsStrings := d.Get("service_accounts").(*schema.Set).List()
+	serviceAccounts := make([]int, len(serviceAccountsStrings))
+	for i, t := range serviceAccountsStrings {
+		_, saIDStr := SplitOrgResourceID(t.(string))
+		serviceAccounts[i], _ = strconv.Atoi(saIDStr)
 	}
 
 	ra := &gapi.RoleAssignments{
@@ -151,7 +158,11 @@ func setRoleAssignments(assignments *gapi.RoleAssignments, d *schema.ResourceDat
 	if err := d.Set("teams", teams); err != nil {
 		return err
 	}
-	if err := d.Set("service_accounts", assignments.ServiceAccounts); err != nil {
+	serviceAccounts := make([]string, len(assignments.ServiceAccounts))
+	for i, sa := range assignments.ServiceAccounts {
+		serviceAccounts[i] = strconv.Itoa(sa)
+	}
+	if err := d.Set("service_accounts", serviceAccounts); err != nil {
 		return err
 	}
 
