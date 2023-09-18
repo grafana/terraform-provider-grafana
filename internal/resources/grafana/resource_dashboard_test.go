@@ -299,6 +299,9 @@ func testAccDashboardCheckDestroy(dashboard *gapi.Dashboard, orgID int64) resour
 	return func(s *terraform.State) error {
 		// Check that the dashboard was deleted from the default organization
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		if dashboard.Model["uid"] == nil {
+			return fmt.Errorf("dashboard UID should be string, not nil")
+		}
 		dashboard, err := client.DashboardByUID(dashboard.Model["uid"].(string))
 		if dashboard != nil || err == nil {
 			return fmt.Errorf("dashboard still exists")
