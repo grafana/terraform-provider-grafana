@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
@@ -323,7 +322,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			if err != nil {
 				return nil, diag.FromErr(err)
 			}
-			c.GrafanaOAPI, err = createGrafanaOAPIClient(c.GrafanaAPIURL)
+			c.GrafanaOAPI, err = createGrafanaOAPIClient(c.GrafanaAPIURL, d)
 			if err != nil {
 				return nil, diag.FromErr(err)
 			}
@@ -331,7 +330,6 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			if err != nil {
 				return nil, diag.FromErr(err)
 			}
-
 		}
 		if d.Get("cloud_api_key").(string) != "" {
 			c.GrafanaCloudAPI, err = createCloudClient(d)
@@ -359,7 +357,6 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 }
 
 func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Client, error) {
-	auth := strings.SplitN(d.Get("auth").(string), ":", 2)
 	cli := cleanhttp.DefaultClient()
 	transport := cleanhttp.DefaultTransport()
 	transport.TLSClientConfig = &tls.Config{}
@@ -413,25 +410,22 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 
 	apiURL := d.Get("url").(string)
 	cli.Transport = logging.NewSubsystemLoggingHTTPTransport("Grafana", transport)
+
+	userInfo, orgID, apiKey, err := parseAuth(d)
+	if err != nil {
+		return "", nil, nil, err
+	}
+
 	cfg := gapi.Config{
 		Client:     cli,
 		NumRetries: d.Get("retries").(int),
+		BasicAuth:  userInfo,
+		OrgID:      orgID,
+		APIKey:     apiKey,
 	}
+
 	if v, ok := d.GetOk("retry_status_codes"); ok {
 		cfg.RetryStatusCodes = common.SetToStringSlice(v.(*schema.Set))
-	}
-	orgID := 1
-	if v, ok := d.GetOk("org_id"); ok {
-		orgID = v.(int)
-	}
-	if len(auth) == 2 {
-		cfg.BasicAuth = url.UserPassword(auth[0], auth[1])
-		cfg.OrgID = int64(orgID)
-	} else if auth[0] != "anonymous" {
-		if orgID > 1 {
-			return "", nil, nil, fmt.Errorf("org_id is only supported with basic auth. API keys are already org-scoped")
-		}
-		cfg.APIKey = auth[0]
 	}
 
 	if cfg.HTTPHeaders, err = getHTTPHeadersMap(d); err != nil {
@@ -445,15 +439,27 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 	return apiURL, &cfg, gclient, nil
 }
 
-func createGrafanaOAPIClient(apiURL string) (*goapi.GrafanaHTTPAPI, error) {
+func createGrafanaOAPIClient(apiURL string, d *schema.ResourceData) (*goapi.GrafanaHTTPAPI, error) {
 	u, err := url.Parse(apiURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse API url: %v", err.Error())
 	}
-	tr := httptransport.New(u.Host, u.Path, []string{u.Scheme})
-	goapiClient := goapi.New(tr, strfmt.Default)
 
-	return goapiClient, nil
+	userInfo, orgID, APIKey, err := parseAuth(d)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := goapi.TransportConfig{
+		Host:      u.Host,
+		BasePath:  "/api",
+		Schemes:   []string{u.Scheme},
+		BasicAuth: userInfo,
+		OrgID:     orgID,
+		APIKey:    APIKey,
+	}
+
+	return goapi.NewHTTPClientWithConfig(strfmt.Default, &cfg), nil
 }
 
 func createMLClient(url string, grafanaCfg *gapi.Config) (*mlapi.Client, error) {
@@ -564,4 +570,22 @@ func createTempFileIfLiteral(value string) (path string, tempFile bool, err erro
 	}
 
 	return value, false, nil
+}
+
+func parseAuth(d *schema.ResourceData) (*url.Userinfo, int64, string, error) {
+	auth := strings.SplitN(d.Get("auth").(string), ":", 2)
+	orgID := 1
+	if v, ok := d.GetOk("org_id"); ok {
+		orgID = v.(int)
+	}
+
+	if len(auth) == 2 {
+		return url.UserPassword(auth[0], auth[1]), int64(orgID), "", nil
+	} else if auth[0] != "anonymous" {
+		if orgID > 1 {
+			return nil, 0, "", fmt.Errorf("org_id is only supported with basic auth. API keys are already org-scoped")
+		}
+		return nil, 0, auth[0], nil
+	}
+	return nil, 0, "", nil
 }
