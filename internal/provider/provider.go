@@ -359,54 +359,15 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Client, error) {
 	cli := cleanhttp.DefaultClient()
 	transport := cleanhttp.DefaultTransport()
-	transport.TLSClientConfig = &tls.Config{}
 	// limiting the amount of concurrent HTTP connections from the provider
 	// makes it not overload the API and DB
 	transport.MaxConnsPerHost = 2
 
-	// TLS Config
-	tlsKeyFile, tempFile, err := createTempFileIfLiteral(d.Get("tls_key").(string))
+	tlsClientConfig, err := parseTLSconfig(d)
 	if err != nil {
 		return "", nil, nil, err
 	}
-	if tempFile {
-		defer os.Remove(tlsKeyFile)
-	}
-	tlsCertFile, tempFile, err := createTempFileIfLiteral(d.Get("tls_cert").(string))
-	if err != nil {
-		return "", nil, nil, err
-	}
-	if tempFile {
-		defer os.Remove(tlsCertFile)
-	}
-	caCertFile, tempFile, err := createTempFileIfLiteral(d.Get("ca_cert").(string))
-	if err != nil {
-		return "", nil, nil, err
-	}
-	if tempFile {
-		defer os.Remove(caCertFile)
-	}
-
-	insecure := d.Get("insecure_skip_verify").(bool)
-	if caCertFile != "" {
-		ca, err := os.ReadFile(caCertFile)
-		if err != nil {
-			return "", nil, nil, err
-		}
-		pool := x509.NewCertPool()
-		pool.AppendCertsFromPEM(ca)
-		transport.TLSClientConfig.RootCAs = pool
-	}
-	if tlsKeyFile != "" && tlsCertFile != "" {
-		cert, err := tls.LoadX509KeyPair(tlsCertFile, tlsKeyFile)
-		if err != nil {
-			return "", nil, nil, err
-		}
-		transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
-	}
-	if insecure {
-		transport.TLSClientConfig.InsecureSkipVerify = true
-	}
+	transport.TLSClientConfig = tlsClientConfig
 
 	apiURL := d.Get("url").(string)
 	cli.Transport = logging.NewSubsystemLoggingHTTPTransport("Grafana", transport)
@@ -440,6 +401,11 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 }
 
 func createGrafanaOAPIClient(apiURL string, d *schema.ResourceData) (*goapi.GrafanaHTTPAPI, error) {
+	tlsClientConfig, err := parseTLSconfig(d)
+	if err != nil {
+		return nil, err
+	}
+
 	u, err := url.Parse(apiURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse API url: %v", err.Error())
@@ -454,6 +420,7 @@ func createGrafanaOAPIClient(apiURL string, d *schema.ResourceData) (*goapi.Graf
 		Host:      u.Host,
 		BasePath:  "/api",
 		Schemes:   []string{u.Scheme},
+		TLSConfig: tlsClientConfig,
 		BasicAuth: userInfo,
 		OrgID:     orgID,
 		APIKey:    APIKey,
@@ -588,4 +555,53 @@ func parseAuth(d *schema.ResourceData) (*url.Userinfo, int64, string, error) {
 		return nil, 0, auth[0], nil
 	}
 	return nil, 0, "", nil
+}
+
+func parseTLSconfig(d *schema.ResourceData) (*tls.Config, error) {
+	tlsClientConfig := &tls.Config{}
+
+	tlsKeyFile, tempFile, err := createTempFileIfLiteral(d.Get("tls_key").(string))
+	if err != nil {
+		return nil, err
+	}
+	if tempFile {
+		defer os.Remove(tlsKeyFile)
+	}
+	tlsCertFile, tempFile, err := createTempFileIfLiteral(d.Get("tls_cert").(string))
+	if err != nil {
+		return nil, err
+	}
+	if tempFile {
+		defer os.Remove(tlsCertFile)
+	}
+	caCertFile, tempFile, err := createTempFileIfLiteral(d.Get("ca_cert").(string))
+	if err != nil {
+		return nil, err
+	}
+	if tempFile {
+		defer os.Remove(caCertFile)
+	}
+
+	insecure := d.Get("insecure_skip_verify").(bool)
+	if caCertFile != "" {
+		ca, err := os.ReadFile(caCertFile)
+		if err != nil {
+			return nil, err
+		}
+		pool := x509.NewCertPool()
+		pool.AppendCertsFromPEM(ca)
+		tlsClientConfig.RootCAs = pool
+	}
+	if tlsKeyFile != "" && tlsCertFile != "" {
+		cert, err := tls.LoadX509KeyPair(tlsCertFile, tlsKeyFile)
+		if err != nil {
+			return nil, err
+		}
+		tlsClientConfig.Certificates = []tls.Certificate{cert}
+	}
+	if insecure {
+		tlsClientConfig.InsecureSkipVerify = true
+	}
+
+	return tlsClientConfig, nil
 }
