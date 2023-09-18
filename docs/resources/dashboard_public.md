@@ -4,7 +4,7 @@ page_title: "grafana_dashboard_public Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
   Manages Grafana public dashboards.
-  Official documentation https://grafana.com/docs/grafana/latest/dashboards/dashboard-public/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/dashboard_public/
+  Official documentation https://grafana.com/docs/grafana/latest/dashboards/dashboard-public/HTTP API https://grafana.com/docs/grafana/next/developers/http_api/dashboard_public/
 ---
 
 # grafana_dashboard_public (Resource)
@@ -12,27 +12,62 @@ description: |-
 Manages Grafana public dashboards.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/dashboard-public/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard_public/)
+* [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/dashboard_public/)
 
 ## Example Usage
 
 ```terraform
-resource "grafana_dashboard" "my_dashboard" {
+// Optional (On-premise, not supported in Grafana Cloud): Create an organization
+resource "grafana_organization" "my_org" {
+  name = "test 1"
+}
+
+// Create resources (optional: within the organization)
+resource "grafana_folder" "my_folder" {
+  org_id = grafana_organization.my_org.org_id
+  title  = "test Folder"
+}
+
+resource "grafana_dashboard" "test_dash" {
+  org_id = grafana_organization.my_org.org_id
+  folder = grafana_folder.my_folder.id
   config_json = jsonencode({
     "title" : "My Terraform Dashboard",
     "uid" : "my-dashboard-uid"
   })
 }
+
 resource "grafana_dashboard_public" "my_public_dashboard" {
-  dashboard_uid = grafana_dashboard.my_dashboard.uid
+  org_id = grafana_organization.my_org.org_id
+  dashboard_uid = grafana_dashboard.test_dash.uid
 
   uid          = "my-custom-public-uid"
   access_token = "e99e4275da6f410d83760eefa934d8d2"
 
   time_selection_enabled = true
-  is_enabled             = true
-  annotations_enabled    = true
-  share                  = "public"
+  is_enabled = true
+  annotations_enabled = true
+  share = "public"
+}
+
+// Optional (On-premise, not supported in Grafana Cloud): Create an organization
+resource "grafana_organization" "my_org2" {
+  name = "test 2"
+}
+
+resource "grafana_dashboard" "test_dash2" {
+  org_id = grafana_organization.my_org2.org_id
+  config_json = jsonencode({
+    "title" : "My Terraform Dashboard2",
+    "uid" : "my-dashboard-uid2"
+  })
+}
+
+resource "grafana_dashboard_public" "my_public_dashboard2" {
+  org_id = grafana_organization.my_org2.org_id
+  dashboard_uid = grafana_dashboard.test_dash2.uid
+
+  share = "public"
 }
 ```
 
@@ -48,6 +83,7 @@ resource "grafana_dashboard_public" "my_public_dashboard" {
 - `access_token` (String) A public unique identifier of a public dashboard. This is used to construct its URL. It's automatically generated if not provided when creating a public dashboard.
 - `annotations_enabled` (Boolean) Set to `true` to show annotations. The default value is `false`.
 - `is_enabled` (Boolean) Set to `true` to enable the public dashboard. The default value is `false`.
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `share` (String) Set the share mode. The default value is `public`.
 - `time_selection_enabled` (Boolean) Set to `true` to enable the time picker in the public dashboard. The default value is `false`.
 - `uid` (String) The unique identifier of a public dashboard. It's automatically generated if not provided when creating a public dashboard.
@@ -61,5 +97,6 @@ resource "grafana_dashboard_public" "my_public_dashboard" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_dashboard_public.dashboard_name {{dashboard_uid}}:{{public_dashboard_uid}}
+terraform import grafana_dashboard_public.dashboard_name {{dashboard_uid}}:{{public_dashboard_uid}} # To use the default provider org
+terraform import grafana_dashboard_public.dashboard_name {org_id}}:{{dashboard_uid}}:{{public_dashboard_uid}} # To use the default provider org
 ```

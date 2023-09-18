@@ -29,10 +29,24 @@ func TestAccPublicDashboard_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_dashboard_public.my_public_dashboard", "share", "public"),
 					resource.TestCheckResourceAttr("grafana_dashboard_public.my_public_dashboard", "time_selection_enabled", "true"),
 					resource.TestCheckResourceAttr("grafana_dashboard_public.my_public_dashboard", "annotations_enabled", "true"),
+					checkResourceIsInOrg("grafana_dashboard_public.my_public_dashboard", "grafana_organization.my_org"),
+
+					// my_public_dashboard2 belong to a different org_id
+					checkResourceIsInOrg("grafana_dashboard_public.my_public_dashboard2", "grafana_organization.my_org2"),
+					resource.TestCheckResourceAttr("grafana_dashboard_public.my_public_dashboard2", "dashboard_uid", "my-dashboard-uid2"),
+					resource.TestCheckResourceAttr("grafana_dashboard_public.my_public_dashboard2", "is_enabled", "false"),
+					resource.TestCheckResourceAttr("grafana_dashboard_public.my_public_dashboard2", "share", "public"),
+					resource.TestCheckResourceAttr("grafana_dashboard_public.my_public_dashboard2", "time_selection_enabled", "false"),
+					resource.TestCheckResourceAttr("grafana_dashboard_public.my_public_dashboard2", "annotations_enabled", "false"),
 				),
 			},
 			{
 				ResourceName:      "grafana_dashboard_public.my_public_dashboard",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				ResourceName:      "grafana_dashboard_public.my_public_dashboard2",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -51,9 +65,9 @@ func testAccPublicDashboardCheckExistsUID(rn string) resource.TestCheckFunc {
 			return fmt.Errorf("Resource id not set")
 		}
 
-		dashboardUID, _ := grafana.SplitPublicDashboardID(rs.Primary.ID)
+		orgID, dashboardUID, _ := grafana.SplitPublicDashboardID(rs.Primary.ID)
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
 		pd, err := client.PublicDashboardbyUID(dashboardUID)
 		if pd == nil || err != nil {
 			return fmt.Errorf("Error getting public dashboard: %s", err)

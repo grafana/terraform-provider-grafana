@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -18,7 +19,7 @@ func ResourcePublicDashboard() *schema.Resource {
 Manages Grafana public dashboards.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/dashboard-public/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard_public/)
+* [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/dashboard_public/)
 `,
 
 		CreateContext: CreatePublicDashboard,
@@ -30,6 +31,7 @@ Manages Grafana public dashboards.
 		},
 
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"uid": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -74,35 +76,35 @@ Manages Grafana public dashboards.
 }
 
 func CreatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID := ClientFromNewOrgResource(meta, d)
 	dashboardUID := d.Get("dashboard_uid").(string)
 
-	publicDashboard := makePublicDashboard(d)
-	resp, err := client.NewPublicDashboard(dashboardUID, publicDashboard)
+	publicDashboardPayload := makePublicDashboard(d)
+	pd, err := client.NewPublicDashboard(dashboardUID, publicDashboardPayload)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(fmt.Sprintf("%s:%s", resp.DashboardUID, resp.UID))
+	d.SetId(fmt.Sprintf("%d:%s:%s", orgID, pd.DashboardUID, pd.UID))
 	return ReadPublicDashboard(ctx, d, meta)
 }
 func UpdatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	dashboardUID, publicDashboardUID := SplitPublicDashboardID(d.Id())
+	orgID, dashboardUID, publicDashboardUID := SplitPublicDashboardID(d.Id())
+	client := meta.(*common.Client).GrafanaAPI.WithOrgID(orgID)
 
 	publicDashboard := makePublicDashboard(d)
-	dashboard, err := client.UpdatePublicDashboard(dashboardUID, publicDashboardUID, publicDashboard)
+	pd, err := client.UpdatePublicDashboard(dashboardUID, publicDashboardUID, publicDashboard)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(fmt.Sprintf("%s:%s", dashboard.DashboardUID, dashboard.UID))
+	d.SetId(fmt.Sprintf("%d:%s:%s", orgID, pd.DashboardUID, pd.UID))
 	return ReadPublicDashboard(ctx, d, meta)
 }
 
 func DeletePublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	dashboardUID, publicDashboardUID := SplitPublicDashboardID(d.Id())
+	orgID, dashboardUID, publicDashboardUID := SplitPublicDashboardID(d.Id())
+	client := meta.(*common.Client).GrafanaAPI.WithOrgID(orgID)
 	return diag.FromErr(client.DeletePublicDashboard(dashboardUID, publicDashboardUID))
 }
 
@@ -118,27 +120,30 @@ func makePublicDashboard(d *schema.ResourceData) gapi.PublicDashboardPayload {
 }
 
 func ReadPublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	dashboardUID, _ := SplitPublicDashboardID(d.Id())
-	dashboard, err := client.PublicDashboardbyUID(dashboardUID)
+	orgID, dashboardUID, _ := SplitPublicDashboardID(d.Id())
+	client := meta.(*common.Client).GrafanaAPI.WithOrgID(orgID)
+	pd, err := client.PublicDashboardbyUID(dashboardUID)
 	if err, shouldReturn := common.CheckReadError("dashboard", d, err); shouldReturn {
 		return err
 	}
 
-	d.SetId(fmt.Sprintf("%s:%s", dashboard.DashboardUID, dashboard.UID))
+	d.Set("org_id", strconv.FormatInt(orgID, 10))
 
-	d.Set("uid", dashboard.UID)
-	d.Set("dashboard_uid", dashboard.DashboardUID)
-	d.Set("access_token", dashboard.AccessToken)
-	d.Set("time_selection_enabled", dashboard.TimeSelectionEnabled)
-	d.Set("is_enabled", dashboard.IsEnabled)
-	d.Set("annotations_enabled", dashboard.AnnotationsEnabled)
-	d.Set("share", dashboard.Share)
+	d.Set("uid", pd.UID)
+	d.Set("dashboard_uid", pd.DashboardUID)
+	d.Set("access_token", pd.AccessToken)
+	d.Set("time_selection_enabled", pd.TimeSelectionEnabled)
+	d.Set("is_enabled", pd.IsEnabled)
+	d.Set("annotations_enabled", pd.AnnotationsEnabled)
+	d.Set("share", pd.Share)
+
+	d.SetId(fmt.Sprintf("%d:%s:%s", orgID, pd.DashboardUID, pd.UID))
 
 	return nil
 }
 
-func SplitPublicDashboardID(id string) (string, string) {
-	d, pd, _ := strings.Cut(id, ":")
-	return d, pd
+func SplitPublicDashboardID(id string) (int64, string, string) {
+	ids := strings.Split(id, ":")
+	orgID, _ := strconv.ParseInt(ids[0], 10, 64)
+	return orgID, ids[1], ids[2]
 }
