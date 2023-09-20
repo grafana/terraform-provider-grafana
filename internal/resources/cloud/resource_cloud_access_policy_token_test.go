@@ -30,6 +30,7 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 		"accesspolicies:read",
 		"accesspolicies:write",
 		"accesspolicies:delete",
+		"datadog:validate",
 	}
 	updatedScopes := []string{
 		"metrics:write",
