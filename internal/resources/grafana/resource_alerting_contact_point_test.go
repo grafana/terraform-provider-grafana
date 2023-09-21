@@ -186,6 +186,11 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.rest_proxy_url", "http://kafka-rest-proxy-url"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.topic", "mytopic"),
+					// oncall
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "oncall.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "oncall.0.url", "http://oncall-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "oncall.0.message", "message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "oncall.0.title", "title"),
 					// opsgenie
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.url", "http://opsgenie-api"),

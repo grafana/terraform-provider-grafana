@@ -30,6 +30,7 @@ var notifiers = []notifier{
 	victorOpsNotifier{},
 	webhookNotifier{},
 	wecomNotifier{},
+	oncallNotifier{},
 }
 
 func ResourceContactPoint() *schema.Resource {

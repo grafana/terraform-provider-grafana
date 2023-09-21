@@ -477,6 +477,70 @@ func (k kafkaNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	}
 }
 
+type oncallNotifier struct{}
+
+var _ notifier = (*oncallNotifier)(nil)
+
+func (w oncallNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:        "oncall",
+		typeStr:      "oncall",
+		desc:         "A contact point that sends notifications to Grafana OnCall.",
+		secureFields: []string{"url"},
+	}
+}
+
+func (w oncallNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Sensitive:   true,
+		Description: "The OnCall webhook URL.",
+	}
+	r.Schema["message"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated content of the message to send.",
+	}
+	r.Schema["title"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated title of the message to send.",
+	}
+	return r
+}
+
+func (w oncallNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(&p)
+
+	packNotifierStringField(&p.Settings, &notifier, "url", "url")
+	packNotifierStringField(&p.Settings, &notifier, "message", "message")
+	packNotifierStringField(&p.Settings, &notifier, "title", "title")
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, w, p.UID), w.meta().secureFields)
+
+	notifier["settings"] = packSettings(&p)
+	return notifier, nil
+}
+
+func (w oncallNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	unpackNotifierStringField(&json, &settings, "url", "url")
+	unpackNotifierStringField(&json, &settings, "message", "message")
+	unpackNotifierStringField(&json, &settings, "title", "title")
+
+	return gapi.ContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  w.meta().typeStr,
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}
+
 type opsGenieNotifier struct{}
 
 var _ notifier = (*opsGenieNotifier)(nil)
