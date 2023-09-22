@@ -433,13 +433,14 @@ func createGrafanaOAPIClient(apiURL string, d *schema.ResourceData) (*goapi.Graf
 	}
 
 	cfg := goapi.TransportConfig{
-		Host:      u.Host,
-		BasePath:  "/api",
-		Schemes:   []string{u.Scheme},
-		TLSConfig: tlsClientConfig,
-		BasicAuth: userInfo,
-		OrgID:     orgID,
-		APIKey:    APIKey,
+		Host:       u.Host,
+		BasePath:   "/api",
+		Schemes:    []string{u.Scheme},
+		NumRetries: d.Get("retries").(int),
+		TLSConfig:  tlsClientConfig,
+		BasicAuth:  userInfo,
+		OrgID:      orgID,
+		APIKey:     APIKey,
 	}
 
 	return goapi.NewHTTPClientWithConfig(strfmt.Default, &cfg), nil
