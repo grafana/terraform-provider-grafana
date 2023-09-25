@@ -17,7 +17,7 @@ var cloudAPIKeyRoles = []string{"Viewer", "Editor", "Admin", "MetricsPublisher",
 func ResourceAPIKey() *schema.Resource {
 	return &schema.Resource{
 		Description: `Manages a single API key on the Grafana Cloud portal (on the organization level)
-* [API documentation](https://grafana.com/docs/grafana-cloud/reference/cloud-api/#api-keys)
+* [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#api-keys)
 `,
 		CreateContext: ResourceAPIKeyCreate,
 		ReadContext:   ResourceAPIKeyRead,
