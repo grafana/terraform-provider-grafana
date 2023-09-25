@@ -26,7 +26,7 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 				Config: testAccDashboardPermissionConfig_Basic,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccDashboardPermissionsCheckExistsUID("grafana_dashboard_permission.testPermission", &dashboardUID),
-					resource.TestCheckResourceAttr("grafana_dashboard_permission.testPermission", "permissions.#", "4"),
+					resource.TestCheckResourceAttr("grafana_dashboard_permission.testPermission", "permissions.#", "5"),
 				),
 			},
 			{
@@ -159,6 +159,11 @@ resource "grafana_user" "testAdminUser" {
   password = "zyx987"
 }
 
+resource "grafana_service_account" "test" {
+	name        = "terraform-test-service-account-dashboard-perms"
+	role 	    = "Editor"
+}
+
 resource "grafana_dashboard_permission" "testPermission" {
   dashboard_uid = grafana_dashboard.testDashboard.uid
   permissions {
@@ -176,6 +181,10 @@ resource "grafana_dashboard_permission" "testPermission" {
   permissions {
     user_id    = grafana_user.testAdminUser.id
     permission = "Admin"
+  }
+  permissions {
+	user_id    = grafana_service_account.test.id
+	permission = "Admin"
   }
 }
 `

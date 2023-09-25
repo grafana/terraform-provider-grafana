@@ -13,6 +13,7 @@ import (
 
 func TestAccFolderPermission_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.0.0") // Folder permissions only work for service accounts in Grafana 9+, so we're just not testing versions before 9.
 
 	folderUID := "uninitialized"
 
@@ -24,7 +25,7 @@ func TestAccFolderPermission_basic(t *testing.T) {
 				Config: testAccFolderPermissionConfig_Basic,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccFolderPermissionsCheckExists("grafana_folder_permission.testPermission", &folderUID),
-					resource.TestCheckResourceAttr("grafana_folder_permission.testPermission", "permissions.#", "4"),
+					resource.TestCheckResourceAttr("grafana_folder_permission.testPermission", "permissions.#", "5"),
 				),
 			},
 			{
@@ -100,6 +101,12 @@ resource "grafana_user" "testAdminUser" {
   password = "zyx987"
 }
 
+resource "grafana_service_account" "test" {
+	name        = "terraform-test-service-account-folder-perms"
+	role        = "Editor"
+	is_disabled = false
+}
+
 resource "grafana_folder_permission" "testPermission" {
   folder_uid = grafana_folder.testFolder.uid
   permissions {
@@ -117,6 +124,10 @@ resource "grafana_folder_permission" "testPermission" {
   permissions {
     user_id    = grafana_user.testAdminUser.id
     permission = "Admin"
+  }
+  permissions {
+	user_id    = grafana_service_account.test.id
+	permission = "Admin"
   }
 }
 `

@@ -37,11 +37,12 @@ func ResourceDatasourcePermission() *schema.Resource {
 				Type:        schema.TypeSet,
 				Required:    true,
 				Description: "The permission items to add/update. Items that are omitted from the list will be removed.",
-				// Ignore the org ID of the team when hashing. It works with or without it.
+				// Ignore the org ID of the team/SA when hashing. It works with or without it.
 				Set: func(i interface{}) int {
 					m := i.(map[string]interface{})
 					_, teamID := SplitOrgResourceID(m["team_id"].(string))
-					return schema.HashString(m["built_in_role"].(string) + teamID + strconv.Itoa(m["user_id"].(int)) + m["permission"].(string))
+					_, userID := SplitOrgResourceID((m["user_id"].(string)))
+					return schema.HashString(m["built_in_role"].(string) + teamID + userID + m["permission"].(string))
 				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -52,10 +53,10 @@ func ResourceDatasourcePermission() *schema.Resource {
 							Description: "ID of the team to manage permissions for.",
 						},
 						"user_id": {
-							Type:        schema.TypeInt,
+							Type:        schema.TypeString,
 							Optional:    true,
-							Default:     0,
-							Description: "ID of the user to manage permissions for.",
+							Default:     "0",
+							Description: "ID of the user or service account to manage permissions for.",
 						},
 						"built_in_role": {
 							Type:         schema.TypeString,
@@ -97,8 +98,10 @@ func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 		if teamID > 0 {
 			permissionItem.TeamID = teamID
 		}
-		if permission["user_id"].(int) != -1 {
-			permissionItem.UserID = int64(permission["user_id"].(int))
+		_, userIDStr := SplitOrgResourceID(permission["user_id"].(string))
+		userID, _ := strconv.ParseInt(userIDStr, 10, 64)
+		if userID > 0 {
+			permissionItem.UserID = userID
 		}
 		if permission["built_in_role"].(string) != "" {
 			permissionItem.BuiltInRole = permission["built_in_role"].(string)
@@ -137,7 +140,7 @@ func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta
 		permissionItem := make(map[string]interface{})
 		permissionItem["built_in_role"] = permission.BuiltInRole
 		permissionItem["team_id"] = strconv.FormatInt(permission.TeamID, 10)
-		permissionItem["user_id"] = permission.UserID
+		permissionItem["user_id"] = strconv.FormatInt(permission.UserID, 10)
 
 		if permissionItem["permission"], err = mapDatasourcePermissionTypeToString(permission.Permission); err != nil {
 			return diag.FromErr(err)
