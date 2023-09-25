@@ -28,7 +28,7 @@ func ResourceStack() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
-* [Official documentation](https://grafana.com/docs/grafana-cloud/reference/cloud-api/#stacks/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#stacks/)
 `,
 
 		CreateContext: CreateStack,

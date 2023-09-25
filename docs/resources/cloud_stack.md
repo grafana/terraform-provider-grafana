@@ -3,12 +3,12 @@
 page_title: "grafana_cloud_stack Resource - terraform-provider-grafana"
 subcategory: "Cloud"
 description: |-
-  Official documentation https://grafana.com/docs/grafana-cloud/reference/cloud-api/#stacks/
+  Official documentation https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#stacks/
 ---
 
 # grafana_cloud_stack (Resource)
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/reference/cloud-api/#stacks/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#stacks/)
 
 ## Example Usage
 

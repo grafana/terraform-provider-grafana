@@ -214,7 +214,7 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 - `retries` (Number) The amount of retries to use for Grafana API and Grafana Cloud API calls. May alternatively be set via the `GRAFANA_RETRIES` environment variable.
 - `retry_status_codes` (Set of String) The status codes to retry on for Grafana API and Grafana Cloud API calls. Use `x` as a digit wildcard. Defaults to 429 and 5xx. May alternatively be set via the `GRAFANA_RETRY_STATUS_CODES` environment variable.
 - `sm_access_token` (String, Sensitive) A Synthetic Monitoring access token. May alternatively be set via the `GRAFANA_SM_ACCESS_TOKEN` environment variable.
-- `sm_url` (String) Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable. The correct value for each service region is cited in the [Synthetic Monitoring documentation](https://grafana.com/docs/grafana-cloud/synthetic-monitoring/private-probes/#probe-api-server-url). Note the `sm_url` value is optional, but it must correspond with the value specified as the `region_slug` in the `grafana_cloud_stack` resource. Also note that when a Terraform configuration contains multiple provider instances managing SM resources associated with the same Grafana stack, specifying an explicit `sm_url` set to the same value for each provider ensures all providers interact with the same SM API.
+- `sm_url` (String) Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable. The correct value for each service region is cited in the [Synthetic Monitoring documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/private-probes/#probe-api-server-url). Note the `sm_url` value is optional, but it must correspond with the value specified as the `region_slug` in the `grafana_cloud_stack` resource. Also note that when a Terraform configuration contains multiple provider instances managing SM resources associated with the same Grafana stack, specifying an explicit `sm_url` set to the same value for each provider ensures all providers interact with the same SM API.
 - `store_dashboard_sha256` (Boolean) Set to true if you want to save only the sha256sum instead of complete dashboard model JSON in the tfstate.
 - `tls_cert` (String) Client TLS certificate (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.
 - `tls_key` (String) Client TLS key (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.
@@ -231,11 +231,11 @@ This can be a Grafana API key, basic auth `username:password`, or a
 
 ### `cloud_api_key`
 
-An API key created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/reference/create-api-key/).
+An API key created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/create-api-key/).
 
 ### `sm_access_token`
 
-[Synthetic Monitoring](https://grafana.com/docs/grafana-cloud/synthetic-monitoring/)
+[Synthetic Monitoring](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/)
 endpoints require a dedicated access token. You may obtain an access token with its
 [Registration API](https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#registration-api).
 
@@ -249,7 +249,7 @@ curl \
 ```
 
 `GRAFANA_CLOUD_API_KEY` is an API key created on the
-[Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/reference/create-api-key/).
+[Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/create-api-key/).
 It must have the `MetricsPublisher` role.
 
 `SM_API_URL` is the URL of the Synthetic Monitoring API.

@@ -17,7 +17,7 @@ func ResourceAccessPolicyToken() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
-* [Official documentation](https://grafana.com/docs/grafana-cloud/authentication-and-permissions/access-policies/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/reference/cloud-api/#create-a-token)
 `,
 

@@ -51,7 +51,7 @@ to the team. Note: users specified here must already exist in Grafana.
 - `team_id` (Number) The team id assigned to this team by Grafana.
 - `team_sync` (List of Object) Sync external auth provider groups with this Grafana team. Only available in Grafana Enterprise.
 	* [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/)
-	* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/external_group_sync/) (see [below for nested schema](#nestedatt--team_sync))
+	* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team_sync/) (see [below for nested schema](#nestedatt--team_sync))
 
 <a id="nestedatt--preferences"></a>
 ### Nested Schema for `preferences`

@@ -18,7 +18,7 @@ func ResourceAccessPolicy() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
-* [Official documentation](https://grafana.com/docs/grafana-cloud/authentication-and-permissions/access-policies/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/reference/cloud-api/#create-an-access-policy)
 `,
 
@@ -58,7 +58,7 @@ func ResourceAccessPolicy() *schema.Resource {
 			"scopes": {
 				Type:        schema.TypeSet,
 				Required:    true,
-				Description: "Scopes of the access policy. See https://grafana.com/docs/grafana-cloud/authentication-and-permissions/access-policies/#scopes for possible values.",
+				Description: "Scopes of the access policy. See https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/#scopes for possible values.",
 				Elem: &schema.Schema{
 					Type:             schema.TypeString,
 					ValidateDiagFunc: validateCloudAccessPolicyScope,
