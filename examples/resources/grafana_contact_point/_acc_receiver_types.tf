@@ -147,4 +147,10 @@ resource "grafana_contact_point" "receiver_types" {
     message = "message"
     title   = "title"
   }
+
+  oncall {
+    url     = "http://oncall-url"
+    message = "message"
+    title   = "title"
+  }
 }
