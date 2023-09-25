@@ -24,7 +24,7 @@ func TestAccDatasourcePermission_basic(t *testing.T) {
 				Config: testutils.TestAccExample(t, "resources/grafana_data_source_permission/resource.tf"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccDatasourcePermissionsCheckExists("grafana_data_source_permission.fooPermissions", &datasourceID),
-					resource.TestCheckResourceAttr("grafana_data_source_permission.fooPermissions", "permissions.#", "3"),
+					resource.TestCheckResourceAttr("grafana_data_source_permission.fooPermissions", "permissions.#", "4"),
 				),
 			},
 			{
@@ -35,7 +35,6 @@ func TestAccDatasourcePermission_basic(t *testing.T) {
 	})
 }
 
-//nolint:unused
 func testAccDatasourcePermissionsCheckExists(rn string, datasourceID *int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
@@ -66,7 +65,6 @@ func testAccDatasourcePermissionsCheckExists(rn string, datasourceID *int64) res
 	}
 }
 
-//nolint:unused
 func testAccDatasourcePermissionCheckDestroy(datasourceID *int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI

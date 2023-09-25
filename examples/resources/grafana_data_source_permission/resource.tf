@@ -24,6 +24,11 @@ resource "grafana_user" "user" {
   password = "hunter2"
 }
 
+resource "grafana_service_account" "sa" {
+  name = "test-ds-permissions"
+  role = "Viewer"
+}
+
 resource "grafana_data_source_permission" "fooPermissions" {
   datasource_id = grafana_data_source.foo.id
   permissions {
@@ -37,5 +42,9 @@ resource "grafana_data_source_permission" "fooPermissions" {
   permissions {
     built_in_role = "Viewer"
     permission    = "Query"
+  }
+  permissions {
+    user_id    = grafana_service_account.sa.id
+    permission = "Query"
   }
 }
