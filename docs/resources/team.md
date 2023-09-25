@@ -42,7 +42,7 @@ to the team. Note: users specified here must already exist in Grafana.
 - `preferences` (Block List, Max: 1) (see [below for nested schema](#nestedblock--preferences))
 - `team_sync` (Block List, Max: 1) Sync external auth provider groups with this Grafana team. Only available in Grafana Enterprise.
 	* [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/)
-	* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/external_group_sync/) (see [below for nested schema](#nestedblock--team_sync))
+	* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team_sync/) (see [below for nested schema](#nestedblock--team_sync))
 
 ### Read-Only
 

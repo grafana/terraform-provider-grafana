@@ -3,13 +3,13 @@
 page_title: "grafana_cloud_access_policy_token Resource - terraform-provider-grafana"
 subcategory: "Cloud"
 description: |-
-  Official documentation https://grafana.com/docs/grafana-cloud/authentication-and-permissions/access-policies/API documentation https://grafana.com/docs/grafana-cloud/reference/cloud-api/#create-a-token
+  Official documentation https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/API documentation https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#create-a-token
 ---
 
 # grafana_cloud_access_policy_token (Resource)
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/authentication-and-permissions/access-policies/)
-* [API documentation](https://grafana.com/docs/grafana-cloud/reference/cloud-api/#create-a-token)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/)
+* [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#create-a-token)
 
 ## Example Usage
 
@@ -51,7 +51,7 @@ resource "grafana_cloud_access_policy_token" "test" {
 
 - `access_policy_id` (String) ID of the access policy for which to create a token.
 - `name` (String) Name of the access policy token.
-- `region` (String) Region of the access policy. Should be set to the same region as the access policy. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/reference/cloud-api/#list-regions.
+- `region` (String) Region of the access policy. Should be set to the same region as the access policy. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.
 
 ### Optional
 
