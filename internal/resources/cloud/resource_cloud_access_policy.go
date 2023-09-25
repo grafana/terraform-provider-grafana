@@ -19,7 +19,7 @@ func ResourceAccessPolicy() *schema.Resource {
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/)
-* [API documentation](https://grafana.com/docs/grafana-cloud/reference/cloud-api/#create-an-access-policy)
+* [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#create-an-access-policy)
 `,
 
 		CreateContext: CreateCloudAccessPolicy,
