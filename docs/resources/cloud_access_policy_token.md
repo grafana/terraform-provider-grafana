@@ -3,13 +3,13 @@
 page_title: "grafana_cloud_access_policy_token Resource - terraform-provider-grafana"
 subcategory: "Cloud"
 description: |-
-  Official documentation https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/API documentation https://grafana.com/docs/grafana-cloud/reference/cloud-api/#create-a-token
+  Official documentation https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/API documentation https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#create-a-token
 ---
 
 # grafana_cloud_access_policy_token (Resource)
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/)
-* [API documentation](https://grafana.com/docs/grafana-cloud/reference/cloud-api/#create-a-token)
+* [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#create-a-token)
 
 ## Example Usage
 
