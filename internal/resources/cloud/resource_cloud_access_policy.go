@@ -18,8 +18,8 @@ func ResourceAccessPolicy() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
-* [Official documentation](https://grafana.com/docs/grafana-cloud/authentication-and-permissions/access-policies/)
-* [API documentation](https://grafana.com/docs/grafana-cloud/reference/cloud-api/#create-an-access-policy)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/)
+* [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#create-an-access-policy)
 `,
 
 		CreateContext: CreateCloudAccessPolicy,
@@ -36,7 +36,7 @@ func ResourceAccessPolicy() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "Region where the API is deployed. Generally where the stack is deployed. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/reference/cloud-api/#list-regions.",
+				Description: "Region where the API is deployed. Generally where the stack is deployed. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.",
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -58,7 +58,7 @@ func ResourceAccessPolicy() *schema.Resource {
 			"scopes": {
 				Type:        schema.TypeSet,
 				Required:    true,
-				Description: "Scopes of the access policy. See https://grafana.com/docs/grafana-cloud/authentication-and-permissions/access-policies/#scopes for possible values.",
+				Description: "Scopes of the access policy. See https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/#scopes for possible values.",
 				Elem: &schema.Schema{
 					Type:             schema.TypeString,
 					ValidateDiagFunc: validateCloudAccessPolicyScope,
@@ -192,17 +192,10 @@ func DeleteCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func validateCloudAccessPolicyScope(v interface{}, path cty.Path) diag.Diagnostics {
-	_, permission, found := strings.Cut(v.(string), ":")
-	if !found || strings.ContainsRune(permission, ':') {
+	if strings.Count(v.(string), ":") != 1 {
 		return diag.Errorf("invalid scope: %s. Should be in the `service:permission` format", v.(string))
 	}
 
-	// Validate permission
-	switch permission {
-	case "read", "write", "delete":
-	default:
-		return diag.Errorf("invalid scope: %s. Permission should be one of `read`, `write`, `delete`", v.(string))
-	}
 	return nil
 }
 

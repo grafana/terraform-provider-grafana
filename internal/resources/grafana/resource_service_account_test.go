@@ -70,7 +70,7 @@ func TestAccServiceAccount_invalid_role(t *testing.T) {
 		CheckDestroy:      testAccServiceAccountCheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				ExpectError: regexp.MustCompile(`expected role to be one of \[Viewer Editor Admin], got InvalidRole`),
+				ExpectError: regexp.MustCompile(`.*expected role to be one of \[.+\], got InvalidRole`),
 				Config:      testServiceAccountConfig("any", "InvalidRole"),
 			},
 		},

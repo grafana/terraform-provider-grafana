@@ -17,6 +17,13 @@ resource "grafana_data_source" "foo" {
   })
 }
 
+resource "grafana_user" "user" {
+  name     = "test-ds-permissions"
+  email    = "test-ds-permissions@example.com"
+  login    = "test-ds-permissions"
+  password = "hunter2"
+}
+
 resource "grafana_data_source_permission" "fooPermissions" {
   datasource_id = grafana_data_source.foo.id
   permissions {
@@ -24,7 +31,7 @@ resource "grafana_data_source_permission" "fooPermissions" {
     permission = "Query"
   }
   permissions {
-    user_id    = 3 // 3 is the admin user in cloud. It can't be queried
+    user_id    = grafana_user.user.id
     permission = "Edit"
   }
   permissions {

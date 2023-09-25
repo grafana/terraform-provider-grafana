@@ -4,13 +4,13 @@ page_title: "grafana_cloud_api_key Resource - terraform-provider-grafana"
 subcategory: "Cloud"
 description: |-
   Manages a single API key on the Grafana Cloud portal (on the organization level)
-  * API documentation https://grafana.com/docs/grafana-cloud/reference/cloud-api/#api-keys
+  * API documentation https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#api-keys
 ---
 
 # grafana_cloud_api_key (Resource)
 
 Manages a single API key on the Grafana Cloud portal (on the organization level)
-* [API documentation](https://grafana.com/docs/grafana-cloud/reference/cloud-api/#api-keys)
+* [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#api-keys)
 
 ## Example Usage
 

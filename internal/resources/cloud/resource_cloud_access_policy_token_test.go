@@ -30,6 +30,7 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 		"accesspolicies:read",
 		"accesspolicies:write",
 		"accesspolicies:delete",
+		"datadog:validate",
 	}
 	updatedScopes := []string{
 		"metrics:write",
@@ -50,12 +51,13 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "name", "initial"),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "display_name", "initial"),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.#", "5"),
+					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.#", "6"),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.0", "accesspolicies:delete"),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.1", "accesspolicies:read"),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.2", "accesspolicies:write"),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.3", "logs:write"),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.4", "metrics:read"),
+					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.3", "datadog:validate"),
+					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.4", "logs:write"),
+					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.5", "metrics:read"),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "realm.#", "1"),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "realm.0.type", "org"),
 
