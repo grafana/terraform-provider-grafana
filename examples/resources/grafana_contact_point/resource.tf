@@ -9,19 +9,3 @@ resource "grafana_contact_point" "my_contact_point" {
     disable_resolve_message = false
   }
 }
-
-# The OnCall integration will provide a URL to use in the contact point
-resource "grafana_oncall_integration" "grafana_cloud" {
-  name = "Grafana Cloud Alerts"
-  type = "grafana_alerting"
-  default_route {
-    escalation_chain_id = "..."
-  }
-}
-
-resource "grafana_contact_point" "grafana_cloud" {
-  name = "Grafana Cloud OnCall"
-  oncall {
-    url = grafana_oncall_integration.grafana_cloud.link
-  }
-}
