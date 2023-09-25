@@ -385,12 +385,12 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 	}
 
 	cfg := gapi.Config{
-		Client:     cli,
-		NumRetries: d.Get("retries").(int),
-    RetryTimeout: time.Second * time.Duration(d.Get("retry_wait").(int)),
-		BasicAuth:  userInfo,
-		OrgID:      orgID,
-		APIKey:     apiKey,
+		Client:       cli,
+		NumRetries:   d.Get("retries").(int),
+		RetryTimeout: time.Second * time.Duration(d.Get("retry_wait").(int)),
+		BasicAuth:    userInfo,
+		OrgID:        orgID,
+		APIKey:       apiKey,
 	}
 
 	if v, ok := d.GetOk("retry_status_codes"); ok {
