@@ -13,6 +13,7 @@ import (
 
 func TestAccFolderPermission_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.0.0") // Folder permissions only work for service accounts in Grafana 9+, so we're just not testing versions before 9.
 
 	folderUID := "uninitialized"
 
