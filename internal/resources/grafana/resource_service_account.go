@@ -38,7 +38,7 @@ func ResourceServiceAccount() *schema.Resource {
 			"role": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validation.StringInSlice([]string{"Viewer", "Editor", "Admin"}, false),
+				ValidateFunc: validation.StringInSlice([]string{"Viewer", "Editor", "Admin", "None"}, false),
 				Description:  "The basic role of the service account in the organization.",
 			},
 			"is_disabled": {
