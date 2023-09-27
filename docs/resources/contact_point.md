@@ -116,6 +116,7 @@ Optional:
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `message` (String) The templated content of the message. Defaults to ``.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `title` (String) The templated content of the title.
 - `use_discord_username` (Boolean) Whether to use the bot account's plain username instead of "Grafana." Defaults to `false`.
 
 Read-Only:

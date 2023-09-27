@@ -16,6 +16,7 @@ resource "grafana_contact_point" "receiver_types" {
 
   discord {
     url                     = "http://discord-url"
+    title                   = "title"
     message                 = "message"
     avatar_url              = "avatar_url"
     use_discord_username    = true

@@ -169,6 +169,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					// discord
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.url", "http://discord-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.title", "title"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.message", "message"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.avatar_url", "avatar_url"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.use_discord_username", "true"),
