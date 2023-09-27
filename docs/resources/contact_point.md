@@ -173,8 +173,14 @@ Required:
 
 Optional:
 
+- `api_version` (String) The API version to use when contacting the Kafka REST Server. Supported: v2 (default) and v3. Defaults to `v2`.
+- `cluster_id` (String) The Id of cluster to use when contacting the Kafka REST Server. Required api_version to be 'v3'
+- `description` (String) The templated description of the Kafka message.
+- `details` (String) The templated details to include with the message.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `password` (String, Sensitive) The password to use when making a call to the Kafka REST Proxy
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `username` (String) The user name to use when making a call to the Kafka REST Proxy
 
 Read-Only:
 

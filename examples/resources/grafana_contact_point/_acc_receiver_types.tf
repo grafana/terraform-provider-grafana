@@ -40,6 +40,12 @@ resource "grafana_contact_point" "receiver_types" {
   kafka {
     rest_proxy_url = "http://kafka-rest-proxy-url"
     topic          = "mytopic"
+    description    = "description"
+    details        = "details"
+    username       = "username"
+    password       = "password"
+    api_version    = "v3"
+    cluster_id     = "cluster_id"
   }
 
   opsgenie {

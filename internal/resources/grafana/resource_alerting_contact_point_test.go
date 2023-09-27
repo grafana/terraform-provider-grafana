@@ -6,10 +6,11 @@ import (
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
+	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 )
 
 func TestAccContactPoint_basic(t *testing.T) {
@@ -188,6 +189,13 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.rest_proxy_url", "http://kafka-rest-proxy-url"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.topic", "mytopic"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.description", "description"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.details", "details"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.username", "username"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.password", "password"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.api_version", "v3"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.cluster_id", "cluster_id"),
+
 					// opsgenie
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.url", "http://opsgenie-api"),

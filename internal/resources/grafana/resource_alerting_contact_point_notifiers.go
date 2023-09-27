@@ -440,9 +440,10 @@ var _ notifier = (*kafkaNotifier)(nil)
 
 func (k kafkaNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:   "kafka",
-		typeStr: "kafka",
-		desc:    "A contact point that publishes notifications to Apache Kafka topics.",
+		field:        "kafka",
+		typeStr:      "kafka",
+		desc:         "A contact point that publishes notifications to Apache Kafka topics.",
+		secureFields: []string{"rest_proxy_url", "password"},
 	}
 }
 
@@ -459,6 +460,39 @@ func (k kafkaNotifier) schema() *schema.Resource {
 		Required:    true,
 		Description: "The name of the Kafka topic to publish to.",
 	}
+	r.Schema["description"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated description of the Kafka message.",
+	}
+	r.Schema["details"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated details to include with the message.",
+	}
+	r.Schema["username"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The user name to use when making a call to the Kafka REST Proxy",
+	}
+	r.Schema["password"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "The password to use when making a call to the Kafka REST Proxy",
+	}
+	r.Schema["api_version"] = &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		Default:      "v2",
+		ValidateFunc: validation.StringInSlice([]string{"v2", "v3"}, false),
+		Description:  "The API version to use when contacting the Kafka REST Server. Supported: v2 (default) and v3.",
+	}
+	r.Schema["cluster_id"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The Id of cluster to use when contacting the Kafka REST Server. Required api_version to be 'v3'",
+	}
 	return r
 }
 
@@ -472,6 +506,15 @@ func (k kafkaNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (int
 		notifier["topic"] = v.(string)
 		delete(p.Settings, "kafkaTopic")
 	}
+	packNotifierStringField(&p.Settings, &notifier, "description", "description")
+	packNotifierStringField(&p.Settings, &notifier, "details", "details")
+	packNotifierStringField(&p.Settings, &notifier, "username", "username")
+	packNotifierStringField(&p.Settings, &notifier, "password", "password")
+	packNotifierStringField(&p.Settings, &notifier, "api_version", "api_version")
+	packNotifierStringField(&p.Settings, &notifier, "cluster_id", "cluster_id")
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, k, p.UID), k.meta().secureFields)
+
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
 }
@@ -482,6 +525,13 @@ func (k kafkaNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 
 	settings["kafkaRestProxy"] = json["rest_proxy_url"].(string)
 	settings["kafkaTopic"] = json["topic"].(string)
+	unpackNotifierStringField(&json, &settings, "description", "description")
+	unpackNotifierStringField(&json, &settings, "details", "details")
+	unpackNotifierStringField(&json, &settings, "username", "username")
+	unpackNotifierStringField(&json, &settings, "password", "password")
+	unpackNotifierStringField(&json, &settings, "api_version", "api_version")
+	unpackNotifierStringField(&json, &settings, "cluster_id", "cluster_id")
+
 	return gapi.ContactPoint{
 		UID:                   uid,
 		Name:                  name,
