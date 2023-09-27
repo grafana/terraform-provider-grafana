@@ -388,6 +388,11 @@ func (g googleChatNotifier) schema() *schema.Resource {
 		Sensitive:   true,
 		Description: "The Google Chat webhook URL.",
 	}
+	r.Schema["title"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated content of the title.",
+	}
 	r.Schema["message"] = &schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    true,
@@ -402,6 +407,7 @@ func (g googleChatNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData)
 		notifier["url"] = v.(string)
 		delete(p.Settings, "url")
 	}
+	packNotifierStringField(&p.Settings, &notifier, "title", "title")
 	if v, ok := p.Settings["message"]; ok && v != nil {
 		notifier["message"] = v.(string)
 		delete(p.Settings, "message")
@@ -415,6 +421,7 @@ func (g googleChatNotifier) unpack(raw interface{}, name string) gapi.ContactPoi
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	settings["url"] = json["url"].(string)
+	unpackNotifierStringField(&json, &settings, "title", "title")
 	if v, ok := json["message"]; ok && v != nil {
 		settings["message"] = v.(string)
 	}

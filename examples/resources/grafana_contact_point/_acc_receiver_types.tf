@@ -33,6 +33,7 @@ resource "grafana_contact_point" "receiver_types" {
 
   googlechat {
     url     = "http://googlechat-url"
+    title   = "title"
     message = "message"
   }
 
