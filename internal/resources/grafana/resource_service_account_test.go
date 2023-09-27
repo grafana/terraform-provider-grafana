@@ -37,6 +37,14 @@ func TestAccServiceAccount_basic(t *testing.T) {
 					resource.TestMatchResourceAttr("grafana_service_account.test", "id", defaultOrgIDRegexp),
 				),
 			},
+		},
+	})
+
+	testutils.CheckOSSTestsSemver(t, ">=10.2.0")
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      testAccServiceAccountCheckDestroy,
+		Steps: []resource.TestStep{
 			{
 				Config: testServiceAccountConfig(name, "None"),
 				Check: resource.ComposeTestCheckFunc(
