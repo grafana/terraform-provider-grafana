@@ -264,6 +264,10 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.token", "token"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.chat_id", "chat-id"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.message", "message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.parse_mode", "Markdown"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.disable_web_page_preview", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.protect_content", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.disable_notifications", "true"),
 					// threema
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "threema.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "threema.0.gateway_id", "*gateway"),

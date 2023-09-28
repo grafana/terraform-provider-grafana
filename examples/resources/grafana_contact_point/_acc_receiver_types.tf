@@ -120,9 +120,13 @@ resource "grafana_contact_point" "receiver_types" {
   }
 
   telegram {
-    token   = "token"
-    chat_id = "chat-id"
-    message = "message"
+    token                    = "token"
+    chat_id                  = "chat-id"
+    message                  = "message"
+    parse_mode               = "Markdown"
+    disable_web_page_preview = true
+    protect_content          = true
+    disable_notifications    = true
   }
 
   threema {

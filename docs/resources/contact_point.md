@@ -341,8 +341,12 @@ Required:
 
 Optional:
 
+- `disable_notifications` (Boolean) When set users will receive a notification with no sound.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `disable_web_page_preview` (Boolean) When set it disables link previews for links in the message.
 - `message` (String) The templated content of the message.
+- `parse_mode` (String) Mode for parsing entities in the message text. Supported: None, Markdown, MarkdownV2, and HTML. HTML is the default.
+- `protect_content` (Boolean) When set it protects the contents of the message from forwarding and saving.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 
 Read-Only:

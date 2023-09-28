@@ -1369,6 +1369,27 @@ func (t telegramNotifier) schema() *schema.Resource {
 		Optional:    true,
 		Description: "The templated content of the message.",
 	}
+	r.Schema["parse_mode"] = &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		ValidateFunc: validation.StringInSlice([]string{"None", "Markdown", "MarkdownV2", "HTML"}, true),
+		Description:  "Mode for parsing entities in the message text. Supported: None, Markdown, MarkdownV2, and HTML. HTML is the default.",
+	}
+	r.Schema["disable_web_page_preview"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Description: "When set it disables link previews for links in the message.",
+	}
+	r.Schema["protect_content"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Description: "When set it protects the contents of the message from forwarding and saving.",
+	}
+	r.Schema["disable_notifications"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Description: "When set users will receive a notification with no sound.",
+	}
 	return r
 }
 
@@ -1378,6 +1399,20 @@ func (t telegramNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (
 	packNotifierStringField(&p.Settings, &notifier, "bottoken", "token")
 	packNotifierStringField(&p.Settings, &notifier, "chatid", "chat_id")
 	packNotifierStringField(&p.Settings, &notifier, "message", "message")
+	packNotifierStringField(&p.Settings, &notifier, "parse_mode", "parse_mode")
+
+	if v, ok := p.Settings["disable_web_page_preview"]; ok && v != nil {
+		notifier["disable_web_page_preview"] = v.(bool)
+		delete(p.Settings, "disable_web_page_preview")
+	}
+	if v, ok := p.Settings["protect_content"]; ok && v != nil {
+		notifier["protect_content"] = v.(bool)
+		delete(p.Settings, "protect_content")
+	}
+	if v, ok := p.Settings["disable_notifications"]; ok && v != nil {
+		notifier["disable_notifications"] = v.(bool)
+		delete(p.Settings, "disable_notifications")
+	}
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, t, p.UID), t.meta().secureFields)
 
@@ -1392,6 +1427,17 @@ func (t telegramNotifier) unpack(raw interface{}, name string) gapi.ContactPoint
 	unpackNotifierStringField(&json, &settings, "token", "bottoken")
 	unpackNotifierStringField(&json, &settings, "chat_id", "chatid")
 	unpackNotifierStringField(&json, &settings, "message", "message")
+	unpackNotifierStringField(&json, &settings, "parse_mode", "parse_mode")
+
+	if v, ok := json["disable_web_page_preview"]; ok && v != nil {
+		settings["disable_web_page_preview"] = v.(bool)
+	}
+	if v, ok := json["protect_content"]; ok && v != nil {
+		settings["protect_content"] = v.(bool)
+	}
+	if v, ok := json["disable_notifications"]; ok && v != nil {
+		settings["disable_notifications"] = v.(bool)
+	}
 
 	return gapi.ContactPoint{
 		UID:                   uid,
