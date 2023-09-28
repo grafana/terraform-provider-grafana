@@ -423,16 +423,18 @@ Read-Only:
 <a id="nestedblock--wecom"></a>
 ### Nested Schema for `wecom`
 
-Required:
-
-- `url` (String, Sensitive) The WeCom webhook URL.
-
 Optional:
 
+- `agent_id` (String) Agent ID added to the request payload when using APIAPP.
+- `corp_id` (String) Corp ID used to get token when using APIAPP.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `message` (String) The templated content of the message to send.
+- `msg_type` (String) The type of them message. Supported: markdown, text. Default: text.
+- `secret` (String, Sensitive) The secret key required to obtain access token when using APIAPP. See https://work.weixin.qq.com/wework_admin/frame#apps to create APIAPP.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `title` (String) The templated title of the message to send.
+- `to_user` (String) The ID of user that should receive the message. Multiple entries should be separated by '|'. Default: @all.
+- `url` (String, Sensitive) The WeCom webhook URL. Required if using GroupRobot.
 
 Read-Only:
 

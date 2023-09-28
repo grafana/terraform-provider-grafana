@@ -293,6 +293,11 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.url", "http://wecom-url"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.message", "message"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.title", "title"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.secret", "secret"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.corp_id", "corp_id"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.agent_id", "agent_id"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.msg_type", "text"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.to_user", "to_user"),
 				),
 			},
 			// Test blank fields in settings should be omitted.

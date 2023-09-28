@@ -155,8 +155,13 @@ resource "grafana_contact_point" "receiver_types" {
   }
 
   wecom {
-    url     = "http://wecom-url"
-    message = "message"
-    title   = "title"
+    url      = "http://wecom-url"
+    message  = "message"
+    title    = "title"
+    secret   = "secret"
+    corp_id  = "corp_id"
+    agent_id = "agent_id"
+    msg_type = "text"
+    to_user  = "to_user"
   }
 }

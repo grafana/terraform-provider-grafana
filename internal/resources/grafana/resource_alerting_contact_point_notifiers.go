@@ -1728,7 +1728,7 @@ func (w wecomNotifier) meta() notifierMeta {
 		field:        "wecom",
 		typeStr:      "wecom",
 		desc:         "A contact point that sends notifications to WeCom.",
-		secureFields: []string{"url"},
+		secureFields: []string{"url", "secret"},
 	}
 }
 
@@ -1736,9 +1736,25 @@ func (w wecomNotifier) schema() *schema.Resource {
 	r := commonNotifierResource()
 	r.Schema["url"] = &schema.Schema{
 		Type:        schema.TypeString,
-		Required:    true,
+		Optional:    true,
 		Sensitive:   true,
-		Description: "The WeCom webhook URL.",
+		Description: "The WeCom webhook URL. Required if using GroupRobot.",
+	}
+	r.Schema["secret"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Sensitive:   true,
+		Optional:    true,
+		Description: "The secret key required to obtain access token when using APIAPP. See https://work.weixin.qq.com/wework_admin/frame#apps to create APIAPP.",
+	}
+	r.Schema["corp_id"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Corp ID used to get token when using APIAPP.",
+	}
+	r.Schema["agent_id"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Agent ID added to the request payload when using APIAPP.",
 	}
 	r.Schema["message"] = &schema.Schema{
 		Type:        schema.TypeString,
@@ -1750,6 +1766,17 @@ func (w wecomNotifier) schema() *schema.Resource {
 		Optional:    true,
 		Description: "The templated title of the message to send.",
 	}
+	r.Schema["msg_type"] = &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		ValidateFunc: validation.StringInSlice([]string{"markdown", "text"}, false),
+		Description:  "The type of them message. Supported: markdown, text. Default: text.",
+	}
+	r.Schema["to_user"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The ID of user that should receive the message. Multiple entries should be separated by '|'. Default: @all.",
+	}
 	return r
 }
 
@@ -1759,6 +1786,11 @@ func (w wecomNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (int
 	packNotifierStringField(&p.Settings, &notifier, "url", "url")
 	packNotifierStringField(&p.Settings, &notifier, "message", "message")
 	packNotifierStringField(&p.Settings, &notifier, "title", "title")
+	packNotifierStringField(&p.Settings, &notifier, "secret", "secret")
+	packNotifierStringField(&p.Settings, &notifier, "corp_id", "corp_id")
+	packNotifierStringField(&p.Settings, &notifier, "agent_id", "agent_id")
+	packNotifierStringField(&p.Settings, &notifier, "msgtype", "msg_type")
+	packNotifierStringField(&p.Settings, &notifier, "touser", "to_user")
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, w, p.UID), w.meta().secureFields)
 
@@ -1773,6 +1805,11 @@ func (w wecomNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	unpackNotifierStringField(&json, &settings, "url", "url")
 	unpackNotifierStringField(&json, &settings, "message", "message")
 	unpackNotifierStringField(&json, &settings, "title", "title")
+	unpackNotifierStringField(&json, &settings, "secret", "secret")
+	unpackNotifierStringField(&json, &settings, "corp_id", "corp_id")
+	unpackNotifierStringField(&json, &settings, "agent_id", "agent_id")
+	unpackNotifierStringField(&json, &settings, "msg_type", "msgtype")
+	unpackNotifierStringField(&json, &settings, "to_user", "touser")
 
 	return gapi.ContactPoint{
 		UID:                   uid,
