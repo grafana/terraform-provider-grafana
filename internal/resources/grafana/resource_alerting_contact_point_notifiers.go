@@ -1481,14 +1481,12 @@ func (t threemaNotifier) schema() *schema.Resource {
 	}
 	r.Schema["title"] = &schema.Schema{
 		Type:        schema.TypeString,
-		Required:    true,
-		Sensitive:   true,
+		Optional:    true,
 		Description: "The templated title of the message.",
 	}
 	r.Schema["description"] = &schema.Schema{
 		Type:        schema.TypeString,
-		Required:    true,
-		Sensitive:   true,
+		Optional:    true,
 		Description: "The templated description of the message.",
 	}
 	return r

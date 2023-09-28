@@ -360,15 +360,15 @@ Read-Only:
 Required:
 
 - `api_secret` (String, Sensitive) The Threema API key.
-- `description` (String, Sensitive) The templated description of the message.
 - `gateway_id` (String) The Threema gateway ID.
 - `recipient_id` (String) The ID of the recipient of the message.
-- `title` (String, Sensitive) The templated title of the message.
 
 Optional:
 
+- `description` (String) The templated description of the message.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `title` (String) The templated title of the message.
 
 Read-Only:
 
