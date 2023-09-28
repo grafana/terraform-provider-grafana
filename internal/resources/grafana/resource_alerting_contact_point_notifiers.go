@@ -1273,9 +1273,10 @@ var _ notifier = (*teamsNotifier)(nil)
 
 func (t teamsNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:   "teams",
-		typeStr: "teams",
-		desc:    "A contact point that sends notifications to Microsoft Teams.",
+		field:        "teams",
+		typeStr:      "teams",
+		desc:         "A contact point that sends notifications to Microsoft Teams.",
+		secureFields: []string{"url"},
 	}
 }
 
@@ -1312,6 +1313,8 @@ func (t teamsNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (int
 	packNotifierStringField(&p.Settings, &notifier, "message", "message")
 	packNotifierStringField(&p.Settings, &notifier, "title", "title")
 	packNotifierStringField(&p.Settings, &notifier, "sectiontitle", "section_title")
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, t, p.UID), t.meta().secureFields)
 
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
