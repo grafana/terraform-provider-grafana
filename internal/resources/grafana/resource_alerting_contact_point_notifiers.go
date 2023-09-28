@@ -588,9 +588,10 @@ func (o opsGenieNotifier) schema() *schema.Resource {
 		Description: "Whether to allow the alert priority to be configured via the value of the `og_priority` annotation on the alert.",
 	}
 	r.Schema["send_tags_as"] = &schema.Schema{
-		Type:        schema.TypeString,
-		Optional:    true,
-		Description: "Whether to send annotations to OpsGenie as Tags, Details, or both. Supported values are `tags`, `details`, `both`, or empty to use the default behavior of Tags.",
+		Type:         schema.TypeString,
+		Optional:     true,
+		ValidateFunc: validation.StringInSlice([]string{"tags", "details", "both"}, false),
+		Description:  "Whether to send annotations to OpsGenie as Tags, Details, or both. Supported values are `tags`, `details`, `both`, or empty to use the default behavior of Tags.",
 	}
 	return r
 }
