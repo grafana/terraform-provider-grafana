@@ -510,8 +510,8 @@ func (k kafkaNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (int
 	packNotifierStringField(&p.Settings, &notifier, "details", "details")
 	packNotifierStringField(&p.Settings, &notifier, "username", "username")
 	packNotifierStringField(&p.Settings, &notifier, "password", "password")
-	packNotifierStringField(&p.Settings, &notifier, "api_version", "api_version")
-	packNotifierStringField(&p.Settings, &notifier, "cluster_id", "cluster_id")
+	packNotifierStringField(&p.Settings, &notifier, "apiVersion", "api_version")
+	packNotifierStringField(&p.Settings, &notifier, "kafkaClusterId", "cluster_id")
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, k, p.UID), k.meta().secureFields)
 
@@ -529,8 +529,8 @@ func (k kafkaNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	unpackNotifierStringField(&json, &settings, "details", "details")
 	unpackNotifierStringField(&json, &settings, "username", "username")
 	unpackNotifierStringField(&json, &settings, "password", "password")
-	unpackNotifierStringField(&json, &settings, "api_version", "api_version")
-	unpackNotifierStringField(&json, &settings, "cluster_id", "cluster_id")
+	unpackNotifierStringField(&json, &settings, "api_version", "apiVersion")
+	unpackNotifierStringField(&json, &settings, "cluster_id", "kafkaClusterId")
 
 	return gapi.ContactPoint{
 		UID:                   uid,
