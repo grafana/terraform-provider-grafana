@@ -199,7 +199,7 @@ EOS
       valid_http_versions = [
         "HTTP/1.0",
         "HTTP/1.1",
-        "HTTP/2",
+        "HTTP/2.0",
       ]
 
       fail_if_body_matches_regexp = [
@@ -508,7 +508,7 @@ Optional:
 - `no_follow_redirects` (Boolean) Do not follow redirects. Defaults to `false`.
 - `proxy_url` (String) Proxy URL.
 - `tls_config` (Block Set, Max: 1) TLS config. (see [below for nested schema](#nestedblock--settings--http--tls_config))
-- `valid_http_versions` (Set of String) List of valid HTTP versions. Options include `HTTP/1.0`, `HTTP/1.1`, `HTTP/2`
+- `valid_http_versions` (Set of String) List of valid HTTP versions. Options include `HTTP/1.0`, `HTTP/1.1`, `HTTP/2.0`
 - `valid_status_codes` (Set of Number) Accepted status codes. If unset, defaults to 2xx.
 
 <a id="nestedblock--settings--http--basic_auth"></a>

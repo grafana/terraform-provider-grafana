@@ -260,7 +260,7 @@ var (
 				},
 			},
 			"valid_http_versions": {
-				Description: "List of valid HTTP versions. Options include `HTTP/1.0`, `HTTP/1.1`, `HTTP/2`",
+				Description: "List of valid HTTP versions. Options include `HTTP/1.0`, `HTTP/1.1`, `HTTP/2.0`",
 				Type:        schema.TypeSet,
 				Optional:    true,
 				Elem: &schema.Schema{

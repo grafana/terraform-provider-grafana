@@ -73,7 +73,7 @@ EOS
       valid_http_versions = [
         "HTTP/1.0",
         "HTTP/1.1",
-        "HTTP/2",
+        "HTTP/2.0",
       ]
 
       fail_if_body_matches_regexp = [
