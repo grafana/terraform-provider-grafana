@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/go-openapi/strfmt v0.21.7
-	github.com/grafana/amixr-api-go-client v0.0.9
+	github.com/grafana/amixr-api-go-client v0.0.10
 	github.com/grafana/grafana-api-golang-client v0.24.0
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20230918131703-659d2cff09a7
 	github.com/grafana/machine-learning-go-client v0.5.0
