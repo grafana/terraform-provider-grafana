@@ -54,6 +54,7 @@ resource "grafana_oncall_schedule" "example_schedule" {
 
 ### Optional
 
+- `enable_web_overrides` (Boolean) Enable overrides via web UI (it will ignore ical_url_overrides).
 - `ical_url_overrides` (String) The URL of external iCal calendar which override primary events.
 - `ical_url_primary` (String) The URL of the external calendar iCal file.
 - `shifts` (Set of String) The list of ID's of on-call shifts.
