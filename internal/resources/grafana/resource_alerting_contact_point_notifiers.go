@@ -1681,8 +1681,14 @@ func (w webhookNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (i
 			notifier["max_alerts"] = v.(int)
 		case float64:
 			notifier["max_alerts"] = int(v.(float64))
+		case string:
+			val, err := strconv.Atoi(typ)
+			if err != nil {
+				panic(fmt.Errorf("failed to parse value of 'maxAlerts' to integer: %w", err))
+			}
+			notifier["max_alerts"] = val
 		default:
-			panic(fmt.Sprintf("unexpected type for maxAlerts: %v", typ))
+			panic(fmt.Sprintf("unexpected type %T for 'maxAlerts': %v", typ, typ))
 		}
 		delete(p.Settings, "maxAlerts")
 	}
