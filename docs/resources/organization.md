@@ -15,7 +15,7 @@ description: |-
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/org/)
 
 This resource represents an instance-scoped resource and uses Grafana's admin APIs.
-It does not work with API tokens or service accounts which are org-scoped. 
+It does not work with API tokens or service accounts which are org-scoped.
 You must use basic auth.
 
 ## Example Usage
@@ -67,6 +67,9 @@ already exist in Grafana.
 - `editors` (Set of String) A list of email addresses corresponding to users who should be given editor
 access to the organization. Note: users specified here must already exist in
 Grafana unless 'create_users' is set to true.
+- `nones` (Set of String) A list of email addresses corresponding to users who has no basic role assigned.
+Note: users specified here must already exist in Grafana, unless 'create_users' is
+set to true.
 - `viewers` (Set of String) A list of email addresses corresponding to users who should be given viewer
 access to the organization. Note: users specified here must already exist in
 Grafana unless 'create_users' is set to true.
