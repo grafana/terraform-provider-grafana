@@ -6,9 +6,10 @@ import (
 	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
 type alertmanagerNotifier struct{}
@@ -908,6 +909,11 @@ func (n pushoverNotifier) schema() *schema.Resource {
 		Optional:    true,
 		Description: "The templated notification message content.",
 	}
+	r.Schema["upload_image"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Description: "Whether to send images in the notification or not. Default is true. Requires Grafana to be configured to send images in notifications.",
+	}
 	return r
 }
 
@@ -973,6 +979,10 @@ func (n pushoverNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (
 		notifier["message"] = v.(string)
 		delete(p.Settings, "message")
 	}
+	if v, ok := p.Settings["uploadImage"]; ok && v != nil {
+		notifier["upload_image"] = v.(bool)
+		delete(p.Settings, "uploadImage")
+	}
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, n, p.UID), n.meta().secureFields)
 
@@ -1012,6 +1022,9 @@ func (n pushoverNotifier) unpack(raw interface{}, name string) gapi.ContactPoint
 	}
 	if v, ok := json["message"]; ok && v != nil {
 		settings["message"] = v.(string)
+	}
+	if v, ok := json["upload_image"]; ok && v != nil {
+		settings["uploadImage"] = v.(bool)
 	}
 
 	return gapi.ContactPoint{

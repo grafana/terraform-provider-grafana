@@ -257,6 +257,7 @@ Optional:
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `sound` (String) The sound associated with the notification.
 - `title` (String) The templated title of the message.
+- `upload_image` (Boolean) Whether to send images in the notification or not. Default is true. Requires Grafana to be configured to send images in notifications.
 
 Read-Only:
 
