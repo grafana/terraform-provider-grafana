@@ -92,6 +92,9 @@ func TestAccOrganization_users(t *testing.T) {
 					resource.TestCheckNoResourceAttr(
 						"grafana_organization.test", "viewers.#",
 					),
+					resource.TestCheckNoResourceAttr(
+						"grafana_organization.test", "nones.#",
+					),
 				),
 			},
 			{
@@ -110,6 +113,9 @@ func TestAccOrganization_users(t *testing.T) {
 					resource.TestCheckNoResourceAttr(
 						"grafana_organization.test", "viewers.#",
 					),
+					resource.TestCheckNoResourceAttr(
+						"grafana_organization.test", "nones.#",
+					),
 				),
 			},
 			{
@@ -127,6 +133,9 @@ func TestAccOrganization_users(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "viewers.#", "0",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_organization.test", "nones.#", "0",
 					),
 				),
 			},

@@ -43,7 +43,7 @@ func ResourceOrganization() *schema.Resource {
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/org/)
 
 This resource represents an instance-scoped resource and uses Grafana's admin APIs.
-It does not work with API tokens or service accounts which are org-scoped. 
+It does not work with API tokens or service accounts which are org-scoped.
 You must use basic auth.
 `,
 
@@ -127,6 +127,18 @@ access to the organization. Note: users specified here must already exist in
 Grafana unless 'create_users' is set to true.
 `,
 			},
+			"nones": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Description: `
+A list of email addresses corresponding to users who has no basic role assigned.
+Note: users specified here must already exist in Grafana, unless 'create_users' is
+set to true.
+`,
+			},
 		},
 	}
 }
@@ -198,7 +210,7 @@ func ReadUsers(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	roleMap := map[string][]string{"Admin": nil, "Editor": nil, "Viewer": nil}
+	roleMap := map[string][]string{"Admin": nil, "Editor": nil, "Viewer": nil, "None": nil}
 	grafAdmin := d.Get("admin_user")
 	for _, orgUser := range orgUsers {
 		if orgUser.Login != grafAdmin {
@@ -226,7 +238,7 @@ func UpdateUsers(d *schema.ResourceData, meta interface{}) error {
 }
 
 func collectUsers(d *schema.ResourceData) (map[string]OrgUser, map[string]OrgUser, error) {
-	roles := []string{"admins", "editors", "viewers"}
+	roles := []string{"admins", "editors", "viewers", "nones"}
 	stateUsers, configUsers := make(map[string]OrgUser), make(map[string]OrgUser)
 	for _, role := range roles {
 		caser := cases.Title(language.English)
