@@ -357,15 +357,21 @@ func (e emailNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	}
 }
 
-const addrSeparator = ";"
+const addrSeparator = ';'
 
 func packAddrs(addrs string) []string {
-	return strings.Split(addrs, addrSeparator)
+	return strings.FieldsFunc(addrs, func(r rune) bool {
+		switch r {
+		case ',', addrSeparator, '\n':
+			return true
+		}
+		return false
+	})
 }
 
 func unpackAddrs(addrs []interface{}) string {
 	strs := common.ListToStringSlice(addrs)
-	return strings.Join(strs, addrSeparator)
+	return strings.Join(strs, string(addrSeparator))
 }
 
 type googleChatNotifier struct{}
