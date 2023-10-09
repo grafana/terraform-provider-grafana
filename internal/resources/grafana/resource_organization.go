@@ -12,6 +12,8 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type OrgUser struct {
@@ -32,13 +34,6 @@ const (
 	Update
 	Remove
 )
-
-var rolesToLists = map[string]string{
-	"Admin":  "admins",
-	"Editor": "editors",
-	"Viewer": "viewers",
-	"None":   "users_without_access",
-}
 
 func ResourceOrganization() *schema.Resource {
 	return &schema.Resource{
@@ -223,7 +218,7 @@ func ReadUsers(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 	for k, v := range roleMap {
-		d.Set(rolesToLists[k], v)
+		d.Set(getRoleListName(k), v)
 	}
 	return nil
 }
@@ -370,11 +365,19 @@ func applyChanges(meta interface{}, orgID int64, changes []UserChange) error {
 }
 
 func getRoleName(listName string) string {
-	for r, l := range rolesToLists {
-		if l == listName {
-			return r
-		}
+	if listName == "users_without_access" {
+		return "None"
 	}
 
-	return ""
+	caser := cases.Title(language.English)
+	roleName := caser.String(listName[:len(listName)-1])
+	return roleName
+}
+
+func getRoleListName(roleName string) string {
+	if roleName == "None" {
+		return "users_without_access"
+	}
+
+	return fmt.Sprintf("%ss", strings.ToLower(roleName))
 }
