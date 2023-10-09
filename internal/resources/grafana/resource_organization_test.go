@@ -93,7 +93,7 @@ func TestAccOrganization_users(t *testing.T) {
 						"grafana_organization.test", "viewers.#",
 					),
 					resource.TestCheckNoResourceAttr(
-						"grafana_organization.test", "nones.#",
+						"grafana_organization.test", "users_without_access.#",
 					),
 				),
 			},
@@ -114,7 +114,7 @@ func TestAccOrganization_users(t *testing.T) {
 						"grafana_organization.test", "viewers.#",
 					),
 					resource.TestCheckNoResourceAttr(
-						"grafana_organization.test", "nones.#",
+						"grafana_organization.test", "users_without_access.#",
 					),
 				),
 			},
@@ -135,7 +135,7 @@ func TestAccOrganization_users(t *testing.T) {
 						"grafana_organization.test", "viewers.#", "0",
 					),
 					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "nones.#", "0",
+						"grafana_organization.test", "users_without_access.#", "0",
 					),
 				),
 			},
@@ -179,7 +179,7 @@ func TestAccOrganization_roleNoneUser(t *testing.T) {
 						"grafana_organization.test", "viewers.#",
 					),
 					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "nones.#", "1",
+						"grafana_organization.test", "users_without_access.#", "1",
 					),
 				),
 			},
@@ -191,7 +191,7 @@ func TestAccOrganization_roleNoneUser(t *testing.T) {
 						"grafana_organization.test", "admins.#", "0",
 					),
 					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "nones.#", "0",
+						"grafana_organization.test", "users_without_access.#", "0",
 					),
 				),
 			},
@@ -400,7 +400,7 @@ resource "grafana_organization" "test" {
     admin_user = "admin"
     create_users = false
 		editors = []
-    nones = [
+    users_without_access = [
         "john.doe@example.com",
     ]
 }

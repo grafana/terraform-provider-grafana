@@ -35,6 +35,13 @@ const (
 	Remove
 )
 
+var rolesToLists = map[string]string{
+	"Admin":  "admins",
+	"Editor": "editors",
+	"Viewer": "viewers",
+	"None":   "users_without_role",
+}
+
 func ResourceOrganization() *schema.Resource {
 	return &schema.Resource{
 
@@ -127,7 +134,7 @@ access to the organization. Note: users specified here must already exist in
 Grafana unless 'create_users' is set to true.
 `,
 			},
-			"nones": {
+			"users_without_access": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{
@@ -218,7 +225,7 @@ func ReadUsers(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 	for k, v := range roleMap {
-		d.Set(fmt.Sprintf("%ss", strings.ToLower(k)), v)
+		d.Set(rolesToLists[k], v)
 	}
 	return nil
 }
@@ -238,7 +245,7 @@ func UpdateUsers(d *schema.ResourceData, meta interface{}) error {
 }
 
 func collectUsers(d *schema.ResourceData) (map[string]OrgUser, map[string]OrgUser, error) {
-	roles := []string{"admins", "editors", "viewers", "nones"}
+	roles := []string{"admins", "editors", "viewers", "users_without_access"}
 	stateUsers, configUsers := make(map[string]OrgUser), make(map[string]OrgUser)
 	for _, role := range roles {
 		caser := cases.Title(language.English)
