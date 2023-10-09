@@ -12,8 +12,6 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 type OrgUser struct {
@@ -39,7 +37,7 @@ var rolesToLists = map[string]string{
 	"Admin":  "admins",
 	"Editor": "editors",
 	"Viewer": "viewers",
-	"None":   "users_without_role",
+	"None":   "users_without_access",
 }
 
 func ResourceOrganization() *schema.Resource {
@@ -248,8 +246,7 @@ func collectUsers(d *schema.ResourceData) (map[string]OrgUser, map[string]OrgUse
 	roles := []string{"admins", "editors", "viewers", "users_without_access"}
 	stateUsers, configUsers := make(map[string]OrgUser), make(map[string]OrgUser)
 	for _, role := range roles {
-		caser := cases.Title(language.English)
-		roleName := caser.String(role[:len(role)-1])
+		roleName := getRoleName(role)
 		// Get the lists of users read in from Grafana state (old) and configured (new)
 		state, config := d.GetChange(role)
 		for _, u := range state.(*schema.Set).List() {
@@ -370,4 +367,14 @@ func applyChanges(meta interface{}, orgID int64, changes []UserChange) error {
 		}
 	}
 	return nil
+}
+
+func getRoleName(listName string) string {
+	for r, l := range rolesToLists {
+		if l == listName {
+			return r
+		}
+	}
+
+	return ""
 }
