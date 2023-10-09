@@ -119,6 +119,27 @@ func TestAccOrganization_users(t *testing.T) {
 				),
 			},
 			{
+				Config: testAccOrganizationConfig_usersUpdate_2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					resource.TestCheckResourceAttr(
+						"grafana_organization.test", "name", "terraform-acc-test",
+					),
+					resource.TestCheckNoResourceAttr(
+						"grafana_organization.test", "admins.#",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_organization.test", "editors.#", "0",
+					),
+					resource.TestCheckNoResourceAttr(
+						"grafana_organization.test", "viewers.#",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_organization.test", "nones.#", "1",
+					),
+				),
+			},
+			{
 				Config: testAccOrganizationConfig_usersRemove,
 				Check: resource.ComposeTestCheckFunc(
 					testAccOrganizationCheckExists("grafana_organization.test", &org),
@@ -338,6 +359,18 @@ resource "grafana_organization" "test" {
     ]
 }
 `
+const testAccOrganizationConfig_usersUpdate_2 = `
+resource "grafana_organization" "test" {
+    name = "terraform-acc-test"
+    admin_user = "admin"
+    create_users = false
+		editors = []
+    nones = [
+        "john.doe@example.com",
+    ]
+}
+`
+
 const testAccOrganizationConfig_usersRemove = `
 resource "grafana_organization" "test" {
     name = "terraform-acc-test"
