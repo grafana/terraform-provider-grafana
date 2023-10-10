@@ -1,4 +1,4 @@
-local grafanaVersions = ['10.0.1', '9.5.5', '9.4.13', '9.3.16', '8.5.27', '7.5.17'];
+local grafanaVersions = ['10.1.2', '10.0.6', '9.5.10', '8.5.27'];
 local images = {
   go: 'golang:1.20',
   python: 'python:3.11-alpine',

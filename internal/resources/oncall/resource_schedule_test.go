@@ -25,6 +25,21 @@ func TestAccOnCallSchedule_basic(t *testing.T) {
 				Config: testAccOnCallScheduleConfig(scheduleName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOnCallScheduleResourceExists("grafana_oncall_schedule.test-acc-schedule"),
+					resource.TestCheckResourceAttr("grafana_oncall_schedule.test-acc-schedule", "enable_web_overrides", "false"),
+				),
+			},
+			{
+				Config: testAccOnCallScheduleConfigOverrides(scheduleName, true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallScheduleResourceExists("grafana_oncall_schedule.test-acc-schedule"),
+					resource.TestCheckResourceAttr("grafana_oncall_schedule.test-acc-schedule", "enable_web_overrides", "true"),
+				),
+			},
+			{
+				Config: testAccOnCallScheduleConfigOverrides(scheduleName, false),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallScheduleResourceExists("grafana_oncall_schedule.test-acc-schedule"),
+					resource.TestCheckResourceAttr("grafana_oncall_schedule.test-acc-schedule", "enable_web_overrides", "false"),
 				),
 			},
 		},
@@ -53,6 +68,17 @@ resource "grafana_oncall_schedule" "test-acc-schedule" {
 	time_zone = "America/New_York"
 }
 `, scheduleName)
+}
+
+func testAccOnCallScheduleConfigOverrides(scheduleName string, enableWebOverrides bool) string {
+	return fmt.Sprintf(`
+resource "grafana_oncall_schedule" "test-acc-schedule" {
+	name = "%s"
+	type = "calendar"
+	time_zone = "America/New_York"
+	enable_web_overrides = "%t"
+}
+`, scheduleName, enableWebOverrides)
 }
 
 func testAccCheckOnCallScheduleResourceExists(name string) resource.TestCheckFunc {

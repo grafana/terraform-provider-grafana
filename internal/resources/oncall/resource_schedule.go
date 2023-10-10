@@ -64,6 +64,11 @@ func ResourceSchedule() *schema.Resource {
 				Optional:    true,
 				Description: "The URL of external iCal calendar which override primary events.",
 			},
+			"enable_web_overrides": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Enable overrides via web UI (it will ignore ical_url_overrides).",
+			},
 			"slack": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -127,6 +132,12 @@ func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, m inter
 		createOptions.ICalUrlOverrides = &url
 	}
 
+	enableWebOverridesData, enableWebOverridesOk := d.GetOk("enable_web_overrides")
+	if enableWebOverridesOk {
+		enable := enableWebOverridesData.(bool)
+		createOptions.EnableWebOverrides = enable
+	}
+
 	shiftsData, shiftsOk := d.GetOk("shifts")
 	if shiftsOk {
 		if typeData == "calendar" {
@@ -186,6 +197,12 @@ func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, m inter
 		updateOptions.ICalUrlOverrides = &url
 	}
 
+	enableWebOverridesData, enableWebOverridesOk := d.GetOk("enable_web_overrides")
+	if enableWebOverridesOk {
+		enable := enableWebOverridesData.(bool)
+		updateOptions.EnableWebOverrides = enable
+	}
+
 	timeZoneData, timeZoneOk := d.GetOk("time_zone")
 	if timeZoneOk {
 		if typeData == "calendar" {
@@ -233,6 +250,7 @@ func resourceScheduleRead(ctx context.Context, d *schema.ResourceData, m interfa
 	d.Set("type", schedule.Type)
 	d.Set("ical_url_primary", schedule.ICalUrlPrimary)
 	d.Set("ical_url_overrides", schedule.ICalUrlOverrides)
+	d.Set("enable_web_overrides", schedule.EnableWebOverrides)
 	d.Set("time_zone", schedule.TimeZone)
 	d.Set("slack", flattenScheduleSlack(schedule.Slack))
 	d.Set("shifts", schedule.Shifts)
