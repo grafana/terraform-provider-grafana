@@ -134,7 +134,7 @@ Grafana unless 'create_users' is set to true.
 					Type: schema.TypeString,
 				},
 				Description: `
-A list of email addresses corresponding to users who who should be given none access to the organization.
+A list of email addresses corresponding to users who should be given none access to the organization.
 Note: users specified here must already exist in Grafana, unless 'create_users' is
 set to true.
 `,
