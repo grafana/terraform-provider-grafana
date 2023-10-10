@@ -67,7 +67,7 @@ already exist in Grafana.
 - `editors` (Set of String) A list of email addresses corresponding to users who should be given editor
 access to the organization. Note: users specified here must already exist in
 Grafana unless 'create_users' is set to true.
-- `users_without_access` (Set of String) A list of email addresses corresponding to users who who should be given none access to the organization.
+- `users_without_access` (Set of String) A list of email addresses corresponding to users who should be given none access to the organization.
 Note: users specified here must already exist in Grafana, unless 'create_users' is
 set to true.
 - `viewers` (Set of String) A list of email addresses corresponding to users who should be given viewer
