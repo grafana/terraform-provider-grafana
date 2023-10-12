@@ -5,10 +5,11 @@ import (
 	"fmt"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
 func ResourceNotificationPolicy() *schema.Resource {
@@ -96,8 +97,9 @@ func policySchema(depth uint) *schema.Resource {
 			},
 			"group_by": {
 				Type:        schema.TypeList,
-				Required:    true,
-				Description: "A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping.",
+				Required:    depth == 1,
+				Optional:    depth > 1,
+				Description: "A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping. Required for root policy only. If empty, the parent grouping is used.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -251,9 +253,12 @@ func packNotifPolicy(npt gapi.NotificationPolicyTree, data *schema.ResourceData)
 func packSpecificPolicy(p gapi.SpecificPolicy, depth uint) interface{} {
 	result := map[string]interface{}{
 		"contact_point": p.Receiver,
-		"group_by":      p.GroupBy,
 		"continue":      p.Continue,
 	}
+	if len(p.GroupBy) > 0 {
+		result["group_by"] = p.GroupBy
+	}
+
 	if p.ObjectMatchers != nil && len(p.ObjectMatchers) > 0 {
 		matchers := make([]interface{}, 0, len(p.ObjectMatchers))
 		for _, m := range p.ObjectMatchers {
@@ -323,9 +328,15 @@ func unpackNotifPolicy(data *schema.ResourceData) (gapi.NotificationPolicyTree, 
 
 func unpackSpecificPolicy(p interface{}) (gapi.SpecificPolicy, error) {
 	json := p.(map[string]interface{})
+
+	var groupBy []string
+	if g, ok := json["group_by"]; ok {
+		groupBy = common.ListToStringSlice(g.([]interface{}))
+	}
+
 	policy := gapi.SpecificPolicy{
 		Receiver: json["contact_point"].(string),
-		GroupBy:  common.ListToStringSlice(json["group_by"].([]interface{})),
+		GroupBy:  groupBy,
 		Continue: json["continue"].(bool),
 	}
 
