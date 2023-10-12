@@ -5,10 +5,11 @@ import (
 	"fmt"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
 func ResourceNotificationPolicy() *schema.Resource {
@@ -96,8 +97,9 @@ func policySchema(depth uint) *schema.Resource {
 			},
 			"group_by": {
 				Type:        schema.TypeList,
-				Required:    true,
-				Description: "A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping.",
+				Required:    depth == 1,
+				Optional:    depth > 1,
+				Description: "A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping. Required for root policy only. If empty, the parent grouping is used.",
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
