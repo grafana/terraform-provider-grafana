@@ -135,12 +135,11 @@ func TestAccOrganization_users(t *testing.T) {
 }
 
 func TestAccOrganization_createManyUsers(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSLongRunningTestsEnabled(t)
 
 	var org gapi.Org
 
-	// Don't make this test parallel, it's already creating 1000+ users
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
 		Steps: []resource.TestStep{
@@ -150,7 +149,7 @@ func TestAccOrganization_createManyUsers(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccOrganizationCheckExists("grafana_organization.test", &org),
 					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "name", "terraform-acc-test",
+						"grafana_organization.test", "name", "terraform-acc-many-users-test",
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "admins.#", "1024",
@@ -389,9 +388,9 @@ const testAccOrganizationConfig_usersCreateMany_1 = `
 resource "grafana_user" "users" {
 	count = 1024
 
-	name     = "user-${count.index}"
-	email    = "user-${count.index}@example.com"
-	login    = "user-${count.index}@example.com"
+	name     = "many-users-${count.index}"
+	email    = "many-users-${count.index}@example.com"
+	login    = "many-users-${count.index}@example.com"
 	password = "password"
 }
 `
@@ -400,14 +399,14 @@ const testAccOrganizationConfig_usersCreateMany_2 = `
 resource "grafana_user" "users" {
 	count = 1024
 
-	name     = "user-${count.index}"
-	email    = "user-${count.index}@example.com"
-	login    = "user-${count.index}@example.com"
+	name     = "many-users-${count.index}"
+	email    = "many-users-${count.index}@example.com"
+	login    = "many-users-${count.index}@example.com"
 	password = "password"
 }
 
 resource "grafana_organization" "test" {
-    name         = "terraform-acc-test"
+    name         = "terraform-acc-many-users-test"
     admin_user   = "admin"
     create_users = false
     admins       = [ for user in grafana_user.users : user.email ]

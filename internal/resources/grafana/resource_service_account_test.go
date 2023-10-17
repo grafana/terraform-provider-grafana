@@ -42,7 +42,7 @@ func TestAccServiceAccount_basic(t *testing.T) {
 }
 
 func TestAccServiceAccount_many(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSLongRunningTestsEnabled(t)
 	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
 
 	name := acctest.RandString(10)

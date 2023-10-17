@@ -127,6 +127,20 @@ func CheckOSSTestsEnabled(t *testing.T) {
 	)
 }
 
+func CheckOSSLongRunningTestsEnabled(t *testing.T) {
+	t.Helper()
+
+	if !AccTestsEnabled("TF_ACC_OSS_LONG") {
+		t.Skip("TF_ACC_OSS_LONG must be set to a truthy value for OSS long running acceptance tests")
+	}
+
+	CheckEnvVarsSet(t,
+		"GRAFANA_URL",
+		"GRAFANA_AUTH",
+		"GRAFANA_VERSION",
+	)
+}
+
 // CheckOSSTestsSemver allows to skip tests that are not supported by the Grafana OSS version
 func CheckOSSTestsSemver(t *testing.T, semverConstraint string) {
 	t.Helper()

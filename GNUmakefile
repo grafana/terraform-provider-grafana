@@ -7,6 +7,10 @@ testacc:
 testacc-oss:
 	TF_ACC_OSS=true make testacc
 
+# Test OSS features (long running tests)
+testacc-oss-long:
+	TF_ACC_OSS_LONG=true make testacc
+
 # Test Enterprise features
 testacc-enterprise:
 	TF_ACC_ENTERPRISE=true make testacc
@@ -45,11 +49,8 @@ release:
 	@git tag $$RELEASE_VERSION
 	@git push origin $$RELEASE_VERSION
 
-DRONE_DOCKER := docker run --rm -e DRONE_SERVER -e DRONE_TOKEN -v ${PWD}:${PWD} -w "${PWD}" drone/cli:1.6.1
-drone:
-	$(DRONE_DOCKER) jsonnet --stream --source .drone/drone.jsonnet --target .drone/drone.yml --format
-	$(DRONE_DOCKER) lint .drone/drone.yml
-	$(DRONE_DOCKER) sign --save grafana/terraform-provider-grafana .drone/drone.yml
+github-actions:
+	jsonnet .github/gen.jsonnet -m . -S
 
 golangci-lint:
 	docker run \
