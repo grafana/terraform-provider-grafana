@@ -59,4 +59,4 @@ golangci-lint:
 		golangci/golangci-lint:v1.52 golangci-lint run ./... -v
 
 linkcheck:
-	docker run --entrypoint sh -v "$$PWD:$$PWD" -w "$$PWD" python:3.11-alpine -c "pip3 install linkchecker && linkchecker --config .linkcheckerrc docs"
+	docker run --rm --entrypoint sh -v "$$PWD:$$PWD" -w "$$PWD" python:3.11-alpine -c "pip3 install linkchecker && linkchecker --config .linkcheckerrc docs"
