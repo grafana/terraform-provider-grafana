@@ -155,7 +155,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_receiver_types.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 18),
+					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 19),
 					// alertmanager
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.0.url", "http://my-am"),
@@ -283,6 +283,12 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "victorops.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "victorops.0.url", "http://victor-ops-url"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "victorops.0.message_type", "CRITICAL"),
+					// webex
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webex.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webex.0.token", "token"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webex.0.api_url", "http://localhost"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webex.0.message", "message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webex.0.room_id", "room_id"),
 					// webhook
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.url", "http://my-url"),

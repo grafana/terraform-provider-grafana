@@ -30,6 +30,7 @@ var notifiers = []notifier{
 	telegramNotifier{},
 	threemaNotifier{},
 	victorOpsNotifier{},
+	webexNotifier{},
 	webhookNotifier{},
 	wecomNotifier{},
 }

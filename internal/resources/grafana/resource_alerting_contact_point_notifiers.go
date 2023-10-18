@@ -1676,6 +1676,77 @@ func (v victorOpsNotifier) unpack(raw interface{}, name string) gapi.ContactPoin
 	}
 }
 
+type webexNotifier struct{}
+
+var _ notifier = (*webexNotifier)(nil)
+
+func (w webexNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:        "webex",
+		typeStr:      "webex",
+		desc:         "A contact point that sends notifications to Cisco Webex.",
+		secureFields: []string{"token"},
+	}
+}
+
+func (w webexNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["token"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "The bearer token used to authorize the client.",
+	}
+	r.Schema["api_url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The URL to send webhook requests to.",
+	}
+	r.Schema["message"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated title of the message to send.",
+	}
+	r.Schema["room_id"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "ID of the Webex Teams room where to send the messages.",
+	}
+	return r
+}
+
+func (w webexNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(&p)
+
+	packNotifierStringField(&p.Settings, &notifier, "bot_token", "token")
+	packNotifierStringField(&p.Settings, &notifier, "api_url", "api_url")
+	packNotifierStringField(&p.Settings, &notifier, "message", "message")
+	packNotifierStringField(&p.Settings, &notifier, "room_id", "room_id")
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, w, p.UID), w.meta().secureFields)
+
+	notifier["settings"] = packSettings(&p)
+	return notifier, nil
+}
+
+func (w webexNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	unpackNotifierStringField(&json, &settings, "token", "bot_token")
+	unpackNotifierStringField(&json, &settings, "api_url", "api_url")
+	unpackNotifierStringField(&json, &settings, "message", "message")
+	unpackNotifierStringField(&json, &settings, "room_id", "room_id")
+
+	return gapi.ContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  w.meta().typeStr,
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}
+
 type webhookNotifier struct{}
 
 var _ notifier = (*webhookNotifier)(nil)

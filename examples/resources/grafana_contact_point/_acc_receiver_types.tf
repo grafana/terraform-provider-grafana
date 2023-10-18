@@ -151,6 +151,13 @@ resource "grafana_contact_point" "receiver_types" {
     description  = "description"
   }
 
+  webex {
+    token   = "token"
+    api_url = "http://localhost"
+    message = "message"
+    room_id = "room_id"
+  }
+
   webhook {
     url                 = "http://my-url"
     http_method         = "POST"

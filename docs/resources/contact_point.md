@@ -58,6 +58,7 @@ resource "grafana_contact_point" "my_contact_point" {
 - `telegram` (Block List) A contact point that sends notifications to Telegram. (see [below for nested schema](#nestedblock--telegram))
 - `threema` (Block List) A contact point that sends notifications to Threema. (see [below for nested schema](#nestedblock--threema))
 - `victorops` (Block List) A contact point that sends notifications to VictorOps (now known as Splunk OnCall). (see [below for nested schema](#nestedblock--victorops))
+- `webex` (Block List) A contact point that sends notifications to Cisco Webex. (see [below for nested schema](#nestedblock--webex))
 - `webhook` (Block List) A contact point that sends notifications to an arbitrary webhook, using the Prometheus webhook format defined here: https://prometheus.io/docs/alerting/latest/configuration/#webhook_config (see [below for nested schema](#nestedblock--webhook))
 - `wecom` (Block List) A contact point that sends notifications to WeCom. (see [below for nested schema](#nestedblock--wecom))
 
@@ -410,6 +411,23 @@ Optional:
 - `message_type` (String) The VictorOps alert state - typically either `CRITICAL` or `RECOVERY`.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `title` (String) Templated title to display.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--webex"></a>
+### Nested Schema for `webex`
+
+Optional:
+
+- `api_url` (String) The URL to send webhook requests to.
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `message` (String) The templated title of the message to send.
+- `room_id` (String) ID of the Webex Teams room where to send the messages.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `token` (String, Sensitive) The bearer token used to authorize the client.
 
 Read-Only:
 
