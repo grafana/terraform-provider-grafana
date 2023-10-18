@@ -48,6 +48,7 @@ resource "grafana_contact_point" "my_contact_point" {
 - `email` (Block List) A contact point that sends notifications to an email address. (see [below for nested schema](#nestedblock--email))
 - `googlechat` (Block List) A contact point that sends notifications to Google Chat. (see [below for nested schema](#nestedblock--googlechat))
 - `kafka` (Block List) A contact point that publishes notifications to Apache Kafka topics. (see [below for nested schema](#nestedblock--kafka))
+- `line` (Block List) A contact point that sends notifications to LINE.me. (see [below for nested schema](#nestedblock--line))
 - `opsgenie` (Block List) A contact point that sends notifications to OpsGenie. (see [below for nested schema](#nestedblock--opsgenie))
 - `pagerduty` (Block List) A contact point that sends notifications to PagerDuty. (see [below for nested schema](#nestedblock--pagerduty))
 - `pushover` (Block List) A contact point that sends notifications to Pushover. (see [below for nested schema](#nestedblock--pushover))
@@ -181,6 +182,25 @@ Optional:
 - `password` (String, Sensitive) The password to use when making a call to the Kafka REST Proxy
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `username` (String) The user name to use when making a call to the Kafka REST Proxy
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--line"></a>
+### Nested Schema for `line`
+
+Required:
+
+- `token` (String, Sensitive) The bearer token used to authorize the client.
+
+Optional:
+
+- `description` (String) The templated description of the message.
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `title` (String) The templated title of the message.
 
 Read-Only:
 

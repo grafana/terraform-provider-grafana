@@ -548,6 +548,70 @@ func (k kafkaNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	}
 }
 
+type lineNotifier struct{}
+
+var _ notifier = (*lineNotifier)(nil)
+
+func (o lineNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:        "line",
+		typeStr:      "LINE",
+		desc:         "A contact point that sends notifications to LINE.me.",
+		secureFields: []string{"token"},
+	}
+}
+
+func (o lineNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["token"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Sensitive:   true,
+		Description: "The bearer token used to authorize the client.",
+	}
+	r.Schema["title"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated title of the message.",
+	}
+	r.Schema["description"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated description of the message.",
+	}
+	return r
+}
+
+func (o lineNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(&p)
+
+	packNotifierStringField(&p.Settings, &notifier, "token", "token")
+	packNotifierStringField(&p.Settings, &notifier, "title", "title")
+	packNotifierStringField(&p.Settings, &notifier, "description", "description")
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, o, p.UID), o.meta().secureFields)
+
+	notifier["settings"] = packSettings(&p)
+	return notifier, nil
+}
+
+func (o lineNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	unpackNotifierStringField(&json, &settings, "token", "token")
+	unpackNotifierStringField(&json, &settings, "title", "title")
+	unpackNotifierStringField(&json, &settings, "description", "description")
+
+	return gapi.ContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  o.meta().typeStr,
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}
+
 type opsGenieNotifier struct{}
 
 var _ notifier = (*opsGenieNotifier)(nil)

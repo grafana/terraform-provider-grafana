@@ -155,7 +155,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_receiver_types.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 17),
+					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 18),
 					// alertmanager
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.0.url", "http://my-am"),
@@ -195,7 +195,11 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.password", "password"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.api_version", "v3"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.cluster_id", "cluster_id"),
-
+					// line
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "line.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "line.0.token", "token"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "line.0.title", "title"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "line.0.description", "description"),
 					// opsgenie
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.url", "http://opsgenie-api"),
