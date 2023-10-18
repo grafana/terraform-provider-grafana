@@ -340,6 +340,37 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 	})
 }
 
+func TestAccContactPoint_notifiers10_2(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=10.2.0")
+
+	var points []gapi.ContactPoint
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: testContactPointCheckDestroy(points),
+		Steps: []resource.TestStep{
+			// Test creation.
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_receiver_types_10_2.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 1),
+					// oncall
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "oncall.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "oncall.0.url", "http://my-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "oncall.0.http_method", "POST"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "oncall.0.basic_auth_user", "user"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "oncall.0.basic_auth_password", "password"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "oncall.0.max_alerts", "100"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "oncall.0.message", "Custom message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "oncall.0.title", "Custom title"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccContactPoint_empty(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
