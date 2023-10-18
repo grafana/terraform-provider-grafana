@@ -30,9 +30,9 @@ func TestAccDashboard_basic(t *testing.T) {
 			expectedUpdatedTitleConfig := `{"title":"Updated Title","uid":"basic"}`
 			expectedUpdatedUIDConfig := `{"title":"Updated Title","uid":"basic-update"}`
 			if useSHA256 {
-				expectedInitialConfig = "fadbc115a19bfd7962d8f8d749d22c20d0a44043d390048bf94b698776d9f7f1"
-				expectedUpdatedTitleConfig = "4669abda43a4a6d6ae9ecaa19f8508faf4095682b679da0b5ce4176aa9171ab2"
-				expectedUpdatedUIDConfig = "2934e80938a672bd09d8e56385159a1bf8176e2a2ef549437f200d82ff398bfb"
+				expectedInitialConfig = "fadbc115a19bfd7962d8f8d749d22c20d0a44043d390048bf94b698776d9f7f1"      //nolint:gosec
+				expectedUpdatedTitleConfig = "4669abda43a4a6d6ae9ecaa19f8508faf4095682b679da0b5ce4176aa9171ab2" //nolint:gosec
+				expectedUpdatedUIDConfig = "2934e80938a672bd09d8e56385159a1bf8176e2a2ef549437f200d82ff398bfb"   //nolint:gosec
 			}
 
 			// TODO: Make parallelizable
