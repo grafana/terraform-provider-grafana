@@ -184,6 +184,7 @@ local localTestPipeline(
       GRAFANA_TLS_KEY: '%s/client.key' % certPath,
       GRAFANA_TLS_CERT: '%s/client.crt' % certPath,
       GRAFANA_CA_CERT: '%s/ca.crt' % certPath,
+      TESTARGS: '-run ".*_basic"',  // Tests are slower behind the proxy, let's just run the basic (smaller) ones
     }
   ) + {
     steps: [
