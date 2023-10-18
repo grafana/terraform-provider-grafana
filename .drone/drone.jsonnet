@@ -1,8 +1,6 @@
 local grafanaVersions = ['10.1.2', '10.0.6', '9.5.10', '8.5.27'];
 local images = {
   go: 'golang:1.20',
-  python: 'python:3.11-alpine',
-  lint: 'golangci/golangci-lint:v1.52',
   terraform: 'hashicorp/terraform',
   grafana(version): 'grafana/grafana:' + version,
   grafanaEnterprise(version): 'grafana/grafana-enterprise:' + version,
@@ -117,72 +115,6 @@ local localTestPipeline(
   );
 
 [
-  pipeline(
-    'lint', steps=[
-      {
-        name: 'lint',
-        image: images.lint,
-        commands: [
-          'golangci-lint --version',
-          'golangci-lint run ./...',
-        ],
-      },
-      {
-        name: 'terraform-fmt',
-        image: images.terraform,
-        commands: [
-          |||
-            terraform fmt -recursive -check || (echo "Terraform files aren't formatted. Run 'terraform fmt -recursive && go generate'"; exit 1;)
-          |||,
-        ],
-      },
-    ]
-  ),
-
-  pipeline(
-    'docs', steps=[
-      {
-        name: 'check for drift',
-        image: images.go,
-        commands: [
-          'apt update && apt install -y jq',
-          'go generate',
-          'gitstatus="$(git status --porcelain)"',
-          'if [ -n "$gitstatus" ]; then',
-          '  echo "$gitstatus"',
-          '  echo "docs are out of sync, run \\"go generate\\""',
-          '  exit 1',
-          'fi',
-        ],
-      },
-      {
-        name: 'check for broken links',
-        image: images.python,
-        commands: [
-          'pip3 install linkchecker',
-          'linkchecker --config ./.linkcheckerrc docs/',
-        ],
-      },
-    ]
-  ),
-
-  pipeline(
-    'unit tests',
-    steps=[
-      installTerraformStep,
-      {
-        name: 'tests',
-        image: images.go,
-        commands: [
-          'go test ./...',
-        ],
-        environment: {
-          TF_ACC_TERRAFORM_PATH: terraformPath,
-        },
-      },
-    ]
-  ),
-
   pipeline(
     'cloud api tests',
     steps=[
