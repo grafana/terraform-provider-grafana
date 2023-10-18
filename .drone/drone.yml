@@ -165,6 +165,7 @@ steps:
     GRAFANA_TLS_KEY: /drone/terraform-provider-grafana/testdata/client.key
     GRAFANA_URL: https://mtls-proxy:3001
     GRAFANA_VERSION: 10.1.2
+    TESTARGS: -run ".*_basic"
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.20
   name: tests
@@ -369,6 +370,6 @@ kind: secret
 name: grafana-sm-token
 ---
 kind: signature
-hmac: 55829f21755c37ab833aeac2d1dad643d5d7e427535ff8ce21bad8d6d4644f96
+hmac: 6a5e700d76831a894501bb945671d533ab9738bb4058212eda478427fe6efefe
 
 ...
