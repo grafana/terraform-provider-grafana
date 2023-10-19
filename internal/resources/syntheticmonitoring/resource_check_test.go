@@ -286,8 +286,8 @@ func TestAccResourceCheck_multihttp(t *testing.T) {
 	jobName := acctest.RandomWithPrefix("multihttp")
 	jobNameUpdated := acctest.RandomWithPrefix("multihttp")
 	nameReplaceMap := map[string]string{
-		`"MultiHTTP simple"`:  strconv.Quote(jobName),
-		`"MultiHTTP complex"`: strconv.Quote(jobNameUpdated),
+		`"multihttp basic"`:   strconv.Quote(jobName),
+		`"multihttp complex"`: strconv.Quote(jobNameUpdated),
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
