@@ -1,7 +1,7 @@
 data "grafana_synthetic_monitoring_probes" "main" {}
 
 resource "grafana_synthetic_monitoring_check" "multihttp" {
-  job     = "MultiHTTP defaults"
+  job     = "multihttp basic"
   target  = "https://www.grafana-dev.com"
   enabled = false
   probes = [
