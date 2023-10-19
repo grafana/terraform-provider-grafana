@@ -48,6 +48,12 @@ resource "grafana_contact_point" "receiver_types" {
     cluster_id     = "cluster_id"
   }
 
+  line {
+    token       = "token"
+    title       = "title"
+    description = "description"
+  }
+
   opsgenie {
     url               = "http://opsgenie-api"
     api_key           = "token"
@@ -143,6 +149,13 @@ resource "grafana_contact_point" "receiver_types" {
     message_type = "CRITICAL"
     title        = "title"
     description  = "description"
+  }
+
+  webex {
+    token   = "token"
+    api_url = "http://localhost"
+    message = "message"
+    room_id = "room_id"
   }
 
   webhook {
