@@ -307,7 +307,7 @@ func TestAccResourceCheck_multihttp(t *testing.T) {
 				),
 			},
 			{
-				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/traceroute_complex.tf", nameReplaceMap),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/multihttp_complex.tf", nameReplaceMap),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.multihttp", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.multihttp", "tenant_id"),
