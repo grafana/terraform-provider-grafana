@@ -246,6 +246,14 @@ var (
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
+			// "proxy_connect_headers": {
+			// 	Description: "The HTTP headers sent to the proxy URL",
+			// 	Type:        schema.TypeSet,
+			// 	Optional:    true,
+			// 	Elem: &schema.Schema{
+			// 		Type: schema.TypeString,
+			// 	},
+			// },
 			"fail_if_ssl": {
 				Description: "Fail if SSL is present.",
 				Type:        schema.TypeBool,
@@ -441,21 +449,23 @@ var (
 		Schema: map[string]*schema.Schema{
 			"entries": {
 				Description: "List of HTTP requests to make.",
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Required:    true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"request":    syntheticMonitoringMultiHttpRequest,
-						"assertions": syntheticMonitoringMultiHttpAssertion,
-						"variables":  syntheticMonitoringMultiHttpVariable,
-					},
-				},
+				Elem:        syntheticMonitoringCheckSettingsMultiHttpEntry,
 			},
 		},
 	}
 
+	syntheticMonitoringCheckSettingsMultiHttpEntry = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"request":   syntheticMonitoringMultiHttpRequest,
+			"checks":    syntheticMonitoringMultiHttpAssertion,
+			"variables": syntheticMonitoringMultiHttpVariable,
+		},
+	}
+
 	syntheticMonitoringMultiHttpRequest = &schema.Schema{
-		Description: "TLS config.",
+		Description: "An individual MultiHTTP request",
 		Type:        schema.TypeSet,
 		Optional:    true,
 		MaxItems:    1,
@@ -473,7 +483,7 @@ var (
 				},
 				"headers": {
 					Description: "The headers to send with the request",
-					Type:        schema.TypeList,
+					Type:        schema.TypeSet,
 					Optional:    true,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
@@ -490,9 +500,9 @@ var (
 						},
 					},
 				},
-				"queryFields": {
+				"query_fields": {
 					Description: "Query fields to send with the request",
-					Type:        schema.TypeList,
+					Type:        schema.TypeSet,
 					Optional:    true,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
@@ -511,16 +521,16 @@ var (
 				},
 				"body": {
 					Description: "The body of the HTTP request used in probe.",
-					Type:        schema.TypeMap,
+					Type:        schema.TypeSet,
 					Optional:    true,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
-							"contentType": {
+							"content_type": {
 								Description: "The content type of the body",
 								Type:        schema.TypeString,
-								Required:    true,
+								Optional:    true,
 							},
-							"contentEncoding": {
+							"content_encoding": {
 								Description: "The content encoding of the body",
 								Type:        schema.TypeString,
 								Optional:    true,
@@ -528,7 +538,7 @@ var (
 							"payload": {
 								Description: "The body payload",
 								Type:        schema.TypeString,
-								Required:    true,
+								Optional:    true,
 							},
 						},
 					},
@@ -539,7 +549,7 @@ var (
 
 	syntheticMonitoringMultiHttpAssertion = &schema.Schema{
 		Description: "Assertions to make on the request response",
-		Type:        schema.TypeList,
+		Type:        schema.TypeSet,
 		Optional:    true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
@@ -574,7 +584,7 @@ var (
 
 	syntheticMonitoringMultiHttpVariable = &schema.Schema{
 		Description: "Variables to extract from the request response",
-		Type:        schema.TypeList,
+		Type:        schema.TypeSet,
 		Optional:    true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
@@ -847,15 +857,16 @@ func ResourceCheckRead(ctx context.Context, d *schema.ResourceData, meta interfa
 			return hmSet
 		}
 		http.Add(map[string]interface{}{
-			"ip_version":                        chk.Settings.Http.IpVersion.String(),
-			"tls_config":                        tlsConfig(chk.Settings.Http.TlsConfig),
-			"method":                            chk.Settings.Http.Method.String(),
-			"headers":                           common.StringSliceToSet(chk.Settings.Http.Headers),
-			"body":                              chk.Settings.Http.Body,
-			"no_follow_redirects":               chk.Settings.Http.NoFollowRedirects,
-			"basic_auth":                        &basicAuth,
-			"bearer_token":                      chk.Settings.Http.BearerToken,
-			"proxy_url":                         chk.Settings.Http.ProxyURL,
+			"ip_version":          chk.Settings.Http.IpVersion.String(),
+			"tls_config":          tlsConfig(chk.Settings.Http.TlsConfig),
+			"method":              chk.Settings.Http.Method.String(),
+			"headers":             common.StringSliceToSet(chk.Settings.Http.Headers),
+			"body":                chk.Settings.Http.Body,
+			"no_follow_redirects": chk.Settings.Http.NoFollowRedirects,
+			"basic_auth":          &basicAuth,
+			"bearer_token":        chk.Settings.Http.BearerToken,
+			"proxy_url":           chk.Settings.Http.ProxyURL,
+			// "proxy_connect_headers":             chk.Settings.Http.ProxyConnectHeaders,
 			"fail_if_ssl":                       chk.Settings.Http.FailIfSSL,
 			"fail_if_not_ssl":                   chk.Settings.Http.FailIfNotSSL,
 			"valid_status_codes":                common.Int32SliceToSet(chk.Settings.Http.ValidStatusCodes),
@@ -929,6 +940,17 @@ func ResourceCheckRead(ctx context.Context, d *schema.ResourceData, meta interfa
 			schema.HashResource(syntheticMonitoringCheckSettingsMultiHttp),
 			[]interface{}{},
 		)
+		entries := schema.NewSet(schema.HashResource(syntheticMonitoringCheckSettingsMultiHttpEntry), []interface{}{})
+		for _, e := range chk.Settings.Multihttp.Entries {
+			entries.Add(map[string]interface{}{
+				"request":   e.Request,
+				"checks":    e.Assertions,
+				"variables": e.Variables,
+			})
+		}
+		multiHttp.Add(map[string]interface{}{
+			"entries": entries,
+		})
 		settings.Add(map[string]interface{}{
 			"multihttp": multiHttp,
 		})
@@ -1142,88 +1164,95 @@ func makeCheckSettings(settings map[string]interface{}) sm.CheckSettings {
 	}
 
 	multihttp := settings["multihttp"].(*schema.Set).List()
-	if len(traceroute) > 0 {
+	if len(multihttp) > 0 {
 		m := multihttp[0].(map[string]interface{})
 
 		cs.Multihttp = &sm.MultiHttpSettings{}
 
-		if m["entries"].(*schema.Set).Len() > 0 {
-			for _, entry := range m["entries"].(*schema.Set).List() {
-				request := entry.(map[string]interface{})["request"].(map[string]interface{})
+		entries := m["entries"].(*schema.Set).List()
+		if len(entries) > 0 {
+			for _, e := range entries {
+				entry := e.(map[string]interface{})
+				r := entry["request"].(*schema.Set)
+				request := r.List()[0].(map[string]interface{})
+				method := sm.HttpMethod(sm.HttpMethod_value[request["method"].(string)])
 				e := &sm.MultiHttpEntry{
 					Request: &sm.MultiHttpEntryRequest{
-						Method: request["method"].(sm.HttpMethod),
+						Method: method,
 						Url:    request["url"].(string),
 					},
 				}
-				if request["headers"].(*schema.Set).Len() > 0 {
-					headers := make([]*sm.HttpHeader, 0)
-					for _, header := range request["headers"].(*schema.Set).List() {
+				headers := request["headers"].(*schema.Set).List()
+				if len(headers) > 0 {
+					e.Request.Headers = make([]*sm.HttpHeader, 0)
+					for _, header := range headers {
 						header := sm.HttpHeader{
 							Name:  header.(map[string]interface{})["name"].(string),
 							Value: header.(map[string]interface{})["value"].(string),
 						}
-						headers = append(headers, &header)
+						e.Request.Headers = append(e.Request.Headers, &header)
 					}
-					e.Request.Headers = headers
 				}
-				if request["queryFields"].(*schema.Set).Len() > 0 {
-					queryFields := make([]*sm.QueryField, 0)
+
+				if request["queryFields"] != nil && len(request["queryFields"].(*schema.Set).List()) > 0 {
+					e.Request.QueryFields = make([]*sm.QueryField, 0)
 					for _, queryField := range request["queryFields"].(*schema.Set).List() {
 						queryField := sm.QueryField{
 							Name:  queryField.(map[string]interface{})["name"].(string),
 							Value: queryField.(map[string]interface{})["value"].(string),
 						}
-						queryFields = append(queryFields, &queryField)
+						e.Request.QueryFields = append(e.Request.QueryFields, &queryField)
 					}
-					e.Request.QueryFields = queryFields
 				}
 
-				if request["body"] != nil {
-					reqBody := request["body"].(map[string]interface{})
+				reqBody := request["body"].(*schema.Set).List()
+				if len(reqBody) > 0 {
+					r := reqBody[0].(map[string]interface{})
 					body := &sm.HttpRequestBody{
-						ContentType:     reqBody["content_type"].(string),
-						ContentEncoding: reqBody["content_encoding"].(string),
-						Payload:         reqBody["payload"].([]byte),
+						ContentType:     r["content_type"].(string),
+						ContentEncoding: r["content_encoding"].(string),
+						Payload:         []byte(r["payload"].(string)),
 					}
 					e.Request.Body = body
 				}
 
-				if entry.(map[string]interface{})["variables"].(*schema.Set).Len() > 0 {
-					variables := make([]*sm.MultiHttpEntryVariable, 0)
-					for _, variable := range entry.(map[string]interface{})["variables"].(*schema.Set).List() {
+				variables := entry["variables"].(*schema.Set).List()
+				if len(variables) > 0 {
+					e.Variables = make([]*sm.MultiHttpEntryVariable, 0)
+					for _, variable := range variables {
+						c := variable.(map[string]interface{})
 						v := &sm.MultiHttpEntryVariable{
-							Name:       variable.(map[string]interface{})["name"].(string),
-							Type:       variable.(map[string]interface{})["type"].(sm.MultiHttpEntryVariableType),
-							Expression: variable.(map[string]interface{})["expression"].(string),
-							Attribute:  variable.(map[string]interface{})["attribute"].(string),
+							Name:       c["name"].(string),
+							Type:       sm.MultiHttpEntryVariableType(c["type"].(int)),
+							Expression: c["expression"].(string),
+							Attribute:  c["attribute"].(string),
 						}
-						variables = append(variables, v)
+						e.Variables = append(e.Variables, v)
 					}
-					e.Variables = variables
 				}
 
-				if entry.(map[string]interface{})["assertions"].(*schema.Set).Len() > 0 {
-					assertions := make([]*sm.MultiHttpEntryAssertion, 0)
-					for _, assertion := range entry.(map[string]interface{})["assertions"].(*schema.Set).List() {
+				assertions := entry["checks"].(*schema.Set).List()
+				if len(assertions) > 0 {
+					e.Assertions = make([]*sm.MultiHttpEntryAssertion, 0)
+					for _, assert := range assertions {
+						assertion := assert.(map[string]interface{})
 						a := &sm.MultiHttpEntryAssertion{
-							Type: assertion.(map[string]interface{})["type"].(sm.MultiHttpEntryAssertionType),
+							Type: sm.MultiHttpEntryAssertionType(assertion["type"].(int)),
 						}
-						if assertion.(map[string]interface{})["expression"] != nil {
-							a.Expression = assertion.(map[string]interface{})["expression"].(string)
+						if assertion["expression"] != nil {
+							a.Expression = assertion["expression"].(string)
 						}
-						if assertion.(map[string]interface{})["value"] != nil {
-							a.Expression = assertion.(map[string]interface{})["value"].(string)
+						if assertion["value"] != nil {
+							a.Expression = assertion["value"].(string)
 						}
-						if assertion.(map[string]interface{})["subject"] != nil {
-							a.Subject = assertion.(map[string]interface{})["subject"].(sm.MultiHttpEntryAssertionSubjectVariant)
+						if assertion["subject"] != nil {
+							a.Subject = sm.MultiHttpEntryAssertionSubjectVariant(assertion["subject"].(int))
 						}
-						if assertion.(map[string]interface{})["condition"] != nil {
-							a.Condition = assertion.(map[string]interface{})["condition"].(sm.MultiHttpEntryAssertionConditionVariant)
+						if assertion["condition"] != nil {
+							a.Condition = sm.MultiHttpEntryAssertionConditionVariant(assertion["condition"].(int))
 						}
-						assertions = append(assertions, a)
+						e.Assertions = append(e.Assertions, a)
 					}
-					e.Assertions = assertions
 				}
 				cs.Multihttp.Entries = append(cs.Multihttp.Entries, e)
 			}
