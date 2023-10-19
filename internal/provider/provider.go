@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -345,7 +346,14 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			}
 		}
 		if smToken := d.Get("sm_access_token").(string); smToken != "" {
-			c.SMAPI = SMAPI.NewClient(d.Get("sm_url").(string), smToken, nil)
+			retryClient := retryablehttp.NewClient()
+			retryClient.RetryMax = d.Get("retries").(int)
+			if wait := d.Get("retry_wait").(int); wait > 0 {
+				retryClient.RetryWaitMin = time.Second * time.Duration(d.Get("retry_wait").(int))
+				retryClient.RetryWaitMax = time.Second * time.Duration(d.Get("retry_wait").(int))
+			}
+
+			c.SMAPI = SMAPI.NewClient(d.Get("sm_url").(string), smToken, retryClient.StandardClient())
 		}
 		if d.Get("oncall_access_token").(string) != "" {
 			var onCallClient *onCallAPI.Client
