@@ -4,15 +4,15 @@ page_title: "grafana_slos Data Source - terraform-provider-grafana"
 subcategory: "SLO"
 description: |-
   Datasource for retrieving all SLOs.
-  Official documentation https://grafana.com/docs/grafana-cloud/slo/API documentation https://grafana.com/docs/grafana-cloud/slo/api/Additional Information On Alerting Rule Annotations and Labels https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/#templating/
+  Official documentation https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/API documentation https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/api/Additional Information On Alerting Rule Annotations and Labels https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/#templating/
 ---
 
 # grafana_slos (Data Source)
 
 Datasource for retrieving all SLOs.
 		
-* [Official documentation](https://grafana.com/docs/grafana-cloud/slo/)
-* [API documentation](https://grafana.com/docs/grafana-cloud/slo/api/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/)
+* [API documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/api/)
 * [Additional Information On Alerting Rule Annotations and Labels](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/#templating/)
 
 ## Example Usage
@@ -191,6 +191,7 @@ Read-Only:
 Read-Only:
 
 - `freeform` (List of Object) (see [below for nested schema](#nestedobjatt--slos--query--freeform))
+- `ratio` (List of Object) (see [below for nested schema](#nestedobjatt--slos--query--ratio))
 - `type` (String)
 
 <a id="nestedobjatt--slos--query--freeform"></a>
@@ -199,3 +200,13 @@ Read-Only:
 Read-Only:
 
 - `query` (String)
+
+
+<a id="nestedobjatt--slos--query--ratio"></a>
+### Nested Schema for `slos.query.ratio`
+
+Read-Only:
+
+- `group_by_labels` (List of String)
+- `success_metric` (String)
+- `total_metric` (String)

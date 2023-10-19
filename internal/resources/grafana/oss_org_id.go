@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -54,7 +56,7 @@ func ClientFromExistingOrgResource(meta interface{}, id string) (*gapi.Client, i
 // ClientFromNewOrgResource creates a client from the `org_id` attribute of a resource
 // This client is meant to be used in `Create` functions when the ID hasn't already been baked into the resource ID
 func ClientFromNewOrgResource(meta interface{}, d *schema.ResourceData) (*gapi.Client, int64) {
-	orgID, _ := strconv.ParseInt(d.Get("org_id").(string), 10, 64)
+	orgID := parseOrgID(d)
 	client := meta.(*common.Client).GrafanaAPI
 	if orgID == 0 {
 		orgID = meta.(*common.Client).GrafanaAPIConfig.OrgID // It's configured globally. TODO: Remove this once we drop support for the global org_id
@@ -62,4 +64,35 @@ func ClientFromNewOrgResource(meta interface{}, d *schema.ResourceData) (*gapi.C
 		client = client.WithOrgID(orgID)
 	}
 	return client, orgID
+}
+
+// OAPIClientFromExistingOrgResource creates a client from the ID of an org-scoped resource
+// Those IDs are in the <orgID>:<resourceID> format
+func OAPIClientFromExistingOrgResource(meta interface{}, id string) (*goapi.GrafanaHTTPAPI, int64, string) {
+	orgID, restOfID := SplitOrgResourceID(id)
+	client := meta.(*common.Client).GrafanaOAPI
+	if orgID == 0 {
+		orgID = meta.(*common.Client).GrafanaOAPI.OrgID()
+	} else if orgID > 0 {
+		client = client.WithOrgID(orgID)
+	}
+	return client, orgID, restOfID
+}
+
+// OAPIClientFromNewOrgResource creates an OpenAPI client from the `org_id` attribute of a resource
+// This client is meant to be used in `Create` functions when the ID hasn't already been baked into the resource ID
+func OAPIClientFromNewOrgResource(meta interface{}, d *schema.ResourceData) (*goapi.GrafanaHTTPAPI, int64) {
+	orgID := parseOrgID(d)
+	client := meta.(*common.Client).GrafanaOAPI
+	if orgID == 0 {
+		orgID = meta.(*common.Client).GrafanaOAPI.OrgID()
+	} else if orgID > 0 {
+		client = client.WithOrgID(orgID)
+	}
+	return client, orgID
+}
+
+func parseOrgID(d *schema.ResourceData) int64 {
+	orgID, _ := strconv.ParseInt(d.Get("org_id").(string), 10, 64)
+	return orgID
 }

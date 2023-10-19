@@ -32,6 +32,18 @@ resource "grafana_data_source" "foo" {
   })
 }
 
+resource "grafana_user" "user" {
+  name     = "test-ds-permissions"
+  email    = "test-ds-permissions@example.com"
+  login    = "test-ds-permissions"
+  password = "hunter2"
+}
+
+resource "grafana_service_account" "sa" {
+  name = "test-ds-permissions"
+  role = "Viewer"
+}
+
 resource "grafana_data_source_permission" "fooPermissions" {
   datasource_id = grafana_data_source.foo.id
   permissions {
@@ -39,12 +51,16 @@ resource "grafana_data_source_permission" "fooPermissions" {
     permission = "Query"
   }
   permissions {
-    user_id    = 3 // 3 is the admin user in cloud. It can't be queried
+    user_id    = grafana_user.user.id
     permission = "Edit"
   }
   permissions {
     built_in_role = "Viewer"
     permission    = "Query"
+  }
+  permissions {
+    user_id    = grafana_service_account.sa.id
+    permission = "Query"
   }
 }
 ```
@@ -76,4 +92,4 @@ Optional:
 
 - `built_in_role` (String) Name of the basic role to manage permissions for. Options: `Viewer`, `Editor` or `Admin`. Can only be set from Grafana v9.2.3+. Defaults to ``.
 - `team_id` (String) ID of the team to manage permissions for. Defaults to `0`.
-- `user_id` (Number) ID of the user to manage permissions for. Defaults to `0`.
+- `user_id` (String) ID of the user or service account to manage permissions for. Defaults to `0`.

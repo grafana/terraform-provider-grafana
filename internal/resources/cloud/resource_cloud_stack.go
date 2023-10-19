@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -27,7 +28,7 @@ func ResourceStack() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
-* [Official documentation](https://grafana.com/docs/grafana-cloud/reference/cloud-api/#stacks/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#stacks/)
 `,
 
 		CreateContext: CreateStack,
@@ -66,7 +67,7 @@ available at “https://<stack_slug>.grafana.net".`,
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
-				Description: `Region slug to assign to this stack. Changing region will destroy the existing stack and create a new one in the desired region. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/reference/cloud-api/#list-regions.`,
+				Description: `Region slug to assign to this stack. Changing region will destroy the existing stack and create a new one in the desired region. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.`,
 			},
 			"url": {
 				Type:        schema.TypeString,
@@ -237,16 +238,33 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 		Region: d.Get("region_slug").(string),
 	}
 
-	stackID, err := client.NewStack(stack)
-	if err != nil && err.Error() == "409 Conflict" {
-		return diag.Errorf("Error: A Grafana stack with the name '%s' already exists.", stack.Name)
-	}
-
+	err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
+		stackID, err := client.NewStack(stack)
+		switch {
+		case err != nil && strings.Contains(err.Error(), "409"):
+			// If the API returns a 409, it means that the stack already exists
+			// It may also mean that the stack was recently deleted and is still in the process of being deleted
+			// In that case, we want to retry
+			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
+			return retry.RetryableError(fmt.Errorf("a stack with the name '%s' already exists", stack.Name))
+		case err != nil:
+			// If we had an error that isn't a 409 (already exists), try to read the stack
+			// Sometimes, the stack is created but the API returns an error (e.g. 504)
+			readStack, readErr := client.StackBySlug(stack.Slug)
+			if readErr == nil {
+				d.SetId(strconv.FormatInt(readStack.ID, 10))
+				return nil
+			}
+			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
+			return retry.RetryableError(fmt.Errorf("failed to create stack: %v", err))
+		default:
+			d.SetId(strconv.FormatInt(stackID, 10))
+		}
+		return nil
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	d.SetId(strconv.FormatInt(stackID, 10))
 
 	if diag := ReadStack(ctx, d, meta); diag != nil {
 		return diag

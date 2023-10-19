@@ -135,7 +135,7 @@ Team Sync can be provisioned using [grafana_team_external_group resource](https:
 				},
 				Description: `Sync external auth provider groups with this Grafana team. Only available in Grafana Enterprise.
 	* [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/)
-	* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/external_group_sync/)
+	* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team_sync/)
 `,
 			},
 		},

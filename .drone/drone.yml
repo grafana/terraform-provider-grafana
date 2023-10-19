@@ -1,92 +1,4 @@
 ---
-kind: pipeline
-name: lint
-platform:
-  arch: amd64
-  os: linux
-services: []
-steps:
-- commands:
-  - golangci-lint --version
-  - golangci-lint run ./...
-  image: golangci/golangci-lint:v1.52
-  name: lint
-- commands:
-  - |
-    terraform fmt -recursive -check || (echo "Terraform files aren't formatted. Run 'terraform fmt -recursive && go generate'"; exit 1;)
-  image: hashicorp/terraform
-  name: terraform-fmt
-trigger:
-  branch:
-  - master
-  event:
-  - pull_request
-  - push
-type: docker
-workspace:
-  path: /drone/terraform-provider-grafana
----
-kind: pipeline
-name: docs
-platform:
-  arch: amd64
-  os: linux
-services: []
-steps:
-- commands:
-  - apt update && apt install -y jq
-  - go generate
-  - gitstatus="$(git status --porcelain)"
-  - if [ -n "$gitstatus" ]; then
-  - '  echo "$gitstatus"'
-  - '  echo "docs are out of sync, run \"go generate\""'
-  - '  exit 1'
-  - fi
-  image: golang:1.20
-  name: check for drift
-- commands:
-  - pip3 install linkchecker
-  - linkchecker --config ./.linkcheckerrc docs/
-  image: python:3.11-alpine
-  name: check for broken links
-trigger:
-  branch:
-  - master
-  event:
-  - pull_request
-  - push
-type: docker
-workspace:
-  path: /drone/terraform-provider-grafana
----
-kind: pipeline
-name: unit tests
-platform:
-  arch: amd64
-  os: linux
-services: []
-steps:
-- commands:
-  - cp /bin/terraform /drone/terraform-provider-grafana/terraform
-  - chmod a+x /drone/terraform-provider-grafana/terraform
-  image: hashicorp/terraform
-  name: download-terraform
-- commands:
-  - go test ./...
-  environment:
-    TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.20
-  name: tests
-trigger:
-  branch:
-  - master
-  event:
-  - pull_request
-  - push
-type: docker
-workspace:
-  path: /drone/terraform-provider-grafana
----
 concurrency:
   limit: 1
 kind: pipeline
@@ -174,7 +86,7 @@ services:
     GF_ENTERPRISE_LICENSE_TEXT:
       from_secret: grafana-enterprise-license
     GF_SERVER_ROOT_URL: http://grafana:3000
-  image: grafana/grafana-enterprise:10.0.1
+  image: grafana/grafana-enterprise:10.1.2
   name: grafana
 steps:
 - commands:
@@ -188,7 +100,7 @@ steps:
   environment:
     GRAFANA_AUTH: admin:admin
     GRAFANA_URL: http://grafana:3000
-    GRAFANA_VERSION: 10.0.1
+    GRAFANA_VERSION: 10.1.2
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.20
   name: tests
@@ -203,7 +115,7 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: pipeline
-name: 'oss tests: 10.0.1'
+name: tls proxy tests
 platform:
   arch: amd64
   os: linux
@@ -211,21 +123,48 @@ services:
 - environment:
     GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
     GF_SERVER_ROOT_URL: http://grafana:3000
-  image: grafana/grafana:10.0.1
+  image: grafana/grafana:10.1.2
   name: grafana
 steps:
 - commands:
+  - cd /drone/terraform-provider-grafana/testdata && go run . && ls -lah
+  depends_on:
+  - clone
+  image: golang:1.20
+  name: generate certs
+- command:
+  - server
+  - --listen=0.0.0.0:3001
+  - --target=grafana:3000
+  - --unsafe-target
+  - --key=/drone/terraform-provider-grafana/testdata/grafana.key
+  - --cert=/drone/terraform-provider-grafana/testdata/grafana.crt
+  - --cacert=/drone/terraform-provider-grafana/testdata/ca.crt
+  - --allow-cn=client
+  depends_on:
+  - generate certs
+  detach: true
+  image: squareup/ghostunnel:v1.5.2
+  name: mtls-proxy
+- commands:
   - cp /bin/terraform /drone/terraform-provider-grafana/terraform
   - chmod a+x /drone/terraform-provider-grafana/terraform
+  depends_on:
+  - generate certs
   image: hashicorp/terraform
   name: download-terraform
 - commands:
   - sleep 5
   - make testacc-oss
+  depends_on:
+  - generate certs
   environment:
     GRAFANA_AUTH: admin:admin
-    GRAFANA_URL: http://grafana:3000
-    GRAFANA_VERSION: 10.0.1
+    GRAFANA_CA_CERT: /drone/terraform-provider-grafana/testdata/ca.crt
+    GRAFANA_TLS_CERT: /drone/terraform-provider-grafana/testdata/client.crt
+    GRAFANA_TLS_KEY: /drone/terraform-provider-grafana/testdata/client.key
+    GRAFANA_URL: https://mtls-proxy:3001
+    GRAFANA_VERSION: 10.1.2
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.20
   name: tests
@@ -240,7 +179,7 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: pipeline
-name: 'oss tests: 9.5.5'
+name: 'oss tests: 10.1.2'
 platform:
   arch: amd64
   os: linux
@@ -248,7 +187,7 @@ services:
 - environment:
     GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
     GF_SERVER_ROOT_URL: http://grafana:3000
-  image: grafana/grafana:9.5.5
+  image: grafana/grafana:10.1.2
   name: grafana
 steps:
 - commands:
@@ -262,7 +201,7 @@ steps:
   environment:
     GRAFANA_AUTH: admin:admin
     GRAFANA_URL: http://grafana:3000
-    GRAFANA_VERSION: 9.5.5
+    GRAFANA_VERSION: 10.1.2
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.20
   name: tests
@@ -277,7 +216,7 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: pipeline
-name: 'oss tests: 9.4.13'
+name: 'oss tests: 10.0.6'
 platform:
   arch: amd64
   os: linux
@@ -285,7 +224,7 @@ services:
 - environment:
     GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
     GF_SERVER_ROOT_URL: http://grafana:3000
-  image: grafana/grafana:9.4.13
+  image: grafana/grafana:10.0.6
   name: grafana
 steps:
 - commands:
@@ -299,7 +238,7 @@ steps:
   environment:
     GRAFANA_AUTH: admin:admin
     GRAFANA_URL: http://grafana:3000
-    GRAFANA_VERSION: 9.4.13
+    GRAFANA_VERSION: 10.0.6
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.20
   name: tests
@@ -314,7 +253,7 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 kind: pipeline
-name: 'oss tests: 9.3.16'
+name: 'oss tests: 9.5.10'
 platform:
   arch: amd64
   os: linux
@@ -322,7 +261,7 @@ services:
 - environment:
     GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
     GF_SERVER_ROOT_URL: http://grafana:3000
-  image: grafana/grafana:9.3.16
+  image: grafana/grafana:9.5.10
   name: grafana
 steps:
 - commands:
@@ -336,7 +275,7 @@ steps:
   environment:
     GRAFANA_AUTH: admin:admin
     GRAFANA_URL: http://grafana:3000
-    GRAFANA_VERSION: 9.3.16
+    GRAFANA_VERSION: 9.5.10
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.20
   name: tests
@@ -374,43 +313,6 @@ steps:
     GRAFANA_AUTH: admin:admin
     GRAFANA_URL: http://grafana:3000
     GRAFANA_VERSION: 8.5.27
-    TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.20
-  name: tests
-trigger:
-  branch:
-  - master
-  event:
-  - pull_request
-  - push
-type: docker
-workspace:
-  path: /drone/terraform-provider-grafana
----
-kind: pipeline
-name: 'oss tests: 7.5.17'
-platform:
-  arch: amd64
-  os: linux
-services:
-- environment:
-    GF_DATABASE_URL: sqlite3:///var/lib/grafana/grafana.db?cache=private&mode=rwc&_journal_mode=WAL
-    GF_SERVER_ROOT_URL: http://grafana:3000
-  image: grafana/grafana:7.5.17
-  name: grafana
-steps:
-- commands:
-  - cp /bin/terraform /drone/terraform-provider-grafana/terraform
-  - chmod a+x /drone/terraform-provider-grafana/terraform
-  image: hashicorp/terraform
-  name: download-terraform
-- commands:
-  - sleep 5
-  - make testacc-oss
-  environment:
-    GRAFANA_AUTH: admin:admin
-    GRAFANA_URL: http://grafana:3000
-    GRAFANA_VERSION: 7.5.17
     TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
   image: golang:1.20
   name: tests
@@ -467,6 +369,6 @@ kind: secret
 name: grafana-sm-token
 ---
 kind: signature
-hmac: 81801e1fc60765938704576fee2d11b1cbd8b2f98d17342c013e526b6da5de38
+hmac: 55829f21755c37ab833aeac2d1dad643d5d7e427535ff8ce21bad8d6d4644f96
 
 ...

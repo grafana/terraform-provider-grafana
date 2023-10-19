@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
+	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 )
 
 func TestAccNotificationPolicy_basic(t *testing.T) {
@@ -38,7 +39,7 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.matcher.0.label", "mylabel"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.matcher.0.match", "="),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.matcher.0.value", "myvalue"),
-					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.group_by.0", "alertname"),
+					resource.TestCheckNoResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.group_by"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.continue", "true"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.mute_timings.0", "Some Mute Timing"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.group_wait", "45s"),

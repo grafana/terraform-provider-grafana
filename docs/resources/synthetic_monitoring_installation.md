@@ -7,7 +7,7 @@ description: |-
   Once a Grafana Cloud stack is created, a user can either use this resource or go into the UI to install synthetic monitoring.
   This resource cannot be imported but it can be used on an existing Synthetic Monitoring installation without issues.
   Note that this resource must be used on a provider configured with Grafana Cloud credentials.
-  Official documentation https://grafana.com/docs/grafana-cloud/synthetic-monitoring/installation/API documentation https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#apiv1registerinstall
+  Official documentation https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/installation/API documentation https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#apiv1registerinstall
 ---
 
 # grafana_synthetic_monitoring_installation (Resource)
@@ -18,7 +18,7 @@ This resource cannot be imported but it can be used on an existing Synthetic Mon
 
 **Note that this resource must be used on a provider configured with Grafana Cloud credentials.**
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/synthetic-monitoring/installation/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/installation/)
 * [API documentation](https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#apiv1registerinstall)
 
 ## Example Usage
@@ -58,7 +58,7 @@ provider "grafana" {
 
 ### Optional
 
-- `stack_sm_api_url` (String) The URL of the SM API to install SM on. This depends on the stack region, find the list of API URLs here: https://grafana.com/docs/grafana-cloud/synthetic-monitoring/private-probes/#probe-api-server-url. A static mapping exists in the provider but it may not contain all the regions. If it does contain the stack's region, this field is computed automatically and readable.
+- `stack_sm_api_url` (String) The URL of the SM API to install SM on. This depends on the stack region, find the list of API URLs here: https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/private-probes/#probe-api-server-url. A static mapping exists in the provider but it may not contain all the regions. If it does contain the stack's region, this field is computed automatically and readable.
 
 ### Read-Only
 

@@ -37,11 +37,12 @@ func ResourceFolderPermission() *schema.Resource {
 				Type:        schema.TypeSet,
 				Required:    true,
 				Description: "The permission items to add/update. Items that are omitted from the list will be removed.",
-				// Ignore the org ID of the team when hashing. It works with or without it.
+				// Ignore the org ID of the team/SA when hashing. It works with or without it.
 				Set: func(i interface{}) int {
 					m := i.(map[string]interface{})
 					_, teamID := SplitOrgResourceID(m["team_id"].(string))
-					return schema.HashString(m["role"].(string) + teamID + strconv.Itoa(m["user_id"].(int)) + m["permission"].(string))
+					_, userID := SplitOrgResourceID(m["user_id"].(string))
+					return schema.HashString(m["role"].(string) + teamID + userID + m["permission"].(string))
 				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -58,10 +59,10 @@ func ResourceFolderPermission() *schema.Resource {
 							Description: "ID of the team to manage permissions for.",
 						},
 						"user_id": {
-							Type:        schema.TypeInt,
+							Type:        schema.TypeString,
 							Optional:    true,
-							Default:     0,
-							Description: "ID of the user to manage permissions for.",
+							Default:     "0",
+							Description: "ID of the user or service account to manage permissions for.",
 						},
 						"permission": {
 							Type:         schema.TypeString,
@@ -95,8 +96,10 @@ func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 		if teamID > 0 {
 			permissionItem.TeamID = teamID
 		}
-		if permission["user_id"].(int) != -1 {
-			permissionItem.UserID = int64(permission["user_id"].(int))
+		_, userIDStr := SplitOrgResourceID(permission["user_id"].(string))
+		userID, _ := strconv.ParseInt(userIDStr, 10, 64)
+		if userID > 0 {
+			permissionItem.UserID = userID
 		}
 		permissionItem.Permission = mapPermissionStringToInt64(permission["permission"].(string))
 		permissionList.Items = append(permissionList.Items, &permissionItem)
@@ -129,7 +132,7 @@ func ReadFolderPermissions(ctx context.Context, d *schema.ResourceData, meta int
 			permissionItem := make(map[string]interface{})
 			permissionItem["role"] = permission.Role
 			permissionItem["team_id"] = strconv.FormatInt(permission.TeamID, 10)
-			permissionItem["user_id"] = permission.UserID
+			permissionItem["user_id"] = strconv.FormatInt(permission.UserID, 10)
 			permissionItem["permission"] = mapPermissionInt64ToString(permission.Permission)
 
 			permissionItems[count] = permissionItem

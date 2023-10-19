@@ -18,8 +18,8 @@ func ResourceSlo() *schema.Resource {
 		Description: `
 Resource manages Grafana SLOs. 
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/slo/)
-* [API documentation](https://grafana.com/docs/grafana-cloud/slo/api/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/)
+* [API documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/api/)
 * [Additional Information On Alerting Rule Annotations and Labels](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/#templating/)
 		`,
 		CreateContext: resourceSloCreate,
@@ -57,13 +57,40 @@ Resource manages Grafana SLOs.
 						"freeform": &schema.Schema{
 							Type:     schema.TypeList,
 							MaxItems: 1,
-							Required: true,
+							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"query": &schema.Schema{
 										Type:        schema.TypeString,
-										Optional:    true,
+										Required:    true,
 										Description: "Freeform Query Field",
+									},
+								},
+							},
+						},
+						"ratio": &schema.Schema{
+							Type:     schema.TypeList,
+							MaxItems: 1,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"success_metric": &schema.Schema{
+										Type:        schema.TypeString,
+										Description: `Counter metric for success events (numerator)`,
+										Required:    true,
+									},
+									"total_metric": &schema.Schema{
+										Type:        schema.TypeString,
+										Description: `Metric for total events (denominator)`,
+										Required:    true,
+									},
+									"group_by_labels": &schema.Schema{
+										Type:        schema.TypeList,
+										Description: `Defines Group By Labels used for per-label alerting. These appear as variables on SLO dashboards to enable filtering and aggregation. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$"`,
+										Optional:    true,
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
 									},
 								},
 							},
@@ -74,7 +101,7 @@ Resource manages Grafana SLOs.
 			"label": &schema.Schema{
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: `Additional labels that will be attached to all metrics generated from the query. These labels are useful for grouping SLOs in dashboard views that you create by hand.`,
+				Description: `Additional labels that will be attached to all metrics generated from the query. These labels are useful for grouping SLOs in dashboard views that you create by hand. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$"`,
 				Elem:        keyvalueSchema,
 			},
 			"objectives": &schema.Schema{
@@ -333,6 +360,40 @@ func packQuery(query map[string]interface{}) (gapi.Query, error) {
 		sloQuery := gapi.Query{
 			Freeform: &gapi.FreeformQuery{Query: querystring},
 			Type:     gapi.QueryTypeFreeform,
+		}
+
+		return sloQuery, nil
+	}
+
+	if query["type"] == "ratio" {
+		ratioquery := query["ratio"].([]interface{})[0].(map[string]interface{})
+		successMetric := ratioquery["success_metric"].(string)
+		totalMetric := ratioquery["total_metric"].(string)
+		groupByLabels := ratioquery["group_by_labels"].([]interface{})
+
+		var labels []string
+
+		for ind := range groupByLabels {
+			if groupByLabels[ind] == nil {
+				labels = append(labels, "")
+				continue
+			}
+			labels = append(labels, groupByLabels[ind].(string))
+		}
+
+		sloQuery := gapi.Query{
+			Ratio: &gapi.RatioQuery{
+				SuccessMetric: gapi.MetricDef{
+					PrometheusMetric: successMetric,
+					Type:             nil,
+				},
+				TotalMetric: gapi.MetricDef{
+					PrometheusMetric: totalMetric,
+					Type:             nil,
+				},
+				GroupByLabels: labels,
+			},
+			Type: gapi.QueryTypeRatio,
 		}
 
 		return sloQuery, nil

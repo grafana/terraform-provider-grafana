@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -17,10 +18,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
+	"github.com/go-openapi/strfmt"
+
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	gapi "github.com/grafana/grafana-api-golang-client"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
+
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
@@ -194,6 +199,12 @@ func Provider(version string) func() *schema.Provider {
 					Description: "The status codes to retry on for Grafana API and Grafana Cloud API calls. Use `x` as a digit wildcard. Defaults to 429 and 5xx. May alternatively be set via the `GRAFANA_RETRY_STATUS_CODES` environment variable.",
 					Elem:        &schema.Schema{Type: schema.TypeString},
 				},
+				"retry_wait": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					DefaultFunc: schema.EnvDefaultFunc("GRAFANA_RETRY_WAIT", 0),
+					Description: "The amount of time in seconds to wait between retries for Grafana API and Grafana Cloud API calls. May alternatively be set via the `GRAFANA_RETRY_WAIT` environment variable.",
+				},
 				"org_id": {
 					Type:        schema.TypeInt,
 					Optional:    true,
@@ -252,7 +263,7 @@ func Provider(version string) func() *schema.Provider {
 					Type:         schema.TypeString,
 					Optional:     true,
 					DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_SM_URL", "https://synthetic-monitoring-api.grafana.net"),
-					Description:  "Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable. The correct value for each service region is cited in the [Synthetic Monitoring documentation](https://grafana.com/docs/grafana-cloud/synthetic-monitoring/private-probes/#probe-api-server-url). Note the `sm_url` value is optional, but it must correspond with the value specified as the `region_slug` in the `grafana_cloud_stack` resource. Also note that when a Terraform configuration contains multiple provider instances managing SM resources associated with the same Grafana stack, specifying an explicit `sm_url` set to the same value for each provider ensures all providers interact with the same SM API.",
+					Description:  "Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable. The correct value for each service region is cited in the [Synthetic Monitoring documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/private-probes/#probe-api-server-url). Note the `sm_url` value is optional, but it must correspond with the value specified as the `region_slug` in the `grafana_cloud_stack` resource. Also note that when a Terraform configuration contains multiple provider instances managing SM resources associated with the same Grafana stack, specifying an explicit `sm_url` set to the same value for each provider ensures all providers interact with the same SM API.",
 					ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 				},
 				"store_dashboard_sha256": {
@@ -318,6 +329,10 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			if err != nil {
 				return nil, diag.FromErr(err)
 			}
+			c.GrafanaOAPI, err = createGrafanaOAPIClient(c.GrafanaAPIURL, d)
+			if err != nil {
+				return nil, diag.FromErr(err)
+			}
 			c.MLAPI, err = createMLClient(c.GrafanaAPIURL, c.GrafanaAPIConfig)
 			if err != nil {
 				return nil, diag.FromErr(err)
@@ -349,79 +364,37 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 }
 
 func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Client, error) {
-	auth := strings.SplitN(d.Get("auth").(string), ":", 2)
 	cli := cleanhttp.DefaultClient()
 	transport := cleanhttp.DefaultTransport()
-	transport.TLSClientConfig = &tls.Config{}
 	// limiting the amount of concurrent HTTP connections from the provider
 	// makes it not overload the API and DB
 	transport.MaxConnsPerHost = 2
 
-	// TLS Config
-	tlsKeyFile, tempFile, err := createTempFileIfLiteral(d.Get("tls_key").(string))
+	tlsClientConfig, err := parseTLSconfig(d)
 	if err != nil {
 		return "", nil, nil, err
 	}
-	if tempFile {
-		defer os.Remove(tlsKeyFile)
-	}
-	tlsCertFile, tempFile, err := createTempFileIfLiteral(d.Get("tls_cert").(string))
-	if err != nil {
-		return "", nil, nil, err
-	}
-	if tempFile {
-		defer os.Remove(tlsCertFile)
-	}
-	caCertFile, tempFile, err := createTempFileIfLiteral(d.Get("ca_cert").(string))
-	if err != nil {
-		return "", nil, nil, err
-	}
-	if tempFile {
-		defer os.Remove(caCertFile)
-	}
-
-	insecure := d.Get("insecure_skip_verify").(bool)
-	if caCertFile != "" {
-		ca, err := os.ReadFile(caCertFile)
-		if err != nil {
-			return "", nil, nil, err
-		}
-		pool := x509.NewCertPool()
-		pool.AppendCertsFromPEM(ca)
-		transport.TLSClientConfig.RootCAs = pool
-	}
-	if tlsKeyFile != "" && tlsCertFile != "" {
-		cert, err := tls.LoadX509KeyPair(tlsCertFile, tlsKeyFile)
-		if err != nil {
-			return "", nil, nil, err
-		}
-		transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
-	}
-	if insecure {
-		transport.TLSClientConfig.InsecureSkipVerify = true
-	}
+	transport.TLSClientConfig = tlsClientConfig
 
 	apiURL := d.Get("url").(string)
 	cli.Transport = logging.NewSubsystemLoggingHTTPTransport("Grafana", transport)
-	cfg := gapi.Config{
-		Client:     cli,
-		NumRetries: d.Get("retries").(int),
+
+	userInfo, orgID, apiKey, err := parseAuth(d)
+	if err != nil {
+		return "", nil, nil, err
 	}
+
+	cfg := gapi.Config{
+		Client:       cli,
+		NumRetries:   d.Get("retries").(int),
+		RetryTimeout: time.Second * time.Duration(d.Get("retry_wait").(int)),
+		BasicAuth:    userInfo,
+		OrgID:        orgID,
+		APIKey:       apiKey,
+	}
+
 	if v, ok := d.GetOk("retry_status_codes"); ok {
 		cfg.RetryStatusCodes = common.SetToStringSlice(v.(*schema.Set))
-	}
-	orgID := 1
-	if v, ok := d.GetOk("org_id"); ok {
-		orgID = v.(int)
-	}
-	if len(auth) == 2 {
-		cfg.BasicAuth = url.UserPassword(auth[0], auth[1])
-		cfg.OrgID = int64(orgID)
-	} else if auth[0] != "anonymous" {
-		if orgID > 1 {
-			return "", nil, nil, fmt.Errorf("org_id is only supported with basic auth. API keys are already org-scoped")
-		}
-		cfg.APIKey = auth[0]
 	}
 
 	if cfg.HTTPHeaders, err = getHTTPHeadersMap(d); err != nil {
@@ -433,6 +406,35 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 		return "", nil, nil, err
 	}
 	return apiURL, &cfg, gclient, nil
+}
+
+func createGrafanaOAPIClient(apiURL string, d *schema.ResourceData) (*goapi.GrafanaHTTPAPI, error) {
+	tlsClientConfig, err := parseTLSconfig(d)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(apiURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse API url: %v", err.Error())
+	}
+
+	userInfo, orgID, APIKey, err := parseAuth(d)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := goapi.TransportConfig{
+		Host:      u.Host,
+		BasePath:  "/api",
+		Schemes:   []string{u.Scheme},
+		TLSConfig: tlsClientConfig,
+		BasicAuth: userInfo,
+		OrgID:     orgID,
+		APIKey:    APIKey,
+	}
+
+	return goapi.NewHTTPClientWithConfig(strfmt.Default, &cfg), nil
 }
 
 func createMLClient(url string, grafanaCfg *gapi.Config) (*mlapi.Client, error) {
@@ -456,8 +458,9 @@ func createMLClient(url string, grafanaCfg *gapi.Config) (*mlapi.Client, error) 
 
 func createCloudClient(d *schema.ResourceData) (*gapi.Client, error) {
 	cfg := gapi.Config{
-		APIKey:     d.Get("cloud_api_key").(string),
-		NumRetries: d.Get("retries").(int),
+		APIKey:       d.Get("cloud_api_key").(string),
+		NumRetries:   d.Get("retries").(int),
+		RetryTimeout: time.Second * time.Duration(d.Get("retry_wait").(int)),
 	}
 
 	var err error
@@ -543,4 +546,71 @@ func createTempFileIfLiteral(value string) (path string, tempFile bool, err erro
 	}
 
 	return value, false, nil
+}
+
+func parseAuth(d *schema.ResourceData) (*url.Userinfo, int64, string, error) {
+	auth := strings.SplitN(d.Get("auth").(string), ":", 2)
+	orgID := 1
+	if v, ok := d.GetOk("org_id"); ok {
+		orgID = v.(int)
+	}
+
+	if len(auth) == 2 {
+		return url.UserPassword(auth[0], auth[1]), int64(orgID), "", nil
+	} else if auth[0] != "anonymous" {
+		if orgID > 1 {
+			return nil, 0, "", fmt.Errorf("org_id is only supported with basic auth. API keys are already org-scoped")
+		}
+		return nil, 0, auth[0], nil
+	}
+	return nil, 0, "", nil
+}
+
+func parseTLSconfig(d *schema.ResourceData) (*tls.Config, error) {
+	tlsClientConfig := &tls.Config{}
+
+	tlsKeyFile, tempFile, err := createTempFileIfLiteral(d.Get("tls_key").(string))
+	if err != nil {
+		return nil, err
+	}
+	if tempFile {
+		defer os.Remove(tlsKeyFile)
+	}
+	tlsCertFile, tempFile, err := createTempFileIfLiteral(d.Get("tls_cert").(string))
+	if err != nil {
+		return nil, err
+	}
+	if tempFile {
+		defer os.Remove(tlsCertFile)
+	}
+	caCertFile, tempFile, err := createTempFileIfLiteral(d.Get("ca_cert").(string))
+	if err != nil {
+		return nil, err
+	}
+	if tempFile {
+		defer os.Remove(caCertFile)
+	}
+
+	insecure := d.Get("insecure_skip_verify").(bool)
+	if caCertFile != "" {
+		ca, err := os.ReadFile(caCertFile)
+		if err != nil {
+			return nil, err
+		}
+		pool := x509.NewCertPool()
+		pool.AppendCertsFromPEM(ca)
+		tlsClientConfig.RootCAs = pool
+	}
+	if tlsKeyFile != "" && tlsCertFile != "" {
+		cert, err := tls.LoadX509KeyPair(tlsCertFile, tlsKeyFile)
+		if err != nil {
+			return nil, err
+		}
+		tlsClientConfig.Certificates = []tls.Certificate{cert}
+	}
+	if insecure {
+		tlsClientConfig.InsecureSkipVerify = true
+	}
+
+	return tlsClientConfig, nil
 }

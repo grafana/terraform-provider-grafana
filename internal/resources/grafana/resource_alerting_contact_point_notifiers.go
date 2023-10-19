@@ -6,9 +6,10 @@ import (
 	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
 type alertmanagerNotifier struct{}
@@ -189,6 +190,11 @@ func (d discordNotifier) schema() *schema.Resource {
 		Sensitive:   true,
 		Description: "The discord webhook URL.",
 	}
+	r.Schema["title"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated content of the title.",
+	}
 	r.Schema["message"] = &schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    true,
@@ -216,6 +222,7 @@ func (d discordNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (i
 		notifier["url"] = v.(string)
 		delete(p.Settings, "url")
 	}
+	packNotifierStringField(&p.Settings, &notifier, "title", "title")
 	if v, ok := p.Settings["message"]; ok && v != nil {
 		notifier["message"] = v.(string)
 		delete(p.Settings, "message")
@@ -240,6 +247,7 @@ func (d discordNotifier) unpack(raw interface{}, name string) gapi.ContactPoint 
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	settings["url"] = json["url"].(string)
+	unpackNotifierStringField(&json, &settings, "title", "title")
 	if v, ok := json["message"]; ok && v != nil {
 		settings["message"] = v.(string)
 	}
@@ -350,15 +358,21 @@ func (e emailNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	}
 }
 
-const addrSeparator = ";"
+const addrSeparator = ';'
 
 func packAddrs(addrs string) []string {
-	return strings.Split(addrs, addrSeparator)
+	return strings.FieldsFunc(addrs, func(r rune) bool {
+		switch r {
+		case ',', addrSeparator, '\n':
+			return true
+		}
+		return false
+	})
 }
 
 func unpackAddrs(addrs []interface{}) string {
 	strs := common.ListToStringSlice(addrs)
-	return strings.Join(strs, addrSeparator)
+	return strings.Join(strs, string(addrSeparator))
 }
 
 type googleChatNotifier struct{}
@@ -381,6 +395,11 @@ func (g googleChatNotifier) schema() *schema.Resource {
 		Sensitive:   true,
 		Description: "The Google Chat webhook URL.",
 	}
+	r.Schema["title"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated content of the title.",
+	}
 	r.Schema["message"] = &schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    true,
@@ -395,6 +414,7 @@ func (g googleChatNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData)
 		notifier["url"] = v.(string)
 		delete(p.Settings, "url")
 	}
+	packNotifierStringField(&p.Settings, &notifier, "title", "title")
 	if v, ok := p.Settings["message"]; ok && v != nil {
 		notifier["message"] = v.(string)
 		delete(p.Settings, "message")
@@ -408,6 +428,7 @@ func (g googleChatNotifier) unpack(raw interface{}, name string) gapi.ContactPoi
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
 	settings["url"] = json["url"].(string)
+	unpackNotifierStringField(&json, &settings, "title", "title")
 	if v, ok := json["message"]; ok && v != nil {
 		settings["message"] = v.(string)
 	}
@@ -426,9 +447,10 @@ var _ notifier = (*kafkaNotifier)(nil)
 
 func (k kafkaNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:   "kafka",
-		typeStr: "kafka",
-		desc:    "A contact point that publishes notifications to Apache Kafka topics.",
+		field:        "kafka",
+		typeStr:      "kafka",
+		desc:         "A contact point that publishes notifications to Apache Kafka topics.",
+		secureFields: []string{"rest_proxy_url", "password"},
 	}
 }
 
@@ -445,6 +467,39 @@ func (k kafkaNotifier) schema() *schema.Resource {
 		Required:    true,
 		Description: "The name of the Kafka topic to publish to.",
 	}
+	r.Schema["description"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated description of the Kafka message.",
+	}
+	r.Schema["details"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The templated details to include with the message.",
+	}
+	r.Schema["username"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The user name to use when making a call to the Kafka REST Proxy",
+	}
+	r.Schema["password"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "The password to use when making a call to the Kafka REST Proxy",
+	}
+	r.Schema["api_version"] = &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		Default:      "v2",
+		ValidateFunc: validation.StringInSlice([]string{"v2", "v3"}, false),
+		Description:  "The API version to use when contacting the Kafka REST Server. Supported: v2 (default) and v3.",
+	}
+	r.Schema["cluster_id"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The Id of cluster to use when contacting the Kafka REST Server. Required api_version to be 'v3'",
+	}
 	return r
 }
 
@@ -458,6 +513,15 @@ func (k kafkaNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (int
 		notifier["topic"] = v.(string)
 		delete(p.Settings, "kafkaTopic")
 	}
+	packNotifierStringField(&p.Settings, &notifier, "description", "description")
+	packNotifierStringField(&p.Settings, &notifier, "details", "details")
+	packNotifierStringField(&p.Settings, &notifier, "username", "username")
+	packNotifierStringField(&p.Settings, &notifier, "password", "password")
+	packNotifierStringField(&p.Settings, &notifier, "apiVersion", "api_version")
+	packNotifierStringField(&p.Settings, &notifier, "kafkaClusterId", "cluster_id")
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, k, p.UID), k.meta().secureFields)
+
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
 }
@@ -468,6 +532,13 @@ func (k kafkaNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 
 	settings["kafkaRestProxy"] = json["rest_proxy_url"].(string)
 	settings["kafkaTopic"] = json["topic"].(string)
+	unpackNotifierStringField(&json, &settings, "description", "description")
+	unpackNotifierStringField(&json, &settings, "details", "details")
+	unpackNotifierStringField(&json, &settings, "username", "username")
+	unpackNotifierStringField(&json, &settings, "password", "password")
+	unpackNotifierStringField(&json, &settings, "api_version", "apiVersion")
+	unpackNotifierStringField(&json, &settings, "cluster_id", "kafkaClusterId")
+
 	return gapi.ContactPoint{
 		UID:                   uid,
 		Name:                  name,
@@ -524,9 +595,10 @@ func (o opsGenieNotifier) schema() *schema.Resource {
 		Description: "Whether to allow the alert priority to be configured via the value of the `og_priority` annotation on the alert.",
 	}
 	r.Schema["send_tags_as"] = &schema.Schema{
-		Type:        schema.TypeString,
-		Optional:    true,
-		Description: "Whether to send annotations to OpsGenie as Tags, Details, or both. Supported values are `tags`, `details`, `both`, or empty to use the default behavior of Tags.",
+		Type:         schema.TypeString,
+		Optional:     true,
+		ValidateFunc: validation.StringInSlice([]string{"tags", "details", "both"}, false),
+		Description:  "Whether to send annotations to OpsGenie as Tags, Details, or both. Supported values are `tags`, `details`, `both`, or empty to use the default behavior of Tags.",
 	}
 	return r
 }
@@ -837,6 +909,11 @@ func (n pushoverNotifier) schema() *schema.Resource {
 		Optional:    true,
 		Description: "The templated notification message content.",
 	}
+	r.Schema["upload_image"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Description: "Whether to send images in the notification or not. Default is true. Requires Grafana to be configured to send images in notifications.",
+	}
 	return r
 }
 
@@ -902,6 +979,10 @@ func (n pushoverNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (
 		notifier["message"] = v.(string)
 		delete(p.Settings, "message")
 	}
+	if v, ok := p.Settings["uploadImage"]; ok && v != nil {
+		notifier["upload_image"] = v.(bool)
+		delete(p.Settings, "uploadImage")
+	}
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, n, p.UID), n.meta().secureFields)
 
@@ -941,6 +1022,9 @@ func (n pushoverNotifier) unpack(raw interface{}, name string) gapi.ContactPoint
 	}
 	if v, ok := json["message"]; ok && v != nil {
 		settings["message"] = v.(string)
+	}
+	if v, ok := json["upload_image"]; ok && v != nil {
+		settings["uploadImage"] = v.(bool)
 	}
 
 	return gapi.ContactPoint{
@@ -1208,9 +1292,10 @@ var _ notifier = (*teamsNotifier)(nil)
 
 func (t teamsNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:   "teams",
-		typeStr: "teams",
-		desc:    "A contact point that sends notifications to Microsoft Teams.",
+		field:        "teams",
+		typeStr:      "teams",
+		desc:         "A contact point that sends notifications to Microsoft Teams.",
+		secureFields: []string{"url"},
 	}
 }
 
@@ -1247,6 +1332,8 @@ func (t teamsNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (int
 	packNotifierStringField(&p.Settings, &notifier, "message", "message")
 	packNotifierStringField(&p.Settings, &notifier, "title", "title")
 	packNotifierStringField(&p.Settings, &notifier, "sectiontitle", "section_title")
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, t, p.UID), t.meta().secureFields)
 
 	notifier["settings"] = packSettings(&p)
 	return notifier, nil
@@ -1301,6 +1388,27 @@ func (t telegramNotifier) schema() *schema.Resource {
 		Optional:    true,
 		Description: "The templated content of the message.",
 	}
+	r.Schema["parse_mode"] = &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		ValidateFunc: validation.StringInSlice([]string{"None", "Markdown", "MarkdownV2", "HTML"}, true),
+		Description:  "Mode for parsing entities in the message text. Supported: None, Markdown, MarkdownV2, and HTML. HTML is the default.",
+	}
+	r.Schema["disable_web_page_preview"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Description: "When set it disables link previews for links in the message.",
+	}
+	r.Schema["protect_content"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Description: "When set it protects the contents of the message from forwarding and saving.",
+	}
+	r.Schema["disable_notifications"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Description: "When set users will receive a notification with no sound.",
+	}
 	return r
 }
 
@@ -1310,6 +1418,20 @@ func (t telegramNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (
 	packNotifierStringField(&p.Settings, &notifier, "bottoken", "token")
 	packNotifierStringField(&p.Settings, &notifier, "chatid", "chat_id")
 	packNotifierStringField(&p.Settings, &notifier, "message", "message")
+	packNotifierStringField(&p.Settings, &notifier, "parse_mode", "parse_mode")
+
+	if v, ok := p.Settings["disable_web_page_preview"]; ok && v != nil {
+		notifier["disable_web_page_preview"] = v.(bool)
+		delete(p.Settings, "disable_web_page_preview")
+	}
+	if v, ok := p.Settings["protect_content"]; ok && v != nil {
+		notifier["protect_content"] = v.(bool)
+		delete(p.Settings, "protect_content")
+	}
+	if v, ok := p.Settings["disable_notifications"]; ok && v != nil {
+		notifier["disable_notifications"] = v.(bool)
+		delete(p.Settings, "disable_notifications")
+	}
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, t, p.UID), t.meta().secureFields)
 
@@ -1324,6 +1446,17 @@ func (t telegramNotifier) unpack(raw interface{}, name string) gapi.ContactPoint
 	unpackNotifierStringField(&json, &settings, "token", "bottoken")
 	unpackNotifierStringField(&json, &settings, "chat_id", "chatid")
 	unpackNotifierStringField(&json, &settings, "message", "message")
+	unpackNotifierStringField(&json, &settings, "parse_mode", "parse_mode")
+
+	if v, ok := json["disable_web_page_preview"]; ok && v != nil {
+		settings["disable_web_page_preview"] = v.(bool)
+	}
+	if v, ok := json["protect_content"]; ok && v != nil {
+		settings["protect_content"] = v.(bool)
+	}
+	if v, ok := json["disable_notifications"]; ok && v != nil {
+		settings["disable_notifications"] = v.(bool)
+	}
 
 	return gapi.ContactPoint{
 		UID:                   uid,
@@ -1367,14 +1500,12 @@ func (t threemaNotifier) schema() *schema.Resource {
 	}
 	r.Schema["title"] = &schema.Schema{
 		Type:        schema.TypeString,
-		Required:    true,
-		Sensitive:   true,
+		Optional:    true,
 		Description: "The templated title of the message.",
 	}
 	r.Schema["description"] = &schema.Schema{
 		Type:        schema.TypeString,
-		Required:    true,
-		Sensitive:   true,
+		Optional:    true,
 		Description: "The templated description of the message.",
 	}
 	return r
@@ -1563,8 +1694,14 @@ func (w webhookNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (i
 			notifier["max_alerts"] = v.(int)
 		case float64:
 			notifier["max_alerts"] = int(v.(float64))
+		case string:
+			val, err := strconv.Atoi(typ)
+			if err != nil {
+				panic(fmt.Errorf("failed to parse value of 'maxAlerts' to integer: %w", err))
+			}
+			notifier["max_alerts"] = val
 		default:
-			panic(fmt.Sprintf("unexpected type for maxAlerts: %v", typ))
+			panic(fmt.Sprintf("unexpected type %T for 'maxAlerts': %v", typ, typ))
 		}
 		delete(p.Settings, "maxAlerts")
 	}
@@ -1616,7 +1753,7 @@ func (w wecomNotifier) meta() notifierMeta {
 		field:        "wecom",
 		typeStr:      "wecom",
 		desc:         "A contact point that sends notifications to WeCom.",
-		secureFields: []string{"url"},
+		secureFields: []string{"url", "secret"},
 	}
 }
 
@@ -1624,9 +1761,25 @@ func (w wecomNotifier) schema() *schema.Resource {
 	r := commonNotifierResource()
 	r.Schema["url"] = &schema.Schema{
 		Type:        schema.TypeString,
-		Required:    true,
+		Optional:    true,
 		Sensitive:   true,
-		Description: "The WeCom webhook URL.",
+		Description: "The WeCom webhook URL. Required if using GroupRobot.",
+	}
+	r.Schema["secret"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Sensitive:   true,
+		Optional:    true,
+		Description: "The secret key required to obtain access token when using APIAPP. See https://work.weixin.qq.com/wework_admin/frame#apps to create APIAPP.",
+	}
+	r.Schema["corp_id"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Corp ID used to get token when using APIAPP.",
+	}
+	r.Schema["agent_id"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Agent ID added to the request payload when using APIAPP.",
 	}
 	r.Schema["message"] = &schema.Schema{
 		Type:        schema.TypeString,
@@ -1638,6 +1791,17 @@ func (w wecomNotifier) schema() *schema.Resource {
 		Optional:    true,
 		Description: "The templated title of the message to send.",
 	}
+	r.Schema["msg_type"] = &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		ValidateFunc: validation.StringInSlice([]string{"markdown", "text"}, false),
+		Description:  "The type of them message. Supported: markdown, text. Default: text.",
+	}
+	r.Schema["to_user"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The ID of user that should receive the message. Multiple entries should be separated by '|'. Default: @all.",
+	}
 	return r
 }
 
@@ -1647,6 +1811,11 @@ func (w wecomNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (int
 	packNotifierStringField(&p.Settings, &notifier, "url", "url")
 	packNotifierStringField(&p.Settings, &notifier, "message", "message")
 	packNotifierStringField(&p.Settings, &notifier, "title", "title")
+	packNotifierStringField(&p.Settings, &notifier, "secret", "secret")
+	packNotifierStringField(&p.Settings, &notifier, "corp_id", "corp_id")
+	packNotifierStringField(&p.Settings, &notifier, "agent_id", "agent_id")
+	packNotifierStringField(&p.Settings, &notifier, "msgtype", "msg_type")
+	packNotifierStringField(&p.Settings, &notifier, "touser", "to_user")
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, w, p.UID), w.meta().secureFields)
 
@@ -1661,6 +1830,11 @@ func (w wecomNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	unpackNotifierStringField(&json, &settings, "url", "url")
 	unpackNotifierStringField(&json, &settings, "message", "message")
 	unpackNotifierStringField(&json, &settings, "title", "title")
+	unpackNotifierStringField(&json, &settings, "secret", "secret")
+	unpackNotifierStringField(&json, &settings, "corp_id", "corp_id")
+	unpackNotifierStringField(&json, &settings, "agent_id", "agent_id")
+	unpackNotifierStringField(&json, &settings, "msg_type", "msgtype")
+	unpackNotifierStringField(&json, &settings, "to_user", "touser")
 
 	return gapi.ContactPoint{
 		UID:                   uid,

@@ -56,7 +56,6 @@ resource "grafana_notification_policy" "my_notification_policy" {
       value = "myvalue"
     }
     contact_point = grafana_contact_point.a_contact_point.name
-    group_by      = ["alertname"]
     continue      = true
     mute_timings  = [grafana_mute_timing.a_mute_timing.name]
 
@@ -112,11 +111,11 @@ resource "grafana_notification_policy" "my_notification_policy" {
 Required:
 
 - `contact_point` (String) The contact point to route notifications that match this rule to.
-- `group_by` (List of String) A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping.
 
 Optional:
 
 - `continue` (Boolean) Whether to continue matching subsequent rules if an alert matches the current rule. Otherwise, the rule will be 'consumed' by the first policy to match it.
+- `group_by` (List of String) A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping. Required for root policy only. If empty, the parent grouping is used.
 - `group_interval` (String) Minimum time interval between two notifications for the same group. Default is 5 minutes.
 - `group_wait` (String) Time to wait to buffer alerts of the same group before sending a notification. Default is 30 seconds.
 - `matcher` (Block List) Describes which labels this rule should match. When multiple matchers are supplied, an alert must match ALL matchers to be accepted by this policy. When no matchers are supplied, the rule will match all alert instances. (see [below for nested schema](#nestedblock--policy--matcher))
@@ -140,11 +139,11 @@ Required:
 Required:
 
 - `contact_point` (String) The contact point to route notifications that match this rule to.
-- `group_by` (List of String) A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping.
 
 Optional:
 
 - `continue` (Boolean) Whether to continue matching subsequent rules if an alert matches the current rule. Otherwise, the rule will be 'consumed' by the first policy to match it.
+- `group_by` (List of String) A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping. Required for root policy only. If empty, the parent grouping is used.
 - `group_interval` (String) Minimum time interval between two notifications for the same group. Default is 5 minutes.
 - `group_wait` (String) Time to wait to buffer alerts of the same group before sending a notification. Default is 30 seconds.
 - `matcher` (Block List) Describes which labels this rule should match. When multiple matchers are supplied, an alert must match ALL matchers to be accepted by this policy. When no matchers are supplied, the rule will match all alert instances. (see [below for nested schema](#nestedblock--policy--policy--matcher))
@@ -168,11 +167,11 @@ Required:
 Required:
 
 - `contact_point` (String) The contact point to route notifications that match this rule to.
-- `group_by` (List of String) A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping.
 
 Optional:
 
 - `continue` (Boolean) Whether to continue matching subsequent rules if an alert matches the current rule. Otherwise, the rule will be 'consumed' by the first policy to match it.
+- `group_by` (List of String) A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping. Required for root policy only. If empty, the parent grouping is used.
 - `group_interval` (String) Minimum time interval between two notifications for the same group. Default is 5 minutes.
 - `group_wait` (String) Time to wait to buffer alerts of the same group before sending a notification. Default is 30 seconds.
 - `matcher` (Block List) Describes which labels this rule should match. When multiple matchers are supplied, an alert must match ALL matchers to be accepted by this policy. When no matchers are supplied, the rule will match all alert instances. (see [below for nested schema](#nestedblock--policy--policy--policy--matcher))
@@ -196,7 +195,7 @@ Required:
 Required:
 
 - `contact_point` (String) The contact point to route notifications that match this rule to.
-- `group_by` (List of String) A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping.
+- `group_by` (List of String) A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping. Required for root policy only. If empty, the parent grouping is used.
 
 Optional:
 

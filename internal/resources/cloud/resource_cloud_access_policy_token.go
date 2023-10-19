@@ -17,8 +17,8 @@ func ResourceAccessPolicyToken() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
-* [Official documentation](https://grafana.com/docs/grafana-cloud/authentication-and-permissions/access-policies/)
-* [API documentation](https://grafana.com/docs/grafana-cloud/reference/cloud-api/#create-a-token)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/)
+* [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#create-a-token)
 `,
 
 		CreateContext: CreateCloudAccessPolicyToken,
@@ -41,7 +41,7 @@ func ResourceAccessPolicyToken() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "Region of the access policy. Should be set to the same region as the access policy. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/reference/cloud-api/#list-regions.",
+				Description: "Region of the access policy. Should be set to the same region as the access policy. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.",
 			},
 			"name": {
 				Type:        schema.TypeString,

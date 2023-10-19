@@ -72,4 +72,4 @@ Required:
 Optional:
 
 - `team_id` (String) ID of the team to manage permissions for. Specify either this or `user_id`. Defaults to `0`.
-- `user_id` (Number) ID of the user to manage permissions for. Specify either this or `team_id`. Defaults to `0`.
+- `user_id` (String) ID of the user or service account to manage permissions for. Specify either this or `team_id`. Defaults to `0`.
