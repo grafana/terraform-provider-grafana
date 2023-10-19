@@ -110,7 +110,7 @@ var (
 				Type:        schema.TypeSet,
 				Optional:    true,
 				MaxItems:    1,
-				Elem:        syntheticMonitoringCheckSettingsMultiHttp,
+				Elem:        syntheticMonitoringCheckSettingsMultiHTTP,
 			},
 		},
 	}
@@ -445,7 +445,7 @@ var (
 		},
 	}
 
-	syntheticMonitoringCheckSettingsMultiHttp = &schema.Resource{
+	syntheticMonitoringCheckSettingsMultiHTTP = &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"entries": {
 				Type:     schema.TypeList,
@@ -455,7 +455,7 @@ var (
 		},
 	}
 
-	syntheticMonitoringCheckSettingsMultiHttpEntry = &schema.Resource{
+	syntheticMonitoringCheckSettingsMultiHTTPEntry = &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"request":   syntheticMonitoringMultiHttpRequest,
 			"checks":    syntheticMonitoringMultiHttpAssertion,
@@ -463,7 +463,7 @@ var (
 		},
 	}
 
-	syntheticMonitoringMultiHttpRequest = &schema.Schema{
+	syntheticMonitoringMultiHTTPRequest = &schema.Schema{
 		Description: "An individual MultiHTTP request",
 		Type:        schema.TypeSet,
 		Optional:    true,
@@ -546,7 +546,7 @@ var (
 		},
 	}
 
-	syntheticMonitoringMultiHttpAssertion = &schema.Schema{
+	syntheticMonitoringMultiHTTPAssertion = &schema.Schema{
 		Description: "Assertions to make on the request response",
 		Type:        schema.TypeList,
 		Optional:    true,
@@ -581,7 +581,7 @@ var (
 		},
 	}
 
-	syntheticMonitoringMultiHttpVariable = &schema.Schema{
+	syntheticMonitoringMultiHTTPVariable = &schema.Schema{
 		Description: "Variables to extract from the request response",
 		Type:        schema.TypeList,
 		Optional:    true,
@@ -1162,7 +1162,7 @@ func makeCheckSettings(settings map[string]interface{}) sm.CheckSettings {
 	if len(multihttp) > 0 {
 		m := multihttp[0].(map[string]interface{})
 
-		cs.Multihttp = &sm.MultiHttpSettings{}
+		cs.Multihttp = &sm.MultiHTTPSettings{}
 
 		entries := m["entries"].([]interface{})
 		if len(entries) > 0 {
@@ -1171,7 +1171,7 @@ func makeCheckSettings(settings map[string]interface{}) sm.CheckSettings {
 				r := entry["request"].(*schema.Set)
 				request := r.List()[0].(map[string]interface{})
 				method := sm.HttpMethod(sm.HttpMethod_value[request["method"].(string)])
-				e := &sm.MultiHttpEntry{
+				e := &sm.MultiHTTPEntry{
 					Request: &sm.MultiHttpEntryRequest{
 						Method: method,
 						Url:    request["url"].(string),
@@ -1213,7 +1213,7 @@ func makeCheckSettings(settings map[string]interface{}) sm.CheckSettings {
 
 				variables := entry["variables"].([]interface{})
 				if len(variables) > 0 {
-					e.Variables = make([]*sm.MultiHttpEntryVariable, 0)
+					e.Variables = make([]*sm.MultiHTTPEntryVariable, 0)
 					for _, variable := range variables {
 						c := variable.(map[string]interface{})
 						v := &sm.MultiHttpEntryVariable{
@@ -1228,7 +1228,7 @@ func makeCheckSettings(settings map[string]interface{}) sm.CheckSettings {
 
 				assertions := entry["checks"].([]interface{})
 				if len(assertions) > 0 {
-					e.Assertions = make([]*sm.MultiHttpEntryAssertion, 0)
+					e.Assertions = make([]*sm.MultiHTTPEntryAssertion, 0)
 					for _, assert := range assertions {
 						assertion := assert.(map[string]interface{})
 						a := &sm.MultiHttpEntryAssertion{
@@ -1249,7 +1249,7 @@ func makeCheckSettings(settings map[string]interface{}) sm.CheckSettings {
 						e.Assertions = append(e.Assertions, a)
 					}
 				}
-				cs.Multihttp.Entries = append(cs.Multihttp.Entries, e)
+				cs.Multihttp.Entries = append(cs.MultiHTTP.Entries, e)
 			}
 		}
 	}
