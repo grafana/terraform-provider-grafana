@@ -1015,7 +1015,7 @@ func makeCheck(d *schema.ResourceData) *sm.Check {
 	}
 }
 
-func makeMultiHTTPSettings(settings map[string]interface{}, cs sm.CheckSettings) {
+func makeMultiHTTPSettings(settings map[string]interface{}, cs *sm.CheckSettings) {
 	cs.Multihttp = &sm.MultiHttpSettings{}
 
 	entries := settings["entries"].([]interface{})
@@ -1254,7 +1254,7 @@ func makeCheckSettings(settings map[string]interface{}) sm.CheckSettings {
 	multihttp := settings["multihttp"].(*schema.Set).List()
 	if len(multihttp) > 0 {
 		m := multihttp[0].(map[string]interface{})
-		makeMultiHTTPSettings(m, cs)
+		makeMultiHTTPSettings(m, &cs)
 	}
 
 	return cs
