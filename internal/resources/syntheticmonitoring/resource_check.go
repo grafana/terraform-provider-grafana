@@ -246,14 +246,14 @@ var (
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
-			// "proxy_connect_headers": {
-			// 	Description: "The HTTP headers sent to the proxy URL",
-			// 	Type:        schema.TypeSet,
-			// 	Optional:    true,
-			// 	Elem: &schema.Schema{
-			// 		Type: schema.TypeString,
-			// 	},
-			// },
+			"proxy_connect_headers": {
+				Description: "The HTTP headers sent to the proxy URL",
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 			"fail_if_ssl": {
 				Description: "Fail if SSL is present.",
 				Type:        schema.TypeBool,
@@ -856,16 +856,16 @@ func ResourceCheckRead(ctx context.Context, d *schema.ResourceData, meta interfa
 			return hmSet
 		}
 		http.Add(map[string]interface{}{
-			"ip_version":          chk.Settings.Http.IpVersion.String(),
-			"tls_config":          tlsConfig(chk.Settings.Http.TlsConfig),
-			"method":              chk.Settings.Http.Method.String(),
-			"headers":             common.StringSliceToSet(chk.Settings.Http.Headers),
-			"body":                chk.Settings.Http.Body,
-			"no_follow_redirects": chk.Settings.Http.NoFollowRedirects,
-			"basic_auth":          &basicAuth,
-			"bearer_token":        chk.Settings.Http.BearerToken,
-			"proxy_url":           chk.Settings.Http.ProxyURL,
-			// "proxy_connect_headers":             chk.Settings.Http.ProxyConnectHeaders,
+			"ip_version":                        chk.Settings.Http.IpVersion.String(),
+			"tls_config":                        tlsConfig(chk.Settings.Http.TlsConfig),
+			"method":                            chk.Settings.Http.Method.String(),
+			"headers":                           common.StringSliceToSet(chk.Settings.Http.Headers),
+			"body":                              chk.Settings.Http.Body,
+			"no_follow_redirects":               chk.Settings.Http.NoFollowRedirects,
+			"basic_auth":                        &basicAuth,
+			"bearer_token":                      chk.Settings.Http.BearerToken,
+			"proxy_url":                         chk.Settings.Http.ProxyURL,
+			"proxy_connect_headers":             common.StringSliceToSet(chk.Settings.Http.ProxyConnectHeaders),
 			"fail_if_ssl":                       chk.Settings.Http.FailIfSSL,
 			"fail_if_not_ssl":                   chk.Settings.Http.FailIfNotSSL,
 			"valid_status_codes":                common.Int32SliceToSet(chk.Settings.Http.ValidStatusCodes),
