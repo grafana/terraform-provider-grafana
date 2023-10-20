@@ -28,7 +28,7 @@ func DatasourceRole() *schema.Resource {
 }
 
 func dataSourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID := ClientFromNewOrgResource(meta, d)
 	roles, err := client.GetRoles()
 	if err != nil {
 		return diag.FromErr(err)
@@ -37,6 +37,7 @@ func dataSourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interf
 	name := d.Get("name").(string)
 	for _, r := range roles {
 		if r.Name == name {
+			d.SetId(MakeOrgResourceID(orgID, r.UID))
 			return readRoleFromUID(client, r.UID, d)
 		}
 	}

@@ -26,6 +26,7 @@ func ResourceRoleAssignment() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"role_uid": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -74,17 +75,13 @@ func ResourceRoleAssignment() *schema.Resource {
 }
 
 func ReadRoleAssignments(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	uid := d.Id()
+	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
 	assignments, err := client.GetRoleAssignments(uid)
 	if err, shouldReturn := common.CheckReadError("role assignments", d, err); shouldReturn {
 		return err
 	}
 
-	if err := setRoleAssignments(assignments, d); err != nil {
-		return diag.FromErr(err)
-	}
-	return nil
+	return diag.FromErr(setRoleAssignments(assignments, d))
 }
 
 func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -92,8 +89,7 @@ func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 		return nil
 	}
 
-	client := meta.(*common.Client).GrafanaAPI
-
+	client, orgID := ClientFromNewOrgResource(meta, d)
 	uid := d.Get("role_uid").(string)
 	users, err := collectRoleAssignmentsToFn(d.Get("users"))
 	if err != nil {
@@ -122,14 +118,13 @@ func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 
-	d.SetId(uid)
+	d.SetId(MakeOrgResourceID(orgID, uid))
 	return ReadRoleAssignments(ctx, d, meta)
 }
 
 func DeleteRoleAssignments(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
 
-	uid := d.Get("role_uid").(string)
 	ra := &gapi.RoleAssignments{
 		RoleUID:         uid,
 		Users:           []int{},
@@ -137,14 +132,11 @@ func DeleteRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 		ServiceAccounts: []int{},
 	}
 
-	if _, err := client.UpdateRoleAssignments(ra); err != nil {
-		return diag.FromErr(err)
-	}
-	return nil
+	_, err := client.UpdateRoleAssignments(ra)
+	return diag.FromErr(err)
 }
 
 func setRoleAssignments(assignments *gapi.RoleAssignments, d *schema.ResourceData) error {
-	d.SetId(assignments.RoleUID)
 	if err := d.Set("role_uid", assignments.RoleUID); err != nil {
 		return err
 	}

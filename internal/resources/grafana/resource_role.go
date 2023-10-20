@@ -26,6 +26,7 @@ func ResourceRole() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"uid": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -96,7 +97,7 @@ func ResourceRole() *schema.Resource {
 }
 
 func CreateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID := ClientFromNewOrgResource(meta, d)
 
 	role := gapi.Role{
 		UID:         d.Get("uid").(string),
@@ -113,12 +114,8 @@ func CreateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("uid", r.UID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId(r.UID)
-	return nil
+	d.SetId(MakeOrgResourceID(orgID, r.UID))
+	return ReadRole(ctx, d, meta)
 }
 
 func permissions(d *schema.ResourceData) []gapi.Permission {
@@ -140,8 +137,8 @@ func permissions(d *schema.ResourceData) []gapi.Permission {
 }
 
 func ReadRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	return readRoleFromUID(client, d.Id(), d)
+	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
+	return readRoleFromUID(client, uid, d)
 }
 
 func readRoleFromUID(client *gapi.Client, uid string, d *schema.ResourceData) diag.Diagnostics {
@@ -194,18 +191,17 @@ func readRoleFromUID(client *gapi.Client, uid string, d *schema.ResourceData) di
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(r.UID)
 
 	return nil
 }
 
 func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
 
 	if d.HasChange("version") || d.HasChange("name") || d.HasChange("description") || d.HasChange("permissions") ||
 		d.HasChange("display_name") || d.HasChange("group") || d.HasChange("hidden") {
 		r := gapi.Role{
-			UID:         d.Id(),
+			UID:         uid,
 			Name:        d.Get("name").(string),
 			Global:      d.Get("global").(bool),
 			Description: d.Get("description").(string),
@@ -220,16 +216,11 @@ func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		}
 	}
 
-	return nil
+	return ReadRole(ctx, d, meta)
 }
 
 func DeleteRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	uid := d.Id()
+	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
 	g := d.Get("global").(bool)
-
-	if err := client.DeleteRole(uid, g); err != nil {
-		return diag.FromErr(err)
-	}
-	return nil
+	return diag.FromErr(client.DeleteRole(uid, g))
 }

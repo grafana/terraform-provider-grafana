@@ -9,6 +9,7 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 )
 
@@ -67,9 +68,19 @@ func testAccRoleCheckExists(rn string, r *gapi.Role) resource.TestCheckFunc {
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource id not set")
 		}
-
+		orgID, roleUID := grafana.SplitOrgResourceID(rs.Primary.ID)
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		role, err := client.GetRole(rs.Primary.ID)
+
+		// If the org ID is set, check that the report doesn't exist in the default org
+		if orgID > 1 {
+			role, err := client.GetRole(roleUID)
+			if err == nil || role != nil {
+				return fmt.Errorf("expected no role with ID %s in default org but found one", roleUID)
+			}
+			client = client.WithOrgID(orgID)
+		}
+
+		role, err := client.GetRole(roleUID)
 		if err != nil {
 			return fmt.Errorf("error getting role: %s", err)
 		}
