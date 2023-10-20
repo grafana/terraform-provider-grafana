@@ -935,17 +935,79 @@ func ResourceCheckRead(ctx context.Context, d *schema.ResourceData, meta interfa
 			"traceroute": traceroute,
 		})
 	case chk.Settings.Multihttp != nil:
+		entries := []interface{}{}
+		for _, e := range chk.Settings.Multihttp.Entries {
+			requestSet := schema.NewSet(
+				schema.HashResource(syntheticMonitoringMultiHTTPRequest.Elem.(*schema.Resource)),
+				[]interface{}{},
+			)
+			request := map[string]interface{}{
+				"method": e.Request.Method.String(),
+				"url":    e.Request.Url,
+			}
+			if len(e.Request.Headers) > 0 {
+				headers := []interface{}{}
+				for _, h := range e.Request.Headers {
+					headers = append(headers, map[string]interface{}{
+						"name":  h.Name,
+						"value": h.Value,
+					})
+				}
+				request["headers"] = headers
+			}
+			if len(e.Request.QueryFields) > 0 {
+				queryFields := []interface{}{}
+				for _, q := range e.Request.QueryFields {
+					queryFields = append(queryFields, map[string]interface{}{
+						"name":  q.Name,
+						"value": q.Value,
+					})
+				}
+				request["query_fields"] = queryFields
+			}
+			if e.Request.Body != nil {
+				body := []interface{}{}
+				body = append(body, map[string]interface{}{
+					"content_type":     e.Request.Body.ContentType,
+					"content_encoding": e.Request.Body.ContentEncoding,
+					"payload":          e.Request.Body.Payload,
+				})
+				request["body"] = body
+			}
+			requestSet.Add(request)
+			checks := []interface{}{}
+			for _, c := range e.Assertions {
+				checks = append(checks, map[string]interface{}{
+					"type":       c.Type.String(),
+					"subject":    c.Subject.String(),
+					"condition":  c.Condition.String(),
+					"expression": c.Expression,
+					"value":      c.Value,
+				})
+			}
+			variables := []interface{}{}
+			for _, v := range e.Variables {
+				variables = append(variables, map[string]interface{}{
+					"type":       v.Type.String(),
+					"name":       v.Name,
+					"expression": v.Expression,
+					"attribute":  v.Attribute,
+				})
+			}
+			entries = append(entries, map[string]interface{}{
+				"request":   requestSet,
+				"checks":    checks,
+				"variables": variables,
+			})
+		}
+
 		multiHTTP := schema.NewSet(
 			schema.HashResource(syntheticMonitoringCheckSettingsMultiHTTP),
 			[]interface{}{},
 		)
-		for _, e := range chk.Settings.Multihttp.Entries {
-			multiHTTP.Add(map[string]interface{}{
-				"request":   e.Request,
-				"checks":    e.Assertions,
-				"variables": e.Variables,
-			})
-		}
+		multiHTTP.Add(map[string]interface{}{
+			"entries": entries,
+		})
 		settings.Add(map[string]interface{}{
 			"multihttp": multiHTTP,
 		})
