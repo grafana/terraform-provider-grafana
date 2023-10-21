@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
@@ -52,6 +53,72 @@ func TestAccRole(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_role.test", "permissions.0.action", "users:create"),
 					resource.TestCheckResourceAttr("grafana_role.test", "permissions.1.scope", "global.users:*"),
 					resource.TestCheckResourceAttr("grafana_role.test", "permissions.1.action", "users:read"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccRoleVersioning(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t)
+
+	var role gapi.Role
+	name := acctest.RandomWithPrefix("versioning-")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      testAccRoleCheckDestroy(&role),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+				resource "grafana_role" "test" {
+					name  = "%s"
+					description = "desc 1"
+					auto_increment_version = true
+				}`, name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccRoleCheckExists("grafana_role.test", &role),
+					resource.TestCheckResourceAttr("grafana_role.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_role.test", "version", "1"),
+				),
+			},
+			{
+				Config: fmt.Sprintf(`
+				resource "grafana_role" "test" {
+					name  = "%s"
+					description = "desc 2"
+					version = 5
+				}`, name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccRoleCheckExists("grafana_role.test", &role),
+					resource.TestCheckResourceAttr("grafana_role.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_role.test", "version", "5"),
+				),
+			},
+			{
+				Config: fmt.Sprintf(`
+				resource "grafana_role" "test" {
+					name  = "%s"
+					description = "desc 3"
+					auto_increment_version = true
+				}`, name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccRoleCheckExists("grafana_role.test", &role),
+					resource.TestCheckResourceAttr("grafana_role.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_role.test", "version", "6"),
+				),
+			},
+			{
+				Config: fmt.Sprintf(`
+				resource "grafana_role" "test" {
+					name  = "%s"
+					description = "desc 4"
+					auto_increment_version = true
+				}`, name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccRoleCheckExists("grafana_role.test", &role),
+					resource.TestCheckResourceAttr("grafana_role.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_role.test", "version", "7"),
 				),
 			},
 		},
