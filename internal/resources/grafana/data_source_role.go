@@ -23,6 +23,7 @@ func DatasourceRole() *schema.Resource {
 				Required:    true,
 				Description: "Name of the role",
 			},
+			"auto_increment_version": nil,
 		}),
 	}
 }
