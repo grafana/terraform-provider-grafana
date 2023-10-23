@@ -18,6 +18,7 @@ func TestAccServiceAccountToken_basic(t *testing.T) {
 	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
 
 	name := acctest.RandString(10)
+	var sa gapi.ServiceAccountDTO
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -26,7 +27,7 @@ func TestAccServiceAccountToken_basic(t *testing.T) {
 			{
 				Config: testAccServiceAccountTokenConfig(name, "Editor", 0, false),
 				Check: resource.ComposeTestCheckFunc(
-					testAccServiceAccountCheckExists,
+					testAccServiceAccountCheckExists(&sa),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "Editor"),
 					resource.TestCheckResourceAttr("grafana_service_account_token.test", "name", name),
@@ -36,7 +37,7 @@ func TestAccServiceAccountToken_basic(t *testing.T) {
 			{
 				Config: testAccServiceAccountTokenConfig(name+"-updated", "Viewer", 300, false),
 				Check: resource.ComposeTestCheckFunc(
-					testAccServiceAccountCheckExists,
+					testAccServiceAccountCheckExists(&sa),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name+"-updated"),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "Viewer"),
 					resource.TestCheckResourceAttr("grafana_service_account_token.test", "name", name+"-updated"),
@@ -53,6 +54,7 @@ func TestAccServiceAccountToken_inOrg(t *testing.T) {
 
 	name := acctest.RandString(10)
 	var org gapi.Org
+	var sa gapi.ServiceAccountDTO
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -61,7 +63,7 @@ func TestAccServiceAccountToken_inOrg(t *testing.T) {
 			{
 				Config: testAccServiceAccountTokenConfig(name, "Editor", 0, true),
 				Check: resource.ComposeTestCheckFunc(
-					testAccServiceAccountCheckExists,
+					testAccServiceAccountCheckExists(&sa),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "Editor"),
 					resource.TestCheckResourceAttr("grafana_service_account_token.test", "name", name),
@@ -76,7 +78,7 @@ func TestAccServiceAccountToken_inOrg(t *testing.T) {
 			{
 				Config: testAccServiceAccountTokenConfig(name+"-updated", "Viewer", 300, true),
 				Check: resource.ComposeTestCheckFunc(
-					testAccServiceAccountCheckExists,
+					testAccServiceAccountCheckExists(&sa),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name+"-updated"),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "Viewer"),
 					resource.TestCheckResourceAttr("grafana_service_account_token.test", "name", name+"-updated"),

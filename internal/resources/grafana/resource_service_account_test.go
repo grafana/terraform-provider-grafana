@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
+	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
@@ -20,6 +21,8 @@ func TestAccServiceAccount_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
 
+	var sa gapi.ServiceAccountDTO
+	var updatedSA gapi.ServiceAccountDTO
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -29,8 +32,26 @@ func TestAccServiceAccount_basic(t *testing.T) {
 			{
 				Config: testServiceAccountConfig(name, "Editor"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccServiceAccountCheckExists,
+					testAccServiceAccountCheckExists(&sa),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_service_account.test", "org_id", "1"),
+					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "Editor"),
+					resource.TestCheckResourceAttr("grafana_service_account.test", "is_disabled", "false"),
+					resource.TestMatchResourceAttr("grafana_service_account.test", "id", defaultOrgIDRegexp),
+				),
+			},
+			// Change the name. Check that the ID stays the same.
+			{
+				Config: testServiceAccountConfig(name+"-updated", "Editor"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccServiceAccountCheckExists(&updatedSA),
+					func(s *terraform.State) error {
+						if sa.ID != updatedSA.ID {
+							return errors.New("ID changed")
+						}
+						return nil
+					},
+					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name+"-updated"),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "org_id", "1"),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "Editor"),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "is_disabled", "false"),
@@ -93,15 +114,23 @@ func testManyServiceAccountsConfig(prefix string, count int) string {
 	return config
 }
 
-func testAccServiceAccountCheckExists(s *terraform.State) error {
-	return testAccServiceAccountCheckExistsBool(s, true)
+func testAccServiceAccountCheckExists(sa *gapi.ServiceAccountDTO) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		foundSA, err := testAccServiceAccountCheckExistsBool(s, true)
+		if err != nil {
+			return err
+		}
+		*sa = *foundSA
+		return nil
+	}
 }
 
 func testAccServiceAccountCheckDestroy(s *terraform.State) error {
-	return testAccServiceAccountCheckExistsBool(s, false)
+	_, err := testAccServiceAccountCheckExistsBool(s, false)
+	return err
 }
 
-func testAccServiceAccountCheckExistsBool(s *terraform.State, shouldExist bool) error {
+func testAccServiceAccountCheckExistsBool(s *terraform.State, shouldExist bool) (*gapi.ServiceAccountDTO, error) {
 	c := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 
 	for _, rs := range s.RootModule().Resources {
@@ -112,19 +141,19 @@ func testAccServiceAccountCheckExistsBool(s *terraform.State, shouldExist bool) 
 		orgID, idStr := grafana.SplitOrgResourceID(rs.Primary.ID)
 		id, err := strconv.ParseInt(idStr, 10, 32)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		// If orgID > 1, always check that the SA doesn't exist in the default org
 		if orgID > 1 {
 			sas, err := c.GetServiceAccounts()
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			for _, sa := range sas {
 				if sa.ID == id {
-					return errors.New("Service account exists in the default org")
+					return nil, errors.New("Service account exists in the default org")
 				}
 			}
 
@@ -133,25 +162,25 @@ func testAccServiceAccountCheckExistsBool(s *terraform.State, shouldExist bool) 
 
 		sas, err := c.GetServiceAccounts()
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		for _, sa := range sas {
 			if sa.ID == id {
 				if shouldExist {
-					return nil
+					return &sa, nil
 				} else {
-					return errors.New("Service account still exists")
+					return nil, errors.New("Service account still exists")
 				}
 			}
 		}
 
 		if shouldExist {
-			return errors.New("Service account was not found")
+			return nil, errors.New("Service account was not found")
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
 func testServiceAccountConfig(name, role string) string {
