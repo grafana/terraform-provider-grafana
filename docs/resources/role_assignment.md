@@ -61,6 +61,7 @@ resource "grafana_role_assignment" "test" {
 
 ### Optional
 
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `service_accounts` (Set of String) IDs of service accounts that the role should be assigned to.
 - `teams` (Set of String) IDs of teams that the role should be assigned to.
 - `users` (Set of Number) IDs of users that the role should be assigned to.

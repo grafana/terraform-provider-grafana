@@ -58,6 +58,7 @@ data "grafana_role" "from_name" {
 - `group` (String) Group of the role. Available with Grafana 8.5+.
 - `hidden` (Boolean) Boolean to state whether the role should be visible in the Grafana UI or not. Available with Grafana 8.5+.
 - `id` (String) The ID of this resource.
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `permissions` (Set of Object) Specific set of actions granted by the role. (see [below for nested schema](#nestedatt--permissions))
 - `uid` (String) Unique identifier of the role. Used for assignments.
 - `version` (Number) Version of the role. A role is updated only on version increase.
