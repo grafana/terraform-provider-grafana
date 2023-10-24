@@ -1,7 +1,6 @@
 package grafana_test
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"testing"
@@ -39,6 +38,31 @@ func TestAccServiceAccountPermission(t *testing.T) {
 	})
 }
 
+func TestAccServiceAccountPermission_inOrg(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsSemver(t, ">=9.2.4")
+
+	name := acctest.RandString(10)
+
+	var saPermission gapi.ServiceAccountPermission
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      testAccServiceAccountPermissionsCheckDestroy(saPermission.ID),
+		Steps: []resource.TestStep{
+			{
+				Config: testServiceAccountPermissionsConfig_inOrg(name),
+				Check: resource.ComposeTestCheckFunc(
+					testServiceAccountPermissionsCheckExists("grafana_service_account_permission.test", &saPermission),
+					resource.TestMatchResourceAttr("grafana_service_account_permission.test", "service_account_id", nonDefaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_service_account_permission.test", "permissions.#", "1"),
+					resource.TestMatchResourceAttr("grafana_service_account_permission.test", "permissions.0.team_id", nonDefaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_service_account_permission.test", "permissions.0.permission", "Edit"),
+				),
+			},
+		},
+	})
+}
+
 func testServiceAccountPermissionsCheckExists(rn string, saPerm *gapi.ServiceAccountPermission) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
@@ -46,26 +70,17 @@ func testServiceAccountPermissionsCheckExists(rn string, saPerm *gapi.ServiceAcc
 			return fmt.Errorf("resource not found: %s", rn)
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		orgID, saIDStr := grafana.SplitOrgResourceID(rs.Primary.ID)
 
 		saID, err := strconv.ParseInt(saIDStr, 10, 64)
 		if err != nil {
 			return fmt.Errorf("id is malformed: %w", err)
 		}
-
-		// If orgID is not the default org, check that the SA doesn't exist in the default org
-		if orgID > 1 {
-			perms, err := client.GetServiceAccountPermissions(saID)
-			if err == nil || len(perms) > 0 {
-				return errors.New("got SA permissions from the default org, while the SA shouldn't exist")
-			}
-			client = client.WithOrgID(orgID)
-		}
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
 
 		perms, err := client.GetServiceAccountPermissions(saID)
 		if err != nil {
-			return fmt.Errorf("error getting role assignments: %s", err)
+			return fmt.Errorf("error getting service account permissions: %s", err)
 		}
 		if len(perms) == 0 {
 			return fmt.Errorf("service account assignments do not exist")
@@ -127,5 +142,35 @@ resource "grafana_service_account_permission" "test_permissions" {
 		permission = "Admin"
 	}
 }
+`, name)
+}
+
+func testServiceAccountPermissionsConfig_inOrg(name string) string {
+	return fmt.Sprintf(`
+	resource "grafana_organization" "test" {
+		name = "%[1]s"
+	}
+
+	resource "grafana_team" "test" {
+		org_id  = grafana_organization.test.id
+		name    = "test"
+		members = []
+	}
+	
+	resource "grafana_service_account" "test" {
+		org_id = grafana_organization.test.id
+		name   = "test"
+		role   = "Viewer"
+	}
+	
+	resource "grafana_service_account_permission" "test" {
+		org_id             = grafana_organization.test.id
+		service_account_id = grafana_service_account.test.id
+	
+		permissions {
+			team_id    = grafana_team.test.id
+			permission = "Edit"
+		}
+	}
 `, name)
 }
