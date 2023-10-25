@@ -448,7 +448,7 @@ func createGrafanaOAPIClient(apiURL string, d *schema.ResourceData) (*goapi.Graf
 		cfg.RetryStatusCodes = common.SetToStringSlice(v.(*schema.Set))
 	}
 
-	if cfg.HttpHeaders, err = getHTTPHeadersMap(d); err != nil {
+	if cfg.HTTPHeaders, err = getHTTPHeadersMap(d); err != nil {
 		return nil, err
 	}
 
