@@ -248,6 +248,7 @@ Optional:
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `message` (String) The templated content of the message.
 - `override_priority` (Boolean) Whether to allow the alert priority to be configured via the value of the `og_priority` annotation on the alert.
+- `responders` (Block List) Teams, users, escalations and schedules that the alert will be routed to send notifications. If the API Key belongs to a team integration, this field will be overwritten with the owner team. (see [below for nested schema](#nestedblock--opsgenie--responders))
 - `send_tags_as` (String) Whether to send annotations to OpsGenie as Tags, Details, or both. Supported values are `tags`, `details`, `both`, or empty to use the default behavior of Tags.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `url` (String) Allows customization of the OpsGenie API URL.
@@ -255,6 +256,20 @@ Optional:
 Read-Only:
 
 - `uid` (String) The UID of the contact point.
+
+<a id="nestedblock--opsgenie--responders"></a>
+### Nested Schema for `opsgenie.responders`
+
+Required:
+
+- `type` (String) Type of the responder. Supported: team, teams, user, escalation, schedule or a template that is expanded to one of these values.
+
+Optional:
+
+- `id` (String) ID of the responder. Must be specified if name and username are empty.
+- `name` (String) Name of the responder. Must be specified if username and id are empty.
+- `username` (String) User name of the responder. Must be specified if name and id are empty.
+
 
 
 <a id="nestedblock--pagerduty"></a>
