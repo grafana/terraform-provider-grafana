@@ -433,14 +433,23 @@ func createGrafanaOAPIClient(apiURL string, d *schema.ResourceData) (*goapi.Graf
 	}
 
 	cfg := goapi.TransportConfig{
-		Host:       u.Host,
-		BasePath:   "/api",
-		Schemes:    []string{u.Scheme},
-		NumRetries: d.Get("retries").(int),
-		TLSConfig:  tlsClientConfig,
-		BasicAuth:  userInfo,
-		OrgID:      orgID,
-		APIKey:     APIKey,
+		Host:         u.Host,
+		BasePath:     "/api",
+		Schemes:      []string{u.Scheme},
+		NumRetries:   d.Get("retries").(int),
+		RetryTimeout: time.Second * time.Duration(d.Get("retry_wait").(int)),
+		TLSConfig:    tlsClientConfig,
+		BasicAuth:    userInfo,
+		OrgID:        orgID,
+		APIKey:       APIKey,
+	}
+
+	if v, ok := d.GetOk("retry_status_codes"); ok {
+		cfg.RetryStatusCodes = common.SetToStringSlice(v.(*schema.Set))
+	}
+
+	if cfg.HttpHeaders, err = getHTTPHeadersMap(d); err != nil {
+		return nil, err
 	}
 
 	return goapi.NewHTTPClientWithConfig(strfmt.Default, &cfg), nil

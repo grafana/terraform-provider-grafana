@@ -146,10 +146,8 @@ github.com/grafana/amixr-api-go-client v0.0.10 h1:L2Wc1aETiG7ORqmB+XSCBJdncHM/V0
 github.com/grafana/amixr-api-go-client v0.0.10/go.mod h1:N6x26XUrM5zGtK5zL5vNJnAn2JFMxLFPPLTw/6pDkFE=
 github.com/grafana/grafana-api-golang-client v0.24.0 h1:9cUvft7xCMnnL/Uscwy7eoldn16Gz5TH4T1MymuVs8E=
 github.com/grafana/grafana-api-golang-client v0.24.0/go.mod h1:24W29gPe9yl0/3A9X624TPkAOR8DpHno490cPwnkv8E=
-github.com/grafana/grafana-openapi-client-go v0.0.0-20231024135657-8284fd2de50c h1:Vx9oZFqYA8QZnPXOPJ3omlQjU864IhlFnQPo1a3QHTA=
-github.com/grafana/grafana-openapi-client-go v0.0.0-20231024135657-8284fd2de50c/go.mod h1:2vJ8YEgriYoHaNg5eijRU/q7eJTxT078VrGRSTTLeRk=
-github.com/grafana/grafana-openapi-client-go v0.0.0-20231025102904-d6f407f1528d h1:8p4e2hsTKeWhnu8eGHEE7IT7Rw2l6B6HLfVlelsGO10=
-github.com/grafana/grafana-openapi-client-go v0.0.0-20231025102904-d6f407f1528d/go.mod h1:2vJ8YEgriYoHaNg5eijRU/q7eJTxT078VrGRSTTLeRk=
+github.com/grafana/grafana-openapi-client-go v0.0.0-20231025152211-949fda3a17a0 h1:DeH1i5ORbYQnhlB2vpB4H5iSHrALPfDgr3qGx0uBApM=
+github.com/grafana/grafana-openapi-client-go v0.0.0-20231025152211-949fda3a17a0/go.mod h1:2vJ8YEgriYoHaNg5eijRU/q7eJTxT078VrGRSTTLeRk=
 github.com/grafana/machine-learning-go-client v0.5.0 h1:Q1K+MPSy8vfMm2jsk3WQ7O77cGr2fM5hxwtPSoPc5NU=
 github.com/grafana/machine-learning-go-client v0.5.0/go.mod h1:QFfZz8NkqVF8++skjkKQXJEZfpCYd8S0yTWJUpsLLTA=
 github.com/grafana/synthetic-monitoring-agent v0.18.1 h1:qQoxf4h+cUNxCtwgajehPp+4fGmRvoZubciIou1Ydw0=
