@@ -74,8 +74,8 @@ func (h *checkExistsHelper[T]) exists(rn string, v *T) resource.TestCheckFunc {
 // destroyed checks that the resource doesn't exist in the given orgs (and the default one).
 func (h *checkExistsHelper[T]) destroyed(v *T, orgs ...int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		orgsAndDefault := append(orgs, 1)
-		for _, orgID := range orgsAndDefault {
+		orgs = append(orgs, 1)
+		for _, orgID := range orgs {
 			client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(orgID)
 			id := h.getIDFunc(v)
 			_, err := h.getResourceFunc(client, id)
