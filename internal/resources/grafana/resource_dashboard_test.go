@@ -174,7 +174,7 @@ func TestAccDashboard_folder(t *testing.T) {
 				Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_folder.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test_folder", &dashboard),
-					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
+					folderCheckExists.exists("grafana_folder.test_folder", &folder),
 					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
 					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "1:folder-dashboard-test-ref-with-id"), // <org id>:<uid>
 					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", "folder-dashboard-test-ref-with-id"),
@@ -199,7 +199,7 @@ func TestAccDashboard_folder_uid(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_folder_uid_ref.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccFolderCheckExists("grafana_folder.test_folder", &folder),
+					folderCheckExists.exists("grafana_folder.test_folder", &folder),
 					testAccDashboardCheckExists("grafana_dashboard.test_folder", &dashboard),
 					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
 					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "1:folder-dashboard-test-ref-with-uid"), // <org id>:<uid>
@@ -229,7 +229,7 @@ func TestAccDashboard_inOrg(t *testing.T) {
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccDashboardCheckDestroy(&dashboard, org.ID),
-			testAccFolderCheckDestroy(&folder, org.ID),
+			folderCheckExists.destroyed(&folder, org.ID),
 		),
 		Steps: []resource.TestStep{
 			{
@@ -237,7 +237,7 @@ func TestAccDashboard_inOrg(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccOrganizationCheckExists("grafana_organization.test", &org),
 					// Check that the folder is in the correct organization
-					testAccFolderCheckExists("grafana_folder.test", &folder),
+					folderCheckExists.exists("grafana_folder.test", &folder),
 					resource.TestCheckResourceAttr("grafana_folder.test", "uid", "folder-"+orgName),
 					resource.TestMatchResourceAttr("grafana_folder.test", "id", nonDefaultOrgIDRegexp),
 					checkResourceIsInOrg("grafana_folder.test", "grafana_organization.test"),

@@ -16,7 +16,7 @@ func TestAccDatasourceFolder(t *testing.T) {
 
 	var folder goapi.Folder
 	checks := []resource.TestCheckFunc{
-		testAccFolderCheckExists("grafana_folder.test", &folder),
+		folderCheckExists.exists("grafana_folder.test", &folder),
 		resource.TestCheckResourceAttr(
 			"data.grafana_folder.from_title", "title", "test-folder",
 		),
@@ -33,7 +33,7 @@ func TestAccDatasourceFolder(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccFolderCheckDestroy(&folder, 0),
+		CheckDestroy:      folderCheckExists.destroyed(&folder),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_folder/data-source.tf"),

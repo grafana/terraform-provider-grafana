@@ -20,7 +20,7 @@ func CheckReadError(resourceType string, d *schema.ResourceData, err error) (ret
 		return nil, false
 	}
 
-	if !strings.Contains(err.Error(), NotFoundError) {
+	if !IsNotFoundError(err) {
 		return diag.Errorf("error reading %s with ID`%s`: %v", resourceType, d.Id(), err), true
 	}
 
@@ -33,4 +33,8 @@ func CheckReadError(resourceType string, d *schema.ResourceData, err error) (ret
 	})
 	d.SetId("")
 	return diags, true
+}
+
+func IsNotFoundError(err error) bool {
+	return strings.Contains(err.Error(), NotFoundError)
 }
