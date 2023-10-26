@@ -29,13 +29,13 @@ resource "grafana_synthetic_monitoring_check" "multihttp" {
           }
         }
         checks {
-          type      = 0
-          subject   = 2
-          condition = 2
+          type      = "TEXT"
+          subject   = "HTTP_STATUS_CODE"
+          condition = "EQUALS"
           value     = "200"
         }
         variables {
-          type       = 0
+          type       = "JSON_PATH"
           name       = "accessToken"
           expression = "data.accessToken"
         }
@@ -50,10 +50,32 @@ resource "grafana_synthetic_monitoring_check" "multihttp" {
           }
         }
         checks {
-          type       = 1
-          condition  = 6
-          expression = "result"
-          value      = "expected"
+          type      = "TEXT"
+          subject   = "RESPONSE_BODY"
+          condition = "CONTAINS"
+          value     = "foobar"
+        }
+        checks {
+          type      = "TEXT"
+          subject   = "RESPONSE_BODY"
+          condition = "NOT_CONTAINS"
+          value     = "xyyz"
+        }
+        checks {
+          type       = "JSON_PATH_VALUE"
+          condition  = "EQUALS"
+          expression = "$.slideshow.author"
+          value      = "Yours Truly"
+        }
+        checks {
+          type       = "JSON_PATH_VALUE"
+          condition  = "STARTS_WITH"
+          expression = "$.slideshow.date"
+          value      = "date of "
+        }
+        checks {
+          type       = "JSON_PATH_ASSERTION"
+          expression = "$.slideshow.slides"
         }
       }
     }

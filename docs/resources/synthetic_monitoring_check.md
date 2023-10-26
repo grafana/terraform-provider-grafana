@@ -582,13 +582,13 @@ Optional:
 
 Required:
 
-- `type` (Number) The type of assertion to make. TEXT = 0, JSON_PATH_VALUE = 1, JSON_PATH_ASSERTION = 2, REGEX_ASSERTION = 3
+- `type` (String) The type of assertion to make: TEXT, JSON_PATH_VALUE, JSON_PATH_ASSERTION, REGEX_ASSERTION
 
 Optional:
 
-- `condition` (Number) The condition of the assertion. NOT_CONTAINS = 1, EQUALS = 2, STARTS_WITH = 3, ENDS_WITH = 4, TYPE_OF = 5, CONTAINS = 6
+- `condition` (String) The condition of the assertion: NOT_CONTAINS, EQUALS, STARTS_WITH, ENDS_WITH, TYPE_OF, CONTAINS
 - `expression` (String) The expression of the assertion. Should start with $.
-- `subject` (Number) The subject of the assertion. RESPONSE_HEADERS = 1, HTTP_STATUS_CODE = 2, RESPONSE_BODY = 3
+- `subject` (String) The subject of the assertion: RESPONSE_HEADERS, HTTP_STATUS_CODE, RESPONSE_BODY
 - `value` (String) The value of the assertion
 
 
@@ -640,7 +640,7 @@ Required:
 
 Required:
 
-- `type` (Number) The method of finding the variable value to extract. JSON_PATH = 0, REGEX = 1, CSS_SELECTOR = 2
+- `type` (String) The method of finding the variable value to extract. JSON_PATH, REGEX, CSS_SELECTOR
 
 Optional:
 
