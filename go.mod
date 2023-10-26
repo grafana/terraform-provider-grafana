@@ -11,7 +11,7 @@ require (
 	github.com/grafana/grafana-api-golang-client v0.24.0
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20231025152211-949fda3a17a0
 	github.com/grafana/machine-learning-go-client v0.5.0
-	github.com/grafana/synthetic-monitoring-agent v0.18.1
+	github.com/grafana/synthetic-monitoring-agent v0.18.3
 	github.com/grafana/synthetic-monitoring-api-go-client v0.7.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
@@ -94,7 +94,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.14.0 // indirect
 	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df // indirect
-	golang.org/x/mod v0.12.0 // indirect
+	golang.org/x/mod v0.13.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
