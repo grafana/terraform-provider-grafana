@@ -13,8 +13,7 @@ import (
 )
 
 func TestAccDashboardPermission_basic(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=9.0.0") // Dashboard UIDs are only available as references in Grafana 9+
+	testutils.CheckOSSTestsEnabled(t, ">=9.0.0") // Dashboard UIDs are only available as references in Grafana 9+
 
 	dashboardUID := ""
 

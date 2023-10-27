@@ -158,8 +158,7 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 
 // This is a bug in Grafana, not the provider. It was fixed in 9.2.7+ and 9.3.0+, this test will check for regressions
 func TestAccFolder_createFromDifferentRoles(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=9.2.7")
+	testutils.CheckOSSTestsEnabled(t, ">=9.2.7")
 
 	for _, tc := range []struct {
 		role        string

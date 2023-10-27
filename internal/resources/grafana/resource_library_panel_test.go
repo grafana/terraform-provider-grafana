@@ -16,8 +16,7 @@ import (
 )
 
 func TestAccLibraryPanel_basic(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=8.0.0")
+	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
 
 	var panel gapi.LibraryPanel
 
@@ -58,8 +57,7 @@ func TestAccLibraryPanel_basic(t *testing.T) {
 }
 
 func TestAccLibraryPanel_computed_config(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=8.0.0")
+	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
 
 	var panel gapi.LibraryPanel
 
@@ -82,8 +80,7 @@ func TestAccLibraryPanel_computed_config(t *testing.T) {
 }
 
 func TestAccLibraryPanel_folder(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=8.0.0")
+	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
 
 	var panel gapi.LibraryPanel
 	var folder goapi.Folder
@@ -111,8 +108,7 @@ func TestAccLibraryPanel_folder(t *testing.T) {
 }
 
 func TestAccLibraryPanel_dashboard(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=8.0.0")
+	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
 
 	var panel gapi.LibraryPanel
 	var dashboard gapi.Dashboard
@@ -137,8 +133,7 @@ func TestAccLibraryPanel_dashboard(t *testing.T) {
 }
 
 func TestAccLibraryPanel_inOrg(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=8.0.0")
+	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
 
 	var panel gapi.LibraryPanel
 	orgName := acctest.RandString(10)

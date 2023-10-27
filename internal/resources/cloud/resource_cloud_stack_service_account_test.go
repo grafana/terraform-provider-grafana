@@ -15,7 +15,6 @@ import (
 
 func TestAccGrafanaServiceAccountFromCloud(t *testing.T) {
 	testutils.CheckCloudAPITestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
 
 	var stack gapi.Stack
 	prefix := "tfserviceaccounttest"

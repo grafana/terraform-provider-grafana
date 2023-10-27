@@ -12,8 +12,7 @@ import (
 )
 
 func TestAccMessageTemplate_basic(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=9.0.0")
+	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
 
 	var tmpl gapi.AlertingMessageTemplate
 

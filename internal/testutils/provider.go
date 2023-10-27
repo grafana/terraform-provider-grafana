@@ -113,7 +113,7 @@ func IsUnitTest(t *testing.T) {
 }
 
 // CheckOSSTestsEnabled checks if the OSS acceptance tests are enabled. This should be the first line of any test that uses Grafana OSS features only
-func CheckOSSTestsEnabled(t *testing.T) {
+func CheckOSSTestsEnabled(t *testing.T, semverConstraintOptional ...string) {
 	t.Helper()
 
 	if !AccTestsEnabled("TF_ACC_OSS") {
@@ -125,23 +125,7 @@ func CheckOSSTestsEnabled(t *testing.T) {
 		"GRAFANA_AUTH",
 		"GRAFANA_VERSION",
 	)
-}
-
-// CheckOSSTestsSemver allows to skip tests that are not supported by the Grafana OSS version
-func CheckOSSTestsSemver(t *testing.T, semverConstraint string) {
-	t.Helper()
-
-	versionStr := os.Getenv("GRAFANA_VERSION")
-	if semverConstraint != "" && versionStr != "" {
-		version := semver.MustParse(versionStr)
-		c, err := semver.NewConstraint(semverConstraint)
-		if err != nil {
-			t.Fatalf("invalid constraint %s: %v", semverConstraint, err)
-		}
-		if !c.Check(version) {
-			t.Skipf("skipping test for Grafana version `%s`, constraint `%s`", versionStr, semverConstraint)
-		}
-	}
+	checkSemverConstraint(t, semverConstraintOptional...)
 }
 
 // CheckCloudTestsEnabled checks if the cloud tests are enabled. This should be the first line of any test that tests Cloud API features
@@ -172,7 +156,7 @@ func CheckCloudInstanceTestsEnabled(t *testing.T) {
 }
 
 // CheckEnterpriseTestsEnabled checks if the enterprise tests are enabled. This should be the first line of any test that tests Grafana Enterprise features
-func CheckEnterpriseTestsEnabled(t *testing.T) {
+func CheckEnterpriseTestsEnabled(t *testing.T, semverConstraintOptional ...string) {
 	t.Helper()
 
 	if !AccTestsEnabled("TF_ACC_ENTERPRISE") {
@@ -183,4 +167,29 @@ func CheckEnterpriseTestsEnabled(t *testing.T) {
 		"GRAFANA_URL",
 		"GRAFANA_AUTH",
 	)
+	checkSemverConstraint(t, semverConstraintOptional...)
+}
+
+func checkSemverConstraint(t *testing.T, semverConstraintOptional ...string) {
+	t.Helper()
+
+	if len(semverConstraintOptional) > 1 {
+		panic("checkSemverConstraint accepts at most one argument")
+	}
+	if len(semverConstraintOptional) == 0 {
+		return
+	}
+
+	semverConstraint := semverConstraintOptional[0]
+	versionStr := os.Getenv("GRAFANA_VERSION")
+	if semverConstraint != "" && versionStr != "" {
+		version := semver.MustParse(versionStr)
+		c, err := semver.NewConstraint(semverConstraint)
+		if err != nil {
+			t.Fatalf("invalid constraint %s: %v", semverConstraint, err)
+		}
+		if !c.Check(version) {
+			t.Skipf("skipping test for Grafana version `%s`, constraint `%s`", versionStr, semverConstraint)
+		}
+	}
 }

@@ -14,8 +14,7 @@ import (
 )
 
 func TestAccContactPoint_basic(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=9.0.0")
+	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
 
 	var points []gapi.ContactPoint
 
@@ -72,8 +71,7 @@ func TestAccContactPoint_basic(t *testing.T) {
 }
 
 func TestAccContactPoint_compound(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=9.0.0")
+	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
 
 	var points []gapi.ContactPoint
 
@@ -141,8 +139,7 @@ func TestAccContactPoint_compound(t *testing.T) {
 }
 
 func TestAccContactPoint_notifiers(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	var points []gapi.ContactPoint
 
@@ -344,8 +341,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 }
 
 func TestAccContactPoint_empty(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
