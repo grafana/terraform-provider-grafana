@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	goapi "github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
@@ -30,9 +31,9 @@ func TestAccDashboard_basic(t *testing.T) {
 			expectedUpdatedTitleConfig := `{"title":"Updated Title","uid":"basic"}`
 			expectedUpdatedUIDConfig := `{"title":"Updated Title","uid":"basic-update"}`
 			if useSHA256 {
-				expectedInitialConfig = "fadbc115a19bfd7962d8f8d749d22c20d0a44043d390048bf94b698776d9f7f1"
-				expectedUpdatedTitleConfig = "4669abda43a4a6d6ae9ecaa19f8508faf4095682b679da0b5ce4176aa9171ab2"
-				expectedUpdatedUIDConfig = "2934e80938a672bd09d8e56385159a1bf8176e2a2ef549437f200d82ff398bfb"
+				expectedInitialConfig = "fadbc115a19bfd7962d8f8d749d22c20d0a44043d390048bf94b698776d9f7f1"      //nolint:gosec
+				expectedUpdatedTitleConfig = "4669abda43a4a6d6ae9ecaa19f8508faf4095682b679da0b5ce4176aa9171ab2" //nolint:gosec
+				expectedUpdatedUIDConfig = "2934e80938a672bd09d8e56385159a1bf8176e2a2ef549437f200d82ff398bfb"   //nolint:gosec
 			}
 
 			// TODO: Make parallelizable
@@ -163,7 +164,7 @@ func TestAccDashboard_folder(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	var dashboard gapi.Dashboard
-	var folder gapi.Folder
+	var folder goapi.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -189,7 +190,7 @@ func TestAccDashboard_folder_uid(t *testing.T) {
 	testutils.CheckOSSTestsSemver(t, ">=8.0.0") // UID in folders were added in v8
 
 	var dashboard gapi.Dashboard
-	var folder gapi.Folder
+	var folder goapi.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -219,7 +220,7 @@ func TestAccDashboard_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	var dashboard gapi.Dashboard
-	var folder gapi.Folder
+	var folder goapi.Folder
 	var org gapi.Org
 
 	orgName := acctest.RandString(10)
@@ -285,7 +286,7 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 	}
 }
 
-func testAccDashboardCheckExistsInFolder(dashboard *gapi.Dashboard, folder *gapi.Folder) resource.TestCheckFunc {
+func testAccDashboardCheckExistsInFolder(dashboard *gapi.Dashboard, folder *goapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if dashboard.FolderID != folder.ID && folder.ID != 0 {
 			return fmt.Errorf("dashboard.Folder(%d) does not match folder.ID(%d)", dashboard.FolderID, folder.ID)
@@ -298,6 +299,9 @@ func testAccDashboardCheckDestroy(dashboard *gapi.Dashboard, orgID int64) resour
 	return func(s *terraform.State) error {
 		// Check that the dashboard was deleted from the default organization
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		if dashboard.Model["uid"] == nil {
+			return fmt.Errorf("dashboard UID should be string, not nil")
+		}
 		dashboard, err := client.DashboardByUID(dashboard.Model["uid"].(string))
 		if dashboard != nil || err == nil {
 			return fmt.Errorf("dashboard still exists")
@@ -316,14 +320,17 @@ func testAccDashboardCheckDestroy(dashboard *gapi.Dashboard, orgID int64) resour
 	}
 }
 
-func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *gapi.Folder) resource.TestCheckFunc {
+func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *goapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		_, err := client.DashboardByUID(dashboard.Model["uid"].(string))
 		if err == nil {
 			return fmt.Errorf("dashboard still exists")
 		}
-		folder, err = grafana.GetFolderByIDorUID(client, folder.UID)
+
+		orgID := testutils.Provider.Meta().(*common.Client).GrafanaAPIConfig.OrgID
+		OAPIclient := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(orgID)
+		folder, err = grafana.GetFolderByIDorUID(OAPIclient.Folders, folder.UID)
 		if err == nil {
 			return fmt.Errorf("the following folder still exists: %s", folder.Title)
 		}

@@ -16,6 +16,7 @@ resource "grafana_contact_point" "receiver_types" {
 
   discord {
     url                     = "http://discord-url"
+    title                   = "title"
     message                 = "message"
     avatar_url              = "avatar_url"
     use_discord_username    = true
@@ -32,12 +33,25 @@ resource "grafana_contact_point" "receiver_types" {
 
   googlechat {
     url     = "http://googlechat-url"
+    title   = "title"
     message = "message"
   }
 
   kafka {
     rest_proxy_url = "http://kafka-rest-proxy-url"
     topic          = "mytopic"
+    description    = "description"
+    details        = "details"
+    username       = "username"
+    password       = "password"
+    api_version    = "v3"
+    cluster_id     = "cluster_id"
+  }
+
+  line {
+    token       = "token"
+    title       = "title"
+    description = "description"
   }
 
   opsgenie {
@@ -67,17 +81,18 @@ resource "grafana_contact_point" "receiver_types" {
   }
 
   pushover {
-    user_key    = "userkey"
-    api_token   = "token"
-    priority    = 0
-    ok_priority = 0
-    retry       = 45
-    expire      = 80000
-    device      = "device"
-    sound       = "bugle"
-    ok_sound    = "cashregister"
-    title       = "title"
-    message     = "message"
+    user_key     = "userkey"
+    api_token    = "token"
+    priority     = 0
+    ok_priority  = 0
+    retry        = 45
+    expire       = 80000
+    device       = "device"
+    sound        = "bugle"
+    ok_sound     = "cashregister"
+    title        = "title"
+    message      = "message"
+    upload_image = false
   }
 
   sensugo {
@@ -112,9 +127,13 @@ resource "grafana_contact_point" "receiver_types" {
   }
 
   telegram {
-    token   = "token"
-    chat_id = "chat-id"
-    message = "message"
+    token                    = "token"
+    chat_id                  = "chat-id"
+    message                  = "message"
+    parse_mode               = "Markdown"
+    disable_web_page_preview = true
+    protect_content          = true
+    disable_notifications    = true
   }
 
   threema {
@@ -132,6 +151,13 @@ resource "grafana_contact_point" "receiver_types" {
     description  = "description"
   }
 
+  webex {
+    token   = "token"
+    api_url = "http://localhost"
+    message = "message"
+    room_id = "room_id"
+  }
+
   webhook {
     url                 = "http://my-url"
     http_method         = "POST"
@@ -143,8 +169,13 @@ resource "grafana_contact_point" "receiver_types" {
   }
 
   wecom {
-    url     = "http://wecom-url"
-    message = "message"
-    title   = "title"
+    url      = "http://wecom-url"
+    message  = "message"
+    title    = "title"
+    secret   = "secret"
+    corp_id  = "corp_id"
+    agent_id = "agent_id"
+    msg_type = "text"
+    to_user  = "to_user"
   }
 }

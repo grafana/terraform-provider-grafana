@@ -26,6 +26,7 @@ func ResourceRole() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"uid": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -34,9 +35,19 @@ func ResourceRole() *schema.Resource {
 				Description: "Unique identifier of the role. Used for assignments.",
 			},
 			"version": {
-				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "Version of the role. A role is updated only on version increase.",
+				Type:         schema.TypeInt,
+				Description:  "Version of the role. A role is updated only on version increase. This field or `auto_increment_version` should be set.",
+				Optional:     true,
+				ExactlyOneOf: []string{"version", "auto_increment_version"},
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					return new == "0" || old == new // new will be 0 when switching from manually versioned to auto_increment_version
+				},
+			},
+			"auto_increment_version": {
+				Type:         schema.TypeBool,
+				Description:  "Whether the role version should be incremented automatically on updates (and set to 1 on creation). This field or `version` should be set.",
+				Optional:     true,
+				ExactlyOneOf: []string{"version", "auto_increment_version"},
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -96,13 +107,20 @@ func ResourceRole() *schema.Resource {
 }
 
 func CreateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID := ClientFromNewOrgResource(meta, d)
+
+	var version int
+	if d.Get("auto_increment_version").(bool) {
+		version = 1
+	} else {
+		version = d.Get("version").(int)
+	}
 
 	role := gapi.Role{
 		UID:         d.Get("uid").(string),
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
-		Version:     int64(d.Get("version").(int)),
+		Version:     int64(version),
 		Global:      d.Get("global").(bool),
 		DisplayName: d.Get("display_name").(string),
 		Group:       d.Get("group").(string),
@@ -113,12 +131,8 @@ func CreateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	err = d.Set("uid", r.UID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId(r.UID)
-	return nil
+	d.SetId(MakeOrgResourceID(orgID, r.UID))
+	return ReadRole(ctx, d, meta)
 }
 
 func permissions(d *schema.ResourceData) []gapi.Permission {
@@ -140,8 +154,8 @@ func permissions(d *schema.ResourceData) []gapi.Permission {
 }
 
 func ReadRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	return readRoleFromUID(client, d.Id(), d)
+	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
+	return readRoleFromUID(client, uid, d)
 }
 
 func readRoleFromUID(client *gapi.Client, uid string, d *schema.ResourceData) diag.Diagnostics {
@@ -194,25 +208,29 @@ func readRoleFromUID(client *gapi.Client, uid string, d *schema.ResourceData) di
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(r.UID)
 
 	return nil
 }
 
 func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
 
 	if d.HasChange("version") || d.HasChange("name") || d.HasChange("description") || d.HasChange("permissions") ||
 		d.HasChange("display_name") || d.HasChange("group") || d.HasChange("hidden") {
+		version := d.Get("version").(int)
+		if d.Get("auto_increment_version").(bool) {
+			version += 1
+		}
+
 		r := gapi.Role{
-			UID:         d.Id(),
+			UID:         uid,
 			Name:        d.Get("name").(string),
 			Global:      d.Get("global").(bool),
 			Description: d.Get("description").(string),
 			DisplayName: d.Get("display_name").(string),
 			Group:       d.Get("group").(string),
 			Hidden:      d.Get("hidden").(bool),
-			Version:     int64(d.Get("version").(int)),
+			Version:     int64(version),
 			Permissions: permissions(d),
 		}
 		if err := client.UpdateRole(r); err != nil {
@@ -220,16 +238,11 @@ func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		}
 	}
 
-	return nil
+	return ReadRole(ctx, d, meta)
 }
 
 func DeleteRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	uid := d.Id()
+	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
 	g := d.Get("global").(bool)
-
-	if err := client.DeleteRole(uid, g); err != nil {
-		return diag.FromErr(err)
-	}
-	return nil
+	return diag.FromErr(client.DeleteRole(uid, g))
 }

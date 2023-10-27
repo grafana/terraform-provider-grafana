@@ -13,7 +13,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 )
 
-func TestRoleAssignments(t *testing.T) {
+func TestAccRoleAssignments(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 	var roleAssignment gapi.RoleAssignments
 
@@ -39,6 +39,50 @@ func TestRoleAssignments(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"grafana_role_assignment.test", "teams.#", "1",
 					),
+				),
+			},
+			{
+				Config:  roleAssignmentConfig(testName),
+				Destroy: true,
+			},
+		},
+	})
+}
+
+func TestAccRoleAssignments_inOrg(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t)
+	var roleAssignment gapi.RoleAssignments
+	var org gapi.Org
+
+	testName := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      testRoleAssignmentCheckDestroy(&roleAssignment),
+		Steps: []resource.TestStep{
+			{
+				Config: roleAssignmentConfigInOrg(testName),
+				Check: resource.ComposeTestCheckFunc(
+					testRoleAssignmentCheckExists("grafana_role_assignment.test", &roleAssignment),
+					resource.TestCheckResourceAttr(
+						"grafana_role_assignment.test", "role_uid", testName,
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_role_assignment.test", "users.#", "2",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_role_assignment.test", "service_accounts.#", "1",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_role_assignment.test", "teams.#", "1",
+					),
+
+					// Check that the role is in the correct organization
+					resource.TestMatchResourceAttr("grafana_role.test", "id", nonDefaultOrgIDRegexp),
+					resource.TestMatchResourceAttr("grafana_role_assignment.test", "id", nonDefaultOrgIDRegexp),
+					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					checkResourceIsInOrg("grafana_role.test", "grafana_organization.test"),
+					checkResourceIsInOrg("grafana_role_assignment.test", "grafana_organization.test"),
 				),
 			},
 			{
@@ -124,6 +168,61 @@ resource "grafana_role_assignment" "test" {
   users = [grafana_user.test_user.id, grafana_user.test_user2.id]
   teams = [grafana_team.test_team.id]
   service_accounts = [grafana_service_account.test.id]
+}
+`, name)
+}
+
+func roleAssignmentConfigInOrg(name string) string {
+	return fmt.Sprintf(`
+resource "grafana_organization" "test" {
+	name = "%[1]s"
+}
+
+resource "grafana_role" "test" {
+	org_id = grafana_organization.test.id
+
+	name  = "%[1]s"
+	description = "test desc"
+	version = 1
+	uid = "%[1]s"
+	global = true
+	group = "testgroup"
+	display_name = "testdisplay"
+	hidden = true
+  }
+
+resource "grafana_team" "test_team" {
+	org_id = grafana_organization.test.id
+	name = "%[1]s"
+}
+
+resource "grafana_user" "test_user" {
+	email = "%[1]s-1@test.com"
+	login    = "%[1]s-1@test.com"
+	password = "12345"
+}
+
+resource "grafana_user" "test_user2" {
+	email = "%[1]s-2@test.com"
+	login    = "%[1]s-2@test.com"
+	password = "12345"
+}
+
+resource "grafana_service_account" "test" {
+	org_id = grafana_organization.test.id
+
+	name        = "%[1]s-terraform-test"
+	role        = "Editor"
+	is_disabled = false
+  }
+
+resource "grafana_role_assignment" "test" {
+	org_id = grafana_organization.test.id
+
+  	role_uid = grafana_role.test.uid
+  	users = [grafana_user.test_user.id, grafana_user.test_user2.id]
+  	teams = [grafana_team.test_team.id]
+  	service_accounts = [grafana_service_account.test.id]
 }
 `, name)
 }

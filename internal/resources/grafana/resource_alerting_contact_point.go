@@ -7,9 +7,10 @@ import (
 	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
 var notifiers = []notifier{
@@ -19,6 +20,7 @@ var notifiers = []notifier{
 	emailNotifier{},
 	googleChatNotifier{},
 	kafkaNotifier{},
+	lineNotifier{},
 	opsGenieNotifier{},
 	pagerDutyNotifier{},
 	pushoverNotifier{},
@@ -28,6 +30,7 @@ var notifiers = []notifier{
 	telegramNotifier{},
 	threemaNotifier{},
 	victorOpsNotifier{},
+	webexNotifier{},
 	webhookNotifier{},
 	wecomNotifier{},
 }

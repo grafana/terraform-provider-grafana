@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -345,7 +346,14 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			}
 		}
 		if smToken := d.Get("sm_access_token").(string); smToken != "" {
-			c.SMAPI = SMAPI.NewClient(d.Get("sm_url").(string), smToken, nil)
+			retryClient := retryablehttp.NewClient()
+			retryClient.RetryMax = d.Get("retries").(int)
+			if wait := d.Get("retry_wait").(int); wait > 0 {
+				retryClient.RetryWaitMin = time.Second * time.Duration(d.Get("retry_wait").(int))
+				retryClient.RetryWaitMax = time.Second * time.Duration(d.Get("retry_wait").(int))
+			}
+
+			c.SMAPI = SMAPI.NewClient(d.Get("sm_url").(string), smToken, retryClient.StandardClient())
 		}
 		if d.Get("oncall_access_token").(string) != "" {
 			var onCallClient *onCallAPI.Client
@@ -425,13 +433,23 @@ func createGrafanaOAPIClient(apiURL string, d *schema.ResourceData) (*goapi.Graf
 	}
 
 	cfg := goapi.TransportConfig{
-		Host:      u.Host,
-		BasePath:  "/api",
-		Schemes:   []string{u.Scheme},
-		TLSConfig: tlsClientConfig,
-		BasicAuth: userInfo,
-		OrgID:     orgID,
-		APIKey:    APIKey,
+		Host:         u.Host,
+		BasePath:     "/api",
+		Schemes:      []string{u.Scheme},
+		NumRetries:   d.Get("retries").(int),
+		RetryTimeout: time.Second * time.Duration(d.Get("retry_wait").(int)),
+		TLSConfig:    tlsClientConfig,
+		BasicAuth:    userInfo,
+		OrgID:        orgID,
+		APIKey:       APIKey,
+	}
+
+	if v, ok := d.GetOk("retry_status_codes"); ok {
+		cfg.RetryStatusCodes = common.SetToStringSlice(v.(*schema.Set))
+	}
+
+	if cfg.HTTPHeaders, err = getHTTPHeadersMap(d); err != nil {
+		return nil, err
 	}
 
 	return goapi.NewHTTPClientWithConfig(strfmt.Default, &cfg), nil

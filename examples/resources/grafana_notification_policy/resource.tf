@@ -31,7 +31,6 @@ resource "grafana_notification_policy" "my_notification_policy" {
       value = "myvalue"
     }
     contact_point = grafana_contact_point.a_contact_point.name
-    group_by      = ["alertname"]
     continue      = true
     mute_timings  = [grafana_mute_timing.a_mute_timing.name]
 

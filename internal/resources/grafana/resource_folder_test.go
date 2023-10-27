@@ -2,12 +2,15 @@ package grafana_test
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"regexp"
 	"strings"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	goapi "github.com/grafana/grafana-openapi-client-go/models"
+
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
@@ -20,8 +23,8 @@ import (
 func TestAccFolder_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var folder gapi.Folder
-	var folderWithUID gapi.Folder
+	var folder goapi.Folder
+	var folderWithUID goapi.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -105,7 +108,7 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
-	var folder gapi.Folder
+	var folder goapi.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -164,7 +167,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 	}{
 		{
 			role:        "Viewer",
-			expectError: regexp.MustCompile(".*Access denied.*"),
+			expectError: regexp.MustCompile(fmt.Sprint(http.StatusForbidden)),
 		},
 		{
 			role:        "Editor",
@@ -172,7 +175,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 		},
 	} {
 		t.Run(tc.role, func(t *testing.T) {
-			var folder gapi.Folder
+			var folder goapi.Folder
 			var name = acctest.RandomWithPrefix(tc.role + "-key")
 
 			// Create an API key with the correct role and inject it in envvars. This auth will be used when the test runs
@@ -217,15 +220,15 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 	}
 }
 
-func testAccFolderIDDidntChange(rn string, oldFolder *gapi.Folder) resource.TestCheckFunc {
+func testAccFolderIDDidntChange(rn string, oldFolder *goapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		newFolderResource, ok := s.RootModule().Resources[rn]
 		if !ok {
 			return fmt.Errorf("folder not found: %s", rn)
 		}
 		orgID, folderUID := grafana.SplitOrgResourceID(newFolderResource.Primary.ID)
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
-		newFolder, err := grafana.GetFolderByIDorUID(client, folderUID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(orgID)
+		newFolder, err := grafana.GetFolderByIDorUID(client.Folders, folderUID)
 		if err != nil {
 			return fmt.Errorf("error getting folder: %s", err)
 		}
@@ -236,7 +239,7 @@ func testAccFolderIDDidntChange(rn string, oldFolder *gapi.Folder) resource.Test
 	}
 }
 
-func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheckFunc {
+func testAccFolderCheckExists(rn string, folder *goapi.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
 		if !ok {
@@ -246,10 +249,9 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource id not set")
 		}
-
 		orgID, folderID := grafana.SplitOrgResourceID(rs.Primary.ID)
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
-		gotFolder, err := grafana.GetFolderByIDorUID(client, folderID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(orgID)
+		gotFolder, err := grafana.GetFolderByIDorUID(client.Folders, folderID)
 		if err != nil {
 			return fmt.Errorf("error getting folder: %s", err)
 		}
@@ -260,10 +262,10 @@ func testAccFolderCheckExists(rn string, folder *gapi.Folder) resource.TestCheck
 	}
 }
 
-func testAccFolderCheckDestroy(folder *gapi.Folder, orgID int64) resource.TestCheckFunc {
+func testAccFolderCheckDestroy(folder *goapi.Folder, orgID int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
-		_, err := grafana.GetFolderByIDorUID(client, folder.UID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(orgID)
+		_, err := grafana.GetFolderByIDorUID(client.Folders, folder.UID)
 		if err == nil {
 			return fmt.Errorf("folder still exists")
 		}

@@ -6,10 +6,11 @@ import (
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
+	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 )
 
 func TestAccContactPoint_basic(t *testing.T) {
@@ -154,7 +155,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_receiver_types.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 17),
+					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 19),
 					// alertmanager
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.0.url", "http://my-am"),
@@ -169,6 +170,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					// discord
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.url", "http://discord-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.title", "title"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.message", "message"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.avatar_url", "avatar_url"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "discord.0.use_discord_username", "true"),
@@ -181,11 +183,23 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					// googlechat
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.url", "http://googlechat-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.title", "title"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "googlechat.0.message", "message"),
 					// kafka
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.rest_proxy_url", "http://kafka-rest-proxy-url"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.topic", "mytopic"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.description", "description"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.details", "details"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.username", "username"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.password", "password"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.api_version", "v3"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "kafka.0.cluster_id", "cluster_id"),
+					// line
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "line.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "line.0.token", "token"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "line.0.title", "title"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "line.0.description", "description"),
 					// opsgenie
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.url", "http://opsgenie-api"),
@@ -254,6 +268,10 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.token", "token"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.chat_id", "chat-id"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.message", "message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.parse_mode", "Markdown"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.disable_web_page_preview", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.protect_content", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "telegram.0.disable_notifications", "true"),
 					// threema
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "threema.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "threema.0.gateway_id", "*gateway"),
@@ -265,6 +283,12 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "victorops.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "victorops.0.url", "http://victor-ops-url"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "victorops.0.message_type", "CRITICAL"),
+					// webex
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webex.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webex.0.token", "token"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webex.0.api_url", "http://localhost"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webex.0.message", "message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webex.0.room_id", "room_id"),
 					// webhook
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webhook.0.url", "http://my-url"),
@@ -279,6 +303,11 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.url", "http://wecom-url"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.message", "message"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.title", "title"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.secret", "secret"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.corp_id", "corp_id"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.agent_id", "agent_id"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.msg_type", "text"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "wecom.0.to_user", "to_user"),
 				),
 			},
 			// Test blank fields in settings should be omitted.

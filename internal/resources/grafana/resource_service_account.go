@@ -32,7 +32,6 @@ func ResourceServiceAccount() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The name of the service account.",
 			},
 			"role": {

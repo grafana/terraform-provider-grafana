@@ -8,6 +8,7 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -15,16 +16,23 @@ import (
 func TestAccResourceCheck_dns(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	// TODO: Make parallelizable
-	resource.Test(t, resource.TestCase{
+	// Inject random job names to avoid conflicts with other tests
+	jobName := acctest.RandomWithPrefix("dns")
+	jobNameUpdated := acctest.RandomWithPrefix("dns")
+	nameReplaceMap := map[string]string{
+		`"DNS Defaults"`: strconv.Quote(jobName),
+		`"DNS Updated"`:  strconv.Quote(jobNameUpdated),
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/dns_basic.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/dns_basic.tf", nameReplaceMap),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.dns", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.dns", "tenant_id"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "job", "DNS Defaults"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "job", jobName),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "target", "grafana.com"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "probes.0", "1"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "labels.foo", "bar"),
@@ -36,11 +44,11 @@ func TestAccResourceCheck_dns(t *testing.T) {
 				),
 			},
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/dns_complex.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/dns_complex.tf", nameReplaceMap),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.dns", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.dns", "tenant_id"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "job", "DNS Updated"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "job", jobNameUpdated),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "target", "grafana.net"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "probes.0", "14"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "probes.1", "19"),
@@ -67,16 +75,21 @@ func TestAccResourceCheck_dns(t *testing.T) {
 func TestAccResourceCheck_http(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	// TODO: Make parallelizable
-	resource.Test(t, resource.TestCase{
+	// Inject random job names to avoid conflicts with other tests
+	jobName := acctest.RandomWithPrefix("http")
+	nameReplaceMap := map[string]string{
+		`"HTTP Defaults"`: strconv.Quote(jobName),
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf", nameReplaceMap),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "tenant_id"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "job", "HTTP Defaults"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "job", jobName),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "target", "https://grafana.com"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "probes.0", "1"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "labels.foo", "bar"),
@@ -86,11 +99,11 @@ func TestAccResourceCheck_http(t *testing.T) {
 				),
 			},
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/http_complex.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/http_complex.tf", nameReplaceMap),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "tenant_id"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "job", "HTTP Defaults"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "job", jobName),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "target", "https://grafana.org"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "probes.0", "15"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "labels.foo", "bar"),
@@ -111,7 +124,7 @@ func TestAccResourceCheck_http(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.valid_status_codes.1", "201"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.valid_http_versions.0", "HTTP/1.0"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.valid_http_versions.1", "HTTP/1.1"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.valid_http_versions.2", "HTTP/2"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.valid_http_versions.2", "HTTP/2.0"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_body_matches_regexp.0", "*bad stuff*"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_body_not_matches_regexp.0", "*good stuff*"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_header_matches_regexp.0.header", "Content-Type"),
@@ -126,16 +139,23 @@ func TestAccResourceCheck_http(t *testing.T) {
 func TestAccResourceCheck_ping(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	// TODO: Make parallelizable
-	resource.Test(t, resource.TestCase{
+	// Inject random job names to avoid conflicts with other tests
+	jobName := acctest.RandomWithPrefix("ping")
+	jobNameUpdated := acctest.RandomWithPrefix("ping")
+	nameReplaceMap := map[string]string{
+		`"Ping Defaults"`: strconv.Quote(jobName),
+		`"Ping Updated"`:  strconv.Quote(jobNameUpdated),
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/ping_basic.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/ping_basic.tf", nameReplaceMap),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.ping", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.ping", "tenant_id"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.ping", "job", "Ping Defaults"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.ping", "job", jobName),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.ping", "target", "grafana.com"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.ping", "probes.0", "1"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.ping", "labels.foo", "bar"),
@@ -143,11 +163,11 @@ func TestAccResourceCheck_ping(t *testing.T) {
 				),
 			},
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/ping_complex.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/ping_complex.tf", nameReplaceMap),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.ping", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.ping", "tenant_id"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.ping", "job", "Ping Updated"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.ping", "job", jobNameUpdated),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.ping", "target", "grafana.net"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.ping", "probes.0", "14"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.ping", "probes.1", "19"),
@@ -164,16 +184,21 @@ func TestAccResourceCheck_ping(t *testing.T) {
 func TestAccResourceCheck_tcp(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	// TODO: Make parallelizable
-	resource.Test(t, resource.TestCase{
+	// Inject random job names to avoid conflicts with other tests
+	jobName := acctest.RandomWithPrefix("tcp")
+	nameReplaceMap := map[string]string{
+		`"TCP Defaults"`: strconv.Quote(jobName),
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/tcp_basic.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/tcp_basic.tf", nameReplaceMap),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.tcp", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.tcp", "tenant_id"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.tcp", "job", "TCP Defaults"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.tcp", "job", jobName),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.tcp", "target", "grafana.com:80"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.tcp", "probes.0", "1"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.tcp", "labels.foo", "bar"),
@@ -182,11 +207,11 @@ func TestAccResourceCheck_tcp(t *testing.T) {
 				),
 			},
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/tcp_complex.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/tcp_complex.tf", nameReplaceMap),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.tcp", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.tcp", "tenant_id"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.tcp", "job", "TCP Defaults"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.tcp", "job", jobName),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.tcp", "target", "grafana.com:443"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.tcp", "probes.0", "14"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.tcp", "probes.1", "19"),
@@ -210,16 +235,23 @@ func TestAccResourceCheck_tcp(t *testing.T) {
 func TestAccResourceCheck_traceroute(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	// TODO: Make parallelizable
-	resource.Test(t, resource.TestCase{
+	// Inject random job names to avoid conflicts with other tests
+	jobName := acctest.RandomWithPrefix("traceroute")
+	jobNameUpdated := acctest.RandomWithPrefix("traceroute")
+	nameReplaceMap := map[string]string{
+		`"Traceroute defaults"`: strconv.Quote(jobName),
+		`"Traceroute complex"`:  strconv.Quote(jobNameUpdated),
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/traceroute_basic.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/traceroute_basic.tf", nameReplaceMap),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.traceroute", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.traceroute", "tenant_id"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "job", "Traceroute defaults"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "job", jobName),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "target", "grafana.com"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "probes.0", "1"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "labels.foo", "bar"),
@@ -229,11 +261,11 @@ func TestAccResourceCheck_traceroute(t *testing.T) {
 				),
 			},
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/traceroute_complex.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/traceroute_complex.tf", nameReplaceMap),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.traceroute", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.traceroute", "tenant_id"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "job", "Traceroute complex"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "job", jobNameUpdated),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "target", "grafana.net"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "probes.0", "14"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "probes.1", "19"),
@@ -251,12 +283,17 @@ func TestAccResourceCheck_traceroute(t *testing.T) {
 func TestAccResourceCheck_recreate(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	// TODO: Make parallelizable
-	resource.Test(t, resource.TestCase{
+	// Inject random job names to avoid conflicts with other tests
+	jobName := acctest.RandomWithPrefix("http")
+	nameReplaceMap := map[string]string{
+		`"HTTP Defaults"`: strconv.Quote(jobName),
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf", nameReplaceMap),
 				Check: func(s *terraform.State) error {
 					rs := s.RootModule().Resources["grafana_synthetic_monitoring_check.http"]
 					id, _ := strconv.ParseInt(rs.Primary.ID, 10, 64)
@@ -265,11 +302,11 @@ func TestAccResourceCheck_recreate(t *testing.T) {
 				ExpectNonEmptyPlan: true,
 			},
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf", nameReplaceMap),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "tenant_id"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "job", "HTTP Defaults"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "job", jobName),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "target", "https://grafana.com"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "probes.0", "1"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "labels.foo", "bar"),

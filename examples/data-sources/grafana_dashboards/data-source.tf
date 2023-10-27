@@ -46,10 +46,6 @@ data "grafana_dashboards" "all" {
   ]
 }
 
-data "grafana_dashboard" "from_data_source" {
-  uid = data.grafana_dashboards.all.dashboards[0].uid
-}
-
 // get only one result
 data "grafana_dashboards" "limit_one" {
   limit = 1

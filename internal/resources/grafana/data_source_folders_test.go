@@ -3,7 +3,7 @@ package grafana_test
 import (
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	goapi "github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
@@ -11,8 +11,8 @@ import (
 func TestAccDatasourceFolders(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var folderA gapi.Folder
-	var folderB gapi.Folder
+	var folderA goapi.Folder
+	var folderB goapi.Folder
 	titleBase := "test-folder-"
 	uidBase := "test-ds-folder-uid-"
 	checks := []resource.TestCheckFunc{

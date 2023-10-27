@@ -8,6 +8,9 @@ import (
 	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	goapi "github.com/grafana/grafana-openapi-client-go/client/folders"
+	"github.com/grafana/grafana-openapi-client-go/models"
+
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -58,36 +61,51 @@ func ResourceFolder() *schema.Resource {
 }
 
 func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
-	var resp gapi.Folder
-	var err error
-	title := d.Get("title").(string)
-	if uid, ok := d.GetOk("uid"); ok {
-		resp, err = client.NewFolder(title, uid.(string))
-	} else {
-		resp, err = client.NewFolder(title)
+	var body models.CreateFolderCommand
+	if title := d.Get("title").(string); title != "" {
+		body.Title = title
 	}
+
+	if uid, ok := d.GetOk("uid"); ok {
+		body.UID = uid.(string)
+	}
+
+	params := goapi.NewCreateFolderParams().WithBody(&body)
+	resp, err := client.Folders.CreateFolder(params, nil)
 	if err != nil {
 		return diag.Errorf("failed to create folder: %s", err)
 	}
 
-	d.SetId(MakeOrgResourceID(orgID, resp.ID))
-	d.Set("uid", resp.UID)
-	d.Set("title", resp.Title)
+	folder := resp.GetPayload()
+	d.SetId(MakeOrgResourceID(orgID, folder.ID))
+	d.Set("uid", folder.UID)
+	d.Set("title", folder.Title)
 
 	return ReadFolder(ctx, d, meta)
 }
 
 func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	folder, err := GetFolderByIDorUID(client, idStr)
+	folder, err := GetFolderByIDorUID(client.Folders, idStr)
 	if err != nil {
 		return diag.Errorf("failed to get folder %s: %s", idStr, err)
 	}
 
-	if err := client.UpdateFolder(folder.UID, d.Get("title").(string), d.Get("uid").(string)); err != nil {
+	params := goapi.NewUpdateFolderParams().
+		WithBody(&models.UpdateFolderCommand{
+			Overwrite: true,
+			Title:     d.Get("title").(string),
+		}).
+		WithFolderUID(folder.UID)
+
+	if newUID := d.Get("uid").(string); newUID != "" {
+		params.Body.UID = newUID
+	}
+
+	if _, err := client.Folders.UpdateFolder(params, nil); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -96,9 +114,9 @@ func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 
 func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	gapiURL := meta.(*common.Client).GrafanaAPIURL
-	client, orgID, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	folder, err := GetFolderByIDorUID(client, idStr)
+	folder, err := GetFolderByIDorUID(client.Folders, idStr)
 	if err, shouldReturn := common.CheckReadError("folder", d, err); shouldReturn {
 		return err
 	}
@@ -113,12 +131,11 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
-
 	deleteParams := []url.Values{}
 	if d.Get("prevent_destroy_if_not_empty").(bool) {
 		// Search for dashboards and fail if any are found
-		dashboards, err := client.FolderDashboardSearch(url.Values{
+		GAPIClient, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+		dashboards, err := GAPIClient.FolderDashboardSearch(url.Values{
 			"type":      []string{"dash-db"},
 			"folderIds": []string{idStr},
 		})
@@ -137,7 +154,14 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 		deleteParams = append(deleteParams, gapi.ForceDeleteFolderRules())
 	}
 
-	if err := client.DeleteFolder(d.Get("uid").(string), deleteParams...); err != nil {
+	var force bool
+	if len(deleteParams) > 0 {
+		force, _ = strconv.ParseBool(deleteParams[0].Get("forceDeleteRules"))
+	}
+
+	client, _, _ := OAPIClientFromExistingOrgResource(meta, d.Id())
+	params := goapi.NewDeleteFolderParams().WithForceDeleteRules(&force).WithFolderUID(d.Get("uid").(string))
+	if _, err := client.Folders.DeleteFolder(params, nil); err != nil {
 		return diag.Errorf("failed to delete folder: %s", err)
 	}
 
@@ -178,16 +202,17 @@ func NormalizeFolderConfigJSON(configI interface{}) string {
 	return string(ret)
 }
 
-func GetFolderByIDorUID(client *gapi.Client, id string) (*gapi.Folder, error) {
+func GetFolderByIDorUID(client goapi.ClientService, id string) (*models.Folder, error) {
 	// If the ID is a number, find the folder UID
 	// Getting the folder by ID is broken in some versions, but getting by UID works in all versions
 	// We need to use two API calls in the numerical ID case, because the "list" call doesn't have all the info
 	uid := id
 	if numericalID, err := strconv.ParseInt(id, 10, 64); err == nil {
-		folders, err := client.Folders()
+		resp, err := client.GetFolders(goapi.NewGetFoldersParams(), nil)
 		if err != nil {
 			return nil, err
 		}
+		folders := resp.GetPayload()
 		for _, folder := range folders {
 			if folder.ID == numericalID {
 				uid = folder.UID
@@ -196,5 +221,10 @@ func GetFolderByIDorUID(client *gapi.Client, id string) (*gapi.Folder, error) {
 		}
 	}
 
-	return client.FolderByUID(uid)
+	params := goapi.NewGetFolderByUIDParams().WithFolderUID(uid)
+	resp, err := client.GetFolderByUID(params, nil)
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetPayload(), nil
 }

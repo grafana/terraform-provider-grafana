@@ -48,6 +48,7 @@ resource "grafana_contact_point" "my_contact_point" {
 - `email` (Block List) A contact point that sends notifications to an email address. (see [below for nested schema](#nestedblock--email))
 - `googlechat` (Block List) A contact point that sends notifications to Google Chat. (see [below for nested schema](#nestedblock--googlechat))
 - `kafka` (Block List) A contact point that publishes notifications to Apache Kafka topics. (see [below for nested schema](#nestedblock--kafka))
+- `line` (Block List) A contact point that sends notifications to LINE.me. (see [below for nested schema](#nestedblock--line))
 - `opsgenie` (Block List) A contact point that sends notifications to OpsGenie. (see [below for nested schema](#nestedblock--opsgenie))
 - `pagerduty` (Block List) A contact point that sends notifications to PagerDuty. (see [below for nested schema](#nestedblock--pagerduty))
 - `pushover` (Block List) A contact point that sends notifications to Pushover. (see [below for nested schema](#nestedblock--pushover))
@@ -57,6 +58,7 @@ resource "grafana_contact_point" "my_contact_point" {
 - `telegram` (Block List) A contact point that sends notifications to Telegram. (see [below for nested schema](#nestedblock--telegram))
 - `threema` (Block List) A contact point that sends notifications to Threema. (see [below for nested schema](#nestedblock--threema))
 - `victorops` (Block List) A contact point that sends notifications to VictorOps (now known as Splunk OnCall). (see [below for nested schema](#nestedblock--victorops))
+- `webex` (Block List) A contact point that sends notifications to Cisco Webex. (see [below for nested schema](#nestedblock--webex))
 - `webhook` (Block List) A contact point that sends notifications to an arbitrary webhook, using the Prometheus webhook format defined here: https://prometheus.io/docs/alerting/latest/configuration/#webhook_config (see [below for nested schema](#nestedblock--webhook))
 - `wecom` (Block List) A contact point that sends notifications to WeCom. (see [below for nested schema](#nestedblock--wecom))
 
@@ -116,6 +118,7 @@ Optional:
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `message` (String) The templated content of the message. Defaults to ``.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `title` (String) The templated content of the title.
 - `use_discord_username` (Boolean) Whether to use the bot account's plain username instead of "Grafana." Defaults to `false`.
 
 Read-Only:
@@ -155,6 +158,7 @@ Optional:
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `message` (String) The templated content of the message.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `title` (String) The templated content of the title.
 
 Read-Only:
 
@@ -171,8 +175,33 @@ Required:
 
 Optional:
 
+- `api_version` (String) The API version to use when contacting the Kafka REST Server. Supported: v2 (default) and v3. Defaults to `v2`.
+- `cluster_id` (String) The Id of cluster to use when contacting the Kafka REST Server. Required api_version to be 'v3'
+- `description` (String) The templated description of the Kafka message.
+- `details` (String) The templated details to include with the message.
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `password` (String, Sensitive) The password to use when making a call to the Kafka REST Proxy
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `username` (String) The user name to use when making a call to the Kafka REST Proxy
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--line"></a>
+### Nested Schema for `line`
+
+Required:
+
+- `token` (String, Sensitive) The bearer token used to authorize the client.
+
+Optional:
+
+- `description` (String) The templated description of the message.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `title` (String) The templated title of the message.
 
 Read-Only:
 
@@ -249,6 +278,7 @@ Optional:
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `sound` (String) The sound associated with the notification.
 - `title` (String) The templated title of the message.
+- `upload_image` (Boolean) Whether to send images in the notification or not. Default is true. Requires Grafana to be configured to send images in notifications.
 
 Read-Only:
 
@@ -333,8 +363,12 @@ Required:
 
 Optional:
 
+- `disable_notifications` (Boolean) When set users will receive a notification with no sound.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `disable_web_page_preview` (Boolean) When set it disables link previews for links in the message.
 - `message` (String) The templated content of the message.
+- `parse_mode` (String) Mode for parsing entities in the message text. Supported: None, Markdown, MarkdownV2, and HTML. HTML is the default.
+- `protect_content` (Boolean) When set it protects the contents of the message from forwarding and saving.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 
 Read-Only:
@@ -348,15 +382,15 @@ Read-Only:
 Required:
 
 - `api_secret` (String, Sensitive) The Threema API key.
-- `description` (String, Sensitive) The templated description of the message.
 - `gateway_id` (String) The Threema gateway ID.
 - `recipient_id` (String) The ID of the recipient of the message.
-- `title` (String, Sensitive) The templated title of the message.
 
 Optional:
 
+- `description` (String) The templated description of the message.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `title` (String) The templated title of the message.
 
 Read-Only:
 
@@ -377,6 +411,23 @@ Optional:
 - `message_type` (String) The VictorOps alert state - typically either `CRITICAL` or `RECOVERY`.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `title` (String) Templated title to display.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--webex"></a>
+### Nested Schema for `webex`
+
+Optional:
+
+- `api_url` (String) The URL to send webhook requests to.
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `message` (String) The templated title of the message to send.
+- `room_id` (String) ID of the Webex Teams room where to send the messages.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `token` (String, Sensitive) The bearer token used to authorize the client.
 
 Read-Only:
 
@@ -411,16 +462,18 @@ Read-Only:
 <a id="nestedblock--wecom"></a>
 ### Nested Schema for `wecom`
 
-Required:
-
-- `url` (String, Sensitive) The WeCom webhook URL.
-
 Optional:
 
+- `agent_id` (String) Agent ID added to the request payload when using APIAPP.
+- `corp_id` (String) Corp ID used to get token when using APIAPP.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `message` (String) The templated content of the message to send.
+- `msg_type` (String) The type of them message. Supported: markdown, text. Default: text.
+- `secret` (String, Sensitive) The secret key required to obtain access token when using APIAPP. See https://work.weixin.qq.com/wework_admin/frame#apps to create APIAPP.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `title` (String) The templated title of the message to send.
+- `to_user` (String) The ID of user that should receive the message. Multiple entries should be separated by '|'. Default: @all.
+- `url` (String, Sensitive) The WeCom webhook URL. Required if using GroupRobot.
 
 Read-Only:
 
