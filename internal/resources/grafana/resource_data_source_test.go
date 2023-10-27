@@ -128,7 +128,7 @@ func TestAccDataSource_TestData(t *testing.T) {
 	dsName := acctest.RandString(10)
 	config := fmt.Sprintf(`
 	resource "grafana_data_source" "testdata" {
-		type                = "testdata"
+		type                = "grafana-testdata-datasource"
 		name                = "%s"
 		access_mode					= "direct"
 		basic_auth_enabled  = true
@@ -148,7 +148,7 @@ func TestAccDataSource_TestData(t *testing.T) {
 		resource.TestCheckResourceAttr("grafana_data_source.testdata", "org_id", "1"), // default org
 		resource.TestMatchResourceAttr("grafana_data_source.testdata", "uid", common.UIDRegexp),
 		resource.TestCheckResourceAttr("grafana_data_source.testdata", "name", dsName),
-		resource.TestCheckResourceAttr("grafana_data_source.testdata", "type", "testdata"),
+		resource.TestCheckResourceAttr("grafana_data_source.testdata", "type", "grafana-testdata-datasource"),
 		resource.TestCheckResourceAttr("grafana_data_source.testdata", "access_mode", "direct"),
 		resource.TestCheckResourceAttr("grafana_data_source.testdata", "basic_auth_enabled", "true"),
 		resource.TestCheckResourceAttr("grafana_data_source.testdata", "basic_auth_username", "ba_username"),
