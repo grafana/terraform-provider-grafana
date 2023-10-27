@@ -9,6 +9,7 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -16,16 +17,19 @@ import (
 func TestAccResourceProbe(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	// TODO: Make parallelizable
-	resource.Test(t, resource.TestCase{
+	randomName := acctest.RandomWithPrefix("My Probe")
+
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_probe/resource.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_probe/resource.tf", map[string]string{
+					"Mount Everest": randomName,
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.main", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.main", "auth_token"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "name", "Mount Everest"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "name", randomName),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "latitude", "27.986059188842773"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "longitude", "86.92262268066406"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "region", "APAC"),
@@ -34,11 +38,13 @@ func TestAccResourceProbe(t *testing.T) {
 				),
 			},
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_probe/resource_update.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_probe/resource_update.tf", map[string]string{
+					"Mauna Loa": randomName + " Updated",
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.main", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.main", "auth_token"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "name", "Mauna Loa"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "name", randomName+" Updated"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "latitude", "19.479480743408203"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "longitude", "-155.60281372070312"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "region", "AMER"),
@@ -54,11 +60,16 @@ func TestAccResourceProbe(t *testing.T) {
 func TestAccResourceProbe_recreate(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
+	randomName := acctest.RandomWithPrefix("My Probe")
+	config := testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_probe/resource.tf", map[string]string{
+		"Mount Everest": randomName,
+	})
+
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_probe/resource.tf"),
+				Config: config,
 				Check: func(s *terraform.State) error {
 					rs := s.RootModule().Resources["grafana_synthetic_monitoring_probe.main"]
 					id, _ := strconv.ParseInt(rs.Primary.ID, 10, 64)
@@ -67,11 +78,11 @@ func TestAccResourceProbe_recreate(t *testing.T) {
 				ExpectNonEmptyPlan: true,
 			},
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_synthetic_monitoring_probe/resource.tf"),
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.main", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.main", "auth_token"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "name", "Mount Everest"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "name", randomName),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "latitude", "27.986059188842773"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "longitude", "86.92262268066406"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "region", "APAC"),

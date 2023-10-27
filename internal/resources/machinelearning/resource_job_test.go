@@ -9,6 +9,7 @@ import (
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -16,17 +17,21 @@ import (
 func TestAccResourceJob(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
+	randomName := acctest.RandomWithPrefix("Test Job")
+
 	var job mlapi.Job
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccMLJobCheckDestroy(&job),
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_machine_learning_job/job.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_job/job.tf", map[string]string{
+					"Test Job": randomName,
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccMLJobCheckExists("grafana_machine_learning_job.test_job", &job),
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_job.test_job", "id"),
-					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "name", "Test Job"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "name", randomName),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "metric", "tf_test_job"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "datasource_type", "prometheus"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "datasource_id", "10"),
@@ -36,10 +41,12 @@ func TestAccResourceJob(t *testing.T) {
 				),
 			},
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_machine_learning_job/datasource_uid_job.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_job/datasource_uid_job.tf", map[string]string{
+					"Test Job": randomName,
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_job.test_job", "id"),
-					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "name", "Test Job"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "name", randomName),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "metric", "tf_test_job"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "datasource_type", "prometheus"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "datasource_uid", "grafanacloud-usage"),
@@ -49,10 +56,12 @@ func TestAccResourceJob(t *testing.T) {
 				),
 			},
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_machine_learning_job/tuned_job.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_job/tuned_job.tf", map[string]string{
+					"Test Job": randomName,
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_job.test_job", "id"),
-					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "name", "Test Job"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "name", randomName),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "metric", "tf_test_job"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "datasource_type", "prometheus"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "datasource_uid", "grafanacloud-usage"),
@@ -65,10 +74,12 @@ func TestAccResourceJob(t *testing.T) {
 				),
 			},
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_machine_learning_job/holidays_job.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_job/holidays_job.tf", map[string]string{
+					"Test Job": randomName,
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_job.test_job", "id"),
-					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "name", "Test Job"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "name", randomName),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "metric", "tf_test_job"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "datasource_type", "prometheus"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "datasource_id", "10"),
