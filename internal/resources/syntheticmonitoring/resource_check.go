@@ -1233,6 +1233,8 @@ func makeMultiHTTPSettings(settings map[string]any, cs *sm.CheckSettings) error 
 					if !assertion.Subject.IsAMultiHttpEntryAssertionSubjectVariant() {
 						return fmt.Errorf("invalid assertion subject %s", v)
 					}
+				} else {
+					assertion.Subject = sm.MultiHttpEntryAssertionSubjectVariant_DEFAULT_SUBJECT
 				}
 
 				if settings["condition"] != nil {
