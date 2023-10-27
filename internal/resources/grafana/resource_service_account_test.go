@@ -18,8 +18,7 @@ import (
 )
 
 func TestAccServiceAccount_basic(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	var sa gapi.ServiceAccountDTO
 	var updatedSA gapi.ServiceAccountDTO
@@ -63,8 +62,7 @@ func TestAccServiceAccount_basic(t *testing.T) {
 }
 
 func TestAccServiceAccount_many(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	name := acctest.RandString(10)
 

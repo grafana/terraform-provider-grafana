@@ -57,8 +57,7 @@ func TestAccTeam_basic(t *testing.T) {
 }
 
 func TestAccTeam_preferences(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">= 9.0.0") // Dashboard UID is only available in Grafana 9.0.0+
+	testutils.CheckOSSTestsEnabled(t, ">= 9.0.0") // Dashboard UID is only available in Grafana 9.0.0+
 
 	var team gapi.Team
 	teamName := acctest.RandString(5)
@@ -105,8 +104,7 @@ func TestAccTeam_preferences(t *testing.T) {
 }
 
 func TestAccTeam_teamSync(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">= 8.0.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">= 8.0.0")
 
 	var team gapi.Team
 	teamName := acctest.RandString(5)

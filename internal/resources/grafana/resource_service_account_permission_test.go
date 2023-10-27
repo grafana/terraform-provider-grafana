@@ -17,8 +17,7 @@ import (
 )
 
 func TestAccServiceAccountPermission(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=9.2.4")
+	testutils.CheckOSSTestsEnabled(t, ">=9.2.4")
 
 	name := acctest.RandString(10)
 

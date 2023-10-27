@@ -14,8 +14,7 @@ import (
 )
 
 func TestAccAlertRule_basic(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	var group gapi.RuleGroup
 
@@ -103,8 +102,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 }
 
 func TestAccAlertRule_model(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	var group gapi.RuleGroup
 
@@ -148,8 +146,7 @@ func TestAccAlertRule_model(t *testing.T) {
 }
 
 func TestAccAlertRule_compound(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	var group gapi.RuleGroup
 

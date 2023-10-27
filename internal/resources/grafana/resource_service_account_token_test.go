@@ -14,8 +14,7 @@ import (
 )
 
 func TestAccServiceAccountToken_basic(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	name := acctest.RandString(10)
 	var sa gapi.ServiceAccountDTO
@@ -49,8 +48,7 @@ func TestAccServiceAccountToken_basic(t *testing.T) {
 }
 
 func TestAccServiceAccountToken_inOrg(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	name := acctest.RandString(10)
 	var org gapi.Org

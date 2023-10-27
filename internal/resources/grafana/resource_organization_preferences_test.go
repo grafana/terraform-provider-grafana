@@ -16,14 +16,12 @@ import (
 )
 
 func TestAccResourceOrganizationPreferences_WithDashboardID(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=8.0.0")
+	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
 	testAccResourceOrganizationPreferences(t, false)
 }
 
 func TestAccResourceOrganizationPreferences_WithDashboardUID(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=9.0.0") // UID support was added in 9.0.0
+	testutils.CheckOSSTestsEnabled(t, ">=9.0.0") // UID support was added in 9.0.0
 	testAccResourceOrganizationPreferences(t, true)
 }
 

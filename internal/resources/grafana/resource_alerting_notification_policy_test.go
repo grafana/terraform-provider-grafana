@@ -13,8 +13,7 @@ import (
 )
 
 func TestAccNotificationPolicy_basic(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=9.1.0")
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	// TODO: Make parallizable
 	resource.Test(t, resource.TestCase{

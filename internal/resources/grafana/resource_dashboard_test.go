@@ -186,8 +186,7 @@ func TestAccDashboard_folder(t *testing.T) {
 }
 
 func TestAccDashboard_folder_uid(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=8.0.0") // UID in folders were added in v8
+	testutils.CheckOSSTestsEnabled(t, ">=8.0.0") // UID in folders were added in v8
 
 	var dashboard gapi.Dashboard
 	var folder goapi.Folder
