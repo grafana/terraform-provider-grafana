@@ -996,13 +996,19 @@ func ResourceCheckRead(ctx context.Context, d *schema.ResourceData, meta interfa
 			requestSet.Add(request)
 			checks := []any{}
 			for _, c := range e.Assertions {
-				checks = append(checks, map[string]any{
+				assertion := map[string]any{
 					"type":       c.Type.String(),
-					"subject":    c.Subject.String(),
 					"condition":  c.Condition.String(),
 					"expression": c.Expression,
 					"value":      c.Value,
-				})
+				}
+				//  if(c.Condition != sm.MultiHttpEntryAssertionConditionVariant_DEFAULT_CONDITION) {
+				// 	assertion.Condition = c.Condition.String()
+				//  }
+				if c.Subject != sm.MultiHttpEntryAssertionSubjectVariant_DEFAULT_SUBJECT {
+					assertion["subject"] = c.Subject.String()
+				}
+				checks = append(checks, assertion)
 			}
 			variables := []any{}
 			for _, v := range e.Variables {
@@ -1104,6 +1110,84 @@ func makeCheck(d *schema.ResourceData) (*sm.Check, error) {
 	}, nil
 }
 
+func makeMultiHTTPAssertions(entries []any, e *sm.MultiHttpEntry) error {
+	for _, settings := range entries {
+		settings := settings.(map[string]any)
+
+		var assertion sm.MultiHttpEntryAssertion
+
+		if settings["type"] == nil {
+			return errors.New("assertion type not set")
+		}
+
+		v, ok := settings["type"].(string)
+		if !ok {
+			return fmt.Errorf("unsupported assertion type value %v", v)
+		}
+
+		if len(v) > 0 {
+			value, err := sm.MultiHttpEntryAssertionTypeString(v)
+			if err != nil {
+				return fmt.Errorf("invalid assertion type %q", v)
+			}
+			assertion.Type = value
+		}
+
+		if !assertion.Type.IsAMultiHttpEntryAssertionType() {
+			return fmt.Errorf("invalid assertion type %s", v)
+		}
+
+		if settings["subject"] != nil {
+			v, ok := settings["subject"].(string)
+			if !ok {
+				return fmt.Errorf("unsupported assertion type value %v", v)
+			}
+
+			if len(v) > 0 {
+				value, err := sm.MultiHttpEntryAssertionSubjectVariantString(v)
+				if err != nil {
+					return fmt.Errorf("invalid assertion subject %q", v)
+				}
+				assertion.Subject = value
+			}
+
+			if !assertion.Subject.IsAMultiHttpEntryAssertionSubjectVariant() {
+				return fmt.Errorf("invalid assertion subject %s", v)
+			}
+		}
+
+		if settings["condition"] != nil {
+			v, ok := settings["condition"].(string)
+			if !ok {
+				return fmt.Errorf("unsupported assertion condition value %v", v)
+			}
+
+			if len(v) > 0 {
+				value, err := sm.MultiHttpEntryAssertionConditionVariantString(v)
+				if err != nil {
+					return fmt.Errorf("invalid assertion condition %q", v)
+				}
+				assertion.Condition = value
+			}
+
+			if !assertion.Condition.IsAMultiHttpEntryAssertionConditionVariant() {
+				return fmt.Errorf("invalid assertion condition %s", v)
+			}
+		}
+
+		if settings["expression"] != nil {
+			assertion.Expression = settings["expression"].(string)
+		}
+
+		if settings["value"] != nil {
+			assertion.Value = settings["value"].(string)
+		}
+
+		e.Assertions = append(e.Assertions, &assertion)
+	}
+	return nil
+}
+
 func makeMultiHTTPSettings(settings map[string]any, cs *sm.CheckSettings) error {
 	var out sm.MultiHttpSettings
 
@@ -1190,81 +1274,9 @@ func makeMultiHTTPSettings(settings map[string]any, cs *sm.CheckSettings) error 
 		}
 
 		if entries := entry["checks"]; entries != nil {
-			for _, settings := range entries.([]any) {
-				settings := settings.(map[string]any)
-
-				var assertion sm.MultiHttpEntryAssertion
-
-				if settings["type"] == nil {
-					return errors.New("assertion type not set")
-				}
-
-				v, ok := settings["type"].(string)
-				if !ok {
-					return fmt.Errorf("unsupported assertion type value %v", v)
-				}
-
-				if len(v) > 0 {
-					value, err := sm.MultiHttpEntryAssertionTypeString(v)
-					if err != nil {
-						return fmt.Errorf("invalid assertion type %q", v)
-					}
-					assertion.Type = value
-				}
-
-				if !assertion.Type.IsAMultiHttpEntryAssertionType() {
-					return fmt.Errorf("invalid assertion type %s", v)
-				}
-
-				if settings["subject"] != nil {
-					v, ok := settings["subject"].(string)
-					if !ok {
-						return fmt.Errorf("unsupported assertion type value %v", v)
-					}
-
-					if len(v) > 0 {
-						value, err := sm.MultiHttpEntryAssertionSubjectVariantString(v)
-						if err != nil {
-							return fmt.Errorf("invalid assertion subject %q", v)
-						}
-						assertion.Subject = value
-					}
-
-					if !assertion.Subject.IsAMultiHttpEntryAssertionSubjectVariant() {
-						return fmt.Errorf("invalid assertion subject %s", v)
-					}
-				} else {
-					assertion.Subject = sm.MultiHttpEntryAssertionSubjectVariant_DEFAULT_SUBJECT
-				}
-
-				if settings["condition"] != nil {
-					v, ok := settings["condition"].(string)
-					if !ok {
-						return fmt.Errorf("unsupported assertion condition value %v", v)
-					}
-
-					if len(v) > 0 {
-						value, err := sm.MultiHttpEntryAssertionConditionVariantString(v)
-						if err != nil {
-							return fmt.Errorf("invalid assertion condition %q", v)
-						}
-						assertion.Condition = value
-					}
-
-					if !assertion.Condition.IsAMultiHttpEntryAssertionConditionVariant() {
-						return fmt.Errorf("invalid assertion condition %s", v)
-					}
-				}
-
-				if settings["expression"] != nil {
-					assertion.Expression = settings["expression"].(string)
-				}
-
-				if settings["value"] != nil {
-					assertion.Value = settings["value"].(string)
-				}
-
-				e.Assertions = append(e.Assertions, &assertion)
+			err := makeMultiHTTPAssertions(entries.([]any), e)
+			if err != nil {
+				return err
 			}
 		}
 
