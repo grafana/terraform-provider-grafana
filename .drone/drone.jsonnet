@@ -1,4 +1,4 @@
-local grafanaVersions = ['10.1.2', '10.0.6', '9.5.10', '8.5.27'];
+local grafanaVersions = ['10.2.0', '10.1.5', '9.5.13', '8.5.27'];
 local images = {
   go: 'golang:1.21',
   terraform: 'hashicorp/terraform',
