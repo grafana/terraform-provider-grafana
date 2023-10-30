@@ -65,7 +65,6 @@ Manages Grafana dashboards.
 			"folder": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    true,
 				Description: "The id or UID of the folder to save the dashboard in.",
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					_, old = SplitOrgResourceID(old)
