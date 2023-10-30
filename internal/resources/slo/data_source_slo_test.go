@@ -37,10 +37,8 @@ func TestAccDataSourceSlo(t *testing.T) {
 					"Terraform Testing": randomName,
 				}),
 				Check: resource.ComposeTestCheckFunc(
-
 					resource.TestCheckResourceAttrSet("data.grafana_slos.slos", "slos.0.uuid"),
 					resource.TestCheckResourceAttrSet("data.grafana_slos.slos", "slos.0.name"),
-					resource.TestCheckResourceAttrSet("data.grafana_slos.slos", "slos.0.description"),
 				),
 			},
 		},

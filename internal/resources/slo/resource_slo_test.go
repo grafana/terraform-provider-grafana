@@ -141,7 +141,7 @@ func testAlertingExists(expectation bool, rn string, slo *gapi.Slo) resource.Tes
 func testAccSloCheckDestroy(slo *gapi.Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		client.DeleteSlo(slo.UUID)
+		client.DeleteSlo(slo.Uuid)
 
 		return nil
 	}
@@ -156,6 +156,10 @@ resource  "grafana_slo" "invalid" {
 		query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
 	}
     type = "freeform"
+  }
+  destination_datasource {
+	type = "mimir"
+	uid = "grafanacloud-prom"
   }
   objectives {
 	value  = 1.5
@@ -172,6 +176,10 @@ func emptyAlert(name string) string {
 	  objectives {
 		value  = 0.995
 		window = "28d"
+	  }
+	  destination_datasource {
+		type = "mimir"
+		uid = "grafanacloud-prom"
 	  }
 	  query {
 		type = "freeform"
@@ -192,6 +200,10 @@ resource "grafana_slo" "no_alert" {
   objectives {
     value  = 0.995
     window = "28d"
+  }
+  destination_datasource {
+	type = "mimir"
+	uid = "grafanacloud-prom"
   }
   query {
     type = "freeform"

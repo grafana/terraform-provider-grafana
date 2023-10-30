@@ -537,7 +537,7 @@ func setTerraformState(d *schema.ResourceData, slo gapi.Slo) {
 	d.Set("label", retLabels)
 
 	retDestinationDatasource := unpackDestinationDatasource(slo.DestinationDatasource)
-	d.Set("destinationdatasource", retDestinationDatasource)
+	d.Set("destination_datasource", retDestinationDatasource)
 
 	retObjectives := unpackObjectives(slo.Objectives)
 	d.Set("objectives", retObjectives)
