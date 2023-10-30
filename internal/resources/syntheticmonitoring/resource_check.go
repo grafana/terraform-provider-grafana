@@ -458,9 +458,9 @@ var (
 
 	syntheticMonitoringCheckSettingsMultiHTTPEntry = &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"request":   syntheticMonitoringMultiHTTPRequest,
-			"checks":    syntheticMonitoringMultiHTTPAssertion,
-			"variables": syntheticMonitoringMultiHTTPVariable,
+			"request":    syntheticMonitoringMultiHTTPRequest,
+			"assertions": syntheticMonitoringMultiHTTPAssertion,
+			"variables":  syntheticMonitoringMultiHTTPVariable,
 		},
 	}
 
@@ -1019,9 +1019,9 @@ func ResourceCheckRead(ctx context.Context, d *schema.ResourceData, meta interfa
 				})
 			}
 			entries = append(entries, map[string]any{
-				"request":   requestSet,
-				"checks":    checks,
-				"variables": variables,
+				"request":    requestSet,
+				"assertions": checks,
+				"variables":  variables,
 			})
 		}
 
@@ -1206,7 +1206,7 @@ func makeMultiHTTPEntry(entry map[string]any) (*sm.MultiHttpEntry, error) {
 		}
 	}
 
-	entries := entry["checks"]
+	entries := entry["assertions"]
 	if entries == nil {
 		// no entries, we are done
 		return &e, nil
