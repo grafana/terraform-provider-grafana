@@ -347,7 +347,7 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 	}
 
 	slo := gapi.Slo{
-		UUID:        d.Id(),
+		Uuid:        d.Id(),
 		Name:        tfname,
 		Description: tfdescription,
 		Objectives:  tfobjective,

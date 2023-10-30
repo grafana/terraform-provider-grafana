@@ -68,11 +68,13 @@ func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{
 func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 	ret := make(map[string]interface{})
 
-	ret["uuid"] = slo.UUID
+	ret["uuid"] = slo.Uuid
 	ret["name"] = slo.Name
 	ret["description"] = slo.Description
 
 	ret["query"] = unpackQuery(slo.Query)
+
+	ret["destination_datasource"] = unpackDestinationDatasource(slo.DestinationDatasource)
 
 	retLabels := unpackLabels(&slo.Labels)
 	ret["label"] = retLabels
@@ -187,4 +189,16 @@ func unpackAlertingMetadata(metaData gapi.AlertingMetadata) []map[string]interfa
 
 	retAlertMetaData = append(retAlertMetaData, labelsAnnotsStruct)
 	return retAlertMetaData
+}
+
+func unpackDestinationDatasource(destinationDatasource *gapi.DestinationDatasource) []map[string]interface{} {
+	retDestinationDatasources := []map[string]interface{}{}
+
+	retDestinationDatasource := make(map[string]interface{})
+	retDestinationDatasource["type"] = destinationDatasource.Type
+	retDestinationDatasource["uid"] = destinationDatasource.Uid
+
+	retDestinationDatasources = append(retDestinationDatasources, retDestinationDatasource)
+
+	return retDestinationDatasources
 }
