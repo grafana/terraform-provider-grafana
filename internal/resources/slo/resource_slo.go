@@ -287,7 +287,7 @@ func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{
 	var diags diag.Diagnostics
 	sloID := d.Id()
 
-	if d.HasChange("name") || d.HasChange("description") || d.HasChange("query") || d.HasChange("label") || d.HasChange("objectives") || d.HasChange("alerting") {
+	if d.HasChange("name") || d.HasChange("description") || d.HasChange("query") || d.HasChange("label") || d.HasChange("objectives") || d.HasChange("alerting") || d.HasChange("destination_datasource") {
 		slo, err := packSloResource(d)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
