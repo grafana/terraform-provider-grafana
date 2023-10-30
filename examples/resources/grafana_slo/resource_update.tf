@@ -13,7 +13,7 @@ resource "grafana_slo" "update" {
   }
   destination_datasource {
     type = "mimir"
-    uid = "grafanacloud-prom"
+    uid  = "grafanacloud-prom"
   }
   label {
     key   = "slo"

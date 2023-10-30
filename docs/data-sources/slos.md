@@ -31,6 +31,10 @@ resource "grafana_slo" "test" {
     value  = 0.995
     window = "30d"
   }
+  destination_datasource {
+    type = "mimir"
+    uid  = "grafanacloud-prom"
+  }
   label {
     key   = "custom"
     value = "value"
@@ -78,6 +82,7 @@ Read-Only:
 
 - `alerting` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting))
 - `description` (String)
+- `destination_datasource` (List of Object) (see [below for nested schema](#nestedobjatt--slos--destination_datasource))
 - `label` (List of Object) (see [below for nested schema](#nestedobjatt--slos--label))
 - `name` (String)
 - `objectives` (List of Object) (see [below for nested schema](#nestedobjatt--slos--objectives))
@@ -165,6 +170,15 @@ Read-Only:
 - `value` (String)
 
 
+
+
+<a id="nestedobjatt--slos--destination_datasource"></a>
+### Nested Schema for `slos.destination_datasource`
+
+Read-Only:
+
+- `type` (String)
+- `uid` (String)
 
 
 <a id="nestedobjatt--slos--label"></a>

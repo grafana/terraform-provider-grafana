@@ -15,8 +15,8 @@ resource "grafana_slo" "ratio" {
   }
   destination_datasource {
     type = "mimir"
-    uid = "grafanacloud-prom"
-  } 
+    uid  = "grafanacloud-prom"
+  }
   label {
     key   = "slo"
     value = "terraform"
