@@ -348,7 +348,7 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 	}
 
 	slo := gapi.Slo{
-		Uuid:                  d.Id(),
+		UUID:                  d.Id(),
 		Name:                  tfname,
 		Description:           tfdescription,
 		Objectives:            tfobjective,
@@ -399,7 +399,7 @@ func packDestinationDatasource(destinationdatasource map[string]interface{}) (ga
 
 	if destinationdatasource["uid"].(string) != "" {
 		datasourceUid := destinationdatasource["uid"].(string)
-		packedDestinationDatasource.Uid = &datasourceUid
+		packedDestinationDatasource.UID = &datasourceUid
 	}
 
 	return packedDestinationDatasource, nil

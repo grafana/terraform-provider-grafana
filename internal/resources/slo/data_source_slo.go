@@ -68,7 +68,7 @@ func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{
 func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 	ret := make(map[string]interface{})
 
-	ret["uuid"] = slo.Uuid
+	ret["uuid"] = slo.UUID
 	ret["name"] = slo.Name
 	ret["description"] = slo.Description
 
@@ -196,7 +196,7 @@ func unpackDestinationDatasource(destinationDatasource *gapi.DestinationDatasour
 
 	retDestinationDatasource := make(map[string]interface{})
 	retDestinationDatasource["type"] = destinationDatasource.Type
-	retDestinationDatasource["uid"] = destinationDatasource.Uid
+	retDestinationDatasource["uid"] = destinationDatasource.UID
 
 	retDestinationDatasources = append(retDestinationDatasources, retDestinationDatasource)
 

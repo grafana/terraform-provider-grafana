@@ -141,7 +141,7 @@ func testAlertingExists(expectation bool, rn string, slo *gapi.Slo) resource.Tes
 func testAccSloCheckDestroy(slo *gapi.Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		client.DeleteSlo(slo.Uuid)
+		client.DeleteSlo(slo.UUID)
 
 		return nil
 	}
