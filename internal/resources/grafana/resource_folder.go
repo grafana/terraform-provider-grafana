@@ -38,6 +38,7 @@ func ResourceFolder() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Optional:    true,
+				ForceNew:    true,
 				Description: "Unique identifier.",
 			},
 			"title": {
@@ -100,10 +101,6 @@ func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 			Title:     d.Get("title").(string),
 		}).
 		WithFolderUID(folder.UID)
-
-	if newUID := d.Get("uid").(string); newUID != "" {
-		params.Body.UID = newUID
-	}
 
 	if _, err := client.Folders.UpdateFolder(params, nil); err != nil {
 		return diag.FromErr(err)
