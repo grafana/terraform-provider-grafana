@@ -3,7 +3,7 @@ package grafana_test
 import (
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	goapi "github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
@@ -11,9 +11,9 @@ import (
 func TestAccDatasourceTeam(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var team gapi.Team
+	var team goapi.TeamDTO
 	checks := []resource.TestCheckFunc{
-		testAccTeamCheckExists("grafana_team.test", &team),
+		teamCheckExists.exists("grafana_team.test", &team),
 		resource.TestCheckResourceAttr("data.grafana_team.from_name", "name", "test-team"),
 		resource.TestMatchResourceAttr("data.grafana_team.from_name", "id", defaultOrgIDRegexp),
 		resource.TestCheckResourceAttr("data.grafana_team.from_name", "email", "test-team-email@test.com"),
@@ -25,7 +25,7 @@ func TestAccDatasourceTeam(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccTeamCheckDestroy(&team),
+		CheckDestroy:      teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_team/data-source.tf"),
@@ -38,9 +38,9 @@ func TestAccDatasourceTeam(t *testing.T) {
 func TestAccDatasourceTeam_teamSync(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 
-	var team gapi.Team
+	var team goapi.TeamDTO
 	checks := []resource.TestCheckFunc{
-		testAccTeamCheckExists("grafana_team.test", &team),
+		teamCheckExists.exists("grafana_team.test", &team),
 		resource.TestCheckResourceAttr("data.grafana_team.from_name", "name", "test-team"),
 		resource.TestMatchResourceAttr("data.grafana_team.from_name", "id", defaultOrgIDRegexp),
 		resource.TestCheckResourceAttr("data.grafana_team.from_name", "email", "test-team-email@test.com"),
@@ -55,7 +55,7 @@ func TestAccDatasourceTeam_teamSync(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccTeamCheckDestroy(&team),
+		CheckDestroy:      teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_team/with-team-sync.tf"),

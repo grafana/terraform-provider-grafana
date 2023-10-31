@@ -2,34 +2,32 @@ package grafana_test
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	goapi "github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccTeam_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var team gapi.Team
+	var team goapi.TeamDTO
 	teamName := acctest.RandString(5)
 	teamNameUpdated := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccTeamCheckDestroy(&team),
+		CheckDestroy:      teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTeamDefinition(teamName, nil, false, nil),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTeamCheckExists("grafana_team.test", &team),
+					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamName+"@example.com"),
 					resource.TestMatchResourceAttr("grafana_team.test", "id", defaultOrgIDRegexp),
@@ -39,7 +37,7 @@ func TestAccTeam_basic(t *testing.T) {
 			{
 				Config: testAccTeamDefinition(teamNameUpdated, nil, false, nil),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTeamCheckExists("grafana_team.test", &team),
+					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamNameUpdated),
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamNameUpdated+"@example.com"),
 					resource.TestMatchResourceAttr("grafana_team.test", "id", defaultOrgIDRegexp),
@@ -59,18 +57,18 @@ func TestAccTeam_basic(t *testing.T) {
 func TestAccTeam_preferences(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">= 9.0.0") // Dashboard UID is only available in Grafana 9.0.0+
 
-	var team gapi.Team
+	var team goapi.TeamDTO
 	teamName := acctest.RandString(5)
 	teamNameUpdated := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccTeamCheckDestroy(&team),
+		CheckDestroy:      teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTeamDefinition(teamName, nil, false, nil),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTeamCheckExists("grafana_team.test", &team),
+					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamName+"@example.com"),
 					resource.TestMatchResourceAttr("grafana_team.test", "id", defaultOrgIDRegexp),
@@ -83,7 +81,7 @@ func TestAccTeam_preferences(t *testing.T) {
 			{
 				Config: testAccTeamDefinition(teamNameUpdated, nil, true, nil),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTeamCheckExists("grafana_team.test", &team),
+					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamNameUpdated),
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamNameUpdated+"@example.com"),
 					resource.TestMatchResourceAttr("grafana_team.test", "id", defaultOrgIDRegexp),
@@ -106,18 +104,18 @@ func TestAccTeam_preferences(t *testing.T) {
 func TestAccTeam_teamSync(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t, ">= 8.0.0")
 
-	var team gapi.Team
+	var team goapi.TeamDTO
 	teamName := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccTeamCheckDestroy(&team),
+		CheckDestroy:      teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			// Test without team sync
 			{
 				Config: testAccTeamDefinition(teamName, nil, false, nil),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTeamCheckExists("grafana_team.test", &team),
+					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamName+"@example.com"),
 					resource.TestMatchResourceAttr("grafana_team.test", "id", defaultOrgIDRegexp),
@@ -128,7 +126,7 @@ func TestAccTeam_teamSync(t *testing.T) {
 			{
 				Config: testAccTeamDefinition(teamName, nil, false, []string{"group1", "group2"}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTeamCheckExists("grafana_team.test", &team),
+					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamName+"@example.com"),
 					resource.TestMatchResourceAttr("grafana_team.test", "id", defaultOrgIDRegexp),
@@ -141,7 +139,7 @@ func TestAccTeam_teamSync(t *testing.T) {
 			{
 				Config: testAccTeamDefinition(teamName, nil, false, []string{"group3", "group2"}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTeamCheckExists("grafana_team.test", &team),
+					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamName+"@example.com"),
 					resource.TestMatchResourceAttr("grafana_team.test", "id", defaultOrgIDRegexp),
@@ -154,7 +152,7 @@ func TestAccTeam_teamSync(t *testing.T) {
 			{
 				Config: testAccTeamDefinition(teamName, nil, false, []string{}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTeamCheckExists("grafana_team.test", &team),
+					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamName+"@example.com"),
 					resource.TestMatchResourceAttr("grafana_team.test", "id", defaultOrgIDRegexp),
@@ -168,12 +166,12 @@ func TestAccTeam_teamSync(t *testing.T) {
 func TestAccTeam_Members(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var team gapi.Team
+	var team goapi.TeamDTO
 	teamName := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccTeamCheckDestroy(&team),
+		CheckDestroy:      teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTeamDefinition(teamName, []string{
@@ -181,7 +179,7 @@ func TestAccTeam_Members(t *testing.T) {
 					"grafana_user.users.1.email",
 				}, false, nil),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTeamCheckExists("grafana_team.test", &team),
+					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
 					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "2"),
 					resource.TestCheckResourceAttr("grafana_team.test", "members.0", teamName+"-user-0@example.com"),
@@ -204,7 +202,7 @@ func TestAccTeam_Members(t *testing.T) {
 					"grafana_user.users.2.email",
 				}, false, nil),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTeamCheckExists("grafana_team.test", &team),
+					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
 					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "3"),
 					resource.TestCheckResourceAttr("grafana_team.test", "members.0", teamName+"-user-0@example.com"),
@@ -222,7 +220,7 @@ func TestAccTeam_Members(t *testing.T) {
 			{
 				Config: testAccTeamDefinition(teamName, nil, false, nil),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTeamCheckExists("grafana_team.test", &team),
+					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
 					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "0"),
 				),
@@ -236,13 +234,13 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 	client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 
-	var team gapi.Team
+	var team goapi.TeamDTO
 	var userID int64 = -1
 	teamName := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccTeamCheckDestroy(&team),
+		CheckDestroy:      teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			{
 				PreConfig: func() {
@@ -261,7 +259,7 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 				},
 				Config: testAccTeamDefinition(teamName, []string{`"user1@grafana.com"`}, false, nil),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTeamCheckExists("grafana_team.test", &team),
+					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "1"),
 					resource.TestCheckResourceAttr("grafana_team.test", "members.0", "user1@grafana.com"),
 				),
@@ -275,7 +273,7 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 				},
 				Config: testAccTeamDefinition(teamName, nil, false, nil),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTeamCheckExists("grafana_team.test", &team),
+					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "0"),
 				),
 			},
@@ -286,18 +284,18 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 func TestAccResourceTeam_InOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var team gapi.Team
+	var team goapi.TeamDTO
 	var org gapi.Org
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccTeamCheckDestroy(&team),
+		CheckDestroy:      teamCheckExists.destroyed(&team, &org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTeamInOrganization(name),
 				Check: resource.ComposeTestCheckFunc(
-					testAccTeamCheckExists("grafana_team.test", &team),
+					teamCheckExists.exists("grafana_team.test", &team),
 
 					// Check that the team is in the correct organization
 					resource.TestMatchResourceAttr("grafana_team.test", "id", nonDefaultOrgIDRegexp),
@@ -307,55 +305,6 @@ func TestAccResourceTeam_InOrg(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccTeamCheckExists(rn string, a *gapi.Team) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[rn]
-		if !ok {
-			return fmt.Errorf("resource not found: %s", rn)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("resource id not set")
-		}
-
-		orgID, teamIDStr := grafana.SplitOrgResourceID(rs.Primary.ID)
-		id, err := strconv.ParseInt(teamIDStr, 10, 64)
-		if err != nil {
-			return fmt.Errorf("resource id is malformed")
-		}
-
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		// If the org ID is set, check that the team doesn't exist in the default org
-		if orgID > 1 {
-			team, err := client.Team(id)
-			if err == nil || team != nil {
-				return fmt.Errorf("team %d exists in the default org", id)
-			}
-			client = client.WithOrgID(orgID)
-		}
-
-		team, err := client.Team(id)
-		if err != nil {
-			return fmt.Errorf("error getting team: %s", err)
-		}
-
-		*a = *team
-
-		return nil
-	}
-}
-
-func testAccTeamCheckDestroy(a *gapi.Team) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		team, err := client.Team(a.ID)
-		if err == nil && team.Name != "" {
-			return fmt.Errorf("team still exists")
-		}
-		return nil
-	}
 }
 
 func testAccTeamDefinition(name string, teamMembers []string, withPreferences bool, externalGroups []string) string {
