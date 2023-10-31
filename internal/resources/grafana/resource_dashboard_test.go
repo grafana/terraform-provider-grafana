@@ -228,7 +228,7 @@ func TestAccDashboard_inOrg(t *testing.T) {
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccDashboardCheckDestroy(&dashboard, org.ID),
-			folderCheckExists.destroyed(&folder, org.ID),
+			folderCheckExists.destroyed(&folder, &org),
 		),
 		Steps: []resource.TestStep{
 			{

@@ -29,8 +29,8 @@ func TestAccFolder_basic(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
-			folderCheckExists.destroyed(&folder),
-			folderCheckExists.destroyed(&folderWithUID),
+			folderCheckExists.destroyed(&folder, nil),
+			folderCheckExists.destroyed(&folderWithUID, nil),
 		),
 		Steps: []resource.TestStep{
 			{
@@ -193,7 +193,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 			// Do not make parallel, fiddling with auth will break other tests that run in parallel
 			resource.Test(t, resource.TestCase{
 				ProviderFactories: testutils.ProviderFactories,
-				CheckDestroy:      folderCheckExists.destroyed(&folder),
+				CheckDestroy:      folderCheckExists.destroyed(&folder, nil),
 				Steps: []resource.TestStep{
 					{
 						Config:      config,

@@ -2,8 +2,11 @@ package grafana_test
 
 import (
 	"fmt"
+	"strconv"
 
+	gapi "github.com/grafana/grafana-api-golang-client"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/teams"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
@@ -19,6 +22,17 @@ var (
 		func(f *models.Folder) string { return f.UID },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Folder, error) {
 			return grafana.GetFolderByIDorUID(client.Folders, id)
+		},
+	)
+	teamCheckExists = newCheckExistsHelper(
+		func(t *models.TeamDTO) string { return strconv.FormatInt(t.ID, 10) },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.TeamDTO, error) {
+			params := teams.NewGetTeamByIDParams().WithTeamID(id)
+			team, err := client.Teams.GetTeamByID(params, nil)
+			if err != nil {
+				return nil, err
+			}
+			return team.GetPayload(), nil
 		},
 	)
 )
@@ -71,19 +85,22 @@ func (h *checkExistsHelper[T]) exists(rn string, v *T) resource.TestCheckFunc {
 	}
 }
 
-// destroyed checks that the resource doesn't exist in the given orgs (and the default one).
-func (h *checkExistsHelper[T]) destroyed(v *T, orgs ...int64) resource.TestCheckFunc {
+// destroyed checks that the resource doesn't exist in the default org
+// For non-default orgs, we should only check that the org was destroyed
+func (h *checkExistsHelper[T]) destroyed(v *T, org *gapi.Org) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		orgs = append(orgs, 1)
-		for _, orgID := range orgs {
-			client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(orgID)
-			id := h.getIDFunc(v)
-			_, err := h.getResourceFunc(client, id)
-			if err == nil {
-				return fmt.Errorf("resource %s still exists in org %d", id, orgID)
-			} else if !common.IsNotFoundError(err) {
-				return fmt.Errorf("error checking if resource %s exists in org %d: %s", id, orgID, err)
-			}
+		var orgID int64 = 1
+		if org != nil {
+			orgID = org.ID
+		}
+
+		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(orgID)
+		id := h.getIDFunc(v)
+		_, err := h.getResourceFunc(client, id)
+		if err == nil {
+			return fmt.Errorf("resource %s still exists in org %d", id, orgID)
+		} else if !common.IsNotFoundError(err) {
+			return fmt.Errorf("error checking if resource %s exists in org %d: %s", id, orgID, err)
 		}
 		return nil
 	}
