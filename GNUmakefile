@@ -1,7 +1,7 @@
-GRAFANA_VERSION ?= 9.5.1
+GRAFANA_VERSION ?= 10.1.5
 
 testacc:
-	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
+	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m -parallel 4
 
 # Test OSS features
 testacc-oss:

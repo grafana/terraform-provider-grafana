@@ -28,7 +28,7 @@ resource "grafana_synthetic_monitoring_check" "multihttp" {
             content_type = "application/json"
           }
         }
-        checks {
+        assertions {
           type      = "TEXT"
           subject   = "HTTP_STATUS_CODE"
           condition = "EQUALS"
@@ -49,31 +49,31 @@ resource "grafana_synthetic_monitoring_check" "multihttp" {
             value = "Bearer $${accessToken}"
           }
         }
-        checks {
+        assertions {
           type      = "TEXT"
           subject   = "RESPONSE_BODY"
           condition = "CONTAINS"
           value     = "foobar"
         }
-        checks {
+        assertions {
           type      = "TEXT"
           subject   = "RESPONSE_BODY"
           condition = "NOT_CONTAINS"
           value     = "xyyz"
         }
-        checks {
+        assertions {
           type       = "JSON_PATH_VALUE"
           condition  = "EQUALS"
           expression = "$.slideshow.author"
           value      = "Yours Truly"
         }
-        checks {
+        assertions {
           type       = "JSON_PATH_VALUE"
           condition  = "STARTS_WITH"
           expression = "$.slideshow.date"
           value      = "date of "
         }
-        checks {
+        assertions {
           type       = "JSON_PATH_ASSERTION"
           expression = "$.slideshow.slides"
         }

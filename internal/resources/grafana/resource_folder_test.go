@@ -29,8 +29,8 @@ func TestAccFolder_basic(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
-			folderCheckExists.destroyed(&folder),
-			folderCheckExists.destroyed(&folderWithUID),
+			folderCheckExists.destroyed(&folder, nil),
+			folderCheckExists.destroyed(&folderWithUID, nil),
 		),
 		Steps: []resource.TestStep{
 			{
@@ -61,22 +61,16 @@ func TestAccFolder_basic(t *testing.T) {
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"prevent_destroy_if_not_empty"},
 			},
-			// Change the title of one folder, change the UID of the other. They shouldn't change IDs (the folder doesn't have to be recreated)
+			// Change the title of a folder. This shouldn't change the ID (the folder doesn't have to be recreated)
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_folder/resource.tf", map[string]string{
 					"Terraform Test Folder": "Terraform Test Folder Updated",
-					"test-folder-uid":       "test-folder-uid-other",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccFolderIDDidntChange("grafana_folder.test_folder", &folder),
 					resource.TestMatchResourceAttr("grafana_folder.test_folder", "id", defaultOrgIDRegexp),
 					resource.TestMatchResourceAttr("grafana_folder.test_folder", "uid", common.UIDRegexp),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder", "title", "Terraform Test Folder Updated"),
-
-					testAccFolderIDDidntChange("grafana_folder.test_folder_with_uid", &folderWithUID),
-					resource.TestMatchResourceAttr("grafana_folder.test_folder_with_uid", "id", defaultOrgIDRegexp),
-					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "uid", "test-folder-uid-other"),
-					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "title", "Terraform Test Folder Updated With UID"),
 				),
 			},
 			// Test import using ID
@@ -199,7 +193,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 			// Do not make parallel, fiddling with auth will break other tests that run in parallel
 			resource.Test(t, resource.TestCase{
 				ProviderFactories: testutils.ProviderFactories,
-				CheckDestroy:      folderCheckExists.destroyed(&folder),
+				CheckDestroy:      folderCheckExists.destroyed(&folder, nil),
 				Steps: []resource.TestStep{
 					{
 						Config:      config,

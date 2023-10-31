@@ -573,12 +573,12 @@ Optional:
 
 Optional:
 
-- `checks` (Block List) Assertions to make on the request response (see [below for nested schema](#nestedblock--settings--multihttp--entries--checks))
+- `assertions` (Block List) Assertions to make on the request response (see [below for nested schema](#nestedblock--settings--multihttp--entries--assertions))
 - `request` (Block Set, Max: 1) An individual MultiHTTP request (see [below for nested schema](#nestedblock--settings--multihttp--entries--request))
 - `variables` (Block List) Variables to extract from the request response (see [below for nested schema](#nestedblock--settings--multihttp--entries--variables))
 
-<a id="nestedblock--settings--multihttp--entries--checks"></a>
-### Nested Schema for `settings.multihttp.entries.checks`
+<a id="nestedblock--settings--multihttp--entries--assertions"></a>
+### Nested Schema for `settings.multihttp.entries.assertions`
 
 Required:
 
