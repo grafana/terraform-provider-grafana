@@ -112,6 +112,7 @@ func manageTeamExternalGroup(client *goapi.GrafanaHTTPAPI, teamID int64, d *sche
 	}
 
 	for _, group := range removeGroups {
+		group := group
 		// Post 10.2, the group is a query param
 		params := teamsSync.NewRemoveTeamGroupAPIQueryParams().WithTeamID(teamID).WithGroupID(&group)
 		_, newAPIErr := client.SyncTeamGroups.RemoveTeamGroupAPIQuery(params, nil)
