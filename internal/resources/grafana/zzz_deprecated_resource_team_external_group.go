@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"strconv"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	teamsSync "github.com/grafana/grafana-openapi-client-go/client/sync_team_groups"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -54,7 +56,7 @@ func CreateTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta i
 	orgID, teamIDStr := SplitOrgResourceID(d.Get("team_id").(string))
 	teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
 	d.SetId(MakeOrgResourceID(orgID, teamID))
-	client, _, _ := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, _ := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	if err := manageTeamExternalGroup(client, teamID, d, "groups"); err != nil {
 		return diag.FromErr(err)
@@ -64,13 +66,15 @@ func CreateTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func ReadTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	teamID, _ := strconv.ParseInt(idStr, 10, 64)
 
-	teamGroups, err := client.TeamGroups(teamID)
+	params := teamsSync.NewGetTeamGroupsAPIParams().WithTeamID(teamID)
+	resp, err := client.SyncTeamGroups.GetTeamGroupsAPI(params, nil)
 	if err, shouldReturn := common.CheckReadError("team groups", d, err); shouldReturn {
 		return err
 	}
+	teamGroups := resp.GetPayload()
 
 	groupIDs := make([]string, 0, len(teamGroups))
 	for _, teamGroup := range teamGroups {
@@ -84,7 +88,7 @@ func ReadTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func UpdateTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	teamID, _ := strconv.ParseInt(idStr, 10, 64)
 
 	if err := manageTeamExternalGroup(client, teamID, d, "groups"); err != nil {
@@ -94,19 +98,21 @@ func UpdateTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta i
 	return ReadTeamExternalGroup(ctx, d, meta)
 }
 
-func manageTeamExternalGroup(client *gapi.Client, teamID int64, d *schema.ResourceData, groupsAttr string) error {
+func manageTeamExternalGroup(client *goapi.GrafanaHTTPAPI, teamID int64, d *schema.ResourceData, groupsAttr string) error {
 	addGroups, removeGroups := groupChangesTeamExternalGroup(d, groupsAttr)
 
 	for _, group := range addGroups {
-		err := client.NewTeamGroup(teamID, group)
-		if err != nil {
+		params := teamsSync.NewAddTeamGroupAPIParams().WithTeamID(teamID).WithBody(&models.TeamGroupMapping{
+			GroupID: group,
+		})
+		if _, err := client.SyncTeamGroups.AddTeamGroupAPI(params, nil); err != nil {
 			return fmt.Errorf("error adding group %s to team %d: %w", group, teamID, err)
 		}
 	}
 
 	for _, group := range removeGroups {
-		err := client.DeleteTeamGroup(teamID, group)
-		if err != nil {
+		params := teamsSync.NewRemoveTeamGroupAPIParams().WithTeamID(teamID).WithGroupID(group)
+		if _, err := client.SyncTeamGroups.RemoveTeamGroupAPI(params, nil); err != nil {
 			return fmt.Errorf("error removing group %s from team %d: %w", group, teamID, err)
 		}
 	}
