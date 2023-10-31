@@ -394,12 +394,12 @@ func packDestinationDatasource(destinationdatasource map[string]interface{}) (ga
 
 	if destinationdatasource["type"].(string) != "" {
 		datasourceType := destinationdatasource["type"].(string)
-		packedDestinationDatasource.Type = &datasourceType
+		packedDestinationDatasource.Type = datasourceType
 	}
 
 	if destinationdatasource["uid"].(string) != "" {
 		datasourceUid := destinationdatasource["uid"].(string)
-		packedDestinationDatasource.UID = &datasourceUid
+		packedDestinationDatasource.UID = datasourceUid
 	}
 
 	return packedDestinationDatasource, nil
@@ -439,11 +439,11 @@ func packQuery(query map[string]interface{}) (gapi.Query, error) {
 			Ratio: &gapi.RatioQuery{
 				SuccessMetric: gapi.MetricDef{
 					PrometheusMetric: successMetric,
-					Type:             nil,
+					Type:             "",
 				},
 				TotalMetric: gapi.MetricDef{
 					PrometheusMetric: totalMetric,
-					Type:             nil,
+					Type:             "",
 				},
 				GroupByLabels: labels,
 			},
