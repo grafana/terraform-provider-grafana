@@ -21,6 +21,7 @@ var notifiers = []notifier{
 	googleChatNotifier{},
 	kafkaNotifier{},
 	lineNotifier{},
+	oncallNotifier{},
 	opsGenieNotifier{},
 	pagerDutyNotifier{},
 	pushoverNotifier{},
