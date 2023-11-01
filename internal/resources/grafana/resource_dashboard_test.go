@@ -163,6 +163,8 @@ func TestAccDashboard_computed_config(t *testing.T) {
 func TestAccDashboard_folder(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
+	uid := acctest.RandString(10)
+
 	var dashboard gapi.Dashboard
 	var folder goapi.Folder
 
@@ -171,13 +173,25 @@ func TestAccDashboard_folder(t *testing.T) {
 		CheckDestroy:      testAccDashboardFolderCheckDestroy(&dashboard, &folder),
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_folder.tf"),
+				Config: testAccDashboardFolder(uid, "grafana_folder.test_folder1.id"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test_folder", &dashboard),
-					folderCheckExists.exists("grafana_folder.test_folder", &folder),
+					folderCheckExists.exists("grafana_folder.test_folder1", &folder),
 					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
-					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "1:folder-dashboard-test-ref-with-id"), // <org id>:<uid>
-					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", "folder-dashboard-test-ref-with-id"),
+					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "1:"+uid), // <org id>:<uid>
+					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", uid),
+					resource.TestMatchResourceAttr("grafana_dashboard.test_folder", "folder", common.IDRegexp),
+				),
+			},
+			// Update folder
+			{
+				Config: testAccDashboardFolder(uid, "grafana_folder.test_folder2.id"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccDashboardCheckExists("grafana_dashboard.test_folder", &dashboard),
+					folderCheckExists.exists("grafana_folder.test_folder2", &folder),
+					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
+					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "1:"+uid), // <org id>:<uid>
+					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", uid),
 					resource.TestMatchResourceAttr("grafana_dashboard.test_folder", "folder", common.IDRegexp),
 				),
 			},
@@ -188,6 +202,8 @@ func TestAccDashboard_folder(t *testing.T) {
 func TestAccDashboard_folder_uid(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=8.0.0") // UID in folders were added in v8
 
+	uid := acctest.RandString(10)
+
 	var dashboard gapi.Dashboard
 	var folder goapi.Folder
 
@@ -196,14 +212,26 @@ func TestAccDashboard_folder_uid(t *testing.T) {
 		CheckDestroy:      testAccDashboardFolderCheckDestroy(&dashboard, &folder),
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_dashboard/_acc_folder_uid_ref.tf"),
+				Config: testAccDashboardFolder(uid, "grafana_folder.test_folder1.uid"),
 				Check: resource.ComposeTestCheckFunc(
-					folderCheckExists.exists("grafana_folder.test_folder", &folder),
+					folderCheckExists.exists("grafana_folder.test_folder1", &folder),
 					testAccDashboardCheckExists("grafana_dashboard.test_folder", &dashboard),
 					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
-					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "1:folder-dashboard-test-ref-with-uid"), // <org id>:<uid>
-					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", "folder-dashboard-test-ref-with-uid"),
-					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "folder", "folder-dashboard-uid-test"),
+					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "1:"+uid), // <org id>:<uid>
+					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", uid),
+					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "folder", uid+"-1"),
+				),
+			},
+			// Update folder
+			{
+				Config: testAccDashboardFolder(uid, "grafana_folder.test_folder2.uid"),
+				Check: resource.ComposeTestCheckFunc(
+					folderCheckExists.exists("grafana_folder.test_folder2", &folder),
+					testAccDashboardCheckExists("grafana_dashboard.test_folder", &dashboard),
+					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
+					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "1:"+uid), // <org id>:<uid>
+					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", uid),
+					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "folder", uid+"-2"),
 				),
 			},
 			{
@@ -395,6 +423,27 @@ func Test_NormalizeDashboardConfigJSON(t *testing.T) {
 			}
 		})
 	}
+}
+
+func testAccDashboardFolder(uid string, folderRef string) string {
+	return fmt.Sprintf(`
+resource "grafana_folder" "test_folder1" {
+	title = "%[1]s-1"
+	uid   = "%[1]s-1"
+}
+
+resource "grafana_folder" "test_folder2" {
+	title = "%[1]s-2"
+	uid   = "%[1]s-2"
+}
+
+resource "grafana_dashboard" "test_folder" {
+	folder = %[2]s
+	config_json = jsonencode({
+		"title" : "%[1]s",
+		"uid" : "%[1]s"
+	})
+}`, uid, folderRef)
 }
 
 func testAccDashboardInOrganization(orgName string) string {
