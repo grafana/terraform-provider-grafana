@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 
+	"github.com/grafana/grafana-openapi-client-go/client/teams"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -34,12 +35,15 @@ func DatasourceTeam() *schema.Resource {
 }
 
 func dataSourceTeamRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _ := ClientFromNewOrgResource(meta, d)
+	client, _ := OAPIClientFromNewOrgResource(meta, d)
 	name := d.Get("name").(string)
-	searchTeam, err := client.SearchTeam(name)
+
+	params := teams.NewSearchTeamsParams().WithName(&name)
+	resp, err := client.Teams.SearchTeams(params, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	searchTeam := resp.GetPayload()
 
 	for _, r := range searchTeam.Teams {
 		if r.Name == name {
