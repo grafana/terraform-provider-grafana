@@ -144,11 +144,10 @@ func TestAccOrganization_users(t *testing.T) {
 }
 
 func TestAccOrganization_roleNoneUser(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t, ">=10.2.0")
 
 	var org gapi.Org
 
-	testutils.CheckOSSTestsSemver(t, ">=10.2.0")
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccOrganizationCheckDestroy(&org),

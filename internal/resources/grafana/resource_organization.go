@@ -136,7 +136,7 @@ Grafana unless 'create_users' is set to true.
 				Description: `
 A list of email addresses corresponding to users who should be given none access to the organization.
 Note: users specified here must already exist in Grafana, unless 'create_users' is
-set to true.
+set to true. This feature is only available in Grafana 10.2+.
 `,
 			},
 		},
