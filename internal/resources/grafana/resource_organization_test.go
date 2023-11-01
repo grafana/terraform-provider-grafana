@@ -92,6 +92,9 @@ func TestAccOrganization_users(t *testing.T) {
 					resource.TestCheckNoResourceAttr(
 						"grafana_organization.test", "viewers.#",
 					),
+					resource.TestCheckNoResourceAttr(
+						"grafana_organization.test", "users_without_access.#",
+					),
 				),
 			},
 			{
@@ -110,6 +113,9 @@ func TestAccOrganization_users(t *testing.T) {
 					resource.TestCheckNoResourceAttr(
 						"grafana_organization.test", "viewers.#",
 					),
+					resource.TestCheckNoResourceAttr(
+						"grafana_organization.test", "users_without_access.#",
+					),
 				),
 			},
 			{
@@ -127,6 +133,64 @@ func TestAccOrganization_users(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "viewers.#", "0",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_organization.test", "users_without_access.#", "0",
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccOrganization_roleNoneUser(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=10.2.0")
+
+	var org gapi.Org
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccOrganizationConfig_usersCreate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					resource.TestCheckResourceAttr(
+						"grafana_organization.test", "admins.#", "1",
+					),
+				),
+			},
+			{
+				Config: testAccOrganization_roleNoneUsersUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					resource.TestCheckResourceAttr(
+						"grafana_organization.test", "name", "terraform-acc-test",
+					),
+					resource.TestCheckNoResourceAttr(
+						"grafana_organization.test", "admins.#",
+					),
+					resource.TestCheckNoResourceAttr(
+						"grafana_organization.test", "editors.#",
+					),
+					resource.TestCheckNoResourceAttr(
+						"grafana_organization.test", "viewers.#",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_organization.test", "users_without_access.#", "1",
+					),
+				),
+			},
+			{
+				Config: testAccOrganizationConfig_usersRemove,
+				Check: resource.ComposeTestCheckFunc(
+					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					resource.TestCheckResourceAttr(
+						"grafana_organization.test", "admins.#", "0",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_organization.test", "users_without_access.#", "0",
 					),
 				),
 			},
@@ -329,6 +393,18 @@ resource "grafana_organization" "test" {
     ]
 }
 `
+const testAccOrganization_roleNoneUsersUpdate = `
+resource "grafana_organization" "test" {
+    name = "terraform-acc-test"
+    admin_user = "admin"
+    create_users = false
+		editors = []
+    users_without_access = [
+        "john.doe@example.com",
+    ]
+}
+`
+
 const testAccOrganizationConfig_usersRemove = `
 resource "grafana_organization" "test" {
     name = "terraform-acc-test"
