@@ -43,7 +43,7 @@ func ResourceOrganization() *schema.Resource {
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/org/)
 
 This resource represents an instance-scoped resource and uses Grafana's admin APIs.
-It does not work with API tokens or service accounts which are org-scoped. 
+It does not work with API tokens or service accounts which are org-scoped.
 You must use basic auth.
 `,
 
@@ -127,6 +127,18 @@ access to the organization. Note: users specified here must already exist in
 Grafana unless 'create_users' is set to true.
 `,
 			},
+			"users_without_access": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Description: `
+A list of email addresses corresponding to users who should be given none access to the organization.
+Note: users specified here must already exist in Grafana, unless 'create_users' is
+set to true. This feature is only available in Grafana 10.2+.
+`,
+			},
 		},
 	}
 }
@@ -198,7 +210,7 @@ func ReadUsers(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	roleMap := map[string][]string{"Admin": nil, "Editor": nil, "Viewer": nil}
+	roleMap := map[string][]string{"Admin": nil, "Editor": nil, "Viewer": nil, "None": nil}
 	grafAdmin := d.Get("admin_user")
 	for _, orgUser := range orgUsers {
 		if orgUser.Login != grafAdmin {
@@ -206,7 +218,7 @@ func ReadUsers(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 	for k, v := range roleMap {
-		d.Set(fmt.Sprintf("%ss", strings.ToLower(k)), v)
+		d.Set(getRoleListName(k), v)
 	}
 	return nil
 }
@@ -226,11 +238,10 @@ func UpdateUsers(d *schema.ResourceData, meta interface{}) error {
 }
 
 func collectUsers(d *schema.ResourceData) (map[string]OrgUser, map[string]OrgUser, error) {
-	roles := []string{"admins", "editors", "viewers"}
+	roles := []string{"admins", "editors", "viewers", "users_without_access"}
 	stateUsers, configUsers := make(map[string]OrgUser), make(map[string]OrgUser)
 	for _, role := range roles {
-		caser := cases.Title(language.English)
-		roleName := caser.String(role[:len(role)-1])
+		roleName := getRoleName(role)
 		// Get the lists of users read in from Grafana state (old) and configured (new)
 		state, config := d.GetChange(role)
 		for _, u := range state.(*schema.Set).List() {
@@ -351,4 +362,22 @@ func applyChanges(meta interface{}, orgID int64, changes []UserChange) error {
 		}
 	}
 	return nil
+}
+
+func getRoleName(listName string) string {
+	if listName == "users_without_access" {
+		return "None"
+	}
+
+	caser := cases.Title(language.English)
+	roleName := caser.String(listName[:len(listName)-1])
+	return roleName
+}
+
+func getRoleListName(roleName string) string {
+	if roleName == "None" {
+		return "users_without_access"
+	}
+
+	return fmt.Sprintf("%ss", strings.ToLower(roleName))
 }
