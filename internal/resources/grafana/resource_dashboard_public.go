@@ -18,6 +18,8 @@ func ResourcePublicDashboard() *schema.Resource {
 		Description: `
 Manages Grafana public dashboards.
 
+**Note:** This resource is available only with Grafana 10.2+.
+
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/dashboard-public/)
 * [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/dashboard_public/)
 `,

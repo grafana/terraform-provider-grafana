@@ -12,8 +12,7 @@ import (
 )
 
 func TestAccPublicDashboard_basic(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=10.2.0") // Dashboard UIDs are only available as references in Grafana 9+
+	testutils.CheckOSSTestsEnabled(t, ">=10.2.0")
 
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
