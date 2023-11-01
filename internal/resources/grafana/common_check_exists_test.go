@@ -6,6 +6,7 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/annotations"
 	"github.com/grafana/grafana-openapi-client-go/client/teams"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -18,6 +19,17 @@ import (
 // Helpers that check if a resource exists or doesn't. To define a new one, use the newCheckExistsHelper function.
 // A function that gets a resource by their Terraform ID is required.
 var (
+	annotationsCheckExists = newCheckExistsHelper(
+		func(a *models.Annotation) string { return strconv.FormatInt(a.ID, 10) },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Annotation, error) {
+			params := annotations.NewGetAnnotationByIDParams().WithAnnotationID(id)
+			resp, err := client.Annotations.GetAnnotationByID(params, nil)
+			if err != nil {
+				return nil, err
+			}
+			return resp.GetPayload(), nil
+		},
+	)
 	folderCheckExists = newCheckExistsHelper(
 		func(f *models.Folder) string { return f.UID },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Folder, error) {
