@@ -398,12 +398,11 @@ func packDestinationDatasource(destinationdatasource map[string]interface{}) (ga
 	}
 
 	if destinationdatasource["uid"].(string) != "" {
-		datasourceUid := destinationdatasource["uid"].(string)
-		packedDestinationDatasource.UID = datasourceUid
+		datasourceUID := destinationdatasource["uid"].(string)
+		packedDestinationDatasource.UID = datasourceUID
 	}
 
 	return packedDestinationDatasource, nil
-
 }
 
 func packQuery(query map[string]interface{}) (gapi.Query, error) {
