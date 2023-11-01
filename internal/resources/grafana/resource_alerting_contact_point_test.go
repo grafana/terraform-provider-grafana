@@ -371,8 +371,7 @@ func TestAccContactPoint_notifiers10_2(t *testing.T) {
 }
 
 func TestAccContactPoint_notifiers10_3(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=10.3.0")
+	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Switch to `testutils.CheckOSSTestsEnabled(t, ">=10.3.0")` once 10.3 is released.
 
 	var points []gapi.ContactPoint
 

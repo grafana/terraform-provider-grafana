@@ -800,7 +800,7 @@ func (o opsGenieNotifier) schema() *schema.Resource {
 	r.Schema["responders"] = &schema.Schema{
 		Type:        schema.TypeList,
 		Optional:    true,
-		Description: "Teams, users, escalations and schedules that the alert will be routed to send notifications. If the API Key belongs to a team integration, this field will be overwritten with the owner team.",
+		Description: "Teams, users, escalations and schedules that the alert will be routed to send notifications. If the API Key belongs to a team integration, this field will be overwritten with the owner team. This feature is available from Grafana 10.3+.",
 		Elem: &schema.Resource{
 			Description: "Defines a responder. Either id, name or username must be specified",
 			Schema: map[string]*schema.Schema{

@@ -248,7 +248,7 @@ Optional:
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `message` (String) The templated content of the message.
 - `override_priority` (Boolean) Whether to allow the alert priority to be configured via the value of the `og_priority` annotation on the alert.
-- `responders` (Block List) Teams, users, escalations and schedules that the alert will be routed to send notifications. If the API Key belongs to a team integration, this field will be overwritten with the owner team. (see [below for nested schema](#nestedblock--opsgenie--responders))
+- `responders` (Block List) Teams, users, escalations and schedules that the alert will be routed to send notifications. If the API Key belongs to a team integration, this field will be overwritten with the owner team. This feature is available from Grafana 10.3+. (see [below for nested schema](#nestedblock--opsgenie--responders))
 - `send_tags_as` (String) Whether to send annotations to OpsGenie as Tags, Details, or both. Supported values are `tags`, `details`, `both`, or empty to use the default behavior of Tags.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `url` (String) Allows customization of the OpsGenie API URL.
