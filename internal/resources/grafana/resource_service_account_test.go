@@ -59,16 +59,22 @@ func TestAccServiceAccount_basic(t *testing.T) {
 			},
 		},
 	})
+}
 
-	testutils.CheckOSSTestsSemver(t, ">=10.2.0")
-	resource.Test(t, resource.TestCase{
+func TestAccServiceAccount_NoneRole(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=10.2.0")
+
+	name := acctest.RandString(10)
+	var sa gapi.ServiceAccountDTO
+
+	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccServiceAccountCheckDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testServiceAccountConfig(name, "None"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccServiceAccountCheckExists,
+					testAccServiceAccountCheckExists(&sa),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "org_id", "1"),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "None"),
