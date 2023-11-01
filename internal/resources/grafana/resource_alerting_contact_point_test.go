@@ -341,8 +341,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 }
 
 func TestAccContactPoint_notifiers10_2(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-	testutils.CheckOSSTestsSemver(t, ">=10.2.0")
+	testutils.CheckOSSTestsEnabled(t, ">=10.2.0")
 
 	var points []gapi.ContactPoint
 
