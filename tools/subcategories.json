@@ -9,6 +9,7 @@
     "resources/annotation": "Grafana OSS",
     "resources/api_key": "Grafana OSS",
     "resources/dashboard": "Grafana OSS",
+    "resources/dashboard_public": "Grafana OSS",
     "resources/dashboard_permission": "Grafana OSS",
     "resources/data_source": "Grafana OSS",
     "resources/folder": "Grafana OSS",

@@ -56,6 +56,7 @@ func Provider(version string) func() *schema.Provider {
 			"grafana_api_key":                    grafana.ResourceAPIKey(),
 			"grafana_contact_point":              grafana.ResourceContactPoint(),
 			"grafana_dashboard":                  grafana.ResourceDashboard(),
+			"grafana_dashboard_public":           grafana.ResourcePublicDashboard(),
 			"grafana_dashboard_permission":       grafana.ResourceDashboardPermission(),
 			"grafana_data_source":                grafana.ResourceDataSource(),
 			"grafana_data_source_permission":     grafana.ResourceDatasourcePermission(),
