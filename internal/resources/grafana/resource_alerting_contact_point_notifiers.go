@@ -797,6 +797,36 @@ func (o opsGenieNotifier) schema() *schema.Resource {
 		ValidateFunc: validation.StringInSlice([]string{"tags", "details", "both"}, false),
 		Description:  "Whether to send annotations to OpsGenie as Tags, Details, or both. Supported values are `tags`, `details`, `both`, or empty to use the default behavior of Tags.",
 	}
+	r.Schema["responders"] = &schema.Schema{
+		Type:        schema.TypeList,
+		Optional:    true,
+		Description: "Teams, users, escalations and schedules that the alert will be routed to send notifications. If the API Key belongs to a team integration, this field will be overwritten with the owner team. This feature is available from Grafana 10.3+.",
+		Elem: &schema.Resource{
+			Description: "Defines a responder. Either id, name or username must be specified",
+			Schema: map[string]*schema.Schema{
+				"type": {
+					Type:        schema.TypeString,
+					Required:    true,
+					Description: "Type of the responder. Supported: team, teams, user, escalation, schedule or a template that is expanded to one of these values.",
+				},
+				"name": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "Name of the responder. Must be specified if username and id are empty.",
+				},
+				"username": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "User name of the responder. Must be specified if name and id are empty.",
+				},
+				"id": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "ID of the responder. Must be specified if name and username are empty.",
+				},
+			},
+		},
+	}
 	return r
 }
 
@@ -830,6 +860,21 @@ func (o opsGenieNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (
 		notifier["send_tags_as"] = v.(string)
 		delete(p.Settings, "sendTagsAs")
 	}
+	if v, ok := p.Settings["responders"]; ok && v != nil {
+		items := v.([]any)
+		responders := make([]map[string]interface{}, 0, len(items))
+		for _, item := range items {
+			itemMap := item.(map[string]interface{})
+			responder := make(map[string]interface{}, 4)
+			packNotifierStringField(&itemMap, &responder, "type", "type")
+			packNotifierStringField(&itemMap, &responder, "id", "id")
+			packNotifierStringField(&itemMap, &responder, "name", "name")
+			packNotifierStringField(&itemMap, &responder, "username", "username")
+			responders = append(responders, responder)
+		}
+		notifier["responders"] = responders
+		delete(p.Settings, "responders")
+	}
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, o, p.UID), o.meta().secureFields)
 
@@ -861,6 +906,20 @@ func (o opsGenieNotifier) unpack(raw interface{}, name string) gapi.ContactPoint
 	}
 	if v, ok := json["send_tags_as"]; ok && v != nil {
 		settings["sendTagsAs"] = v.(string)
+	}
+	if v, ok := json["responders"]; ok && v != nil {
+		items := v.([]any)
+		responders := make([]map[string]interface{}, 0, len(items))
+		for _, item := range items {
+			tfResponder := item.(map[string]interface{})
+			responder := make(map[string]interface{}, 4)
+			unpackNotifierStringField(&tfResponder, &responder, "type", "type")
+			unpackNotifierStringField(&tfResponder, &responder, "id", "id")
+			unpackNotifierStringField(&tfResponder, &responder, "name", "name")
+			unpackNotifierStringField(&tfResponder, &responder, "username", "username")
+			responders = append(responders, responder)
+		}
+		settings["responders"] = responders
 	}
 	return gapi.ContactPoint{
 		UID:                   uid,

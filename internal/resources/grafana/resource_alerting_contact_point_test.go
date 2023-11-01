@@ -370,6 +370,40 @@ func TestAccContactPoint_notifiers10_2(t *testing.T) {
 	})
 }
 
+func TestAccContactPoint_notifiers10_3(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Switch to `testutils.CheckOSSTestsEnabled(t, ">=10.3.0")` once 10.3 is released.
+
+	var points []gapi.ContactPoint
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: testContactPointCheckDestroy(points),
+		Steps: []resource.TestStep{
+			// Test creation.
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_receiver_types_10_3.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 1),
+					// opsgenie
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.url", "http://opsgenie-api"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.api_key", "token"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.message", "message"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.description", "description"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.auto_close", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.override_priority", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.send_tags_as", "both"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.responders.0.type", "user"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.responders.0.id", "803f87e1a7f848b0a0779810bee5d1d3"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.responders.1.type", "team"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.responders.1.name", "Test team"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccContactPoint_empty(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
