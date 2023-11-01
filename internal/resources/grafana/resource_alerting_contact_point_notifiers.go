@@ -612,6 +612,139 @@ func (o lineNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	}
 }
 
+type oncallNotifier struct {
+}
+
+var _ notifier = (*oncallNotifier)(nil)
+
+func (w oncallNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:        "oncall",
+		typeStr:      "oncall",
+		desc:         "A contact point that sends notifications to Grafana On-Call.",
+		secureFields: []string{"basic_auth_password", "authorization_credentials"},
+	}
+}
+
+func (w oncallNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Description: "The URL to send webhook requests to.",
+	}
+	r.Schema["http_method"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The HTTP method to use in the request. Defaults to `POST`.",
+	}
+	r.Schema["basic_auth_user"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The username to use in basic auth headers attached to the request. If omitted, basic auth will not be used.",
+	}
+	r.Schema["basic_auth_password"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "The username to use in basic auth headers attached to the request. If omitted, basic auth will not be used.",
+	}
+	r.Schema["authorization_scheme"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Allows a custom authorization scheme - attaches an auth header with this name. Do not use in conjunction with basic auth parameters.",
+	}
+	r.Schema["authorization_credentials"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "Allows a custom authorization scheme - attaches an auth header with this value. Do not use in conjunction with basic auth parameters.",
+	}
+	r.Schema["max_alerts"] = &schema.Schema{
+		Type:        schema.TypeInt,
+		Optional:    true,
+		Description: "The maximum number of alerts to send in a single request. This can be helpful in limiting the size of the request body. The default is 0, which indicates no limit.",
+	}
+	r.Schema["message"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Custom message. You can use template variables.",
+	}
+	r.Schema["title"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Templated title of the message.",
+	}
+	return r
+}
+
+func (w oncallNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(&p)
+
+	packNotifierStringField(&p.Settings, &notifier, "url", "url")
+	packNotifierStringField(&p.Settings, &notifier, "httpMethod", "http_method")
+	packNotifierStringField(&p.Settings, &notifier, "username", "basic_auth_user")
+	packNotifierStringField(&p.Settings, &notifier, "password", "basic_auth_password")
+	packNotifierStringField(&p.Settings, &notifier, "authorization_scheme", "authorization_scheme")
+	packNotifierStringField(&p.Settings, &notifier, "authorization_credentials", "authorization_credentials")
+	packNotifierStringField(&p.Settings, &notifier, "message", "message")
+	packNotifierStringField(&p.Settings, &notifier, "title", "title")
+	if v, ok := p.Settings["maxAlerts"]; ok && v != nil {
+		switch typ := v.(type) {
+		case int:
+			notifier["max_alerts"] = v.(int)
+		case float64:
+			notifier["max_alerts"] = int(v.(float64))
+		case string:
+			val, err := strconv.Atoi(typ)
+			if err != nil {
+				panic(fmt.Errorf("failed to parse value of 'maxAlerts' to integer: %w", err))
+			}
+			notifier["max_alerts"] = val
+		default:
+			panic(fmt.Sprintf("unexpected type %T for 'maxAlerts': %v", typ, typ))
+		}
+		delete(p.Settings, "maxAlerts")
+	}
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, w, p.UID), w.meta().secureFields)
+
+	notifier["settings"] = packSettings(&p)
+	return notifier, nil
+}
+
+func (w oncallNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	unpackNotifierStringField(&json, &settings, "url", "url")
+	unpackNotifierStringField(&json, &settings, "http_method", "httpMethod")
+	unpackNotifierStringField(&json, &settings, "basic_auth_user", "username")
+	unpackNotifierStringField(&json, &settings, "basic_auth_password", "password")
+	unpackNotifierStringField(&json, &settings, "authorization_scheme", "authorization_scheme")
+	unpackNotifierStringField(&json, &settings, "authorization_credentials", "authorization_credentials")
+	unpackNotifierStringField(&json, &settings, "message", "message")
+	unpackNotifierStringField(&json, &settings, "title", "title")
+	if v, ok := json["max_alerts"]; ok && v != nil {
+		switch typ := v.(type) {
+		case int:
+			settings["maxAlerts"] = v.(int)
+		case float64:
+			settings["maxAlerts"] = int(v.(float64))
+		default:
+			panic(fmt.Sprintf("unexpected type for maxAlerts: %v", typ))
+		}
+	}
+
+	return gapi.ContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  w.meta().typeStr,
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}
+
 type opsGenieNotifier struct{}
 
 var _ notifier = (*opsGenieNotifier)(nil)

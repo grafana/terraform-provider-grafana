@@ -49,6 +49,7 @@ resource "grafana_contact_point" "my_contact_point" {
 - `googlechat` (Block List) A contact point that sends notifications to Google Chat. (see [below for nested schema](#nestedblock--googlechat))
 - `kafka` (Block List) A contact point that publishes notifications to Apache Kafka topics. (see [below for nested schema](#nestedblock--kafka))
 - `line` (Block List) A contact point that sends notifications to LINE.me. (see [below for nested schema](#nestedblock--line))
+- `oncall` (Block List) A contact point that sends notifications to Grafana On-Call. (see [below for nested schema](#nestedblock--oncall))
 - `opsgenie` (Block List) A contact point that sends notifications to OpsGenie. (see [below for nested schema](#nestedblock--opsgenie))
 - `pagerduty` (Block List) A contact point that sends notifications to PagerDuty. (see [below for nested schema](#nestedblock--pagerduty))
 - `pushover` (Block List) A contact point that sends notifications to Pushover. (see [below for nested schema](#nestedblock--pushover))
@@ -202,6 +203,31 @@ Optional:
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `title` (String) The templated title of the message.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--oncall"></a>
+### Nested Schema for `oncall`
+
+Required:
+
+- `url` (String) The URL to send webhook requests to.
+
+Optional:
+
+- `authorization_credentials` (String, Sensitive) Allows a custom authorization scheme - attaches an auth header with this value. Do not use in conjunction with basic auth parameters.
+- `authorization_scheme` (String) Allows a custom authorization scheme - attaches an auth header with this name. Do not use in conjunction with basic auth parameters.
+- `basic_auth_password` (String, Sensitive) The username to use in basic auth headers attached to the request. If omitted, basic auth will not be used.
+- `basic_auth_user` (String) The username to use in basic auth headers attached to the request. If omitted, basic auth will not be used.
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `http_method` (String) The HTTP method to use in the request. Defaults to `POST`.
+- `max_alerts` (Number) The maximum number of alerts to send in a single request. This can be helpful in limiting the size of the request body. The default is 0, which indicates no limit.
+- `message` (String) Custom message. You can use template variables.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `title` (String) Templated title of the message.
 
 Read-Only:
 
