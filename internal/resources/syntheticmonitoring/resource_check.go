@@ -2,6 +2,7 @@ package syntheticmonitoring
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -104,6 +105,13 @@ var (
 				Optional:    true,
 				MaxItems:    1,
 				Elem:        syntheticMonitoringCheckSettingsTraceroute,
+			},
+			"multihttp": {
+				Description: "Settings for MultiHTTP check. The target must be a URL (http or https)",
+				Type:        schema.TypeSet,
+				Optional:    true,
+				MaxItems:    1,
+				Elem:        syntheticMonitoringCheckSettingsMultiHTTP,
 			},
 		},
 	}
@@ -238,6 +246,14 @@ var (
 				Description: "Proxy URL.",
 				Type:        schema.TypeString,
 				Optional:    true,
+			},
+			"proxy_connect_headers": {
+				Description: "The HTTP headers sent to the proxy URL",
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"fail_if_ssl": {
 				Description: "Fail if SSL is present.",
@@ -429,6 +445,178 @@ var (
 			},
 		},
 	}
+
+	syntheticMonitoringCheckSettingsMultiHTTP = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"entries": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     syntheticMonitoringCheckSettingsMultiHTTPEntry,
+			},
+		},
+	}
+
+	syntheticMonitoringCheckSettingsMultiHTTPEntry = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"request":    syntheticMonitoringMultiHTTPRequest,
+			"assertions": syntheticMonitoringMultiHTTPAssertion,
+			"variables":  syntheticMonitoringMultiHTTPVariable,
+		},
+	}
+
+	syntheticMonitoringMultiHTTPRequestHeader = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"name": {
+				Description: "Name of the header to send",
+				Type:        schema.TypeString,
+				Required:    true,
+			},
+			"value": {
+				Description: "Value of the header to send",
+				Type:        schema.TypeString,
+				Required:    true,
+			},
+		},
+	}
+
+	syntheticMonitoringMultiHTTPRequestQueryField = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"name": {
+				Description: "Name of the query field to send",
+				Type:        schema.TypeString,
+				Required:    true,
+			},
+			"value": {
+				Description: "Value of the query field to send",
+				Type:        schema.TypeString,
+				Required:    true,
+			},
+		},
+	}
+
+	syntheticMonitoringMultiHTTPRequestBody = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"content_type": {
+				Description: "The content type of the body",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"content_encoding": {
+				Description: "The content encoding of the body",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"payload": {
+				Description: "The body payload",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+		},
+	}
+
+	syntheticMonitoringMultiHTTPRequest = &schema.Schema{
+		Description: "An individual MultiHTTP request",
+		Type:        schema.TypeSet,
+		Optional:    true,
+		MaxItems:    1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"method": {
+					Description: "The HTTP method to use",
+					Type:        schema.TypeString,
+					Required:    true,
+				},
+				"url": {
+					Description: "The URL for the request",
+					Type:        schema.TypeString,
+					Required:    true,
+				},
+				"headers": {
+					Description: "The headers to send with the request",
+					Type:        schema.TypeSet,
+					Optional:    true,
+					Elem:        syntheticMonitoringMultiHTTPRequestHeader,
+				},
+				"query_fields": {
+					Description: "Query fields to send with the request",
+					Type:        schema.TypeSet,
+					Optional:    true,
+					Elem:        syntheticMonitoringMultiHTTPRequestQueryField,
+				},
+				"body": {
+					Description: "The body of the HTTP request used in probe.",
+					Type:        schema.TypeSet,
+					Optional:    true,
+					Elem:        syntheticMonitoringMultiHTTPRequestBody,
+				},
+			},
+		},
+	}
+
+	syntheticMonitoringMultiHTTPAssertion = &schema.Schema{
+		Description: "Assertions to make on the request response",
+		Type:        schema.TypeList,
+		Optional:    true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"type": {
+					Description: "The type of assertion to make: TEXT, JSON_PATH_VALUE, JSON_PATH_ASSERTION, REGEX_ASSERTION",
+					Type:        schema.TypeString,
+					Required:    true,
+				},
+				"subject": {
+					Description: "The subject of the assertion: RESPONSE_HEADERS, HTTP_STATUS_CODE, RESPONSE_BODY",
+					Type:        schema.TypeString,
+					Optional:    true,
+				},
+				"condition": {
+					Description: "The condition of the assertion: NOT_CONTAINS, EQUALS, STARTS_WITH, ENDS_WITH, TYPE_OF, CONTAINS",
+					Type:        schema.TypeString,
+					Optional:    true,
+				},
+				"expression": {
+					Description: "The expression of the assertion. Should start with $.",
+					Type:        schema.TypeString,
+					Optional:    true,
+				},
+				"value": {
+					Description: "The value of the assertion",
+					Type:        schema.TypeString,
+					Optional:    true,
+				},
+			},
+		},
+	}
+
+	syntheticMonitoringMultiHTTPVariable = &schema.Schema{
+		Description: "Variables to extract from the request response",
+		Type:        schema.TypeList,
+		Optional:    true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"type": {
+					Description: "The method of finding the variable value to extract. JSON_PATH, REGEX, CSS_SELECTOR",
+					Type:        schema.TypeString,
+					Required:    true,
+				},
+				"name": {
+					Description: "The name of the variable to extract",
+					Type:        schema.TypeString,
+					Optional:    true,
+				},
+				"expression": {
+					Description: "The expression to when finding the variable. Should start with $. Only use when type is JSON_PATH or REGEX",
+					Type:        schema.TypeString,
+					Optional:    true,
+				},
+				"attribute": {
+					Description: "The attribute to use when finding the variable value. Only used when type is CSS_SELECTOR",
+					Type:        schema.TypeString,
+					Optional:    true,
+				},
+			},
+		},
+	}
 )
 
 func ResourceCheck() *schema.Resource {
@@ -540,7 +728,10 @@ multiple checks for a single endpoint to check different capabilities.
 
 func ResourceCheckCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).SMAPI
-	chk := makeCheck(d)
+	chk, err := makeCheck(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	res, err := c.AddCheck(ctx, *chk)
 	if err != nil {
 		return diag.FromErr(err)
@@ -684,6 +875,7 @@ func ResourceCheckRead(ctx context.Context, d *schema.ResourceData, meta interfa
 			"basic_auth":                        &basicAuth,
 			"bearer_token":                      chk.Settings.Http.BearerToken,
 			"proxy_url":                         chk.Settings.Http.ProxyURL,
+			"proxy_connect_headers":             common.StringSliceToSet(chk.Settings.Http.ProxyConnectHeaders),
 			"fail_if_ssl":                       chk.Settings.Http.FailIfSSL,
 			"fail_if_not_ssl":                   chk.Settings.Http.FailIfNotSSL,
 			"valid_status_codes":                common.Int32SliceToSet(chk.Settings.Http.ValidStatusCodes),
@@ -752,6 +944,97 @@ func ResourceCheckRead(ctx context.Context, d *schema.ResourceData, meta interfa
 		settings.Add(map[string]interface{}{
 			"traceroute": traceroute,
 		})
+	case chk.Settings.Multihttp != nil:
+		entries := []any{}
+		for _, e := range chk.Settings.Multihttp.Entries {
+			requestSet := schema.NewSet(
+				schema.HashResource(syntheticMonitoringMultiHTTPRequest.Elem.(*schema.Resource)),
+				[]any{},
+			)
+			request := map[string]any{
+				"method": e.Request.Method.String(),
+				"url":    e.Request.Url,
+			}
+			if len(e.Request.Headers) > 0 {
+				headerSet := schema.NewSet(
+					schema.HashResource(syntheticMonitoringMultiHTTPRequestHeader),
+					[]any{},
+				)
+				for _, h := range e.Request.Headers {
+					headerSet.Add(map[string]any{
+						"name":  h.Name,
+						"value": h.Value,
+					})
+				}
+				request["headers"] = headerSet
+			}
+			if len(e.Request.QueryFields) > 0 {
+				querySet := schema.NewSet(
+					schema.HashResource(syntheticMonitoringMultiHTTPRequestQueryField),
+					[]any{},
+				)
+				for _, q := range e.Request.QueryFields {
+					querySet.Add(map[string]any{
+						"name":  q.Name,
+						"value": q.Value,
+					})
+				}
+				request["query_fields"] = querySet
+			}
+			if e.Request.Body != nil {
+				bodySet := schema.NewSet(
+					schema.HashResource(syntheticMonitoringMultiHTTPRequestBody),
+					[]any{},
+				)
+				bodySet.Add(map[string]any{
+					"content_type":     e.Request.Body.ContentType,
+					"content_encoding": e.Request.Body.ContentEncoding,
+					"payload":          string(e.Request.Body.Payload),
+				})
+				request["body"] = bodySet
+			}
+			requestSet.Add(request)
+			checks := []any{}
+			for _, assertion := range e.Assertions {
+				check := map[string]any{
+					"type":       assertion.Type.String(),
+					"expression": assertion.Expression,
+					"value":      assertion.Value,
+				}
+				if assertion.Subject != sm.MultiHttpEntryAssertionSubjectVariant_DEFAULT_SUBJECT {
+					check["subject"] = assertion.Subject.String()
+				}
+				if assertion.Condition != sm.MultiHttpEntryAssertionConditionVariant_DEFAULT_CONDITION {
+					check["condition"] = assertion.Condition.String()
+				}
+				checks = append(checks, check)
+			}
+			variables := []any{}
+			for _, v := range e.Variables {
+				variables = append(variables, map[string]any{
+					"type":       v.Type.String(),
+					"name":       v.Name,
+					"expression": v.Expression,
+					"attribute":  v.Attribute,
+				})
+			}
+			entries = append(entries, map[string]any{
+				"request":    requestSet,
+				"assertions": checks,
+				"variables":  variables,
+			})
+		}
+
+		multiHTTP := schema.NewSet(
+			schema.HashResource(syntheticMonitoringCheckSettingsMultiHTTP),
+			[]any{},
+		)
+		multiHTTP.Add(map[string]any{
+			"entries": entries,
+		})
+		settings.Add(map[string]any{
+			"multihttp": multiHTTP,
+		})
 	}
 
 	d.Set("settings", settings)
@@ -761,8 +1044,11 @@ func ResourceCheckRead(ctx context.Context, d *schema.ResourceData, meta interfa
 
 func ResourceCheckUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).SMAPI
-	chk := makeCheck(d)
-	_, err := c.UpdateCheck(ctx, *chk)
+	chk, err := makeCheck(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	_, err = c.UpdateCheck(ctx, *chk)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -783,7 +1069,7 @@ func ResourceCheckDelete(ctx context.Context, d *schema.ResourceData, meta inter
 
 // makeCheck populates an instance of sm.Check. We need this for create and
 // update calls with the SM API client.
-func makeCheck(d *schema.ResourceData) *sm.Check {
+func makeCheck(d *schema.ResourceData) (*sm.Check, error) {
 	var id int64
 	if d.Id() != "" {
 		id, _ = strconv.ParseInt(d.Id(), 10, 64)
@@ -802,6 +1088,11 @@ func makeCheck(d *schema.ResourceData) *sm.Check {
 		})
 	}
 
+	settings, err := makeCheckSettings(d.Get("settings").(*schema.Set).List()[0].(map[string]interface{}))
+	if err != nil {
+		return nil, fmt.Errorf("invalid settings: %w", err)
+	}
+
 	return &sm.Check{
 		Id:               id,
 		TenantId:         int64(d.Get("tenant_id").(int)),
@@ -814,14 +1105,202 @@ func makeCheck(d *schema.ResourceData) *sm.Check {
 		BasicMetricsOnly: d.Get("basic_metrics_only").(bool),
 		Probes:           probes,
 		Labels:           labels,
-		Settings:         makeCheckSettings(d.Get("settings").(*schema.Set).List()[0].(map[string]interface{})),
+		Settings:         settings,
+	}, nil
+}
+
+func makeMultiHTTPSettings(settings map[string]any, cs *sm.CheckSettings) error {
+	var out sm.MultiHttpSettings
+
+	entries := settings["entries"]
+	if entries == nil {
+		return errors.New("entries not set")
 	}
+
+	for _, entry := range entries.([]any) {
+		entry, err := makeMultiHTTPEntry(entry.(map[string]any))
+		if err != nil {
+			return err
+		}
+		out.Entries = append(out.Entries, entry)
+	}
+
+	// Everything is OK, modify the structure.
+	cs.Multihttp = &out
+
+	return nil
+}
+
+func makeMultiHTTPEntry(entry map[string]any) (*sm.MultiHttpEntry, error) {
+	var request map[string]any
+
+	if r := entry["request"]; r == nil {
+		return nil, errors.New("request not set")
+	} else if requests := r.(*schema.Set).List(); len(requests) == 0 {
+		return nil, errors.New("request is empty")
+	} else {
+		request = requests[0].(map[string]any)
+	}
+
+	method := sm.HttpMethod(sm.HttpMethod_value[request["method"].(string)])
+
+	e := sm.MultiHttpEntry{
+		Request: &sm.MultiHttpEntryRequest{
+			Method: method,
+			Url:    request["url"].(string),
+		},
+	}
+
+	if headers := request["headers"]; headers != nil {
+		for _, header := range headers.(*schema.Set).List() {
+			header := header.(map[string]any)
+			e.Request.Headers = append(e.Request.Headers, &sm.HttpHeader{
+				Name:  header["name"].(string),
+				Value: header["value"].(string),
+			})
+		}
+	}
+
+	if queryFields := request["query_fields"]; queryFields != nil {
+		for _, queryField := range queryFields.(*schema.Set).List() {
+			queryField := queryField.(map[string]any)
+			e.Request.QueryFields = append(e.Request.QueryFields, &sm.QueryField{
+				Name:  queryField["name"].(string),
+				Value: queryField["value"].(string),
+			})
+		}
+	}
+
+	if reqBody := request["body"]; reqBody != nil {
+		reqBody := reqBody.(*schema.Set).List()
+		if len(reqBody) > 0 {
+			r := reqBody[0].(map[string]any)
+			e.Request.Body = &sm.HttpRequestBody{
+				ContentType:     r["content_type"].(string),
+				ContentEncoding: r["content_encoding"].(string),
+				Payload:         []byte(r["payload"].(string)),
+			}
+		}
+	}
+
+	if variables := entry["variables"]; variables != nil {
+		for _, variable := range variables.([]any) {
+			c := variable.(map[string]any)
+
+			typeValue, ok := c["type"].(string)
+			if !ok {
+				return nil, errors.New("variable type not set")
+			}
+
+			variableType, err := sm.MultiHttpEntryVariableTypeString(typeValue)
+			if err != nil {
+				return nil, fmt.Errorf("invalid variable type %q", typeValue)
+			}
+
+			e.Variables = append(e.Variables, &sm.MultiHttpEntryVariable{
+				Name:       c["name"].(string),
+				Type:       variableType,
+				Expression: c["expression"].(string),
+				Attribute:  c["attribute"].(string),
+			})
+		}
+	}
+
+	entries := entry["assertions"]
+	if entries == nil {
+		// no entries, we are done
+		return &e, nil
+	}
+
+	for _, settings := range entries.([]any) {
+		assertion, err := makeMultiHTTPAssertion(settings.(map[string]any))
+		if err != nil {
+			return nil, err
+		}
+
+		e.Assertions = append(e.Assertions, assertion)
+	}
+
+	return &e, nil
+}
+
+func makeMultiHTTPAssertion(settings map[string]any) (*sm.MultiHttpEntryAssertion, error) {
+	var assertion sm.MultiHttpEntryAssertion
+
+	if settings["type"] == nil {
+		return nil, errors.New("assertion type not set")
+	}
+
+	v, ok := settings["type"].(string)
+	if !ok {
+		return nil, fmt.Errorf("unsupported assertion type value %v", v)
+	}
+
+	if len(v) > 0 {
+		value, err := sm.MultiHttpEntryAssertionTypeString(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid assertion type %q", v)
+		}
+		assertion.Type = value
+	}
+
+	if !assertion.Type.IsAMultiHttpEntryAssertionType() {
+		return nil, fmt.Errorf("invalid assertion type %s", v)
+	}
+
+	if settings["subject"] != nil {
+		v, ok := settings["subject"].(string)
+		if !ok {
+			return nil, fmt.Errorf("unsupported assertion type value %v", v)
+		}
+
+		if len(v) > 0 {
+			value, err := sm.MultiHttpEntryAssertionSubjectVariantString(v)
+			if err != nil {
+				return nil, fmt.Errorf("invalid assertion subject %q", v)
+			}
+			assertion.Subject = value
+		}
+
+		if !assertion.Subject.IsAMultiHttpEntryAssertionSubjectVariant() {
+			return nil, fmt.Errorf("invalid assertion subject %s", v)
+		}
+	}
+
+	if settings["condition"] != nil {
+		v, ok := settings["condition"].(string)
+		if !ok {
+			return nil, fmt.Errorf("unsupported assertion condition value %v", v)
+		}
+
+		if len(v) > 0 {
+			value, err := sm.MultiHttpEntryAssertionConditionVariantString(v)
+			if err != nil {
+				return nil, fmt.Errorf("invalid assertion condition %q", v)
+			}
+			assertion.Condition = value
+		}
+
+		if !assertion.Condition.IsAMultiHttpEntryAssertionConditionVariant() {
+			return nil, fmt.Errorf("invalid assertion condition %s", v)
+		}
+	}
+
+	if settings["expression"] != nil {
+		assertion.Expression = settings["expression"].(string)
+	}
+
+	if settings["value"] != nil {
+		assertion.Value = settings["value"].(string)
+	}
+
+	return &assertion, nil
 }
 
 // makeCheckSettings populates an instance of sm.CheckSettings. This is called
 // by makeCheck. It's isolated from makeCheck to hopefully make it all more
 // human readable.
-func makeCheckSettings(settings map[string]interface{}) sm.CheckSettings {
+func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error) {
 	cs := sm.CheckSettings{}
 
 	tlsConfig := func(t *schema.Set) *sm.TLSConfig {
@@ -961,7 +1440,16 @@ func makeCheckSettings(settings map[string]interface{}) sm.CheckSettings {
 		}
 	}
 
-	return cs
+	multihttp := settings["multihttp"].(*schema.Set).List()
+	if len(multihttp) > 0 {
+		m := multihttp[0].(map[string]interface{})
+		err := makeMultiHTTPSettings(m, &cs)
+		if err != nil {
+			return cs, fmt.Errorf("invalid MultiHTTP settings: %w", err)
+		}
+	}
+
+	return cs, nil
 }
 
 // Check if the user provider exactly one setting

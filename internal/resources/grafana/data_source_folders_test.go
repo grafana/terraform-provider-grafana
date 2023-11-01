@@ -16,8 +16,8 @@ func TestAccDatasourceFolders(t *testing.T) {
 	titleBase := "test-folder-"
 	uidBase := "test-ds-folder-uid-"
 	checks := []resource.TestCheckFunc{
-		testAccFolderCheckExists("grafana_folder.test_a", &folderA),
-		testAccFolderCheckExists("grafana_folder.test_b", &folderB),
+		folderCheckExists.exists("grafana_folder.test_a", &folderA),
+		folderCheckExists.exists("grafana_folder.test_b", &folderB),
 		resource.TestCheckResourceAttr(
 			"data.grafana_folders.test", "folders.#", "2",
 		),
@@ -35,8 +35,8 @@ func TestAccDatasourceFolders(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
-			testAccFolderCheckDestroy(&folderA, 0),
-			testAccFolderCheckDestroy(&folderB, 0),
+			folderCheckExists.destroyed(&folderA, nil),
+			folderCheckExists.destroyed(&folderB, nil),
 		),
 		Steps: []resource.TestStep{
 			{

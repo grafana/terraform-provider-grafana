@@ -18,7 +18,7 @@ func ResourceServiceAccountPermission() *schema.Resource {
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/service-accounts/#manage-users-and-teams-permissions-for-a-service-account-in-grafana)`,
 
-		CreateContext: UpdateServiceAccountPermissions,
+		CreateContext: CreateServiceAccountPermissions,
 		ReadContext:   ReadServiceAccountPermissions,
 		UpdateContext: UpdateServiceAccountPermissions,
 		DeleteContext: DeleteServiceAccountPermissions,
@@ -72,16 +72,56 @@ func ResourceServiceAccountPermission() *schema.Resource {
 }
 
 func ReadServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Id())
-	client := meta.(*common.Client).GrafanaAPI.WithOrgID(orgID)
-	id, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
+	saPerms, diags := getServiceAccountPermissions(ctx, d, meta)
+	d.Set("permissions", saPerms)
+	return diags
+}
+
+func CreateServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, orgID := ClientFromNewOrgResource(meta, d)
+	_, idStr := SplitOrgResourceID(d.Get("service_account_id").(string))
+	d.SetId(MakeOrgResourceID(orgID, idStr))
+
+	// On creation, the service account permissions are unknown, we need to start by reading them.
+	currentPerms, diags := getServiceAccountPermissions(ctx, d, meta)
+	if diags.HasError() {
+		return diags
+	}
+	err := updateServiceAccountPermissions(client, idStr, currentPerms, d.Get("permissions"))
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	return ReadServiceAccountPermissions(ctx, d, meta)
+}
+
+func UpdateServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+
+	old, new := d.GetChange("permissions")
+	err := updateServiceAccountPermissions(client, idStr, old, new)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return ReadServiceAccountPermissions(ctx, d, meta)
+}
+
+func DeleteServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	return diag.FromErr(updateServiceAccountPermissions(client, idStr, d.Get("permissions"), nil))
+}
+
+func getServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) (interface{}, diag.Diagnostics) {
+	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+
 	saPermissions, err := client.GetServiceAccountPermissions(id)
 	if err, shouldReturn := common.CheckReadError("service account permissions", d, err); shouldReturn {
-		return err
+		return nil, err
 	}
 
 	saPerms := make([]interface{}, 0)
@@ -97,24 +137,19 @@ func ReadServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, 
 		}
 		saPerms = append(saPerms, permMap)
 	}
-	d.Set("permissions", saPerms)
 
-	return nil
+	return saPerms, nil
 }
 
-func UpdateServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Get("service_account_id").(string))
-	client := meta.(*common.Client).GrafanaAPI.WithOrgID(orgID)
-	id, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
+func updateServiceAccountPermissions(client *gapi.Client, idStr string, from, to interface{}) error {
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return diag.FromErr(err)
+		return err
 	}
 
-	// Get a list of permissions from Grafana state (current permission setup)
-	state, config := d.GetChange("permissions")
 	oldTeamPerms := make(map[int64]string, 0)
 	oldUserPerms := make(map[int64]string, 0)
-	for _, p := range state.(*schema.Set).List() {
+	for _, p := range listOrSet(from) {
 		perm := p.(map[string]interface{})
 		_, teamIDStr := SplitOrgResourceID(perm["team_id"].(string))
 		teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
@@ -131,7 +166,7 @@ func UpdateServiceAccountPermissions(ctx context.Context, d *schema.ResourceData
 	permissionList := gapi.ServiceAccountPermissionItems{}
 
 	// Iterate over permissions from the configuration (the desired permission setup)
-	for _, p := range config.(*schema.Set).List() {
+	for _, p := range listOrSet(to) {
 		permission := p.(map[string]interface{})
 		permissionItem := gapi.ServiceAccountPermissionItem{}
 		_, teamIDStr := SplitOrgResourceID(permission["team_id"].(string))
@@ -176,42 +211,15 @@ func UpdateServiceAccountPermissions(ctx context.Context, d *schema.ResourceData
 		})
 	}
 
-	err = client.UpdateServiceAccountPermissions(id, &permissionList)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId(MakeOrgResourceID(orgID, id))
-
-	return ReadServiceAccountPermissions(ctx, d, meta)
+	return client.UpdateServiceAccountPermissions(id, &permissionList)
 }
 
-func DeleteServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Get("service_account_id").(string))
-	client := meta.(*common.Client).GrafanaAPI.WithOrgID(orgID)
-	id, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
-	if err != nil {
-		return diag.FromErr(err)
+func listOrSet(v interface{}) []interface{} {
+	if v == nil {
+		return make([]interface{}, 0)
 	}
-
-	state, _ := d.GetChange("permissions")
-	permissionList := gapi.ServiceAccountPermissionItems{}
-	for _, p := range state.(*schema.Set).List() {
-		perm := p.(map[string]interface{})
-		_, teamIDStr := SplitOrgResourceID(perm["team_id"].(string))
-		teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
-		_, userIDStr := SplitOrgResourceID(perm["user_id"].(string))
-		userID, _ := strconv.ParseInt(userIDStr, 10, 64)
-		permissionItem := gapi.ServiceAccountPermissionItem{}
-
-		if teamID > 0 {
-			permissionItem.TeamID = teamID
-		} else if userID > 0 {
-			permissionItem.UserID = userID
-		}
-		permissionItem.Permission = ""
-		permissionList.Permissions = append(permissionList.Permissions, &permissionItem)
+	if v, ok := v.(*schema.Set); ok {
+		return v.List()
 	}
-
-	return diag.FromErr(client.UpdateServiceAccountPermissions(id, &permissionList))
+	return v.([]interface{})
 }

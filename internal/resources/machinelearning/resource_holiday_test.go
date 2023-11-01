@@ -9,6 +9,7 @@ import (
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -16,25 +17,31 @@ import (
 func TestAccResourceHoliday(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
+	randomName := acctest.RandomWithPrefix("holiday")
+
 	var holiday mlapi.Holiday
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccMLHolidayCheckDestroy(&holiday),
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_machine_learning_holiday/ical_holiday.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_holiday/ical_holiday.tf", map[string]string{
+					"My iCal holiday": randomName,
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccMLHolidayCheckExists("grafana_machine_learning_holiday.ical", &holiday),
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_holiday.ical", "id"),
-					resource.TestCheckResourceAttr("grafana_machine_learning_holiday.ical", "name", "My iCal holiday"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_holiday.ical", "name", randomName),
 				),
 			},
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_machine_learning_holiday/custom_periods_holiday.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_holiday/custom_periods_holiday.tf", map[string]string{
+					"My custom periods holiday": randomName + " custom periods",
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccMLHolidayCheckExists("grafana_machine_learning_holiday.custom_periods", &holiday),
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_holiday.custom_periods", "id"),
-					resource.TestCheckResourceAttr("grafana_machine_learning_holiday.custom_periods", "name", "My custom periods holiday"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_holiday.custom_periods", "name", randomName+" custom periods"),
 				),
 			},
 		},
