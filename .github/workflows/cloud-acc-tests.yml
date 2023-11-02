@@ -1,0 +1,34 @@
+name: cloud acceptance tests
+on:
+  workflow_dispatch:
+    inputs:
+      tests:
+        description: 'Tests to run (regex passed to -run)'
+        default: '.*'
+
+# These permissions are needed to assume roles from Github's OIDC.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  cloud:
+    concurrency: cloud-api
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with: 
+          go-version: '1.21'
+      - uses: hashicorp/setup-terraform@v3
+      - name: Get Secrets
+        uses: grafana/shared-workflows/actions/get-vault-secrets@main
+        with:
+          repo_secrets: |
+            GRAFANA_CLOUD_API_KEY=cloud-tests:api-key
+            GRAFANA_CLOUD_ORG=cloud-tests:org
+      - run: make testacc-cloud-api
+        env:
+          TESTARGS: -run='${{ github.event.inputs.tests }}'
+
+
