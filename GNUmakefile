@@ -19,37 +19,44 @@ testacc-cloud-api:
 testacc-cloud-instance:
 	TF_ACC_CLOUD_INSTANCE=true make testacc
 
-testacc-docker:
-	make -C testdata generate
-	docker-compose -f ./docker-compose.yml stop
-	GRAFANA_VERSION=$(GRAFANA_VERSION) \
-		docker-compose \
-		-f ./docker-compose.yml \
-		run --rm -e TESTARGS="$(TESTARGS)" \
-		grafana-provider \
-		make testacc-oss
+testacc-oss-docker:
+	GRAFANA_VERSION=$(GRAFANA_VERSION) docker compose up --force-recreate --detach --remove-orphans --wait
 
-testacc-docker-tls:
-	make -C testdata generate
-	docker-compose -f ./docker-compose.yml -f ./docker-compose.tls.yml stop 
 	GRAFANA_VERSION=$(GRAFANA_VERSION) \
-		docker-compose \
-		-f ./docker-compose.yml \
-		-f ./docker-compose.tls.yml \
-		run --rm -e TESTARGS="$(TESTARGS)" \
-		grafana-provider \
-		make testacc-oss
+	GRAFANA_URL="http://$$(docker compose port grafana 3000)" \
+	GRAFANA_AUTH="admin:admin" \
+	make testacc-oss
+
+	docker compose down
+
+testacc-enterprise-docker:
+	GRAFANA_IMAGE=grafana/grafana-enterprise GRAFANA_VERSION=$(GRAFANA_VERSION) docker compose up --force-recreate --detach --remove-orphans --wait
+
+	GRAFANA_VERSION=$(GRAFANA_VERSION) \
+	GRAFANA_URL="http://$$(docker compose port grafana 3000)" \
+	GRAFANA_AUTH="admin:admin" \
+	make testacc-enterprise
+
+	docker compose down
+
+testacc-oss-docker-tls:
+	make -C testdata generate
+	GRAFANA_VERSION=$(GRAFANA_VERSION) docker compose --profile tls up --force-recreate --detach --remove-orphans --wait
+
+	GRAFANA_VERSION=$(GRAFANA_VERSION) \
+	GRAFANA_URL="https://$$(docker compose port mtls-proxy 3001)" \
+	GRAFANA_AUTH="admin:admin" \
+	GRAFANA_TLS_KEY=$$(pwd)/testdata/client.key \
+    GRAFANA_TLS_CERT=$$(pwd)/testdata/client.crt \
+    GRAFANA_CA_CERT=$$(pwd)/testdata/ca.crt \
+	make testacc-oss
+
+	docker compose --profile tls down
 
 release:
 	@test $${RELEASE_VERSION?Please set environment variable RELEASE_VERSION}
 	@git tag $$RELEASE_VERSION
 	@git push origin $$RELEASE_VERSION
-
-DRONE_DOCKER := docker run --rm -e DRONE_SERVER -e DRONE_TOKEN -v ${PWD}:${PWD} -w "${PWD}" drone/cli:1.6.1
-drone:
-	$(DRONE_DOCKER) jsonnet --stream --source .drone/drone.jsonnet --target .drone/drone.yml --format
-	$(DRONE_DOCKER) lint .drone/drone.yml
-	$(DRONE_DOCKER) sign --save grafana/terraform-provider-grafana .drone/drone.yml
 
 golangci-lint:
 	docker run \

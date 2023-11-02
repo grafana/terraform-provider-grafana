@@ -72,7 +72,7 @@ func makeCerts() error {
 		crt.SubjectKeyId = []byte{1, 2, 3, 4, 6}
 		crt.KeyUsage = x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature
 		crt.IsCA = false
-		crt.IPAddresses = []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback}
+		crt.IPAddresses = []net.IP{net.IPv4(127, 0, 0, 1), net.IPv4(0, 0, 0, 0), net.IPv6loopback}
 
 		crtPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
 		if err != nil {
