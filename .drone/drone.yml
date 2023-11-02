@@ -1,80 +1,4 @@
 ---
-concurrency:
-  limit: 1
-kind: pipeline
-name: cloud api tests
-platform:
-  arch: amd64
-  os: linux
-services: []
-steps:
-- commands:
-  - cp /bin/terraform /drone/terraform-provider-grafana/terraform
-  - chmod a+x /drone/terraform-provider-grafana/terraform
-  image: hashicorp/terraform
-  name: download-terraform
-- commands:
-  - make testacc-cloud-api
-  environment:
-    GRAFANA_CLOUD_API_KEY:
-      from_secret: grafana-cloud-api-key
-    GRAFANA_CLOUD_ORG:
-      from_secret: grafana-cloud-org
-    TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.21
-  name: tests
-trigger:
-  event:
-  - promote
-type: docker
-workspace:
-  path: /drone/terraform-provider-grafana
----
-concurrency:
-  limit: 1
-kind: pipeline
-name: cloud instance tests
-platform:
-  arch: amd64
-  os: linux
-services: []
-steps:
-- commands:
-  - cp /bin/terraform /drone/terraform-provider-grafana/terraform
-  - chmod a+x /drone/terraform-provider-grafana/terraform
-  image: hashicorp/terraform
-  name: download-terraform
-- commands:
-  - .drone/wait-for-instance.sh $${GRAFANA_URL}
-  environment:
-    GRAFANA_URL:
-      from_secret: grafana-cloud-instance-url
-  image: golang:1.21
-  name: wait for instance
-- commands:
-  - make testacc-cloud-instance
-  environment:
-    GRAFANA_AUTH:
-      from_secret: grafana-api-token
-    GRAFANA_ONCALL_ACCESS_TOKEN:
-      from_secret: grafana-oncall-token
-    GRAFANA_SM_ACCESS_TOKEN:
-      from_secret: grafana-sm-token
-    GRAFANA_URL:
-      from_secret: grafana-cloud-instance-url
-    TF_ACC_TERRAFORM_PATH: /drone/terraform-provider-grafana/terraform
-  image: golang:1.21
-  name: tests
-trigger:
-  branch:
-  - master
-  event:
-  - pull_request
-  - push
-type: docker
-workspace:
-  path: /drone/terraform-provider-grafana
----
 kind: pipeline
 name: enterprise tests
 platform:
@@ -328,48 +252,12 @@ workspace:
   path: /drone/terraform-provider-grafana
 ---
 get:
-  name: api-key
-  path: infra/data/ci/terraform-provider-grafana/cloud
-kind: secret
-name: grafana-api-token
----
-get:
-  name: cloud-api-key
-  path: infra/data/ci/terraform-provider-grafana/cloud
-kind: secret
-name: grafana-cloud-api-key
----
-get:
-  name: cloud-instance-url
-  path: infra/data/ci/terraform-provider-grafana/cloud
-kind: secret
-name: grafana-cloud-instance-url
----
-get:
-  name: cloud-org
-  path: infra/data/ci/terraform-provider-grafana/cloud
-kind: secret
-name: grafana-cloud-org
----
-get:
   name: license.jwt
   path: infra/data/ci/terraform-provider-grafana/enterprise
 kind: secret
 name: grafana-enterprise-license
 ---
-get:
-  name: oncall-access-token
-  path: infra/data/ci/terraform-provider-grafana/cloud
-kind: secret
-name: grafana-oncall-token
----
-get:
-  name: sm-access-token
-  path: infra/data/ci/terraform-provider-grafana/cloud
-kind: secret
-name: grafana-sm-token
----
 kind: signature
-hmac: 061cdfaa7468af8377979354d7c30181a55d80187451663d4859d0354b5eea0c
+hmac: b2a4d2fd6fbb38a3ea38005a45cfd6db865fb1e0997e5084e00261d05553a240
 
 ...

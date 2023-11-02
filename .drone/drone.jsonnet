@@ -31,16 +31,6 @@ local fromSecret(secret) = {
 };
 
 local secrets = {
-  // Grafana Cloud API test secrets
-  cloudOrg: secret('grafana-cloud-org', 'infra/data/ci/terraform-provider-grafana/cloud', 'cloud-org'),
-  cloudApiKey: secret('grafana-cloud-api-key', 'infra/data/ci/terraform-provider-grafana/cloud', 'cloud-api-key'),
-
-  // Grafana Cloud Instance test secrets
-  cloudInstanceUrl: secret('grafana-cloud-instance-url', 'infra/data/ci/terraform-provider-grafana/cloud', 'cloud-instance-url'),
-  apiToken: secret('grafana-api-token', 'infra/data/ci/terraform-provider-grafana/cloud', 'api-key'),
-  smToken: secret('grafana-sm-token', 'infra/data/ci/terraform-provider-grafana/cloud', 'sm-access-token'),
-  onCallToken: secret('grafana-oncall-token', 'infra/data/ci/terraform-provider-grafana/cloud', 'oncall-access-token'),
-
   // Grafana Enterprise
   enterpriseLicense: secret('grafana-enterprise-license', 'infra/data/ci/terraform-provider-grafana/enterprise', 'license.jwt'),
 };
@@ -115,55 +105,6 @@ local localTestPipeline(
   );
 
 [
-  pipeline(
-    'cloud api tests',
-    steps=[
-      installTerraformStep,
-      {
-        name: 'tests',
-        image: images.go,
-        commands: [
-          'make testacc-cloud-api',
-        ],
-        environment: {
-          GRAFANA_CLOUD_API_KEY: fromSecret(secrets.cloudApiKey),
-          GRAFANA_CLOUD_ORG: fromSecret(secrets.cloudOrg),
-          TF_ACC_TERRAFORM_PATH: terraformPath,
-        },
-      },
-    ]
-  )
-  + withConcurrencyLimit(1)
-  + onPromoteTrigger,
-
-  pipeline(
-    'cloud instance tests',
-    steps=[
-      installTerraformStep,
-      {
-        name: 'wait for instance',
-        image: images.go,
-        commands: ['.drone/wait-for-instance.sh $${GRAFANA_URL}'],
-        environment: {
-          GRAFANA_URL: fromSecret(secrets.cloudInstanceUrl),
-        },
-      },
-      {
-        name: 'tests',
-        image: images.go,
-        commands: ['make testacc-cloud-instance'],
-        environment: {
-          GRAFANA_URL: fromSecret(secrets.cloudInstanceUrl),
-          GRAFANA_AUTH: fromSecret(secrets.apiToken),
-          GRAFANA_SM_ACCESS_TOKEN: fromSecret(secrets.smToken),
-          GRAFANA_ONCALL_ACCESS_TOKEN: fromSecret(secrets.onCallToken),
-          TF_ACC_TERRAFORM_PATH: terraformPath,
-        },
-      },
-    ]
-  )
-  + withConcurrencyLimit(1),
-
   // Grafana Enterprise tests
   localTestPipeline(
     grafanaVersions[0],

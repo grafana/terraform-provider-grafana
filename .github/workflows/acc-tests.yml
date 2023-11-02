@@ -1,0 +1,39 @@
+name: acceptance tests
+on:
+  pull_request: {}
+  push:
+    branches:
+      - main
+      - master
+
+# These permissions are needed to assume roles from Github's OIDC.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  cloudinstance:
+    concurrency: cloud-instance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with: 
+          go-version: '1.21'
+      - uses: hashicorp/setup-terraform@v3
+      - name: Get Secrets
+        uses: grafana/shared-workflows/actions/get-vault-secrets@main
+        with:
+          repo_secrets: |
+            GRAFANA_AUTH=cloud-instance-tests:auth
+            GRAFANA_ONCALL_ACCESS_TOKEN=cloud-instance-tests:oncall-token
+            GRAFANA_SM_ACCESS_TOKEN=cloud-instance-tests:sm-token
+            GRAFANA_URL=cloud-instance-tests:url
+      - uses: iFaxity/wait-on-action@v1.1.0
+        with:
+          resource: ${{ env.GRAFANA_URL }}
+          interval: 2000 # 2s
+          timeout: 30000 # 30s
+      - run: make testacc-cloud-instance
+          
+  # TODO: Enterprise + OSS tests
