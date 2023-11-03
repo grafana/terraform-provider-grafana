@@ -74,6 +74,8 @@ func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 
 	ret["query"] = unpackQuery(slo.Query)
 
+	ret["destination_datasource"] = unpackDestinationDatasource(slo.DestinationDatasource)
+
 	retLabels := unpackLabels(&slo.Labels)
 	ret["label"] = retLabels
 
@@ -187,4 +189,16 @@ func unpackAlertingMetadata(metaData gapi.AlertingMetadata) []map[string]interfa
 
 	retAlertMetaData = append(retAlertMetaData, labelsAnnotsStruct)
 	return retAlertMetaData
+}
+
+func unpackDestinationDatasource(destinationDatasource *gapi.DestinationDatasource) []map[string]interface{} {
+	retDestinationDatasources := []map[string]interface{}{}
+
+	retDestinationDatasource := make(map[string]interface{})
+	retDestinationDatasource["type"] = destinationDatasource.Type
+	retDestinationDatasource["uid"] = destinationDatasource.UID
+
+	retDestinationDatasources = append(retDestinationDatasources, retDestinationDatasource)
+
+	return retDestinationDatasources
 }

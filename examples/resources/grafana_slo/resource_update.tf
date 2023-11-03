@@ -11,6 +11,10 @@ resource "grafana_slo" "update" {
     value  = 0.9995
     window = "7d"
   }
+  destination_datasource {
+    type = "mimir"
+    uid  = "grafanacloud-prom"
+  }
   label {
     key   = "slo"
     value = "terraform"

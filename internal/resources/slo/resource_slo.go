@@ -42,6 +42,26 @@ Resource manages Grafana SLOs.
 				Description:  `Description is a free-text field that can provide more context to an SLO.`,
 				ValidateFunc: validation.StringLenBetween(0, 1024),
 			},
+			"destination_datasource": &schema.Schema{
+				Type:        schema.TypeList,
+				MaxItems:    1,
+				Optional:    true,
+				Description: `Destination Datasource sets the datasource defined for an SLO`,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"uid": &schema.Schema{
+							Type:        schema.TypeString,
+							Description: `UID for the Mimir Datasource`,
+							Optional:    true,
+						},
+						"type": &schema.Schema{
+							Type:        schema.TypeString,
+							Description: `Datasource Type - set to 'mimir'`,
+							Optional:    true,
+						},
+					},
+				},
+			},
 			"query": &schema.Schema{
 				Type:        schema.TypeList,
 				Required:    true,
@@ -267,7 +287,7 @@ func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{
 	var diags diag.Diagnostics
 	sloID := d.Id()
 
-	if d.HasChange("name") || d.HasChange("description") || d.HasChange("query") || d.HasChange("label") || d.HasChange("objectives") || d.HasChange("alerting") {
+	if d.HasChange("name") || d.HasChange("description") || d.HasChange("query") || d.HasChange("label") || d.HasChange("objectives") || d.HasChange("alerting") || d.HasChange("destination_datasource") {
 		slo, err := packSloResource(d)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
@@ -306,8 +326,9 @@ func resourceSloDelete(ctx context.Context, d *schema.ResourceData, m interface{
 // to a Slo so that it can be converted to JSON and sent to the API
 func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 	var (
-		tfalerting gapi.Alerting
-		tflabels   []gapi.Label
+		tfalerting              gapi.Alerting
+		tflabels                []gapi.Label
+		tfdestinationdatasource gapi.DestinationDatasource
 	)
 
 	tfname := d.Get("name").(string)
@@ -327,15 +348,17 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 	}
 
 	slo := gapi.Slo{
-		UUID:        d.Id(),
-		Name:        tfname,
-		Description: tfdescription,
-		Objectives:  tfobjective,
-		Query:       tfquery,
-		Alerting:    nil,
-		Labels:      tflabels,
+		UUID:                  d.Id(),
+		Name:                  tfname,
+		Description:           tfdescription,
+		Objectives:            tfobjective,
+		Query:                 tfquery,
+		Alerting:              nil,
+		Labels:                tflabels,
+		DestinationDatasource: nil,
 	}
 
+	// Check the Optional Alerting Field
 	if alerting, ok := d.GetOk("alerting"); ok {
 		alertData := alerting.([]interface{})
 
@@ -349,7 +372,37 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 		slo.Alerting = &tfalerting
 	}
 
+	// Check the Optional Destination Datasource Field
+	if rawdestinationdatasource, ok := d.GetOk("destination_datasource"); ok {
+		destinationDatasourceData := rawdestinationdatasource.([]interface{})
+
+		// if the destination_datasource field is an empty block, destination[0] has a value of nil
+		if destinationDatasourceData[0] != nil {
+			// only pack the destinationDatasource TF fields if the user populates the Destination field with blocks
+			destinationdatasource := destinationDatasourceData[0].(map[string]interface{})
+			tfdestinationdatasource, _ = packDestinationDatasource(destinationdatasource)
+		}
+
+		slo.DestinationDatasource = &tfdestinationdatasource
+	}
+
 	return slo, nil
+}
+
+func packDestinationDatasource(destinationdatasource map[string]interface{}) (gapi.DestinationDatasource, error) {
+	packedDestinationDatasource := gapi.DestinationDatasource{}
+
+	if destinationdatasource["type"].(string) != "" {
+		datasourceType := destinationdatasource["type"].(string)
+		packedDestinationDatasource.Type = datasourceType
+	}
+
+	if destinationdatasource["uid"].(string) != "" {
+		datasourceUID := destinationdatasource["uid"].(string)
+		packedDestinationDatasource.UID = datasourceUID
+	}
+
+	return packedDestinationDatasource, nil
 }
 
 func packQuery(query map[string]interface{}) (gapi.Query, error) {
@@ -385,11 +438,11 @@ func packQuery(query map[string]interface{}) (gapi.Query, error) {
 			Ratio: &gapi.RatioQuery{
 				SuccessMetric: gapi.MetricDef{
 					PrometheusMetric: successMetric,
-					Type:             nil,
+					Type:             "",
 				},
 				TotalMetric: gapi.MetricDef{
 					PrometheusMetric: totalMetric,
-					Type:             nil,
+					Type:             "",
 				},
 				GroupByLabels: labels,
 			},
@@ -481,6 +534,9 @@ func setTerraformState(d *schema.ResourceData, slo gapi.Slo) {
 
 	retLabels := unpackLabels(&slo.Labels)
 	d.Set("label", retLabels)
+
+	retDestinationDatasource := unpackDestinationDatasource(slo.DestinationDatasource)
+	d.Set("destination_datasource", retDestinationDatasource)
 
 	retObjectives := unpackObjectives(slo.Objectives)
 	d.Set("objectives", retObjectives)

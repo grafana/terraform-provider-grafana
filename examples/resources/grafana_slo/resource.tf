@@ -11,6 +11,10 @@ resource "grafana_slo" "test" {
     value  = 0.995
     window = "30d"
   }
+  destination_datasource {
+    type = "mimir"
+    uid  = "grafanacloud-prom"
+  }
   label {
     key   = "slo"
     value = "terraform"
