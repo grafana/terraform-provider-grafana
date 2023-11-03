@@ -7,6 +7,7 @@ import (
 	gapi "github.com/grafana/grafana-api-golang-client"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/annotations"
+	"github.com/grafana/grafana-openapi-client-go/client/folders"
 	"github.com/grafana/grafana-openapi-client-go/client/teams"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -31,9 +32,15 @@ var (
 		},
 	)
 	folderCheckExists = newCheckExistsHelper(
-		func(f *models.Folder) string { return f.UID },
+		func(f *models.Folder) string { return strconv.FormatInt(f.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Folder, error) {
-			return grafana.GetFolderByIDorUID(client.Folders, id)
+			idInt, _ := strconv.ParseInt(id, 10, 64)
+			params := folders.NewGetFolderByIDParams().WithFolderID(idInt)
+			folder, err := client.Folders.GetFolderByID(params, nil)
+			if err != nil {
+				return nil, err
+			}
+			return folder.GetPayload(), nil
 		},
 	)
 	teamCheckExists = newCheckExistsHelper(
@@ -110,7 +117,7 @@ func (h *checkExistsHelper[T]) destroyed(v *T, org *gapi.Org) resource.TestCheck
 		id := h.getIDFunc(v)
 		_, err := h.getResourceFunc(client, id)
 		if err == nil {
-			return fmt.Errorf("resource %s still exists in org %d", id, orgID)
+			return fmt.Errorf("%T %s still exists in org %d", v, id, orgID)
 		} else if !common.IsNotFoundError(err) {
 			return fmt.Errorf("error checking if resource %s exists in org %d: %s", id, orgID, err)
 		}
