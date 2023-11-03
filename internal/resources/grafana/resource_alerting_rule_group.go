@@ -37,6 +37,7 @@ This resource requires Grafana 9.1.0 or later.
 
 		SchemaVersion: 0,
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -53,12 +54,6 @@ This resource requires Grafana 9.1.0 or later.
 				Type:        schema.TypeInt,
 				Required:    true,
 				Description: "The interval, in seconds, at which all rules in the group are evaluated. If a group contains many rules, the rules are evaluated sequentially.",
-			},
-			"org_id": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The ID of the org to which the group belongs.",
 			},
 			"rule": {
 				Type:        schema.TypeList,
@@ -192,9 +187,9 @@ This resource requires Grafana 9.1.0 or later.
 }
 
 func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID, idStr := ClientFromExistingOrgResource(meta, data.Id())
 
-	key := UnpackGroupID(data.Id())
+	key := UnpackGroupID(idStr)
 
 	group, err := client.AlertRuleGroup(key.FolderUID, key.Name)
 	if err, shouldReturn := common.CheckReadError("rule group", data, err); shouldReturn {
@@ -204,13 +199,13 @@ func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta int
 	if err := packRuleGroup(group, data); err != nil {
 		return diag.FromErr(err)
 	}
-	data.SetId(packGroupID(ruleKeyFromGroup(group)))
+	data.SetId(MakeOrgResourceID(orgID, packGroupID(ruleKeyFromGroup(group))))
 
 	return nil
 }
 
 func createAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID := ClientFromNewOrgResource(meta, data)
 
 	group, err := unpackRuleGroup(data)
 	if err != nil {
@@ -222,31 +217,29 @@ func createAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta i
 		return diag.FromErr(err)
 	}
 
-	data.SetId(packGroupID(key))
+	data.SetId(MakeOrgResourceID(orgID, packGroupID(key)))
 	return readAlertRuleGroup(ctx, data, meta)
 }
 
 func updateAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _, _ := ClientFromExistingOrgResource(meta, data.Id())
 
 	group, err := unpackRuleGroup(data)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	key := ruleKeyFromGroup(group)
 
 	if err = client.SetAlertRuleGroup(group); err != nil {
 		return diag.FromErr(err)
 	}
 
-	data.SetId(packGroupID(key))
 	return readAlertRuleGroup(ctx, data, meta)
 }
 
 func deleteAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, _, idStr := ClientFromExistingOrgResource(meta, data.Id())
 
-	key := UnpackGroupID(data.Id())
+	key := UnpackGroupID(idStr)
 
 	group, err := client.AlertRuleGroup(key.FolderUID, key.Name)
 	if err != nil {
