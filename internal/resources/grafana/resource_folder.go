@@ -55,6 +55,12 @@ func ResourceFolder() *schema.Resource {
 				Default:     false,
 				Description: "Prevent deletion of the folder if it is not empty (contains dashboards or alert rules).",
 			},
+			"parent_folder_uid": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "The uid of the parent folder. If set, the folder will be nested. If not set, the folder will be created in the root folder.",
+			},
 		},
 	}
 }
@@ -71,6 +77,10 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 		body.UID = uid.(string)
 	}
 
+	if parentUID, ok := d.GetOk("parent_folder_uid"); ok {
+		body.ParentUID = parentUID.(string)
+	}
+
 	params := goapi.NewCreateFolderParams().WithBody(&body)
 	resp, err := client.Folders.CreateFolder(params, nil)
 	if err != nil {
@@ -79,8 +89,6 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 
 	folder := resp.GetPayload()
 	d.SetId(MakeOrgResourceID(orgID, folder.ID))
-	d.Set("uid", folder.UID)
-	d.Set("title", folder.Title)
 
 	return ReadFolder(ctx, d, meta)
 }
@@ -121,6 +129,7 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	d.Set("title", folder.Title)
 	d.Set("uid", folder.UID)
 	d.Set("url", metaClient.GrafanaSubpath(folder.URL))
+	d.Set("parent_folder_uid", folder.ParentUID)
 
 	return nil
 }

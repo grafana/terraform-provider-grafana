@@ -98,6 +98,78 @@ func TestAccFolder_basic(t *testing.T) {
 	})
 }
 
+func TestAccFolder_nested(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Switch to OSS once nested folders are enabled by default
+
+	var parentFolder goapi.Folder
+	var childFolder1 goapi.Folder
+	var childFolder2 goapi.Folder
+	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			folderCheckExists.destroyed(&parentFolder, nil),
+			folderCheckExists.destroyed(&childFolder1, nil),
+			folderCheckExists.destroyed(&childFolder2, nil),
+		),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource grafana_folder parent {
+	title = "Nested Test: Parent %[1]s"
+}
+
+resource grafana_folder child1 {
+	title = "Nested Test: Child 1 %[1]s"
+	uid = "%[1]s-child1"
+	parent_folder_uid = grafana_folder.parent.uid
+}
+
+resource grafana_folder child2 {
+	title = "Nested Test: Child 2 %[1]s"
+	parent_folder_uid = grafana_folder.child1.uid
+}
+`, name),
+				Check: resource.ComposeTestCheckFunc(
+					folderCheckExists.exists("grafana_folder.parent", &parentFolder),
+					resource.TestMatchResourceAttr("grafana_folder.parent", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.parent", "title", "Nested Test: Parent "+name),
+					resource.TestCheckResourceAttr("grafana_folder.parent", "parent_folder_uid", ""),
+
+					folderCheckExists.exists("grafana_folder.child1", &childFolder1),
+					resource.TestMatchResourceAttr("grafana_folder.child1", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.child1", "title", "Nested Test: Child 1 "+name),
+					resource.TestCheckResourceAttrSet("grafana_folder.child1", "parent_folder_uid"),
+
+					folderCheckExists.exists("grafana_folder.child2", &childFolder2),
+					resource.TestMatchResourceAttr("grafana_folder.child2", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_folder.child2", "title", "Nested Test: Child 2 "+name),
+					resource.TestCheckResourceAttr("grafana_folder.child2", "parent_folder_uid", name+"-child1"),
+				),
+			},
+			{
+				ResourceName:            "grafana_folder.parent",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"prevent_destroy_if_not_empty"},
+			},
+			{
+				ResourceName:            "grafana_folder.child1",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"prevent_destroy_if_not_empty"},
+			},
+			{
+				ResourceName:            "grafana_folder.child2",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"prevent_destroy_if_not_empty"},
+			},
+		},
+	})
+}
+
 func TestAccFolder_PreventDeletion(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
