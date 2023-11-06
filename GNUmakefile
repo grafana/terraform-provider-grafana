@@ -39,7 +39,7 @@ testacc-enterprise-docker:
 
 	docker compose down
 
-testacc-oss-docker-tls:
+testacc-tls-docker:
 	make -C testdata generate
 	GRAFANA_VERSION=$(GRAFANA_VERSION) docker compose --profile tls up --force-recreate --detach --remove-orphans --wait
 
@@ -53,7 +53,7 @@ testacc-oss-docker-tls:
 
 	docker compose --profile tls down
 
-testacc-oss-docker-subpath:
+testacc-subpath-docker:
 	GRAFANA_VERSION=$(GRAFANA_VERSION) GRAFANA_SUBPATH=/grafana/ GF_SERVER_SERVE_FROM_SUB_PATH=true docker compose up --force-recreate --detach --remove-orphans --wait
 
 	GRAFANA_VERSION=$(GRAFANA_VERSION) \
