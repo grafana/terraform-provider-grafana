@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
-	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -96,7 +95,7 @@ func findDashboardWithID(client *gapi.Client, id int64) (*gapi.FolderDashboardSe
 }
 
 func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	gapiURL := meta.(*common.Client).GrafanaAPIURL
+	metaClient := meta.(*common.Client)
 	var dashboard *gapi.Dashboard
 	client := meta.(*common.Client).GrafanaAPI
 
@@ -129,7 +128,7 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta i
 	d.Set("folder", dashboard.FolderID)
 	d.Set("is_starred", dashboard.Meta.IsStarred)
 	d.Set("slug", dashboard.Meta.Slug)
-	d.Set("url", strings.TrimRight(gapiURL, "/")+dashboard.Meta.URL)
+	d.Set("url", metaClient.GrafanaSubpath(dashboard.Meta.URL))
 
 	return nil
 }

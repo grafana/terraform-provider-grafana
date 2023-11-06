@@ -23,7 +23,7 @@ testacc-oss-docker:
 	GRAFANA_VERSION=$(GRAFANA_VERSION) docker compose up --force-recreate --detach --remove-orphans --wait
 
 	GRAFANA_VERSION=$(GRAFANA_VERSION) \
-	GRAFANA_URL="http://localhost:3000" \
+	GRAFANA_URL="http://127.0.0.1:3000" \
 	GRAFANA_AUTH="admin:admin" \
 	make testacc-oss
 
@@ -33,7 +33,7 @@ testacc-enterprise-docker:
 	GRAFANA_IMAGE=grafana/grafana-enterprise GRAFANA_VERSION=$(GRAFANA_VERSION) docker compose up --force-recreate --detach --remove-orphans --wait
 
 	GRAFANA_VERSION=$(GRAFANA_VERSION) \
-	GRAFANA_URL="http://localhost:3000" \
+	GRAFANA_URL="http://127.0.0.1:3000" \
 	GRAFANA_AUTH="admin:admin" \
 	make testacc-enterprise
 
@@ -44,7 +44,7 @@ testacc-tls-docker:
 	GRAFANA_VERSION=$(GRAFANA_VERSION) docker compose --profile tls up --force-recreate --detach --remove-orphans --wait
 
 	GRAFANA_VERSION=$(GRAFANA_VERSION) \
-	GRAFANA_URL="https://localhost:3001" \
+	GRAFANA_URL="https://127.0.0.1:3001" \
 	GRAFANA_AUTH="admin:admin" \
 	GRAFANA_TLS_KEY=$$(pwd)/testdata/client.key \
     GRAFANA_TLS_CERT=$$(pwd)/testdata/client.crt \
@@ -57,7 +57,7 @@ testacc-subpath-docker:
 	GRAFANA_VERSION=$(GRAFANA_VERSION) GRAFANA_SUBPATH=/grafana/ GF_SERVER_SERVE_FROM_SUB_PATH=true docker compose up --force-recreate --detach --remove-orphans --wait
 
 	GRAFANA_VERSION=$(GRAFANA_VERSION) \
-	GRAFANA_URL="http://localhost:3000/grafana" \
+	GRAFANA_URL="http://127.0.0.1:3000/grafana" \
 	GRAFANA_AUTH="admin:admin" \
 	make testacc-oss
 
