@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/url"
 	"strconv"
-	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	goapi "github.com/grafana/grafana-openapi-client-go/client/folders"
@@ -110,7 +109,7 @@ func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 }
 
 func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	gapiURL := meta.(*common.Client).GrafanaAPIURL
+	metaClient := meta.(*common.Client)
 	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	folder, err := GetFolderByIDorUID(client.Folders, idStr)
@@ -122,7 +121,7 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	d.Set("org_id", strconv.FormatInt(orgID, 10))
 	d.Set("title", folder.Title)
 	d.Set("uid", folder.UID)
-	d.Set("url", strings.TrimRight(gapiURL, "/")+folder.URL)
+	d.Set("url", metaClient.GrafanaSubpath(folder.URL))
 
 	return nil
 }

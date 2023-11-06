@@ -44,19 +44,21 @@ jobs:
         version: ['10.2.0', '10.1.5', '9.5.13', '8.5.27']
         with_enterprise_license: [false]
         with_tls_proxy: [false]
+        with_subpath: [false]
         runner: ['ubuntu-latest-16-cores']
         include:
           # TLS proxy tests, run only on latest version
           - version: '10.2.0'
-            with_enterprise_license: false
             with_tls_proxy: true
-            runner: 'ubuntu-latest' # Smaller instance for TLS proxy tests
+            runner: 'ubuntu-latest' # Smaller instance
+          # Sub-path tests. Runs tests on localhost:3000/grafana/
+          - version: '10.2.0'
+            with_subpath: true
           # Enterprise tests, run only on latest version
           - version: '10.2.0'
             with_enterprise_license: true
-            with_tls_proxy: false
-            runner: 'ubuntu-latest' # Smaller instance for TLS proxy tests
-    name: ${{ matrix.version }}${{ matrix.with_enterprise_license && ' - Enterprise' || '' }}${{ matrix.with_tls_proxy && ' - TLS Proxy' || '' }}
+            runner: 'ubuntu-latest' # Smaller instance
+    name: ${{ matrix.version }}${{ matrix.with_enterprise_license && ' - Enterprise' || '' }}${{ matrix.with_tls_proxy && ' - TLS Proxy' || '' }}${{ matrix.with_subpath && ' - Subpath' || '' }}
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -73,7 +75,7 @@ jobs:
         with:
           repo_secrets: |
             GF_ENTERPRISE_LICENSE_TEXT=enterprise:license
-      - run: make testacc-${{ matrix.with_enterprise_license && 'enterprise' || 'oss' }}-docker${{ matrix.with_tls_proxy && '-tls' || '' }}
+      - run: make testacc-${{ matrix.with_enterprise_license && 'enterprise' || 'oss' }}-docker${{ matrix.with_tls_proxy && '-tls' || '' }}${{ matrix.with_subpath && '-subpath' || '' }}
         env:
           GRAFANA_VERSION: ${{ matrix.version }}
           TESTARGS: ${{ matrix.with_tls_proxy && '-run ".*_basic"' || '' }} # Run subset of tests for TLS proxy, it's slower

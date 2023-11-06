@@ -1,6 +1,8 @@
 package common
 
 import (
+	"net/url"
+	"strings"
 	"sync"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
@@ -11,10 +13,11 @@ import (
 )
 
 type Client struct {
-	GrafanaAPIURL    string
-	GrafanaAPIConfig *gapi.Config
-	GrafanaAPI       *gapi.Client
-	GrafanaCloudAPI  *gapi.Client
+	GrafanaAPIURL       string
+	GrafanaAPIURLParsed *url.URL
+	GrafanaAPIConfig    *gapi.Config
+	GrafanaAPI          *gapi.Client
+	GrafanaCloudAPI     *gapi.Client
 
 	GrafanaOAPI *goapi.GrafanaHTTPAPI
 
@@ -25,4 +28,9 @@ type Client struct {
 	OnCallClient *onCallAPI.Client
 
 	AlertingMutex sync.Mutex
+}
+
+func (c *Client) GrafanaSubpath(path string) string {
+	path = strings.TrimPrefix(path, c.GrafanaAPIURLParsed.Path)
+	return c.GrafanaAPIURLParsed.JoinPath(path).String()
 }
