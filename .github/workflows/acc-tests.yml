@@ -40,23 +40,24 @@ jobs:
     strategy:
       fail-fast: false # Let all versions run, even if one fails
       matrix:
-          # OSS tests, run on all versions
+        # OSS tests, run on all versions
         version: ['10.2.0', '10.1.5', '9.5.13', '8.5.27']
-        with_enterprise_license: [false]
-        with_tls_proxy: [false]
+        type: ['oss']
         runner: ['ubuntu-latest-16-cores']
         include:
           # TLS proxy tests, run only on latest version
           - version: '10.2.0'
-            with_enterprise_license: false
-            with_tls_proxy: true
-            runner: 'ubuntu-latest' # Smaller instance for TLS proxy tests
+            type: 'tls'
+            runner: 'ubuntu-latest' # Smaller instance
+          # Sub-path tests. Runs tests on localhost:3000/grafana/
+          - version: '10.2.0'
+            type: 'subpath'
+            runner: 'ubuntu-latest-16-cores'
           # Enterprise tests, run only on latest version
           - version: '10.2.0'
-            with_enterprise_license: true
-            with_tls_proxy: false
-            runner: 'ubuntu-latest' # Smaller instance for TLS proxy tests
-    name: ${{ matrix.version }}${{ matrix.with_enterprise_license && ' - Enterprise' || '' }}${{ matrix.with_tls_proxy && ' - TLS Proxy' || '' }}
+            type: 'enterprise'
+            runner: 'ubuntu-latest' # Smaller instance
+    name: ${{ matrix.version }} - ${{ matrix.type }}
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -69,11 +70,11 @@ jobs:
           version: '2.23.0'
       - name: Get Enterprise License
         uses: grafana/shared-workflows/actions/get-vault-secrets@main
-        if: matrix.with_enterprise_license
+        if: matrix.type == 'enterprise'
         with:
           repo_secrets: |
             GF_ENTERPRISE_LICENSE_TEXT=enterprise:license
-      - run: make testacc-${{ matrix.with_enterprise_license && 'enterprise' || 'oss' }}-docker${{ matrix.with_tls_proxy && '-tls' || '' }}
+      - run: make testacc-${{ matrix.type }}-docker
         env:
           GRAFANA_VERSION: ${{ matrix.version }}
-          TESTARGS: ${{ matrix.with_tls_proxy && '-run ".*_basic"' || '' }} # Run subset of tests for TLS proxy, it's slower
+          TESTARGS: ${{ matrix.type == 'tls' && '-run ".*_basic"' || '' }} # Run subset of tests for TLS proxy, it's slower

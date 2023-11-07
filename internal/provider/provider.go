@@ -331,6 +331,9 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			if err != nil {
 				return nil, diag.FromErr(err)
 			}
+			if c.GrafanaAPIURLParsed, err = url.Parse(c.GrafanaAPIURL); err != nil {
+				return nil, diag.FromErr(err)
+			}
 			c.GrafanaOAPI, err = createGrafanaOAPIClient(c.GrafanaAPIURL, d)
 			if err != nil {
 				return nil, diag.FromErr(err)
