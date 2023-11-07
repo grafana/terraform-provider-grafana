@@ -48,7 +48,7 @@ resource "grafana_data_source_permission" "fooPermissions" {
   datasource_id = grafana_data_source.foo.id
   permissions {
     team_id    = grafana_team.team.id
-    permission = "Query"
+    permission = "Admin"
   }
   permissions {
     user_id    = grafana_user.user.id
@@ -86,7 +86,7 @@ resource "grafana_data_source_permission" "fooPermissions" {
 
 Required:
 
-- `permission` (String) Permission to associate with item. Options: `Query` or `Edit` (`Edit` can only be used with Grafana v9.2.3+).
+- `permission` (String) Permission to associate with item. Options: `Query`, `Edit` or `Admin` (`Admin` can only be used with Grafana v10.3.0+).
 
 Optional:
 
