@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDatasourceRole(t *testing.T) {
+func TestAccDatasourceRole_basic(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 
 	var role gapi.Role

@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDatasourceOrganization(t *testing.T) {
+func TestAccDatasourceOrganization_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	var organization gapi.Org

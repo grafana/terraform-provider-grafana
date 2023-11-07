@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDatasourceDashboardBasicID(t *testing.T) {
+func TestAccDatasourceDashboard_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	var dashboard gapi.Dashboard

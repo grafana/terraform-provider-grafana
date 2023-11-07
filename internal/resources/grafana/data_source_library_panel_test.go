@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDatasourceLibraryPanel(t *testing.T) {
+func TestAccDatasourceLibraryPanel_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
 
 	var panel gapi.LibraryPanel
