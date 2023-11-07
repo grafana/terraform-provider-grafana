@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestAccGrafanaAuthKey(t *testing.T) {
+func TestAccGrafanaAuthKey_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	testName := acctest.RandString(10)

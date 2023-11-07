@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDatasourceDatasource(t *testing.T) {
+func TestAccDatasourceDatasource_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	var dataSource gapi.DataSource

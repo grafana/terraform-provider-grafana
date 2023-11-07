@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestAccResourceReport(t *testing.T) {
+func TestAccResourceReport_basic(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 
 	var report gapi.Report

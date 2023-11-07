@@ -198,7 +198,10 @@ func TestAccOrganization_roleNoneUser(t *testing.T) {
 	})
 }
 
-func TestAccOrganization_createManyUsers(t *testing.T) {
+func TestAccOrganization_createManyUsers_longtest(t *testing.T) {
+	if testing.Short() { // Also named "longtest" to allow targeting with -run=.*longtest
+		t.Skip("skipping test in short mode")
+	}
 	testutils.CheckOSSTestsEnabled(t)
 
 	var org gapi.Org

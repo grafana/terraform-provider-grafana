@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDatasourceFolder(t *testing.T) {
+func TestAccDatasourceFolder_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	var folder goapi.Folder
