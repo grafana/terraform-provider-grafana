@@ -119,7 +119,7 @@ func getServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, m
 		return nil, diag.FromErr(err)
 	}
 
-	saPermissions, err := client.GetServiceAccountPermissions(id)
+	saPermissions, err := client.ListServiceAccountResourcePermissions(id)
 	if err, shouldReturn := common.CheckReadError("service account permissions", d, err); shouldReturn {
 		return nil, err
 	}
@@ -163,12 +163,12 @@ func updateServiceAccountPermissions(client *gapi.Client, idStr string, from, to
 		}
 	}
 
-	permissionList := gapi.ServiceAccountPermissionItems{}
+	var permissionList []gapi.SetResourcePermissionItem
 
 	// Iterate over permissions from the configuration (the desired permission setup)
 	for _, p := range listOrSet(to) {
 		permission := p.(map[string]interface{})
-		permissionItem := gapi.ServiceAccountPermissionItem{}
+		permissionItem := gapi.SetResourcePermissionItem{}
 		_, teamIDStr := SplitOrgResourceID(permission["team_id"].(string))
 		teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
 		_, userIDStr := SplitOrgResourceID(permission["user_id"].(string))
@@ -194,24 +194,25 @@ func updateServiceAccountPermissions(client *gapi.Client, idStr string, from, to
 			permissionItem.UserID = userID
 		}
 		permissionItem.Permission = permission["permission"].(string)
-		permissionList.Permissions = append(permissionList.Permissions, &permissionItem)
+		permissionList = append(permissionList, permissionItem)
 	}
 
 	// Remove the permissions that are in the state but not in the config
 	for teamID := range oldTeamPerms {
-		permissionList.Permissions = append(permissionList.Permissions, &gapi.ServiceAccountPermissionItem{
+		permissionList = append(permissionList, gapi.SetResourcePermissionItem{
 			TeamID:     teamID,
 			Permission: "",
 		})
 	}
 	for userID := range oldUserPerms {
-		permissionList.Permissions = append(permissionList.Permissions, &gapi.ServiceAccountPermissionItem{
+		permissionList = append(permissionList, gapi.SetResourcePermissionItem{
 			UserID:     userID,
 			Permission: "",
 		})
 	}
 
-	return client.UpdateServiceAccountPermissions(id, &permissionList)
+	_, err = client.SetServiceAccountResourcePermissions(id, gapi.SetResourcePermissionsBody{Permissions: permissionList})
+	return err
 }
 
 func listOrSet(v interface{}) []interface{} {
