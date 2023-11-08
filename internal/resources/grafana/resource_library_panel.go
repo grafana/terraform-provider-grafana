@@ -8,7 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/client/library_elements"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
@@ -113,25 +114,28 @@ Manages Grafana library panels.
 }
 
 func createLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _ := ClientFromNewOrgResource(meta, d)
+	client, _ := OAPIClientFromNewOrgResource(meta, d)
 
 	panel := makeLibraryPanel(d)
-	resp, err := client.NewLibraryPanel(panel)
+	params := library_elements.NewCreateLibraryElementParams().WithBody(&panel)
+	resp, err := client.LibraryElements.CreateLibraryElement(params, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(MakeOrgResourceID(resp.OrgID, resp.UID))
+	createdPanel := resp.Payload.Result
+	d.SetId(MakeOrgResourceID(createdPanel.OrgID, createdPanel.UID))
 	return readLibraryPanel(ctx, d, meta)
 }
 
 func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID, uid := ClientFromExistingOrgResource(meta, d.Id())
+	client, orgID, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	panel, err := client.LibraryPanelByUID(uid)
-	var diags diag.Diagnostics
+	params := library_elements.NewGetLibraryElementByUIDParams().WithLibraryElementUID(uid)
+	resp, err := client.LibraryElements.GetLibraryElementByUID(params, nil)
 	if err, shouldReturn := common.CheckReadError("library panel", d, err); shouldReturn {
 		return err
 	}
+	panel := resp.Payload.Result
 
 	modelJSONBytes, err := json.Marshal(panel.Model)
 	if err != nil {
@@ -147,7 +151,7 @@ func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 	d.Set("uid", panel.UID)
 	d.Set("panel_id", panel.ID)
 	d.Set("org_id", strconv.FormatInt(panel.OrgID, 10))
-	d.Set("folder_id", MakeOrgResourceID(orgID, panel.Folder))
+	d.Set("folder_id", MakeOrgResourceID(orgID, panel.FolderID))
 	d.Set("description", panel.Description)
 	d.Set("type", panel.Type)
 	d.Set("name", panel.Name)
@@ -158,53 +162,67 @@ func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 	d.Set("created", panel.Meta.Created.String())
 	d.Set("updated", panel.Meta.Updated.String())
 
-	connections, err := client.LibraryPanelConnections(uid)
+	getConnParams := library_elements.NewGetLibraryElementConnectionsParams().WithLibraryElementUID(uid)
+	connResp, err := client.LibraryElements.GetLibraryElementConnections(getConnParams, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	connections := connResp.Payload.Result
 
-	dashboardIds := make([]int64, 0, len(*connections))
-	for _, connection := range *connections {
-		dashboardIds = append(dashboardIds, connection.DashboardID)
+	dashboardIds := make([]int64, 0, len(connections))
+	for _, connection := range connections {
+		dashboardIds = append(dashboardIds, connection.ConnectionID)
 	}
 	d.Set("dashboard_ids", dashboardIds)
 
-	return diags
+	return nil
 }
 
 func updateLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
-	panel := makeLibraryPanel(d)
+	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	resp, err := client.PatchLibraryPanel(uid, panel)
+	modelJSON := d.Get("model_json").(string)
+	panelJSON, _ := unmarshalLibraryPanelModelJSON(modelJSON)
+
+	_, folderIDStr := SplitOrgResourceID(d.Get("folder_id").(string))
+	folderID, _ := strconv.ParseInt(folderIDStr, 10, 64)
+	params := library_elements.NewUpdateLibraryElementParams().WithLibraryElementUID(uid).WithBody(&models.PatchLibraryElementCommand{
+		Name:     d.Get("name").(string),
+		FolderID: folderID,
+		Model:    panelJSON,
+		Kind:     1,
+		Version:  int64(d.Get("version").(int)),
+	})
+	resp, err := client.LibraryElements.UpdateLibraryElement(params, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(MakeOrgResourceID(resp.OrgID, resp.UID))
+	updatedPanel := resp.Payload.Result
+	d.SetId(MakeOrgResourceID(updatedPanel.OrgID, updatedPanel.UID))
 	return readLibraryPanel(ctx, d, meta)
 }
 
 func deleteLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
-	_, err := client.DeleteLibraryPanel(uid)
+	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
+	params := library_elements.NewDeleteLibraryElementByUIDParams().WithLibraryElementUID(uid)
+	_, err := client.LibraryElements.DeleteLibraryElementByUID(params, nil)
 	return diag.FromErr(err)
 }
 
-func makeLibraryPanel(d *schema.ResourceData) gapi.LibraryPanel {
+func makeLibraryPanel(d *schema.ResourceData) models.CreateLibraryElementCommand {
 	modelJSON := d.Get("model_json").(string)
-	panelJSON, err := unmarshalLibraryPanelModelJSON(modelJSON)
+	panelJSON, _ := unmarshalLibraryPanelModelJSON(modelJSON)
 
 	_, folderIDStr := SplitOrgResourceID(d.Get("folder_id").(string))
 	folderID, _ := strconv.ParseInt(folderIDStr, 10, 64)
-	panel := gapi.LibraryPanel{
-		UID:    d.Get("uid").(string),
-		Name:   d.Get("name").(string),
-		Folder: folderID,
-		Model:  panelJSON,
+	panel := models.CreateLibraryElementCommand{
+		UID:      d.Get("uid").(string),
+		Name:     d.Get("name").(string),
+		FolderID: folderID,
+		Model:    panelJSON,
+		Kind:     1,
 	}
-	if err != nil {
-		return panel
-	}
+
 	return panel
 }
 
