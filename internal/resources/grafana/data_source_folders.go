@@ -3,7 +3,8 @@ package grafana
 import (
 	"context"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/client/search"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -22,6 +23,7 @@ func DatasourceFolders() *schema.Resource {
 `,
 
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"folders": {
 				Type:        schema.TypeSet,
 				Computed:    true,
@@ -56,32 +58,38 @@ func DatasourceFolders() *schema.Resource {
 }
 
 func readFolders(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	folders, err := client.Folders()
-	if err != nil {
-		return diag.FromErr(err)
+	metaClient := meta.(*common.Client)
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
+
+	var folders []*models.Hit
+	var page int64 = 1
+	searchType := "dash-folder"
+	for {
+		params := search.NewSearchParams().WithType(&searchType).WithPage(&page)
+		resp, err := client.Search.Search(params, nil)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		if len(resp.Payload) == 0 {
+			break
+		}
+
+		folders = append(folders, resp.Payload...)
+		page++
 	}
 
-	d.SetId("grafana_folders")
+	d.SetId(MakeOrgResourceID(orgID, "folders"))
 
-	if err := d.Set("folders", flattenFolders(folders)); err != nil {
-		return diag.Errorf("error setting item: %v", err)
-	}
-
-	return nil
-}
-
-func flattenFolders(items []gapi.Folder) []interface{} {
 	folderItems := make([]interface{}, 0)
-	for _, folder := range items {
+	for _, folder := range folders {
 		f := map[string]interface{}{
 			"title": folder.Title,
 			"id":    folder.ID,
 			"uid":   folder.UID,
-			"url":   folder.URL,
+			"url":   metaClient.GrafanaSubpath(folder.URL),
 		}
 		folderItems = append(folderItems, f)
 	}
 
-	return folderItems
+	return diag.FromErr(d.Set("folders", folderItems))
 }

@@ -20,7 +20,7 @@ func TestAccServiceAccountPermission_basic(t *testing.T) {
 
 	name := acctest.RandString(10)
 
-	var saPermission gapi.ServiceAccountPermission
+	var saPermission gapi.ResourcePermission
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccServiceAccountPermissionsCheckDestroy(saPermission.ID),
@@ -42,7 +42,7 @@ func TestAccServiceAccountPermission_inOrg(t *testing.T) {
 
 	name := acctest.RandString(10)
 
-	var saPermission gapi.ServiceAccountPermission
+	var saPermission gapi.ResourcePermission
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccServiceAccountPermissionsCheckDestroy(saPermission.ID),
@@ -61,7 +61,7 @@ func TestAccServiceAccountPermission_inOrg(t *testing.T) {
 	})
 }
 
-func testServiceAccountPermissionsCheckExists(rn string, saPerm *gapi.ServiceAccountPermission) resource.TestCheckFunc {
+func testServiceAccountPermissionsCheckExists(rn string, saPerm *gapi.ResourcePermission) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
 		if !ok {
@@ -76,7 +76,7 @@ func testServiceAccountPermissionsCheckExists(rn string, saPerm *gapi.ServiceAcc
 		}
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
 
-		perms, err := client.GetServiceAccountPermissions(saID)
+		perms, err := client.ListServiceAccountResourcePermissions(saID)
 		if err != nil {
 			return fmt.Errorf("error getting service account permissions: %s", err)
 		}
@@ -92,7 +92,7 @@ func testServiceAccountPermissionsCheckExists(rn string, saPerm *gapi.ServiceAcc
 func testAccServiceAccountPermissionsCheckDestroy(id int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		saPerms, err := client.GetServiceAccountPermissions(id)
+		saPerms, err := client.ListServiceAccountResourcePermissions(id)
 		if err != nil {
 			return err
 		}

@@ -3,7 +3,7 @@ package grafana_test
 import (
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -12,9 +12,9 @@ import (
 func TestAccDatasourceUser_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var user gapi.User
+	var user models.UserProfileDTO
 	checks := []resource.TestCheckFunc{
-		testAccUserCheckExists("grafana_user.test", &user),
+		userCheckExists.exists("grafana_user.test", &user),
 	}
 	for _, rName := range []string{"from_email", "from_login", "from_id"} {
 		checks = append(checks,
@@ -38,7 +38,7 @@ func TestAccDatasourceUser_basic(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccUserCheckDestroy(&user),
+		CheckDestroy:      userCheckExists.destroyed(&user, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_user/data-source.tf"),

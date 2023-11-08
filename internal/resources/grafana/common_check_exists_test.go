@@ -9,6 +9,7 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/annotations"
 	"github.com/grafana/grafana-openapi-client-go/client/folders"
 	"github.com/grafana/grafana-openapi-client-go/client/teams"
+	"github.com/grafana/grafana-openapi-client-go/client/users"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
@@ -25,33 +26,31 @@ var (
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Annotation, error) {
 			params := annotations.NewGetAnnotationByIDParams().WithAnnotationID(id)
 			resp, err := client.Annotations.GetAnnotationByID(params, nil)
-			if err != nil {
-				return nil, err
-			}
-			return resp.GetPayload(), nil
+			return payloadOrError(resp, err)
 		},
 	)
 	folderCheckExists = newCheckExistsHelper(
 		func(f *models.Folder) string { return strconv.FormatInt(f.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Folder, error) {
-			idInt, _ := strconv.ParseInt(id, 10, 64)
-			params := folders.NewGetFolderByIDParams().WithFolderID(idInt)
-			folder, err := client.Folders.GetFolderByID(params, nil)
-			if err != nil {
-				return nil, err
-			}
-			return folder.GetPayload(), nil
+			params := folders.NewGetFolderByIDParams().WithFolderID(mustParseInt64(id))
+			resp, err := client.Folders.GetFolderByID(params, nil)
+			return payloadOrError(resp, err)
 		},
 	)
 	teamCheckExists = newCheckExistsHelper(
 		func(t *models.TeamDTO) string { return strconv.FormatInt(t.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.TeamDTO, error) {
 			params := teams.NewGetTeamByIDParams().WithTeamID(id)
-			team, err := client.Teams.GetTeamByID(params, nil)
-			if err != nil {
-				return nil, err
-			}
-			return team.GetPayload(), nil
+			resp, err := client.Teams.GetTeamByID(params, nil)
+			return payloadOrError(resp, err)
+		},
+	)
+	userCheckExists = newCheckExistsHelper(
+		func(u *models.UserProfileDTO) string { return strconv.FormatInt(u.ID, 10) },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.UserProfileDTO, error) {
+			params := users.NewGetUserByIDParams().WithUserID(mustParseInt64(id))
+			resp, err := client.Users.GetUserByID(params, nil)
+			return payloadOrError(resp, err)
 		},
 	)
 )
@@ -64,6 +63,9 @@ type checkExistsHelper[T interface{}] struct {
 	getResourceFunc checkExistsGetResourceFunc[T]
 }
 
+// newCheckExistsHelper creates a test helper that checks if a resource exists or not.
+// The getIDFunc function should return the ID of the resource.
+// The getResourceFunc function should return the resource from the given ID.
 func newCheckExistsHelper[T interface{}](getIDFunc checkExistsGetIDFunc[T], getResourceFunc checkExistsGetResourceFunc[T]) checkExistsHelper[T] {
 	return checkExistsHelper[T]{getIDFunc: getIDFunc, getResourceFunc: getResourceFunc}
 }
@@ -123,4 +125,20 @@ func (h *checkExistsHelper[T]) destroyed(v *T, org *gapi.Org) resource.TestCheck
 		}
 		return nil
 	}
+}
+
+func mustParseInt64(s string) int64 {
+	i, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	return i
+}
+
+// payloadOrError returns the error if not nil, or the payload otherwise. This saves 4 lines of code on each helper.
+func payloadOrError[T interface{}, R interface{ GetPayload() *T }](resp R, err error) (*T, error) {
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetPayload(), nil
 }
