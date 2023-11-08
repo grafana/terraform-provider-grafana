@@ -8,6 +8,7 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/annotations"
 	"github.com/grafana/grafana-openapi-client-go/client/folders"
+	"github.com/grafana/grafana-openapi-client-go/client/library_elements"
 	"github.com/grafana/grafana-openapi-client-go/client/teams"
 	"github.com/grafana/grafana-openapi-client-go/client/users"
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -34,6 +35,14 @@ var (
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Folder, error) {
 			params := folders.NewGetFolderByIDParams().WithFolderID(mustParseInt64(id))
 			resp, err := client.Folders.GetFolderByID(params, nil)
+			return payloadOrError(resp, err)
+		},
+	)
+	libraryPanelCheckExists = newCheckExistsHelper(
+		func(t *models.LibraryElementResponse) string { return t.Result.UID },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.LibraryElementResponse, error) {
+			params := library_elements.NewGetLibraryElementByUIDParams().WithLibraryElementUID(id)
+			resp, err := client.LibraryElements.GetLibraryElementByUID(params, nil)
 			return payloadOrError(resp, err)
 		},
 	)
@@ -99,6 +108,11 @@ func (h *checkExistsHelper[T]) exists(rn string, v *T) resource.TestCheckFunc {
 		obj, err := h.getResourceFunc(client, idStr)
 		if err != nil {
 			return fmt.Errorf("error getting resource %s with ID %q: %s", rn, rs.Primary.ID, err)
+		}
+
+		// Sanity check: The "destroyed" function should fail here because the resource exists
+		if err := h.destroyed(obj, &gapi.Org{ID: orgID})(s); err == nil {
+			return fmt.Errorf("the destroyed check passed but shouldn't for resource %s with ID %q. This is a bug in the test", rn, rs.Primary.ID)
 		}
 
 		*v = *obj

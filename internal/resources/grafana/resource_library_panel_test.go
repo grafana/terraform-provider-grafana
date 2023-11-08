@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	goapi "github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
@@ -18,12 +18,12 @@ import (
 func TestAccLibraryPanel_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
 
-	var panel gapi.LibraryPanel
+	var panel models.LibraryElementResponse
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccLibraryPanelCheckDestroy(&panel),
+		CheckDestroy:      libraryPanelCheckExists.destroyed(&panel, nil),
 		Steps: []resource.TestStep{
 			{
 				// Test resource creation.
@@ -31,7 +31,7 @@ func TestAccLibraryPanel_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestMatchResourceAttr("grafana_library_panel.test", "id", defaultOrgIDRegexp),
 					resource.TestCheckResourceAttr("grafana_library_panel.test", "org_id", "1"),
-					testAccLibraryPanelCheckExists("grafana_library_panel.test", &panel),
+					libraryPanelCheckExists.exists("grafana_library_panel.test", &panel),
 					resource.TestCheckResourceAttr("grafana_library_panel.test", "name", "basic"),
 					resource.TestCheckResourceAttr("grafana_library_panel.test", "version", "1"),
 				),
@@ -41,7 +41,7 @@ func TestAccLibraryPanel_basic(t *testing.T) {
 				Config: testutils.TestAccExample(t, "resources/grafana_library_panel/_acc_basic_update.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestMatchResourceAttr("grafana_library_panel.test", "id", defaultOrgIDRegexp),
-					testAccLibraryPanelCheckExists("grafana_library_panel.test", &panel),
+					libraryPanelCheckExists.exists("grafana_library_panel.test", &panel),
 					resource.TestCheckResourceAttr("grafana_library_panel.test", "name", "updated name"),
 					resource.TestCheckResourceAttr("grafana_library_panel.test", "version", "2"),
 				),
@@ -59,20 +59,20 @@ func TestAccLibraryPanel_basic(t *testing.T) {
 func TestAccLibraryPanel_computed_config(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
 
-	var panel gapi.LibraryPanel
+	var panel models.LibraryElementResponse
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccLibraryPanelCheckDestroy(&panel),
+		CheckDestroy:      libraryPanelCheckExists.destroyed(&panel, nil),
 		Steps: []resource.TestStep{
 			{
 				// Test resource creation.
 				Config: testutils.TestAccExample(t, "resources/grafana_library_panel/_acc_computed.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestMatchResourceAttr("grafana_library_panel.test", "id", defaultOrgIDRegexp),
-					testAccLibraryPanelCheckExists("grafana_library_panel.test", &panel),
-					testAccLibraryPanelCheckExists("grafana_library_panel.test-computed", &panel),
+					libraryPanelCheckExists.exists("grafana_library_panel.test", &panel),
+					libraryPanelCheckExists.exists("grafana_library_panel.test-computed", &panel),
 				),
 			},
 		},
@@ -82,8 +82,8 @@ func TestAccLibraryPanel_computed_config(t *testing.T) {
 func TestAccLibraryPanel_folder(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
 
-	var panel gapi.LibraryPanel
-	var folder goapi.Folder
+	var panel models.LibraryElementResponse
+	var folder models.Folder
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
@@ -94,7 +94,7 @@ func TestAccLibraryPanel_folder(t *testing.T) {
 				Config: testutils.TestAccExample(t, "resources/grafana_library_panel/_acc_folder.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestMatchResourceAttr("grafana_library_panel.test_folder", "id", defaultOrgIDRegexp),
-					testAccLibraryPanelCheckExists("grafana_library_panel.test_folder", &panel),
+					libraryPanelCheckExists.exists("grafana_library_panel.test_folder", &panel),
 					folderCheckExists.exists("grafana_folder.test_folder", &folder),
 					testAccLibraryPanelCheckExistsInFolder(&panel, &folder),
 					resource.TestCheckResourceAttr("grafana_library_panel.test_folder", "name", "test-folder"),
@@ -110,20 +110,20 @@ func TestAccLibraryPanel_folder(t *testing.T) {
 func TestAccLibraryPanel_dashboard(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
 
-	var panel gapi.LibraryPanel
+	var panel models.LibraryElementResponse
 	var dashboard gapi.Dashboard
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccLibraryPanelCheckDestroy(&panel),
+		CheckDestroy:      libraryPanelCheckExists.destroyed(&panel, nil),
 		Steps: []resource.TestStep{
 			{
 				// Test library panel is connected to dashboard
 				Config: testutils.TestAccExample(t, "data-sources/grafana_library_panel/data-source.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestMatchResourceAttr("grafana_library_panel.dashboard", "id", defaultOrgIDRegexp),
-					testAccLibraryPanelCheckExists("grafana_library_panel.dashboard", &panel),
+					libraryPanelCheckExists.exists("grafana_library_panel.dashboard", &panel),
 					testAccDashboardCheckExists("grafana_dashboard.with_library_panel", &dashboard),
 					testAccDashboardCheckExists("data.grafana_dashboard.from_library_panel_connection", &dashboard),
 				),
@@ -135,18 +135,18 @@ func TestAccLibraryPanel_dashboard(t *testing.T) {
 func TestAccLibraryPanel_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
 
-	var panel gapi.LibraryPanel
+	var panel models.LibraryElementResponse
 	orgName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccLibraryPanelCheckDestroy(&panel),
+		CheckDestroy:      libraryPanelCheckExists.destroyed(&panel, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccLibraryPanelInOrganization(orgName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestMatchResourceAttr("grafana_library_panel.test", "id", nonDefaultOrgIDRegexp),
-					testAccLibraryPanelCheckExists("grafana_library_panel.test", &panel),
+					libraryPanelCheckExists.exists("grafana_library_panel.test", &panel),
 					checkResourceIsInOrg("grafana_library_panel.test", "grafana_organization.test"),
 				),
 			},
@@ -154,49 +154,19 @@ func TestAccLibraryPanel_inOrg(t *testing.T) {
 	})
 }
 
-func testAccLibraryPanelCheckExists(rn string, panel *gapi.LibraryPanel) resource.TestCheckFunc {
+func testAccLibraryPanelCheckExistsInFolder(panel *models.LibraryElementResponse, folder *models.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[rn]
-		if !ok {
-			return fmt.Errorf("resource not found: %s", rn)
-		}
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("resource id not set")
-		}
-		client, _, uid := grafana.ClientFromExistingOrgResource(testutils.Provider.Meta(), rs.Primary.ID)
-		gotLibraryPanel, err := client.LibraryPanelByUID(uid)
-		if err != nil {
-			return fmt.Errorf("error getting panel: %s", err)
-		}
-		*panel = *gotLibraryPanel
-		return nil
-	}
-}
-
-func testAccLibraryPanelCheckExistsInFolder(panel *gapi.LibraryPanel, folder *goapi.Folder) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if panel.Folder != folder.ID && folder.ID != 0 {
-			return fmt.Errorf("panel.Folder(%d) does not match folder.ID(%d)", panel.Folder, folder.ID)
+		if panel.Result.FolderID != folder.ID && folder.ID != 0 {
+			return fmt.Errorf("panel.Folder(%d) does not match folder.ID(%d)", panel.Result.FolderID, folder.ID)
 		}
 		return nil
 	}
 }
 
-func testAccLibraryPanelCheckDestroy(panel *gapi.LibraryPanel) resource.TestCheckFunc {
+func testAccLibraryPanelFolderCheckDestroy(panel *models.LibraryElementResponse, folder *models.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(panel.OrgID)
-		_, err := client.LibraryPanelByUID(panel.UID)
-		if err == nil {
-			return fmt.Errorf("panel still exists")
-		}
-		return nil
-	}
-}
-
-func testAccLibraryPanelFolderCheckDestroy(panel *gapi.LibraryPanel, folder *goapi.Folder) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(panel.OrgID)
-		_, err := client.LibraryPanelByUID(panel.UID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(panel.Result.OrgID)
+		_, err := client.LibraryPanelByUID(panel.Result.UID)
 		if err == nil {
 			return fmt.Errorf("panel still exists")
 		}
