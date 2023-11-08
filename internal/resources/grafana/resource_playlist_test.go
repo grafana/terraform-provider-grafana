@@ -124,7 +124,7 @@ func TestAccPlaylist_disappears(t *testing.T) {
 }
 
 func TestAccPlaylist_inOrg(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t, ">=9.0.0") // Querying org-specific playlists is broken pre-9
 
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 	var org gapi.Org
