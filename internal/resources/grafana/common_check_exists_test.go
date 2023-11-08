@@ -11,6 +11,7 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/datasources"
 	"github.com/grafana/grafana-openapi-client-go/client/folders"
 	"github.com/grafana/grafana-openapi-client-go/client/library_elements"
+	"github.com/grafana/grafana-openapi-client-go/client/playlists"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/client/teams"
 	"github.com/grafana/grafana-openapi-client-go/client/users"
@@ -54,6 +55,14 @@ var (
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.LibraryElementResponse, error) {
 			params := library_elements.NewGetLibraryElementByUIDParams().WithLibraryElementUID(id)
 			resp, err := client.LibraryElements.GetLibraryElementByUID(params, nil)
+			return payloadOrError(resp, err)
+		},
+	)
+	playlistCheckExists = newCheckExistsHelper(
+		func(p *models.Playlist) string { return p.UID },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Playlist, error) {
+			params := playlists.NewGetPlaylistParams().WithUID(id)
+			resp, err := client.Playlists.GetPlaylist(params, nil)
 			return payloadOrError(resp, err)
 		},
 	)
