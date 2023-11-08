@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDatasourceOrganizationPreferences(t *testing.T) {
+func TestAccDatasourceOrganizationPreferences_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	checks := []resource.TestCheckFunc{

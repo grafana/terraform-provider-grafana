@@ -86,7 +86,10 @@ func TestAccServiceAccount_NoneRole(t *testing.T) {
 	})
 }
 
-func TestAccServiceAccount_many(t *testing.T) {
+func TestAccServiceAccount_many_longtest(t *testing.T) {
+	if testing.Short() { // Also named "longtest" to allow targeting with -run=.*longtest
+		t.Skip("skipping test in short mode")
+	}
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	name := acctest.RandString(10)

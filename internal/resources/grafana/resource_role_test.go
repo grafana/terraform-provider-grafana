@@ -14,7 +14,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 )
 
-func TestAccRole(t *testing.T) {
+func TestAccRole_basic(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 
 	var role gapi.Role

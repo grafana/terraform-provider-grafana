@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDatasourceTeam(t *testing.T) {
+func TestAccDatasourceTeam_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	var team goapi.TeamDTO

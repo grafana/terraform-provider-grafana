@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -61,7 +60,7 @@ func findFolderWithTitle(client *gapi.Client, title string) (*gapi.Folder, error
 }
 
 func dataSourceFolderRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	gapiURL := meta.(*common.Client).GrafanaAPIURL
+	metaClient := meta.(*common.Client)
 	client := meta.(*common.Client).GrafanaAPI
 	title := d.Get("title").(string)
 	folder, err := findFolderWithTitle(client, title)
@@ -74,7 +73,7 @@ func dataSourceFolderRead(ctx context.Context, d *schema.ResourceData, meta inte
 	d.SetId(id)
 	d.Set("uid", folder.UID)
 	d.Set("title", folder.Title)
-	d.Set("url", strings.TrimRight(gapiURL, "/")+folder.URL)
+	d.Set("url", metaClient.GrafanaSubpath(folder.URL))
 
 	return nil
 }

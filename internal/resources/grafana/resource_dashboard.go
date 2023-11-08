@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -110,7 +109,7 @@ func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 }
 
 func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	gapiURL := meta.(*common.Client).GrafanaAPIURL
+	metaClient := meta.(*common.Client)
 	client, orgID, uid := ClientFromExistingOrgResource(meta, d.Id())
 
 	dashboard, err := client.DashboardByUID(uid)
@@ -123,7 +122,7 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	d.Set("uid", dashboard.Model["uid"].(string))
 	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
 	d.Set("version", int64(dashboard.Model["version"].(float64)))
-	d.Set("url", strings.TrimRight(gapiURL, "/")+dashboard.Meta.URL)
+	d.Set("url", metaClient.GrafanaSubpath(dashboard.Meta.URL))
 
 	// If the folder was originally set to a numeric ID, we read the folder ID
 	// Othwerwise, we read the folder UID
