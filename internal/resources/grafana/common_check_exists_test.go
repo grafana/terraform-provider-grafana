@@ -59,7 +59,12 @@ var (
 		},
 	)
 	playlistCheckExists = newCheckExistsHelper(
-		func(p *models.Playlist) string { return p.UID },
+		func(p *models.Playlist) string {
+			if p.UID == "" {
+				return strconv.FormatInt(p.ID, 10)
+			}
+			return p.UID
+		},
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Playlist, error) {
 			params := playlists.NewGetPlaylistParams().WithUID(id)
 			resp, err := client.Playlists.GetPlaylist(params, nil)
