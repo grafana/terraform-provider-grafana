@@ -6,6 +6,7 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/access_control"
 	"github.com/grafana/grafana-openapi-client-go/client/annotations"
 	"github.com/grafana/grafana-openapi-client-go/client/datasources"
 	"github.com/grafana/grafana-openapi-client-go/client/folders"
@@ -53,6 +54,14 @@ var (
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.LibraryElementResponse, error) {
 			params := library_elements.NewGetLibraryElementByUIDParams().WithLibraryElementUID(id)
 			resp, err := client.LibraryElements.GetLibraryElementByUID(params, nil)
+			return payloadOrError(resp, err)
+		},
+	)
+	roleCheckExists = newCheckExistsHelper(
+		func(r *models.RoleDTO) string { return r.UID },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.RoleDTO, error) {
+			params := access_control.NewGetRoleParams().WithRoleUID(id)
+			resp, err := client.AccessControl.GetRole(params, nil)
 			return payloadOrError(resp, err)
 		},
 	)
