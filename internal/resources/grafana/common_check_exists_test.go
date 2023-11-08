@@ -7,6 +7,7 @@ import (
 	gapi "github.com/grafana/grafana-api-golang-client"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/annotations"
+	"github.com/grafana/grafana-openapi-client-go/client/datasources"
 	"github.com/grafana/grafana-openapi-client-go/client/folders"
 	"github.com/grafana/grafana-openapi-client-go/client/teams"
 	"github.com/grafana/grafana-openapi-client-go/client/users"
@@ -26,6 +27,14 @@ var (
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Annotation, error) {
 			params := annotations.NewGetAnnotationByIDParams().WithAnnotationID(id)
 			resp, err := client.Annotations.GetAnnotationByID(params, nil)
+			return payloadOrError(resp, err)
+		},
+	)
+	datasourceCheckExists = newCheckExistsHelper(
+		func(d *models.DataSource) string { return strconv.FormatInt(d.ID, 10) },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.DataSource, error) {
+			params := datasources.NewGetDataSourceByIDParams().WithID(id)
+			resp, err := client.Datasources.GetDataSourceByID(params, nil)
 			return payloadOrError(resp, err)
 		},
 	)
