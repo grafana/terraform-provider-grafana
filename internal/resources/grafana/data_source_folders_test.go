@@ -1,6 +1,9 @@
 package grafana_test
 
 import (
+	"fmt"
+	"os"
+	"strings"
 	"testing"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/models"
@@ -24,10 +27,12 @@ func TestAccDatasourceFolders_basic(t *testing.T) {
 		resource.TestCheckTypeSetElemNestedAttrs("data.grafana_folders.test", "folders.*", map[string]string{
 			"uid":   uidBase + "a",
 			"title": titleBase + "a",
+			"url":   fmt.Sprintf("%s/dashboards/f/%s/%s", strings.TrimRight(os.Getenv("GRAFANA_URL"), "/"), uidBase+"a", titleBase+"a"),
 		}),
 		resource.TestCheckTypeSetElemNestedAttrs("data.grafana_folders.test", "folders.*", map[string]string{
 			"uid":   uidBase + "b",
 			"title": titleBase + "b",
+			"url":   fmt.Sprintf("%s/dashboards/f/%s/%s", strings.TrimRight(os.Getenv("GRAFANA_URL"), "/"), uidBase+"b", titleBase+"b"),
 		}),
 	}
 
