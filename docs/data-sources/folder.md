@@ -31,6 +31,10 @@ data "grafana_folder" "from_title" {
 
 - `title` (String) The name of the Grafana folder.
 
+### Optional
+
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
+
 ### Read-Only
 
 - `id` (Number) The numerical ID of the Grafana folder.
