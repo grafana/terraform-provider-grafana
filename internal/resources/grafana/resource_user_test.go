@@ -1,14 +1,11 @@
 package grafana_test
 
 import (
-	"fmt"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 )
@@ -16,15 +13,15 @@ import (
 func TestAccUser_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var user gapi.User
+	var user models.UserProfileDTO
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccUserCheckDestroy(&user),
+		CheckDestroy:      userCheckExists.destroyed(&user, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccUserConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccUserCheckExists("grafana_user.test", &user),
+					userCheckExists.exists("grafana_user.test", &user),
 					resource.TestCheckResourceAttr(
 						"grafana_user.test", "email", "terraform-test@localhost",
 					),
@@ -45,7 +42,7 @@ func TestAccUser_basic(t *testing.T) {
 			{
 				Config: testAccUserConfig_update,
 				Check: resource.ComposeTestCheckFunc(
-					testAccUserCheckExists("grafana_user.test", &user),
+					userCheckExists.exists("grafana_user.test", &user),
 					resource.TestCheckResourceAttr(
 						"grafana_user.test", "email", "terraform-test-update@localhost",
 					),
@@ -71,40 +68,6 @@ func TestAccUser_basic(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccUserCheckExists(rn string, a *gapi.User) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[rn]
-		if !ok {
-			return fmt.Errorf("resource not found: %s", rn)
-		}
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("resource id not set")
-		}
-		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
-		if err != nil {
-			return fmt.Errorf("resource id is malformed")
-		}
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		user, err := client.User(id)
-		if err != nil {
-			return fmt.Errorf("error getting data source: %s", err)
-		}
-		*a = user
-		return nil
-	}
-}
-
-func testAccUserCheckDestroy(a *gapi.User) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		user, err := client.User(a.ID)
-		if err == nil && user.Email != "" {
-			return fmt.Errorf("user still exists")
-		}
-		return nil
-	}
 }
 
 const testAccUserConfig_basic = `
