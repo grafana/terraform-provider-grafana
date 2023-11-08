@@ -15,7 +15,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 )
 
-func TestAccServiceAccountPermission(t *testing.T) {
+func TestAccServiceAccountPermission_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.2.4")
 
 	name := acctest.RandString(10)

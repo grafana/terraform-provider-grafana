@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDatasourceUsers(t *testing.T) {
+func TestAccDatasourceUsers_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	checks := []resource.TestCheckFunc{

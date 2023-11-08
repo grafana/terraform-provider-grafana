@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccDatasourceUser(t *testing.T) {
+func TestAccDatasourceUser_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	var user gapi.User
