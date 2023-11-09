@@ -2,11 +2,11 @@ package grafana_test
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/grafana-openapi-client-go/client/playlists"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -20,15 +20,16 @@ func TestAccPlaylist_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	rName := acctest.RandomWithPrefix("tf-acc-test")
+	var playlist models.Playlist
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccPlaylistDestroy,
+		CheckDestroy:      playlistCheckExists.destroyed(&playlist, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPlaylistConfigBasic(rName, "5m"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccPlaylistCheckExists(),
+					playlistCheckExists.exists(paylistResource, &playlist),
 					resource.TestMatchResourceAttr(paylistResource, "id", defaultOrgIDRegexp),
 					resource.TestCheckResourceAttr(paylistResource, "name", rName),
 					resource.TestCheckResourceAttr(paylistResource, "item.#", "2"),
@@ -56,29 +57,30 @@ func TestAccPlaylist_update(t *testing.T) {
 
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 	updatedName := "updated name"
+	var playlist models.Playlist
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccPlaylistDestroy,
+		CheckDestroy:      playlistCheckExists.destroyed(&playlist, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPlaylistConfigBasic(rName, "5m"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccPlaylistCheckExists(),
+					playlistCheckExists.exists(paylistResource, &playlist),
 					resource.TestCheckResourceAttr(paylistResource, "interval", "5m"),
 				),
 			},
 			{
 				Config: testAccPlaylistConfigBasic(rName, "10m"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccPlaylistCheckExists(),
+					playlistCheckExists.exists(paylistResource, &playlist),
 					resource.TestCheckResourceAttr(paylistResource, "interval", "10m"),
 				),
 			},
 			{
 				Config: testAccPlaylistConfigUpdate(updatedName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccPlaylistCheckExists(),
+					playlistCheckExists.exists(paylistResource, &playlist),
 					resource.TestMatchResourceAttr(paylistResource, "id", defaultOrgIDRegexp),
 					resource.TestCheckResourceAttr(paylistResource, "name", updatedName),
 					resource.TestCheckResourceAttr(paylistResource, "item.#", "1"),
@@ -103,15 +105,16 @@ func TestAccPlaylist_disappears(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	rName := acctest.RandomWithPrefix("tf-acc-test")
+	var playlist models.Playlist
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccPlaylistDestroy,
+		CheckDestroy:      playlistCheckExists.destroyed(&playlist, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPlaylistConfigBasic(rName, "5m"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccPlaylistCheckExists(),
+					playlistCheckExists.exists(paylistResource, &playlist),
 					testAccPlaylistDisappears(),
 				),
 				ExpectNonEmptyPlan: true,
@@ -121,14 +124,15 @@ func TestAccPlaylist_disappears(t *testing.T) {
 }
 
 func TestAccPlaylist_inOrg(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t, ">=9.0.0") // Querying org-specific playlists is broken pre-9
 
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 	var org gapi.Org
+	var playlist models.Playlist
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccPlaylistDestroy,
+		CheckDestroy:      playlistCheckExists.destroyed(&playlist, &org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPlaylistConfigInOrg(rName, "5m"),
@@ -138,7 +142,7 @@ func TestAccPlaylist_inOrg(t *testing.T) {
 					testAccOrganizationCheckExists("grafana_organization.test", &org),
 					checkResourceIsInOrg(paylistResource, "grafana_organization.test"),
 
-					testAccPlaylistCheckExists(),
+					playlistCheckExists.exists(paylistResource, &playlist),
 					resource.TestCheckResourceAttr(paylistResource, "name", rName),
 					resource.TestCheckResourceAttr(paylistResource, "item.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
@@ -160,39 +164,6 @@ func TestAccPlaylist_inOrg(t *testing.T) {
 	})
 }
 
-func testAccPlaylistCheckExists() resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[paylistResource]
-		if !ok {
-			return fmt.Errorf("resource not found: %s\n %#v", paylistResource, s.RootModule().Resources)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("resource id not set")
-		}
-
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-
-		orgID, playlistID := grafana.SplitOrgResourceID(rs.Primary.ID)
-
-		// If the org ID is set, check that the playlist doesn't exist in the default org
-		if orgID > 1 {
-			playlist, err := client.Playlist(playlistID)
-			if err == nil || playlist != nil {
-				return fmt.Errorf("expected no playlist with ID %s in default org but found one", playlistID)
-			}
-			client = client.WithOrgID(orgID)
-		}
-
-		_, err := client.Playlist(playlistID)
-		if err != nil {
-			return fmt.Errorf("error getting playlist: %w", err)
-		}
-
-		return nil
-	}
-}
-
 func testAccPlaylistDisappears() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[paylistResource]
@@ -204,34 +175,10 @@ func testAccPlaylistDisappears() resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		client, _, playlistID := grafana.ClientFromExistingOrgResource(testutils.Provider.Meta(), rs.Primary.ID)
-
-		return client.DeletePlaylist(playlistID)
+		client, _, playlistID := grafana.OAPIClientFromExistingOrgResource(testutils.Provider.Meta(), rs.Primary.ID)
+		_, err := client.Playlists.DeletePlaylist(playlists.NewDeletePlaylistParams().WithUID(playlistID), nil)
+		return err
 	}
-}
-
-func testAccPlaylistDestroy(s *terraform.State) error {
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "grafana_playlist" {
-			continue
-		}
-
-		client, _, playlistID := grafana.ClientFromExistingOrgResource(testutils.Provider.Meta(), rs.Primary.ID)
-		playlist, err := client.Playlist(playlistID)
-
-		if err != nil {
-			if strings.HasPrefix(err.Error(), "status: 404") {
-				continue
-			}
-			return err
-		}
-
-		if playlist != nil && playlist.ID != 0 {
-			return fmt.Errorf("Playlist still exists: %+v", playlist)
-		}
-	}
-
-	return nil
 }
 
 func testAccPlaylistConfigBasic(name, interval string) string {
