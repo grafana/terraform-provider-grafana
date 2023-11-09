@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
-	"strconv"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -20,7 +19,7 @@ import (
 func TestAccDataSource_Loki(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var dataSource gapi.DataSource
+	var dataSource models.DataSource
 	dsName := acctest.RandString(10)
 
 	config := fmt.Sprintf(`
@@ -53,7 +52,7 @@ func TestAccDataSource_Loki(t *testing.T) {
 	}
 	`, dsName)
 	checks := resource.ComposeTestCheckFunc(
-		testAccDataSourceCheckExists("grafana_data_source.loki", &dataSource),
+		datasourceCheckExists.exists("grafana_data_source.loki", &dataSource),
 		resource.TestMatchResourceAttr("grafana_data_source.loki", "id", defaultOrgIDRegexp),
 		resource.TestCheckResourceAttr("grafana_data_source.loki", "org_id", "1"), // default org
 		resource.TestMatchResourceAttr("grafana_data_source.loki", "uid", common.UIDRegexp),
@@ -61,11 +60,12 @@ func TestAccDataSource_Loki(t *testing.T) {
 		resource.TestCheckResourceAttr("grafana_data_source.loki", "type", "loki"),
 		resource.TestCheckResourceAttr("grafana_data_source.loki", "url", "http://acc-test.invalid/"),
 		func(s *terraform.State) error {
-			if dataSource.JSONData["derivedFields"] == nil {
+			jsonData := dataSource.JSONData.(map[string]interface{})
+			if jsonData["derivedFields"] == nil {
 				return fmt.Errorf("expected derived fields")
 			}
 			// Check datasource IDs
-			derivedFields := dataSource.JSONData["derivedFields"].([]interface{})
+			derivedFields := jsonData["derivedFields"].([]interface{})
 			if len(derivedFields) != 2 {
 				return fmt.Errorf("expected 2 derived fields, got %d", len(derivedFields))
 			}
@@ -83,7 +83,7 @@ func TestAccDataSource_Loki(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccDataSourceCheckDestroy(&dataSource, 0),
+		CheckDestroy:      datasourceCheckExists.destroyed(&dataSource, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -123,7 +123,7 @@ func TestAccDataSource_Loki(t *testing.T) {
 func TestAccDataSource_TestData(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var dataSource gapi.DataSource
+	var dataSource models.DataSource
 
 	dsName := acctest.RandString(10)
 	config := fmt.Sprintf(`
@@ -143,7 +143,7 @@ func TestAccDataSource_TestData(t *testing.T) {
 	}`, dsName)
 
 	checks := resource.ComposeTestCheckFunc(
-		testAccDataSourceCheckExists("grafana_data_source.testdata", &dataSource),
+		datasourceCheckExists.exists("grafana_data_source.testdata", &dataSource),
 		resource.TestMatchResourceAttr("grafana_data_source.testdata", "id", defaultOrgIDRegexp),
 		resource.TestCheckResourceAttr("grafana_data_source.testdata", "org_id", "1"), // default org
 		resource.TestMatchResourceAttr("grafana_data_source.testdata", "uid", common.UIDRegexp),
@@ -160,7 +160,7 @@ func TestAccDataSource_TestData(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccDataSourceCheckDestroy(&dataSource, 0),
+		CheckDestroy:      datasourceCheckExists.destroyed(&dataSource, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -173,7 +173,7 @@ func TestAccDataSource_TestData(t *testing.T) {
 func TestAccDataSource_Influx(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var dataSource gapi.DataSource
+	var dataSource models.DataSource
 
 	dsName := acctest.RandString(10)
 	config := fmt.Sprintf(`
@@ -194,7 +194,7 @@ func TestAccDataSource_Influx(t *testing.T) {
 	}`, dsName)
 
 	checks := resource.ComposeTestCheckFunc(
-		testAccDataSourceCheckExists("grafana_data_source.influx", &dataSource),
+		datasourceCheckExists.exists("grafana_data_source.influx", &dataSource),
 		resource.TestMatchResourceAttr("grafana_data_source.influx", "id", defaultOrgIDRegexp),
 		resource.TestCheckResourceAttr("grafana_data_source.influx", "org_id", "1"), // default org
 		resource.TestMatchResourceAttr("grafana_data_source.influx", "uid", common.UIDRegexp),
@@ -210,10 +210,11 @@ func TestAccDataSource_Influx(t *testing.T) {
 				"version":           "Flux",
 				"httpHeaderName1":   "Authorization",
 			}
-			if !reflect.DeepEqual(dataSource.JSONData, expected) {
+			jsonData := dataSource.JSONData.(map[string]interface{})
+			if !reflect.DeepEqual(jsonData, expected) {
 				return fmt.Errorf("bad json_data_encoded: %#v. Expected: %+v", dataSource.JSONData, expected)
 			}
-			if v, ok := dataSource.JSONData["httpHeaderName1"]; !ok && v != "Authorization" {
+			if v, ok := jsonData["httpHeaderName1"]; !ok && v != "Authorization" {
 				return fmt.Errorf("http header Authorization not found")
 			}
 			return nil
@@ -222,7 +223,7 @@ func TestAccDataSource_Influx(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccDataSourceCheckDestroy(&dataSource, 0),
+		CheckDestroy:      datasourceCheckExists.destroyed(&dataSource, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -235,11 +236,11 @@ func TestAccDataSource_Influx(t *testing.T) {
 func TestAccDataSource_changeUID(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var dataSource gapi.DataSource
+	var dataSource models.DataSource
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccDataSourceCheckDestroy(&dataSource, 0),
+		CheckDestroy:      datasourceCheckExists.destroyed(&dataSource, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: `
@@ -250,7 +251,7 @@ func TestAccDataSource_changeUID(t *testing.T) {
 		uid  = "initial-uid"
 	}`,
 				Check: resource.ComposeTestCheckFunc(
-					testAccDataSourceCheckExists("grafana_data_source.test", &dataSource),
+					datasourceCheckExists.exists("grafana_data_source.test", &dataSource),
 					resource.TestCheckResourceAttr("grafana_data_source.test", "uid", "initial-uid"),
 				),
 			},
@@ -263,7 +264,7 @@ func TestAccDataSource_changeUID(t *testing.T) {
 		uid  = "changed-uid"
 	}`,
 				Check: resource.ComposeTestCheckFunc(
-					testAccDataSourceCheckExists("grafana_data_source.test", &dataSource),
+					datasourceCheckExists.exists("grafana_data_source.test", &dataSource),
 					resource.TestCheckResourceAttr("grafana_data_source.test", "uid", "changed-uid"),
 				),
 			},
@@ -274,14 +275,14 @@ func TestAccDataSource_changeUID(t *testing.T) {
 func TestAccDatasource_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var datasource gapi.DataSource
+	var dataSource models.DataSource
 	var org gapi.Org
 
 	orgName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccDataSourceCheckDestroy(&datasource, org.ID),
+		CheckDestroy:      datasourceCheckExists.destroyed(&dataSource, &org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDatasourceInOrganization(orgName),
@@ -289,7 +290,7 @@ func TestAccDatasource_inOrg(t *testing.T) {
 					testAccOrganizationCheckExists("grafana_organization.test", &org),
 
 					// Check that the datasource is in the correct organization
-					testAccDataSourceCheckExists("grafana_data_source.test", &datasource),
+					datasourceCheckExists.exists("grafana_data_source.test", &dataSource),
 					resource.TestMatchResourceAttr("grafana_data_source.test", "id", nonDefaultOrgIDRegexp),
 					resource.TestCheckResourceAttr("grafana_data_source.test", "uid", "test-in-org"),
 					resource.TestCheckResourceAttr("grafana_data_source.test", "name", "test-in-org"),
@@ -299,55 +300,6 @@ func TestAccDatasource_inOrg(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccDataSourceCheckExists(rn string, dataSource *gapi.DataSource) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[rn]
-		if !ok {
-			return fmt.Errorf("resource not found: %s", rn)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("resource id not set")
-		}
-
-		orgID, idStr := grafana.SplitOrgResourceID(rs.Primary.ID)
-		id, err := strconv.ParseInt(idStr, 10, 64)
-		if err != nil {
-			return fmt.Errorf("resource id is malformed")
-		}
-
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		// If the org ID is set, check that the datasource doesn't exist in the default org
-		if orgID > 1 {
-			datasource, err := client.DataSource(id)
-			if err == nil || datasource != nil {
-				return fmt.Errorf("datasource %d exists in the default org", id)
-			}
-			client = client.WithOrgID(orgID)
-		}
-
-		gotDataSource, err := client.DataSource(id)
-		if err != nil {
-			return fmt.Errorf("error getting data source: %s", err)
-		}
-
-		*dataSource = *gotDataSource
-
-		return nil
-	}
-}
-
-func testAccDataSourceCheckDestroy(dataSource *gapi.DataSource, orgID int64) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
-		_, err := client.DataSource(dataSource.ID)
-		if err == nil {
-			return fmt.Errorf("data source still exists")
-		}
-		return nil
-	}
 }
 
 func testAccDatasourceInOrganization(orgName string) string {

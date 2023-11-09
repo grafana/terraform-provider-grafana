@@ -3,7 +3,7 @@ package grafana_test
 import (
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
@@ -11,9 +11,9 @@ import (
 func TestAccDatasourceDatasource_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var dataSource gapi.DataSource
+	var dataSource models.DataSource
 	checks := []resource.TestCheckFunc{
-		testAccDataSourceCheckExists("grafana_data_source.prometheus", &dataSource),
+		datasourceCheckExists.exists("grafana_data_source.prometheus", &dataSource),
 
 		resource.TestMatchResourceAttr("data.grafana_data_source.from_name", "id", defaultOrgIDRegexp),
 		resource.TestCheckResourceAttr("data.grafana_data_source.from_name", "name", "prometheus-ds-test"),
@@ -33,7 +33,7 @@ func TestAccDatasourceDatasource_basic(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccDataSourceCheckDestroy(&dataSource, 0),
+		CheckDestroy:      datasourceCheckExists.destroyed(&dataSource, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_data_source/data-source.tf"),
