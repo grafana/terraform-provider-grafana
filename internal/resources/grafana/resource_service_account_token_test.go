@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -17,16 +18,19 @@ func TestAccServiceAccountToken_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	name := acctest.RandString(10)
-	var sa gapi.ServiceAccountDTO
+	var sa models.ServiceAccountDTO
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccServiceAccountTokenCheckDestroy,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			serviceAccountCheckExists.destroyed(&sa, nil),
+			testAccServiceAccountTokenCheckDestroy,
+		),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccServiceAccountTokenConfig(name, "Editor", 0, false),
 				Check: resource.ComposeTestCheckFunc(
-					testAccServiceAccountCheckExists(&sa),
+					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "Editor"),
 					resource.TestCheckResourceAttr("grafana_service_account_token.test", "name", name),
@@ -36,7 +40,7 @@ func TestAccServiceAccountToken_basic(t *testing.T) {
 			{
 				Config: testAccServiceAccountTokenConfig(name+"-updated", "Viewer", 300, false),
 				Check: resource.ComposeTestCheckFunc(
-					testAccServiceAccountCheckExists(&sa),
+					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name+"-updated"),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "Viewer"),
 					resource.TestCheckResourceAttr("grafana_service_account_token.test", "name", name+"-updated"),
@@ -52,16 +56,19 @@ func TestAccServiceAccountToken_inOrg(t *testing.T) {
 
 	name := acctest.RandString(10)
 	var org gapi.Org
-	var sa gapi.ServiceAccountDTO
+	var sa models.ServiceAccountDTO
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccServiceAccountTokenCheckDestroy,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			serviceAccountCheckExists.destroyed(&sa, &org),
+			testAccServiceAccountTokenCheckDestroy,
+		),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccServiceAccountTokenConfig(name, "Editor", 0, true),
 				Check: resource.ComposeTestCheckFunc(
-					testAccServiceAccountCheckExists(&sa),
+					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "Editor"),
 					resource.TestCheckResourceAttr("grafana_service_account_token.test", "name", name),
@@ -76,7 +83,7 @@ func TestAccServiceAccountToken_inOrg(t *testing.T) {
 			{
 				Config: testAccServiceAccountTokenConfig(name+"-updated", "Viewer", 300, true),
 				Check: resource.ComposeTestCheckFunc(
-					testAccServiceAccountCheckExists(&sa),
+					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name+"-updated"),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "Viewer"),
 					resource.TestCheckResourceAttr("grafana_service_account_token.test", "name", name+"-updated"),
