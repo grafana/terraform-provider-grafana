@@ -10,6 +10,7 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/datasources"
 	"github.com/grafana/grafana-openapi-client-go/client/folders"
 	"github.com/grafana/grafana-openapi-client-go/client/library_elements"
+	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/client/teams"
 	"github.com/grafana/grafana-openapi-client-go/client/users"
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -52,6 +53,14 @@ var (
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.LibraryElementResponse, error) {
 			params := library_elements.NewGetLibraryElementByUIDParams().WithLibraryElementUID(id)
 			resp, err := client.LibraryElements.GetLibraryElementByUID(params, nil)
+			return payloadOrError(resp, err)
+		},
+	)
+	serviceAccountCheckExists = newCheckExistsHelper(
+		func(t *models.ServiceAccountDTO) string { return strconv.FormatInt(t.ID, 10) },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.ServiceAccountDTO, error) {
+			params := service_accounts.NewRetrieveServiceAccountParams().WithServiceAccountID(mustParseInt64(id))
+			resp, err := client.ServiceAccounts.RetrieveServiceAccount(params, nil)
 			return payloadOrError(resp, err)
 		},
 	)
