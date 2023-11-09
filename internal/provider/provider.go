@@ -430,6 +430,10 @@ func createGrafanaOAPIClient(apiURL string, d *schema.ResourceData) (*goapi.Graf
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse API url: %v", err.Error())
 	}
+	apiPath, err := url.JoinPath(u.Path, "api")
+	if err != nil {
+		return nil, fmt.Errorf("failed to join API path: %v", err.Error())
+	}
 
 	userInfo, orgID, APIKey, err := parseAuth(d)
 	if err != nil {
@@ -438,7 +442,7 @@ func createGrafanaOAPIClient(apiURL string, d *schema.ResourceData) (*goapi.Graf
 
 	cfg := goapi.TransportConfig{
 		Host:         u.Host,
-		BasePath:     "/api",
+		BasePath:     apiPath,
 		Schemes:      []string{u.Scheme},
 		NumRetries:   d.Get("retries").(int),
 		RetryTimeout: time.Second * time.Duration(d.Get("retry_wait").(int)),
