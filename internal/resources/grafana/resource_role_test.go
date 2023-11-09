@@ -6,27 +6,24 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 )
 
 func TestAccRole_basic(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 
-	var role gapi.Role
+	var role models.RoleDTO
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccRoleCheckDestroy(&role),
+		CheckDestroy:      roleCheckExists.destroyed(&role, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: roleConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccRoleCheckExists("grafana_role.test", &role),
+					roleCheckExists.exists("grafana_role.test", &role),
 					resource.TestCheckResourceAttr("grafana_role.test", "name", "terraform-acc-test"),
 					resource.TestCheckResourceAttr("grafana_role.test", "description", "test desc"),
 					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
@@ -40,7 +37,7 @@ func TestAccRole_basic(t *testing.T) {
 			{
 				Config: roleConfigWithPermissions,
 				Check: resource.ComposeTestCheckFunc(
-					testAccRoleCheckExists("grafana_role.test", &role),
+					roleCheckExists.exists("grafana_role.test", &role),
 					resource.TestCheckResourceAttr("grafana_role.test", "name", "terraform-acc-test"),
 					resource.TestCheckResourceAttr("grafana_role.test", "description", "test desc"),
 					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
@@ -62,12 +59,12 @@ func TestAccRole_basic(t *testing.T) {
 func TestAccRoleVersioning(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 
-	var role gapi.Role
+	var role models.RoleDTO
 	name := acctest.RandomWithPrefix("versioning-")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccRoleCheckDestroy(&role),
+		CheckDestroy:      roleCheckExists.destroyed(&role, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`
@@ -77,7 +74,7 @@ func TestAccRoleVersioning(t *testing.T) {
 					auto_increment_version = true
 				}`, name),
 				Check: resource.ComposeTestCheckFunc(
-					testAccRoleCheckExists("grafana_role.test", &role),
+					roleCheckExists.exists("grafana_role.test", &role),
 					resource.TestCheckResourceAttr("grafana_role.test", "name", name),
 					resource.TestCheckResourceAttr("grafana_role.test", "version", "1"),
 				),
@@ -90,7 +87,7 @@ func TestAccRoleVersioning(t *testing.T) {
 					version = 5
 				}`, name),
 				Check: resource.ComposeTestCheckFunc(
-					testAccRoleCheckExists("grafana_role.test", &role),
+					roleCheckExists.exists("grafana_role.test", &role),
 					resource.TestCheckResourceAttr("grafana_role.test", "name", name),
 					resource.TestCheckResourceAttr("grafana_role.test", "version", "5"),
 				),
@@ -103,7 +100,7 @@ func TestAccRoleVersioning(t *testing.T) {
 					auto_increment_version = true
 				}`, name),
 				Check: resource.ComposeTestCheckFunc(
-					testAccRoleCheckExists("grafana_role.test", &role),
+					roleCheckExists.exists("grafana_role.test", &role),
 					resource.TestCheckResourceAttr("grafana_role.test", "name", name),
 					resource.TestCheckResourceAttr("grafana_role.test", "version", "6"),
 				),
@@ -116,57 +113,13 @@ func TestAccRoleVersioning(t *testing.T) {
 					auto_increment_version = true
 				}`, name),
 				Check: resource.ComposeTestCheckFunc(
-					testAccRoleCheckExists("grafana_role.test", &role),
+					roleCheckExists.exists("grafana_role.test", &role),
 					resource.TestCheckResourceAttr("grafana_role.test", "name", name),
 					resource.TestCheckResourceAttr("grafana_role.test", "version", "7"),
 				),
 			},
 		},
 	})
-}
-
-func testAccRoleCheckExists(rn string, r *gapi.Role) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[rn]
-		if !ok {
-			return fmt.Errorf("resource not found: %s", rn)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("resource id not set")
-		}
-		orgID, roleUID := grafana.SplitOrgResourceID(rs.Primary.ID)
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-
-		// If the org ID is set, check that the report doesn't exist in the default org
-		if orgID > 1 {
-			role, err := client.GetRole(roleUID)
-			if err == nil || role != nil {
-				return fmt.Errorf("expected no role with ID %s in default org but found one", roleUID)
-			}
-			client = client.WithOrgID(orgID)
-		}
-
-		role, err := client.GetRole(roleUID)
-		if err != nil {
-			return fmt.Errorf("error getting role: %s", err)
-		}
-
-		*r = *role
-
-		return nil
-	}
-}
-
-func testAccRoleCheckDestroy(r *gapi.Role) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		role, err := client.GetRole(r.UID)
-		if err == nil && role.Name != "" {
-			return fmt.Errorf("role still exists")
-		}
-		return nil
-	}
 }
 
 const roleConfigBasic = `
