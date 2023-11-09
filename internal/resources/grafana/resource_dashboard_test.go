@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	goapi "github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
@@ -248,7 +249,7 @@ func TestAccDashboard_inOrg(t *testing.T) {
 
 	var dashboard gapi.Dashboard
 	var folder goapi.Folder
-	var org gapi.Org
+	var org models.OrgDetailsDTO
 
 	orgName := acctest.RandString(10)
 
@@ -262,7 +263,7 @@ func TestAccDashboard_inOrg(t *testing.T) {
 			{
 				Config: testAccDashboardInOrganization(orgName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					// Check that the folder is in the correct organization
 					folderCheckExists.exists("grafana_folder.test", &folder),
 					resource.TestCheckResourceAttr("grafana_folder.test", "uid", "folder-"+orgName),

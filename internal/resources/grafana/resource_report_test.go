@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
@@ -129,7 +130,7 @@ func TestAccResourceReport_InOrg(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 
 	var report gapi.Report
-	var org gapi.Org
+	var org models.OrgDetailsDTO
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -144,7 +145,7 @@ func TestAccResourceReport_InOrg(t *testing.T) {
 
 					// Check that the dashboard is in the correct organization
 					resource.TestMatchResourceAttr("grafana_report.test", "id", nonDefaultOrgIDRegexp),
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_report.test", "grafana_organization.test"),
 				),
 			},

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	goapi "github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 
@@ -56,7 +56,7 @@ func TestAccAnnotation_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.0.0") // Annotations don't work right in OSS Grafana < 9.0.0
 
 	var annotation goapi.Annotation
-	var org gapi.Org
+	var org models.OrgDetailsDTO
 
 	orgName := acctest.RandString(10)
 
@@ -81,7 +81,7 @@ func TestAccAnnotation_inOrg(t *testing.T) {
 
 					// Check that the annotation is in the correct organization
 					resource.TestMatchResourceAttr("grafana_annotation.test", "id", nonDefaultOrgIDRegexp),
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_annotation.test", "grafana_organization.test"),
 				),
 			},
@@ -108,7 +108,7 @@ func TestAccAnnotation_inOrg(t *testing.T) {
 
 					// Check that the annotation is in the correct organization
 					resource.TestMatchResourceAttr("grafana_annotation.test_with_dashboard_id", "id", nonDefaultOrgIDRegexp),
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_annotation.test_with_dashboard_id", "grafana_organization.test"),
 				),
 			},
@@ -135,7 +135,7 @@ func TestAccAnnotation_inOrg(t *testing.T) {
 
 					// Check that the annotation is in the correct organization
 					resource.TestMatchResourceAttr("grafana_annotation.test_with_panel_id", "id", nonDefaultOrgIDRegexp),
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_annotation.test_with_panel_id", "grafana_organization.test"),
 				),
 			},
@@ -153,7 +153,7 @@ func TestAccAnnotation_dashboardUID(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
 
 	var annotation goapi.Annotation
-	var org gapi.Org
+	var org models.OrgDetailsDTO
 
 	orgName := acctest.RandString(10)
 
@@ -178,7 +178,7 @@ func TestAccAnnotation_dashboardUID(t *testing.T) {
 
 					// Check that the annotation is in the correct organization
 					resource.TestMatchResourceAttr("grafana_annotation.test_with_dashboard_uid", "id", nonDefaultOrgIDRegexp),
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_annotation.test_with_dashboard_uid", "grafana_organization.test"),
 				),
 			},

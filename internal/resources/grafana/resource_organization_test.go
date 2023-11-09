@@ -2,10 +2,9 @@ package grafana_test
 
 import (
 	"fmt"
-	"strconv"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -15,17 +14,17 @@ import (
 func TestAccOrganization_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var org gapi.Org
+	var org models.OrgDetailsDTO
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
+		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "name", "terraform-acc-test",
 					),
@@ -40,7 +39,7 @@ func TestAccOrganization_basic(t *testing.T) {
 			{
 				Config: testAccOrganizationConfig_updateName,
 				Check: resource.ComposeTestCheckFunc(
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "name", "terraform-acc-test-update",
 					),
@@ -69,17 +68,17 @@ func TestAccOrganization_basic(t *testing.T) {
 func TestAccOrganization_users(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var org gapi.Org
+	var org models.OrgDetailsDTO
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
+		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_usersCreate,
 				Check: resource.ComposeTestCheckFunc(
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "name", "terraform-acc-test",
 					),
@@ -100,7 +99,7 @@ func TestAccOrganization_users(t *testing.T) {
 			{
 				Config: testAccOrganizationConfig_usersUpdate,
 				Check: resource.ComposeTestCheckFunc(
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "name", "terraform-acc-test",
 					),
@@ -121,7 +120,7 @@ func TestAccOrganization_users(t *testing.T) {
 			{
 				Config: testAccOrganizationConfig_usersRemove,
 				Check: resource.ComposeTestCheckFunc(
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "name", "terraform-acc-test",
 					),
@@ -146,16 +145,16 @@ func TestAccOrganization_users(t *testing.T) {
 func TestAccOrganization_roleNoneUser(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=10.2.0")
 
-	var org gapi.Org
+	var org models.OrgDetailsDTO
 
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
+		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_usersCreate,
 				Check: resource.ComposeTestCheckFunc(
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "admins.#", "1",
 					),
@@ -164,7 +163,7 @@ func TestAccOrganization_roleNoneUser(t *testing.T) {
 			{
 				Config: testAccOrganization_roleNoneUsersUpdate,
 				Check: resource.ComposeTestCheckFunc(
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "name", "terraform-acc-test",
 					),
@@ -185,7 +184,7 @@ func TestAccOrganization_roleNoneUser(t *testing.T) {
 			{
 				Config: testAccOrganizationConfig_usersRemove,
 				Check: resource.ComposeTestCheckFunc(
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "admins.#", "0",
 					),
@@ -204,18 +203,18 @@ func TestAccOrganization_createManyUsers_longtest(t *testing.T) {
 	}
 	testutils.CheckOSSTestsEnabled(t)
 
-	var org gapi.Org
+	var org models.OrgDetailsDTO
 
 	// Don't make this test parallel, it's already creating 1000+ users
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
+		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{Config: testAccOrganizationConfig_usersCreateMany_1},
 			{
 				Config: testAccOrganizationConfig_usersCreateMany_2,
 				Check: resource.ComposeTestCheckFunc(
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "name", "terraform-acc-test",
 					),
@@ -231,17 +230,17 @@ func TestAccOrganization_createManyUsers_longtest(t *testing.T) {
 func TestAccOrganization_defaultAdmin(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var org gapi.Org
+	var org models.OrgDetailsDTO
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
+		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_defaultAdminNormal,
 				Check: resource.ComposeTestCheckFunc(
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "name", "terraform-acc-test",
 					),
@@ -262,7 +261,7 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 			{
 				Config: testAccOrganizationConfig_defaultAdminChange,
 				Check: resource.ComposeTestCheckFunc(
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					resource.TestCheckResourceAttr(
 						"grafana_organization.test", "name", "terraform-acc-test",
 					),
@@ -293,16 +292,16 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 func TestAccOrganization_externalUser(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var org gapi.Org
+	var org models.OrgDetailsDTO
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccOrganizationCheckDestroy(&org),
+		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_externalUser,
 				Check: resource.ComposeTestCheckFunc(
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					resource.TestCheckResourceAttr("grafana_organization.test", "name", "terraform-acc-test-external-user"),
 					resource.TestCheckResourceAttr("grafana_organization.test", "admins.#", "1"),
 					resource.TestCheckResourceAttr("grafana_organization.test", "admins.0", "external-user@example.com"),
@@ -316,7 +315,7 @@ func TestAccOrganization_externalUser(t *testing.T) {
 			{
 				Config: testAccOrganizationConfig_externalUserRemoved,
 				Check: resource.ComposeTestCheckFunc(
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					resource.TestCheckResourceAttr("grafana_organization.test", "name", "terraform-acc-test-external-user"),
 					resource.TestCheckNoResourceAttr("grafana_organization.test", "admins.#"),
 					resource.TestCheckNoResourceAttr("grafana_organization.test", "editors.#"),
@@ -325,44 +324,6 @@ func TestAccOrganization_externalUser(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccOrganizationCheckExists(rn string, a *gapi.Org) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[rn]
-		if !ok {
-			return fmt.Errorf("resource not found: %s", rn)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("resource id not set")
-		}
-		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
-		if err != nil {
-			return fmt.Errorf("resource id is malformed")
-		}
-
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		org, err := client.Org(id)
-		if err != nil {
-			return fmt.Errorf("error getting data source: %s", err)
-		}
-
-		*a = org
-
-		return nil
-	}
-}
-
-func testAccOrganizationCheckDestroy(a *gapi.Org) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		org, err := client.Org(a.ID)
-		if err == nil && org.Name != "" {
-			return fmt.Errorf("organization still exists")
-		}
-		return nil
-	}
 }
 
 const testAccOrganizationConfig_basic = `

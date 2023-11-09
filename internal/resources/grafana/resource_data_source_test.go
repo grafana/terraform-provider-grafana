@@ -6,7 +6,6 @@ import (
 	"regexp"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
@@ -276,7 +275,7 @@ func TestAccDatasource_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	var dataSource models.DataSource
-	var org gapi.Org
+	var org models.OrgDetailsDTO
 
 	orgName := acctest.RandString(10)
 
@@ -287,7 +286,7 @@ func TestAccDatasource_inOrg(t *testing.T) {
 			{
 				Config: testAccDatasourceInOrganization(orgName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 
 					// Check that the datasource is in the correct organization
 					datasourceCheckExists.exists("grafana_data_source.test", &dataSource),

@@ -3,7 +3,7 @@ package grafana_test
 import (
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
@@ -11,9 +11,9 @@ import (
 func TestAccDatasourceOrganization_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var organization gapi.Org
+	var org models.OrgDetailsDTO
 	checks := []resource.TestCheckFunc{
-		testAccOrganizationCheckExists("grafana_organization.test", &organization),
+		orgCheckExists.exists("grafana_organization.test", &org),
 		resource.TestCheckResourceAttr(
 			"data.grafana_organization.from_name", "name", "test-org",
 		),
@@ -40,7 +40,7 @@ func TestAccDatasourceOrganization_basic(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccOrganizationCheckDestroy(&organization),
+		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_organization/data-source.tf"),

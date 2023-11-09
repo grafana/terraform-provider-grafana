@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	goapi "github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
@@ -285,7 +286,7 @@ func TestAccResourceTeam_InOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	var team goapi.TeamDTO
-	var org gapi.Org
+	var org models.OrgDetailsDTO
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -299,7 +300,7 @@ func TestAccResourceTeam_InOrg(t *testing.T) {
 
 					// Check that the team is in the correct organization
 					resource.TestMatchResourceAttr("grafana_team.test", "id", nonDefaultOrgIDRegexp),
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_team.test", "grafana_organization.test"),
 				),
 			},

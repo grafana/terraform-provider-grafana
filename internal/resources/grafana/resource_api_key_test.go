@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
@@ -54,7 +54,7 @@ func TestAccGrafanaAuthKey_basic(t *testing.T) {
 func TestAccGrafanaAuthKey_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var org gapi.Org
+	var org models.OrgDetailsDTO
 	testName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -72,7 +72,7 @@ func TestAccGrafanaAuthKey_inOrg(t *testing.T) {
 
 					// Check that the API key is in the correct organization
 					resource.TestMatchResourceAttr("grafana_api_key.foo", "id", nonDefaultOrgIDRegexp),
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_api_key.foo", "grafana_organization.test"),
 				),
 			},
