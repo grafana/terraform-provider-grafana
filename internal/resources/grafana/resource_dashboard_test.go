@@ -8,7 +8,6 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	goapi "github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
@@ -167,7 +166,7 @@ func TestAccDashboard_folder(t *testing.T) {
 	uid := acctest.RandString(10)
 
 	var dashboard gapi.Dashboard
-	var folder goapi.Folder
+	var folder models.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -206,7 +205,7 @@ func TestAccDashboard_folder_uid(t *testing.T) {
 	uid := acctest.RandString(10)
 
 	var dashboard gapi.Dashboard
-	var folder goapi.Folder
+	var folder models.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -248,7 +247,7 @@ func TestAccDashboard_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	var dashboard gapi.Dashboard
-	var folder goapi.Folder
+	var folder models.Folder
 	var org models.OrgDetailsDTO
 
 	orgName := acctest.RandString(10)
@@ -314,7 +313,7 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 	}
 }
 
-func testAccDashboardCheckExistsInFolder(dashboard *gapi.Dashboard, folder *goapi.Folder) resource.TestCheckFunc {
+func testAccDashboardCheckExistsInFolder(dashboard *gapi.Dashboard, folder *models.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if dashboard.FolderID != folder.ID && folder.ID != 0 {
 			return fmt.Errorf("dashboard.Folder(%d) does not match folder.ID(%d)", dashboard.FolderID, folder.ID)
@@ -348,7 +347,7 @@ func testAccDashboardCheckDestroy(dashboard *gapi.Dashboard, orgID int64) resour
 	}
 }
 
-func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *goapi.Folder) resource.TestCheckFunc {
+func testAccDashboardFolderCheckDestroy(dashboard *gapi.Dashboard, folder *models.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 		_, err := client.DashboardByUID(dashboard.Model["uid"].(string))

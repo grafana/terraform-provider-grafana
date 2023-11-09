@@ -7,7 +7,6 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	goapi "github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -17,7 +16,7 @@ import (
 func TestAccTeam_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var team goapi.TeamDTO
+	var team models.TeamDTO
 	teamName := acctest.RandString(5)
 	teamNameUpdated := acctest.RandString(5)
 
@@ -58,7 +57,7 @@ func TestAccTeam_basic(t *testing.T) {
 func TestAccTeam_preferences(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">= 9.0.0") // Dashboard UID is only available in Grafana 9.0.0+
 
-	var team goapi.TeamDTO
+	var team models.TeamDTO
 	teamName := acctest.RandString(5)
 	teamNameUpdated := acctest.RandString(5)
 
@@ -105,7 +104,7 @@ func TestAccTeam_preferences(t *testing.T) {
 func TestAccTeam_teamSync(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t, ">= 8.0.0")
 
-	var team goapi.TeamDTO
+	var team models.TeamDTO
 	teamName := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -167,7 +166,7 @@ func TestAccTeam_teamSync(t *testing.T) {
 func TestAccTeam_Members(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var team goapi.TeamDTO
+	var team models.TeamDTO
 	teamName := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -235,7 +234,7 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 	client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
 
-	var team goapi.TeamDTO
+	var team models.TeamDTO
 	var userID int64 = -1
 	teamName := acctest.RandString(5)
 
@@ -285,7 +284,7 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 func TestAccResourceTeam_InOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var team goapi.TeamDTO
+	var team models.TeamDTO
 	var org models.OrgDetailsDTO
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 

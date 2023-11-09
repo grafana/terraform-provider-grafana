@@ -160,7 +160,7 @@ func (h *checkExistsHelper[T]) exists(rn string, v *T) resource.TestCheckFunc {
 		}
 
 		// Sanity check: The "destroyed" function should fail here because the resource exists
-		if err := h.destroyed(obj, &gapi.Org{ID: orgID})(s); err == nil {
+		if err := h.destroyed(obj, &models.OrgDetailsDTO{ID: orgID})(s); err == nil {
 			return fmt.Errorf("the destroyed check passed but shouldn't for resource %s with ID %q. This is a bug in the test", rn, rs.Primary.ID)
 		}
 
