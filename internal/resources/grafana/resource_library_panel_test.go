@@ -34,6 +34,7 @@ func TestAccLibraryPanel_basic(t *testing.T) {
 					libraryPanelCheckExists.exists("grafana_library_panel.test", &panel),
 					resource.TestCheckResourceAttr("grafana_library_panel.test", "name", "basic"),
 					resource.TestCheckResourceAttr("grafana_library_panel.test", "version", "1"),
+					resource.TestCheckResourceAttr("grafana_library_panel.test", "model_json", `{"description":"","title":"basic","type":"","version":34}`),
 				),
 			},
 			{
@@ -44,6 +45,7 @@ func TestAccLibraryPanel_basic(t *testing.T) {
 					libraryPanelCheckExists.exists("grafana_library_panel.test", &panel),
 					resource.TestCheckResourceAttr("grafana_library_panel.test", "name", "updated name"),
 					resource.TestCheckResourceAttr("grafana_library_panel.test", "version", "2"),
+					resource.TestCheckResourceAttr("grafana_library_panel.test", "model_json", `{"description":"","id":12,"title":"updated name","type":"","version":35}`),
 				),
 			},
 			{
