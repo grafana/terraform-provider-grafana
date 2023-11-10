@@ -7,7 +7,7 @@ toolchain go1.21.1
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/go-openapi/strfmt v0.21.7
-	github.com/grafana/amixr-api-go-client v0.0.10
+	github.com/grafana/amixr-api-go-client v0.0.11
 	github.com/grafana/grafana-api-golang-client v0.26.0
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20231031181526-6f78415901a3
 	github.com/grafana/machine-learning-go-client v0.5.0
