@@ -167,10 +167,10 @@ func ResourceOutgoingWebhookCreate(ctx context.Context, d *schema.ResourceData, 
 	if integrationFilterOk {
 		f := integrationFilter.([]interface{})
 		integrationFilterSlice := make([]string, len(f))
-		createOptions.IntegrationFilter = &integrationFilterSlice
 		for i := range f {
-			(*createOptions.IntegrationFilter)[i] = f[i].(string)
+			integrationFilterSlice[i] = f[i].(string)
 		}
+		createOptions.IntegrationFilter = &integrationFilterSlice
 	}
 
 	outgoingWebhook, _, err := client.Webhooks.CreateWebhook(createOptions)
@@ -274,10 +274,10 @@ func ResourceOutgoingWebhookUpdate(ctx context.Context, d *schema.ResourceData, 
 	if integrationFilterOk {
 		f := integrationFilter.([]interface{})
 		integrationFilterSlice := make([]string, len(f))
-		updateOptions.IntegrationFilter = &integrationFilterSlice
 		for i := range f {
-			(*updateOptions.IntegrationFilter)[i] = f[i].(string)
+			integrationFilterSlice[i] = f[i].(string)
 		}
+		updateOptions.IntegrationFilter = &integrationFilterSlice
 	}
 
 	outgoingWebhook, _, err := client.Webhooks.UpdateWebhook(d.Id(), updateOptions)
