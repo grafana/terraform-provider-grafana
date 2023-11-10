@@ -59,7 +59,7 @@ resource "grafana_oncall_outgoing_webhook" "test-acc-outgoing_webhook" {
 	http_method = "POST"
 	trigger_template = "123"
 	headers = jsonencode({ "test" = "test123" })
-	integration_filter = ["123"]
+	integration_filter = []
 	is_webhook_enabled = true
 }
 `, webhookName)
