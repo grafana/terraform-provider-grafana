@@ -70,9 +70,9 @@ func ClientFromNewOrgResource(meta interface{}, d *schema.ResourceData) (*gapi.C
 // Those IDs are in the <orgID>:<resourceID> format
 func OAPIClientFromExistingOrgResource(meta interface{}, id string) (*goapi.GrafanaHTTPAPI, int64, string) {
 	orgID, restOfID := SplitOrgResourceID(id)
-	client := meta.(*common.Client).GrafanaOAPI
+	client := meta.(*common.Client).GrafanaOAPI.Clone()
 	if orgID == 0 {
-		orgID = meta.(*common.Client).GrafanaOAPI.OrgID()
+		orgID = client.OrgID()
 	} else if orgID > 0 {
 		client = client.WithOrgID(orgID)
 	}
@@ -83,9 +83,9 @@ func OAPIClientFromExistingOrgResource(meta interface{}, id string) (*goapi.Graf
 // This client is meant to be used in `Create` functions when the ID hasn't already been baked into the resource ID
 func OAPIClientFromNewOrgResource(meta interface{}, d *schema.ResourceData) (*goapi.GrafanaHTTPAPI, int64) {
 	orgID := parseOrgID(d)
-	client := meta.(*common.Client).GrafanaOAPI
+	client := meta.(*common.Client).GrafanaOAPI.Clone()
 	if orgID == 0 {
-		orgID = meta.(*common.Client).GrafanaOAPI.OrgID()
+		orgID = client.OrgID()
 	} else if orgID > 0 {
 		client = client.WithOrgID(orgID)
 	}
