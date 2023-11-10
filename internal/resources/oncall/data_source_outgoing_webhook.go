@@ -28,23 +28,23 @@ func DataSourceOutgoingWebhook() *schema.Resource {
 
 func DataSourceOutgoingWebhookRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	client := m.(*common.Client).OnCallClient
-	options := &onCallAPI.ListCustomActionOptions{}
+	options := &onCallAPI.ListWebhookOptions{}
 	name := d.Get("name").(string)
 
 	options.Name = name
 
-	outgoingWebhookResponse, _, err := client.CustomActions.ListCustomActions(options)
+	outgoingWebhookResponse, _, err := client.Webhooks.ListWebhooks(options)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	if len(outgoingWebhookResponse.CustomActions) == 0 {
+	if len(outgoingWebhookResponse.Webhooks) == 0 {
 		return diag.Errorf("couldn't find an outgoing webhook matching: %s", options.Name)
-	} else if len(outgoingWebhookResponse.CustomActions) != 1 {
+	} else if len(outgoingWebhookResponse.Webhooks) != 1 {
 		return diag.Errorf("more than one outgoing webhook found matching: %s", options.Name)
 	}
 
-	outgoingWebhook := outgoingWebhookResponse.CustomActions[0]
+	outgoingWebhook := outgoingWebhookResponse.Webhooks[0]
 
 	d.SetId(outgoingWebhook.ID)
 	d.Set("name", outgoingWebhook.Name)

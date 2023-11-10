@@ -38,7 +38,7 @@ func testAccCheckOnCallOutgoingWebhookResourceDestroy(s *terraform.State) error 
 			continue
 		}
 
-		if _, _, err := client.CustomActions.GetCustomAction(r.Primary.ID, &onCallAPI.GetCustomActionOptions{}); err == nil {
+		if _, _, err := client.Webhooks.GetWebhook(r.Primary.ID, &onCallAPI.GetWebhookOptions{}); err == nil {
 			return fmt.Errorf("OutgoingWebhook still exists")
 		}
 	}
@@ -55,6 +55,12 @@ resource "grafana_oncall_outgoing_webhook" "test-acc-outgoing_webhook" {
 	password = "test"
 	authorization_header = "Authorization"
 	forward_whole_payload = false
+	trigger_type = "escalation"
+	http_method = "POST"
+	trigger_template = "123"
+	headers = jsonencode({ "test" = "test123" })
+	integration_filter = []
+	is_webhook_enabled = true
 }
 `, webhookName)
 }
@@ -71,7 +77,7 @@ func testAccCheckOnCallOutgoingWebhookResourceExists(name string) resource.TestC
 
 		client := testutils.Provider.Meta().(*common.Client).OnCallClient
 
-		found, _, err := client.CustomActions.GetCustomAction(rs.Primary.ID, &onCallAPI.GetCustomActionOptions{})
+		found, _, err := client.Webhooks.GetWebhook(rs.Primary.ID, &onCallAPI.GetWebhookOptions{})
 		if err != nil {
 			return err
 		}
