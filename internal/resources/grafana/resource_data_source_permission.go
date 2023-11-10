@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -68,8 +67,8 @@ func ResourceDatasourcePermission() *schema.Resource {
 						"permission": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"Query", "Edit"}, false),
-							Description:  "Permission to associate with item. Options: `Query` or `Edit` (`Edit` can only be used with Grafana v9.2.3+).",
+							ValidateFunc: validation.StringInSlice([]string{"Query", "Edit", "Admin"}, false),
+							Description:  "Permission to associate with item. Options: `Query`, `Edit` or `Admin` (`Admin` can only be used with Grafana v10.3.0+).",
 						},
 					},
 				},
@@ -89,10 +88,15 @@ func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 	_, datasourceIDStr := SplitOrgResourceID(d.Get("datasource_id").(string))
 	datasourceID, _ := strconv.ParseInt(datasourceIDStr, 10, 64)
 
-	configuredPermissions := []*gapi.DatasourcePermissionAddPayload{}
+	dataSource, err := client.DataSource(datasourceID)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	var configuredPermissions []gapi.SetResourcePermissionItem
 	for _, permission := range v.(*schema.Set).List() {
 		permission := permission.(map[string]interface{})
-		permissionItem := gapi.DatasourcePermissionAddPayload{}
+		var permissionItem gapi.SetResourcePermissionItem
 		_, teamIDStr := SplitOrgResourceID(permission["team_id"].(string))
 		teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
 		if teamID > 0 {
@@ -104,16 +108,13 @@ func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 			permissionItem.UserID = userID
 		}
 		if permission["built_in_role"].(string) != "" {
-			permissionItem.BuiltInRole = permission["built_in_role"].(string)
+			permissionItem.BuiltinRole = permission["built_in_role"].(string)
 		}
-		var err error
-		if permissionItem.Permission, err = mapDatasourcePermissionStringToType(permission["permission"].(string)); err != nil {
-			return diag.FromErr(err)
-		}
-		configuredPermissions = append(configuredPermissions, &permissionItem)
+		permissionItem.Permission = permission["permission"].(string)
+		configuredPermissions = append(configuredPermissions, permissionItem)
 	}
 
-	if err := updateDatasourcePermissions(client, datasourceID, configuredPermissions, true, false); err != nil {
+	if err := updateDatasourcePermissions(client, dataSource.UID, configuredPermissions); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -130,23 +131,29 @@ func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(err)
 	}
 
-	response, err := client.DatasourcePermissions(id)
+	dataSource, err := client.DataSource(id)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	response, err := client.ListDatasourceResourcePermissions(dataSource.UID)
 	if err, shouldReturn := common.CheckReadError("datasource permissions", d, err); shouldReturn {
 		return err
 	}
 
-	permissionItems := make([]interface{}, len(response.Permissions))
-	for i, permission := range response.Permissions {
+	var permissionItems []interface{}
+	for _, permission := range response {
+		// Only managed permissions can be provisioned through this resource, so we disregard the permissions obtained through custom and fixed roles here
+		if !permission.IsManaged {
+			continue
+		}
 		permissionItem := make(map[string]interface{})
 		permissionItem["built_in_role"] = permission.BuiltInRole
 		permissionItem["team_id"] = strconv.FormatInt(permission.TeamID, 10)
 		permissionItem["user_id"] = strconv.FormatInt(permission.UserID, 10)
+		permissionItem["permission"] = permission.Permission
 
-		if permissionItem["permission"], err = mapDatasourcePermissionTypeToString(permission.Permission); err != nil {
-			return diag.FromErr(err)
-		}
-
-		permissionItems[i] = permissionItem
+		permissionItems = append(permissionItems, permissionItem)
 	}
 
 	d.Set("permissions", permissionItems)
@@ -161,80 +168,70 @@ func DeleteDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	err = updateDatasourcePermissions(client, id, []*gapi.DatasourcePermissionAddPayload{}, false, true)
+
+	dataSource, err := client.DataSource(id)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	err = updateDatasourcePermissions(client, dataSource.UID, []gapi.SetResourcePermissionItem{})
 	diags, _ := common.CheckReadError("datasource permissions", d, err)
 	return diags
 }
 
-func updateDatasourcePermissions(client *gapi.Client, id int64, permissions []*gapi.DatasourcePermissionAddPayload, enable, disable bool) error {
-	areEqual := func(a *gapi.DatasourcePermission, b *gapi.DatasourcePermissionAddPayload) bool {
-		return a.Permission == b.Permission && a.TeamID == b.TeamID && a.UserID == b.UserID && a.BuiltInRole == b.BuiltInRole
+func updateDatasourcePermissions(client *gapi.Client, uid string, permissions []gapi.SetResourcePermissionItem) error {
+	areEqual := func(a *gapi.ResourcePermission, b gapi.SetResourcePermissionItem) bool {
+		return a.Permission == b.Permission && a.TeamID == b.TeamID && a.UserID == b.UserID && a.BuiltInRole == b.BuiltinRole
 	}
 
-	response, err := client.DatasourcePermissions(id)
+	response, err := client.ListDatasourceResourcePermissions(uid)
 	if err != nil {
 		return err
 	}
 
-	if !response.Enabled && enable {
-		if err := client.EnableDatasourcePermissions(id); err != nil {
-			return err
-		}
-	}
+	var permissionList []gapi.SetResourcePermissionItem
 
 deleteLoop:
-	for _, current := range response.Permissions {
+	for _, current := range response {
+		// Only managed permissions can be provisioned through this resource, so we disregard the permissions obtained through custom and fixed roles here
+		if !current.IsManaged {
+			continue
+		}
 		for _, new := range permissions {
 			if areEqual(current, new) {
 				continue deleteLoop
 			}
 		}
 
-		err := client.RemoveDatasourcePermission(id, current.ID)
-		if err != nil {
-			return err
+		permToRemove := gapi.SetResourcePermissionItem{
+			TeamID:      current.TeamID,
+			UserID:      current.UserID,
+			BuiltinRole: current.BuiltInRole,
+			Permission:  "",
 		}
+
+		permissionList = append(permissionList, permToRemove)
 	}
 
 addLoop:
 	for _, new := range permissions {
-		for _, current := range response.Permissions {
+		for _, current := range response {
 			if areEqual(current, new) {
 				continue addLoop
 			}
 		}
 
-		err := client.AddDatasourcePermission(id, new)
-		if err != nil {
-			return err
+		permToAdd := gapi.SetResourcePermissionItem{
+			TeamID:      new.TeamID,
+			UserID:      new.UserID,
+			BuiltinRole: new.BuiltinRole,
+			Permission:  new.Permission,
 		}
+
+		permissionList = append(permissionList, permToAdd)
 	}
 
-	if response.Enabled && disable {
-		if err := client.DisableDatasourcePermissions(id); err != nil {
-			return err
-		}
-	}
+	_, err = client.SetDatasourceResourcePermissions(uid, gapi.SetResourcePermissionsBody{Permissions: permissionList})
 
-	return nil
-}
-
-func mapDatasourcePermissionStringToType(permission string) (gapi.DatasourcePermissionType, error) {
-	switch permission {
-	case "Query":
-		return gapi.DatasourcePermissionQuery, nil
-	case "Edit":
-		return gapi.DatasourcePermissionEdit, nil
-	}
-	return 0, fmt.Errorf("unknown datasource permission: %s", permission)
-}
-
-func mapDatasourcePermissionTypeToString(permission gapi.DatasourcePermissionType) (string, error) {
-	switch permission {
-	case gapi.DatasourcePermissionQuery:
-		return "Query", nil
-	case gapi.DatasourcePermissionEdit:
-		return "Edit", nil
-	}
-	return "", fmt.Errorf("unknown permission type: %d", permission)
+	return err
 }
