@@ -4,10 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/url"
-	"strconv"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/client/dashboards"
+	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -22,6 +21,7 @@ func DatasourceDashboard() *schema.Resource {
 `,
 		ReadContext: dataSourceDashboardRead,
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"dashboard_id": {
 				Type:         schema.TypeInt,
 				Optional:     true,
@@ -75,57 +75,54 @@ func DatasourceDashboard() *schema.Resource {
 	}
 }
 
-// search dashboards by ID
-func findDashboardWithID(client *gapi.Client, id int64) (*gapi.FolderDashboardSearchResponse, error) {
-	params := url.Values{
-		"type":         {"dash-db"},
-		"dashboardIds": {strconv.FormatInt(id, 10)},
-	}
-	resp, err := client.FolderDashboardSearch(params)
-	if err != nil {
-		return nil, err
-	}
-	for _, d := range resp {
-		if int64(d.ID) == id {
-			return &d, nil
-		}
-	}
-
-	return nil, fmt.Errorf("no dashboard with id %d", id)
-}
-
 func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	metaClient := meta.(*common.Client)
-	var dashboard *gapi.Dashboard
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	// get UID from ID if specified
 	id := d.Get("dashboard_id").(int)
 	uid := d.Get("uid").(string)
-	if id > 0 {
-		res, err := findDashboardWithID(client, int64(id))
+	if uid == "" {
+		if id < 1 {
+			return diag.FromErr(fmt.Errorf("must specify either `dashboard_id` or `uid`"))
+		}
+
+		searchType := "dash-db"
+		params := search.NewSearchParams().WithType(&searchType).WithDashboardIds([]int64{int64(id)})
+		resp, err := client.Search.Search(params, nil)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		uid = res.UID
+		for _, d := range resp.GetPayload() {
+			if d.ID == int64(id) {
+				uid = d.UID
+				break
+			}
+		}
+		if uid == "" {
+			return diag.FromErr(fmt.Errorf("no dashboard with id %d", id))
+		}
 	}
 
-	dashboard, err := client.DashboardByUID(uid)
+	params := dashboards.NewGetDashboardByUIDParams().WithUID(uid)
+	resp, err := client.Dashboards.GetDashboardByUID(params, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	dashboard := resp.GetPayload()
+	model := dashboard.Dashboard.(map[string]interface{})
 
-	d.SetId(uid)
-	d.Set("uid", dashboard.Model["uid"].(string))
-	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
-	configJSONBytes, err := json.Marshal(dashboard.Model)
+	d.SetId(MakeOrgResourceID(orgID, uid))
+	d.Set("uid", model["uid"].(string))
+	d.Set("dashboard_id", int64(model["id"].(float64)))
+	configJSONBytes, err := json.Marshal(model)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	d.Set("config_json", string(configJSONBytes))
-	d.Set("version", int64(dashboard.Model["version"].(float64)))
-	d.Set("title", dashboard.Model["title"].(string))
-	d.Set("folder", dashboard.FolderID)
+	d.Set("version", int64(model["version"].(float64)))
+	d.Set("title", model["title"].(string))
+	d.Set("folder", dashboard.Meta.FolderID)
 	d.Set("is_starred", dashboard.Meta.IsStarred)
 	d.Set("slug", dashboard.Meta.Slug)
 	d.Set("url", metaClient.GrafanaSubpath(dashboard.Meta.URL))
