@@ -397,12 +397,13 @@ func createGrafanaClient(d *schema.ResourceData) (string, *gapi.Config, *gapi.Cl
 	}
 
 	cfg := gapi.Config{
-		Client:       cli,
-		NumRetries:   d.Get("retries").(int),
-		RetryTimeout: time.Second * time.Duration(d.Get("retry_wait").(int)),
-		BasicAuth:    userInfo,
-		OrgID:        orgID,
-		APIKey:       apiKey,
+		Client:           cli,
+		NumRetries:       d.Get("retries").(int),
+		RetryTimeout:     time.Second * time.Duration(d.Get("retry_wait").(int)),
+		RetryStatusCodes: []string{"429", "5xx", "401"}, // In high load scenarios, Grafana sometimes returns 401s (unable to authenticate the user?)
+		BasicAuth:        userInfo,
+		OrgID:            orgID,
+		APIKey:           apiKey,
 	}
 
 	if v, ok := d.GetOk("retry_status_codes"); ok {
@@ -441,15 +442,16 @@ func createGrafanaOAPIClient(apiURL string, d *schema.ResourceData) (*goapi.Graf
 	}
 
 	cfg := goapi.TransportConfig{
-		Host:         u.Host,
-		BasePath:     apiPath,
-		Schemes:      []string{u.Scheme},
-		NumRetries:   d.Get("retries").(int),
-		RetryTimeout: time.Second * time.Duration(d.Get("retry_wait").(int)),
-		TLSConfig:    tlsClientConfig,
-		BasicAuth:    userInfo,
-		OrgID:        orgID,
-		APIKey:       APIKey,
+		Host:             u.Host,
+		BasePath:         apiPath,
+		Schemes:          []string{u.Scheme},
+		NumRetries:       d.Get("retries").(int),
+		RetryTimeout:     time.Second * time.Duration(d.Get("retry_wait").(int)),
+		RetryStatusCodes: []string{"429", "5xx", "401"}, // In high load scenarios, Grafana sometimes returns 401s (unable to authenticate the user?)
+		TLSConfig:        tlsClientConfig,
+		BasicAuth:        userInfo,
+		OrgID:            orgID,
+		APIKey:           APIKey,
 	}
 
 	if v, ok := d.GetOk("retry_status_codes"); ok {
