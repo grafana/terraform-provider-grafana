@@ -250,7 +250,7 @@ func ResourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, m in
 	byMonthData, byMonthOk := d.GetOk("by_month")
 	if byMonthOk {
 		if typeData != singleEvent {
-			byMonthDataSlice := common.SetToIntSlice(byMonthData.(*schema.Set))
+			byMonthDataSlice := common.SetToIntSlice[int](byMonthData.(*schema.Set))
 			createOptions.ByMonth = &byMonthDataSlice
 		} else {
 			return diag.Errorf("by_month can not be set with type: %s", typeData)
@@ -260,7 +260,7 @@ func ResourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, m in
 	byMonthdayData, byMonthdayOk := d.GetOk("by_monthday")
 	if byMonthdayOk {
 		if typeData != singleEvent {
-			byMonthdayDataSlice := common.SetToIntSlice(byMonthdayData.(*schema.Set))
+			byMonthdayDataSlice := common.SetToIntSlice[int](byMonthdayData.(*schema.Set))
 			createOptions.ByMonthday = &byMonthdayDataSlice
 		} else {
 			return diag.Errorf("by_monthday can not be set with type: %s", typeData)
@@ -373,7 +373,7 @@ func ResourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, m in
 	byMonthData, byMonthOk := d.GetOk("by_month")
 	if byMonthOk {
 		if typeData != singleEvent {
-			byMonthDataSlice := common.SetToIntSlice(byMonthData.(*schema.Set))
+			byMonthDataSlice := common.SetToIntSlice[int](byMonthData.(*schema.Set))
 			updateOptions.ByMonth = &byMonthDataSlice
 		} else {
 			return diag.Errorf("by_month can not be set with type: %s", typeData)
@@ -383,7 +383,7 @@ func ResourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, m in
 	byMonthDayData, byMonthDayOk := d.GetOk("by_monthday")
 	if byMonthDayOk {
 		if typeData != singleEvent {
-			byMonthDayData := common.SetToIntSlice(byMonthDayData.(*schema.Set))
+			byMonthDayData := common.SetToIntSlice[int](byMonthDayData.(*schema.Set))
 			updateOptions.ByMonthday = &byMonthDayData
 		} else {
 			return diag.Errorf("by_monthday can not be set with type: %s", typeData)

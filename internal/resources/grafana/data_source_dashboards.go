@@ -4,10 +4,8 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"net/url"
-	"sort"
-	"strings"
 
+	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -24,6 +22,7 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 `,
 		ReadContext: dataSourceReadDashboards,
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"folder_ids": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -66,52 +65,36 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 	}
 }
 
-func HashDashboardSearchParameters(params map[string][]string) string {
-	// hash a sorted slice of all string parameters and corresponding values
-	hashOut := sha256.New()
-
-	var paramsList []string
-	for key, vals := range params {
-		paramsList = append(paramsList, key)
-		paramsList = append(paramsList, vals...)
-	}
-
-	sort.Strings(paramsList)
-	hashIn := strings.Join(paramsList, "")
-	hashOut.Write([]byte(hashIn))
-	return fmt.Sprintf("%x", hashOut.Sum(nil))[:23]
-}
-
 func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	var diags diag.Diagnostics
-	params := url.Values{
-		"limit": {fmt.Sprint(d.Get("limit"))},
-		"type":  {"dash-db"},
-	}
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
+
+	limit := int64(d.Get("limit").(int))
+	searchType := "dash-db"
+	params := search.NewSearchParams().WithLimit(&limit).WithType(&searchType)
+
+	id := sha256.New()
+	id.Write([]byte(fmt.Sprintf("%d", limit)))
 
 	// add tags and folder IDs from attributes to dashboard search parameters
 	if list, ok := d.GetOk("folder_ids"); ok {
-		for _, elem := range list.([]interface{}) {
-			params.Add("folderIds", fmt.Sprint(elem))
-		}
+		params.FolderIds = common.ListToIntSlice[int64](list.([]interface{}))
+		id.Write([]byte(fmt.Sprintf("%v", params.FolderIds)))
 	}
 
 	if list, ok := d.GetOk("tags"); ok {
-		for _, elem := range list.([]interface{}) {
-			params.Add("tag", fmt.Sprint(elem))
-		}
+		params.Tag = common.ListToStringSlice(list.([]interface{}))
+		id.Write([]byte(fmt.Sprintf("%v", params.Tag)))
 	}
 
-	d.SetId(HashDashboardSearchParameters(params))
+	d.SetId(MakeOrgResourceID(orgID, id))
 
-	results, err := client.FolderDashboardSearch(params)
+	resp, err := client.Search.Search(params, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	dashboards := make([]map[string]interface{}, len(results))
-	for i, result := range results {
+	dashboards := make([]map[string]interface{}, len(resp.GetPayload()))
+	for i, result := range resp.GetPayload() {
 		dashboards[i] = map[string]interface{}{
 			"title":        result.Title,
 			"uid":          result.UID,
@@ -123,5 +106,5 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 		return diag.Errorf("error setting dashboards attribute: %s", err)
 	}
 
-	return diags
+	return nil
 }
