@@ -46,6 +46,7 @@ data "grafana_dashboard" "from_uid" {
 ### Optional
 
 - `dashboard_id` (Number) The numerical ID of the Grafana dashboard. Specify either this or `uid`. Defaults to `-1`.
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `uid` (String) The uid of the Grafana dashboard. Specify either this or `dashboard_id`. Defaults to ``.
 
 ### Read-Only
