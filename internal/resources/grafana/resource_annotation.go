@@ -2,12 +2,11 @@ package grafana
 
 import (
 	"context"
-	"log"
-	"net/url"
 	"strconv"
 	"time"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/client/annotations"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -99,75 +98,54 @@ func ResourceAnnotation() *schema.Resource {
 }
 
 func CreateAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
-	annotation, err := makeAnnotation(ctx, d)
+	annotation, err := makeAnnotation(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	id, err := client.NewAnnotation(annotation)
+	params := annotations.NewPostAnnotationParams().WithBody(annotation)
+	resp, err := client.Annotations.PostAnnotation(params, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(MakeOrgResourceID(orgID, id))
+	d.SetId(MakeOrgResourceID(orgID, *resp.GetPayload().ID))
 
 	return ReadAnnotation(ctx, d, meta)
 }
 
 func UpdateAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	annotation, err := makeAnnotation(ctx, d)
+	postAnnotation, err := makeAnnotation(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return diag.Errorf("invalid Grafana annotation ID: %#v", idStr)
+	// Convert to update payload
+	annotation := models.UpdateAnnotationsCmd{
+		Tags:    postAnnotation.Tags,
+		Text:    *postAnnotation.Text,
+		Time:    postAnnotation.Time,
+		TimeEnd: postAnnotation.TimeEnd,
 	}
 
-	_, err = client.UpdateAnnotation(id, annotation)
+	params := annotations.NewUpdateAnnotationParams().WithAnnotationID(idStr).WithBody(&annotation)
+
+	_, err = client.Annotations.UpdateAnnotation(params, nil)
 	return diag.FromErr(err)
 }
 
 func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return diag.Errorf("invalid Grafana annotation ID: %#v", idStr)
+	params := annotations.NewGetAnnotationByIDParams().WithAnnotationID(idStr)
+	resp, err := client.Annotations.GetAnnotationByID(params, nil)
+	if err, shouldReturn := common.CheckReadError("Annotation", d, err); shouldReturn {
+		return err
 	}
-	params := url.Values{
-		"type":        []string{"annotation"},
-		"dashboardId": []string{strconv.FormatInt(int64(d.Get("dashboard_id").(int)), 10)},
-		"panelId":     []string{strconv.FormatInt(int64(d.Get("panel_id").(int)), 10)},
-		"limit":       []string{"100"},
-	}
-	if v, ok := d.GetOk("dashboard_uid"); ok {
-		params.Set("dashboardUid", v.(string))
-		params.Del("dashboardId")
-	}
-	annotations, err := client.Annotations(params)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	var annotation gapi.Annotation
-	for _, a := range annotations {
-		if a.ID == id {
-			annotation = a
-			break
-		}
-	}
-
-	if annotation.ID <= 0 {
-		log.Printf("[WARN] removing annotation %v from state because it no longer exists in grafana", idStr)
-		d.SetId("")
-		return nil
-	}
+	annotation := resp.GetPayload()
 
 	t := time.UnixMilli(annotation.Time)
 	tEnd := time.UnixMilli(annotation.TimeEnd)
@@ -185,32 +163,19 @@ func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{
 }
 
 func DeleteAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return diag.Errorf("invalid Grafana annotation ID: %#v", idStr)
-	}
-
-	if _, err = client.DeleteAnnotation(id); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return diag.Diagnostics{}
+	params := annotations.NewDeleteAnnotationByIDParams().WithAnnotationID(idStr)
+	_, err := client.Annotations.DeleteAnnotationByID(params, nil)
+	return diag.FromErr(err)
 }
 
-func makeAnnotation(_ context.Context, d *schema.ResourceData) (*gapi.Annotation, error) {
-	idStr := d.Id()
-	var id int64
+func makeAnnotation(d *schema.ResourceData) (*models.PostAnnotationsCmd, error) {
 	var err error
-	if idStr != "" {
-		_, idStr = SplitOrgResourceID(idStr)
-		id, err = strconv.ParseInt(idStr, 10, 64)
-	}
 
-	a := &gapi.Annotation{
-		ID:           id,
-		Text:         d.Get("text").(string),
+	text := d.Get("text").(string)
+	a := &models.PostAnnotationsCmd{
+		Text:         &text,
 		PanelID:      int64(d.Get("panel_id").(int)),
 		DashboardID:  int64(d.Get("dashboard_id").(int)),
 		DashboardUID: d.Get("dashboard_uid").(string),
