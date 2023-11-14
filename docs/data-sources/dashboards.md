@@ -18,48 +18,56 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 ## Example Usage
 
 ```terraform
+resource "grafana_organization" "test" {
+  name = "testing dashboards data source"
+}
+
 resource "grafana_folder" "data_source_dashboards" {
+  org_id = grafana_organization.test.id
+
   title = "test folder data_source_dashboards"
 }
 
-// retrieve dashboards by tags, folderIDs, or both
 resource "grafana_dashboard" "data_source_dashboards1" {
+  org_id = grafana_organization.test.id
+
   folder = grafana_folder.data_source_dashboards.id
   config_json = jsonencode({
-    id            = 23456
-    title         = "data_source_dashboards 1"
-    tags          = ["data_source_dashboards"]
-    timezone      = "browser"
-    schemaVersion = 16
+    uid   = "data-source-dashboards-1"
+    title = "data_source_dashboards 1"
+    tags  = ["dev"]
+  })
+}
+
+resource "grafana_dashboard" "data_source_dashboards2" {
+  org_id = grafana_organization.test.id
+
+  config_json = jsonencode({
+    uid   = "data-source-dashboards-2"
+    title = "data_source_dashboards 2"
+    tags  = ["prod"]
   })
 }
 
 data "grafana_dashboards" "tags" {
-  tags = jsondecode(grafana_dashboard.data_source_dashboards1.config_json)["tags"]
+  org_id = grafana_organization.test.id
+  tags   = jsondecode(grafana_dashboard.data_source_dashboards1.config_json)["tags"]
 }
 
 data "grafana_dashboards" "folder_ids" {
+  org_id     = grafana_organization.test.id
   folder_ids = [grafana_dashboard.data_source_dashboards1.folder]
 }
 
 data "grafana_dashboards" "folder_ids_tags" {
+  org_id     = grafana_organization.test.id
   folder_ids = [grafana_dashboard.data_source_dashboards1.folder]
   tags       = jsondecode(grafana_dashboard.data_source_dashboards1.config_json)["tags"]
 }
 
-resource "grafana_dashboard" "data_source_dashboards2" {
-  folder = 0 // General folder
-  config_json = jsonencode({
-    id            = 23456
-    title         = "data_source_dashboards 2"
-    tags          = ["prod"]
-    timezone      = "browser"
-    schemaVersion = 16
-  })
-}
-
 // use depends_on to wait for dashboard resource to be created before searching
 data "grafana_dashboards" "all" {
+  org_id = grafana_organization.test.id
   depends_on = [
     grafana_dashboard.data_source_dashboards1,
     grafana_dashboard.data_source_dashboards2
@@ -68,7 +76,16 @@ data "grafana_dashboards" "all" {
 
 // get only one result
 data "grafana_dashboards" "limit_one" {
-  limit = 1
+  org_id = grafana_organization.test.id
+  limit  = 1
+  depends_on = [
+    grafana_dashboard.data_source_dashboards1,
+    grafana_dashboard.data_source_dashboards2
+  ]
+}
+
+// The dashboards are not in the default org so this should return an empty list
+data "grafana_dashboards" "wrong_org" {
   depends_on = [
     grafana_dashboard.data_source_dashboards1,
     grafana_dashboard.data_source_dashboards2
@@ -83,6 +100,7 @@ data "grafana_dashboards" "limit_one" {
 
 - `folder_ids` (List of Number) Numerical IDs of Grafana folders containing dashboards. Specify to filter for dashboards by folder (eg. `[0]` for General folder), or leave blank to get all dashboards in all folders.
 - `limit` (Number) Maximum number of dashboard search results to return. Defaults to `5000`.
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `tags` (List of String) List of string Grafana dashboard tags to search for, eg. `["prod"]`. Used only as search input, i.e., attribute value will remain unchanged.
 
 ### Read-Only
