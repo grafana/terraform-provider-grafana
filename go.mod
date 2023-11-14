@@ -9,7 +9,8 @@ require (
 	github.com/go-openapi/strfmt v0.21.7
 	github.com/grafana/amixr-api-go-client v0.0.11
 	github.com/grafana/grafana-api-golang-client v0.26.0
-	github.com/grafana/grafana-openapi-client-go v0.0.0-20231115145935-79a55ef81cbf
+	// TODO: https://github.com/grafana/grafana-openapi-client-go/pull/31 needs to be merged and released and ref changed here
+	github.com/grafana/grafana-openapi-client-go v0.0.0-20231115171053-680b3d45ee91
 	github.com/grafana/machine-learning-go-client v0.5.0
 	github.com/grafana/synthetic-monitoring-agent v0.19.0
 	github.com/grafana/synthetic-monitoring-api-go-client v0.7.0

@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 
+	"github.com/grafana/grafana-openapi-client-go/client/library_elements"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -29,17 +30,27 @@ func DatasourceLibraryPanel() *schema.Resource {
 }
 
 func dataSourceLibraryPanelRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 	uid := d.Get("uid").(string)
 
-	// get UID from name if specified
-	name := d.Get("name").(string)
-	if name != "" {
-		panel, err := client.LibraryPanelByName(name)
+	if uid == "" {
+		// get UID from name if specified
+		name := d.Get("name").(string)
+
+		if name == "" {
+			return diag.Errorf("either name or uid must be specified")
+		}
+
+		params := library_elements.NewGetLibraryElementByNameParams().WithLibraryElementName(name)
+		resp, err := client.LibraryElements.GetLibraryElementByName(params, nil)
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		uid = panel.UID
+		result := resp.GetPayload().Result
+		if len(result) != 1 {
+			return diag.Errorf("expected 1 library panel with name %q, got %d", name, len(result))
+		}
+		uid = result[0].UID
 	}
 
 	d.SetId(MakeOrgResourceID(orgID, uid))
