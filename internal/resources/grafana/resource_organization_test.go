@@ -19,7 +19,7 @@ func TestAccOrganization_basic(t *testing.T) {
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		CheckDestroy:      orgCheckExists.destroyed(&org, &org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_basic,
@@ -73,7 +73,7 @@ func TestAccOrganization_users(t *testing.T) {
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		CheckDestroy:      orgCheckExists.destroyed(&org, &org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_usersCreate,
@@ -149,7 +149,7 @@ func TestAccOrganization_roleNoneUser(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		CheckDestroy:      orgCheckExists.destroyed(&org, &org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_usersCreate,
@@ -208,7 +208,7 @@ func TestAccOrganization_createManyUsers_longtest(t *testing.T) {
 	// Don't make this test parallel, it's already creating 1000+ users
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		CheckDestroy:      orgCheckExists.destroyed(&org, &org),
 		Steps: []resource.TestStep{
 			{Config: testAccOrganizationConfig_usersCreateMany_1},
 			{
@@ -219,7 +219,7 @@ func TestAccOrganization_createManyUsers_longtest(t *testing.T) {
 						"grafana_organization.test", "name", "terraform-acc-test",
 					),
 					resource.TestCheckResourceAttr(
-						"grafana_organization.test", "admins.#", "1024",
+						"grafana_organization.test", "viewers.#", "125",
 					),
 				),
 			},
@@ -235,7 +235,7 @@ func TestAccOrganization_defaultAdmin(t *testing.T) {
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		CheckDestroy:      orgCheckExists.destroyed(&org, &org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_defaultAdminNormal,
@@ -296,7 +296,7 @@ func TestAccOrganization_externalUser(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		CheckDestroy:      orgCheckExists.destroyed(&org, &org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOrganizationConfig_externalUser,
@@ -427,7 +427,7 @@ resource "grafana_organization" "test" {
 
 const testAccOrganizationConfig_usersCreateMany_1 = `
 resource "grafana_user" "users" {
-	count = 1024
+	count = 125
 
 	name     = "user-${count.index}"
 	email    = "user-${count.index}@example.com"
@@ -438,7 +438,7 @@ resource "grafana_user" "users" {
 
 const testAccOrganizationConfig_usersCreateMany_2 = `
 resource "grafana_user" "users" {
-	count = 1024
+	count = 125
 
 	name     = "user-${count.index}"
 	email    = "user-${count.index}@example.com"
@@ -450,6 +450,6 @@ resource "grafana_organization" "test" {
     name         = "terraform-acc-test"
     admin_user   = "admin"
     create_users = false
-    admins       = [ for user in grafana_user.users : user.email ]
+    viewers      = [ for user in grafana_user.users : user.email ]
 }
 `

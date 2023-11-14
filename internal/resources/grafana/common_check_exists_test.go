@@ -184,7 +184,7 @@ func (h *checkExistsHelper[T]) destroyed(v *T, org *models.OrgDetailsDTO) resour
 		if err == nil {
 			return fmt.Errorf("%T %s still exists in org %d", v, id, orgID)
 		} else if !common.IsNotFoundError(err) {
-			return fmt.Errorf("error checking if resource %s exists in org %d: %s", id, orgID, err)
+			return fmt.Errorf("error checking if resource %s was destroyed in org %d: %s", id, orgID, err)
 		}
 		return nil
 	}
