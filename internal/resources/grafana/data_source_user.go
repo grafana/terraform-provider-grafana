@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/client/users"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -54,16 +55,22 @@ does not currently work with API Tokens. You must use basic auth.
 }
 
 func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client := meta.(*common.Client).GrafanaOAPI.Clone().WithOrgID(0) // Users are global/org-agnostic
 
-	var user gapi.User
+	var resp interface{ GetPayload() *models.UserProfileDTO }
 	var err error
+
+	emailOrLogin := d.Get("email").(string)
+	if emailOrLogin == "" {
+		emailOrLogin = d.Get("login").(string)
+	}
+
 	if id := d.Get("user_id").(int); id >= 0 {
-		user, err = client.User(int64(id))
-	} else if email := d.Get("email").(string); email != "" {
-		user, err = client.UserByEmail(email)
-	} else if login := d.Get("login").(string); login != "" {
-		user, err = client.UserByEmail(login)
+		params := users.NewGetUserByIDParams().WithUserID(int64(id))
+		resp, err = client.Users.GetUserByID(params, nil)
+	} else if emailOrLogin != "" {
+		params := users.NewGetUserByLoginOrEmailParams().WithLoginOrEmail(emailOrLogin)
+		resp, err = client.Users.GetUserByLoginOrEmail(params, nil)
 	} else {
 		err = fmt.Errorf("must specify one of user_id, email, or login")
 	}
@@ -72,12 +79,13 @@ func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, meta interf
 		return diag.FromErr(err)
 	}
 
+	user := resp.GetPayload()
 	d.SetId(fmt.Sprintf("%d", user.ID))
 	d.Set("user_id", user.ID)
 	d.Set("email", user.Email)
 	d.Set("name", user.Name)
 	d.Set("login", user.Login)
-	d.Set("is_admin", user.IsAdmin)
+	d.Set("is_admin", user.IsGrafanaAdmin)
 
 	return nil
 }

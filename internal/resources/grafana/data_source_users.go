@@ -3,7 +3,8 @@ package grafana
 import (
 	"context"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/client/users"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -64,22 +65,29 @@ does not currently work with API Tokens. You must use basic auth.
 }
 
 func readUsers(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	users, err := client.Users()
-	if err != nil {
-		return diag.FromErr(err)
+	client := meta.(*common.Client).GrafanaOAPI.Clone().WithOrgID(0) // Users are global/org-agnostic
+
+	allUsers := []*models.UserSearchHitDTO{}
+	var page int64 = 1
+	for {
+		params := users.NewSearchUsersParams().WithDefaults()
+		resp, err := client.Users.SearchUsers(params.WithPage(&page), nil)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		allUsers = append(allUsers, resp.Payload...)
+		if len(resp.Payload) != int(*params.Perpage) {
+			break
+		}
+		page++
 	}
 
 	d.SetId("grafana_users")
-
-	if err := d.Set("users", flattenUsers(users)); err != nil {
-		return diag.Errorf("error setting item: %v", err)
-	}
-
-	return nil
+	return diag.FromErr(d.Set("users", flattenUsers(allUsers)))
 }
 
-func flattenUsers(items []gapi.UserSearch) []interface{} {
+func flattenUsers(items []*models.UserSearchHitDTO) []interface{} {
 	userItems := make([]interface{}, 0)
 	for _, user := range items {
 		f := map[string]interface{}{
