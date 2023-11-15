@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 )
@@ -127,21 +126,21 @@ func TestAccRole_inOrg(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 
 	var role models.RoleDTO
-	var org gapi.Org
+	var org models.OrgDetailsDTO
 	name := acctest.RandomWithPrefix("role-")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			roleCheckExists.destroyed(&role, &org),
-			testAccOrganizationCheckDestroy(&org),
+			orgCheckExists.destroyed(&org, nil),
 		),
 		Steps: []resource.TestStep{
 			{
 				Config: roleInOrg(name, true),
 				Check: resource.ComposeTestCheckFunc(
 					roleCheckExists.exists("grafana_role.test", &role),
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_role.test", "grafana_organization.test"),
 					resource.TestMatchResourceAttr("grafana_role.test", "id", nonDefaultOrgIDRegexp),
 					resource.TestCheckResourceAttr("grafana_role.test", "name", name),
@@ -159,7 +158,7 @@ func TestAccRole_inOrg(t *testing.T) {
 				Config: roleInOrg(name, false),
 				Check: resource.ComposeTestCheckFunc(
 					roleCheckExists.destroyed(&role, &org),
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 				),
 			},
 		},
