@@ -6,7 +6,6 @@ import (
 
 	"github.com/grafana/grafana-openapi-client-go/client/users"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -55,7 +54,7 @@ does not currently work with API Tokens. You must use basic auth.
 }
 
 func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaOAPI.Clone().WithOrgID(0) // Users are global/org-agnostic
+	client := OAPIGlobalClient(meta) // Users are global/org-agnostic
 
 	var resp interface{ GetPayload() *models.UserProfileDTO }
 	var err error
