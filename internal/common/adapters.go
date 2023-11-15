@@ -20,20 +20,20 @@ func SetToStringSlice(src *schema.Set) []string {
 	return ListToStringSlice(src.List())
 }
 
-func ListToIntSlice(src []interface{}) []int {
-	dst := make([]int, 0, len(src))
+func ListToIntSlice[T int | int64](src []interface{}) []T {
+	dst := make([]T, 0, len(src))
 	for _, s := range src {
 		val, ok := s.(int)
 		if !ok {
 			val = 0
 		}
-		dst = append(dst, val)
+		dst = append(dst, T(val))
 	}
 	return dst
 }
 
-func SetToIntSlice(src *schema.Set) []int {
-	return ListToIntSlice(src.List())
+func SetToIntSlice[T int | int64](src *schema.Set) []T {
+	return ListToIntSlice[T](src.List())
 }
 
 func StringSliceToList(list []string) []interface{} {
