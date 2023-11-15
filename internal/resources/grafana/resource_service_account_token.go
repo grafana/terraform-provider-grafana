@@ -5,7 +5,8 @@ import (
 	"log"
 	"strconv"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -58,7 +59,7 @@ func ResourceServiceAccountToken() *schema.Resource {
 
 func serviceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Get("service_account_id").(string))
-	c := m.(*common.Client).GrafanaAPI.WithOrgID(orgID)
+	c := m.(*common.Client).GrafanaOAPI.Clone().WithOrgID(orgID)
 	serviceAccountID, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -67,18 +68,19 @@ func serviceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m in
 	name := d.Get("name").(string)
 	ttl := d.Get("seconds_to_live").(int)
 
-	request := gapi.CreateServiceAccountTokenRequest{
-		Name:             name,
-		ServiceAccountID: serviceAccountID,
-		SecondsToLive:    int64(ttl),
+	request := models.AddServiceAccountTokenCommand{
+		Name:          name,
+		SecondsToLive: int64(ttl),
 	}
-	response, err := c.CreateServiceAccountToken(request)
+	params := service_accounts.NewCreateTokenParams().WithServiceAccountID(serviceAccountID).WithBody(&request)
+	response, err := c.ServiceAccounts.CreateToken(params, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	token := response.Payload
 
-	d.SetId(strconv.FormatInt(response.ID, 10))
-	err = d.Set("key", response.Key)
+	d.SetId(strconv.FormatInt(token.ID, 10))
+	err = d.Set("key", token.Key)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -89,13 +91,14 @@ func serviceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m in
 
 func serviceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Get("service_account_id").(string))
-	c := m.(*common.Client).GrafanaAPI.WithOrgID(orgID)
+	c := m.(*common.Client).GrafanaOAPI.Clone().WithOrgID(orgID)
 	serviceAccountID, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	response, err := c.GetServiceAccountTokens(serviceAccountID)
+	params := service_accounts.NewListTokensParams().WithServiceAccountID(serviceAccountID)
+	response, err := c.ServiceAccounts.ListTokens(params, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -104,14 +107,14 @@ func serviceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m inte
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	for _, key := range response {
+	for _, key := range response.Payload {
 		if id == key.ID {
 			d.SetId(strconv.FormatInt(key.ID, 10))
 			err = d.Set("name", key.Name)
 			if err != nil {
 				return diag.FromErr(err)
 			}
-			if key.Expiration != nil && !key.Expiration.IsZero() {
+			if !key.Expiration.IsZero() {
 				err = d.Set("expiration", key.Expiration.String())
 				if err != nil {
 					return diag.FromErr(err)
@@ -131,7 +134,7 @@ func serviceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m inte
 
 func serviceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Get("service_account_id").(string))
-	c := m.(*common.Client).GrafanaAPI.WithOrgID(orgID)
+	c := m.(*common.Client).GrafanaOAPI.Clone().WithOrgID(orgID)
 	serviceAccountID, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -142,10 +145,8 @@ func serviceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, m in
 		return diag.FromErr(err)
 	}
 
-	_, err = c.DeleteServiceAccountToken(serviceAccountID, id)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	params := service_accounts.NewDeleteTokenParams().WithServiceAccountID(serviceAccountID).WithTokenID(id)
+	_, err = c.ServiceAccounts.DeleteToken(params, nil)
 
-	return nil
+	return diag.FromErr(err)
 }
