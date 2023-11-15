@@ -2,9 +2,9 @@ package grafana
 
 import (
 	"context"
-	"strconv"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/client/datasources"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -41,33 +41,26 @@ func DatasourceDatasource() *schema.Resource {
 }
 
 func datasourceDatasourceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _ := ClientFromNewOrgResource(meta, d)
+	client, _ := OAPIClientFromNewOrgResource(meta, d)
 
-	var (
-		dataSource *gapi.DataSource
-		err        error
-	)
+	var resp interface{ GetPayload() *models.DataSource }
+	var err error
 
 	if name, ok := d.GetOk("name"); ok {
-		id, getIDErr := client.DataSourceIDByName(name.(string))
-		if getIDErr != nil {
-			return diag.FromErr(getIDErr)
-		}
-		dataSource, err = client.DataSource(id)
+		params := datasources.NewGetDataSourceByNameParams().WithName(name.(string))
+		resp, err = client.Datasources.GetDataSourceByName(params, nil)
 	} else if id, ok := d.GetOk("id"); ok {
 		_, idStr := SplitOrgResourceID(id.(string))
-		idInt, parseErr := strconv.ParseInt(idStr, 10, 64)
-		if parseErr != nil {
-			return diag.FromErr(parseErr)
-		}
-		dataSource, err = client.DataSource(idInt)
+		params := datasources.NewGetDataSourceByIDParams().WithID(idStr)
+		resp, err = client.Datasources.GetDataSourceByID(params, nil)
 	} else if uid, ok := d.GetOk("uid"); ok {
-		dataSource, err = client.DataSourceByUID(uid.(string))
+		params := datasources.NewGetDataSourceByUIDParams().WithUID(uid.(string))
+		resp, err = client.Datasources.GetDataSourceByUID(params, nil)
 	}
 
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	return readDatasource(d, dataSource)
+	return readDatasource(d, resp.GetPayload())
 }
