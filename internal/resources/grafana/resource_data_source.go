@@ -5,13 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/structure"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/client/datasources"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
@@ -144,68 +146,85 @@ source selected (via the 'type' argument).
 
 // CreateDataSource creates a Grafana datasource
 func CreateDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
-	dataSource, err := makeDataSource("", d)
+	dataSource, err := makeDataSource(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	id, err := client.NewDataSource(dataSource)
+	params := datasources.NewAddDataSourceParams().WithBody(dataSource)
+	resp, err := client.Datasources.AddDataSource(params, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(MakeOrgResourceID(orgID, id))
+	d.SetId(MakeOrgResourceID(orgID, resp.Payload.Datasource.ID))
 	return ReadDataSource(ctx, d, meta)
 }
 
 // UpdateDataSource updates a Grafana datasource
 func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	dataSource, err := makeDataSource(idStr, d)
+	dataSource, err := makeDataSource(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	body := models.UpdateDataSourceCommand{
+		Access:          dataSource.Access,
+		BasicAuth:       dataSource.BasicAuth,
+		BasicAuthUser:   dataSource.BasicAuthUser,
+		Database:        dataSource.Database,
+		IsDefault:       dataSource.IsDefault,
+		JSONData:        dataSource.JSONData,
+		Name:            dataSource.Name,
+		SecureJSONData:  dataSource.SecureJSONData,
+		Type:            dataSource.Type,
+		UID:             dataSource.UID,
+		URL:             dataSource.URL,
+		User:            dataSource.User,
+		WithCredentials: dataSource.WithCredentials,
+	}
+	params := datasources.NewUpdateDataSourceByIDParams().WithID(idStr).WithBody(&body)
+	_, err = client.Datasources.UpdateDataSourceByID(params, nil)
 
-	return diag.FromErr(client.UpdateDataSource(dataSource))
+	return diag.FromErr(err)
 }
 
 // ReadDataSource reads a Grafana datasource
 func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	var dataSource *gapi.DataSource
+	var resp interface{ GetPayload() *models.DataSource }
 	var err error
 	// Support both numerical and UID IDs, so that we can import an existing datasource with either.
 	// Following the read, it's normalized to a numerical ID.
-	if numericalID, parseErr := strconv.ParseInt(idStr, 10, 64); parseErr == nil {
-		dataSource, err = client.DataSource(numericalID)
+	if _, parseErr := strconv.ParseInt(idStr, 10, 64); parseErr == nil {
+		params := datasources.NewGetDataSourceByIDParams().WithID(idStr)
+		resp, err = client.Datasources.GetDataSourceByID(params, nil)
 	} else {
-		dataSource, err = client.DataSourceByUID(idStr)
+		params := datasources.NewGetDataSourceByUIDParams().WithUID(idStr)
+		resp, err = client.Datasources.GetDataSourceByUID(params, nil)
 	}
 
 	if err, shouldReturn := common.CheckReadError("datasource", d, err); shouldReturn {
 		return err
 	}
 
-	return readDatasource(d, dataSource)
+	return readDatasource(d, resp.GetPayload())
 }
 
 // DeleteDataSource deletes a Grafana datasource
 func DeleteDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return diag.Errorf("Invalid id: %#v", idStr)
-	}
-
-	return diag.FromErr(client.DeleteDataSource(id))
+	params := datasources.NewDeleteDataSourceByIDParams().WithID(idStr)
+	_, err := client.Datasources.DeleteDataSourceByID(params, nil)
+	return diag.FromErr(err)
 }
 
-func readDatasource(d *schema.ResourceData, dataSource *gapi.DataSource) diag.Diagnostics {
+func readDatasource(d *schema.ResourceData, dataSource *models.DataSource) diag.Diagnostics {
 	d.SetId(MakeOrgResourceID(dataSource.OrgID, dataSource.ID))
 	d.Set("access_mode", dataSource.Access)
 	d.Set("database_name", dataSource.Database)
@@ -217,7 +236,7 @@ func readDatasource(d *schema.ResourceData, dataSource *gapi.DataSource) diag.Di
 	d.Set("uid", dataSource.UID)
 	d.Set("org_id", strconv.FormatInt(dataSource.OrgID, 10))
 
-	gottenJSONData, _, gottenHeaders := gapi.ExtractHeadersFromJSONData(dataSource.JSONData, dataSource.SecureJSONData)
+	gottenJSONData, gottenHeaders := removeHeadersFromJSONData(dataSource.JSONData.(map[string]interface{}))
 	encodedJSONData, err := json.Marshal(gottenJSONData)
 	if err != nil {
 		return diag.Errorf("Failed to marshal JSON data: %s", err)
@@ -242,16 +261,7 @@ func readDatasource(d *schema.ResourceData, dataSource *gapi.DataSource) diag.Di
 	return nil
 }
 
-func makeDataSource(idStr string, d *schema.ResourceData) (*gapi.DataSource, error) {
-	var id int64
-	var err error
-	if idStr != "" {
-		id, err = strconv.ParseInt(idStr, 10, 64)
-		if err != nil {
-			return nil, err
-		}
-	}
-
+func makeDataSource(d *schema.ResourceData) (*models.AddDataSourceCommand, error) {
 	httpHeaders := make(map[string]string)
 	for key, value := range d.Get("http_headers").(map[string]interface{}) {
 		httpHeaders[key] = fmt.Sprintf("%v", value)
@@ -266,14 +276,13 @@ func makeDataSource(idStr string, d *schema.ResourceData) (*gapi.DataSource, err
 		return nil, err
 	}
 
-	jd, sd = gapi.JSONDataWithHeaders(jd, sd, httpHeaders)
+	jd, sd = jsonDataWithHeaders(jd, sd, httpHeaders)
 
-	return &gapi.DataSource{
-		ID:             id,
+	return &models.AddDataSourceCommand{
 		Name:           d.Get("name").(string),
 		Type:           d.Get("type").(string),
 		URL:            d.Get("url").(string),
-		Access:         d.Get("access_mode").(string),
+		Access:         models.DsAccess(d.Get("access_mode").(string)),
 		Database:       d.Get("database_name").(string),
 		User:           d.Get("username").(string),
 		IsDefault:      d.Get("is_default").(bool),
@@ -296,8 +305,8 @@ func makeJSONData(d *schema.ResourceData) (map[string]interface{}, error) {
 	return jd, nil
 }
 
-func makeSecureJSONData(d *schema.ResourceData) (map[string]interface{}, error) {
-	sjd := make(map[string]interface{})
+func makeSecureJSONData(d *schema.ResourceData) (map[string]string, error) {
+	sjd := make(map[string]string)
 	data := d.Get("secure_json_data_encoded")
 	if data != "" {
 		if err := json.Unmarshal([]byte(data.(string)), &sjd); err != nil {
@@ -305,4 +314,41 @@ func makeSecureJSONData(d *schema.ResourceData) (map[string]interface{}, error) 
 		}
 	}
 	return sjd, nil
+}
+
+func jsonDataWithHeaders(inputJSONData map[string]interface{}, inputSecureJSONData map[string]string, headers map[string]string) (map[string]interface{}, map[string]string) {
+	jsonData := make(map[string]interface{})
+	for name, value := range inputJSONData {
+		jsonData[name] = value
+	}
+
+	secureJSONData := make(map[string]string)
+	for name, value := range inputSecureJSONData {
+		secureJSONData[name] = value
+	}
+
+	idx := 1
+	for name, value := range headers {
+		jsonData[fmt.Sprintf("httpHeaderName%d", idx)] = name
+		secureJSONData[fmt.Sprintf("httpHeaderValue%d", idx)] = value
+		idx++
+	}
+
+	return jsonData, secureJSONData
+}
+
+func removeHeadersFromJSONData(input map[string]interface{}) (map[string]interface{}, map[string]string) {
+	jsonData := make(map[string]interface{})
+	headers := make(map[string]string)
+
+	for dataName, dataValue := range input {
+		if strings.HasPrefix(dataName, "httpHeaderName") {
+			headerName := dataValue.(string)
+			headers[headerName] = "true" // We can't retrieve the headers, so we just set a dummy value
+		} else {
+			jsonData[dataName] = dataValue
+		}
+	}
+
+	return jsonData, headers
 }
