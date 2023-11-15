@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
@@ -217,7 +218,7 @@ func TestAccAlertRule_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	var group gapi.RuleGroup
-	var org gapi.Org
+	var org models.OrgDetailsDTO
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -230,7 +231,7 @@ func TestAccAlertRule_inOrg(t *testing.T) {
 				Config: testAccAlertRuleGroupInOrgConfig(name, 240),
 				Check: resource.ComposeTestCheckFunc(
 					testRuleGroupCheckExists("grafana_rule_group.test", &group),
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_rule_group.test", "grafana_organization.test"),
 					resource.TestCheckResourceAttr("grafana_rule_group.test", "name", name),
 					resource.TestCheckResourceAttr("grafana_rule_group.test", "interval_seconds", "240"),
@@ -243,7 +244,7 @@ func TestAccAlertRule_inOrg(t *testing.T) {
 				Config: testAccAlertRuleGroupInOrgConfig(name, 360),
 				Check: resource.ComposeTestCheckFunc(
 					testRuleGroupCheckExists("grafana_rule_group.test", &group),
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_rule_group.test", "grafana_organization.test"),
 					resource.TestCheckResourceAttr("grafana_rule_group.test", "name", name),
 					resource.TestCheckResourceAttr("grafana_rule_group.test", "interval_seconds", "360"),

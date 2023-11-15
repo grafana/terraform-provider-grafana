@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
@@ -55,7 +54,7 @@ func TestAccServiceAccountToken_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	name := acctest.RandString(10)
-	var org gapi.Org
+	var org models.OrgDetailsDTO
 	var sa models.ServiceAccountDTO
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -76,7 +75,7 @@ func TestAccServiceAccountToken_inOrg(t *testing.T) {
 
 					// Check that the service account is in the correct organization
 					resource.TestMatchResourceAttr("grafana_service_account.test", "id", nonDefaultOrgIDRegexp),
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_service_account.test", "grafana_organization.test"),
 				),
 			},
@@ -91,7 +90,7 @@ func TestAccServiceAccountToken_inOrg(t *testing.T) {
 
 					// Check that the service account is in the correct organization
 					resource.TestMatchResourceAttr("grafana_service_account.test", "id", nonDefaultOrgIDRegexp),
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_service_account.test", "grafana_organization.test"),
 				),
 			},

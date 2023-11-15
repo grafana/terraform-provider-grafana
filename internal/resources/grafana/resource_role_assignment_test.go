@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 )
@@ -52,7 +53,7 @@ func TestAccRoleAssignments(t *testing.T) {
 func TestAccRoleAssignments_inOrg(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 	var roleAssignment gapi.RoleAssignments
-	var org gapi.Org
+	var org models.OrgDetailsDTO
 
 	testName := acctest.RandString(10)
 
@@ -80,7 +81,7 @@ func TestAccRoleAssignments_inOrg(t *testing.T) {
 					// Check that the role is in the correct organization
 					resource.TestMatchResourceAttr("grafana_role.test", "id", nonDefaultOrgIDRegexp),
 					resource.TestMatchResourceAttr("grafana_role_assignment.test", "id", nonDefaultOrgIDRegexp),
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_role.test", "grafana_organization.test"),
 					checkResourceIsInOrg("grafana_role_assignment.test", "grafana_organization.test"),
 				),

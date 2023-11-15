@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"strconv"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/access_control"
 	"github.com/grafana/grafana-openapi-client-go/client/annotations"
 	"github.com/grafana/grafana-openapi-client-go/client/datasources"
 	"github.com/grafana/grafana-openapi-client-go/client/folders"
 	"github.com/grafana/grafana-openapi-client-go/client/library_elements"
+	"github.com/grafana/grafana-openapi-client-go/client/orgs"
 	"github.com/grafana/grafana-openapi-client-go/client/playlists"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/client/teams"
@@ -55,6 +55,14 @@ var (
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.LibraryElementResponse, error) {
 			params := library_elements.NewGetLibraryElementByUIDParams().WithLibraryElementUID(id)
 			resp, err := client.LibraryElements.GetLibraryElementByUID(params, nil)
+			return payloadOrError(resp, err)
+		},
+	)
+	orgCheckExists = newCheckExistsHelper(
+		func(o *models.OrgDetailsDTO) string { return strconv.FormatInt(o.ID, 10) },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.OrgDetailsDTO, error) {
+			params := orgs.NewGetOrgByIDParams().WithOrgID(mustParseInt64(id))
+			resp, err := client.Orgs.GetOrgByID(params, nil)
 			return payloadOrError(resp, err)
 		},
 	)
@@ -152,7 +160,7 @@ func (h *checkExistsHelper[T]) exists(rn string, v *T) resource.TestCheckFunc {
 		}
 
 		// Sanity check: The "destroyed" function should fail here because the resource exists
-		if err := h.destroyed(obj, &gapi.Org{ID: orgID})(s); err == nil {
+		if err := h.destroyed(obj, &models.OrgDetailsDTO{ID: orgID})(s); err == nil {
 			return fmt.Errorf("the destroyed check passed but shouldn't for resource %s with ID %q. This is a bug in the test", rn, rs.Primary.ID)
 		}
 
@@ -163,7 +171,7 @@ func (h *checkExistsHelper[T]) exists(rn string, v *T) resource.TestCheckFunc {
 
 // destroyed checks that the resource doesn't exist in the default org
 // For non-default orgs, we should only check that the org was destroyed
-func (h *checkExistsHelper[T]) destroyed(v *T, org *gapi.Org) resource.TestCheckFunc {
+func (h *checkExistsHelper[T]) destroyed(v *T, org *models.OrgDetailsDTO) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		var orgID int64 = 1
 		if org != nil {
@@ -176,7 +184,7 @@ func (h *checkExistsHelper[T]) destroyed(v *T, org *gapi.Org) resource.TestCheck
 		if err == nil {
 			return fmt.Errorf("%T %s still exists in org %d", v, id, orgID)
 		} else if !common.IsNotFoundError(err) {
-			return fmt.Errorf("error checking if resource %s exists in org %d: %s", id, orgID, err)
+			return fmt.Errorf("error checking if resource %s was destroyed in org %d: %s", id, orgID, err)
 		}
 		return nil
 	}

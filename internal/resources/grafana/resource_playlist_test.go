@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/grafana-openapi-client-go/client/playlists"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
@@ -127,7 +126,7 @@ func TestAccPlaylist_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.0.0") // Querying org-specific playlists is broken pre-9
 
 	rName := acctest.RandomWithPrefix("tf-acc-test")
-	var org gapi.Org
+	var org models.OrgDetailsDTO
 	var playlist models.Playlist
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -139,7 +138,7 @@ func TestAccPlaylist_inOrg(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					// Check that the playlist is in the correct organization
 					resource.TestMatchResourceAttr(paylistResource, "id", nonDefaultOrgIDRegexp),
-					testAccOrganizationCheckExists("grafana_organization.test", &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg(paylistResource, "grafana_organization.test"),
 
 					playlistCheckExists.exists(paylistResource, &playlist),
