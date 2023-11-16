@@ -290,7 +290,7 @@ func TestAccResourceTeam_InOrg(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      teamCheckExists.destroyed(&team, &org),
+		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTeamInOrganization(name),
@@ -301,6 +301,14 @@ func TestAccResourceTeam_InOrg(t *testing.T) {
 					resource.TestMatchResourceAttr("grafana_team.test", "id", nonDefaultOrgIDRegexp),
 					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_team.test", "grafana_organization.test"),
+				),
+			},
+			// Test destroying team within org. Org keeps existing but team is gone.
+			{
+				Config: testutils.WithoutResource(t, testAccTeamInOrganization(name), "grafana_team.test"),
+				Check: resource.ComposeTestCheckFunc(
+					teamCheckExists.destroyed(&team, &org),
+					orgCheckExists.exists("grafana_organization.test", &org),
 				),
 			},
 		},
