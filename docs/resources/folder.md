@@ -44,7 +44,7 @@ resource "grafana_folder" "test_folder_with_uid" {
 ### Optional
 
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
-- `parent_folder_uid` (String) The uid of the parent folder. If set, the folder will be nested. If not set, the folder will be created in the root folder.
+- `parent_folder_uid` (String) The uid of the parent folder. If set, the folder will be nested. If not set, the folder will be created in the root folder. Note: This requires the nestedFolders feature flag to be enabled on your Grafana instance.
 - `prevent_destroy_if_not_empty` (Boolean) Prevent deletion of the folder if it is not empty (contains dashboards or alert rules). Defaults to `false`.
 - `uid` (String) Unique identifier.
 
