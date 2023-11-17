@@ -8,7 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/client/folder_permissions"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
@@ -78,16 +79,16 @@ func ResourceFolderPermission() *schema.Resource {
 }
 
 func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	v, ok := d.GetOk("permissions")
 	if !ok {
 		return nil
 	}
-	permissionList := gapi.PermissionItems{}
+	permissionList := models.UpdateDashboardACLCommand{}
 	for _, permission := range v.(*schema.Set).List() {
 		permission := permission.(map[string]interface{})
-		permissionItem := gapi.PermissionItem{}
+		permissionItem := models.DashboardACLUpdateItem{}
 		if permission["role"].(string) != "" {
 			permissionItem.Role = permission["role"].(string)
 		}
@@ -101,14 +102,14 @@ func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 		if userID > 0 {
 			permissionItem.UserID = userID
 		}
-		permissionItem.Permission = mapPermissionStringToInt64(permission["permission"].(string))
+		permissionItem.Permission = parsePermissionType(permission["permission"].(string))
 		permissionList.Items = append(permissionList.Items, &permissionItem)
 	}
 
 	folderUID := d.Get("folder_uid").(string)
 
-	err := client.UpdateFolderPermissions(folderUID, &permissionList)
-	if err != nil {
+	params := folder_permissions.NewUpdateFolderPermissionsParams().WithFolderUID(folderUID).WithBody(&permissionList)
+	if _, err := client.FolderPermissions.UpdateFolderPermissions(params, nil); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -118,22 +119,24 @@ func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func ReadFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID, folderUID := ClientFromExistingOrgResource(meta, d.Id())
+	client, orgID, folderUID := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	folderPermissions, err := client.FolderPermissions(folderUID)
+	params := folder_permissions.NewGetFolderPermissionListParams().WithFolderUID(folderUID)
+	resp, err := client.FolderPermissions.GetFolderPermissionList(params, nil)
 	if err, shouldReturn := common.CheckReadError("folder permissions", d, err); shouldReturn {
 		return err
 	}
 
+	folderPermissions := resp.Payload
 	permissionItems := make([]interface{}, len(folderPermissions))
 	count := 0
 	for _, permission := range folderPermissions {
-		if permission.FolderUID != "" {
+		if permission.UID != "" {
 			permissionItem := make(map[string]interface{})
 			permissionItem["role"] = permission.Role
 			permissionItem["team_id"] = strconv.FormatInt(permission.TeamID, 10)
 			permissionItem["user_id"] = strconv.FormatInt(permission.UserID, 10)
-			permissionItem["permission"] = mapPermissionInt64ToString(permission.Permission)
+			permissionItem["permission"] = permission.PermissionName
 
 			permissionItems[count] = permissionItem
 			count++
@@ -151,35 +154,23 @@ func DeleteFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 	// since permissions are tied to folders, we can't really delete the permissions.
 	// we will simply remove all permissions, leaving a folder that only an admin can access.
 	// if for some reason the parent folder doesn't exist, we'll just ignore the error
-	client, _, folderUID := ClientFromExistingOrgResource(meta, d.Id())
-	emptyPermissions := gapi.PermissionItems{}
-	err := client.UpdateFolderPermissions(folderUID, &emptyPermissions)
+	client, _, folderUID := OAPIClientFromExistingOrgResource(meta, d.Id())
+	emptyPermissions := models.UpdateDashboardACLCommand{}
+	params := folder_permissions.NewUpdateFolderPermissionsParams().WithFolderUID(folderUID).WithBody(&emptyPermissions)
+	_, err := client.FolderPermissions.UpdateFolderPermissions(params, nil)
 	diags, _ := common.CheckReadError("folder permissions", d, err)
 	return diags
 }
 
-func mapPermissionStringToInt64(permission string) int64 {
-	permissionInt := int64(-1)
+func parsePermissionType(permission string) models.PermissionType {
+	permissionInt := models.PermissionType(-1)
 	switch permission {
 	case "View":
-		permissionInt = int64(1)
+		permissionInt = models.PermissionType(1)
 	case "Edit":
-		permissionInt = int64(2)
+		permissionInt = models.PermissionType(2)
 	case "Admin":
-		permissionInt = int64(4)
+		permissionInt = models.PermissionType(4)
 	}
 	return permissionInt
-}
-
-func mapPermissionInt64ToString(permission int64) string {
-	permissionString := "-1"
-	switch permission {
-	case 1:
-		permissionString = "View"
-	case 2:
-		permissionString = "Edit"
-	case 4:
-		permissionString = "Admin"
-	}
-	return permissionString
 }
