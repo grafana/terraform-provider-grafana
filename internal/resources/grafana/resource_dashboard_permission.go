@@ -117,7 +117,7 @@ func UpdateDashboardPermissions(ctx context.Context, d *schema.ResourceData, met
 		if userID > 0 {
 			permissionItem.UserID = userID
 		}
-		permissionItem.Permission = models.PermissionType(mapPermissionStringToInt64(permission["permission"].(string)))
+		permissionItem.Permission = parsePermissionType(permission["permission"].(string))
 		permissionList.Items = append(permissionList.Items, &permissionItem)
 	}
 
