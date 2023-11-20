@@ -131,13 +131,10 @@ func TestAccRole_inOrg(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy: resource.ComposeTestCheckFunc(
-			roleCheckExists.destroyed(&role, &org),
-			orgCheckExists.destroyed(&org, nil),
-		),
+		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
-				Config: roleInOrg(name, true),
+				Config: roleInOrg(name),
 				Check: resource.ComposeTestCheckFunc(
 					roleCheckExists.exists("grafana_role.test", &role),
 					orgCheckExists.exists("grafana_organization.test", &org),
@@ -153,9 +150,9 @@ func TestAccRole_inOrg(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "false"),
 				),
 			},
-			// Test destroying role within org
+			// Test destroying role within org. Org keeps existing but role is gone.
 			{
-				Config: roleInOrg(name, false),
+				Config: testutils.WithoutResource(t, roleInOrg(name), "grafana_role.test"),
 				Check: resource.ComposeTestCheckFunc(
 					roleCheckExists.destroyed(&role, &org),
 					orgCheckExists.exists("grafana_organization.test", &org),
@@ -165,14 +162,12 @@ func TestAccRole_inOrg(t *testing.T) {
 	})
 }
 
-func roleInOrg(name string, roleExists bool) string {
+func roleInOrg(name string) string {
 	def := fmt.Sprintf(`
 resource "grafana_organization" "test" {
 	name = "%s"
-}`, name)
+}
 
-	if roleExists {
-		def += fmt.Sprintf(`
 resource "grafana_role" "test" {
 	org_id = grafana_organization.test.id
 	name  = "%[1]s"
@@ -184,7 +179,6 @@ resource "grafana_role" "test" {
 	hidden = false
 	auto_increment_version = true
 }`, name)
-	}
 
 	return def
 }
