@@ -105,7 +105,7 @@ func policySchema(depth uint) *schema.Resource {
 				},
 			},
 			"matcher": {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Optional:    true,
 				Description: "Describes which labels this rule should match. When multiple matchers are supplied, an alert must match ALL matchers to be accepted by this policy. When no matchers are supplied, the rule will match all alert instances.",
 				Elem: &schema.Resource{
@@ -341,7 +341,7 @@ func unpackSpecificPolicy(p interface{}) (gapi.SpecificPolicy, error) {
 	}
 
 	if v, ok := json["matcher"]; ok && v != nil {
-		ms := v.([]interface{})
+		ms := v.(*schema.Set).List()
 		matchers := make([]gapi.Matcher, 0, len(ms))
 		for _, m := range ms {
 			matcher, err := unpackPolicyMatcher(m)

@@ -30,6 +30,16 @@ resource "grafana_notification_policy" "my_notification_policy" {
       match = "="
       value = "myvalue"
     }
+    matcher {
+      label = "alertname"
+      match = "="
+      value = "CPU Usage"
+    }
+    matcher {
+      label = "Name"
+      match = "=~"
+      value = "host.*|host-b.*"
+    }
     contact_point = grafana_contact_point.a_contact_point.name
     continue      = true
     mute_timings  = [grafana_mute_timing.a_mute_timing.name]
