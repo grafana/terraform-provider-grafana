@@ -56,10 +56,13 @@ func ResourceFolder() *schema.Resource {
 				Description: "Prevent deletion of the folder if it is not empty (contains dashboards or alert rules).",
 			},
 			"parent_folder_uid": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    true,
-				Description: "The uid of the parent folder. If set, the folder will be nested. If not set, the folder will be created in the root folder.",
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Description: "The uid of the parent folder. " +
+					"If set, the folder will be nested. " +
+					"If not set, the folder will be created in the root folder. " +
+					"Note: This requires the nestedFolders feature flag to be enabled on your Grafana instance.",
 			},
 		},
 	}
