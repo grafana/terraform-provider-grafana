@@ -10,7 +10,8 @@ import (
 func TestAccDataSourceDashboardsAllAndByFolderID(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	resource.ParallelTest(t, resource.TestCase{
+	// Do not use parallel tests here because it tests a listing datasource on the default org
+	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
 			{
