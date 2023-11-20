@@ -92,6 +92,10 @@ func OAPIClientFromNewOrgResource(meta interface{}, d *schema.ResourceData) (*go
 	return client, orgID
 }
 
+func OAPIGlobalClient(meta interface{}) *goapi.GrafanaHTTPAPI {
+	return meta.(*common.Client).GrafanaOAPI.Clone().WithOrgID(0)
+}
+
 func parseOrgID(d *schema.ResourceData) int64 {
 	orgID, _ := strconv.ParseInt(d.Get("org_id").(string), 10, 64)
 	return orgID
