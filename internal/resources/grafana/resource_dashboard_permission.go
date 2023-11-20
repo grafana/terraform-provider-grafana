@@ -8,7 +8,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/dashboard_permissions"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
@@ -92,16 +94,16 @@ func ResourceDashboardPermission() *schema.Resource {
 }
 
 func UpdateDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	v, ok := d.GetOk("permissions")
 	if !ok {
 		return nil
 	}
-	permissionList := gapi.PermissionItems{}
+	permissionList := models.UpdateDashboardACLCommand{}
 	for _, permission := range v.(*schema.Set).List() {
 		permission := permission.(map[string]interface{})
-		permissionItem := gapi.PermissionItem{}
+		permissionItem := models.DashboardACLUpdateItem{}
 		if permission["role"].(string) != "" {
 			permissionItem.Role = permission["role"].(string)
 		}
@@ -115,22 +117,18 @@ func UpdateDashboardPermissions(ctx context.Context, d *schema.ResourceData, met
 		if userID > 0 {
 			permissionItem.UserID = userID
 		}
-		permissionItem.Permission = mapPermissionStringToInt64(permission["permission"].(string))
+		permissionItem.Permission = parsePermissionType(permission["permission"].(string))
 		permissionList.Items = append(permissionList.Items, &permissionItem)
 	}
 
-	var (
-		id  string
-		err error
-	)
-
-	if uid, ok := d.GetOk("dashboard_uid"); ok {
-		id = uid.(string)
-		err = client.UpdateDashboardPermissionsByUID(id, &permissionList)
+	var id string
+	if dashboardID, ok := d.GetOk("dashboard_id"); ok {
+		id = strconv.FormatInt(int64(dashboardID.(int)), 10)
 	} else {
-		id = strconv.Itoa(d.Get("dashboard_id").(int))
-		err = client.UpdateDashboardPermissions(int64(d.Get("dashboard_id").(int)), &permissionList)
+		id = d.Get("dashboard_uid").(string)
 	}
+
+	err := updateDashboardPermissions(client, id, &permissionList)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -141,22 +139,25 @@ func UpdateDashboardPermissions(ctx context.Context, d *schema.ResourceData, met
 }
 
 func ReadDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
-	var (
-		dashboardPermissions []*gapi.DashboardPermission
-		err                  error
-	)
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
+	var resp interface {
+		GetPayload() []*models.DashboardACLInfoDTO
+	}
+	var err error
 
 	if idInt, _ := strconv.ParseInt(idStr, 10, 64); idInt == 0 {
 		// id is not an int, so it must be a uid
-		dashboardPermissions, err = client.DashboardPermissionsByUID(idStr)
+		params := dashboard_permissions.NewGetDashboardPermissionsListByUIDParams().WithUID(idStr)
+		resp, err = client.DashboardPermissions.GetDashboardPermissionsListByUID(params, nil)
 	} else {
-		dashboardPermissions, err = client.DashboardPermissions(idInt)
+		params := dashboard_permissions.NewGetDashboardPermissionsListByIDParams().WithDashboardID(idInt)
+		resp, err = client.DashboardPermissions.GetDashboardPermissionsListByID(params, nil)
 	}
 	if err, shouldReturn := common.CheckReadError("dashboard permissions", d, err); shouldReturn {
 		return err
 	}
 
+	dashboardPermissions := resp.GetPayload()
 	permissionItems := make([]interface{}, len(dashboardPermissions))
 	count := 0
 	for _, permission := range dashboardPermissions {
@@ -165,12 +166,12 @@ func ReadDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta 
 			permissionItem["role"] = permission.Role
 			permissionItem["team_id"] = strconv.FormatInt(permission.TeamID, 10)
 			permissionItem["user_id"] = strconv.FormatInt(permission.UserID, 10)
-			permissionItem["permission"] = mapPermissionInt64ToString(permission.Permission)
+			permissionItem["permission"] = permission.PermissionName
 
 			permissionItems[count] = permissionItem
 			count++
 			d.Set("dashboard_id", permission.DashboardID)
-			d.Set("dashboard_uid", permission.DashboardUID)
+			d.Set("dashboard_uid", permission.UID)
 		}
 	}
 
@@ -183,16 +184,21 @@ func DeleteDashboardPermissions(ctx context.Context, d *schema.ResourceData, met
 	// since permissions are tied to dashboards, we can't really delete the permissions.
 	// we will simply remove all permissions, leaving a dashboard that only an admin can access.
 	// if for some reason the parent dashboard doesn't exist, we'll just ignore the error
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
-
-	emptyPermissions := gapi.PermissionItems{}
-
-	var err error
-	if idInt, _ := strconv.ParseInt(idStr, 10, 64); idInt == 0 {
-		err = client.UpdateDashboardPermissionsByUID(idStr, &emptyPermissions)
-	} else {
-		err = client.UpdateDashboardPermissions(int64(d.Get("dashboard_id").(int)), &emptyPermissions)
-	}
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
+	err := updateDashboardPermissions(client, idStr, &models.UpdateDashboardACLCommand{})
 	diags, _ := common.CheckReadError("dashboard permissions", d, err)
 	return diags
+}
+
+func updateDashboardPermissions(client *goapi.GrafanaHTTPAPI, id string, permissions *models.UpdateDashboardACLCommand) error {
+	var err error
+	if idInt, _ := strconv.ParseInt(id, 10, 64); idInt == 0 {
+		// id is not an int, so it must be a uid
+		params := dashboard_permissions.NewUpdateDashboardPermissionsByUIDParams().WithUID(id).WithBody(permissions)
+		_, err = client.DashboardPermissions.UpdateDashboardPermissionsByUID(params, nil)
+	} else {
+		params := dashboard_permissions.NewUpdateDashboardPermissionsByIDParams().WithDashboardID(idInt).WithBody(permissions)
+		_, err = client.DashboardPermissions.UpdateDashboardPermissionsByID(params, nil)
+	}
+	return err
 }
