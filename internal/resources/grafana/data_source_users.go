@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/users"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -65,23 +66,10 @@ does not currently work with API Tokens. You must use basic auth.
 
 func readUsers(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := OAPIGlobalClient(meta) // Users are global/org-agnostic
-
-	allUsers := []*models.UserSearchHitDTO{}
-	var page int64 = 1
-	for {
-		params := users.NewSearchUsersParams().WithDefaults()
-		resp, err := client.Users.SearchUsers(params.WithPage(&page), nil)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		allUsers = append(allUsers, resp.Payload...)
-		if len(resp.Payload) != int(*params.Perpage) {
-			break
-		}
-		page++
+	allUsers, err := getAllUsers(client)
+	if err != nil {
+		return diag.FromErr(err)
 	}
-
 	d.SetId("grafana_users")
 	return diag.FromErr(d.Set("users", flattenUsers(allUsers)))
 }
@@ -100,4 +88,23 @@ func flattenUsers(items []*models.UserSearchHitDTO) []interface{} {
 	}
 
 	return userItems
+}
+
+func getAllUsers(client *goapi.GrafanaHTTPAPI) ([]*models.UserSearchHitDTO, error) {
+	allUsers := []*models.UserSearchHitDTO{}
+	var page int64 = 1
+	for {
+		params := users.NewSearchUsersParams().WithDefaults()
+		resp, err := client.Users.SearchUsers(params.WithPage(&page), nil)
+		if err != nil {
+			return nil, err
+		}
+
+		allUsers = append(allUsers, resp.Payload...)
+		if len(resp.Payload) != int(*params.Perpage) {
+			break
+		}
+		page++
+	}
+	return allUsers, nil
 }
