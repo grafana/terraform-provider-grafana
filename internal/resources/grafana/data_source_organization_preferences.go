@@ -2,7 +2,9 @@ package grafana
 
 import (
 	"context"
+	"strconv"
 
+	"github.com/grafana/grafana-openapi-client-go/client/org_preferences"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -15,25 +17,26 @@ func DatasourceOrganizationPreferences() *schema.Resource {
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/preferences/#get-current-org-prefs)
 `,
 		ReadContext: dataSourceOrganizationPreferencesRead,
-		Schema:      common.CloneResourceSchemaForDatasource(ResourceOrganizationPreferences(), map[string]*schema.Schema{}),
+		Schema: common.CloneResourceSchemaForDatasource(ResourceOrganizationPreferences(), map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
+		}),
 	}
 }
 
 func dataSourceOrganizationPreferencesRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	prefs, err := client.OrgPreferences()
-
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
+	resp, err := client.OrgPreferences.GetOrgPreferences(org_preferences.NewGetOrgPreferencesParams(), nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
+	prefs := resp.Payload
 	d.Set("theme", prefs.Theme)
-	d.Set("home_dashboard_id", prefs.HomeDashboardID)
 	d.Set("home_dashboard_uid", prefs.HomeDashboardUID)
 	d.Set("timezone", prefs.Timezone)
 	d.Set("week_start", prefs.WeekStart)
 
-	d.SetId("organization_preferences")
+	d.SetId("organization_preferences" + strconv.FormatInt(orgID, 10))
 
 	return nil
 }

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/grafana-openapi-client-go/client/orgs"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -53,9 +53,11 @@ func DatasourceOrganization() *schema.Resource {
 }
 
 func dataSourceOrganizationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client := OAPIGlobalClient(meta)
 	name := d.Get("name").(string)
-	org, err := client.OrgByName(name)
+
+	params := orgs.NewGetOrgByNameParams().WithOrgName(name)
+	org, err := client.Orgs.GetOrgByName(params, nil)
 
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
@@ -64,18 +66,19 @@ func dataSourceOrganizationRead(ctx context.Context, d *schema.ResourceData, met
 		return diag.FromErr(err)
 	}
 
-	orgUsers, err := client.OrgUsers(org.ID)
+	orgUsersParams := orgs.NewGetOrgUsersParams().WithOrgID(org.Payload.ID)
+	orgUsers, err := client.Orgs.GetOrgUsers(orgUsersParams, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	userCollections := map[string][]string{
-		"admins":  []string{},
-		"editors": []string{},
-		"viewers": []string{},
+		"admins":  {},
+		"editors": {},
+		"viewers": {},
 	}
 
-	for _, user := range orgUsers {
+	for _, user := range orgUsers.Payload {
 		role := fmt.Sprintf("%ss", strings.ToLower(user.Role))
 		userCollections[role] = append(userCollections[role], user.Email)
 	}
@@ -86,6 +89,6 @@ func dataSourceOrganizationRead(ctx context.Context, d *schema.ResourceData, met
 		}
 	}
 
-	d.SetId(strconv.FormatInt(org.ID, 10))
+	d.SetId(strconv.FormatInt(org.Payload.ID, 10))
 	return nil
 }
