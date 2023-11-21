@@ -8,7 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/client/admin_users"
+	"github.com/grafana/grafana-openapi-client-go/client/orgs"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -144,16 +146,18 @@ set to true. This feature is only available in Grafana 10.2+.
 }
 
 func CreateOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client := OAPIGlobalClient(meta)
 	name := d.Get("name").(string)
-	orgID, err := client.NewOrg(name)
-	if err != nil && err.Error() == "409 Conflict" {
+
+	params := orgs.NewCreateOrgParams().WithBody(&models.CreateOrgCommand{Name: name})
+	resp, err := client.Orgs.CreateOrg(params, nil)
+	if err != nil && strings.Contains(err.Error(), "409") {
 		return diag.Errorf("Error: A Grafana Organization with the name '%s' already exists.", name)
 	}
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(strconv.FormatInt(orgID, 10))
+	d.SetId(strconv.FormatInt(*resp.Payload.OrgID, 10))
 	if err = UpdateUsers(d, meta); err != nil {
 		return diag.FromErr(err)
 	}
@@ -162,14 +166,17 @@ func CreateOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func ReadOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client := OAPIGlobalClient(meta)
 	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	resp, err := client.Org(orgID)
+
+	resp, err := client.Orgs.GetOrgByID(orgs.NewGetOrgByIDParams().WithOrgID(orgID), nil)
 	if err, shouldReturn := common.CheckReadError("organization", d, err); shouldReturn {
 		return err
 	}
-	d.Set("org_id", resp.ID)
-	d.Set("name", resp.Name)
+
+	org := resp.Payload
+	d.Set("org_id", org.ID)
+	d.Set("name", org.Name)
 	if err := ReadUsers(d, meta); err != nil {
 		return diag.FromErr(err)
 	}
@@ -177,12 +184,12 @@ func ReadOrganization(ctx context.Context, d *schema.ResourceData, meta interfac
 }
 
 func UpdateOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client := OAPIGlobalClient(meta)
 	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	if d.HasChange("name") {
 		name := d.Get("name").(string)
-		err := client.UpdateOrg(orgID, name)
-		if err != nil {
+		params := orgs.NewUpdateOrgParams().WithOrgID(orgID).WithBody(&models.UpdateOrgForm{Name: name})
+		if _, err := client.Orgs.UpdateOrg(params, nil); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -190,29 +197,26 @@ func UpdateOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 		return diag.FromErr(err)
 	}
 
-	return diag.Diagnostics{}
+	return nil
 }
 
 func DeleteOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client := OAPIGlobalClient(meta)
 	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	if err := client.DeleteOrg(orgID); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return diag.Diagnostics{}
+	_, err := client.Orgs.DeleteOrgByID(orgs.NewDeleteOrgByIDParams().WithOrgID(orgID), nil)
+	return diag.FromErr(err)
 }
 
 func ReadUsers(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*common.Client).GrafanaAPI
+	client := OAPIGlobalClient(meta)
 	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	orgUsers, err := client.OrgUsers(orgID)
+	resp, err := client.Orgs.GetOrgUsers(orgs.NewGetOrgUsersParams().WithOrgID(orgID), nil)
 	if err != nil {
 		return err
 	}
 	roleMap := map[string][]string{"Admin": nil, "Editor": nil, "Viewer": nil, "None": nil}
 	grafAdmin := d.Get("admin_user")
-	for _, orgUser := range orgUsers {
+	for _, orgUser := range resp.Payload {
 		if orgUser.Login != grafAdmin {
 			roleMap[orgUser.Role] = append(roleMap[orgUser.Role], orgUser.Email)
 		}
@@ -290,9 +294,9 @@ func changes(stateUsers, configUsers map[string]OrgUser) []UserChange {
 }
 
 func addIdsToChanges(d *schema.ResourceData, meta interface{}, changes []UserChange) ([]UserChange, error) {
-	client := meta.(*common.Client).GrafanaAPI
+	client := OAPIGlobalClient(meta)
 	gUserMap := make(map[string]int64)
-	gUsers, err := client.Users()
+	gUsers, err := getAllUsers(client)
 	if err != nil {
 		return nil, err
 	}
@@ -323,41 +327,45 @@ func addIdsToChanges(d *schema.ResourceData, meta interface{}, changes []UserCha
 }
 
 func createUser(meta interface{}, user string) (int64, error) {
-	client := meta.(*common.Client).GrafanaAPI
-	id, n := int64(0), 64
+	client := OAPIGlobalClient(meta)
+	n := 64
 	bytes := make([]byte, n)
 	_, err := rand.Read(bytes)
 	if err != nil {
-		return id, err
+		return 0, err
 	}
 	pass := string(bytes[:n])
-	u := gapi.User{
+	u := models.AdminCreateUserForm{
 		Name:     user,
 		Login:    user,
 		Email:    user,
 		Password: pass,
 	}
-	id, err = client.CreateUser(u)
+	params := admin_users.NewAdminCreateUserParams().WithBody(&u)
+	resp, err := client.AdminUsers.AdminCreateUser(params, nil)
 	if err != nil {
-		return id, err
+		return 0, err
 	}
-	return id, err
+	return resp.Payload.ID, err
 }
 
 func applyChanges(meta interface{}, orgID int64, changes []UserChange) error {
 	var err error
-	client := meta.(*common.Client).GrafanaAPI
+	client := OAPIGlobalClient(meta)
 	for _, change := range changes {
 		u := change.User
 		switch change.Type {
 		case Add:
-			err = client.AddOrgUser(orgID, u.Email, u.Role)
+			params := orgs.NewAddOrgUserParams().WithOrgID(orgID).WithBody(&models.AddOrgUserCommand{LoginOrEmail: u.Email, Role: u.Role})
+			_, err = client.Orgs.AddOrgUser(params, nil)
 		case Update:
-			err = client.UpdateOrgUser(orgID, u.ID, u.Role)
+			params := orgs.NewUpdateOrgUserParams().WithOrgID(orgID).WithUserID(u.ID).WithBody(&models.UpdateOrgUserCommand{Role: u.Role})
+			_, err = client.Orgs.UpdateOrgUser(params, nil)
 		case Remove:
-			err = client.RemoveOrgUser(orgID, u.ID)
+			params := orgs.NewRemoveOrgUserParams().WithOrgID(orgID).WithUserID(u.ID)
+			_, err = client.Orgs.RemoveOrgUser(params, nil)
 		}
-		if err != nil && !strings.HasPrefix(err.Error(), "status: 409") {
+		if err != nil && !strings.Contains(err.Error(), "409") {
 			return err
 		}
 	}
