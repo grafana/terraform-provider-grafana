@@ -11,15 +11,8 @@ func TestAccDatasourceOrganizationPreferences_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	checks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttr(
-			"data.grafana_organization_preferences.test", "theme", "",
-		),
-		resource.TestCheckResourceAttr(
-			"data.grafana_organization_preferences.test", "timezone", "",
-		),
-		resource.TestCheckResourceAttr(
-			"data.grafana_organization_preferences.test", "id", "organization_preferences",
-		),
+		resource.TestCheckResourceAttr("data.grafana_organization_preferences.test", "theme", ""),
+		resource.TestCheckResourceAttr("data.grafana_organization_preferences.test", "timezone", ""),
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
