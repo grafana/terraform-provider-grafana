@@ -93,8 +93,8 @@ func flattenUsers(items []*models.UserSearchHitDTO) []interface{} {
 func getAllUsers(client *goapi.GrafanaHTTPAPI) ([]*models.UserSearchHitDTO, error) {
 	allUsers := []*models.UserSearchHitDTO{}
 	var page int64 = 1
+	params := users.NewSearchUsersParams().WithDefaults()
 	for {
-		params := users.NewSearchUsersParams().WithDefaults()
 		resp, err := client.Users.SearchUsers(params.WithPage(&page), nil)
 		if err != nil {
 			return nil, err
