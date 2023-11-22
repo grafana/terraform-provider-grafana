@@ -221,7 +221,8 @@ func DeleteDataSource(ctx context.Context, d *schema.ResourceData, meta interfac
 
 	params := datasources.NewDeleteDataSourceByIDParams().WithID(idStr)
 	_, err := client.Datasources.DeleteDataSourceByID(params, nil)
-	return diag.FromErr(err)
+	diag, _ := common.CheckReadError("datasource", d, err)
+	return diag
 }
 
 func readDatasource(d *schema.ResourceData, dataSource *models.DataSource) diag.Diagnostics {

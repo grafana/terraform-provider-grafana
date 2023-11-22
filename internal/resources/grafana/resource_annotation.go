@@ -167,7 +167,8 @@ func DeleteAnnotation(ctx context.Context, d *schema.ResourceData, meta interfac
 
 	params := annotations.NewDeleteAnnotationByIDParams().WithAnnotationID(idStr)
 	_, err := client.Annotations.DeleteAnnotationByID(params, nil)
-	return diag.FromErr(err)
+	diag, _ := common.CheckReadError("annotation", d, err)
+	return diag
 }
 
 func makeAnnotation(d *schema.ResourceData) (*models.PostAnnotationsCmd, error) {

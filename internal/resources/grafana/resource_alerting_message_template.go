@@ -101,9 +101,7 @@ func deleteMessageTemplate(ctx context.Context, data *schema.ResourceData, meta 
 
 	lock.Lock()
 	defer lock.Unlock()
-	if err := client.DeleteMessageTemplate(name); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return diag.Diagnostics{}
+	err := client.DeleteMessageTemplate(name)
+	diag, _ := common.CheckReadError("message template", data, err)
+	return diag
 }

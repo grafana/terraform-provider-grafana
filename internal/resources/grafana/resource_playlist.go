@@ -139,7 +139,9 @@ func UpdatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{
 
 func DeletePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, id := ClientFromExistingOrgResource(meta, d.Id())
-	return diag.FromErr(client.DeletePlaylist(id))
+	err := client.DeletePlaylist(id)
+	diag, _ := common.CheckReadError("playlist", d, err)
+	return diag
 }
 
 func expandPlaylistItems(items []interface{}) []gapi.PlaylistItem {

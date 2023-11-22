@@ -3,7 +3,6 @@ package grafana
 import (
 	"context"
 	"strconv"
-	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -145,11 +144,7 @@ func DeleteUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	if err = client.DeleteUser(id); err != nil {
-		if !strings.Contains(err.Error(), common.NotFoundError) {
-			return diag.FromErr(err)
-		}
-	}
-
-	return diag.Diagnostics{}
+	err = client.DeleteUser(id)
+	diag, _ := common.CheckReadError("user", d, err)
+	return diag
 }

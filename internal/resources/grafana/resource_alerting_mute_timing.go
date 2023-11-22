@@ -162,10 +162,9 @@ func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 
 	lock.Lock()
 	defer lock.Unlock()
-	if err := client.DeleteMuteTiming(name); err != nil {
-		return diag.FromErr(err)
-	}
-	return diag.Diagnostics{}
+	err := client.DeleteMuteTiming(name)
+	diag, _ := common.CheckReadError("mute timing", data, err)
+	return diag
 }
 
 func suppressMonthDiff(k, oldValue, newValue string, d *schema.ResourceData) bool {

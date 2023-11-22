@@ -122,9 +122,6 @@ func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 
 	_, err = c.DeleteAPIKey(id)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	diag, _ := common.CheckReadError("API key", d, err)
+	return diag
 }

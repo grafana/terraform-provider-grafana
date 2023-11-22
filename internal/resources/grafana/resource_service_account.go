@@ -135,5 +135,6 @@ func DeleteServiceAccount(ctx context.Context, d *schema.ResourceData, meta inte
 
 	params := service_accounts.NewDeleteServiceAccountParams().WithServiceAccountID(id)
 	_, err = client.ServiceAccounts.DeleteServiceAccount(params, nil)
-	return diag.FromErr(err)
+	diag, _ := common.CheckReadError("service account", d, err)
+	return diag
 }

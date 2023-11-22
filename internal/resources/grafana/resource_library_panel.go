@@ -206,7 +206,8 @@ func deleteLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interf
 	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 	params := library_elements.NewDeleteLibraryElementByUIDParams().WithLibraryElementUID(uid)
 	_, err := client.LibraryElements.DeleteLibraryElementByUID(params, nil)
-	return diag.FromErr(err)
+	diag, _ := common.CheckReadError("library panel", d, err)
+	return diag
 }
 
 func makeLibraryPanel(d *schema.ResourceData) models.CreateLibraryElementCommand {
