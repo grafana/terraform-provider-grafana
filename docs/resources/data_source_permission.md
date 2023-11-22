@@ -3,11 +3,13 @@
 page_title: "grafana_data_source_permission Resource - terraform-provider-grafana"
 subcategory: "Grafana Enterprise"
 description: |-
-  HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/datasource_permissions/
+  Manages the entire set of permissions for a datasource. Permissions that aren't specified when applying this resource will be removed.
+  * HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/datasource_permissions/
 ---
 
 # grafana_data_source_permission (Resource)
 
+Manages the entire set of permissions for a datasource. Permissions that aren't specified when applying this resource will be removed.
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/datasource_permissions/)
 
 ## Example Usage
@@ -71,11 +73,11 @@ resource "grafana_data_source_permission" "fooPermissions" {
 ### Required
 
 - `datasource_id` (String) ID of the datasource to apply permissions to.
-- `permissions` (Block Set, Min: 1) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))
 
 ### Optional
 
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
+- `permissions` (Block Set) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))
 
 ### Read-Only
 

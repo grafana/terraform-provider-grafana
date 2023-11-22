@@ -3,11 +3,14 @@
 page_title: "grafana_service_account_permission Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
+  Manages the entire set of permissions for a service account. Permissions that aren't specified when applying this resource will be removed.
   Note: This resource is available from Grafana 9.2.4 onwards.
   Official documentation https://grafana.com/docs/grafana/latest/administration/service-accounts/#manage-users-and-teams-permissions-for-a-service-account-in-grafana
 ---
 
 # grafana_service_account_permission (Resource)
+
+Manages the entire set of permissions for a service account. Permissions that aren't specified when applying this resource will be removed.
 
 **Note:** This resource is available from Grafana 9.2.4 onwards.
 
@@ -51,12 +54,12 @@ resource "grafana_service_account_permission" "test_permissions" {
 
 ### Required
 
-- `permissions` (Block Set, Min: 1) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))
 - `service_account_id` (String) The id of the service account.
 
 ### Optional
 
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
+- `permissions` (Block Set) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))
 
 ### Read-Only
 

@@ -14,6 +14,8 @@ import (
 func ResourceServiceAccountPermission() *schema.Resource {
 	return &schema.Resource{
 		Description: `
+Manages the entire set of permissions for a service account. Permissions that aren't specified when applying this resource will be removed.
+
 **Note:** This resource is available from Grafana 9.2.4 onwards.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/service-accounts/#manage-users-and-teams-permissions-for-a-service-account-in-grafana)`,
@@ -34,8 +36,11 @@ func ResourceServiceAccountPermission() *schema.Resource {
 				Description: "The id of the service account.",
 			},
 			"permissions": {
-				Type:        schema.TypeSet,
-				Required:    true,
+				Type:     schema.TypeSet,
+				Optional: true,
+				DefaultFunc: func() (interface{}, error) {
+					return []interface{}{}, nil
+				},
 				Description: "The permission items to add/update. Items that are omitted from the list will be removed.",
 				// Ignore the org ID of the team when hashing. It works with or without it.
 				Set: func(i interface{}) int {

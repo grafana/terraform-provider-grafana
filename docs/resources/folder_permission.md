@@ -3,11 +3,14 @@
 page_title: "grafana_folder_permission Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Official documentation https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/folder_permissions/
+  Manages the entire set of permissions for a folder. Permissions that aren't specified when applying this resource will be removed.
+  * Official documentation https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/
+  * HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/folder_permissions/
 ---
 
 # grafana_folder_permission (Resource)
 
+Manages the entire set of permissions for a folder. Permissions that aren't specified when applying this resource will be removed.
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder_permissions/)
 
@@ -49,11 +52,11 @@ resource "grafana_folder_permission" "collectionPermission" {
 ### Required
 
 - `folder_uid` (String) The UID of the folder.
-- `permissions` (Block Set, Min: 1) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))
 
 ### Optional
 
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
+- `permissions` (Block Set) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))
 
 ### Read-Only
 
@@ -71,3 +74,12 @@ Optional:
 - `role` (String) Manage permissions for `Viewer` or `Editor` roles.
 - `team_id` (String) ID of the team to manage permissions for. Defaults to `0`.
 - `user_id` (String) ID of the user or service account to manage permissions for. Defaults to `0`.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_folder_permission.my_folder {{folder_uid}} # To use the default provider org
+terraform import grafana_folder_permission.my_folder {{org_id}}:{{folder_uid}} # When "org_id" is set on the resource
+```

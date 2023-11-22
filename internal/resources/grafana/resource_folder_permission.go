@@ -17,6 +17,7 @@ func ResourceFolderPermission() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
+Manages the entire set of permissions for a folder. Permissions that aren't specified when applying this resource will be removed.
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder_permissions/)
 `,
@@ -25,6 +26,9 @@ func ResourceFolderPermission() *schema.Resource {
 		ReadContext:   ReadFolderPermissions,
 		UpdateContext: UpdateFolderPermissions,
 		DeleteContext: DeleteFolderPermissions,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
@@ -35,8 +39,11 @@ func ResourceFolderPermission() *schema.Resource {
 				Description: "The UID of the folder.",
 			},
 			"permissions": {
-				Type:        schema.TypeSet,
-				Required:    true,
+				Type:     schema.TypeSet,
+				Optional: true,
+				DefaultFunc: func() (interface{}, error) {
+					return []interface{}{}, nil
+				},
 				Description: "The permission items to add/update. Items that are omitted from the list will be removed.",
 				// Ignore the org ID of the team/SA when hashing. It works with or without it.
 				Set: func(i interface{}) int {
@@ -81,12 +88,12 @@ func ResourceFolderPermission() *schema.Resource {
 func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
-	v, ok := d.GetOk("permissions")
-	if !ok {
-		return nil
+	var list []interface{}
+	if v, ok := d.GetOk("permissions"); ok {
+		list = v.(*schema.Set).List()
 	}
 	permissionList := models.UpdateDashboardACLCommand{}
-	for _, permission := range v.(*schema.Set).List() {
+	for _, permission := range list {
 		permission := permission.(map[string]interface{})
 		permissionItem := models.DashboardACLUpdateItem{}
 		if permission["role"].(string) != "" {
@@ -145,6 +152,7 @@ func ReadFolderPermissions(ctx context.Context, d *schema.ResourceData, meta int
 
 	d.SetId(MakeOrgResourceID(orgID, folderUID))
 	d.Set("org_id", strconv.FormatInt(orgID, 10))
+	d.Set("folder_uid", folderUID)
 	d.Set("permissions", permissionItems)
 
 	return nil

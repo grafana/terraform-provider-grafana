@@ -28,6 +28,27 @@ func TestAccFolderPermission_basic(t *testing.T) {
 				),
 			},
 			{
+				ResourceName:      "grafana_folder_permission.testPermission",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Test remove permissions by not setting any permissions
+			{
+				Config: testAccFolderPermissionConfig_NoPermissions,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccFolderPermissionsCheckEmpty(&folderUID),
+				),
+			},
+			// Reapply permissions
+			{
+				Config: testAccFolderPermissionConfig_Basic,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccFolderPermissionsCheckExists("grafana_folder_permission.testPermission", &folderUID),
+					resource.TestCheckResourceAttr("grafana_folder_permission.testPermission", "permissions.#", "5"),
+				),
+			},
+			// Test remove permissions by removing the resource
+			{
 				Config: testAccFolderPermissionConfig_Remove,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccFolderPermissionsCheckEmpty(&folderUID),
@@ -130,6 +151,34 @@ resource "grafana_folder_permission" "testPermission" {
   }
 }
 `
+
+const testAccFolderPermissionConfig_NoPermissions = `
+resource "grafana_folder" "testFolder" {
+  title = "terraform-test-folder-permissions"
+}
+
+resource "grafana_team" "testTeam" {
+  name = "terraform-test-team-permissions"
+}
+
+resource "grafana_user" "testAdminUser" {
+  email    = "terraform-test-permissions@localhost"
+  name     = "Terraform Test Permissions"
+  login    = "ttp"
+  password = "zyx987"
+}
+
+resource "grafana_service_account" "test" {
+	name        = "terraform-test-service-account-folder-perms"
+	role        = "Editor"
+	is_disabled = false
+}
+
+resource "grafana_folder_permission" "testPermission" {
+  folder_uid = grafana_folder.testFolder.uid
+}
+`
+
 const testAccFolderPermissionConfig_Remove = `
 resource "grafana_folder" "testFolder" {
   title = "terraform-test-folder-permissions"
