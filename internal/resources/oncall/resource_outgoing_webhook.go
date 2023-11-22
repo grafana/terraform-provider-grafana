@@ -111,12 +111,14 @@ func ResourceOutgoingWebhookCreate(ctx context.Context, d *schema.ResourceData, 
 	teamID := d.Get("team_id").(string)
 	url := d.Get("url").(string)
 	forwardWholePayload := d.Get("forward_whole_payload").(bool)
+	isWebhookEnabled := d.Get("is_webhook_enabled").(bool)
 
 	createOptions := &onCallAPI.CreateWebhookOptions{
-		Name:       name,
-		Team:       teamID,
-		Url:        url,
-		ForwardAll: forwardWholePayload,
+		Name:             name,
+		Team:             teamID,
+		Url:              url,
+		ForwardAll:       forwardWholePayload,
+		IsWebhookEnabled: isWebhookEnabled,
 	}
 
 	data, dataOk := d.GetOk("data")
@@ -202,6 +204,7 @@ func ResourceOutgoingWebhookRead(ctx context.Context, d *schema.ResourceData, m 
 	d.Set("data", outgoingWebhook.Data)
 	d.Set("user", outgoingWebhook.Username)
 	d.Set("forward_whole_payload", outgoingWebhook.ForwardAll)
+	d.Set("is_webhook_enabled", outgoingWebhook.IsWebhookEnabled)
 	d.Set("trigger_type", outgoingWebhook.TriggerType)
 	d.Set("http_method", outgoingWebhook.HttpMethod)
 	d.Set("trigger_template", outgoingWebhook.TriggerTemplate)
@@ -218,12 +221,14 @@ func ResourceOutgoingWebhookUpdate(ctx context.Context, d *schema.ResourceData, 
 	teamID := d.Get("team_id").(string)
 	url := d.Get("url").(string)
 	forwardWholePayload := d.Get("forward_whole_payload").(bool)
+	isWebhookEnabled := d.Get("is_webhook_enabled").(bool)
 
 	updateOptions := &onCallAPI.UpdateWebhookOptions{
-		Name:       name,
-		Team:       teamID,
-		Url:        url,
-		ForwardAll: forwardWholePayload,
+		Name:             name,
+		Team:             teamID,
+		Url:              url,
+		ForwardAll:       forwardWholePayload,
+		IsWebhookEnabled: isWebhookEnabled,
 	}
 
 	data, dataOk := d.GetOk("data")
