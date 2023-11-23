@@ -165,11 +165,9 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 		deleteParams.WithForceDeleteRules(&force)
 	}
 
-	if _, err := client.Folders.DeleteFolder(deleteParams, nil); err != nil {
-		return diag.Errorf("failed to delete folder: %s", err)
-	}
-
-	return diag.Diagnostics{}
+	_, err := client.Folders.DeleteFolder(deleteParams, nil)
+	diag, _ := common.CheckReadError("folder", d, err)
+	return diag
 }
 
 func ValidateFolderConfigJSON(configI interface{}, k string) ([]string, []error) {

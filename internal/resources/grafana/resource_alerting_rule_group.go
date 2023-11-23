@@ -247,8 +247,9 @@ func deleteAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta i
 	}
 
 	for _, r := range group.Rules {
-		if err := client.DeleteAlertRule(r.UID); err != nil {
-			return diag.FromErr(err)
+		err := client.DeleteAlertRule(r.UID)
+		if diag, shouldReturn := common.CheckReadError("rule group", data, err); shouldReturn {
+			return diag
 		}
 	}
 

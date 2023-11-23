@@ -204,7 +204,8 @@ func DeleteOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 	client := OAPIGlobalClient(meta)
 	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	_, err := client.Orgs.DeleteOrgByID(orgs.NewDeleteOrgByIDParams().WithOrgID(orgID), nil)
-	return diag.FromErr(err)
+	diag, _ := common.CheckReadError("organization", d, err)
+	return diag
 }
 
 func ReadUsers(d *schema.ResourceData, meta interface{}) error {

@@ -270,7 +270,8 @@ func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 func DeleteTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	_, err := client.Teams.DeleteTeamByID(teams.NewDeleteTeamByIDParams().WithTeamID(idStr), nil)
-	return diag.FromErr(err)
+	diag, _ := common.CheckReadError("team", d, err)
+	return diag
 }
 
 func updateTeamPreferences(client *goapi.GrafanaHTTPAPI, teamID int64, d *schema.ResourceData) diag.Diagnostics {
