@@ -16,6 +16,7 @@ func ResourceDatasourcePermission() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
+Manages the entire set of permissions for a datasource. Permissions that aren't specified when applying this resource will be removed.
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/datasource_permissions/)
 `,
 
@@ -33,8 +34,11 @@ func ResourceDatasourcePermission() *schema.Resource {
 				Description: "ID of the datasource to apply permissions to.",
 			},
 			"permissions": {
-				Type:        schema.TypeSet,
-				Required:    true,
+				Type:     schema.TypeSet,
+				Optional: true,
+				DefaultFunc: func() (interface{}, error) {
+					return []interface{}{}, nil
+				},
 				Description: "The permission items to add/update. Items that are omitted from the list will be removed.",
 				// Ignore the org ID of the team/SA when hashing. It works with or without it.
 				Set: func(i interface{}) int {
@@ -80,9 +84,9 @@ func ResourceDatasourcePermission() *schema.Resource {
 func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := ClientFromNewOrgResource(meta, d)
 
-	v, ok := d.GetOk("permissions")
-	if !ok {
-		return nil
+	var list []interface{}
+	if v, ok := d.GetOk("permissions"); ok {
+		list = v.(*schema.Set).List()
 	}
 
 	_, datasourceIDStr := SplitOrgResourceID(d.Get("datasource_id").(string))
@@ -94,7 +98,7 @@ func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	var configuredPermissions []gapi.SetResourcePermissionItem
-	for _, permission := range v.(*schema.Set).List() {
+	for _, permission := range list {
 		permission := permission.(map[string]interface{})
 		var permissionItem gapi.SetResourcePermissionItem
 		_, teamIDStr := SplitOrgResourceID(permission["team_id"].(string))
