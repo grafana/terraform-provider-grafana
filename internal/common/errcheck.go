@@ -11,7 +11,7 @@ import (
 
 const NotFoundError = "status: 404"
 
-// CheckReadError checks for common cases on resource read paths:
+// CheckReadError checks for common cases on resource read/delete paths:
 // - If the resource no longer exists and 404s, it should be removed from state and return nil, to stop processing the read.
 // - If there is an error, return the error.
 // - Otherwise, do not return to continue processing the read.

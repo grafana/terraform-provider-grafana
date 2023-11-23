@@ -244,5 +244,7 @@ func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 func DeleteRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
 	g := d.Get("global").(bool)
-	return diag.FromErr(client.DeleteRole(uid, g))
+	err := client.DeleteRole(uid, g)
+	diag, _ := common.CheckReadError("role", d, err)
+	return diag
 }

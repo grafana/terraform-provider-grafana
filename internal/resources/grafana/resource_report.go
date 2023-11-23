@@ -343,10 +343,9 @@ func DeleteReport(ctx context.Context, d *schema.ResourceData, meta interface{})
 		return diag.FromErr(err)
 	}
 
-	if err := client.DeleteReport(id); err != nil {
-		return diag.FromErr(err)
-	}
-	return nil
+	err = client.DeleteReport(id)
+	diag, _ := common.CheckReadError("report", d, err)
+	return diag
 }
 
 func schemaToReport(client *gapi.Client, d *schema.ResourceData) (gapi.Report, error) {

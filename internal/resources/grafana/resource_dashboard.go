@@ -184,7 +184,8 @@ func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 
 func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
-	return diag.FromErr(client.DeleteDashboardByUID(uid))
+	err, _ := common.CheckReadError("dashboard", d, client.DeleteDashboardByUID(uid))
+	return err
 }
 
 func makeDashboard(d *schema.ResourceData) (gapi.Dashboard, error) {
