@@ -9,13 +9,15 @@ require (
 	github.com/go-openapi/strfmt v0.21.7
 	github.com/grafana/amixr-api-go-client v0.0.11
 	github.com/grafana/grafana-api-golang-client v0.26.0
-	github.com/grafana/grafana-openapi-client-go v0.0.0-20231121122459-f5f9577785f0
+	// TODO: Merge https://github.com/grafana/grafana-openapi-client-go/pull/36 and update this ref
+	github.com/grafana/grafana-openapi-client-go v0.0.0-20231123011710-cb86b83ec1a4
 	github.com/grafana/machine-learning-go-client v0.5.0
 	github.com/grafana/synthetic-monitoring-agent v0.19.0
 	github.com/grafana/synthetic-monitoring-api-go-client v0.7.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/go-retryablehttp v0.7.5
+	github.com/hashicorp/hcl/v2 v2.19.1
 	github.com/hashicorp/terraform-plugin-docs v0.16.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.30.0
 	github.com/prometheus/common v0.45.0
@@ -57,7 +59,6 @@ require (
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/hc-install v0.6.1 // indirect
-	github.com/hashicorp/hcl/v2 v2.19.1 // indirect
 	github.com/hashicorp/logutils v1.0.0 // indirect
 	github.com/hashicorp/terraform-exec v0.19.0 // indirect
 	github.com/hashicorp/terraform-json v0.17.1 // indirect

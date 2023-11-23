@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 
+	"github.com/grafana/grafana-openapi-client-go/client/access_control"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -29,14 +30,14 @@ func DatasourceRole() *schema.Resource {
 }
 
 func dataSourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
-	roles, err := client.GetRoles()
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
+	resp, err := client.AccessControl.ListRoles(access_control.NewListRolesParams(), nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	name := d.Get("name").(string)
-	for _, r := range roles {
+	for _, r := range resp.Payload {
 		if r.Name == name {
 			d.SetId(MakeOrgResourceID(orgID, r.UID))
 			return readRoleFromUID(client, r.UID, d)
