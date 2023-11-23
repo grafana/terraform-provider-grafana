@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/go-openapi/runtime"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -36,5 +37,8 @@ func CheckReadError(resourceType string, d *schema.ResourceData, err error) (ret
 }
 
 func IsNotFoundError(err error) bool {
-	return strings.Contains(err.Error(), NotFoundError)
+	if err, ok := err.(runtime.ClientResponseStatus); ok {
+		return err.IsCode(404)
+	}
+	return strings.Contains(err.Error(), NotFoundError) // TODO: Remove when the old client is removed
 }
