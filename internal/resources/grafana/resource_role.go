@@ -6,7 +6,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/access_control"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
@@ -107,7 +109,7 @@ func ResourceRole() *schema.Resource {
 }
 
 func CreateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	var version int
 	if d.Get("auto_increment_version").(bool) {
@@ -116,7 +118,7 @@ func CreateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		version = d.Get("version").(int)
 	}
 
-	role := gapi.Role{
+	role := models.CreateRoleForm{
 		UID:         d.Get("uid").(string),
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
@@ -127,24 +129,27 @@ func CreateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		Hidden:      d.Get("hidden").(bool),
 		Permissions: permissions(d),
 	}
-	r, err := client.NewRole(role)
+
+	params := access_control.NewCreateRoleParams().WithBody(&role)
+	resp, err := client.AccessControl.CreateRole(params, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	r := resp.Payload
 	d.SetId(MakeOrgResourceID(orgID, r.UID))
 	return ReadRole(ctx, d, meta)
 }
 
-func permissions(d *schema.ResourceData) []gapi.Permission {
+func permissions(d *schema.ResourceData) []*models.Permission {
 	p, ok := d.GetOk("permissions")
 	if !ok {
 		return nil
 	}
 
-	perms := make([]gapi.Permission, 0)
+	perms := make([]*models.Permission, 0)
 	for _, permission := range p.(*schema.Set).List() {
 		p := permission.(map[string]interface{})
-		perms = append(perms, gapi.Permission{
+		perms = append(perms, &models.Permission{
 			Action: p["action"].(string),
 			Scope:  p["scope"].(string),
 		})
@@ -154,15 +159,17 @@ func permissions(d *schema.ResourceData) []gapi.Permission {
 }
 
 func ReadRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 	return readRoleFromUID(client, uid, d)
 }
 
-func readRoleFromUID(client *gapi.Client, uid string, d *schema.ResourceData) diag.Diagnostics {
-	r, err := client.GetRole(uid)
+func readRoleFromUID(client *goapi.GrafanaHTTPAPI, uid string, d *schema.ResourceData) diag.Diagnostics {
+	params := access_control.NewGetRoleParams().WithRoleUID(uid)
+	resp, err := client.AccessControl.GetRole(params, nil)
 	if err, shouldReturn := common.CheckReadError("role", d, err); shouldReturn {
 		return err
 	}
+	r := resp.Payload
 
 	err = d.Set("version", r.Version)
 	if err != nil {
@@ -213,7 +220,7 @@ func readRoleFromUID(client *gapi.Client, uid string, d *schema.ResourceData) di
 }
 
 func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	if d.HasChange("version") || d.HasChange("name") || d.HasChange("description") || d.HasChange("permissions") ||
 		d.HasChange("display_name") || d.HasChange("group") || d.HasChange("hidden") {
@@ -222,8 +229,7 @@ func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 			version += 1
 		}
 
-		r := gapi.Role{
-			UID:         uid,
+		r := models.UpdateRoleCommand{
 			Name:        d.Get("name").(string),
 			Global:      d.Get("global").(bool),
 			Description: d.Get("description").(string),
@@ -233,7 +239,8 @@ func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 			Version:     int64(version),
 			Permissions: permissions(d),
 		}
-		if err := client.UpdateRole(r); err != nil {
+		params := access_control.NewUpdateRoleParams().WithRoleUID(uid).WithBody(&r)
+		if _, err := client.AccessControl.UpdateRole(params, nil); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -242,9 +249,9 @@ func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func DeleteRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 	g := d.Get("global").(bool)
-	err := client.DeleteRole(uid, g)
+	_, err := client.AccessControl.DeleteRole(access_control.NewDeleteRoleParams().WithRoleUID(uid).WithGlobal(&g), nil)
 	diag, _ := common.CheckReadError("role", d, err)
 	return diag
 }
