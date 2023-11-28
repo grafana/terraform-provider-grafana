@@ -6,12 +6,13 @@ toolchain go1.21.1
 
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
+	github.com/go-openapi/runtime v0.26.0
 	github.com/go-openapi/strfmt v0.21.7
 	github.com/grafana/amixr-api-go-client v0.0.11
 	github.com/grafana/grafana-api-golang-client v0.26.0
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20231123143558-91f2985bb3ef
 	github.com/grafana/machine-learning-go-client v0.5.0
-	github.com/grafana/synthetic-monitoring-agent v0.19.0
+	github.com/grafana/synthetic-monitoring-agent v0.19.1
 	github.com/grafana/synthetic-monitoring-api-go-client v0.7.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
@@ -41,7 +42,6 @@ require (
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.20.0 // indirect
 	github.com/go-openapi/loads v0.21.2 // indirect
-	github.com/go-openapi/runtime v0.26.0 // indirect
 	github.com/go-openapi/spec v0.20.8 // indirect
 	github.com/go-openapi/swag v0.22.4 // indirect
 	github.com/go-openapi/validate v0.22.1 // indirect
