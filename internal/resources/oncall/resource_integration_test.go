@@ -49,7 +49,7 @@ func testAccCheckOnCallIntegrationResourceDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccOnCallIntegrationConfig(rName, rType, templates string) string {
+func testAccOnCallIntegrationConfig(rName, rType string) string {
 	return fmt.Sprintf(`
 resource "grafana_oncall_integration" "test-acc-integration" {
 	name = "%s"
