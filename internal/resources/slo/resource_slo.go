@@ -147,6 +147,7 @@ Resource manages Grafana SLOs.
 			},
 			"alerting": &schema.Schema{
 				Type:     schema.TypeList,
+				MaxItems: 1,
 				Optional: true,
 				Description: `Configures the alerting rules that will be generated for each
 				time window associated with the SLO. Grafana SLOs can generate
@@ -170,6 +171,7 @@ Resource manages Grafana SLOs.
 						"fastburn": &schema.Schema{
 							Type:        schema.TypeList,
 							Optional:    true,
+							MaxItems:    1,
 							Description: "Alerting Rules generated for Fast Burn alerts",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -190,6 +192,7 @@ Resource manages Grafana SLOs.
 						},
 						"slowburn": &schema.Schema{
 							Type:        schema.TypeList,
+							MaxItems:    1,
 							Optional:    true,
 							Description: "Alerting Rules generated for Slow Burn alerts",
 							Elem: &schema.Resource{
@@ -360,13 +363,12 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 
 	// Check the Optional Alerting Field
 	if alerting, ok := d.GetOk("alerting"); ok {
-		alertData := alerting.([]interface{})
-
-		// if the Alerting field is an empty block, alertData[0] has a value of nil
-		if alertData[0] != nil {
-			// only pack the Alerting TF fields if the user populates the Alerting field with blocks
-			alert := alertData[0].(map[string]interface{})
-			tfalerting = packAlerting(alert)
+		alertData, ok := alerting.([]interface{})
+		if ok && len(alertData) > 0 {
+			alert, ok := alertData[0].(map[string]interface{})
+			if ok {
+				tfalerting = packAlerting(alert)
+			}
 		}
 
 		slo.Alerting = &tfalerting
@@ -526,16 +528,18 @@ func packAlertMetadata(metadata []interface{}) gapi.AlertingMetadata {
 	var tflabels []gapi.Label
 	var tfannots []gapi.Label
 
-	meta, ok := metadata[0].(map[string]interface{})
-	if ok {
-		labels, ok := meta["label"].([]interface{})
+	if len(metadata) > 0 {
+		meta, ok := metadata[0].(map[string]interface{})
 		if ok {
-			tflabels = packLabels(labels)
-		}
+			labels, ok := meta["label"].([]interface{})
+			if ok {
+				tflabels = packLabels(labels)
+			}
 
-		annots, ok := meta["annotation"].([]interface{})
-		if ok {
-			tfannots = packLabels(annots)
+			annots, ok := meta["annotation"].([]interface{})
+			if ok {
+				tfannots = packLabels(annots)
+			}
 		}
 	}
 
