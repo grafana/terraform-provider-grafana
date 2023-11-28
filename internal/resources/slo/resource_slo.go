@@ -487,17 +487,30 @@ func packLabels(tfLabels []interface{}) []gapi.Label {
 }
 
 func packAlerting(tfAlerting map[string]interface{}) gapi.Alerting {
-	annots := tfAlerting["annotation"].([]interface{})
-	tfAnnots := packLabels(annots)
+	var tfAnnots []gapi.Label
+	var tfLabels []gapi.Label
+	var tfFastBurn gapi.AlertingMetadata
+	var tfSlowBurn gapi.AlertingMetadata
 
-	labels := tfAlerting["label"].([]interface{})
-	tfLabels := packLabels(labels)
+	annots, ok := tfAlerting["annotation"].([]interface{})
+	if ok {
+		tfAnnots = packLabels(annots)
+	}
 
-	fastBurn := tfAlerting["fastburn"].([]interface{})
-	tfFastBurn := packAlertMetadata(fastBurn)
+	labels, ok := tfAlerting["label"].([]interface{})
+	if ok {
+		tfLabels = packLabels(labels)
+	}
 
-	slowBurn := tfAlerting["slowburn"].([]interface{})
-	tfSlowBurn := packAlertMetadata(slowBurn)
+	fastBurn, ok := tfAlerting["fastburn"].([]interface{})
+	if ok {
+		tfFastBurn = packAlertMetadata(fastBurn)
+	}
+
+	slowBurn, ok := tfAlerting["slowburn"].([]interface{})
+	if ok {
+		tfSlowBurn = packAlertMetadata(slowBurn)
+	}
 
 	alerting := gapi.Alerting{
 		Annotations: tfAnnots,
@@ -510,13 +523,21 @@ func packAlerting(tfAlerting map[string]interface{}) gapi.Alerting {
 }
 
 func packAlertMetadata(metadata []interface{}) gapi.AlertingMetadata {
-	meta := metadata[0].(map[string]interface{})
+	var tflabels []gapi.Label
+	var tfannots []gapi.Label
 
-	labels := meta["label"].([]interface{})
-	tflabels := packLabels(labels)
+	meta, ok := metadata[0].(map[string]interface{})
+	if ok {
+		labels, ok := meta["label"].([]interface{})
+		if ok {
+			tflabels = packLabels(labels)
+		}
 
-	annots := meta["annotation"].([]interface{})
-	tfannots := packLabels(annots)
+		annots, ok := meta["annotation"].([]interface{})
+		if ok {
+			tfannots = packLabels(annots)
+		}
+	}
 
 	apiMetadata := gapi.AlertingMetadata{
 		Labels:      tflabels,
