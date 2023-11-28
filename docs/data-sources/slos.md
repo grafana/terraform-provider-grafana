@@ -32,8 +32,7 @@ resource "grafana_slo" "test" {
     window = "30d"
   }
   destination_datasource {
-    type = "mimir"
-    uid  = "grafanacloud-prom"
+    uid = "grafanacloud-prom"
   }
   label {
     key   = "custom"
