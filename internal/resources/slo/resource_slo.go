@@ -54,11 +54,6 @@ Resource manages Grafana SLOs.
 							Description: `UID for the Mimir Datasource`,
 							Optional:    true,
 						},
-						"type": &schema.Schema{
-							Type:        schema.TypeString,
-							Description: `Datasource Type - set to 'mimir'`,
-							Optional:    true,
-						},
 					},
 				},
 			},
@@ -376,11 +371,9 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 
 	// Check the Optional Destination Datasource Field
 	if rawdestinationdatasource, ok := d.GetOk("destination_datasource"); ok {
-		destinationDatasourceData := rawdestinationdatasource.([]interface{})
+		destinationDatasourceData, ok := rawdestinationdatasource.([]interface{})
 
-		// if the destination_datasource field is an empty block, destination[0] has a value of nil
-		if destinationDatasourceData[0] != nil {
-			// only pack the destinationDatasource TF fields if the user populates the Destination field with blocks
+		if ok && len(destinationDatasourceData) > 0 {
 			destinationdatasource := destinationDatasourceData[0].(map[string]interface{})
 			tfdestinationdatasource, _ = packDestinationDatasource(destinationdatasource)
 		}
@@ -393,11 +386,6 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 
 func packDestinationDatasource(destinationdatasource map[string]interface{}) (gapi.DestinationDatasource, error) {
 	packedDestinationDatasource := gapi.DestinationDatasource{}
-
-	if destinationdatasource["type"].(string) != "" {
-		datasourceType := destinationdatasource["type"].(string)
-		packedDestinationDatasource.Type = datasourceType
-	}
 
 	if destinationdatasource["uid"].(string) != "" {
 		datasourceUID := destinationdatasource["uid"].(string)

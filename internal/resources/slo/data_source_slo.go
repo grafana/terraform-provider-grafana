@@ -195,7 +195,6 @@ func unpackDestinationDatasource(destinationDatasource *gapi.DestinationDatasour
 	retDestinationDatasources := []map[string]interface{}{}
 
 	retDestinationDatasource := make(map[string]interface{})
-	retDestinationDatasource["type"] = destinationDatasource.Type
 	retDestinationDatasource["uid"] = destinationDatasource.UID
 
 	retDestinationDatasources = append(retDestinationDatasources, retDestinationDatasource)
