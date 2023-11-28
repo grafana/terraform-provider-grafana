@@ -202,7 +202,7 @@ func ResourceIntegration() *schema.Resource {
 					},
 				},
 				MaxItems:    1,
-				Description: "Jinja2 templates for Alert payload.",
+				Description: "Jinja2 templates for Alert payload. An empty templates block will be ignored.",
 			},
 		},
 	}
@@ -575,6 +575,10 @@ func expandTemplates(input []interface{}) *onCallAPI.Templates {
 	templates := onCallAPI.Templates{}
 
 	for _, r := range input {
+		if r == nil {
+			continue
+		}
+
 		inputMap := r.(map[string]interface{})
 		if inputMap["grouping_key"] != "" {
 			gk := inputMap["grouping_key"].(string)
