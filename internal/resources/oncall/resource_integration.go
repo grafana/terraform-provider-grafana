@@ -203,6 +203,27 @@ func ResourceIntegration() *schema.Resource {
 				},
 				MaxItems:    1,
 				Description: "Jinja2 templates for Alert payload. An empty templates block will be ignored.",
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					oldTemplate, newTemplate := d.GetChange("templates")
+
+					getTemplatesOrEmpty := func(template interface{}) map[string]interface{} {
+						list := template.([]interface{})
+						if len(list) > 0 && list[0] != nil {
+							return list[0].(map[string]interface{})
+						}
+						return map[string]interface{}{}
+					}
+					oldTemplateMap, newTemplateMap := getTemplatesOrEmpty(oldTemplate), getTemplatesOrEmpty(newTemplate)
+					if len(oldTemplateMap) != len(newTemplateMap) {
+						return false
+					}
+					for k, v := range oldTemplateMap {
+						if newTemplateMap[k] != v {
+							return false
+						}
+					}
+					return true
+				},
 			},
 		},
 	}
