@@ -2,10 +2,10 @@ package grafana
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -76,13 +76,13 @@ Manages the entire set of assignments for a role. Assignments that aren't specif
 }
 
 func ReadRoleAssignments(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
-	assignments, err := client.GetRoleAssignments(uid)
+	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
+	resp, err := client.AccessControl.GetRoleAssignments(uid)
 	if err, shouldReturn := common.CheckReadError("role assignments", d, err); shouldReturn {
 		return err
 	}
 
-	return diag.FromErr(setRoleAssignments(assignments, d))
+	return diag.FromErr(setRoleAssignments(resp.Payload, d))
 }
 
 func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -90,32 +90,15 @@ func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 		return nil
 	}
 
-	client, orgID := ClientFromNewOrgResource(meta, d)
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 	uid := d.Get("role_uid").(string)
-	users, err := collectRoleAssignmentsToFn(d.Get("users"))
-	if err != nil {
-		return diag.Errorf("invalid user IDs specified %v", err)
-	}
-	teamsStrings := d.Get("teams").(*schema.Set).List()
-	teams := make([]int, len(teamsStrings))
-	for i, t := range teamsStrings {
-		_, teamIDStr := SplitOrgResourceID(t.(string))
-		teams[i], _ = strconv.Atoi(teamIDStr)
-	}
-	serviceAccountsStrings := d.Get("service_accounts").(*schema.Set).List()
-	serviceAccounts := make([]int, len(serviceAccountsStrings))
-	for i, t := range serviceAccountsStrings {
-		_, saIDStr := SplitOrgResourceID(t.(string))
-		serviceAccounts[i], _ = strconv.Atoi(saIDStr)
-	}
 
-	ra := &gapi.RoleAssignments{
-		RoleUID:         uid,
-		Users:           users,
-		Teams:           teams,
-		ServiceAccounts: serviceAccounts,
+	ra := models.SetRoleAssignmentsCommand{
+		Users:           collectRoleAssignents(d.Get("users"), false),
+		Teams:           collectRoleAssignents(d.Get("teams"), true),
+		ServiceAccounts: collectRoleAssignents(d.Get("service_accounts"), true),
 	}
-	if _, err := client.UpdateRoleAssignments(ra); err != nil {
+	if _, err := client.AccessControl.SetRoleAssignments(uid, &ra); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -137,7 +120,7 @@ func DeleteRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 	return diag.FromErr(err)
 }
 
-func setRoleAssignments(assignments *gapi.RoleAssignments, d *schema.ResourceData) error {
+func setRoleAssignments(assignments *models.RoleAssignmentsDTO, d *schema.ResourceData) error {
 	if err := d.Set("role_uid", assignments.RoleUID); err != nil {
 		return err
 	}
@@ -146,14 +129,14 @@ func setRoleAssignments(assignments *gapi.RoleAssignments, d *schema.ResourceDat
 	}
 	teams := make([]string, len(assignments.Teams))
 	for i, t := range assignments.Teams {
-		teams[i] = strconv.Itoa(t)
+		teams[i] = strconv.FormatInt(t, 10)
 	}
 	if err := d.Set("teams", teams); err != nil {
 		return err
 	}
 	serviceAccounts := make([]string, len(assignments.ServiceAccounts))
 	for i, sa := range assignments.ServiceAccounts {
-		serviceAccounts[i] = strconv.Itoa(sa)
+		serviceAccounts[i] = strconv.FormatInt(sa, 10)
 	}
 	if err := d.Set("service_accounts", serviceAccounts); err != nil {
 		return err
@@ -162,14 +145,19 @@ func setRoleAssignments(assignments *gapi.RoleAssignments, d *schema.ResourceDat
 	return nil
 }
 
-func collectRoleAssignmentsToFn(r interface{}) ([]int, error) {
-	output := make([]int, 0)
+func collectRoleAssignents(r interface{}, orgScoped bool) []int64 {
+	var output []int64
 	for _, rID := range r.(*schema.Set).List() {
-		id, ok := rID.(int)
-		if !ok {
-			return []int{}, fmt.Errorf("%s is not a valid id", rID)
+		var id int64
+		if orgScoped {
+			_, idStr := SplitOrgResourceID(rID.(string))
+			id, _ = strconv.ParseInt(idStr, 10, 64)
+		} else {
+			if idInt, ok := rID.(int); ok {
+				id = int64(idInt)
+			}
 		}
 		output = append(output, id)
 	}
-	return output, nil
+	return output
 }
