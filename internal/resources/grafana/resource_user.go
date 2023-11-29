@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -67,71 +67,70 @@ You must use basic auth.
 }
 
 func CreateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
-	user := gapi.User{
+	client := OAPIGlobalClient(meta)
+	user := models.AdminCreateUserForm{
 		Email:    d.Get("email").(string),
 		Name:     d.Get("name").(string),
 		Login:    d.Get("login").(string),
 		Password: d.Get("password").(string),
 	}
-	id, err := client.CreateUser(user)
+	resp, err := client.AdminUsers.AdminCreateUser(&user)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	if d.HasChange("is_admin") {
-		err = client.UpdateUserPermissions(id, d.Get("is_admin").(bool))
-		if err != nil {
+		perm := models.AdminUpdateUserPermissionsForm{IsGrafanaAdmin: d.Get("is_admin").(bool)}
+		if _, err = client.AdminUsers.AdminUpdateUserPermissions(resp.Payload.ID, &perm); err != nil {
 			return diag.FromErr(err)
 		}
 	}
-	d.SetId(strconv.FormatInt(id, 10))
+	d.SetId(strconv.FormatInt(resp.Payload.ID, 10))
 	return ReadUser(ctx, d, meta)
 }
 
 func ReadUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client := OAPIGlobalClient(meta)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	user, err := client.User(id)
+	resp, err := client.Users.GetUserByID(id)
 	if err, shouldReturn := common.CheckReadError("user", d, err); shouldReturn {
 		return err
 	}
+	user := resp.Payload
 
 	d.Set("user_id", user.ID)
 	d.Set("email", user.Email)
 	d.Set("name", user.Name)
 	d.Set("login", user.Login)
-	d.Set("is_admin", user.IsAdmin)
+	d.Set("is_admin", user.IsGrafanaAdmin)
 	return nil
 }
 
 func UpdateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client := OAPIGlobalClient(meta)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	u := gapi.User{
-		ID:    id,
+	u := models.UpdateUserCommand{
 		Email: d.Get("email").(string),
 		Name:  d.Get("name").(string),
 		Login: d.Get("login").(string),
 	}
-	err = client.UserUpdate(u)
-	if err != nil {
+	if _, err = client.Users.UpdateUser(id, &u); err != nil {
 		return diag.FromErr(err)
 	}
 	if d.HasChange("password") {
-		err = client.UpdateUserPassword(id, d.Get("password").(string))
-		if err != nil {
+		f := models.AdminUpdateUserPasswordForm{Password: d.Get("password").(string)}
+		if _, err = client.AdminUsers.AdminUpdateUserPassword(id, &f); err != nil {
 			return diag.FromErr(err)
 		}
 	}
 	if d.HasChange("is_admin") {
-		err = client.UpdateUserPermissions(id, d.Get("is_admin").(bool))
-		if err != nil {
+		f := models.AdminUpdateUserPermissionsForm{IsGrafanaAdmin: d.Get("is_admin").(bool)}
+		if _, err = client.AdminUsers.AdminUpdateUserPermissions(id, &f); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -139,12 +138,12 @@ func UpdateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func DeleteUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client := OAPIGlobalClient(meta)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	err = client.DeleteUser(id)
+	_, err = client.AdminUsers.AdminDeleteUser(id)
 	diag, _ := common.CheckReadError("user", d, err)
 	return diag
 }
