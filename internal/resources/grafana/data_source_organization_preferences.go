@@ -4,7 +4,6 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/grafana/grafana-openapi-client-go/client/org_preferences"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -25,7 +24,7 @@ func DatasourceOrganizationPreferences() *schema.Resource {
 
 func dataSourceOrganizationPreferencesRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
-	resp, err := client.OrgPreferences.GetOrgPreferences(org_preferences.NewGetOrgPreferencesParams(), nil)
+	resp, err := client.OrgPreferences.GetOrgPreferences()
 	if err != nil {
 		return diag.FromErr(err)
 	}
