@@ -144,7 +144,7 @@ func serviceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, m in
 		return diag.FromErr(err)
 	}
 
-	_, err = c.ServiceAccounts.DeleteToken(serviceAccountID, id)
+	_, err = c.ServiceAccounts.DeleteToken(id, serviceAccountID)
 
 	return diag.FromErr(err)
 }
