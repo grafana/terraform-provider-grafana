@@ -88,7 +88,7 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 
 	d.SetId(MakeOrgResourceID(orgID, id))
 
-	resp, err := client.Search.Search(params, nil)
+	resp, err := client.Search.Search(params)
 	if err != nil {
 		return diag.FromErr(err)
 	}

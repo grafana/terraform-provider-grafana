@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/grafana/grafana-openapi-client-go/client/playlists"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
@@ -175,7 +174,7 @@ func testAccPlaylistDisappears() resource.TestCheckFunc {
 		}
 
 		client, _, playlistID := grafana.OAPIClientFromExistingOrgResource(testutils.Provider.Meta(), rs.Primary.ID)
-		_, err := client.Playlists.DeletePlaylist(playlists.NewDeletePlaylistParams().WithUID(playlistID), nil)
+		_, err := client.Playlists.DeletePlaylist(playlistID)
 		return err
 	}
 }

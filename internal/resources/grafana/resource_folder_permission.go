@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/grafana/grafana-openapi-client-go/client/folder_permissions"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
@@ -115,8 +114,7 @@ func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 
 	folderUID := d.Get("folder_uid").(string)
 
-	params := folder_permissions.NewUpdateFolderPermissionsParams().WithFolderUID(folderUID).WithBody(&permissionList)
-	if _, err := client.FolderPermissions.UpdateFolderPermissions(params, nil); err != nil {
+	if _, err := client.FolderPermissions.UpdateFolderPermissions(folderUID, &permissionList); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -128,8 +126,7 @@ func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 func ReadFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID, folderUID := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	params := folder_permissions.NewGetFolderPermissionListParams().WithFolderUID(folderUID)
-	resp, err := client.FolderPermissions.GetFolderPermissionList(params, nil)
+	resp, err := client.FolderPermissions.GetFolderPermissionList(folderUID, nil)
 	if err, shouldReturn := common.CheckReadError("folder permissions", d, err); shouldReturn {
 		return err
 	}
@@ -164,8 +161,7 @@ func DeleteFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 	// if for some reason the parent folder doesn't exist, we'll just ignore the error
 	client, _, folderUID := OAPIClientFromExistingOrgResource(meta, d.Id())
 	emptyPermissions := models.UpdateDashboardACLCommand{}
-	params := folder_permissions.NewUpdateFolderPermissionsParams().WithFolderUID(folderUID).WithBody(&emptyPermissions)
-	_, err := client.FolderPermissions.UpdateFolderPermissions(params, nil)
+	_, err := client.FolderPermissions.UpdateFolderPermissions(folderUID, &emptyPermissions)
 	diags, _ := common.CheckReadError("folder permissions", d, err)
 	return diags
 }

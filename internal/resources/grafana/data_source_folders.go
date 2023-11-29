@@ -66,7 +66,7 @@ func readFolders(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 	searchType := "dash-folder"
 	for {
 		params := search.NewSearchParams().WithType(&searchType).WithPage(&page)
-		resp, err := client.Search.Search(params, nil)
+		resp, err := client.Search.Search(params)
 		if err != nil {
 			return diag.FromErr(err)
 		}

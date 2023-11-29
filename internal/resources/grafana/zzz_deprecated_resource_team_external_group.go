@@ -70,8 +70,7 @@ func ReadTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta int
 	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	teamID, _ := strconv.ParseInt(idStr, 10, 64)
 
-	params := teamsSync.NewGetTeamGroupsAPIParams().WithTeamID(teamID)
-	resp, err := client.SyncTeamGroups.GetTeamGroupsAPI(params, nil)
+	resp, err := client.SyncTeamGroups.GetTeamGroupsAPI(teamID)
 	if err, shouldReturn := common.CheckReadError("team groups", d, err); shouldReturn {
 		return err
 	}
@@ -103,10 +102,10 @@ func manageTeamExternalGroup(client *goapi.GrafanaHTTPAPI, teamID int64, d *sche
 	addGroups, removeGroups := groupChangesTeamExternalGroup(d, groupsAttr)
 
 	for _, group := range addGroups {
-		params := teamsSync.NewAddTeamGroupAPIParams().WithTeamID(teamID).WithBody(&models.TeamGroupMapping{
+		body := models.TeamGroupMapping{
 			GroupID: group,
-		})
-		if _, err := client.SyncTeamGroups.AddTeamGroupAPI(params, nil); err != nil {
+		}
+		if _, err := client.SyncTeamGroups.AddTeamGroupAPI(teamID, &body); err != nil {
 			return fmt.Errorf("error adding group %s to team %d: %w", group, teamID, err)
 		}
 	}
@@ -115,13 +114,12 @@ func manageTeamExternalGroup(client *goapi.GrafanaHTTPAPI, teamID int64, d *sche
 		group := group
 		// Post 10.2, the group is a query param
 		params := teamsSync.NewRemoveTeamGroupAPIQueryParams().WithTeamID(teamID).WithGroupID(&group)
-		_, newAPIErr := client.SyncTeamGroups.RemoveTeamGroupAPIQuery(params, nil)
+		_, newAPIErr := client.SyncTeamGroups.RemoveTeamGroupAPIQuery(params)
 		if newAPIErr == nil {
 			continue
 		}
 		// Pre 10.2, the group was a path param
-		paramsOldAPI := teamsSync.NewRemoveTeamGroupAPIParams().WithTeamID(teamID).WithGroupID(group)
-		if _, oldAPIErr := client.SyncTeamGroups.RemoveTeamGroupAPI(paramsOldAPI, nil); oldAPIErr != nil {
+		if _, oldAPIErr := client.SyncTeamGroups.RemoveTeamGroupAPI(teamID, group); oldAPIErr != nil {
 			err := errors.Join(newAPIErr, oldAPIErr)
 			return fmt.Errorf("error removing group %s from team %d: %w", group, teamID, err)
 		}

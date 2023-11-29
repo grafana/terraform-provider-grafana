@@ -73,7 +73,7 @@ func serviceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m in
 		SecondsToLive: int64(ttl),
 	}
 	params := service_accounts.NewCreateTokenParams().WithServiceAccountID(serviceAccountID).WithBody(&request)
-	response, err := c.ServiceAccounts.CreateToken(params, nil)
+	response, err := c.ServiceAccounts.CreateToken(params)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -97,8 +97,7 @@ func serviceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 
-	params := service_accounts.NewListTokensParams().WithServiceAccountID(serviceAccountID)
-	response, err := c.ServiceAccounts.ListTokens(params, nil)
+	response, err := c.ServiceAccounts.ListTokens(serviceAccountID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -145,8 +144,7 @@ func serviceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, m in
 		return diag.FromErr(err)
 	}
 
-	params := service_accounts.NewDeleteTokenParams().WithServiceAccountID(serviceAccountID).WithTokenID(id)
-	_, err = c.ServiceAccounts.DeleteToken(params, nil)
+	_, err = c.ServiceAccounts.DeleteToken(serviceAccountID, id)
 
 	return diag.FromErr(err)
 }

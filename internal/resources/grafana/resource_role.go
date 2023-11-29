@@ -130,8 +130,7 @@ func CreateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		Permissions: permissions(d),
 	}
 
-	params := access_control.NewCreateRoleParams().WithBody(&role)
-	resp, err := client.AccessControl.CreateRole(params, nil)
+	resp, err := client.AccessControl.CreateRole(&role)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -164,8 +163,7 @@ func ReadRole(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 }
 
 func readRoleFromUID(client *goapi.GrafanaHTTPAPI, uid string, d *schema.ResourceData) diag.Diagnostics {
-	params := access_control.NewGetRoleParams().WithRoleUID(uid)
-	resp, err := client.AccessControl.GetRole(params, nil)
+	resp, err := client.AccessControl.GetRole(uid)
 	if err, shouldReturn := common.CheckReadError("role", d, err); shouldReturn {
 		return err
 	}
@@ -239,8 +237,7 @@ func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 			Version:     int64(version),
 			Permissions: permissions(d),
 		}
-		params := access_control.NewUpdateRoleParams().WithRoleUID(uid).WithBody(&r)
-		if _, err := client.AccessControl.UpdateRole(params, nil); err != nil {
+		if _, err := client.AccessControl.UpdateRole(uid, &r); err != nil {
 			return diag.FromErr(err)
 		}
 	}

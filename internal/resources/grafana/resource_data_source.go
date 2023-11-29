@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/structure"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/grafana/grafana-openapi-client-go/client/datasources"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
@@ -153,8 +152,7 @@ func CreateDataSource(ctx context.Context, d *schema.ResourceData, meta interfac
 		return diag.FromErr(err)
 	}
 
-	params := datasources.NewAddDataSourceParams().WithBody(dataSource)
-	resp, err := client.Datasources.AddDataSource(params, nil)
+	resp, err := client.Datasources.AddDataSource(dataSource)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -186,8 +184,7 @@ func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta interfac
 		User:            dataSource.User,
 		WithCredentials: dataSource.WithCredentials,
 	}
-	params := datasources.NewUpdateDataSourceByIDParams().WithID(idStr).WithBody(&body)
-	_, err = client.Datasources.UpdateDataSourceByID(params, nil)
+	_, err = client.Datasources.UpdateDataSourceByID(idStr, &body)
 
 	return diag.FromErr(err)
 }
@@ -201,11 +198,9 @@ func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{
 	// Support both numerical and UID IDs, so that we can import an existing datasource with either.
 	// Following the read, it's normalized to a numerical ID.
 	if _, parseErr := strconv.ParseInt(idStr, 10, 64); parseErr == nil {
-		params := datasources.NewGetDataSourceByIDParams().WithID(idStr)
-		resp, err = client.Datasources.GetDataSourceByID(params, nil)
+		resp, err = client.Datasources.GetDataSourceByID(idStr)
 	} else {
-		params := datasources.NewGetDataSourceByUIDParams().WithUID(idStr)
-		resp, err = client.Datasources.GetDataSourceByUID(params, nil)
+		resp, err = client.Datasources.GetDataSourceByUID(idStr)
 	}
 
 	if err, shouldReturn := common.CheckReadError("datasource", d, err); shouldReturn {
@@ -219,8 +214,7 @@ func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{
 func DeleteDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	params := datasources.NewDeleteDataSourceByIDParams().WithID(idStr)
-	_, err := client.Datasources.DeleteDataSourceByID(params, nil)
+	_, err := client.Datasources.DeleteDataSourceByID(idStr)
 	diag, _ := common.CheckReadError("datasource", d, err)
 	return diag
 }

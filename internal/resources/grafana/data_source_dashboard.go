@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/grafana/grafana-openapi-client-go/client/dashboards"
 	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -89,7 +88,7 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta i
 
 		searchType := "dash-db"
 		params := search.NewSearchParams().WithType(&searchType).WithDashboardIds([]int64{int64(id)})
-		resp, err := client.Search.Search(params, nil)
+		resp, err := client.Search.Search(params)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -104,8 +103,7 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta i
 		}
 	}
 
-	params := dashboards.NewGetDashboardByUIDParams().WithUID(uid)
-	resp, err := client.Dashboards.GetDashboardByUID(params, nil)
+	resp, err := client.Dashboards.GetDashboardByUID(uid)
 	if err != nil {
 		return diag.FromErr(err)
 	}

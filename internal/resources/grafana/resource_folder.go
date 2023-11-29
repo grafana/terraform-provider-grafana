@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"strconv"
 
-	goapi "github.com/grafana/grafana-openapi-client-go/client/folders"
+	"github.com/grafana/grafana-openapi-client-go/client/folders"
 	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
 
@@ -84,8 +84,7 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 		body.ParentUID = parentUID.(string)
 	}
 
-	params := goapi.NewCreateFolderParams().WithBody(&body)
-	resp, err := client.Folders.CreateFolder(params, nil)
+	resp, err := client.Folders.CreateFolder(&body)
 	if err != nil {
 		return diag.Errorf("failed to create folder: %s", err)
 	}
@@ -104,14 +103,12 @@ func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 		return diag.Errorf("failed to get folder %s: %s", idStr, err)
 	}
 
-	params := goapi.NewUpdateFolderParams().
-		WithBody(&models.UpdateFolderCommand{
-			Overwrite: true,
-			Title:     d.Get("title").(string),
-		}).
-		WithFolderUID(folder.UID)
+	body := models.UpdateFolderCommand{
+		Overwrite: true,
+		Title:     d.Get("title").(string),
+	}
 
-	if _, err := client.Folders.UpdateFolder(params, nil); err != nil {
+	if _, err := client.Folders.UpdateFolder(folder.UID, &body); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -139,7 +136,7 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 
 func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
-	deleteParams := goapi.NewDeleteFolderParams().WithFolderUID(d.Get("uid").(string))
+	deleteParams := folders.NewDeleteFolderParams().WithFolderUID(d.Get("uid").(string))
 	if d.Get("prevent_destroy_if_not_empty").(bool) {
 		// Search for dashboards and fail if any are found
 		folderID, err := strconv.ParseInt(idStr, 10, 64)
@@ -148,7 +145,7 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 		}
 		searchType := "dash-db"
 		searchParams := search.NewSearchParams().WithFolderIds([]int64{folderID}).WithType(&searchType)
-		searchResp, err := client.Search.Search(searchParams, nil)
+		searchResp, err := client.Search.Search(searchParams)
 		if err != nil {
 			return diag.Errorf("failed to search for dashboards in folder: %s", err)
 		}
@@ -165,7 +162,7 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 		deleteParams.WithForceDeleteRules(&force)
 	}
 
-	_, err := client.Folders.DeleteFolder(deleteParams, nil)
+	_, err := client.Folders.DeleteFolder(deleteParams)
 	diag, _ := common.CheckReadError("folder", d, err)
 	return diag
 }
@@ -204,13 +201,12 @@ func NormalizeFolderConfigJSON(configI interface{}) string {
 	return string(ret)
 }
 
-func GetFolderByIDorUID(client goapi.ClientService, id string) (*models.Folder, error) {
+func GetFolderByIDorUID(client folders.ClientService, id string) (*models.Folder, error) {
 	// If the ID is a number, find the folder UID
 	// Getting the folder by ID is broken in some versions, but getting by UID works in all versions
 	// We need to use two API calls in the numerical ID case, because the "list" call doesn't have all the info
 	if numericalID, err := strconv.ParseInt(id, 10, 64); err == nil {
-		params := goapi.NewGetFolderByIDParams().WithFolderID(numericalID)
-		resp, err := client.GetFolderByID(params, nil)
+		resp, err := client.GetFolderByID(numericalID)
 		if err != nil && !common.IsNotFoundError(err) {
 			return nil, err
 		} else if err == nil {
@@ -218,8 +214,7 @@ func GetFolderByIDorUID(client goapi.ClientService, id string) (*models.Folder, 
 		}
 	}
 
-	params := goapi.NewGetFolderByUIDParams().WithFolderUID(id)
-	resp, err := client.GetFolderByUID(params, nil)
+	resp, err := client.GetFolderByUID(id)
 	if err != nil {
 		return nil, err
 	}

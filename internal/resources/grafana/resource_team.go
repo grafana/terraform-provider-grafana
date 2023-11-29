@@ -7,8 +7,6 @@ import (
 	"strconv"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
-	teamsSync "github.com/grafana/grafana-openapi-client-go/client/sync_team_groups"
-	"github.com/grafana/grafana-openapi-client-go/client/teams"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -151,7 +149,7 @@ func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		Name:  d.Get("name").(string),
 		Email: d.Get("email").(string),
 	}
-	resp, err := client.Teams.CreateTeam(teams.NewCreateTeamParams().WithBody(&body), nil)
+	resp, err := client.Teams.CreateTeam(&body)
 	if err != nil {
 		return diag.Errorf("error creating team: %s", err)
 	}
@@ -198,14 +196,14 @@ func readTeamFromID(client *goapi.GrafanaHTTPAPI, teamID int64, d *schema.Resour
 		d.Set("email", team.Email)
 	}
 
-	resp, err := client.Teams.GetTeamPreferences(teams.NewGetTeamPreferencesParams().WithTeamID(teamIDStr), nil)
+	resp, err := client.Teams.GetTeamPreferences(teamIDStr)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	preferences := resp.GetPayload()
 
 	if readTeamSync {
-		resp, err := client.SyncTeamGroups.GetTeamGroupsAPI(teamsSync.NewGetTeamGroupsAPIParams().WithTeamID(teamID), nil)
+		resp, err := client.SyncTeamGroups.GetTeamGroupsAPI(teamID)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -241,11 +239,11 @@ func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	if d.HasChange("name") || d.HasChange("email") {
 		name := d.Get("name").(string)
 		email := d.Get("email").(string)
-		params := teams.NewUpdateTeamParams().WithTeamID(idStr).WithBody(&models.UpdateTeamCommand{
+		body := models.UpdateTeamCommand{
 			Name:  name,
 			Email: email,
-		})
-		if _, err := client.Teams.UpdateTeam(params, nil); err != nil {
+		}
+		if _, err := client.Teams.UpdateTeam(idStr, &body); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -268,19 +266,19 @@ func UpdateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 
 func DeleteTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
-	_, err := client.Teams.DeleteTeamByID(teams.NewDeleteTeamByIDParams().WithTeamID(idStr), nil)
+	_, err := client.Teams.DeleteTeamByID(idStr)
 	diag, _ := common.CheckReadError("team", d, err)
 	return diag
 }
 
 func updateTeamPreferences(client *goapi.GrafanaHTTPAPI, teamID int64, d *schema.ResourceData) diag.Diagnostics {
 	if d.IsNewResource() || d.HasChanges("preferences.0.theme", "preferences.0.home_dashboard_uid", "preferences.0.timezone") {
-		params := teams.NewUpdateTeamPreferencesParams().WithTeamID(strconv.FormatInt(teamID, 10)).WithBody(&models.UpdatePrefsCmd{
+		body := models.UpdatePrefsCmd{
 			Theme:            d.Get("preferences.0.theme").(string),
 			HomeDashboardUID: d.Get("preferences.0.home_dashboard_uid").(string),
 			Timezone:         d.Get("preferences.0.timezone").(string),
-		})
-		_, err := client.Teams.UpdateTeamPreferences(params, nil)
+		}
+		_, err := client.Teams.UpdateTeamPreferences(strconv.FormatInt(teamID, 10), &body)
 		return diag.FromErr(err)
 	}
 
@@ -288,8 +286,7 @@ func updateTeamPreferences(client *goapi.GrafanaHTTPAPI, teamID int64, d *schema
 }
 
 func readTeamMembers(client *goapi.GrafanaHTTPAPI, d *schema.ResourceData) diag.Diagnostics {
-	params := teams.NewGetTeamMembersParams().WithTeamID(strconv.Itoa(d.Get("team_id").(int)))
-	resp, err := client.Teams.GetTeamMembers(params, nil)
+	resp, err := client.Teams.GetTeamMembers(strconv.Itoa(d.Get("team_id").(int)))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -411,13 +408,9 @@ func applyMemberChanges(client *goapi.GrafanaHTTPAPI, teamID int64, changes []Me
 		u := change.Member
 		switch change.Type {
 		case AddMember:
-			params := teams.NewAddTeamMemberParams().WithTeamID(strconv.FormatInt(teamID, 10)).WithBody(&models.AddTeamMemberCommand{
-				UserID: u.ID,
-			})
-			_, err = client.Teams.AddTeamMember(params, nil)
+			_, err = client.Teams.AddTeamMember(strconv.FormatInt(teamID, 10), &models.AddTeamMemberCommand{UserID: u.ID})
 		case RemoveMember:
-			params := teams.NewRemoveTeamMemberParams().WithTeamID(strconv.FormatInt(teamID, 10)).WithUserID(u.ID)
-			_, err = client.Teams.RemoveTeamMember(params, nil)
+			_, err = client.Teams.RemoveTeamMember(u.ID, strconv.FormatInt(teamID, 10))
 		}
 		if err != nil {
 			return err
@@ -427,8 +420,7 @@ func applyMemberChanges(client *goapi.GrafanaHTTPAPI, teamID int64, changes []Me
 }
 
 func getTeamByID(client *goapi.GrafanaHTTPAPI, teamID int64) (*models.TeamDTO, error) {
-	params := teams.NewGetTeamByIDParams().WithTeamID(strconv.FormatInt(teamID, 10))
-	resp, err := client.Teams.GetTeamByID(params, nil)
+	resp, err := client.Teams.GetTeamByID(strconv.FormatInt(teamID, 10))
 	if err != nil {
 		return nil, err
 	}

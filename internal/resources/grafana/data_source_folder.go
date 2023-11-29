@@ -51,7 +51,7 @@ func findFolderWithTitle(client *goapi.GrafanaHTTPAPI, title string) (*models.Fo
 
 	for {
 		params := folders.NewGetFoldersParams().WithPage(&page)
-		resp, err := client.Folders.GetFolders(params, nil)
+		resp, err := client.Folders.GetFolders(params)
 		if err != nil {
 			return nil, err
 		}
@@ -62,8 +62,7 @@ func findFolderWithTitle(client *goapi.GrafanaHTTPAPI, title string) (*models.Fo
 
 		for _, folder := range resp.Payload {
 			if folder.Title == title {
-				getParams := folders.NewGetFolderByUIDParams().WithFolderUID(folder.UID)
-				resp, err := client.Folders.GetFolderByUID(getParams, nil)
+				resp, err := client.Folders.GetFolderByUID(folder.UID)
 				if err != nil {
 					return nil, err
 				}

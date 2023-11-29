@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/grafana/grafana-openapi-client-go/client/users"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -65,11 +64,9 @@ func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	if id := d.Get("user_id").(int); id >= 0 {
-		params := users.NewGetUserByIDParams().WithUserID(int64(id))
-		resp, err = client.Users.GetUserByID(params, nil)
+		resp, err = client.Users.GetUserByID(int64(id))
 	} else if emailOrLogin != "" {
-		params := users.NewGetUserByLoginOrEmailParams().WithLoginOrEmail(emailOrLogin)
-		resp, err = client.Users.GetUserByLoginOrEmail(params, nil)
+		resp, err = client.Users.GetUserByLoginOrEmail(emailOrLogin)
 	} else {
 		err = fmt.Errorf("must specify one of user_id, email, or login")
 	}

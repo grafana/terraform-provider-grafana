@@ -39,7 +39,7 @@ func dataSourceTeamRead(ctx context.Context, d *schema.ResourceData, meta interf
 	name := d.Get("name").(string)
 
 	params := teams.NewSearchTeamsParams().WithName(&name)
-	resp, err := client.Teams.SearchTeams(params, nil)
+	resp, err := client.Teams.SearchTeams(params)
 	if err != nil {
 		return diag.FromErr(err)
 	}
