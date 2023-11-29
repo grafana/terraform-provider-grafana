@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
-	"github.com/grafana/grafana-openapi-client-go/client/org"
 	teamsSync "github.com/grafana/grafana-openapi-client-go/client/sync_team_groups"
 	"github.com/grafana/grafana-openapi-client-go/client/teams"
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -379,8 +378,7 @@ func memberChanges(stateMembers, configMembers map[string]TeamMember) []MemberCh
 func addMemberIdsToChanges(client *goapi.GrafanaHTTPAPI, changes []MemberChange) ([]MemberChange, error) {
 	gUserMap := make(map[string]int64)
 
-	params := org.NewGetOrgUsersForCurrentOrgParams()
-	resp, err := client.Org.GetOrgUsersForCurrentOrg(params, nil)
+	resp, err := client.Org.GetOrgUsersForCurrentOrg()
 	if err != nil {
 		return nil, err
 	}
