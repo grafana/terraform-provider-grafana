@@ -158,7 +158,6 @@ resource  "grafana_slo" "invalid" {
     type = "freeform"
   }
   destination_datasource {
-	type = "mimir"
 	uid = "grafanacloud-prom"
   }
   objectives {
@@ -178,7 +177,6 @@ func emptyAlert(name string) string {
 		window = "28d"
 	  }
 	  destination_datasource {
-		type = "mimir"
 		uid = "grafanacloud-prom"
 	  }
 	  query {
@@ -202,7 +200,6 @@ resource "grafana_slo" "no_alert" {
     window = "28d"
   }
   destination_datasource {
-	type = "mimir"
 	uid = "grafanacloud-prom"
   }
   query {

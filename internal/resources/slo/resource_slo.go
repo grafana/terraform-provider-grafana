@@ -54,11 +54,6 @@ Resource manages Grafana SLOs.
 							Description: `UID for the Mimir Datasource`,
 							Optional:    true,
 						},
-						"type": &schema.Schema{
-							Type:        schema.TypeString,
-							Description: `Datasource Type - set to 'mimir'`,
-							Optional:    true,
-						},
 					},
 				},
 			},
@@ -147,6 +142,7 @@ Resource manages Grafana SLOs.
 			},
 			"alerting": &schema.Schema{
 				Type:     schema.TypeList,
+				MaxItems: 1,
 				Optional: true,
 				Description: `Configures the alerting rules that will be generated for each
 				time window associated with the SLO. Grafana SLOs can generate
@@ -170,6 +166,7 @@ Resource manages Grafana SLOs.
 						"fastburn": &schema.Schema{
 							Type:        schema.TypeList,
 							Optional:    true,
+							MaxItems:    1,
 							Description: "Alerting Rules generated for Fast Burn alerts",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -190,6 +187,7 @@ Resource manages Grafana SLOs.
 						},
 						"slowburn": &schema.Schema{
 							Type:        schema.TypeList,
+							MaxItems:    1,
 							Optional:    true,
 							Description: "Alerting Rules generated for Slow Burn alerts",
 							Elem: &schema.Resource{
@@ -360,13 +358,12 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 
 	// Check the Optional Alerting Field
 	if alerting, ok := d.GetOk("alerting"); ok {
-		alertData := alerting.([]interface{})
-
-		// if the Alerting field is an empty block, alertData[0] has a value of nil
-		if alertData[0] != nil {
-			// only pack the Alerting TF fields if the user populates the Alerting field with blocks
-			alert := alertData[0].(map[string]interface{})
-			tfalerting = packAlerting(alert)
+		alertData, ok := alerting.([]interface{})
+		if ok && len(alertData) > 0 {
+			alert, ok := alertData[0].(map[string]interface{})
+			if ok {
+				tfalerting = packAlerting(alert)
+			}
 		}
 
 		slo.Alerting = &tfalerting
@@ -374,11 +371,9 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 
 	// Check the Optional Destination Datasource Field
 	if rawdestinationdatasource, ok := d.GetOk("destination_datasource"); ok {
-		destinationDatasourceData := rawdestinationdatasource.([]interface{})
+		destinationDatasourceData, ok := rawdestinationdatasource.([]interface{})
 
-		// if the destination_datasource field is an empty block, destination[0] has a value of nil
-		if destinationDatasourceData[0] != nil {
-			// only pack the destinationDatasource TF fields if the user populates the Destination field with blocks
+		if ok && len(destinationDatasourceData) > 0 {
 			destinationdatasource := destinationDatasourceData[0].(map[string]interface{})
 			tfdestinationdatasource, _ = packDestinationDatasource(destinationdatasource)
 		}
@@ -391,11 +386,6 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 
 func packDestinationDatasource(destinationdatasource map[string]interface{}) (gapi.DestinationDatasource, error) {
 	packedDestinationDatasource := gapi.DestinationDatasource{}
-
-	if destinationdatasource["type"].(string) != "" {
-		datasourceType := destinationdatasource["type"].(string)
-		packedDestinationDatasource.Type = datasourceType
-	}
 
 	if destinationdatasource["uid"].(string) != "" {
 		datasourceUID := destinationdatasource["uid"].(string)
@@ -487,17 +477,30 @@ func packLabels(tfLabels []interface{}) []gapi.Label {
 }
 
 func packAlerting(tfAlerting map[string]interface{}) gapi.Alerting {
-	annots := tfAlerting["annotation"].([]interface{})
-	tfAnnots := packLabels(annots)
+	var tfAnnots []gapi.Label
+	var tfLabels []gapi.Label
+	var tfFastBurn gapi.AlertingMetadata
+	var tfSlowBurn gapi.AlertingMetadata
 
-	labels := tfAlerting["label"].([]interface{})
-	tfLabels := packLabels(labels)
+	annots, ok := tfAlerting["annotation"].([]interface{})
+	if ok {
+		tfAnnots = packLabels(annots)
+	}
 
-	fastBurn := tfAlerting["fastburn"].([]interface{})
-	tfFastBurn := packAlertMetadata(fastBurn)
+	labels, ok := tfAlerting["label"].([]interface{})
+	if ok {
+		tfLabels = packLabels(labels)
+	}
 
-	slowBurn := tfAlerting["slowburn"].([]interface{})
-	tfSlowBurn := packAlertMetadata(slowBurn)
+	fastBurn, ok := tfAlerting["fastburn"].([]interface{})
+	if ok {
+		tfFastBurn = packAlertMetadata(fastBurn)
+	}
+
+	slowBurn, ok := tfAlerting["slowburn"].([]interface{})
+	if ok {
+		tfSlowBurn = packAlertMetadata(slowBurn)
+	}
 
 	alerting := gapi.Alerting{
 		Annotations: tfAnnots,
@@ -510,13 +513,23 @@ func packAlerting(tfAlerting map[string]interface{}) gapi.Alerting {
 }
 
 func packAlertMetadata(metadata []interface{}) gapi.AlertingMetadata {
-	meta := metadata[0].(map[string]interface{})
+	var tflabels []gapi.Label
+	var tfannots []gapi.Label
 
-	labels := meta["label"].([]interface{})
-	tflabels := packLabels(labels)
+	if len(metadata) > 0 {
+		meta, ok := metadata[0].(map[string]interface{})
+		if ok {
+			labels, ok := meta["label"].([]interface{})
+			if ok {
+				tflabels = packLabels(labels)
+			}
 
-	annots := meta["annotation"].([]interface{})
-	tfannots := packLabels(annots)
+			annots, ok := meta["annotation"].([]interface{})
+			if ok {
+				tfannots = packLabels(annots)
+			}
+		}
+	}
 
 	apiMetadata := gapi.AlertingMetadata{
 		Labels:      tflabels,

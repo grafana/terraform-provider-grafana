@@ -12,8 +12,7 @@ resource "grafana_slo" "update" {
     window = "7d"
   }
   destination_datasource {
-    type = "mimir"
-    uid  = "grafanacloud-prom"
+    uid = "grafanacloud-prom"
   }
   label {
     key   = "slo"
