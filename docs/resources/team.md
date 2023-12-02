@@ -55,7 +55,7 @@ to the team. Note: users specified here must already exist in Grafana.
 Optional:
 
 - `home_dashboard_uid` (String) The UID of the dashboard to display when a team member logs in. Defaults to ``.
-- `theme` (String) The default theme for this team. Available themes are `light`, `dark`, or an empty string for the default theme. Defaults to ``.
+- `theme` (String) The default theme for this team. Available themes are `light`, `dark`, `system`, or an empty string for the default theme. Defaults to ``.
 - `timezone` (String) The default timezone for this team. Available values are `utc`, `browser`, or an empty string for the default. Defaults to ``.
 
 
