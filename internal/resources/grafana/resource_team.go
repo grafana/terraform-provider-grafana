@@ -101,8 +101,8 @@ Team Sync can be provisioned using [grafana_team_external_group resource](https:
 						"theme": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validation.StringInSlice([]string{"light", "dark", ""}, false),
-							Description:  "The default theme for this team. Available themes are `light`, `dark`, or an empty string for the default theme.",
+							ValidateFunc: validation.StringInSlice([]string{"light", "dark", "system", ""}, false),
+							Description:  "The default theme for this team. Available themes are `light`, `dark`, `system`, or an empty string for the default theme.",
 							Default:      "",
 						},
 						"home_dashboard_uid": {
