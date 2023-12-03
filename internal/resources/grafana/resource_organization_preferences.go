@@ -32,8 +32,8 @@ func ResourceOrganizationPreferences() *schema.Resource {
 			"theme": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Description:  "The Organization theme. Available values are `light`, `dark`, or an empty string for the default.",
-				ValidateFunc: validation.StringInSlice([]string{"light", "dark", ""}, false),
+				Description:  "The Organization theme. Available values are `light`, `dark`, `system`, or an empty string for the default.",
+				ValidateFunc: validation.StringInSlice([]string{"light", "dark", "system", ""}, false),
 			},
 			"home_dashboard_id": {
 				Type:          schema.TypeInt,
