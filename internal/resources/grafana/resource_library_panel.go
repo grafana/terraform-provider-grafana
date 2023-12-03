@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/grafana/grafana-openapi-client-go/client/library_elements"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
@@ -117,8 +116,7 @@ func createLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interf
 	client, _ := OAPIClientFromNewOrgResource(meta, d)
 
 	panel := makeLibraryPanel(d)
-	params := library_elements.NewCreateLibraryElementParams().WithBody(&panel)
-	resp, err := client.LibraryElements.CreateLibraryElement(params, nil)
+	resp, err := client.LibraryElements.CreateLibraryElement(&panel)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -130,8 +128,7 @@ func createLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interf
 func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	params := library_elements.NewGetLibraryElementByUIDParams().WithLibraryElementUID(uid)
-	resp, err := client.LibraryElements.GetLibraryElementByUID(params, nil)
+	resp, err := client.LibraryElements.GetLibraryElementByUID(uid)
 	if err, shouldReturn := common.CheckReadError("library panel", d, err); shouldReturn {
 		return err
 	}
@@ -162,8 +159,7 @@ func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 	d.Set("created", panel.Meta.Created.String())
 	d.Set("updated", panel.Meta.Updated.String())
 
-	getConnParams := library_elements.NewGetLibraryElementConnectionsParams().WithLibraryElementUID(uid)
-	connResp, err := client.LibraryElements.GetLibraryElementConnections(getConnParams, nil)
+	connResp, err := client.LibraryElements.GetLibraryElementConnections(uid)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -186,14 +182,14 @@ func updateLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interf
 
 	_, folderIDStr := SplitOrgResourceID(d.Get("folder_id").(string))
 	folderID, _ := strconv.ParseInt(folderIDStr, 10, 64)
-	params := library_elements.NewUpdateLibraryElementParams().WithLibraryElementUID(uid).WithBody(&models.PatchLibraryElementCommand{
+	body := models.PatchLibraryElementCommand{
 		Name:     d.Get("name").(string),
 		FolderID: folderID,
 		Model:    panelJSON,
 		Kind:     1,
 		Version:  int64(d.Get("version").(int)),
-	})
-	resp, err := client.LibraryElements.UpdateLibraryElement(params, nil)
+	}
+	resp, err := client.LibraryElements.UpdateLibraryElement(uid, &body)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -204,8 +200,7 @@ func updateLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interf
 
 func deleteLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
-	params := library_elements.NewDeleteLibraryElementByUIDParams().WithLibraryElementUID(uid)
-	_, err := client.LibraryElements.DeleteLibraryElementByUID(params, nil)
+	_, err := client.LibraryElements.DeleteLibraryElementByUID(uid)
 	diag, _ := common.CheckReadError("library panel", d, err)
 	return diag
 }

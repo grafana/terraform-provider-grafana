@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grafana/grafana-openapi-client-go/client/admin_users"
 	"github.com/grafana/grafana-openapi-client-go/client/orgs"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -149,8 +148,7 @@ func CreateOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 	client := OAPIGlobalClient(meta)
 	name := d.Get("name").(string)
 
-	params := orgs.NewCreateOrgParams().WithBody(&models.CreateOrgCommand{Name: name})
-	resp, err := client.Orgs.CreateOrg(params, nil)
+	resp, err := client.Orgs.CreateOrg(&models.CreateOrgCommand{Name: name})
 	if err != nil && strings.Contains(err.Error(), "409") {
 		return diag.Errorf("Error: A Grafana Organization with the name '%s' already exists.", name)
 	}
@@ -169,7 +167,7 @@ func ReadOrganization(ctx context.Context, d *schema.ResourceData, meta interfac
 	client := OAPIGlobalClient(meta)
 	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
 
-	resp, err := client.Orgs.GetOrgByID(orgs.NewGetOrgByIDParams().WithOrgID(orgID), nil)
+	resp, err := client.Orgs.GetOrgByID(orgID)
 	if err, shouldReturn := common.CheckReadError("organization", d, err); shouldReturn {
 		return err
 	}
@@ -188,8 +186,7 @@ func UpdateOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	if d.HasChange("name") {
 		name := d.Get("name").(string)
-		params := orgs.NewUpdateOrgParams().WithOrgID(orgID).WithBody(&models.UpdateOrgForm{Name: name})
-		if _, err := client.Orgs.UpdateOrg(params, nil); err != nil {
+		if _, err := client.Orgs.UpdateOrg(orgID, &models.UpdateOrgForm{Name: name}); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -203,7 +200,7 @@ func UpdateOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 func DeleteOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := OAPIGlobalClient(meta)
 	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	_, err := client.Orgs.DeleteOrgByID(orgs.NewDeleteOrgByIDParams().WithOrgID(orgID), nil)
+	_, err := client.Orgs.DeleteOrgByID(orgID)
 	diag, _ := common.CheckReadError("organization", d, err)
 	return diag
 }
@@ -211,7 +208,7 @@ func DeleteOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 func ReadUsers(d *schema.ResourceData, meta interface{}) error {
 	client := OAPIGlobalClient(meta)
 	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	resp, err := client.Orgs.GetOrgUsers(orgs.NewGetOrgUsersParams().WithOrgID(orgID), nil)
+	resp, err := client.Orgs.GetOrgUsers(orgID)
 	if err != nil {
 		return err
 	}
@@ -342,8 +339,7 @@ func createUser(meta interface{}, user string) (int64, error) {
 		Email:    user,
 		Password: pass,
 	}
-	params := admin_users.NewAdminCreateUserParams().WithBody(&u)
-	resp, err := client.AdminUsers.AdminCreateUser(params, nil)
+	resp, err := client.AdminUsers.AdminCreateUser(&u)
 	if err != nil {
 		return 0, err
 	}
@@ -357,14 +353,12 @@ func applyChanges(meta interface{}, orgID int64, changes []UserChange) error {
 		u := change.User
 		switch change.Type {
 		case Add:
-			params := orgs.NewAddOrgUserParams().WithOrgID(orgID).WithBody(&models.AddOrgUserCommand{LoginOrEmail: u.Email, Role: u.Role})
-			_, err = client.Orgs.AddOrgUser(params, nil)
+			_, err = client.Orgs.AddOrgUser(orgID, &models.AddOrgUserCommand{LoginOrEmail: u.Email, Role: u.Role})
 		case Update:
 			params := orgs.NewUpdateOrgUserParams().WithOrgID(orgID).WithUserID(u.ID).WithBody(&models.UpdateOrgUserCommand{Role: u.Role})
-			_, err = client.Orgs.UpdateOrgUser(params, nil)
+			_, err = client.Orgs.UpdateOrgUser(params)
 		case Remove:
-			params := orgs.NewRemoveOrgUserParams().WithOrgID(orgID).WithUserID(u.ID)
-			_, err = client.Orgs.RemoveOrgUser(params, nil)
+			_, err = client.Orgs.RemoveOrgUser(u.ID, orgID)
 		}
 		if err != nil && !strings.Contains(err.Error(), "409") {
 			return err

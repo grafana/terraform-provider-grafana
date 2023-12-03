@@ -3,7 +3,6 @@ package grafana
 import (
 	"context"
 
-	"github.com/grafana/grafana-openapi-client-go/client/datasources"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -47,15 +46,12 @@ func datasourceDatasourceRead(ctx context.Context, d *schema.ResourceData, meta 
 	var err error
 
 	if name, ok := d.GetOk("name"); ok {
-		params := datasources.NewGetDataSourceByNameParams().WithName(name.(string))
-		resp, err = client.Datasources.GetDataSourceByName(params, nil)
+		resp, err = client.Datasources.GetDataSourceByName(name.(string))
 	} else if id, ok := d.GetOk("id"); ok {
 		_, idStr := SplitOrgResourceID(id.(string))
-		params := datasources.NewGetDataSourceByIDParams().WithID(idStr)
-		resp, err = client.Datasources.GetDataSourceByID(params, nil)
+		resp, err = client.Datasources.GetDataSourceByID(idStr)
 	} else if uid, ok := d.GetOk("uid"); ok {
-		params := datasources.NewGetDataSourceByUIDParams().WithUID(uid.(string))
-		resp, err = client.Datasources.GetDataSourceByUID(params, nil)
+		resp, err = client.Datasources.GetDataSourceByUID(uid.(string))
 	}
 
 	if err != nil {

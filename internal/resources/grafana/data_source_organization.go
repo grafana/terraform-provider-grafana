@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grafana/grafana-openapi-client-go/client/orgs"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -56,8 +55,7 @@ func dataSourceOrganizationRead(ctx context.Context, d *schema.ResourceData, met
 	client := OAPIGlobalClient(meta)
 	name := d.Get("name").(string)
 
-	params := orgs.NewGetOrgByNameParams().WithOrgName(name)
-	org, err := client.Orgs.GetOrgByName(params, nil)
+	org, err := client.Orgs.GetOrgByName(name)
 
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "status: 404") {
@@ -66,8 +64,7 @@ func dataSourceOrganizationRead(ctx context.Context, d *schema.ResourceData, met
 		return diag.FromErr(err)
 	}
 
-	orgUsersParams := orgs.NewGetOrgUsersParams().WithOrgID(org.Payload.ID)
-	orgUsers, err := client.Orgs.GetOrgUsers(orgUsersParams, nil)
+	orgUsers, err := client.Orgs.GetOrgUsers(org.Payload.ID)
 	if err != nil {
 		return diag.FromErr(err)
 	}

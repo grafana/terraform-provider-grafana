@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
-	"github.com/grafana/grafana-openapi-client-go/client/dashboard_permissions"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
@@ -152,11 +151,9 @@ func ReadDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta 
 
 	if idInt, _ := strconv.ParseInt(idStr, 10, 64); idInt == 0 {
 		// id is not an int, so it must be a uid
-		params := dashboard_permissions.NewGetDashboardPermissionsListByUIDParams().WithUID(idStr)
-		resp, err = client.DashboardPermissions.GetDashboardPermissionsListByUID(params, nil)
+		resp, err = client.DashboardPermissions.GetDashboardPermissionsListByUID(idStr)
 	} else {
-		params := dashboard_permissions.NewGetDashboardPermissionsListByIDParams().WithDashboardID(idInt)
-		resp, err = client.DashboardPermissions.GetDashboardPermissionsListByID(params, nil)
+		resp, err = client.DashboardPermissions.GetDashboardPermissionsListByID(idInt)
 	}
 	if err, shouldReturn := common.CheckReadError("dashboard permissions", d, err); shouldReturn {
 		return err
@@ -199,11 +196,9 @@ func updateDashboardPermissions(client *goapi.GrafanaHTTPAPI, id string, permiss
 	var err error
 	if idInt, _ := strconv.ParseInt(id, 10, 64); idInt == 0 {
 		// id is not an int, so it must be a uid
-		params := dashboard_permissions.NewUpdateDashboardPermissionsByUIDParams().WithUID(id).WithBody(permissions)
-		_, err = client.DashboardPermissions.UpdateDashboardPermissionsByUID(params, nil)
+		_, err = client.DashboardPermissions.UpdateDashboardPermissionsByUID(id, permissions)
 	} else {
-		params := dashboard_permissions.NewUpdateDashboardPermissionsByIDParams().WithDashboardID(idInt).WithBody(permissions)
-		_, err = client.DashboardPermissions.UpdateDashboardPermissionsByID(params, nil)
+		_, err = client.DashboardPermissions.UpdateDashboardPermissionsByID(idInt, permissions)
 	}
 	return err
 }

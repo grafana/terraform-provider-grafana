@@ -5,16 +5,6 @@ import (
 	"strconv"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
-	"github.com/grafana/grafana-openapi-client-go/client/access_control"
-	"github.com/grafana/grafana-openapi-client-go/client/annotations"
-	"github.com/grafana/grafana-openapi-client-go/client/datasources"
-	"github.com/grafana/grafana-openapi-client-go/client/folders"
-	"github.com/grafana/grafana-openapi-client-go/client/library_elements"
-	"github.com/grafana/grafana-openapi-client-go/client/orgs"
-	"github.com/grafana/grafana-openapi-client-go/client/playlists"
-	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
-	"github.com/grafana/grafana-openapi-client-go/client/teams"
-	"github.com/grafana/grafana-openapi-client-go/client/users"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
@@ -29,40 +19,35 @@ var (
 	annotationsCheckExists = newCheckExistsHelper(
 		func(a *models.Annotation) string { return strconv.FormatInt(a.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Annotation, error) {
-			params := annotations.NewGetAnnotationByIDParams().WithAnnotationID(id)
-			resp, err := client.Annotations.GetAnnotationByID(params, nil)
+			resp, err := client.Annotations.GetAnnotationByID(id)
 			return payloadOrError(resp, err)
 		},
 	)
 	datasourceCheckExists = newCheckExistsHelper(
 		func(d *models.DataSource) string { return strconv.FormatInt(d.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.DataSource, error) {
-			params := datasources.NewGetDataSourceByIDParams().WithID(id)
-			resp, err := client.Datasources.GetDataSourceByID(params, nil)
+			resp, err := client.Datasources.GetDataSourceByID(id)
 			return payloadOrError(resp, err)
 		},
 	)
 	folderCheckExists = newCheckExistsHelper(
 		func(f *models.Folder) string { return strconv.FormatInt(f.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Folder, error) {
-			params := folders.NewGetFolderByIDParams().WithFolderID(mustParseInt64(id))
-			resp, err := client.Folders.GetFolderByID(params, nil)
+			resp, err := client.Folders.GetFolderByID(mustParseInt64(id))
 			return payloadOrError(resp, err)
 		},
 	)
 	libraryPanelCheckExists = newCheckExistsHelper(
 		func(t *models.LibraryElementResponse) string { return t.Result.UID },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.LibraryElementResponse, error) {
-			params := library_elements.NewGetLibraryElementByUIDParams().WithLibraryElementUID(id)
-			resp, err := client.LibraryElements.GetLibraryElementByUID(params, nil)
+			resp, err := client.LibraryElements.GetLibraryElementByUID(id)
 			return payloadOrError(resp, err)
 		},
 	)
 	orgCheckExists = newCheckExistsHelper(
 		func(o *models.OrgDetailsDTO) string { return strconv.FormatInt(o.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.OrgDetailsDTO, error) {
-			params := orgs.NewGetOrgByIDParams().WithOrgID(mustParseInt64(id))
-			resp, err := client.Orgs.GetOrgByID(params, nil)
+			resp, err := client.Orgs.GetOrgByID(mustParseInt64(id))
 			return payloadOrError(resp, err)
 		},
 	)
@@ -74,40 +59,35 @@ var (
 			return p.UID
 		},
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Playlist, error) {
-			params := playlists.NewGetPlaylistParams().WithUID(id)
-			resp, err := client.Playlists.GetPlaylist(params, nil)
+			resp, err := client.Playlists.GetPlaylist(id)
 			return payloadOrError(resp, err)
 		},
 	)
 	roleCheckExists = newCheckExistsHelper(
 		func(r *models.RoleDTO) string { return r.UID },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.RoleDTO, error) {
-			params := access_control.NewGetRoleParams().WithRoleUID(id)
-			resp, err := client.AccessControl.GetRole(params, nil)
+			resp, err := client.AccessControl.GetRole(id)
 			return payloadOrError(resp, err)
 		},
 	)
 	serviceAccountCheckExists = newCheckExistsHelper(
 		func(t *models.ServiceAccountDTO) string { return strconv.FormatInt(t.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.ServiceAccountDTO, error) {
-			params := service_accounts.NewRetrieveServiceAccountParams().WithServiceAccountID(mustParseInt64(id))
-			resp, err := client.ServiceAccounts.RetrieveServiceAccount(params, nil)
+			resp, err := client.ServiceAccounts.RetrieveServiceAccount(mustParseInt64(id))
 			return payloadOrError(resp, err)
 		},
 	)
 	teamCheckExists = newCheckExistsHelper(
 		func(t *models.TeamDTO) string { return strconv.FormatInt(t.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.TeamDTO, error) {
-			params := teams.NewGetTeamByIDParams().WithTeamID(id)
-			resp, err := client.Teams.GetTeamByID(params, nil)
+			resp, err := client.Teams.GetTeamByID(id)
 			return payloadOrError(resp, err)
 		},
 	)
 	userCheckExists = newCheckExistsHelper(
 		func(u *models.UserProfileDTO) string { return strconv.FormatInt(u.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.UserProfileDTO, error) {
-			params := users.NewGetUserByIDParams().WithUserID(mustParseInt64(id))
-			resp, err := client.Users.GetUserByID(params, nil)
+			resp, err := client.Users.GetUserByID(mustParseInt64(id))
 			return payloadOrError(resp, err)
 		},
 	)

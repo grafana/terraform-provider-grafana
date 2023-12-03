@@ -67,7 +67,7 @@ func CreateServiceAccount(ctx context.Context, d *schema.ResourceData, meta inte
 	}
 
 	params := service_accounts.NewCreateServiceAccountParams().WithBody(&req)
-	resp, err := client.ServiceAccounts.CreateServiceAccount(params, nil)
+	resp, err := client.ServiceAccounts.CreateServiceAccount(params)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -83,8 +83,7 @@ func ReadServiceAccount(ctx context.Context, d *schema.ResourceData, meta interf
 		return diag.FromErr(err)
 	}
 
-	params := service_accounts.NewRetrieveServiceAccountParams().WithServiceAccountID(id)
-	resp, err := client.ServiceAccounts.RetrieveServiceAccount(params, nil)
+	resp, err := client.ServiceAccounts.RetrieveServiceAccount(id)
 	if err, shouldReturn := common.CheckReadError("service account", d, err); shouldReturn {
 		return err
 	}
@@ -119,7 +118,7 @@ func UpdateServiceAccount(ctx context.Context, d *schema.ResourceData, meta inte
 	params := service_accounts.NewUpdateServiceAccountParams().
 		WithBody(&updateRequest).
 		WithServiceAccountID(id)
-	if _, err := client.ServiceAccounts.UpdateServiceAccount(params, nil); err != nil {
+	if _, err := client.ServiceAccounts.UpdateServiceAccount(params); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -133,8 +132,7 @@ func DeleteServiceAccount(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	params := service_accounts.NewDeleteServiceAccountParams().WithServiceAccountID(id)
-	_, err = client.ServiceAccounts.DeleteServiceAccount(params, nil)
+	_, err = client.ServiceAccounts.DeleteServiceAccount(id)
 	diag, _ := common.CheckReadError("service account", d, err)
 	return diag
 }

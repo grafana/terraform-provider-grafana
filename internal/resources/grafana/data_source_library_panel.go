@@ -3,7 +3,6 @@ package grafana
 import (
 	"context"
 
-	"github.com/grafana/grafana-openapi-client-go/client/library_elements"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -41,8 +40,7 @@ func dataSourceLibraryPanelRead(ctx context.Context, d *schema.ResourceData, met
 			return diag.Errorf("either name or uid must be specified")
 		}
 
-		params := library_elements.NewGetLibraryElementByNameParams().WithLibraryElementName(name)
-		resp, err := client.LibraryElements.GetLibraryElementByName(params, nil)
+		resp, err := client.LibraryElements.GetLibraryElementByName(name)
 		if err != nil {
 			return diag.FromErr(err)
 		}

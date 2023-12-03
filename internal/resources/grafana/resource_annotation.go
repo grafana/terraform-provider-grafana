@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/grafana/grafana-openapi-client-go/client/annotations"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -105,8 +104,7 @@ func CreateAnnotation(ctx context.Context, d *schema.ResourceData, meta interfac
 		return diag.FromErr(err)
 	}
 
-	params := annotations.NewPostAnnotationParams().WithBody(annotation)
-	resp, err := client.Annotations.PostAnnotation(params, nil)
+	resp, err := client.Annotations.PostAnnotation(annotation)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -131,17 +129,14 @@ func UpdateAnnotation(ctx context.Context, d *schema.ResourceData, meta interfac
 		TimeEnd: postAnnotation.TimeEnd,
 	}
 
-	params := annotations.NewUpdateAnnotationParams().WithAnnotationID(idStr).WithBody(&annotation)
-
-	_, err = client.Annotations.UpdateAnnotation(params, nil)
+	_, err = client.Annotations.UpdateAnnotation(idStr, &annotation)
 	return diag.FromErr(err)
 }
 
 func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	params := annotations.NewGetAnnotationByIDParams().WithAnnotationID(idStr)
-	resp, err := client.Annotations.GetAnnotationByID(params, nil)
+	resp, err := client.Annotations.GetAnnotationByID(idStr)
 	if err, shouldReturn := common.CheckReadError("Annotation", d, err); shouldReturn {
 		return err
 	}
@@ -165,8 +160,7 @@ func ReadAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{
 func DeleteAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	params := annotations.NewDeleteAnnotationByIDParams().WithAnnotationID(idStr)
-	_, err := client.Annotations.DeleteAnnotationByID(params, nil)
+	_, err := client.Annotations.DeleteAnnotationByID(idStr)
 	diag, _ := common.CheckReadError("annotation", d, err)
 	return diag
 }
