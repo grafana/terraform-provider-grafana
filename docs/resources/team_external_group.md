@@ -3,12 +3,12 @@
 page_title: "grafana_team_external_group Resource - terraform-provider-grafana"
 subcategory: "Grafana Enterprise"
 description: |-
-  Use the team_sync attribute of the grafana_team resource instead.
+  Equivalent to the the team_sync attribute of the grafana_team resource. Use one or the other to configure a team's external groups syncing config.
 ---
 
 # grafana_team_external_group (Resource)
 
-Use the `team_sync` attribute of the `grafana_team` resource instead.
+Equivalent to the the `team_sync` attribute of the `grafana_team` resource. Use one or the other to configure a team's external groups syncing config.
 
 ## Example Usage
 

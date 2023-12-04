@@ -16,8 +16,7 @@ import (
 
 func ResourceTeamExternalGroup() *schema.Resource {
 	return &schema.Resource{
-
-		Description: "Use the `team_sync` attribute of the `grafana_team` resource instead.",
+		Description: "Equivalent to the the `team_sync` attribute of the `grafana_team` resource. Use one or the other to configure a team's external groups syncing config.",
 
 		CreateContext: CreateTeamExternalGroup,
 		UpdateContext: UpdateTeamExternalGroup,
@@ -26,7 +25,6 @@ func ResourceTeamExternalGroup() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		DeprecationMessage: "Use the `team_sync` attribute of the `grafana_team` resource instead.",
 
 		Schema: map[string]*schema.Schema{
 			"team_id": {
