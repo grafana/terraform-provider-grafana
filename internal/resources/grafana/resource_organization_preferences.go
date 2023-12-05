@@ -38,8 +38,9 @@ func ResourceOrganizationPreferences() *schema.Resource {
 			"home_dashboard_id": {
 				Type:          schema.TypeInt,
 				Optional:      true,
-				Description:   "The Organization home dashboard ID.",
+				Description:   "The Organization home dashboard ID. Deprecated: Use `home_dashboard_uid` instead.",
 				ConflictsWith: []string{"home_dashboard_uid"},
+				Deprecated:    "Use `home_dashboard_uid` instead.",
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					_, uidSet := d.GetOk("home_dashboard_uid")
 					return uidSet
