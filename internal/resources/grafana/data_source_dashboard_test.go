@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -15,9 +15,9 @@ import (
 func TestAccDatasourceDashboard_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var dashboard gapi.Dashboard
+	var dashboard models.DashboardFullWithMeta
 	checks := []resource.TestCheckFunc{
-		testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),
+		dashboardCheckExists.exists("grafana_dashboard.test", &dashboard),
 		resource.TestCheckResourceAttr(
 			"data.grafana_dashboard.from_id", "title", "Production Overview",
 		),
@@ -43,7 +43,7 @@ func TestAccDatasourceDashboard_basic(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccDashboardCheckDestroy(&dashboard, 0),
+		CheckDestroy:      dashboardCheckExists.destroyed(&dashboard, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_dashboard/data-source.tf"),
