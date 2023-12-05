@@ -23,6 +23,15 @@ var (
 			return payloadOrError(resp, err)
 		},
 	)
+	dashboardCheckExists = newCheckExistsHelper(
+		func(d *models.DashboardFullWithMeta) string {
+			return d.Dashboard.(map[string]interface{})["uid"].(string)
+		},
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.DashboardFullWithMeta, error) {
+			resp, err := client.Dashboards.GetDashboardByUID(id)
+			return payloadOrError(resp, err)
+		},
+	)
 	datasourceCheckExists = newCheckExistsHelper(
 		func(d *models.DataSource) string { return strconv.FormatInt(d.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.DataSource, error) {

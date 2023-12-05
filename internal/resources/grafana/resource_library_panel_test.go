@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
@@ -113,7 +112,7 @@ func TestAccLibraryPanel_dashboard(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
 
 	var panel models.LibraryElementResponse
-	var dashboard gapi.Dashboard
+	var dashboard models.DashboardFullWithMeta
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
@@ -126,8 +125,8 @@ func TestAccLibraryPanel_dashboard(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestMatchResourceAttr("grafana_library_panel.dashboard", "id", defaultOrgIDRegexp),
 					libraryPanelCheckExists.exists("grafana_library_panel.dashboard", &panel),
-					testAccDashboardCheckExists("grafana_dashboard.with_library_panel", &dashboard),
-					testAccDashboardCheckExists("data.grafana_dashboard.from_library_panel_connection", &dashboard),
+					dashboardCheckExists.exists("grafana_dashboard.with_library_panel", &dashboard),
+					dashboardCheckExists.exists("data.grafana_dashboard.from_library_panel_connection", &dashboard),
 				),
 			},
 		},
