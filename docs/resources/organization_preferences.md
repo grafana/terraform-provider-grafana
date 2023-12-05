@@ -26,7 +26,7 @@ resource "grafana_organization_preferences" "test" {
 
 ### Optional
 
-- `home_dashboard_id` (Number) The Organization home dashboard ID.
+- `home_dashboard_id` (Number, Deprecated) The Organization home dashboard ID. Deprecated: Use `home_dashboard_uid` instead.
 - `home_dashboard_uid` (String) The Organization home dashboard UID. This is only available in Grafana 9.0+.
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `theme` (String) The Organization theme. Available values are `light`, `dark`, `system`, or an empty string for the default.

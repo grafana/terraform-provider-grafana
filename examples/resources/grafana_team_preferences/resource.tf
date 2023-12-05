@@ -7,8 +7,8 @@ resource "grafana_team" "team" {
 }
 
 resource "grafana_team_preferences" "team_preferences" {
-  team_id           = grafana_team.team.id
-  theme             = "dark"
-  timezone          = "browser"
-  home_dashboard_id = grafana_dashboard.metrics.dashboard_id
+  team_id            = grafana_team.team.id
+  theme              = "dark"
+  timezone           = "browser"
+  home_dashboard_uid = grafana_dashboard.metrics.uid
 }
