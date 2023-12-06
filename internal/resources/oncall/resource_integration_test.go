@@ -29,6 +29,7 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "name", rName),
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "type", rType),
 					resource.TestCheckResourceAttrSet("grafana_oncall_integration.test-acc-integration", "link"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "templates.#", "0"),
 				),
 			},
 			{
@@ -38,6 +39,7 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "name", rName),
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "type", rType),
 					resource.TestCheckResourceAttrSet("grafana_oncall_integration.test-acc-integration", "link"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "templates.#", "0"),
 				),
 			},
 			{
@@ -49,7 +51,19 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "name", rName),
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "type", rType),
 					resource.TestCheckResourceAttrSet("grafana_oncall_integration.test-acc-integration", "link"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "templates.#", "1"),
 					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "templates.0.grouping_key", "test"),
+				),
+			},
+			// Remove templates
+			{
+				Config: testAccOnCallIntegrationConfig(rName, rType, ``),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallIntegrationResourceExists("grafana_oncall_integration.test-acc-integration"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "name", rName),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "type", rType),
+					resource.TestCheckResourceAttrSet("grafana_oncall_integration.test-acc-integration", "link"),
+					resource.TestCheckResourceAttr("grafana_oncall_integration.test-acc-integration", "templates.#", "0"),
 				),
 			},
 		},
