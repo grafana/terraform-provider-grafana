@@ -2,34 +2,29 @@ package grafana_test
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccAlertRule_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
-	var group gapi.RuleGroup
+	var group models.AlertRuleGroup
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		// Implicitly tests deletion.
-		CheckDestroy: testAlertRuleCheckDestroy(&group),
+		CheckDestroy: alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_rule_group/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testRuleGroupCheckExists("grafana_rule_group.my_alert_rule", &group),
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_alert_rule", &group),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "name", "My Rule Group"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "interval_seconds", "240"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "org_id", "1"),
@@ -49,7 +44,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 					"My Alert Rule 1": "A Different Rule",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testRuleGroupCheckExists("grafana_rule_group.my_alert_rule", &group),
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_alert_rule", &group),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "name", "My Rule Group"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "interval_seconds", "240"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.#", "1"),
@@ -64,7 +59,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 					"My Rule Group": "A Different Rule Group",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testRuleGroupCheckExists("grafana_rule_group.my_alert_rule", &group),
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_alert_rule", &group),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "name", "A Different Rule Group"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "interval_seconds", "240"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.#", "1"),
@@ -79,7 +74,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 					"240": "360",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testRuleGroupCheckExists("grafana_rule_group.my_alert_rule", &group),
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_alert_rule", &group),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "name", "My Rule Group"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "interval_seconds", "360"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.#", "1"),
@@ -89,7 +84,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_rule_group/_acc_reparent_folder.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testRuleGroupCheckExists("grafana_rule_group.my_alert_rule", &group),
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_alert_rule", &group),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "name", "My Rule Group"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "interval_seconds", "240"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "folder_uid", "test-uid"),
@@ -106,12 +101,12 @@ func TestAccAlertRule_basic(t *testing.T) {
 func TestAccAlertRule_model(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
-	var group gapi.RuleGroup
+	var group models.AlertRuleGroup
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		// Implicitly tests deletion.
-		CheckDestroy: testAlertRuleCheckDestroy(&group),
+		CheckDestroy: alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
@@ -150,18 +145,18 @@ func TestAccAlertRule_model(t *testing.T) {
 func TestAccAlertRule_compound(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
-	var group gapi.RuleGroup
+	var group models.AlertRuleGroup
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		// Implicitly tests deletion.
-		CheckDestroy: testAlertRuleCheckDestroy(&group),
+		CheckDestroy: alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_rule_group/_acc_multi_rule_group.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testRuleGroupCheckExists("grafana_rule_group.my_multi_alert_group", &group),
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_multi_alert_group", &group),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_multi_alert_group", "name", "My Multi-Alert Rule Group"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_multi_alert_group", "interval_seconds", "240"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_multi_alert_group", "org_id", "1"),
@@ -180,7 +175,7 @@ func TestAccAlertRule_compound(t *testing.T) {
 					"Rule 1": "asdf",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testRuleGroupCheckExists("grafana_rule_group.my_multi_alert_group", &group),
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_multi_alert_group", &group),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_multi_alert_group", "name", "My Multi-Alert Rule Group"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_multi_alert_group", "rule.#", "2"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_multi_alert_group", "rule.0.name", "My Alert asdf"),
@@ -191,7 +186,7 @@ func TestAccAlertRule_compound(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_rule_group/_acc_multi_rule_group_added.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testRuleGroupCheckExists("grafana_rule_group.my_multi_alert_group", &group),
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_multi_alert_group", &group),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_multi_alert_group", "name", "My Multi-Alert Rule Group"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_multi_alert_group", "rule.#", "3"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_multi_alert_group", "rule.0.name", "My Alert Rule 1"),
@@ -203,7 +198,7 @@ func TestAccAlertRule_compound(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_rule_group/_acc_multi_rule_group_subtracted.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testRuleGroupCheckExists("grafana_rule_group.my_multi_alert_group", &group),
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_multi_alert_group", &group),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_multi_alert_group", "name", "My Multi-Alert Rule Group"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_multi_alert_group", "rule.#", "2"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_multi_alert_group", "rule.0.name", "My Alert Rule 1"),
@@ -217,20 +212,23 @@ func TestAccAlertRule_compound(t *testing.T) {
 func TestAccAlertRule_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
-	var group gapi.RuleGroup
+	var group models.AlertRuleGroup
 	var org models.OrgDetailsDTO
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		// Implicitly tests deletion.
-		CheckDestroy: testAlertRuleCheckDestroy(&group),
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			orgCheckExists.destroyed(&org, nil),
+			alertingRuleGroupCheckExists.destroyed(&group, &org),
+		),
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
 				Config: testAccAlertRuleGroupInOrgConfig(name, 240),
 				Check: resource.ComposeTestCheckFunc(
-					testRuleGroupCheckExists("grafana_rule_group.test", &group),
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.test", &group),
 					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_rule_group.test", "grafana_organization.test"),
 					resource.TestCheckResourceAttr("grafana_rule_group.test", "name", name),
@@ -243,7 +241,7 @@ func TestAccAlertRule_inOrg(t *testing.T) {
 			{
 				Config: testAccAlertRuleGroupInOrgConfig(name, 360),
 				Check: resource.ComposeTestCheckFunc(
-					testRuleGroupCheckExists("grafana_rule_group.test", &group),
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.test", &group),
 					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_rule_group.test", "grafana_organization.test"),
 					resource.TestCheckResourceAttr("grafana_rule_group.test", "name", name),
@@ -258,46 +256,16 @@ func TestAccAlertRule_inOrg(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
+			// Test delete resource, but not org.
+			{
+				Config: testutils.WithoutResource(t, testAccAlertRuleGroupInOrgConfig(name, 360), "grafana_rule_group.test"),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					alertingRuleGroupCheckExists.destroyed(&group, &org),
+				),
+			},
 		},
 	})
-}
-
-func testRuleGroupCheckExists(rname string, g *gapi.RuleGroup) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		resource, ok := s.RootModule().Resources[rname]
-		if !ok {
-			return fmt.Errorf("resource not found: %s, resources: %#v", rname, s.RootModule().Resources)
-		}
-
-		if resource.Primary.ID == "" {
-			return fmt.Errorf("resource id not set")
-		}
-
-		orgID, idStr := grafana.SplitOrgResourceID(resource.Primary.ID)
-		key := grafana.UnpackGroupID(idStr)
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
-		grp, err := client.AlertRuleGroup(key.FolderUID, key.Name)
-		if err != nil {
-			return fmt.Errorf("error getting resource: %s", err)
-		}
-
-		*g = grp
-		return nil
-	}
-}
-
-func testAlertRuleCheckDestroy(group *gapi.RuleGroup) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		if len(group.Rules) > 0 {
-			client = client.WithOrgID(group.Rules[0].OrgID)
-		}
-		_, err := client.AlertRuleGroup(group.FolderUID, group.Title)
-		if err == nil && strings.HasPrefix(err.Error(), "status: 404") {
-			return fmt.Errorf("rule group still exists on the server")
-		}
-		return nil
-	}
 }
 
 func testAccAlertRuleGroupInOrgConfig(name string, interval int) string {

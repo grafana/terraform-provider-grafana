@@ -3,6 +3,7 @@ package grafana_test
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -16,6 +17,14 @@ import (
 // Helpers that check if a resource exists or doesn't. To define a new one, use the newCheckExistsHelper function.
 // A function that gets a resource by their Terraform ID is required.
 var (
+	alertingRuleGroupCheckExists = newCheckExistsHelper(
+		func(g *models.AlertRuleGroup) string { return g.FolderUID + ";" + g.Title },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.AlertRuleGroup, error) {
+			folder, title, _ := strings.Cut(id, ";")
+			resp, err := client.Provisioning.GetAlertRuleGroup(title, folder)
+			return payloadOrError(resp, err)
+		},
+	)
 	annotationsCheckExists = newCheckExistsHelper(
 		func(a *models.Annotation) string { return strconv.FormatInt(a.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Annotation, error) {
