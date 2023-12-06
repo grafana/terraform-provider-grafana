@@ -115,8 +115,8 @@ func UpdateServiceAccountPermissions(ctx context.Context, d *schema.ResourceData
 func DeleteServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	oAPIClient, _, _ := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	_, serviceAccountId := SplitOrgResourceID(d.Get("service_account_id").(string))
-	id, err := strconv.ParseInt(serviceAccountId, 10, 64)
+	_, serviceAccountID := SplitOrgResourceID(d.Get("service_account_id").(string))
+	id, err := strconv.ParseInt(serviceAccountID, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
