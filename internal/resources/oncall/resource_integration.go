@@ -224,7 +224,7 @@ func ResourceIntegration() *schema.Resource {
 					for k, v := range oldTemplateMap {
 						// Convert everything to string to be able to compare across types.
 						// We're only interested in the actual value here,
-						// and Terraform will implicitely convert a string to a number, and vice versa.
+						// and Terraform will implicitly convert a string to a number, and vice versa.
 						if fmt.Sprintf("%v", newTemplateMap[k]) != fmt.Sprintf("%v", v) {
 							return false
 						}
