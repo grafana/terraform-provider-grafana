@@ -67,3 +67,7 @@ func ListOfSetsToStringSlice(listSet []interface{}) [][]string {
 	}
 	return ret
 }
+
+func Ref[T any](v T) *T {
+	return &v
+}

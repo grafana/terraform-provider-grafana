@@ -9,7 +9,9 @@ import (
 	"strings"
 	"time"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/go-openapi/strfmt"
+	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -27,9 +29,9 @@ Manages Grafana Alerting rule groups.
 
 This resource requires Grafana 9.1.0 or later.
 `,
-		CreateContext: createAlertRuleGroup,
+		CreateContext: putAlertRuleGroup,
 		ReadContext:   readAlertRuleGroup,
-		UpdateContext: updateAlertRuleGroup,
+		UpdateContext: putAlertRuleGroup,
 		DeleteContext: deleteAlertRuleGroup,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -187,73 +189,59 @@ This resource requires Grafana 9.1.0 or later.
 }
 
 func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID, idStr := ClientFromExistingOrgResource(meta, data.Id())
+	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	key := UnpackGroupID(idStr)
 
-	group, err := client.AlertRuleGroup(key.FolderUID, key.Name)
+	resp, err := client.Provisioning.GetAlertRuleGroup(key.Name, key.FolderUID)
 	if err, shouldReturn := common.CheckReadError("rule group", data, err); shouldReturn {
 		return err
 	}
 
-	if err := packRuleGroup(group, data); err != nil {
+	if err := packRuleGroup(resp.Payload, data); err != nil {
 		return diag.FromErr(err)
 	}
-	data.SetId(MakeOrgResourceID(orgID, packGroupID(ruleKeyFromGroup(group))))
+	data.SetId(MakeOrgResourceID(orgID, packGroupID(key)))
 
 	return nil
 }
 
-func createAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, data)
-
-	group, err := unpackRuleGroup(data)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	key := ruleKeyFromGroup(group)
-
-	if err = client.SetAlertRuleGroup(group); err != nil {
-		return diag.FromErr(err)
-	}
-
-	data.SetId(MakeOrgResourceID(orgID, packGroupID(key)))
-	return readAlertRuleGroup(ctx, data, meta)
-}
-
-func updateAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, _ := ClientFromExistingOrgResource(meta, data.Id())
+func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
 	group, err := unpackRuleGroup(data)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	if err = client.SetAlertRuleGroup(group); err != nil {
+	if _, err = client.Provisioning.PutAlertRuleGroup(group); err != nil {
 		return diag.FromErr(err)
 	}
 
+	key := packGroupID(AlertRuleGroupKey{group.FolderUID, group.Group})
+	data.SetId(MakeOrgResourceID(orgID, key))
 	return readAlertRuleGroup(ctx, data, meta)
 }
 
 func deleteAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, data.Id())
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	key := UnpackGroupID(idStr)
 
-	group, err := client.AlertRuleGroup(key.FolderUID, key.Name)
+	resp, err := client.Provisioning.GetAlertRuleGroup(key.Name, key.FolderUID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	group := resp.Payload
 
 	for _, r := range group.Rules {
-		err := client.DeleteAlertRule(r.UID)
+		_, err := client.Provisioning.DeleteAlertRule(r.UID)
 		if diag, shouldReturn := common.CheckReadError("rule group", data, err); shouldReturn {
 			return diag
 		}
 	}
 
-	return diag.Diagnostics{}
+	return nil
 }
 
 func diffSuppressJSON(k, oldValue, newValue string, data *schema.ResourceData) bool {
@@ -269,13 +257,13 @@ func diffSuppressJSON(k, oldValue, newValue string, data *schema.ResourceData) b
 	return reflect.DeepEqual(o, n)
 }
 
-func packRuleGroup(g gapi.RuleGroup, data *schema.ResourceData) error {
+func packRuleGroup(g *models.AlertRuleGroup, data *schema.ResourceData) error {
 	data.Set("name", g.Title)
 	data.Set("folder_uid", g.FolderUID)
 	data.Set("interval_seconds", g.Interval)
 	rules := make([]interface{}, 0, len(g.Rules))
 	for _, r := range g.Rules {
-		data.Set("org_id", strconv.FormatInt(r.OrgID, 10))
+		data.Set("org_id", strconv.FormatInt(*r.OrgID, 10))
 		packed, err := packAlertRule(r)
 		if err != nil {
 			return err
@@ -286,7 +274,7 @@ func packRuleGroup(g gapi.RuleGroup, data *schema.ResourceData) error {
 	return nil
 }
 
-func unpackRuleGroup(data *schema.ResourceData) (gapi.RuleGroup, error) {
+func unpackRuleGroup(data *schema.ResourceData) (*provisioning.PutAlertRuleGroupParams, error) {
 	group := data.Get("name").(string)
 	folder := data.Get("folder_uid").(string)
 	interval := data.Get("interval_seconds").(int)
@@ -295,27 +283,30 @@ func unpackRuleGroup(data *schema.ResourceData) (gapi.RuleGroup, error) {
 	// org_id is a string to properly support referencing between resources. However, the API expects an int64.
 	orgID, err := strconv.ParseInt(data.Get("org_id").(string), 10, 64)
 	if err != nil {
-		return gapi.RuleGroup{}, err
+		return nil, err
 	}
 
-	rules := make([]gapi.AlertRule, 0, len(packedRules))
+	rules := make([]*models.ProvisionedAlertRule, 0, len(packedRules))
 	for i := range packedRules {
 		rule, err := unpackAlertRule(packedRules[i], group, folder, orgID)
 		if err != nil {
-			return gapi.RuleGroup{}, err
+			return nil, err
 		}
 		rules = append(rules, rule)
 	}
 
-	return gapi.RuleGroup{
+	return provisioning.NewPutAlertRuleGroupParams().
+		WithFolderUID(folder).
+		WithGroup(group).WithBody(&models.AlertRuleGroup{
+
 		Title:     group,
 		FolderUID: folder,
-		Interval:  int64(interval),
 		Rules:     rules,
-	}, nil
+		Interval:  int64(interval),
+	}), nil
 }
 
-func packAlertRule(r gapi.AlertRule) (interface{}, error) {
+func packAlertRule(r *models.ProvisionedAlertRule) (interface{}, error) {
 	data, err := packRuleData(r.Data)
 	if err != nil {
 		return nil, err
@@ -323,9 +314,9 @@ func packAlertRule(r gapi.AlertRule) (interface{}, error) {
 	json := map[string]interface{}{
 		"uid":            r.UID,
 		"name":           r.Title,
-		"for":            r.For,
-		"no_data_state":  string(r.NoDataState),
-		"exec_err_state": string(r.ExecErrState),
+		"for":            r.For.String(),
+		"no_data_state":  *r.NoDataState,
+		"exec_err_state": *r.ExecErrState,
 		"condition":      r.Condition,
 		"labels":         r.Labels,
 		"annotations":    r.Annotations,
@@ -335,31 +326,38 @@ func packAlertRule(r gapi.AlertRule) (interface{}, error) {
 	return json, nil
 }
 
-func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID int64) (gapi.AlertRule, error) {
+func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID int64) (*models.ProvisionedAlertRule, error) {
 	json := raw.(map[string]interface{})
 	data, err := unpackRuleData(json["data"])
 	if err != nil {
-		return gapi.AlertRule{}, err
+		return nil, err
 	}
 
-	return gapi.AlertRule{
+	forDuration, err := strfmt.ParseDuration(json["for"].(string))
+	if err != nil {
+		return nil, err
+	}
+
+	rule := models.ProvisionedAlertRule{
 		UID:          json["uid"].(string),
-		Title:        json["name"].(string),
-		FolderUID:    folderUID,
-		RuleGroup:    groupName,
-		OrgID:        orgID,
-		ExecErrState: gapi.ExecErrState(json["exec_err_state"].(string)),
-		NoDataState:  gapi.NoDataState(json["no_data_state"].(string)),
-		For:          json["for"].(string),
+		Title:        common.Ref(json["name"].(string)),
+		FolderUID:    common.Ref(folderUID),
+		RuleGroup:    common.Ref(groupName),
+		OrgID:        common.Ref(orgID),
+		ExecErrState: common.Ref(json["exec_err_state"].(string)),
+		NoDataState:  common.Ref(json["no_data_state"].(string)),
+		For:          common.Ref(strfmt.Duration(forDuration)),
 		Data:         data,
-		Condition:    json["condition"].(string),
+		Condition:    common.Ref(json["condition"].(string)),
 		Labels:       unpackMap(json["labels"]),
 		Annotations:  unpackMap(json["annotations"]),
 		IsPaused:     json["is_paused"].(bool),
-	}, nil
+	}
+
+	return &rule, nil
 }
 
-func packRuleData(queries []*gapi.AlertQuery) (interface{}, error) {
+func packRuleData(queries []*models.AlertQuery) (interface{}, error) {
 	result := []interface{}{}
 	for i := range queries {
 		if queries[i] == nil {
@@ -385,13 +383,13 @@ func packRuleData(queries []*gapi.AlertQuery) (interface{}, error) {
 	return result, nil
 }
 
-func unpackRuleData(raw interface{}) ([]*gapi.AlertQuery, error) {
+func unpackRuleData(raw interface{}) ([]*models.AlertQuery, error) {
 	rows := raw.([]interface{})
-	result := make([]*gapi.AlertQuery, 0, len(rows))
+	result := make([]*models.AlertQuery, 0, len(rows))
 	for i := range rows {
 		row := rows[i].(map[string]interface{})
 
-		stage := &gapi.AlertQuery{
+		stage := &models.AlertQuery{
 			RefID:         row["ref_id"].(string),
 			QueryType:     row["query_type"].(string),
 			DatasourceUID: row["datasource_uid"].(string),
@@ -399,9 +397,9 @@ func unpackRuleData(raw interface{}) ([]*gapi.AlertQuery, error) {
 		if rtr, ok := row["relative_time_range"]; ok {
 			listShim := rtr.([]interface{})
 			rtr := listShim[0].(map[string]interface{})
-			stage.RelativeTimeRange = gapi.RelativeTimeRange{
-				From: time.Duration(rtr["from"].(int)),
-				To:   time.Duration(rtr["to"].(int)),
+			stage.RelativeTimeRange = &models.RelativeTimeRange{
+				From: models.Duration(time.Duration(rtr["from"].(int))),
+				To:   models.Duration(time.Duration(rtr["to"].(int))),
 			}
 		}
 		var decodedModelJSON interface{}
@@ -470,13 +468,6 @@ func unpackMap(raw interface{}) map[string]string {
 type AlertRuleGroupKey struct {
 	FolderUID string
 	Name      string
-}
-
-func ruleKeyFromGroup(g gapi.RuleGroup) AlertRuleGroupKey {
-	return AlertRuleGroupKey{
-		FolderUID: g.FolderUID,
-		Name:      g.Title,
-	}
 }
 
 const groupIDSeparator = ";"
