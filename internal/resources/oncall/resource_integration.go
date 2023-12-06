@@ -204,6 +204,10 @@ func ResourceIntegration() *schema.Resource {
 				MaxItems:    1,
 				Description: "Jinja2 templates for Alert payload. An empty templates block will be ignored.",
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if old != "" && new == "" || old == "" && new != "" {
+						return false
+					}
+
 					oldTemplate, newTemplate := d.GetChange("templates")
 
 					getTemplatesOrEmpty := func(template interface{}) map[string]interface{} {
@@ -218,7 +222,10 @@ func ResourceIntegration() *schema.Resource {
 						return false
 					}
 					for k, v := range oldTemplateMap {
-						if newTemplateMap[k] != v {
+						// Convert everything to string to be able to compare across types.
+						// We're only interested in the actual value here,
+						// and Terraform will implicitly convert a string to a number, and vice versa.
+						if fmt.Sprintf("%v", newTemplateMap[k]) != fmt.Sprintf("%v", v) {
 							return false
 						}
 					}
