@@ -1,31 +1,31 @@
 package grafana_test
 
 import (
-	"fmt"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccMuteTiming_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">9.0.0")
 
-	var mt gapi.MuteTiming
+	var mt models.MuteTimeInterval
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		// Implicitly tests deletion.
-		CheckDestroy: testMuteTimingCheckDestroy(&mt),
+		CheckDestroy: alertingMuteTimingCheckExists.destroyed(&mt, nil),
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_mute_timing/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testMuteTimingCheckExists("grafana_mute_timing.my_mute_timing", &mt),
+					alertingMuteTimingCheckExists.exists("grafana_mute_timing.my_mute_timing", &mt),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "name", "My Mute Timing"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.times.0.start", "04:56"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.times.0.end", "14:17"),
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.weekdays.0", "monday"),
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.weekdays.1", "tuesday:thursday"),
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.days_of_month.0", "1:7"),
@@ -48,7 +48,7 @@ func TestAccMuteTiming_basic(t *testing.T) {
 					"monday": "friday",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testMuteTimingCheckExists("grafana_mute_timing.my_mute_timing", &mt),
+					alertingMuteTimingCheckExists.exists("grafana_mute_timing.my_mute_timing", &mt),
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.weekdays.0", "friday"),
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.weekdays.1", "tuesday:thursday"),
 				),
@@ -59,43 +59,11 @@ func TestAccMuteTiming_basic(t *testing.T) {
 					"My Mute Timing": "A Different Mute Timing",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testMuteTimingCheckExists("grafana_mute_timing.my_mute_timing", &mt),
+					alertingMuteTimingCheckExists.exists("grafana_mute_timing.my_mute_timing", &mt),
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "name", "A Different Mute Timing"),
-					testMuteTimingCheckDestroy(&gapi.MuteTiming{Name: "My Mute Timing"}),
+					alertingMuteTimingCheckExists.destroyed(&models.MuteTimeInterval{Name: "My Mute Timing"}, nil),
 				),
 			},
 		},
 	})
-}
-
-func testMuteTimingCheckExists(rname string, timing *gapi.MuteTiming) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		resource, ok := s.RootModule().Resources[rname]
-		if !ok {
-			return fmt.Errorf("resource not found: %s, resources: %#v", rname, s.RootModule().Resources)
-		}
-
-		if resource.Primary.ID == "" {
-			return fmt.Errorf("resource id not set")
-		}
-
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		mt, err := client.MuteTiming(resource.Primary.ID)
-		if err != nil {
-			return fmt.Errorf("error getting resource: %w", err)
-		}
-		*timing = mt
-		return nil
-	}
-}
-
-func testMuteTimingCheckDestroy(timing *gapi.MuteTiming) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		mt, err := client.MuteTiming(timing.Name)
-		if err == nil && mt.Name != "" {
-			return fmt.Errorf("mute timing still exists on the server")
-		}
-		return nil
-	}
 }

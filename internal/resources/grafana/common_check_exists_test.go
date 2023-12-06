@@ -17,6 +17,13 @@ import (
 // Helpers that check if a resource exists or doesn't. To define a new one, use the newCheckExistsHelper function.
 // A function that gets a resource by their Terraform ID is required.
 var (
+	alertingMuteTimingCheckExists = newCheckExistsHelper(
+		func(t *models.MuteTimeInterval) string { return t.Name },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.MuteTimeInterval, error) {
+			resp, err := client.Provisioning.GetMuteTiming(id)
+			return payloadOrError(resp, err)
+		},
+	)
 	alertingRuleGroupCheckExists = newCheckExistsHelper(
 		func(g *models.AlertRuleGroup) string { return g.FolderUID + ";" + g.Title },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.AlertRuleGroup, error) {
