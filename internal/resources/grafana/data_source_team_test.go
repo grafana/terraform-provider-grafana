@@ -3,7 +3,7 @@ package grafana_test
 import (
 	"testing"
 
-	goapi "github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
@@ -11,7 +11,7 @@ import (
 func TestAccDatasourceTeam_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var team goapi.TeamDTO
+	var team models.TeamDTO
 	checks := []resource.TestCheckFunc{
 		teamCheckExists.exists("grafana_team.test", &team),
 		resource.TestCheckResourceAttr("data.grafana_team.from_name", "name", "test-team"),
@@ -38,7 +38,7 @@ func TestAccDatasourceTeam_basic(t *testing.T) {
 func TestAccDatasourceTeam_teamSync(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 
-	var team goapi.TeamDTO
+	var team models.TeamDTO
 	checks := []resource.TestCheckFunc{
 		teamCheckExists.exists("grafana_team.test", &team),
 		resource.TestCheckResourceAttr("data.grafana_team.from_name", "name", "test-team"),

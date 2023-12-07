@@ -10,7 +10,6 @@ import (
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	goapi "github.com/grafana/grafana-openapi-client-go/models"
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
@@ -24,8 +23,8 @@ import (
 func TestAccFolder_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var folder goapi.Folder
-	var folderWithUID goapi.Folder
+	var folder models.Folder
+	var folderWithUID models.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -102,9 +101,9 @@ func TestAccFolder_basic(t *testing.T) {
 func TestAccFolder_nested(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Switch to OSS once nested folders are enabled by default
 
-	var parentFolder goapi.Folder
-	var childFolder1 goapi.Folder
-	var childFolder2 goapi.Folder
+	var parentFolder models.Folder
+	var childFolder1 models.Folder
+	var childFolder2 models.Folder
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -175,7 +174,7 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
-	var folder goapi.Folder
+	var folder models.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -241,7 +240,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 		},
 	} {
 		t.Run(tc.role, func(t *testing.T) {
-			var folder goapi.Folder
+			var folder models.Folder
 			var name = acctest.RandomWithPrefix(tc.role + "-key")
 
 			// Create an API key with the correct role and inject it in envvars. This auth will be used when the test runs
@@ -284,7 +283,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 	}
 }
 
-func testAccFolderIDDidntChange(rn string, oldFolder *goapi.Folder) resource.TestCheckFunc {
+func testAccFolderIDDidntChange(rn string, oldFolder *models.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		newFolderResource, ok := s.RootModule().Resources[rn]
 		if !ok {
