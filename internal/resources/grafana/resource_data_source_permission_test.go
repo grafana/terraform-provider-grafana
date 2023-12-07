@@ -3,7 +3,6 @@ package grafana_test
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -17,9 +16,8 @@ func TestAccDatasourcePermission_basic(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 
 	datasourceID := int64(-1)
-	// Admin role can only be set from Grafana 10.3.0 onwards
+	// TODO: Admin role can only be set from Grafana 10.3.0 onwards. Test this!
 	config := testutils.TestAccExample(t, "resources/grafana_data_source_permission/resource.tf")
-	config = strings.Replace(config, "Admin", "Edit", 1)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,

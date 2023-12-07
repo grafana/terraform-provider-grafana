@@ -41,6 +41,12 @@ func ResourcePlaylist() *schema.Resource {
 			"item": {
 				Type:     schema.TypeSet,
 				Required: true,
+				// The order of the items is important and defined through the order field
+				// We want to compare items with the same order value
+				Set: func(i interface{}) int {
+					m := i.(map[string]interface{})
+					return m["order"].(int)
+				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {

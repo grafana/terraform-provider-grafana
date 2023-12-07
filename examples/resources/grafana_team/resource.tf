@@ -1,7 +1,14 @@
+resource "grafana_user" "viewer" {
+  name     = "Viewer"
+  email    = "viewer@example.com"
+  login    = "viewer"
+  password = "my-password"
+}
+
 resource "grafana_team" "test-team" {
   name  = "Test Team"
   email = "teamemail@example.com"
   members = [
-    "viewer-01@example.com"
+    grafana_user.viewer.email,
   ]
 }

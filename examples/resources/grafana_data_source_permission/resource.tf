@@ -33,7 +33,7 @@ resource "grafana_data_source_permission" "fooPermissions" {
   datasource_id = grafana_data_source.foo.id
   permissions {
     team_id    = grafana_team.team.id
-    permission = "Admin"
+    permission = "Edit"
   }
   permissions {
     user_id    = grafana_user.user.id
