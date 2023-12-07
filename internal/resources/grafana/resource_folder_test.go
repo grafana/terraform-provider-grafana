@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	goapi "github.com/grafana/grafana-openapi-client-go/models"
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -192,11 +193,11 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 					folderCheckExists.exists("grafana_folder.test_folder", &folder),
 					// Create a dashboard in the protected folder
 					func(s *terraform.State) error {
-						client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-						_, err := client.NewDashboard(gapi.Dashboard{
+						client := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+						_, err := client.Dashboards.PostDashboard(&models.SaveDashboardCommand{
 							FolderUID: folder.UID,
 							FolderID:  folder.ID,
-							Model: map[string]interface{}{
+							Dashboard: map[string]interface{}{
 								"uid":   name + "-dashboard",
 								"title": name + "-dashboard",
 							}})
