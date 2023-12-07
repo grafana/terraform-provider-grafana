@@ -136,8 +136,8 @@ func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta
 	}
 
 	dataSource, err := client.DataSource(id)
-	if err != nil {
-		return diag.FromErr(err)
+	if diag, shouldReturn := common.CheckReadError("data source permissions", d, err); shouldReturn {
+		return diag
 	}
 
 	response, err := client.ListDatasourceResourcePermissions(dataSource.UID)
@@ -174,8 +174,8 @@ func DeleteDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	dataSource, err := client.DataSource(id)
-	if err != nil {
-		return diag.FromErr(err)
+	if diags, shouldReturn := common.CheckReadError("data source permissions", d, err); shouldReturn {
+		return diags
 	}
 
 	err = updateDatasourcePermissions(client, dataSource.UID, []gapi.SetResourcePermissionItem{})
