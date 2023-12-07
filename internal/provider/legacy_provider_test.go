@@ -18,7 +18,7 @@ import (
 func TestProvider(t *testing.T) {
 	testutils.IsUnitTest(t)
 
-	if err := provider.Provider("dev")().InternalValidate(); err != nil {
+	if err := provider.Provider("dev").InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 }
@@ -37,6 +37,20 @@ func TestProviderConfigure(t *testing.T) {
 		}
 		if gotHeaders["X-Custom-Header"] != "custom-value" {
 			t.Errorf("expected HTTP header X-Custom-Header to be \"custom-value\", got %q", gotHeaders["X-Custom-Header"])
+		}
+	}
+
+	// Helper for status codes tests
+	checkStatusCodes := func(t *testing.T, provider *schema.Provider) {
+		gotStatusCodes := provider.Meta().(*common.Client).GrafanaAPIConfig.RetryStatusCodes
+		if len(gotStatusCodes) != 2 {
+			t.Errorf("expected 2 status codes, got %d", len(gotStatusCodes))
+		}
+		if gotStatusCodes[0] != "5xx" {
+			t.Errorf("expected status code 500, got %s", gotStatusCodes[0])
+		}
+		if gotStatusCodes[1] != "123" {
+			t.Errorf("expected status code 123, got %s", gotStatusCodes[1])
 		}
 	}
 
@@ -59,7 +73,7 @@ func TestProviderConfigure(t *testing.T) {
 		{
 			name:        "no config",
 			env:         map[string]string{},
-			expectedErr: "\"auth\": one of `auth,cloud_api_key,oncall_access_token,sm_access_token` must\nbe specified",
+			expectedErr: "at least one of the following attributes must be set: auth, cloud_api_key, sm_access_token, oncall_access_token",
 		},
 		{
 			name: "grafana config from env",
@@ -67,6 +81,15 @@ func TestProviderConfigure(t *testing.T) {
 				"GRAFANA_AUTH": "admin:admin",
 				"GRAFANA_URL":  "https://test.com",
 			},
+		},
+		{
+			name: "grafana status codes from env",
+			env: map[string]string{
+				"GRAFANA_AUTH":               "admin:admin",
+				"GRAFANA_URL":                "https://test.com",
+				"GRAFANA_RETRY_STATUS_CODES": "5xx,123",
+			},
+			check: checkStatusCodes,
 		},
 		{
 			name: "header config",
@@ -98,7 +121,7 @@ func TestProviderConfigure(t *testing.T) {
 				"GRAFANA_URL":          "https://test.com",
 				"GRAFANA_HTTP_HEADERS": `blabla`,
 			},
-			expectedErr: "invalid http_headers config: invalid character 'b' looking for beginning of value",
+			expectedErr: "failed to parse GRAFANA_HTTP_HEADERS: invalid character 'b' looking for beginning of value",
 		},
 		{
 			name: "grafana cloud config from env",
@@ -142,7 +165,7 @@ func TestProviderConfigure(t *testing.T) {
 			}
 
 			// Configure the provider and check it
-			provider := provider.Provider("dev")()
+			provider := provider.Provider("dev")
 			provider.Configure(context.Background(), terraform.NewResourceConfigRaw(tc.config))
 			if tc.check != nil {
 				tc.check(t, provider)
