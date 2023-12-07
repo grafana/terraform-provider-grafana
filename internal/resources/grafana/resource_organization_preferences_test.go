@@ -3,12 +3,12 @@ package grafana_test
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -28,20 +28,26 @@ func TestAccResourceOrganizationPreferences_WithDashboardUID(t *testing.T) {
 func testAccResourceOrganizationPreferences(t *testing.T, withUID bool) {
 	t.Helper()
 
-	prefs := gapi.Preferences{
+	var org models.OrgDetailsDTO
+	prefs := models.Preferences{
 		Theme:     "light",
 		Timezone:  "utc",
 		WeekStart: "Monday",
 	}
-	updatedPrefs := gapi.Preferences{
+	updatedPrefs := models.Preferences{
 		Theme:     "dark",
 		Timezone:  "utc",
 		WeekStart: "Tuesday",
 	}
-	finalPrefs := gapi.Preferences{
+	finalPrefs := models.Preferences{
 		Theme:     "",
 		Timezone:  "browser",
 		WeekStart: "Monday",
+	}
+	emptyPrefs := models.Preferences{
+		Theme:     "",
+		Timezone:  "",
+		WeekStart: "",
 	}
 
 	testRandName := acctest.RandString(10)
@@ -54,12 +60,13 @@ func testAccResourceOrganizationPreferences(t *testing.T, withUID bool) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccOrganizationPreferencesCheckDestroy(),
+		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testOrganizationPreferencesConfig(testRandName, withUID, prefs),
 				Check: resource.ComposeTestCheckFunc(
-					testAccOrganizationPreferencesCheckExists("grafana_organization_preferences.test", prefs),
+					orgCheckExists.exists("grafana_organization.test", &org),
+					testAccCheckOrganizationPreferences(&org, prefs),
 					resource.TestMatchResourceAttr("grafana_organization_preferences.test", "id", common.IDRegexp),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "theme", prefs.Theme),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "timezone", prefs.Timezone),
@@ -70,7 +77,8 @@ func testAccResourceOrganizationPreferences(t *testing.T, withUID bool) {
 			{
 				Config: testOrganizationPreferencesConfig(testRandName, withUID, updatedPrefs),
 				Check: resource.ComposeTestCheckFunc(
-					testAccOrganizationPreferencesCheckExists("grafana_organization_preferences.test", updatedPrefs),
+					orgCheckExists.exists("grafana_organization.test", &org),
+					testAccCheckOrganizationPreferences(&org, updatedPrefs),
 					resource.TestMatchResourceAttr("grafana_organization_preferences.test", "id", common.IDRegexp),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "theme", updatedPrefs.Theme),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "timezone", updatedPrefs.Timezone),
@@ -81,7 +89,8 @@ func testAccResourceOrganizationPreferences(t *testing.T, withUID bool) {
 			{
 				Config: testOrganizationPreferencesConfig(testRandName, withUID, finalPrefs),
 				Check: resource.ComposeTestCheckFunc(
-					testAccOrganizationPreferencesCheckExists("grafana_organization_preferences.test", finalPrefs),
+					orgCheckExists.exists("grafana_organization.test", &org),
+					testAccCheckOrganizationPreferences(&org, finalPrefs),
 					resource.TestMatchResourceAttr("grafana_organization_preferences.test", "id", common.IDRegexp),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "theme", finalPrefs.Theme),
 					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "timezone", finalPrefs.Timezone),
@@ -89,40 +98,41 @@ func testAccResourceOrganizationPreferences(t *testing.T, withUID bool) {
 					dashboardCheck,
 				),
 			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_organization_preferences.test",
+				ImportStateVerify: true,
+			},
+			// Test removing preferences (CheckDestroy is insufficient because it removes the whole organization)
+			{
+				Config: testutils.WithoutResource(t, testOrganizationPreferencesConfig(testRandName, withUID, prefs), "grafana_organization_preferences.test"),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					testAccCheckOrganizationPreferences(&org, emptyPrefs),
+				),
+			},
 		},
 	})
 }
 
-func testAccOrganizationPreferencesCheckExists(rn string, prefs gapi.Preferences) resource.TestCheckFunc {
+func testAccCheckOrganizationPreferences(org *models.OrgDetailsDTO, expectedPrefs models.Preferences) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[rn]
-		if !ok {
-			return fmt.Errorf("resource not found: %s", rn)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("resource id not set")
-		}
-
-		id, err := strconv.ParseInt(rs.Primary.Attributes["org_id"], 10, 64)
-		if err != nil {
-			return fmt.Errorf("error parsing org_id: %s", err)
-		}
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(id)
-		p, err := client.OrgPreferences()
+		client := grafana.OAPIGlobalClient(testutils.Provider.Meta()).WithOrgID(org.ID)
+		resp, err := client.OrgPreferences.GetOrgPreferences()
 		if err != nil {
 			return fmt.Errorf("error getting organization preferences: %s", err)
 		}
+		gotPrefs := resp.Payload
 
 		errs := []string{}
-		if p.Theme != prefs.Theme {
-			errs = append(errs, fmt.Sprintf("expected organization preferences theme '%s'; got '%s'", prefs.Theme, p.Theme))
+		if gotPrefs.Theme != expectedPrefs.Theme {
+			errs = append(errs, fmt.Sprintf("expected organization preferences theme '%s'; got '%s'", expectedPrefs.Theme, gotPrefs.Theme))
 		}
-		if p.Timezone != prefs.Timezone {
-			errs = append(errs, fmt.Sprintf("expected organization preferences timezone '%s'; got '%s'", prefs.Timezone, p.Timezone))
+		if gotPrefs.Timezone != expectedPrefs.Timezone {
+			errs = append(errs, fmt.Sprintf("expected organization preferences timezone '%s'; got '%s'", expectedPrefs.Timezone, gotPrefs.Timezone))
 		}
-		if p.WeekStart != prefs.WeekStart {
-			errs = append(errs, fmt.Sprintf("expected organization preferences week start '%s'; got '%s'", prefs.WeekStart, p.WeekStart))
+		if gotPrefs.WeekStart != expectedPrefs.WeekStart {
+			errs = append(errs, fmt.Sprintf("expected organization preferences week start '%s'; got '%s'", expectedPrefs.WeekStart, gotPrefs.WeekStart))
 		}
 
 		if len(errs) > 0 {
@@ -133,22 +143,7 @@ func testAccOrganizationPreferencesCheckExists(rn string, prefs gapi.Preferences
 	}
 }
 
-func testAccOrganizationPreferencesCheckDestroy() resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-		prefs, err := client.OrgPreferences()
-		if err != nil {
-			return err
-		}
-
-		if prefs.Theme != "" || prefs.Timezone != "" || prefs.WeekStart != "" {
-			return fmt.Errorf("customized organization preferences still exist")
-		}
-		return nil
-	}
-}
-
-func testOrganizationPreferencesConfig(orgName string, withUID bool, prefs gapi.Preferences) string {
+func testOrganizationPreferencesConfig(orgName string, withUID bool, prefs models.Preferences) string {
 	dashboardBlock := ""
 	if withUID {
 		dashboardBlock = "home_dashboard_uid = grafana_dashboard.test.uid"
