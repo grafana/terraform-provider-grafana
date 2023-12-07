@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -232,7 +232,7 @@ func TestAccTeam_Members(t *testing.T) {
 // Test that deleted users can still be removed as members of a team
 func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
-	client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+	client := grafana.OAPIGlobalClient(testutils.Provider.Meta())
 
 	var team models.TeamDTO
 	var userID int64 = -1
@@ -245,17 +245,17 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 			{
 				PreConfig: func() {
 					// Create user
-					user := gapi.User{
+					user := models.AdminCreateUserForm{
 						Email:    "user1@grafana.com",
 						Login:    "user1@grafana.com",
 						Name:     "user1",
 						Password: "123456",
 					}
-					var err error
-					userID, err = client.CreateUser(user)
+					resp, err := client.AdminUsers.AdminCreateUser(&user)
 					if err != nil {
 						t.Fatal(err)
 					}
+					userID = resp.Payload.ID
 				},
 				Config: testAccTeamDefinition(teamName, []string{`"user1@grafana.com"`}, false, nil),
 				Check: resource.ComposeTestCheckFunc(
@@ -267,7 +267,7 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 			{
 				PreConfig: func() {
 					// Delete the user
-					if err := client.DeleteUser(userID); err != nil {
+					if _, err := client.AdminUsers.AdminDeleteUser(userID); err != nil {
 						t.Fatal(err)
 					}
 				},

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	goapi "github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
@@ -14,8 +14,8 @@ import (
 func TestAccDatasourceFolders_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	var folderA goapi.Folder
-	var folderB goapi.Folder
+	var folderA models.Folder
+	var folderB models.Folder
 	titleBase := "test-folder-"
 	uidBase := "test-ds-folder-uid-"
 	checks := []resource.TestCheckFunc{
