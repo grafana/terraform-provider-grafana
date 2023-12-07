@@ -45,6 +45,9 @@ jobs:
         type: ['oss']
         subset: ['basic', 'other', 'long']
         include:
+          - version: '10.2.0'
+            type: 'oss'
+            subset: examples
           # TLS proxy tests, run only on latest version
           - version: '10.2.0'
             type: 'tls'
@@ -89,3 +92,4 @@ jobs:
             ${{ matrix.subset == 'basic' && '-run=".*_basic" -short -parallel 2' || '' }}
             ${{ matrix.subset == 'other' && '-skip=".*_basic" -short -parallel 2' || '' }}
             ${{ matrix.subset == 'long' && '-run=".*longtest" -parallel 1' || '' }}
+            ${{ matrix.subset == 'examples' && '-run=".*Examples" -parallel 1' || '' }}

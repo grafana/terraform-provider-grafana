@@ -20,7 +20,7 @@ resource "grafana_data_source" "influxdb" {
   url                 = "http://influxdb.example.net:8086/"
   basic_auth_enabled  = true
   basic_auth_username = "username"
-  database_name       = influxdb_database.metrics.name
+  database_name       = "dbname" // Example: influxdb_database.metrics.name
 
   json_data_encoded = jsonencode({
     authType          = "default"

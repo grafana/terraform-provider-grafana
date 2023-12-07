@@ -37,7 +37,8 @@ output "api_key_foo_key_only" {
 }
 
 output "api_key_bar" {
-  value = grafana_api_key.bar
+  value     = grafana_api_key.bar
+  sensitive = true
 }
 ```
 
