@@ -17,6 +17,13 @@ import (
 // Helpers that check if a resource exists or doesn't. To define a new one, use the newCheckExistsHelper function.
 // A function that gets a resource by their Terraform ID is required.
 var (
+	alertingMessageTemplateCheckExists = newCheckExistsHelper(
+		func(t *models.NotificationTemplate) string { return t.Name },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.NotificationTemplate, error) {
+			resp, err := client.Provisioning.GetTemplate(id)
+			return payloadOrError(resp, err)
+		},
+	)
 	alertingMuteTimingCheckExists = newCheckExistsHelper(
 		func(t *models.MuteTimeInterval) string { return t.Name },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.MuteTimeInterval, error) {
