@@ -57,6 +57,12 @@ This resource requires Grafana 9.1.0 or later.
 				Required:    true,
 				Description: "The interval, in seconds, at which all rules in the group are evaluated. If a group contains many rules, the rules are evaluated sequentially.",
 			},
+			"allow_editing_from_ui": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Whether to allow editing of the rule group from the Grafana UI.",
+			},
 			"rule": {
 				Type:        schema.TypeList,
 				Required:    true,
@@ -198,9 +204,30 @@ func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta int
 		return err
 	}
 
-	if err := packRuleGroup(resp.Payload, data); err != nil {
-		return diag.FromErr(err)
+	g := resp.Payload
+	data.Set("name", g.Title)
+	data.Set("folder_uid", g.FolderUID)
+	data.Set("interval_seconds", g.Interval)
+	allowEditingFromUI := true
+	rules := make([]interface{}, 0, len(g.Rules))
+	for _, r := range g.Rules {
+		ruleResp, err := client.Provisioning.GetAlertRule(r.UID) // We need to get the rule through a separate API call to get the provenance.
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		r := ruleResp.Payload
+		data.Set("org_id", strconv.FormatInt(*r.OrgID, 10))
+		packed, err := packAlertRule(r)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		if r.Provenance != "" {
+			allowEditingFromUI = false
+		}
+		rules = append(rules, packed)
 	}
+	data.Set("allow_editing_from_ui", allowEditingFromUI)
+	data.Set("rule", rules)
 	data.SetId(MakeOrgResourceID(orgID, packGroupID(key)))
 
 	return nil
@@ -209,16 +236,56 @@ func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta int
 func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
-	group, err := unpackRuleGroup(data)
+	group := data.Get("name").(string)
+	folder := data.Get("folder_uid").(string)
+	interval := data.Get("interval_seconds").(int)
+
+	packedRules := data.Get("rule").([]interface{})
+	rules := make([]*models.ProvisionedAlertRule, 0, len(packedRules))
+	for i := range packedRules {
+		rule, err := unpackAlertRule(packedRules[i], group, folder, orgID)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		rules = append(rules, rule)
+	}
+
+	putParams := provisioning.NewPutAlertRuleGroupParams().
+		WithFolderUID(folder).
+		WithGroup(group).WithBody(&models.AlertRuleGroup{
+		Title:     group,
+		FolderUID: folder,
+		Rules:     rules,
+		Interval:  int64(interval),
+	})
+
+	if data.Get("allow_editing_from_ui").(bool) {
+		disableProvenance := "disabled" // This can be any non-empty string.
+		putParams.SetXDisableProvenance(&disableProvenance)
+	}
+
+	resp, err := client.Provisioning.PutAlertRuleGroup(putParams)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	if _, err = client.Provisioning.PutAlertRuleGroup(group); err != nil {
-		return diag.FromErr(err)
-	}
+	// getResp, err := client.Provisioning.GetAlertRuleGroup(group.Group, group.FolderUID)
+	// if err != nil {
+	// 	return diag.FromErr(err)
+	// }
+	// for _, r := range getResp.Payload.Rules {
+	// 	// Need to do a separate API call to PUT each rule in order to set the provenance.
+	// 	params := provisioning.NewPutAlertRuleParams().WithUID(r.UID).WithBody(r)
+	// 	if data.Get("allow_editing_from_ui").(bool) {
+	// 		disableProvenance := "disabled" // This can be any non-empty string.
+	// 		params.SetXDisableProvenance(&disableProvenance)
+	// 	}
+	// 	if _, err := client.Provisioning.PutAlertRule(params); err != nil {
+	// 		return diag.FromErr(err)
+	// 	}
+	// }
 
-	key := packGroupID(AlertRuleGroupKey{group.FolderUID, group.Group})
+	key := packGroupID(AlertRuleGroupKey{resp.Payload.FolderUID, resp.Payload.Title})
 	data.SetId(MakeOrgResourceID(orgID, key))
 	return readAlertRuleGroup(ctx, data, meta)
 }
@@ -255,55 +322,6 @@ func diffSuppressJSON(k, oldValue, newValue string, data *schema.ResourceData) b
 		return false
 	}
 	return reflect.DeepEqual(o, n)
-}
-
-func packRuleGroup(g *models.AlertRuleGroup, data *schema.ResourceData) error {
-	data.Set("name", g.Title)
-	data.Set("folder_uid", g.FolderUID)
-	data.Set("interval_seconds", g.Interval)
-	rules := make([]interface{}, 0, len(g.Rules))
-	for _, r := range g.Rules {
-		data.Set("org_id", strconv.FormatInt(*r.OrgID, 10))
-		packed, err := packAlertRule(r)
-		if err != nil {
-			return err
-		}
-		rules = append(rules, packed)
-	}
-	data.Set("rule", rules)
-	return nil
-}
-
-func unpackRuleGroup(data *schema.ResourceData) (*provisioning.PutAlertRuleGroupParams, error) {
-	group := data.Get("name").(string)
-	folder := data.Get("folder_uid").(string)
-	interval := data.Get("interval_seconds").(int)
-	packedRules := data.Get("rule").([]interface{})
-
-	// org_id is a string to properly support referencing between resources. However, the API expects an int64.
-	orgID, err := strconv.ParseInt(data.Get("org_id").(string), 10, 64)
-	if err != nil {
-		return nil, err
-	}
-
-	rules := make([]*models.ProvisionedAlertRule, 0, len(packedRules))
-	for i := range packedRules {
-		rule, err := unpackAlertRule(packedRules[i], group, folder, orgID)
-		if err != nil {
-			return nil, err
-		}
-		rules = append(rules, rule)
-	}
-
-	return provisioning.NewPutAlertRuleGroupParams().
-		WithFolderUID(folder).
-		WithGroup(group).WithBody(&models.AlertRuleGroup{
-
-		Title:     group,
-		FolderUID: folder,
-		Rules:     rules,
-		Interval:  int64(interval),
-	}), nil
 }
 
 func packAlertRule(r *models.ProvisionedAlertRule) (interface{}, error) {

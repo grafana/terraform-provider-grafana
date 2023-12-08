@@ -226,7 +226,7 @@ func TestAccAlertRule_inOrg(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
-				Config: testAccAlertRuleGroupInOrgConfig(name, 240),
+				Config: testAccAlertRuleGroupInOrgConfig(name, 240, false),
 				Check: resource.ComposeTestCheckFunc(
 					alertingRuleGroupCheckExists.exists("grafana_rule_group.test", &group),
 					orgCheckExists.exists("grafana_organization.test", &org),
@@ -239,7 +239,7 @@ func TestAccAlertRule_inOrg(t *testing.T) {
 			},
 			// Test update content.
 			{
-				Config: testAccAlertRuleGroupInOrgConfig(name, 360),
+				Config: testAccAlertRuleGroupInOrgConfig(name, 360, false),
 				Check: resource.ComposeTestCheckFunc(
 					alertingRuleGroupCheckExists.exists("grafana_rule_group.test", &group),
 					orgCheckExists.exists("grafana_organization.test", &org),
@@ -258,7 +258,7 @@ func TestAccAlertRule_inOrg(t *testing.T) {
 			},
 			// Test delete resource, but not org.
 			{
-				Config: testutils.WithoutResource(t, testAccAlertRuleGroupInOrgConfig(name, 360), "grafana_rule_group.test"),
+				Config: testutils.WithoutResource(t, testAccAlertRuleGroupInOrgConfig(name, 360, false), "grafana_rule_group.test"),
 				Check: resource.ComposeTestCheckFunc(
 					orgCheckExists.exists("grafana_organization.test", &org),
 					alertingRuleGroupCheckExists.destroyed(&group, &org),
@@ -268,7 +268,69 @@ func TestAccAlertRule_inOrg(t *testing.T) {
 	})
 }
 
-func testAccAlertRuleGroupInOrgConfig(name string, interval int) string {
+func TestAccAlertRule_editFromUI(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	var group models.AlertRuleGroup
+	var org models.OrgDetailsDTO
+	name := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			orgCheckExists.destroyed(&org, nil),
+			alertingRuleGroupCheckExists.destroyed(&group, &org),
+		),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAlertRuleGroupInOrgConfig(name, 240, false),
+				Check: resource.ComposeTestCheckFunc(
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.test", &group),
+					orgCheckExists.exists("grafana_organization.test", &org),
+					checkResourceIsInOrg("grafana_rule_group.test", "grafana_organization.test"),
+					resource.TestCheckResourceAttr("grafana_rule_group.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_rule_group.test", "allow_editing_from_ui", "false"),
+				),
+			},
+			// Test import.
+			{
+				ResourceName:      "grafana_rule_group.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Enable editing from UI.
+			{
+				Config: testAccAlertRuleGroupInOrgConfig(name, 240, true),
+				Check: resource.ComposeTestCheckFunc(
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.test", &group),
+					orgCheckExists.exists("grafana_organization.test", &org),
+					checkResourceIsInOrg("grafana_rule_group.test", "grafana_organization.test"),
+					resource.TestCheckResourceAttr("grafana_rule_group.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_rule_group.test", "allow_editing_from_ui", "true"),
+				),
+			},
+			// Test import.
+			{
+				ResourceName:      "grafana_rule_group.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Disable editing from UI.
+			{
+				Config: testAccAlertRuleGroupInOrgConfig(name, 240, false),
+				Check: resource.ComposeTestCheckFunc(
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.test", &group),
+					orgCheckExists.exists("grafana_organization.test", &org),
+					checkResourceIsInOrg("grafana_rule_group.test", "grafana_organization.test"),
+					resource.TestCheckResourceAttr("grafana_rule_group.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_rule_group.test", "allow_editing_from_ui", "false"),
+				),
+			},
+		},
+	})
+}
+
+func testAccAlertRuleGroupInOrgConfig(name string, interval int, enableEditingInUI bool) string {
 	return fmt.Sprintf(`
 resource "grafana_organization" "test" {
 	name = "%[1]s"
@@ -284,6 +346,7 @@ resource "grafana_rule_group" "test" {
 	name             = "%[1]s"
 	folder_uid       = grafana_folder.test.uid
 	interval_seconds = %[2]d
+	allow_editing_from_ui = %[3]t
 	rule {
 		name           = "My Alert Rule 1"
 		for            = "2m"
@@ -308,5 +371,5 @@ resource "grafana_rule_group" "test" {
 		}
 	}
 }
-`, name, interval)
+`, name, interval, enableEditingInUI)
 }
