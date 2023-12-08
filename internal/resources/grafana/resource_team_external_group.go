@@ -20,7 +20,7 @@ func ResourceTeamExternalGroup() *schema.Resource {
 
 		CreateContext: CreateTeamExternalGroup,
 		UpdateContext: UpdateTeamExternalGroup,
-		DeleteContext: UpdateTeamExternalGroup,
+		DeleteContext: DeleteTeamExternalGroup,
 		ReadContext:   ReadTeamExternalGroup,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -96,9 +96,21 @@ func UpdateTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta i
 	return ReadTeamExternalGroup(ctx, d, meta)
 }
 
+func DeleteTeamExternalGroup(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
+	teamID, _ := strconv.ParseInt(idStr, 10, 64)
+	if err := applyTeamExternalGroup(client, teamID, nil, common.SetToStringSlice(d.Get("groups").(*schema.Set))); err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
+}
+
 func manageTeamExternalGroup(client *goapi.GrafanaHTTPAPI, teamID int64, d *schema.ResourceData, groupsAttr string) error {
 	addGroups, removeGroups := groupChangesTeamExternalGroup(d, groupsAttr)
+	return applyTeamExternalGroup(client, teamID, addGroups, removeGroups)
+}
 
+func applyTeamExternalGroup(client *goapi.GrafanaHTTPAPI, teamID int64, addGroups, removeGroups []string) error {
 	for _, group := range addGroups {
 		body := models.TeamGroupMapping{
 			GroupID: group,
@@ -130,15 +142,8 @@ func groupChangesTeamExternalGroup(d *schema.ResourceData, attr string) ([]strin
 	// Get the lists of team groups read in from Grafana state (old) and configured (new)
 	state, config := d.GetChange(attr)
 
-	currentGroups := make([]string, state.(*schema.Set).Len())
-	for i, v := range state.(*schema.Set).List() {
-		currentGroups[i] = v.(string)
-	}
-
-	desiredGroups := make([]string, config.(*schema.Set).Len())
-	for i, v := range config.(*schema.Set).List() {
-		desiredGroups[i] = v.(string)
-	}
+	currentGroups := common.SetToStringSlice(state.(*schema.Set))
+	desiredGroups := common.SetToStringSlice(config.(*schema.Set))
 
 	contains := func(slice []string, val string) bool {
 		for _, item := range slice {
