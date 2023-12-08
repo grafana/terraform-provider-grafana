@@ -269,22 +269,6 @@ func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	// getResp, err := client.Provisioning.GetAlertRuleGroup(group.Group, group.FolderUID)
-	// if err != nil {
-	// 	return diag.FromErr(err)
-	// }
-	// for _, r := range getResp.Payload.Rules {
-	// 	// Need to do a separate API call to PUT each rule in order to set the provenance.
-	// 	params := provisioning.NewPutAlertRuleParams().WithUID(r.UID).WithBody(r)
-	// 	if data.Get("allow_editing_from_ui").(bool) {
-	// 		disableProvenance := "disabled" // This can be any non-empty string.
-	// 		params.SetXDisableProvenance(&disableProvenance)
-	// 	}
-	// 	if _, err := client.Provisioning.PutAlertRule(params); err != nil {
-	// 		return diag.FromErr(err)
-	// 	}
-	// }
-
 	key := packGroupID(AlertRuleGroupKey{resp.Payload.FolderUID, resp.Payload.Title})
 	data.SetId(MakeOrgResourceID(orgID, key))
 	return readAlertRuleGroup(ctx, data, meta)
