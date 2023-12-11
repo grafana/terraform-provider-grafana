@@ -2,10 +2,16 @@ package grafana
 
 import (
 	"context"
+	"strconv"
 	"strings"
+	"time"
 
+	"github.com/go-openapi/runtime"
+	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -19,9 +25,9 @@ Manages Grafana Alerting message templates.
 
 This resource requires Grafana 9.1.0 or later.
 `,
-		CreateContext: createMessageTemplate,
+		CreateContext: putMessageTemplate,
 		ReadContext:   readMessageTemplate,
-		UpdateContext: updateMessageTemplate,
+		UpdateContext: putMessageTemplate,
 		DeleteContext: deleteMessageTemplate,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -29,6 +35,7 @@ This resource requires Grafana 9.1.0 or later.
 
 		SchemaVersion: 0,
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -48,60 +55,61 @@ This resource requires Grafana 9.1.0 or later.
 }
 
 func readMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client, orgID, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	name := data.Id()
-	tmpl, err := client.MessageTemplate(name)
+	resp, err := client.Provisioning.GetTemplate(name)
 	if err, shouldReturn := common.CheckReadError("message template", data, err); shouldReturn {
 		return err
 	}
+	tmpl := resp.Payload
 
-	data.SetId(tmpl.Name)
+	data.Set("org_id", strconv.FormatInt(orgID, 10))
 	data.Set("name", tmpl.Name)
 	data.Set("template", tmpl.Template)
 
 	return nil
 }
 
-func createMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func putMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
+	lock.Lock()
+	defer lock.Unlock()
+	client, orgID := OAPIClientFromNewOrgResource(meta, data)
+
 	name := data.Get("name").(string)
 	content := data.Get("template").(string)
 
-	lock.Lock()
-	defer lock.Unlock()
-	if err := client.SetMessageTemplate(name, content); err != nil {
+	// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+	// The alertmanager is provisioned asynchronously when the org is created.
+	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		params := provisioning.NewPutTemplateParams().
+			WithName(name).
+			WithBody(&models.NotificationTemplateContent{
+				Template: content,
+			})
+		if _, err := client.Provisioning.PutTemplate(params); err != nil {
+			if orgID > 1 && err.(*runtime.APIError).IsCode(500) {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	})
+	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	data.SetId(name)
-	return readMessageTemplate(ctx, data, meta)
-}
-
-func updateMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
-	name := data.Get("name").(string)
-	content := data.Get("template").(string)
-
-	lock.Lock()
-	defer lock.Unlock()
-	if err := client.SetMessageTemplate(name, content); err != nil {
-		return diag.FromErr(err)
-	}
-
+	data.SetId(MakeOrgResourceID(orgID, name))
 	return readMessageTemplate(ctx, data, meta)
 }
 
 func deleteMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
-	name := data.Id()
-
 	lock.Lock()
 	defer lock.Unlock()
-	err := client.DeleteMessageTemplate(name)
+	client, _, name := OAPIClientFromExistingOrgResource(meta, data.Id())
+
+	_, err := client.Provisioning.DeleteTemplate(name)
 	diag, _ := common.CheckReadError("message template", data, err)
 	return diag
 }
