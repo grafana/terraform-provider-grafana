@@ -109,7 +109,7 @@ func TestAccMessageTemplate_inOrg(t *testing.T) {
 				Config: testutils.WithoutResource(t, testAccMessageTemplate_inOrg(name), "grafana_message_template.my_template"),
 				Check: resource.ComposeTestCheckFunc(
 					orgCheckExists.exists("grafana_organization.test", &org),
-					alertingMessageTemplateCheckExists.destroyed(&tmpl, nil),
+					alertingMessageTemplateCheckExists.destroyed(&tmpl, &org),
 				),
 			},
 		},
