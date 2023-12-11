@@ -10,7 +10,7 @@ require (
 	github.com/go-openapi/strfmt v0.21.8
 	github.com/grafana/amixr-api-go-client v0.0.11
 	github.com/grafana/grafana-api-golang-client v0.26.0
-	github.com/grafana/grafana-openapi-client-go v0.0.0-20231129154433-006c3acf5e73
+	github.com/grafana/grafana-openapi-client-go v0.0.0-20231208125730-b6492d2ae05f
 	github.com/grafana/machine-learning-go-client v0.5.0
 	github.com/grafana/synthetic-monitoring-agent v0.19.1
 	github.com/grafana/synthetic-monitoring-api-go-client v0.7.0
@@ -44,7 +44,7 @@ require (
 	github.com/go-openapi/loads v0.21.2 // indirect
 	github.com/go-openapi/spec v0.20.9 // indirect
 	github.com/go-openapi/swag v0.22.4 // indirect
-	github.com/go-openapi/validate v0.22.2 // indirect
+	github.com/go-openapi/validate v0.22.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect

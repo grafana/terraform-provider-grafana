@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/grafana-openapi-client-go/models"
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -244,18 +243,18 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 			var name = acctest.RandomWithPrefix(tc.role + "-key")
 
 			// Create an API key with the correct role and inject it in envvars. This auth will be used when the test runs
-			client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
-			key, err := client.CreateAPIKey(gapi.CreateAPIKeyRequest{
+			client := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+			resp, err := client.APIKeys.AddAPIkey(&models.AddAPIKeyCommand{
 				Name: name,
 				Role: tc.role,
 			})
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer client.DeleteAPIKey(key.ID)
+			defer client.APIKeys.DeleteAPIkey(resp.Payload.ID)
 			oldValue := os.Getenv("GRAFANA_AUTH")
 			defer os.Setenv("GRAFANA_AUTH", oldValue)
-			os.Setenv("GRAFANA_AUTH", key.Key)
+			os.Setenv("GRAFANA_AUTH", resp.Payload.Key)
 
 			config := fmt.Sprintf(`
 		resource "grafana_folder" "bar" {
