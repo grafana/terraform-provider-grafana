@@ -133,7 +133,7 @@ func createGrafanaOAPIClient(providerConfig frameworkProviderConfig) (*goapi.Gra
 		return nil, fmt.Errorf("failed to join API path: %v", err.Error())
 	}
 
-	userInfo, orgID, APIKey, err := parseAuth(providerConfig)
+	userInfo, orgID, apiKey, err := parseAuth(providerConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func createGrafanaOAPIClient(providerConfig frameworkProviderConfig) (*goapi.Gra
 		TLSConfig:        tlsClientConfig,
 		BasicAuth:        userInfo,
 		OrgID:            orgID,
-		APIKey:           APIKey,
+		APIKey:           apiKey,
 	}
 
 	if cfg.HTTPHeaders, err = getHTTPHeadersMap(providerConfig); err != nil {
