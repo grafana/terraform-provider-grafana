@@ -6,9 +6,10 @@ import (
 	"strings"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
 func ResourceMuteTiming() *schema.Resource {
@@ -102,6 +103,11 @@ This resource requires Grafana 9.1.0 or later.
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
+						},
+						"location": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: `Provides the time zone for the time interval. Must be a location in the IANA time zone database, e.g "America/New_York"`,
 						},
 					},
 				},
@@ -209,41 +215,44 @@ func packIntervals(nts []gapi.TimeInterval) []interface{} {
 
 	intervals := make([]interface{}, 0, len(nts))
 	for _, ti := range nts {
-		in := map[string][]interface{}{}
+		in := map[string]interface{}{}
 		if ti.Times != nil {
-			times := []interface{}{}
+			times := make([]interface{}, 0, len(ti.Times))
 			for _, time := range ti.Times {
 				times = append(times, packTimeRange(time))
 			}
 			in["times"] = times
 		}
 		if ti.Weekdays != nil {
-			wkdays := make([]interface{}, 0)
+			wkdays := make([]interface{}, 0, len(ti.Weekdays))
 			for _, wd := range ti.Weekdays {
 				wkdays = append(wkdays, wd)
 			}
 			in["weekdays"] = wkdays
 		}
 		if ti.DaysOfMonth != nil {
-			mdays := make([]interface{}, 0)
+			mdays := make([]interface{}, 0, len(ti.DaysOfMonth))
 			for _, dom := range ti.DaysOfMonth {
 				mdays = append(mdays, dom)
 			}
 			in["days_of_month"] = mdays
 		}
 		if ti.Months != nil {
-			ms := make([]interface{}, 0)
+			ms := make([]interface{}, 0, len(ti.Months))
 			for _, m := range ti.Months {
 				ms = append(ms, m)
 			}
 			in["months"] = ms
 		}
 		if ti.Years != nil {
-			ys := make([]interface{}, 0)
+			ys := make([]interface{}, 0, len(ti.Years))
 			for _, y := range ti.Years {
 				ys = append(ys, y)
 			}
 			in["years"] = ys
+		}
+		if ti.Location != "" {
+			in["location"] = string(ti.Location)
 		}
 		intervals = append(intervals, in)
 	}
@@ -296,7 +305,9 @@ func unpackIntervals(raw []interface{}) []gapi.TimeInterval {
 				interval.Years[i] = gapi.YearRange(vals[i].(string))
 			}
 		}
-
+		if vals, ok := block["location"]; ok && vals != nil {
+			interval.Location = gapi.Location(vals.(string))
+		}
 		result[i] = interval
 	}
 
