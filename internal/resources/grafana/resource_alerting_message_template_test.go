@@ -1,10 +1,12 @@
 package grafana_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
@@ -73,4 +75,57 @@ EOT`,
 			},
 		},
 	})
+}
+
+func TestAccMessageTemplate_inOrg(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
+
+	name := acctest.RandString(10)
+	var tmpl models.NotificationTemplate
+	var org models.OrgDetailsDTO
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccMessageTemplate_inOrg(name),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					alertingMessageTemplateCheckExists.exists("grafana_message_template.my_template", &tmpl),
+					checkResourceIsInOrg("grafana_message_template.my_template", "grafana_organization.test"),
+					resource.TestMatchResourceAttr("grafana_message_template.my_template", "id", nonDefaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "my-template"),
+				),
+			},
+			// Test import.
+			{
+				ResourceName:      "grafana_message_template.my_template",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Test delete template in org.
+			{
+				Config: testutils.WithoutResource(t, testAccMessageTemplate_inOrg(name), "grafana_message_template.my_template"),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					alertingMessageTemplateCheckExists.destroyed(&tmpl, nil),
+				),
+			},
+		},
+	})
+}
+
+func testAccMessageTemplate_inOrg(name string) string {
+	return fmt.Sprintf(`
+	resource "grafana_organization" "test" {
+		name = "%[1]s"
+	}
+
+	resource "grafana_message_template" "my_template" {
+		org_id = grafana_organization.test.id
+		name = "my-template"
+		template = "{{define \"My Reusable Template\" }}\n template content\n{{ end }}"
+	}
+	`, name)
 }

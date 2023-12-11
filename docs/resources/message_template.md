@@ -34,6 +34,10 @@ resource "grafana_message_template" "my_template" {
 - `name` (String) The name of the message template.
 - `template` (String) The content of the message template.
 
+### Optional
+
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
+
 ### Read-Only
 
 - `id` (String) The ID of this resource.
