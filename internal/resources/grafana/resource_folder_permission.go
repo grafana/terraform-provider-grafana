@@ -8,19 +8,17 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/grafana/grafana-openapi-client-go/models"
+	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
 func ResourceFolderPermission() *schema.Resource {
 	return &schema.Resource{
-
 		Description: `
 Manages the entire set of permissions for a folder. Permissions that aren't specified when applying this resource will be removed.
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder_permissions/)
 `,
-
 		CreateContext: UpdateFolderPermissions,
 		ReadContext:   ReadFolderPermissions,
 		UpdateContext: UpdateFolderPermissions,
@@ -85,18 +83,19 @@ Manages the entire set of permissions for a folder. Permissions that aren't spec
 }
 
 func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := OAPIClientFromNewOrgResource(meta, d)
+	client, orgID, _ := ClientFromExistingOrgResource(meta, d.Id())
 
 	var list []interface{}
 	if v, ok := d.GetOk("permissions"); ok {
 		list = v.(*schema.Set).List()
 	}
-	permissionList := models.UpdateDashboardACLCommand{}
+
+	permissionList := make([]gapi.SetResourcePermissionItem, 0)
 	for _, permission := range list {
 		permission := permission.(map[string]interface{})
-		permissionItem := models.DashboardACLUpdateItem{}
+		permissionItem := gapi.SetResourcePermissionItem{}
 		if permission["role"].(string) != "" {
-			permissionItem.Role = permission["role"].(string)
+			permissionItem.BuiltinRole = permission["role"].(string)
 		}
 		_, teamIDStr := SplitOrgResourceID(permission["team_id"].(string))
 		teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
@@ -108,13 +107,15 @@ func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 		if userID > 0 {
 			permissionItem.UserID = userID
 		}
-		permissionItem.Permission = parsePermissionType(permission["permission"].(string))
-		permissionList.Items = append(permissionList.Items, &permissionItem)
+		permissionItem.Permission = permission["permission"].(string)
+		permissionList = append(permissionList, permissionItem)
 	}
 
 	folderUID := d.Get("folder_uid").(string)
 
-	if _, err := client.FolderPermissions.UpdateFolderPermissions(folderUID, &permissionList); err != nil {
+	if _, err := client.SetFolderResourcePermissions(folderUID, gapi.SetResourcePermissionsBody{
+		Permissions: permissionList,
+	}); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -124,27 +125,21 @@ func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func ReadFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID, folderUID := OAPIClientFromExistingOrgResource(meta, d.Id())
+	client, orgID, folderUID := ClientFromExistingOrgResource(meta, d.Id())
 
-	resp, err := client.FolderPermissions.GetFolderPermissionList(folderUID, nil)
+	folderPermissions, err := client.ListFolderResourcePermissions(folderUID)
 	if err, shouldReturn := common.CheckReadError("folder permissions", d, err); shouldReturn {
 		return err
 	}
 
-	folderPermissions := resp.Payload
 	permissionItems := make([]interface{}, len(folderPermissions))
-	count := 0
 	for _, permission := range folderPermissions {
-		if permission.UID != "" {
-			permissionItem := make(map[string]interface{})
-			permissionItem["role"] = permission.Role
-			permissionItem["team_id"] = strconv.FormatInt(permission.TeamID, 10)
-			permissionItem["user_id"] = strconv.FormatInt(permission.UserID, 10)
-			permissionItem["permission"] = permission.PermissionName
-
-			permissionItems[count] = permissionItem
-			count++
-		}
+		permissionItem := make(map[string]interface{})
+		permissionItem["role"] = permission.RoleName
+		permissionItem["team_id"] = strconv.FormatInt(permission.TeamID, 10)
+		permissionItem["user_id"] = strconv.FormatInt(permission.UserID, 10)
+		permissionItem["permission"] = permission.Permission
+		permissionItems = append(permissionItems, permissionItem)
 	}
 
 	d.SetId(MakeOrgResourceID(orgID, folderUID))
@@ -159,22 +154,10 @@ func DeleteFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 	// since permissions are tied to folders, we can't really delete the permissions.
 	// we will simply remove all permissions, leaving a folder that only an admin can access.
 	// if for some reason the parent folder doesn't exist, we'll just ignore the error
-	client, _, folderUID := OAPIClientFromExistingOrgResource(meta, d.Id())
-	emptyPermissions := models.UpdateDashboardACLCommand{}
-	_, err := client.FolderPermissions.UpdateFolderPermissions(folderUID, &emptyPermissions)
+	client, _, folderUID := ClientFromExistingOrgResource(meta, d.Id())
+	_, err := client.SetFolderResourcePermissions(folderUID, gapi.SetResourcePermissionsBody{
+		Permissions: []gapi.SetResourcePermissionItem{},
+	})
 	diags, _ := common.CheckReadError("folder permissions", d, err)
 	return diags
-}
-
-func parsePermissionType(permission string) models.PermissionType {
-	permissionInt := models.PermissionType(-1)
-	switch permission {
-	case "View":
-		permissionInt = models.PermissionType(1)
-	case "Edit":
-		permissionInt = models.PermissionType(2)
-	case "Admin":
-		permissionInt = models.PermissionType(4)
-	}
-	return permissionInt
 }
