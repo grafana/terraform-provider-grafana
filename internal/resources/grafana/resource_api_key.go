@@ -75,7 +75,7 @@ func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	d.SetId(MakeOrgResourceID(orgID, response.Payload))
+	d.SetId(MakeOrgResourceID(orgID, response.Payload.ID))
 	d.Set("key", response.Payload.Key)
 
 	// Fill the true resource's state after a create by performing a read
