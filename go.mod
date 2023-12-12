@@ -7,7 +7,7 @@ toolchain go1.21.1
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/go-openapi/runtime v0.26.2
-	github.com/go-openapi/strfmt v0.21.8
+	github.com/go-openapi/strfmt v0.21.9
 	github.com/grafana/amixr-api-go-client v0.0.11
 	github.com/grafana/grafana-api-golang-client v0.27.0
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20231208125730-b6492d2ae05f
@@ -49,7 +49,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
-	github.com/google/uuid v1.3.1 // indirect
+	github.com/google/uuid v1.4.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-checkpoint v0.5.0 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect

@@ -77,8 +77,8 @@ github.com/go-openapi/spec v0.20.6/go.mod h1:2OpW+JddWPrpXSCIX8eOx7lZ5iyuWj3RYR6
 github.com/go-openapi/spec v0.20.11 h1:J/TzFDLTt4Rcl/l1PmyErvkqlJDncGvPTMnCI39I4gY=
 github.com/go-openapi/spec v0.20.11/go.mod h1:2OpW+JddWPrpXSCIX8eOx7lZ5iyuWj3RYR6VaaBKcWA=
 github.com/go-openapi/strfmt v0.21.3/go.mod h1:k+RzNO0Da+k3FrrynSNN8F7n/peCmQQqbbXjtDfvmGg=
-github.com/go-openapi/strfmt v0.21.8 h1:VYBUoKYRLAlgKDrIxR/I0lKrztDQ0tuTDrbhLVP8Erg=
-github.com/go-openapi/strfmt v0.21.8/go.mod h1:adeGTkxE44sPyLk0JV235VQAO/ZXUr8KAzYjclFs3ew=
+github.com/go-openapi/strfmt v0.21.9 h1:LnEGOO9qyEC1v22Bzr323M98G13paIUGPU7yeJtG9Xs=
+github.com/go-openapi/strfmt v0.21.9/go.mod h1:0k3v301mglEaZRJdDDGSlN6Npq4VMVU69DE0LUyf7uA=
 github.com/go-openapi/swag v0.19.5/go.mod h1:POnQmlKehdgb5mhVOsnJFsivZCEZ/vjK9gh66Z9tfKk=
 github.com/go-openapi/swag v0.19.15/go.mod h1:QYRuS/SOXUCsnplDa677K7+DxSOj6IPNl/eQntq43wQ=
 github.com/go-openapi/swag v0.21.1/go.mod h1:QYRuS/SOXUCsnplDa677K7+DxSOj6IPNl/eQntq43wQ=
@@ -110,8 +110,8 @@ github.com/google/go-querystring v1.0.0 h1:Xkwi/a1rcvNg1PPYe5vI8GbeBY/jrVuDX5ASu
 github.com/google/go-querystring v1.0.0/go.mod h1:odCYkC5MyYFN7vkCjXpyrEuKhc/BUO6wN/zVPAxq5ck=
 github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/google/uuid v1.1.2/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
-github.com/google/uuid v1.3.1 h1:KjJaJ9iWZ3jOFZIf1Lqf4laDRCasjl0BCmnEGxkdLb4=
-github.com/google/uuid v1.3.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/google/uuid v1.4.0 h1:MtMxsa51/r9yyhkyLsVeVt0B+BGQZzpQiTQ4eHZ8bc4=
+github.com/google/uuid v1.4.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/grafana/amixr-api-go-client v0.0.11 h1:jlE+5t0tRuCtjbpM81j70Dr2J4eCySuWyNGdfLMGdhE=
 github.com/grafana/amixr-api-go-client v0.0.11/go.mod h1:N6x26XUrM5zGtK5zL5vNJnAn2JFMxLFPPLTw/6pDkFE=
 github.com/grafana/grafana-api-golang-client v0.27.0 h1:zIwMXcbCB4n588i3O2N6HfNcQogCNTd/vPkEXTr7zX8=
