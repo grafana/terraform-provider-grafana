@@ -9,8 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
-	goapi "github.com/grafana/grafana-openapi-client-go/client"
-	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
@@ -180,15 +178,4 @@ func DeleteDashboardPermissions(ctx context.Context, d *schema.ResourceData, met
 	})
 	diags, _ := common.CheckReadError("dashboard permissions", d, err)
 	return diags
-}
-
-func updateDashboardPermissions(client *goapi.GrafanaHTTPAPI, id string, permissions *models.UpdateDashboardACLCommand) error {
-	var err error
-	if idInt, _ := strconv.ParseInt(id, 10, 64); idInt == 0 {
-		// id is not an int, so it must be a uid
-		_, err = client.DashboardPermissions.UpdateDashboardPermissionsByUID(id, permissions)
-	} else {
-		_, err = client.DashboardPermissions.UpdateDashboardPermissionsByID(idInt, permissions)
-	}
-	return err
 }
