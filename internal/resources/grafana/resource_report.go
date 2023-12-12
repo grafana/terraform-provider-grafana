@@ -412,6 +412,7 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateConfigCmd, err
 			if err != nil {
 				return models.CreateOrUpdateConfigCmd{}, err
 			}
+
 			date := strfmt.DateTime(startDate.UTC())
 			report.Schedule.StartDate = &date
 		}
@@ -424,6 +425,7 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateConfigCmd, err
 			if err != nil {
 				return models.CreateOrUpdateConfigCmd{}, err
 			}
+
 			date := strfmt.DateTime(endDate.UTC())
 			report.Schedule.EndDate = &date
 		}
