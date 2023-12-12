@@ -77,7 +77,7 @@ func testAccDashboardPermissionsCheckExistsUID(rn string, dashboardUID *string) 
 		}
 
 		orgID, gotDashboardUID := grafana.SplitOrgResourceID(rs.Primary.ID)
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI.WithOrgID(orgID)
 
 		_, err := client.DashboardPermissionsByUID(gotDashboardUID)
 		if err != nil {
@@ -102,7 +102,7 @@ func testAccDashboardPermissionsCheckExists(rn string, dashboardID *int64) resou
 		}
 
 		orgID, dashboardIDStr := grafana.SplitOrgResourceID(rs.Primary.ID)
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI.WithOrgID(orgID)
 
 		gotDashboardID, err := strconv.ParseInt(dashboardIDStr, 10, 64)
 		if err != nil {
@@ -122,7 +122,7 @@ func testAccDashboardPermissionsCheckExists(rn string, dashboardID *int64) resou
 
 func testAccDashboardPermissionsCheckEmptyUID(dashboardUID *string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
 		permissions, err := client.DashboardPermissionsByUID(*dashboardUID)
 		if err != nil {
 			return fmt.Errorf("Error getting dashboard permissions %s: %s", *dashboardUID, err)

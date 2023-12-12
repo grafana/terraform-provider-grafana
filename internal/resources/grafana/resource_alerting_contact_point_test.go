@@ -322,7 +322,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 						}
 						uid := rs.Primary.ID
 
-						client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+						client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
 						pt, err := client.ContactPoint(uid)
 						if err != nil {
 							return fmt.Errorf("error getting resource: %w", err)
@@ -431,7 +431,7 @@ func testContactPointCheckExists(rname string, pts *[]gapi.ContactPoint, expCoun
 			return fmt.Errorf("resource name not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
 		points, err := client.ContactPointsByName(name)
 		if err != nil {
 			return fmt.Errorf("error getting resource: %w", err)
@@ -456,7 +456,7 @@ func testContactPointCheckExists(rname string, pts *[]gapi.ContactPoint, expCoun
 
 func testContactPointCheckDestroy(points []gapi.ContactPoint) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
 		for _, p := range points {
 			_, err := client.ContactPoint(p.UID)
 			if err == nil {
@@ -470,7 +470,7 @@ func testContactPointCheckDestroy(points []gapi.ContactPoint) resource.TestCheck
 
 func testContactPointCheckAllDestroy(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
 		points, err := client.ContactPointsByName(name)
 		if err != nil {
 			return fmt.Errorf("error getting resource: %w", err)

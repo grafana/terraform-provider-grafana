@@ -117,7 +117,7 @@ This resource requires Grafana 9.1.0 or later.
 }
 
 func readMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client := meta.(*common.Client).DeprecatedGrafanaAPI
 
 	name := data.Id()
 	mt, err := client.MuteTiming(name)
@@ -133,7 +133,7 @@ func readMuteTiming(ctx context.Context, data *schema.ResourceData, meta interfa
 
 func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
+	client := meta.(*common.Client).DeprecatedGrafanaAPI
 
 	mt := unpackMuteTiming(data)
 
@@ -149,7 +149,7 @@ func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 
 func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
+	client := meta.(*common.Client).DeprecatedGrafanaAPI
 
 	mt := unpackMuteTiming(data)
 
@@ -163,7 +163,7 @@ func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 
 func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
+	client := meta.(*common.Client).DeprecatedGrafanaAPI
 	name := data.Id()
 
 	lock.Lock()

@@ -43,7 +43,7 @@ Datasource for retrieving all SLOs.
 func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	client := m.(*common.Client).GrafanaAPI
+	client := m.(*common.Client).DeprecatedGrafanaAPI
 	apiSlos, _ := client.ListSlos()
 
 	terraformSlos := []interface{}{}

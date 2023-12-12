@@ -94,7 +94,7 @@ Manages Grafana dashboards.
 }
 
 func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
+	client, orgID := DeprecatedClientFromNewOrgResource(meta, d)
 
 	dashboard, err := makeDashboard(d)
 	if err != nil {
@@ -110,7 +110,7 @@ func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 
 func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	metaClient := meta.(*common.Client)
-	client, orgID, uid := ClientFromExistingOrgResource(meta, d.Id())
+	client, orgID, uid := DeprecatedClientFromExistingOrgResource(meta, d.Id())
 
 	dashboard, err := client.DashboardByUID(uid)
 	if err, shouldReturn := common.CheckReadError("dashboard", d, err); shouldReturn {
@@ -166,7 +166,7 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 }
 
 func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
+	client, orgID := DeprecatedClientFromNewOrgResource(meta, d)
 
 	dashboard, err := makeDashboard(d)
 	if err != nil {
@@ -183,7 +183,7 @@ func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 }
 
 func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, uid := DeprecatedClientFromExistingOrgResource(meta, d.Id())
 	err, _ := common.CheckReadError("dashboard", d, client.DeleteDashboardByUID(uid))
 	return err
 }

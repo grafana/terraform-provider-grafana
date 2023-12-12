@@ -106,7 +106,7 @@ func testAccSloCheckExists(rn string, slo *gapi.Slo) resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
 		gotSlo, err := client.GetSlo(rs.Primary.ID)
 
 		if err != nil {
@@ -122,7 +122,7 @@ func testAccSloCheckExists(rn string, slo *gapi.Slo) resource.TestCheckFunc {
 func testAlertingExists(expectation bool, rn string, slo *gapi.Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs := s.RootModule().Resources[rn]
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
 		gotSlo, _ := client.GetSlo(rs.Primary.ID)
 		*slo = gotSlo
 
@@ -140,7 +140,7 @@ func testAlertingExists(expectation bool, rn string, slo *gapi.Slo) resource.Tes
 
 func testAccSloCheckDestroy(slo *gapi.Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
 		client.DeleteSlo(slo.UUID)
 
 		return nil

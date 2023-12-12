@@ -99,7 +99,7 @@ func TestAccServiceAccountToken_inOrg(t *testing.T) {
 }
 
 func testAccServiceAccountTokenCheckDestroy(s *terraform.State) error {
-	c := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+	c := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "grafana_service_account_token" {

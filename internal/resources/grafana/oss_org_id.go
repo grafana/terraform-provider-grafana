@@ -40,11 +40,10 @@ func SplitOrgResourceID(id string) (int64, string) {
 	return 0, id
 }
 
-// ClientFromExistingOrgResource creates a client from the ID of an org-scoped resource
-// Those IDs are in the <orgID>:<resourceID> format
-func ClientFromExistingOrgResource(meta interface{}, id string) (*gapi.Client, int64, string) {
+// Deprecated: Use OAPIClientFromExistingOrgResource instead
+func DeprecatedClientFromExistingOrgResource(meta interface{}, id string) (*gapi.Client, int64, string) {
 	orgID, restOfID := SplitOrgResourceID(id)
-	client := meta.(*common.Client).GrafanaAPI
+	client := meta.(*common.Client).DeprecatedGrafanaAPI
 	if orgID == 0 {
 		orgID = meta.(*common.Client).GrafanaAPIConfig.OrgID // It's configured globally. TODO: Remove this once we drop support for the global org_id
 	} else if orgID > 0 {
@@ -53,11 +52,10 @@ func ClientFromExistingOrgResource(meta interface{}, id string) (*gapi.Client, i
 	return client, orgID, restOfID
 }
 
-// ClientFromNewOrgResource creates a client from the `org_id` attribute of a resource
-// This client is meant to be used in `Create` functions when the ID hasn't already been baked into the resource ID
-func ClientFromNewOrgResource(meta interface{}, d *schema.ResourceData) (*gapi.Client, int64) {
+// Deprecated: Use OAPIClientFromNewOrgResource instead
+func DeprecatedClientFromNewOrgResource(meta interface{}, d *schema.ResourceData) (*gapi.Client, int64) {
 	orgID := parseOrgID(d)
-	client := meta.(*common.Client).GrafanaAPI
+	client := meta.(*common.Client).DeprecatedGrafanaAPI
 	if orgID == 0 {
 		orgID = meta.(*common.Client).GrafanaAPIConfig.OrgID // It's configured globally. TODO: Remove this once we drop support for the global org_id
 	} else if orgID > 0 {

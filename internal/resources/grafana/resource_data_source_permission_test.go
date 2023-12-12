@@ -72,7 +72,7 @@ func testAccDatasourcePermissionsCheckExists(rn string, datasourceID *int64) res
 		}
 
 		orgID, datasourceIDStr := grafana.SplitOrgResourceID(rs.Primary.ID)
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI.WithOrgID(orgID)
 
 		gotDatasourceID, err := strconv.ParseInt(datasourceIDStr, 10, 64)
 		if err != nil {
@@ -92,7 +92,7 @@ func testAccDatasourcePermissionsCheckExists(rn string, datasourceID *int64) res
 
 func testAccDatasourcePermissionCheckDestroy(datasourceID *int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
 		response, err := client.DatasourcePermissions(*datasourceID)
 		if err != nil {
 			return fmt.Errorf("error getting datasource permissions %d: %s", *datasourceID, err)

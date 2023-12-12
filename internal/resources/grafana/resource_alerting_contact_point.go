@@ -86,7 +86,7 @@ This resource requires Grafana 9.1.0 or later.
 
 func importContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	name := data.Id()
-	client := meta.(*common.Client).GrafanaAPI
+	client := meta.(*common.Client).DeprecatedGrafanaAPI
 
 	ps, err := client.ContactPointsByName(name)
 	if err != nil {
@@ -107,7 +107,7 @@ func importContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 }
 
 func readContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client := meta.(*common.Client).DeprecatedGrafanaAPI
 
 	uidsToFetch := unpackUIDs(data.Id())
 
@@ -139,7 +139,7 @@ func readContactPoint(ctx context.Context, data *schema.ResourceData, meta inter
 
 func createContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
+	client := meta.(*common.Client).DeprecatedGrafanaAPI
 
 	ps := unpackContactPoints(data)
 	uids := make([]string, 0, len(ps))
@@ -165,7 +165,7 @@ func createContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 
 func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
+	client := meta.(*common.Client).DeprecatedGrafanaAPI
 
 	existingUIDs := unpackUIDs(data.Id())
 	ps := unpackContactPoints(data)
@@ -207,7 +207,7 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 
 func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
+	client := meta.(*common.Client).DeprecatedGrafanaAPI
 
 	uids := unpackUIDs(data.Id())
 

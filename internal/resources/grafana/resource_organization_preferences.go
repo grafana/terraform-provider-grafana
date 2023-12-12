@@ -73,7 +73,7 @@ func ResourceOrganizationPreferences() *schema.Resource {
 }
 
 func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
+	client, orgID := DeprecatedClientFromNewOrgResource(meta, d)
 
 	_, err := client.UpdateAllOrgPreferences(gapi.Preferences{
 		Theme:            d.Get("theme").(string),
@@ -92,7 +92,7 @@ func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 }
 
 func ReadOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client := meta.(*common.Client).DeprecatedGrafanaAPI
 	if id, _ := strconv.ParseInt(d.Id(), 10, 64); id > 0 {
 		client = client.WithOrgID(id)
 	}
@@ -117,7 +117,7 @@ func UpdateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 }
 
 func DeleteOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client := meta.(*common.Client).DeprecatedGrafanaAPI
 	if id, _ := strconv.ParseInt(d.Id(), 10, 64); id > 0 {
 		client = client.WithOrgID(id)
 	}

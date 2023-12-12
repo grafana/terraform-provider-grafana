@@ -106,7 +106,7 @@ func testRoleAssignmentCheckExists(rn string, ra *gapi.RoleAssignments) resource
 			return fmt.Errorf("resource UID not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
 		role, err := client.GetRoleAssignments(uid)
 		if err != nil {
 			return fmt.Errorf("error getting role assignments: %s", err)
@@ -120,7 +120,7 @@ func testRoleAssignmentCheckExists(rn string, ra *gapi.RoleAssignments) resource
 
 func testRoleAssignmentCheckDestroy(ra *gapi.RoleAssignments) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
 		role, err := client.GetRoleAssignments(ra.RoleUID)
 		if err == nil && (len(role.Users) > 0 || len(role.ServiceAccounts) > 0 || len(role.Teams) > 0) {
 			return fmt.Errorf("role is still assigned")

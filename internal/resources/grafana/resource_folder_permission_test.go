@@ -70,7 +70,7 @@ func testAccFolderPermissionsCheckExists(rn string, folderUID *string) resource.
 		}
 
 		orgID, gotFolderUID := grafana.SplitOrgResourceID(rs.Primary.ID)
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI.WithOrgID(orgID)
 
 		_, err := client.FolderPermissions(gotFolderUID)
 		if err != nil {
@@ -85,7 +85,7 @@ func testAccFolderPermissionsCheckExists(rn string, folderUID *string) resource.
 
 func testAccFolderPermissionsCheckEmpty(folderUID *string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
 		permissions, err := client.FolderPermissions(*folderUID)
 		if err != nil {
 			return fmt.Errorf("Error getting folder permissions %s: %s", *folderUID, err)

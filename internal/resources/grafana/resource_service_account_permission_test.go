@@ -74,7 +74,7 @@ func testServiceAccountPermissionsCheckExists(rn string, saPerm *gapi.ResourcePe
 		if err != nil {
 			return fmt.Errorf("id is malformed: %w", err)
 		}
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI.WithOrgID(orgID)
 
 		perms, err := client.ListServiceAccountResourcePermissions(saID)
 		if err != nil {
@@ -91,7 +91,7 @@ func testServiceAccountPermissionsCheckExists(rn string, saPerm *gapi.ResourcePe
 
 func testAccServiceAccountPermissionsCheckDestroy(id int64) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
 		saPerms, err := client.ListServiceAccountResourcePermissions(id)
 		if err != nil {
 			return err
