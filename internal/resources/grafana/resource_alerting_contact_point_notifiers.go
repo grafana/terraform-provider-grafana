@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"strings"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
@@ -46,28 +46,29 @@ func (a alertmanagerNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (a alertmanagerNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
-	if v, ok := p.Settings["url"]; ok && v != nil {
+func (a alertmanagerNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
+	if v, ok := settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
-		delete(p.Settings, "url")
+		delete(settings, "url")
 	}
-	if v, ok := p.Settings["basicAuthUser"]; ok && v != nil {
+	if v, ok := settings["basicAuthUser"]; ok && v != nil {
 		notifier["basic_auth_user"] = v.(string)
-		delete(p.Settings, "basicAuthUser")
+		delete(settings, "basicAuthUser")
 	}
-	if v, ok := p.Settings["basicAuthPassword"]; ok && v != nil {
+	if v, ok := settings["basicAuthPassword"]; ok && v != nil {
 		notifier["basic_auth_password"] = v.(string)
-		delete(p.Settings, "basicAuthPassword")
+		delete(settings, "basicAuthPassword")
 	}
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, a, p.UID), a.meta().secureFields)
 
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
 
-func (a alertmanagerNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (a alertmanagerNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -78,10 +79,10 @@ func (a alertmanagerNotifier) unpack(raw interface{}, name string) gapi.ContactP
 	if v, ok := json["basic_auth_password"]; ok && v != nil {
 		settings["basicAuthPassword"] = v.(string)
 	}
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  a.meta().typeStr,
+		Type:                  common.Ref(a.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -124,29 +125,30 @@ func (d dingDingNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (d dingDingNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
-	if v, ok := p.Settings["url"]; ok && v != nil {
+func (d dingDingNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
+	if v, ok := settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
-		delete(p.Settings, "url")
+		delete(settings, "url")
 	}
-	if v, ok := p.Settings["msgType"]; ok && v != nil {
+	if v, ok := settings["msgType"]; ok && v != nil {
 		notifier["message_type"] = v.(string)
-		delete(p.Settings, "msgType")
+		delete(settings, "msgType")
 	}
-	if v, ok := p.Settings["message"]; ok && v != nil {
+	if v, ok := settings["message"]; ok && v != nil {
 		notifier["message"] = v.(string)
-		delete(p.Settings, "message")
+		delete(settings, "message")
 	}
-	if v, ok := p.Settings["title"]; ok && v != nil {
+	if v, ok := settings["title"]; ok && v != nil {
 		notifier["title"] = v.(string)
-		delete(p.Settings, "title")
+		delete(settings, "title")
 	}
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
 
-func (d dingDingNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (d dingDingNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -160,10 +162,10 @@ func (d dingDingNotifier) unpack(raw interface{}, name string) gapi.ContactPoint
 	if v, ok := json["title"]; ok && v != nil {
 		settings["title"] = v.(string)
 	}
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  d.meta().typeStr,
+		Type:                  common.Ref(d.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -216,33 +218,34 @@ func (d discordNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (d discordNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
-	if v, ok := p.Settings["url"]; ok && v != nil {
+func (d discordNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
+	if v, ok := settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
-		delete(p.Settings, "url")
+		delete(settings, "url")
 	}
-	packNotifierStringField(&p.Settings, &notifier, "title", "title")
-	if v, ok := p.Settings["message"]; ok && v != nil {
+	packNotifierStringField(&settings, &notifier, "title", "title")
+	if v, ok := settings["message"]; ok && v != nil {
 		notifier["message"] = v.(string)
-		delete(p.Settings, "message")
+		delete(settings, "message")
 	}
-	if v, ok := p.Settings["avatar_url"]; ok && v != nil {
+	if v, ok := settings["avatar_url"]; ok && v != nil {
 		notifier["avatar_url"] = v.(string)
-		delete(p.Settings, "avatar_url")
+		delete(settings, "avatar_url")
 	}
-	if v, ok := p.Settings["use_discord_username"]; ok && v != nil {
+	if v, ok := settings["use_discord_username"]; ok && v != nil {
 		notifier["use_discord_username"] = v.(bool)
-		delete(p.Settings, "use_discord_username")
+		delete(settings, "use_discord_username")
 	}
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, d, p.UID), d.meta().secureFields)
 
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
 
-func (d discordNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (d discordNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -258,10 +261,10 @@ func (d discordNotifier) unpack(raw interface{}, name string) gapi.ContactPoint 
 		settings["use_discord_username"] = v.(bool)
 	}
 
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  d.meta().typeStr,
+		Type:                  common.Ref(d.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -311,29 +314,30 @@ func (e emailNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (e emailNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
-	if v, ok := p.Settings["addresses"]; ok && v != nil {
+func (e emailNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
+	if v, ok := settings["addresses"]; ok && v != nil {
 		notifier["addresses"] = packAddrs(v.(string))
-		delete(p.Settings, "addresses")
+		delete(settings, "addresses")
 	}
-	if v, ok := p.Settings["singleEmail"]; ok && v != nil {
+	if v, ok := settings["singleEmail"]; ok && v != nil {
 		notifier["single_email"] = v.(bool)
-		delete(p.Settings, "singleEmail")
+		delete(settings, "singleEmail")
 	}
-	if v, ok := p.Settings["message"]; ok && v != nil {
+	if v, ok := settings["message"]; ok && v != nil {
 		notifier["message"] = v.(string)
-		delete(p.Settings, "message")
+		delete(settings, "message")
 	}
-	if v, ok := p.Settings["subject"]; ok && v != nil {
+	if v, ok := settings["subject"]; ok && v != nil {
 		notifier["subject"] = v.(string)
-		delete(p.Settings, "subject")
+		delete(settings, "subject")
 	}
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
 
-func (e emailNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (e emailNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -349,10 +353,10 @@ func (e emailNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 		settings["subject"] = v.(string)
 	}
 
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  e.meta().typeStr,
+		Type:                  common.Ref(e.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -408,22 +412,23 @@ func (g googleChatNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (g googleChatNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
-	if v, ok := p.Settings["url"]; ok && v != nil {
+func (g googleChatNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
+	if v, ok := settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
-		delete(p.Settings, "url")
+		delete(settings, "url")
 	}
-	packNotifierStringField(&p.Settings, &notifier, "title", "title")
-	if v, ok := p.Settings["message"]; ok && v != nil {
+	packNotifierStringField(&settings, &notifier, "title", "title")
+	if v, ok := settings["message"]; ok && v != nil {
 		notifier["message"] = v.(string)
-		delete(p.Settings, "message")
+		delete(settings, "message")
 	}
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
 
-func (g googleChatNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (g googleChatNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -432,10 +437,10 @@ func (g googleChatNotifier) unpack(raw interface{}, name string) gapi.ContactPoi
 	if v, ok := json["message"]; ok && v != nil {
 		settings["message"] = v.(string)
 	}
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  g.meta().typeStr,
+		Type:                  common.Ref(g.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -503,30 +508,31 @@ func (k kafkaNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (k kafkaNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
-	if v, ok := p.Settings["kafkaRestProxy"]; ok && v != nil {
+func (k kafkaNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
+	if v, ok := settings["kafkaRestProxy"]; ok && v != nil {
 		notifier["rest_proxy_url"] = v.(string)
-		delete(p.Settings, "kafkaRestProxy")
+		delete(settings, "kafkaRestProxy")
 	}
-	if v, ok := p.Settings["kafkaTopic"]; ok && v != nil {
+	if v, ok := settings["kafkaTopic"]; ok && v != nil {
 		notifier["topic"] = v.(string)
-		delete(p.Settings, "kafkaTopic")
+		delete(settings, "kafkaTopic")
 	}
-	packNotifierStringField(&p.Settings, &notifier, "description", "description")
-	packNotifierStringField(&p.Settings, &notifier, "details", "details")
-	packNotifierStringField(&p.Settings, &notifier, "username", "username")
-	packNotifierStringField(&p.Settings, &notifier, "password", "password")
-	packNotifierStringField(&p.Settings, &notifier, "apiVersion", "api_version")
-	packNotifierStringField(&p.Settings, &notifier, "kafkaClusterId", "cluster_id")
+	packNotifierStringField(&settings, &notifier, "description", "description")
+	packNotifierStringField(&settings, &notifier, "details", "details")
+	packNotifierStringField(&settings, &notifier, "username", "username")
+	packNotifierStringField(&settings, &notifier, "password", "password")
+	packNotifierStringField(&settings, &notifier, "apiVersion", "api_version")
+	packNotifierStringField(&settings, &notifier, "kafkaClusterId", "cluster_id")
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, k, p.UID), k.meta().secureFields)
 
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
 
-func (k kafkaNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (k kafkaNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -539,10 +545,10 @@ func (k kafkaNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	unpackNotifierStringField(&json, &settings, "api_version", "apiVersion")
 	unpackNotifierStringField(&json, &settings, "cluster_id", "kafkaClusterId")
 
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  k.meta().typeStr,
+		Type:                  common.Ref(k.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -582,20 +588,21 @@ func (o lineNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (o lineNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
+func (o lineNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
 
-	packNotifierStringField(&p.Settings, &notifier, "token", "token")
-	packNotifierStringField(&p.Settings, &notifier, "title", "title")
-	packNotifierStringField(&p.Settings, &notifier, "description", "description")
+	packNotifierStringField(&settings, &notifier, "token", "token")
+	packNotifierStringField(&settings, &notifier, "title", "title")
+	packNotifierStringField(&settings, &notifier, "description", "description")
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, o, p.UID), o.meta().secureFields)
 
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
 
-func (o lineNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (o lineNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -603,10 +610,10 @@ func (o lineNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	unpackNotifierStringField(&json, &settings, "title", "title")
 	unpackNotifierStringField(&json, &settings, "description", "description")
 
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  o.meta().typeStr,
+		Type:                  common.Ref(o.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -678,18 +685,19 @@ func (w oncallNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (w oncallNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
+func (w oncallNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
 
-	packNotifierStringField(&p.Settings, &notifier, "url", "url")
-	packNotifierStringField(&p.Settings, &notifier, "httpMethod", "http_method")
-	packNotifierStringField(&p.Settings, &notifier, "username", "basic_auth_user")
-	packNotifierStringField(&p.Settings, &notifier, "password", "basic_auth_password")
-	packNotifierStringField(&p.Settings, &notifier, "authorization_scheme", "authorization_scheme")
-	packNotifierStringField(&p.Settings, &notifier, "authorization_credentials", "authorization_credentials")
-	packNotifierStringField(&p.Settings, &notifier, "message", "message")
-	packNotifierStringField(&p.Settings, &notifier, "title", "title")
-	if v, ok := p.Settings["maxAlerts"]; ok && v != nil {
+	packNotifierStringField(&settings, &notifier, "url", "url")
+	packNotifierStringField(&settings, &notifier, "httpMethod", "http_method")
+	packNotifierStringField(&settings, &notifier, "username", "basic_auth_user")
+	packNotifierStringField(&settings, &notifier, "password", "basic_auth_password")
+	packNotifierStringField(&settings, &notifier, "authorization_scheme", "authorization_scheme")
+	packNotifierStringField(&settings, &notifier, "authorization_credentials", "authorization_credentials")
+	packNotifierStringField(&settings, &notifier, "message", "message")
+	packNotifierStringField(&settings, &notifier, "title", "title")
+	if v, ok := settings["maxAlerts"]; ok && v != nil {
 		switch typ := v.(type) {
 		case int:
 			notifier["max_alerts"] = v.(int)
@@ -704,16 +712,16 @@ func (w oncallNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (in
 		default:
 			panic(fmt.Sprintf("unexpected type %T for 'maxAlerts': %v", typ, typ))
 		}
-		delete(p.Settings, "maxAlerts")
+		delete(settings, "maxAlerts")
 	}
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, w, p.UID), w.meta().secureFields)
 
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
 
-func (w oncallNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (w oncallNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -736,10 +744,10 @@ func (w oncallNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 		}
 	}
 
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  w.meta().typeStr,
+		Type:                  common.Ref(w.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -830,37 +838,38 @@ func (o opsGenieNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (o opsGenieNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
-	if v, ok := p.Settings["apiUrl"]; ok && v != nil {
+func (o opsGenieNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
+	if v, ok := settings["apiUrl"]; ok && v != nil {
 		notifier["url"] = v.(string)
-		delete(p.Settings, "apiUrl")
+		delete(settings, "apiUrl")
 	}
-	if v, ok := p.Settings["apiKey"]; ok && v != nil {
+	if v, ok := settings["apiKey"]; ok && v != nil {
 		notifier["api_key"] = v.(string)
-		delete(p.Settings, "apiKey")
+		delete(settings, "apiKey")
 	}
-	if v, ok := p.Settings["message"]; ok && v != nil {
+	if v, ok := settings["message"]; ok && v != nil {
 		notifier["message"] = v.(string)
-		delete(p.Settings, "message")
+		delete(settings, "message")
 	}
-	if v, ok := p.Settings["description"]; ok && v != nil {
+	if v, ok := settings["description"]; ok && v != nil {
 		notifier["description"] = v.(string)
-		delete(p.Settings, "description")
+		delete(settings, "description")
 	}
-	if v, ok := p.Settings["autoClose"]; ok && v != nil {
+	if v, ok := settings["autoClose"]; ok && v != nil {
 		notifier["auto_close"] = v.(bool)
-		delete(p.Settings, "autoClose")
+		delete(settings, "autoClose")
 	}
-	if v, ok := p.Settings["overridePriority"]; ok && v != nil {
+	if v, ok := settings["overridePriority"]; ok && v != nil {
 		notifier["override_priority"] = v.(bool)
-		delete(p.Settings, "overridePriority")
+		delete(settings, "overridePriority")
 	}
-	if v, ok := p.Settings["sendTagsAs"]; ok && v != nil {
+	if v, ok := settings["sendTagsAs"]; ok && v != nil {
 		notifier["send_tags_as"] = v.(string)
-		delete(p.Settings, "sendTagsAs")
+		delete(settings, "sendTagsAs")
 	}
-	if v, ok := p.Settings["responders"]; ok && v != nil {
+	if v, ok := settings["responders"]; ok && v != nil {
 		items := v.([]any)
 		responders := make([]map[string]interface{}, 0, len(items))
 		for _, item := range items {
@@ -873,16 +882,16 @@ func (o opsGenieNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (
 			responders = append(responders, responder)
 		}
 		notifier["responders"] = responders
-		delete(p.Settings, "responders")
+		delete(settings, "responders")
 	}
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, o, p.UID), o.meta().secureFields)
 
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
 
-func (o opsGenieNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (o opsGenieNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -921,10 +930,10 @@ func (o opsGenieNotifier) unpack(raw interface{}, name string) gapi.ContactPoint
 		}
 		settings["responders"] = responders
 	}
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  o.meta().typeStr,
+		Type:                  common.Ref(o.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -1003,56 +1012,57 @@ func (n pagerDutyNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (n pagerDutyNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
-	if v, ok := p.Settings["integrationKey"]; ok && v != nil {
+func (n pagerDutyNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
+	if v, ok := settings["integrationKey"]; ok && v != nil {
 		notifier["integration_key"] = v.(string)
-		delete(p.Settings, "integrationKey")
+		delete(settings, "integrationKey")
 	}
-	if v, ok := p.Settings["severity"]; ok && v != nil {
+	if v, ok := settings["severity"]; ok && v != nil {
 		notifier["severity"] = v.(string)
-		delete(p.Settings, "severity")
+		delete(settings, "severity")
 	}
-	if v, ok := p.Settings["class"]; ok && v != nil {
+	if v, ok := settings["class"]; ok && v != nil {
 		notifier["class"] = v.(string)
-		delete(p.Settings, "class")
+		delete(settings, "class")
 	}
-	if v, ok := p.Settings["component"]; ok && v != nil {
+	if v, ok := settings["component"]; ok && v != nil {
 		notifier["component"] = v.(string)
-		delete(p.Settings, "component")
+		delete(settings, "component")
 	}
-	if v, ok := p.Settings["group"]; ok && v != nil {
+	if v, ok := settings["group"]; ok && v != nil {
 		notifier["group"] = v.(string)
-		delete(p.Settings, "group")
+		delete(settings, "group")
 	}
-	if v, ok := p.Settings["summary"]; ok && v != nil {
+	if v, ok := settings["summary"]; ok && v != nil {
 		notifier["summary"] = v.(string)
-		delete(p.Settings, "summary")
+		delete(settings, "summary")
 	}
-	if v, ok := p.Settings["source"]; ok && v != nil {
+	if v, ok := settings["source"]; ok && v != nil {
 		notifier["source"] = v.(string)
-		delete(p.Settings, "source")
+		delete(settings, "source")
 	}
-	if v, ok := p.Settings["client"]; ok && v != nil {
+	if v, ok := settings["client"]; ok && v != nil {
 		notifier["client"] = v.(string)
-		delete(p.Settings, "client")
+		delete(settings, "client")
 	}
-	if v, ok := p.Settings["client_url"]; ok && v != nil {
+	if v, ok := settings["client_url"]; ok && v != nil {
 		notifier["client_url"] = v.(string)
-		delete(p.Settings, "client_url")
+		delete(settings, "client_url")
 	}
-	if v, ok := p.Settings["details"]; ok && v != nil {
+	if v, ok := settings["details"]; ok && v != nil {
 		notifier["details"] = unpackMap(v)
-		delete(p.Settings, "details")
+		delete(settings, "details")
 	}
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, n, p.UID), n.meta().secureFields)
 
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
 
-func (n pagerDutyNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (n pagerDutyNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -1084,10 +1094,10 @@ func (n pagerDutyNotifier) unpack(raw interface{}, name string) gapi.ContactPoin
 	if v, ok := json["details"]; ok && v != nil {
 		settings["details"] = unpackMap(v)
 	}
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  n.meta().typeStr,
+		Type:                  common.Ref(n.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -1173,80 +1183,81 @@ func (n pushoverNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (n pushoverNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
-	if v, ok := p.Settings["userKey"]; ok && v != nil {
+func (n pushoverNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
+	if v, ok := settings["userKey"]; ok && v != nil {
 		notifier["user_key"] = v.(string)
-		delete(p.Settings, "userKey")
+		delete(settings, "userKey")
 	}
-	if v, ok := p.Settings["apiToken"]; ok && v != nil {
+	if v, ok := settings["apiToken"]; ok && v != nil {
 		notifier["api_token"] = v.(string)
-		delete(p.Settings, "apiToken")
+		delete(settings, "apiToken")
 	}
-	if v, ok := p.Settings["priority"]; ok && v != nil {
+	if v, ok := settings["priority"]; ok && v != nil {
 		priority, err := strconv.Atoi(v.(string))
 		if err != nil {
 			return nil, err
 		}
 		notifier["priority"] = priority
-		delete(p.Settings, "priority")
+		delete(settings, "priority")
 	}
-	if v, ok := p.Settings["okPriority"]; ok && v != nil {
+	if v, ok := settings["okPriority"]; ok && v != nil {
 		priority, err := strconv.Atoi(v.(string))
 		if err != nil {
 			return nil, err
 		}
 		notifier["ok_priority"] = priority
-		delete(p.Settings, "okPriority")
+		delete(settings, "okPriority")
 	}
-	if v, ok := p.Settings["retry"]; ok && v != nil {
+	if v, ok := settings["retry"]; ok && v != nil {
 		priority, err := strconv.Atoi(v.(string))
 		if err != nil {
 			return nil, err
 		}
 		notifier["retry"] = priority
-		delete(p.Settings, "retry")
+		delete(settings, "retry")
 	}
-	if v, ok := p.Settings["expire"]; ok && v != nil {
+	if v, ok := settings["expire"]; ok && v != nil {
 		priority, err := strconv.Atoi(v.(string))
 		if err != nil {
 			return nil, err
 		}
 		notifier["expire"] = priority
-		delete(p.Settings, "expire")
+		delete(settings, "expire")
 	}
-	if v, ok := p.Settings["device"]; ok && v != nil {
+	if v, ok := settings["device"]; ok && v != nil {
 		notifier["device"] = v.(string)
-		delete(p.Settings, "device")
+		delete(settings, "device")
 	}
-	if v, ok := p.Settings["sound"]; ok && v != nil {
+	if v, ok := settings["sound"]; ok && v != nil {
 		notifier["sound"] = v.(string)
-		delete(p.Settings, "sound")
+		delete(settings, "sound")
 	}
-	if v, ok := p.Settings["okSound"]; ok && v != nil {
+	if v, ok := settings["okSound"]; ok && v != nil {
 		notifier["ok_sound"] = v.(string)
-		delete(p.Settings, "okSound")
+		delete(settings, "okSound")
 	}
-	if v, ok := p.Settings["title"]; ok && v != nil {
+	if v, ok := settings["title"]; ok && v != nil {
 		notifier["title"] = v.(string)
-		delete(p.Settings, "title")
+		delete(settings, "title")
 	}
-	if v, ok := p.Settings["message"]; ok && v != nil {
+	if v, ok := settings["message"]; ok && v != nil {
 		notifier["message"] = v.(string)
-		delete(p.Settings, "message")
+		delete(settings, "message")
 	}
-	if v, ok := p.Settings["uploadImage"]; ok && v != nil {
+	if v, ok := settings["uploadImage"]; ok && v != nil {
 		notifier["upload_image"] = v.(bool)
-		delete(p.Settings, "uploadImage")
+		delete(settings, "uploadImage")
 	}
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, n, p.UID), n.meta().secureFields)
 
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
 
-func (n pushoverNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (n pushoverNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -1283,10 +1294,10 @@ func (n pushoverNotifier) unpack(raw interface{}, name string) gapi.ContactPoint
 		settings["uploadImage"] = v.(bool)
 	}
 
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  n.meta().typeStr,
+		Type:                  common.Ref(n.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -1346,44 +1357,45 @@ func (s sensugoNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (s sensugoNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
-	if v, ok := p.Settings["url"]; ok && v != nil {
+func (s sensugoNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
+	if v, ok := settings["url"]; ok && v != nil {
 		notifier["url"] = v.(string)
-		delete(p.Settings, "url")
+		delete(settings, "url")
 	}
-	if v, ok := p.Settings["apikey"]; ok && v != nil {
+	if v, ok := settings["apikey"]; ok && v != nil {
 		notifier["api_key"] = v.(string)
-		delete(p.Settings, "apikey")
+		delete(settings, "apikey")
 	}
-	if v, ok := p.Settings["entity"]; ok && v != nil {
+	if v, ok := settings["entity"]; ok && v != nil {
 		notifier["entity"] = v.(string)
-		delete(p.Settings, "entity")
+		delete(settings, "entity")
 	}
-	if v, ok := p.Settings["check"]; ok && v != nil {
+	if v, ok := settings["check"]; ok && v != nil {
 		notifier["check"] = v.(string)
-		delete(p.Settings, "check")
+		delete(settings, "check")
 	}
-	if v, ok := p.Settings["namespace"]; ok && v != nil {
+	if v, ok := settings["namespace"]; ok && v != nil {
 		notifier["namespace"] = v.(string)
-		delete(p.Settings, "namespace")
+		delete(settings, "namespace")
 	}
-	if v, ok := p.Settings["handler"]; ok && v != nil {
+	if v, ok := settings["handler"]; ok && v != nil {
 		notifier["handler"] = v.(string)
-		delete(p.Settings, "handler")
+		delete(settings, "handler")
 	}
-	if v, ok := p.Settings["message"]; ok && v != nil {
+	if v, ok := settings["message"]; ok && v != nil {
 		notifier["message"] = v.(string)
-		delete(p.Settings, "message")
+		delete(settings, "message")
 	}
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, s, p.UID), s.meta().secureFields)
 
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
 
-func (s sensugoNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (s sensugoNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -1404,10 +1416,10 @@ func (s sensugoNotifier) unpack(raw interface{}, name string) gapi.ContactPoint 
 	if v, ok := json["message"]; ok && v != nil {
 		settings["message"] = v.(string)
 	}
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  s.meta().typeStr,
+		Type:                  common.Ref(s.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -1493,30 +1505,31 @@ func (s slackNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (s slackNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
+func (s slackNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
 
-	packNotifierStringField(&p.Settings, &notifier, "endpointUrl", "endpoint_url")
-	packNotifierStringField(&p.Settings, &notifier, "url", "url")
-	packNotifierStringField(&p.Settings, &notifier, "token", "token")
-	packNotifierStringField(&p.Settings, &notifier, "recipient", "recipient")
-	packNotifierStringField(&p.Settings, &notifier, "text", "text")
-	packNotifierStringField(&p.Settings, &notifier, "title", "title")
-	packNotifierStringField(&p.Settings, &notifier, "username", "username")
-	packNotifierStringField(&p.Settings, &notifier, "icon_emoji", "icon_emoji")
-	packNotifierStringField(&p.Settings, &notifier, "icon_url", "icon_url")
-	packNotifierStringField(&p.Settings, &notifier, "mentionChannel", "mention_channel")
-	packNotifierStringField(&p.Settings, &notifier, "mentionUsers", "mention_users")
-	packNotifierStringField(&p.Settings, &notifier, "mentionGroups", "mention_groups")
+	packNotifierStringField(&settings, &notifier, "endpointUrl", "endpoint_url")
+	packNotifierStringField(&settings, &notifier, "url", "url")
+	packNotifierStringField(&settings, &notifier, "token", "token")
+	packNotifierStringField(&settings, &notifier, "recipient", "recipient")
+	packNotifierStringField(&settings, &notifier, "text", "text")
+	packNotifierStringField(&settings, &notifier, "title", "title")
+	packNotifierStringField(&settings, &notifier, "username", "username")
+	packNotifierStringField(&settings, &notifier, "icon_emoji", "icon_emoji")
+	packNotifierStringField(&settings, &notifier, "icon_url", "icon_url")
+	packNotifierStringField(&settings, &notifier, "mentionChannel", "mention_channel")
+	packNotifierStringField(&settings, &notifier, "mentionUsers", "mention_users")
+	packNotifierStringField(&settings, &notifier, "mentionGroups", "mention_groups")
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, s, p.UID), s.meta().secureFields)
 
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 
 	return notifier, nil
 }
 
-func (s slackNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (s slackNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -1533,10 +1546,10 @@ func (s slackNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	unpackNotifierStringField(&json, &settings, "mention_users", "mentionUsers")
 	unpackNotifierStringField(&json, &settings, "mention_groups", "mentionGroups")
 
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  s.meta().typeStr,
+		Type:                  common.Ref(s.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -1581,21 +1594,22 @@ func (t teamsNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (t teamsNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
+func (t teamsNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
 
-	packNotifierStringField(&p.Settings, &notifier, "url", "url")
-	packNotifierStringField(&p.Settings, &notifier, "message", "message")
-	packNotifierStringField(&p.Settings, &notifier, "title", "title")
-	packNotifierStringField(&p.Settings, &notifier, "sectiontitle", "section_title")
+	packNotifierStringField(&settings, &notifier, "url", "url")
+	packNotifierStringField(&settings, &notifier, "message", "message")
+	packNotifierStringField(&settings, &notifier, "title", "title")
+	packNotifierStringField(&settings, &notifier, "sectiontitle", "section_title")
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, t, p.UID), t.meta().secureFields)
 
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
 
-func (t teamsNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (t teamsNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -1604,10 +1618,10 @@ func (t teamsNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	unpackNotifierStringField(&json, &settings, "title", "title")
 	unpackNotifierStringField(&json, &settings, "section_title", "sectiontitle")
 
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  t.meta().typeStr,
+		Type:                  common.Ref(t.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -1668,34 +1682,35 @@ func (t telegramNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (t telegramNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
+func (t telegramNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
 
-	packNotifierStringField(&p.Settings, &notifier, "bottoken", "token")
-	packNotifierStringField(&p.Settings, &notifier, "chatid", "chat_id")
-	packNotifierStringField(&p.Settings, &notifier, "message", "message")
-	packNotifierStringField(&p.Settings, &notifier, "parse_mode", "parse_mode")
+	packNotifierStringField(&settings, &notifier, "bottoken", "token")
+	packNotifierStringField(&settings, &notifier, "chatid", "chat_id")
+	packNotifierStringField(&settings, &notifier, "message", "message")
+	packNotifierStringField(&settings, &notifier, "parse_mode", "parse_mode")
 
-	if v, ok := p.Settings["disable_web_page_preview"]; ok && v != nil {
+	if v, ok := settings["disable_web_page_preview"]; ok && v != nil {
 		notifier["disable_web_page_preview"] = v.(bool)
-		delete(p.Settings, "disable_web_page_preview")
+		delete(settings, "disable_web_page_preview")
 	}
-	if v, ok := p.Settings["protect_content"]; ok && v != nil {
+	if v, ok := settings["protect_content"]; ok && v != nil {
 		notifier["protect_content"] = v.(bool)
-		delete(p.Settings, "protect_content")
+		delete(settings, "protect_content")
 	}
-	if v, ok := p.Settings["disable_notifications"]; ok && v != nil {
+	if v, ok := settings["disable_notifications"]; ok && v != nil {
 		notifier["disable_notifications"] = v.(bool)
-		delete(p.Settings, "disable_notifications")
+		delete(settings, "disable_notifications")
 	}
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, t, p.UID), t.meta().secureFields)
 
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
 
-func (t telegramNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (t telegramNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -1714,10 +1729,10 @@ func (t telegramNotifier) unpack(raw interface{}, name string) gapi.ContactPoint
 		settings["disable_notifications"] = v.(bool)
 	}
 
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  t.meta().typeStr,
+		Type:                  common.Ref(t.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -1767,22 +1782,23 @@ func (t threemaNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (t threemaNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
+func (t threemaNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
 
-	packNotifierStringField(&p.Settings, &notifier, "gateway_id", "gateway_id")
-	packNotifierStringField(&p.Settings, &notifier, "recipient_id", "recipient_id")
-	packNotifierStringField(&p.Settings, &notifier, "api_secret", "api_secret")
-	packNotifierStringField(&p.Settings, &notifier, "title", "title")
-	packNotifierStringField(&p.Settings, &notifier, "description", "description")
+	packNotifierStringField(&settings, &notifier, "gateway_id", "gateway_id")
+	packNotifierStringField(&settings, &notifier, "recipient_id", "recipient_id")
+	packNotifierStringField(&settings, &notifier, "api_secret", "api_secret")
+	packNotifierStringField(&settings, &notifier, "title", "title")
+	packNotifierStringField(&settings, &notifier, "description", "description")
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, t, p.UID), t.meta().secureFields)
 
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
 
-func (t threemaNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (t threemaNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -1792,10 +1808,10 @@ func (t threemaNotifier) unpack(raw interface{}, name string) gapi.ContactPoint 
 	unpackNotifierStringField(&json, &settings, "title", "title")
 	unpackNotifierStringField(&json, &settings, "description", "description")
 
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  t.meta().typeStr,
+		Type:                  common.Ref(t.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -1838,19 +1854,20 @@ func (v victorOpsNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (v victorOpsNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
+func (v victorOpsNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
 
-	packNotifierStringField(&p.Settings, &notifier, "url", "url")
-	packNotifierStringField(&p.Settings, &notifier, "messageType", "message_type")
-	packNotifierStringField(&p.Settings, &notifier, "title", "title")
-	packNotifierStringField(&p.Settings, &notifier, "description", "description")
+	packNotifierStringField(&settings, &notifier, "url", "url")
+	packNotifierStringField(&settings, &notifier, "messageType", "message_type")
+	packNotifierStringField(&settings, &notifier, "title", "title")
+	packNotifierStringField(&settings, &notifier, "description", "description")
 
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
 
-func (v victorOpsNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (v victorOpsNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -1859,10 +1876,10 @@ func (v victorOpsNotifier) unpack(raw interface{}, name string) gapi.ContactPoin
 	unpackNotifierStringField(&json, &settings, "title", "title")
 	unpackNotifierStringField(&json, &settings, "description", "description")
 
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  v.meta().typeStr,
+		Type:                  common.Ref(v.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -1907,21 +1924,22 @@ func (w webexNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (w webexNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
+func (w webexNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
 
-	packNotifierStringField(&p.Settings, &notifier, "bot_token", "token")
-	packNotifierStringField(&p.Settings, &notifier, "api_url", "api_url")
-	packNotifierStringField(&p.Settings, &notifier, "message", "message")
-	packNotifierStringField(&p.Settings, &notifier, "room_id", "room_id")
+	packNotifierStringField(&settings, &notifier, "bot_token", "token")
+	packNotifierStringField(&settings, &notifier, "api_url", "api_url")
+	packNotifierStringField(&settings, &notifier, "message", "message")
+	packNotifierStringField(&settings, &notifier, "room_id", "room_id")
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, w, p.UID), w.meta().secureFields)
 
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
 
-func (w webexNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (w webexNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -1930,10 +1948,10 @@ func (w webexNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	unpackNotifierStringField(&json, &settings, "message", "message")
 	unpackNotifierStringField(&json, &settings, "room_id", "room_id")
 
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  w.meta().typeStr,
+		Type:                  common.Ref(w.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -2004,18 +2022,19 @@ func (w webhookNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (w webhookNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
+func (w webhookNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
 
-	packNotifierStringField(&p.Settings, &notifier, "url", "url")
-	packNotifierStringField(&p.Settings, &notifier, "httpMethod", "http_method")
-	packNotifierStringField(&p.Settings, &notifier, "username", "basic_auth_user")
-	packNotifierStringField(&p.Settings, &notifier, "password", "basic_auth_password")
-	packNotifierStringField(&p.Settings, &notifier, "authorization_scheme", "authorization_scheme")
-	packNotifierStringField(&p.Settings, &notifier, "authorization_credentials", "authorization_credentials")
-	packNotifierStringField(&p.Settings, &notifier, "message", "message")
-	packNotifierStringField(&p.Settings, &notifier, "title", "title")
-	if v, ok := p.Settings["maxAlerts"]; ok && v != nil {
+	packNotifierStringField(&settings, &notifier, "url", "url")
+	packNotifierStringField(&settings, &notifier, "httpMethod", "http_method")
+	packNotifierStringField(&settings, &notifier, "username", "basic_auth_user")
+	packNotifierStringField(&settings, &notifier, "password", "basic_auth_password")
+	packNotifierStringField(&settings, &notifier, "authorization_scheme", "authorization_scheme")
+	packNotifierStringField(&settings, &notifier, "authorization_credentials", "authorization_credentials")
+	packNotifierStringField(&settings, &notifier, "message", "message")
+	packNotifierStringField(&settings, &notifier, "title", "title")
+	if v, ok := settings["maxAlerts"]; ok && v != nil {
 		switch typ := v.(type) {
 		case int:
 			notifier["max_alerts"] = v.(int)
@@ -2030,16 +2049,16 @@ func (w webhookNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (i
 		default:
 			panic(fmt.Sprintf("unexpected type %T for 'maxAlerts': %v", typ, typ))
 		}
-		delete(p.Settings, "maxAlerts")
+		delete(settings, "maxAlerts")
 	}
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, w, p.UID), w.meta().secureFields)
 
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
 
-func (w webhookNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (w webhookNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -2062,10 +2081,10 @@ func (w webhookNotifier) unpack(raw interface{}, name string) gapi.ContactPoint 
 		}
 	}
 
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  w.meta().typeStr,
+		Type:                  common.Ref(w.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}
@@ -2132,25 +2151,26 @@ func (w wecomNotifier) schema() *schema.Resource {
 	return r
 }
 
-func (w wecomNotifier) pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error) {
-	notifier := packCommonNotifierFields(&p)
+func (w wecomNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
 
-	packNotifierStringField(&p.Settings, &notifier, "url", "url")
-	packNotifierStringField(&p.Settings, &notifier, "message", "message")
-	packNotifierStringField(&p.Settings, &notifier, "title", "title")
-	packNotifierStringField(&p.Settings, &notifier, "secret", "secret")
-	packNotifierStringField(&p.Settings, &notifier, "corp_id", "corp_id")
-	packNotifierStringField(&p.Settings, &notifier, "agent_id", "agent_id")
-	packNotifierStringField(&p.Settings, &notifier, "msgtype", "msg_type")
-	packNotifierStringField(&p.Settings, &notifier, "touser", "to_user")
+	packNotifierStringField(&settings, &notifier, "url", "url")
+	packNotifierStringField(&settings, &notifier, "message", "message")
+	packNotifierStringField(&settings, &notifier, "title", "title")
+	packNotifierStringField(&settings, &notifier, "secret", "secret")
+	packNotifierStringField(&settings, &notifier, "corp_id", "corp_id")
+	packNotifierStringField(&settings, &notifier, "agent_id", "agent_id")
+	packNotifierStringField(&settings, &notifier, "msgtype", "msg_type")
+	packNotifierStringField(&settings, &notifier, "touser", "to_user")
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, w, p.UID), w.meta().secureFields)
 
-	notifier["settings"] = packSettings(&p)
+	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
 
-func (w wecomNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
+func (w wecomNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
 	json := raw.(map[string]interface{})
 	uid, disableResolve, settings := unpackCommonNotifierFields(json)
 
@@ -2163,10 +2183,10 @@ func (w wecomNotifier) unpack(raw interface{}, name string) gapi.ContactPoint {
 	unpackNotifierStringField(&json, &settings, "msg_type", "msgtype")
 	unpackNotifierStringField(&json, &settings, "to_user", "touser")
 
-	return gapi.ContactPoint{
+	return &models.EmbeddedContactPoint{
 		UID:                   uid,
 		Name:                  name,
-		Type:                  w.meta().typeStr,
+		Type:                  common.Ref(w.meta().typeStr),
 		DisableResolveMessage: disableResolve,
 		Settings:              settings,
 	}

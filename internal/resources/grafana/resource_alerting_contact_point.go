@@ -6,7 +6,8 @@ import (
 	"log"
 	"strings"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -46,7 +47,7 @@ Manages Grafana Alerting contact points.
 
 This resource requires Grafana 9.1.0 or later.
 `,
-		CreateContext: createContactPoint,
+		CreateContext: updateContactPoint,
 		ReadContext:   readContactPoint,
 		UpdateContext: updateContactPoint,
 		DeleteContext: deleteContactPoint,
@@ -86,12 +87,14 @@ This resource requires Grafana 9.1.0 or later.
 
 func importContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	name := data.Id()
-	client := meta.(*common.Client).DeprecatedGrafanaAPI
+	client := OAPIGlobalClient(meta) // TODO: Support org-scoped contact points
 
-	ps, err := client.ContactPointsByName(name)
+	params := provisioning.NewGetContactpointsParams().WithName(&name)
+	resp, err := client.Provisioning.GetContactpoints(params)
 	if err != nil {
 		return nil, err
 	}
+	ps := resp.Payload
 
 	if len(ps) == 0 {
 		return nil, fmt.Errorf("no contact points with the given name were found to import")
@@ -107,25 +110,30 @@ func importContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 }
 
 func readContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).DeprecatedGrafanaAPI
+	client := OAPIGlobalClient(meta) // TODO: Support org-scoped contact points
 
 	uidsToFetch := unpackUIDs(data.Id())
 
-	points := []gapi.ContactPoint{}
+	resp, err := client.Provisioning.GetContactpoints(nil)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	contactPointByUID := map[string]*models.EmbeddedContactPoint{}
+	for _, p := range resp.Payload {
+		contactPointByUID[p.UID] = p
+	}
+
+	points := []*models.EmbeddedContactPoint{}
 	for _, uid := range uidsToFetch {
-		p, err := client.ContactPoint(uid)
-		if err != nil {
-			if strings.HasPrefix(err.Error(), "status: 404") || strings.Contains(err.Error(), "not found") {
-				log.Printf("[WARN] removing contact point %s from state because it no longer exists in grafana", uid)
-				continue
-			}
-			return diag.FromErr(err)
+		p, ok := contactPointByUID[uid]
+		if !ok {
+			log.Printf("[WARN] removing contact point %s from state because it no longer exists in grafana", uid)
+			continue
 		}
 		points = append(points, p)
 	}
 
-	err := packContactPoints(points, data)
-	if err != nil {
+	if err := packContactPoints(points, data); err != nil {
 		return diag.FromErr(err)
 	}
 	uids := make([]string, 0, len(points))
@@ -137,51 +145,28 @@ func readContactPoint(ctx context.Context, data *schema.ResourceData, meta inter
 	return nil
 }
 
-func createContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).DeprecatedGrafanaAPI
-
-	ps := unpackContactPoints(data)
-	uids := make([]string, 0, len(ps))
-
-	lock.Lock()
-	defer lock.Unlock()
-	for i := range ps {
-		p := ps[i]
-		uid, err := client.NewContactPoint(&p.gfState)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		uids = append(uids, uid)
-
-		// Since this is a new resource, the proposed state won't have a UID.
-		// We need the UID so that we can later associate it with the config returned in the api response.
-		p.tfState["uid"] = uid
-	}
-
-	data.SetId(packUIDs(uids))
-	return readContactPoint(ctx, data, meta)
-}
-
 func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).DeprecatedGrafanaAPI
+	lock.Lock()
+	defer lock.Unlock()
+	client := OAPIGlobalClient(meta) // TODO: Support org-scoped contact points
 
 	existingUIDs := unpackUIDs(data.Id())
 	ps := unpackContactPoints(data)
 
 	unprocessedUIDs := toUIDSet(existingUIDs)
 	newUIDs := make([]string, 0, len(ps))
-	lock.Lock()
-	defer lock.Unlock()
 	for i := range ps {
 		p := ps[i].gfState
 		delete(unprocessedUIDs, p.UID)
-		err := client.UpdateContactPoint(&p)
+		params := provisioning.NewPutContactpointParams().WithUID(p.UID).WithBody(p)
+		_, err := client.Provisioning.PutContactpoint(params)
 		if err != nil {
-			if strings.HasPrefix(err.Error(), "status: 404") {
-				uid, err := client.NewContactPoint(&p)
-				newUIDs = append(newUIDs, uid)
+			if common.IsNotFoundError(err) {
+				params := provisioning.NewPostContactpointsParams().WithBody(p)
+				resp, err := client.Provisioning.PostContactpoints(params)
+				ps[i].tfState["uid"] = resp.Payload.UID
+				newUIDs = append(newUIDs, resp.Payload.UID)
 				if err != nil {
 					return diag.FromErr(err)
 				}
@@ -195,7 +180,7 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 	// Any UIDs still left in the state that we haven't seen must map to deleted receivers.
 	// Delete them on the server and drop them from state.
 	for u := range unprocessedUIDs {
-		if err := client.DeleteContactPoint(u); err != nil {
+		if _, err := client.Provisioning.DeleteContactpoints(u); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -207,14 +192,14 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 
 func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).DeprecatedGrafanaAPI
+	lock.Lock()
+	defer lock.Unlock()
+	client := OAPIGlobalClient(meta) // TODO: Support org-scoped contact points
 
 	uids := unpackUIDs(data.Id())
 
-	lock.Lock()
-	defer lock.Unlock()
 	for _, uid := range uids {
-		if err := client.DeleteContactPoint(uid); err != nil {
+		if _, err := client.Provisioning.DeleteContactpoints(uid); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -239,24 +224,25 @@ func unpackContactPoints(data *schema.ResourceData) []statePair {
 	return result
 }
 
-func unpackPointConfig(n notifier, data interface{}, name string) gapi.ContactPoint {
+func unpackPointConfig(n notifier, data interface{}, name string) *models.EmbeddedContactPoint {
 	pt := n.unpack(data, name)
+	settings := pt.Settings.(map[string]interface{})
 	// Treat settings like `omitempty`. Workaround for versions affected by https://github.com/grafana/grafana/issues/55139
-	for k, v := range pt.Settings {
+	for k, v := range settings {
 		if v == "" {
-			delete(pt.Settings, k)
+			delete(settings, k)
 		}
 	}
 	return pt
 }
 
-func packContactPoints(ps []gapi.ContactPoint, data *schema.ResourceData) error {
+func packContactPoints(ps []*models.EmbeddedContactPoint, data *schema.ResourceData) error {
 	pointsPerNotifier := map[notifier][]interface{}{}
 	for _, p := range ps {
 		data.Set("name", p.Name)
 
 		for _, n := range notifiers {
-			if p.Type == n.meta().typeStr {
+			if *p.Type == n.meta().typeStr {
 				packed, err := n.pack(p, data)
 				if err != nil {
 					return err
@@ -278,16 +264,16 @@ func unpackCommonNotifierFields(raw map[string]interface{}) (string, bool, map[s
 	return raw["uid"].(string), raw["disable_resolve_message"].(bool), raw["settings"].(map[string]interface{})
 }
 
-func packCommonNotifierFields(p *gapi.ContactPoint) map[string]interface{} {
+func packCommonNotifierFields(p *models.EmbeddedContactPoint) map[string]interface{} {
 	return map[string]interface{}{
 		"uid":                     p.UID,
 		"disable_resolve_message": p.DisableResolveMessage,
 	}
 }
 
-func packSettings(p *gapi.ContactPoint) map[string]interface{} {
+func packSettings(p *models.EmbeddedContactPoint) map[string]interface{} {
 	settings := map[string]interface{}{}
-	for k, v := range p.Settings {
+	for k, v := range p.Settings.(map[string]interface{}) {
 		settings[k] = fmt.Sprintf("%#v", v)
 	}
 	return settings
@@ -342,8 +328,8 @@ func toUIDSet(uids []string) map[string]bool {
 type notifier interface {
 	meta() notifierMeta
 	schema() *schema.Resource
-	pack(p gapi.ContactPoint, data *schema.ResourceData) (interface{}, error)
-	unpack(raw interface{}, name string) gapi.ContactPoint
+	pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error)
+	unpack(raw interface{}, name string) *models.EmbeddedContactPoint
 }
 
 type notifierMeta struct {
@@ -355,7 +341,7 @@ type notifierMeta struct {
 
 type statePair struct {
 	tfState map[string]interface{}
-	gfState gapi.ContactPoint
+	gfState *models.EmbeddedContactPoint
 }
 
 func packNotifierStringField(gfSettings, tfSettings *map[string]interface{}, gfKey, tfKey string) {
