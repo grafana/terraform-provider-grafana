@@ -57,11 +57,11 @@ This resource requires Grafana 9.1.0 or later.
 				Required:    true,
 				Description: "The interval, in seconds, at which all rules in the group are evaluated. If a group contains many rules, the rules are evaluated sequentially.",
 			},
-			"allow_editing_from_ui": {
+			"disable_provenance": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Whether to allow editing of the rule group from the Grafana UI.",
+				Description: "Allow modifying the rule group from other sources than Terraform or the Grafana API.",
 			},
 			"rule": {
 				Type:        schema.TypeList,
@@ -208,7 +208,7 @@ func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta int
 	data.Set("name", g.Title)
 	data.Set("folder_uid", g.FolderUID)
 	data.Set("interval_seconds", g.Interval)
-	allowEditingFromUI := true
+	disableProvenance := true
 	rules := make([]interface{}, 0, len(g.Rules))
 	for _, r := range g.Rules {
 		ruleResp, err := client.Provisioning.GetAlertRule(r.UID) // We need to get the rule through a separate API call to get the provenance.
@@ -222,11 +222,11 @@ func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta int
 			return diag.FromErr(err)
 		}
 		if r.Provenance != "" {
-			allowEditingFromUI = false
+			disableProvenance = false
 		}
 		rules = append(rules, packed)
 	}
-	data.Set("allow_editing_from_ui", allowEditingFromUI)
+	data.Set("disable_provenance", disableProvenance)
 	data.Set("rule", rules)
 	data.SetId(MakeOrgResourceID(orgID, packGroupID(key)))
 
@@ -259,7 +259,7 @@ func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta inte
 		Interval:  int64(interval),
 	})
 
-	if data.Get("allow_editing_from_ui").(bool) {
+	if data.Get("disable_provenance").(bool) {
 		disableProvenance := "disabled" // This can be any non-empty string.
 		putParams.SetXDisableProvenance(&disableProvenance)
 	}

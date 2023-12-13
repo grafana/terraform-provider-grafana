@@ -268,7 +268,7 @@ func TestAccAlertRule_inOrg(t *testing.T) {
 	})
 }
 
-func TestAccAlertRule_editFromUI(t *testing.T) {
+func TestAccAlertRule_disableProvenance(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	var group models.AlertRuleGroup
@@ -289,7 +289,7 @@ func TestAccAlertRule_editFromUI(t *testing.T) {
 					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_rule_group.test", "grafana_organization.test"),
 					resource.TestCheckResourceAttr("grafana_rule_group.test", "name", name),
-					resource.TestCheckResourceAttr("grafana_rule_group.test", "allow_editing_from_ui", "false"),
+					resource.TestCheckResourceAttr("grafana_rule_group.test", "disable_provenance", "false"),
 				),
 			},
 			// Test import.
@@ -306,7 +306,7 @@ func TestAccAlertRule_editFromUI(t *testing.T) {
 					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_rule_group.test", "grafana_organization.test"),
 					resource.TestCheckResourceAttr("grafana_rule_group.test", "name", name),
-					resource.TestCheckResourceAttr("grafana_rule_group.test", "allow_editing_from_ui", "true"),
+					resource.TestCheckResourceAttr("grafana_rule_group.test", "disable_provenance", "true"),
 				),
 			},
 			// Test import.
@@ -323,14 +323,14 @@ func TestAccAlertRule_editFromUI(t *testing.T) {
 					orgCheckExists.exists("grafana_organization.test", &org),
 					checkResourceIsInOrg("grafana_rule_group.test", "grafana_organization.test"),
 					resource.TestCheckResourceAttr("grafana_rule_group.test", "name", name),
-					resource.TestCheckResourceAttr("grafana_rule_group.test", "allow_editing_from_ui", "false"),
+					resource.TestCheckResourceAttr("grafana_rule_group.test", "disable_provenance", "false"),
 				),
 			},
 		},
 	})
 }
 
-func testAccAlertRuleGroupInOrgConfig(name string, interval int, enableEditingInUI bool) string {
+func testAccAlertRuleGroupInOrgConfig(name string, interval int, disableProvenance bool) string {
 	return fmt.Sprintf(`
 resource "grafana_organization" "test" {
 	name = "%[1]s"
@@ -346,7 +346,7 @@ resource "grafana_rule_group" "test" {
 	name             = "%[1]s"
 	folder_uid       = grafana_folder.test.uid
 	interval_seconds = %[2]d
-	allow_editing_from_ui = %[3]t
+	disable_provenance = %[3]t
 	rule {
 		name           = "My Alert Rule 1"
 		for            = "2m"
@@ -371,5 +371,5 @@ resource "grafana_rule_group" "test" {
 		}
 	}
 }
-`, name, interval, enableEditingInUI)
+`, name, interval, disableProvenance)
 }

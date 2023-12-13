@@ -120,7 +120,7 @@ EOT
 
 ### Optional
 
-- `allow_editing_from_ui` (Boolean) Whether to allow editing of the rule group from the Grafana UI. Defaults to `false`.
+- `disable_provenance` (Boolean) Allow modifying the rule group from other sources than Terraform or the Grafana API. Defaults to `false`.
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 
 ### Read-Only
