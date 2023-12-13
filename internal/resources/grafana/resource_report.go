@@ -240,7 +240,7 @@ func ResourceReport() *schema.Resource {
 }
 
 func CreateReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
+	client, orgID := DeprecatedClientFromNewOrgResource(meta, d)
 
 	report, err := schemaToReport(client, d)
 	if err != nil {
@@ -257,7 +257,7 @@ func CreateReport(ctx context.Context, d *schema.ResourceData, meta interface{})
 }
 
 func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := DeprecatedClientFromExistingOrgResource(meta, d.Id())
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -317,7 +317,7 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func UpdateReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := DeprecatedClientFromExistingOrgResource(meta, d.Id())
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -337,7 +337,7 @@ func UpdateReport(ctx context.Context, d *schema.ResourceData, meta interface{})
 }
 
 func DeleteReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := DeprecatedClientFromExistingOrgResource(meta, d.Id())
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)

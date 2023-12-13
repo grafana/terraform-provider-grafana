@@ -83,7 +83,7 @@ func ReadServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, 
 }
 
 func CreateServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
+	client, orgID := DeprecatedClientFromNewOrgResource(meta, d)
 	_, idStr := SplitOrgResourceID(d.Get("service_account_id").(string))
 	d.SetId(MakeOrgResourceID(orgID, idStr))
 
@@ -101,7 +101,7 @@ func CreateServiceAccountPermissions(ctx context.Context, d *schema.ResourceData
 }
 
 func UpdateServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := DeprecatedClientFromExistingOrgResource(meta, d.Id())
 
 	old, new := d.GetChange("permissions")
 	err := updateServiceAccountPermissions(client, idStr, old, new)
@@ -126,12 +126,12 @@ func DeleteServiceAccountPermissions(ctx context.Context, d *schema.ResourceData
 		return diags
 	}
 
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := DeprecatedClientFromExistingOrgResource(meta, d.Id())
 	return diag.FromErr(updateServiceAccountPermissions(client, idStr, d.Get("permissions"), nil))
 }
 
 func getServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) (interface{}, diag.Diagnostics) {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := DeprecatedClientFromExistingOrgResource(meta, d.Id())
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return nil, diag.FromErr(err)

@@ -240,7 +240,7 @@ func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{
 		return diags
 	}
 
-	client := m.(*common.Client).GrafanaAPI
+	client := m.(*common.Client).DeprecatedGrafanaAPI
 	response, err := client.CreateSlo(slo)
 
 	if err != nil {
@@ -264,7 +264,7 @@ func resourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{})
 
 	sloID := d.Id()
 
-	client := m.(*common.Client).GrafanaAPI
+	client := m.(*common.Client).DeprecatedGrafanaAPI
 	slo, err := client.GetSlo(sloID)
 
 	if err != nil {
@@ -296,7 +296,7 @@ func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{
 			return diags
 		}
 
-		client := m.(*common.Client).GrafanaAPI
+		client := m.(*common.Client).DeprecatedGrafanaAPI
 
 		err = client.UpdateSlo(sloID, slo)
 		if err != nil {
@@ -315,7 +315,7 @@ func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{
 func resourceSloDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	sloID := d.Id()
 
-	client := m.(*common.Client).GrafanaAPI
+	client := m.(*common.Client).DeprecatedGrafanaAPI
 
 	return diag.FromErr(client.DeleteSlo(sloID))
 }

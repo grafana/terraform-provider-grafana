@@ -172,7 +172,7 @@ func policySchema(depth uint) *schema.Resource {
 }
 
 func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaAPI
+	client := meta.(*common.Client).DeprecatedGrafanaAPI
 
 	npt, err := client.NotificationPolicyTree()
 	if err != nil {
@@ -186,7 +186,7 @@ func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta
 
 func createNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
+	client := meta.(*common.Client).DeprecatedGrafanaAPI
 
 	npt, err := unpackNotifPolicy(data)
 	if err != nil {
@@ -205,7 +205,7 @@ func createNotificationPolicy(ctx context.Context, data *schema.ResourceData, me
 
 func updateNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
+	client := meta.(*common.Client).DeprecatedGrafanaAPI
 
 	npt, err := unpackNotifPolicy(data)
 	if err != nil {
@@ -223,7 +223,7 @@ func updateNotificationPolicy(ctx context.Context, data *schema.ResourceData, me
 
 func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).GrafanaAPI
+	client := meta.(*common.Client).DeprecatedGrafanaAPI
 
 	lock.Lock()
 	defer lock.Unlock()

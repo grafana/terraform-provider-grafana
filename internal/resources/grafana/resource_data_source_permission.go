@@ -82,7 +82,7 @@ Manages the entire set of permissions for a datasource. Permissions that aren't 
 }
 
 func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
+	client, orgID := DeprecatedClientFromNewOrgResource(meta, d)
 
 	var list []interface{}
 	if v, ok := d.GetOk("permissions"); ok {
@@ -128,7 +128,7 @@ func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 }
 
 func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := DeprecatedClientFromExistingOrgResource(meta, d.Id())
 
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -166,7 +166,7 @@ func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta
 }
 
 func DeleteDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := DeprecatedClientFromExistingOrgResource(meta, d.Id())
 
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {

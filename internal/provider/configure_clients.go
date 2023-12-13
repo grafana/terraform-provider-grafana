@@ -29,7 +29,7 @@ func createClients(providerConfig frameworkProviderConfig) (*common.Client, erro
 	var err error
 	c := &common.Client{}
 	if !providerConfig.Auth.IsNull() {
-		c.GrafanaAPIURL, c.GrafanaAPIConfig, c.GrafanaAPI, err = createGrafanaClient(providerConfig)
+		c.GrafanaAPIURL, c.GrafanaAPIConfig, c.DeprecatedGrafanaAPI, err = createGrafanaClient(providerConfig)
 		if err != nil {
 			return nil, err
 		}

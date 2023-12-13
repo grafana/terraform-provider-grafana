@@ -17,7 +17,7 @@ import (
 type metadataValidation func(resourceName string, m interface{}) error
 
 func grafanaClientPresent(resourceName string, m interface{}) error {
-	if m.(*common.Client).GrafanaAPI == nil {
+	if m.(*common.Client).GrafanaOAPI == nil {
 		return fmt.Errorf("the Grafana client is required for `%s`. Set the auth and url provider attributes", resourceName)
 	}
 	return nil

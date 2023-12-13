@@ -62,7 +62,7 @@ Manages Grafana API Keys.
 }
 
 func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c, orgID := ClientFromNewOrgResource(m, d)
+	c, orgID := DeprecatedClientFromNewOrgResource(m, d)
 
 	request := gapi.CreateAPIKeyRequest{
 		Name:          d.Get("name").(string),
@@ -82,7 +82,7 @@ func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interfa
 }
 
 func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c, orgID, idStr := ClientFromExistingOrgResource(m, d.Id())
+	c, orgID, idStr := DeprecatedClientFromExistingOrgResource(m, d.Id())
 
 	response, err := c.GetAPIKeys(true)
 	if err, shouldReturn := common.CheckReadError("API key", d, err); shouldReturn {
@@ -115,7 +115,7 @@ func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 }
 
 func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c, _, idStr := ClientFromExistingOrgResource(m, d.Id())
+	c, _, idStr := DeprecatedClientFromExistingOrgResource(m, d.Id())
 	id, err := strconv.ParseInt(idStr, 10, 32)
 	if err != nil {
 		return diag.FromErr(err)

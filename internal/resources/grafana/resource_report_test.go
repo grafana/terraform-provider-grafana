@@ -164,7 +164,7 @@ func testAccReportCheckExists(rn string, report *gapi.Report) resource.TestCheck
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
 		orgID, reportIDStr := grafana.SplitOrgResourceID(rs.Primary.ID)
 		reportID, err := strconv.ParseInt(reportIDStr, 10, 64)
 		if err != nil {
@@ -193,7 +193,7 @@ func testAccReportCheckExists(rn string, report *gapi.Report) resource.TestCheck
 
 func testAccReportCheckDestroy(report *gapi.Report) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
 		_, err := client.Report(report.ID)
 		if err == nil {
 			return fmt.Errorf("report still exists")

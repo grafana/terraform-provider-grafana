@@ -78,7 +78,7 @@ Manages Grafana public dashboards.
 }
 
 func CreatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := ClientFromNewOrgResource(meta, d)
+	client, orgID := DeprecatedClientFromNewOrgResource(meta, d)
 	dashboardUID := d.Get("dashboard_uid").(string)
 
 	publicDashboardPayload := makePublicDashboard(d)
@@ -92,7 +92,7 @@ func CreatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta int
 }
 func UpdatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	orgID, dashboardUID, publicDashboardUID := SplitPublicDashboardID(d.Id())
-	client := meta.(*common.Client).GrafanaAPI.WithOrgID(orgID)
+	client := meta.(*common.Client).DeprecatedGrafanaAPI.WithOrgID(orgID)
 
 	publicDashboard := makePublicDashboard(d)
 	pd, err := client.UpdatePublicDashboard(dashboardUID, publicDashboardUID, publicDashboard)
@@ -106,7 +106,7 @@ func UpdatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta int
 
 func DeletePublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	orgID, dashboardUID, publicDashboardUID := SplitPublicDashboardID(d.Id())
-	client := meta.(*common.Client).GrafanaAPI.WithOrgID(orgID)
+	client := meta.(*common.Client).DeprecatedGrafanaAPI.WithOrgID(orgID)
 	return diag.FromErr(client.DeletePublicDashboard(dashboardUID, publicDashboardUID))
 }
 
@@ -123,7 +123,7 @@ func makePublicDashboard(d *schema.ResourceData) gapi.PublicDashboardPayload {
 
 func ReadPublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	orgID, dashboardUID, _ := SplitPublicDashboardID(d.Id())
-	client := meta.(*common.Client).GrafanaAPI.WithOrgID(orgID)
+	client := meta.(*common.Client).DeprecatedGrafanaAPI.WithOrgID(orgID)
 	pd, err := client.PublicDashboardbyUID(dashboardUID)
 	if err, shouldReturn := common.CheckReadError("dashboard", d, err); shouldReturn {
 		return err

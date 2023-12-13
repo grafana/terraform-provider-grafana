@@ -90,7 +90,7 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 
 func testNotifPolicyCheckDestroy() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
 		npt, err := client.NotificationPolicyTree()
 		if err != nil {
 			return fmt.Errorf("failed to get notification policies")
@@ -114,7 +114,7 @@ func testNotifPolicyCheckExists(rname string) resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
 		npt, err := client.NotificationPolicyTree()
 		if err != nil {
 			return fmt.Errorf("failed to get notification policies")

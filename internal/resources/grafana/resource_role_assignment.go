@@ -107,7 +107,7 @@ func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func DeleteRoleAssignments(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := ClientFromExistingOrgResource(meta, d.Id())
+	client, _, uid := DeprecatedClientFromExistingOrgResource(meta, d.Id())
 
 	ra := &gapi.RoleAssignments{
 		RoleUID:         uid,

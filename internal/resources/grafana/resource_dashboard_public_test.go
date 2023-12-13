@@ -66,7 +66,7 @@ func testAccPublicDashboardCheckExistsUID(rn string) resource.TestCheckFunc {
 
 		orgID, dashboardUID, _ := grafana.SplitPublicDashboardID(rs.Primary.ID)
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
+		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI.WithOrgID(orgID)
 		pd, err := client.PublicDashboardbyUID(dashboardUID)
 		if pd == nil || err != nil {
 			return fmt.Errorf("Error getting public dashboard: %s", err)

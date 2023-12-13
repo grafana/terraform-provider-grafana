@@ -13,11 +13,11 @@ import (
 )
 
 type Client struct {
-	GrafanaAPIURL       string
-	GrafanaAPIURLParsed *url.URL
-	GrafanaAPIConfig    *gapi.Config
-	GrafanaAPI          *gapi.Client
-	GrafanaCloudAPI     *gapi.Client
+	GrafanaAPIURL        string
+	GrafanaAPIURLParsed  *url.URL
+	GrafanaAPIConfig     *gapi.Config
+	DeprecatedGrafanaAPI *gapi.Client
+	GrafanaCloudAPI      *gapi.Client
 
 	GrafanaOAPI *goapi.GrafanaHTTPAPI
 
