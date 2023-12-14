@@ -3,6 +3,7 @@ package cloud_test
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -17,7 +18,7 @@ func TestAccGrafanaServiceAccountFromCloud(t *testing.T) {
 	testutils.CheckCloudAPITestsEnabled(t)
 
 	var stack gapi.Stack
-	prefix := "tfserviceaccounttest"
+	prefix := "tfsatest"
 	slug := GetRandomStackName(prefix)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -83,6 +84,10 @@ func testAccGrafanaServiceAccountCheckDestroyCloud(s *terraform.State) error {
 		}
 
 		for _, sa := range response {
+			if strings.HasPrefix(sa.Name, "test-service-account-") {
+				continue // this is a service account created by this test
+			}
+
 			tokens, err := c.GetServiceAccountTokens(sa.ID)
 			if err != nil {
 				return err
@@ -90,10 +95,8 @@ func testAccGrafanaServiceAccountCheckDestroyCloud(s *terraform.State) error {
 			if len(tokens) > 0 {
 				return fmt.Errorf("found unexpected service account tokens for service account %s: %v", sa.Name, tokens)
 			}
-		}
 
-		if len(response) > 0 {
-			return fmt.Errorf("found unexpected service accounts: %v", response)
+			return fmt.Errorf("found unexpected service account: %v", sa)
 		}
 
 		return nil
