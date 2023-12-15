@@ -28,7 +28,7 @@ import (
 func createClients(providerConfig frameworkProviderConfig) (*common.Client, error) {
 	var err error
 	c := &common.Client{}
-	if !providerConfig.Auth.IsNull() {
+	if !providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull() {
 		c.GrafanaAPIURL, c.GrafanaAPIConfig, c.DeprecatedGrafanaAPI, err = createGrafanaClient(providerConfig)
 		if err != nil {
 			return nil, err
