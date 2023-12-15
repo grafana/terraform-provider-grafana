@@ -58,7 +58,7 @@ func TestResourceStack_Basic(t *testing.T) {
 			// but it shouldn't allow to apply an already existing stack on a new resource
 			{
 				Config: testAccStackConfigBasic(resourceName, resourceName) +
-					testAccStackConfigBasicWithCustomResourceName(resourceName, resourceName, "test2"), // new stack with same name/slug
+					testAccStackConfigBasicWithCustomResourceName(resourceName, resourceName, "eu", "test2"), // new stack with same name/slug
 				ExpectError: regexp.MustCompile(fmt.Sprintf(".*a stack with the name '%s' already exists.*", resourceName)),
 			},
 			// Test that the stack is correctly recreated if it's tainted and reapplied
@@ -170,17 +170,17 @@ func testAccStackCheckDestroy(a *gapi.Stack) resource.TestCheckFunc {
 }
 
 func testAccStackConfigBasic(name string, slug string) string {
-	return testAccStackConfigBasicWithCustomResourceName(name, slug, "test")
+	return testAccStackConfigBasicWithCustomResourceName(name, slug, "eu", "test")
 }
 
-func testAccStackConfigBasicWithCustomResourceName(name string, slug string, resourceName string) string {
+func testAccStackConfigBasicWithCustomResourceName(name, slug, region, resourceName string) string {
 	return fmt.Sprintf(`
 	resource "grafana_cloud_stack" "%s" {
 		name  = "%s"
 		slug  = "%s"
-		region_slug = "eu"
+		region_slug = "%s"
 	  }
-	`, resourceName, name, slug)
+	`, resourceName, name, slug, region)
 }
 
 func testAccStackConfigUpdate(name string, slug string, description string) string {

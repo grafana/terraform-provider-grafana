@@ -2,9 +2,9 @@ package grafana
 
 import (
 	"context"
-	"fmt"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -25,9 +25,9 @@ Sets the global notification policy for Grafana.
 This resource requires Grafana 9.1.0 or later.
 `,
 
-		CreateContext: createNotificationPolicy,
+		CreateContext: putNotificationPolicy,
 		ReadContext:   readNotificationPolicy,
-		UpdateContext: updateNotificationPolicy,
+		UpdateContext: putNotificationPolicy,
 		DeleteContext: deleteNotificationPolicy,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -116,9 +116,10 @@ func policySchema(depth uint) *schema.Resource {
 							Description: "The name of the label to match against.",
 						},
 						"match": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "The operator to apply when matching values of the given label. Allowed operators are `=` for equality, `!=` for negated equality, `=~` for regex equality, and `!~` for negated regex equality.",
+							Type:         schema.TypeString,
+							Required:     true,
+							Description:  "The operator to apply when matching values of the given label. Allowed operators are `=` for equality, `!=` for negated equality, `=~` for regex equality, and `!~` for negated regex equality.",
+							ValidateFunc: validation.StringInSlice([]string{"=", "!=", "=~", "!~"}, false),
 						},
 						"value": {
 							Type:        schema.TypeString,
@@ -172,69 +173,52 @@ func policySchema(depth uint) *schema.Resource {
 }
 
 func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).DeprecatedGrafanaAPI
+	client := OAPIGlobalClient(meta) // TODO: Support org-scoped policies
 
-	npt, err := client.NotificationPolicyTree()
+	resp, err := client.Provisioning.GetPolicyTree()
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	packNotifPolicy(npt, data)
+	packNotifPolicy(resp.Payload, data)
 	data.SetId(PolicySingletonID)
 	return nil
 }
 
-func createNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).DeprecatedGrafanaAPI
+	lock.Lock()
+	defer lock.Unlock()
+	client := OAPIGlobalClient(meta) // TODO: Support org-scoped policies
 
 	npt, err := unpackNotifPolicy(data)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	lock.Lock()
-	defer lock.Unlock()
-	if err := client.SetNotificationPolicyTree(&npt); err != nil {
+	params := provisioning.NewPutPolicyTreeParams().WithBody(npt)
+	if _, err := client.Provisioning.PutPolicyTree(params); err != nil {
 		return diag.FromErr(err)
 	}
 
 	data.SetId(PolicySingletonID)
-	return readNotificationPolicy(ctx, data, meta)
-}
-
-func updateNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).DeprecatedGrafanaAPI
-
-	npt, err := unpackNotifPolicy(data)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	lock.Lock()
-	defer lock.Unlock()
-	if err := client.SetNotificationPolicyTree(&npt); err != nil {
-		return diag.FromErr(err)
-	}
-
 	return readNotificationPolicy(ctx, data, meta)
 }
 
 func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	lock := &meta.(*common.Client).AlertingMutex
-	client := meta.(*common.Client).DeprecatedGrafanaAPI
-
 	lock.Lock()
 	defer lock.Unlock()
-	if err := client.ResetNotificationPolicyTree(); err != nil {
+	client := OAPIGlobalClient(meta) // TODO: Support org-scoped policies
+
+	if _, err := client.Provisioning.ResetPolicyTree(); err != nil {
 		return diag.FromErr(err)
 	}
 
 	return diag.Diagnostics{}
 }
 
-func packNotifPolicy(npt gapi.NotificationPolicyTree, data *schema.ResourceData) {
+func packNotifPolicy(npt *models.Route, data *schema.ResourceData) {
 	data.Set("contact_point", npt.Receiver)
 	data.Set("group_by", npt.GroupBy)
 	data.Set("group_wait", npt.GroupWait)
@@ -250,7 +234,7 @@ func packNotifPolicy(npt gapi.NotificationPolicyTree, data *schema.ResourceData)
 	}
 }
 
-func packSpecificPolicy(p gapi.SpecificPolicy, depth uint) interface{} {
+func packSpecificPolicy(p *models.Route, depth uint) interface{} {
 	result := map[string]interface{}{
 		"contact_point": p.Receiver,
 		"continue":      p.Continue,
@@ -288,35 +272,35 @@ func packSpecificPolicy(p gapi.SpecificPolicy, depth uint) interface{} {
 	return result
 }
 
-func packPolicyMatcher(m gapi.Matcher) interface{} {
+func packPolicyMatcher(m models.ObjectMatcher) interface{} {
 	return map[string]interface{}{
-		"label": m.Name,
-		"match": m.Type.String(),
-		"value": m.Value,
+		"label": m[0],
+		"match": m[1],
+		"value": m[2],
 	}
 }
 
-func unpackNotifPolicy(data *schema.ResourceData) (gapi.NotificationPolicyTree, error) {
+func unpackNotifPolicy(data *schema.ResourceData) (*models.Route, error) {
 	groupBy := data.Get("group_by").([]interface{})
 	groups := make([]string, 0, len(groupBy))
 	for _, g := range groupBy {
 		groups = append(groups, g.(string))
 	}
 
-	var children []gapi.SpecificPolicy
+	var children []*models.Route
 	nested, ok := data.GetOk("policy")
 	if ok {
 		routes := nested.([]interface{})
 		for _, r := range routes {
 			unpacked, err := unpackSpecificPolicy(r)
 			if err != nil {
-				return gapi.NotificationPolicyTree{}, err
+				return nil, err
 			}
 			children = append(children, unpacked)
 		}
 	}
 
-	return gapi.NotificationPolicyTree{
+	return &models.Route{
 		Receiver:       data.Get("contact_point").(string),
 		GroupBy:        groups,
 		GroupWait:      data.Get("group_wait").(string),
@@ -326,7 +310,7 @@ func unpackNotifPolicy(data *schema.ResourceData) (gapi.NotificationPolicyTree, 
 	}, nil
 }
 
-func unpackSpecificPolicy(p interface{}) (gapi.SpecificPolicy, error) {
+func unpackSpecificPolicy(p interface{}) (*models.Route, error) {
 	json := p.(map[string]interface{})
 
 	var groupBy []string
@@ -334,7 +318,7 @@ func unpackSpecificPolicy(p interface{}) (gapi.SpecificPolicy, error) {
 		groupBy = common.ListToStringSlice(g.([]interface{}))
 	}
 
-	policy := gapi.SpecificPolicy{
+	policy := models.Route{
 		Receiver: json["contact_point"].(string),
 		GroupBy:  groupBy,
 		Continue: json["continue"].(bool),
@@ -342,13 +326,9 @@ func unpackSpecificPolicy(p interface{}) (gapi.SpecificPolicy, error) {
 
 	if v, ok := json["matcher"]; ok && v != nil {
 		ms := v.(*schema.Set).List()
-		matchers := make([]gapi.Matcher, 0, len(ms))
+		matchers := make(models.ObjectMatchers, 0, len(ms))
 		for _, m := range ms {
-			matcher, err := unpackPolicyMatcher(m)
-			if err != nil {
-				return gapi.SpecificPolicy{}, err
-			}
-			matchers = append(matchers, matcher)
+			matchers = append(matchers, unpackPolicyMatcher(m))
 		}
 		policy.ObjectMatchers = matchers
 	}
@@ -369,39 +349,21 @@ func unpackSpecificPolicy(p interface{}) (gapi.SpecificPolicy, error) {
 	}
 	if v, ok := json["policy"]; ok && v != nil {
 		ps := v.([]interface{})
-		policies := make([]gapi.SpecificPolicy, 0, len(ps))
+		policies := make([]*models.Route, 0, len(ps))
 		for _, p := range ps {
 			unpacked, err := unpackSpecificPolicy(p)
 			if err != nil {
-				return gapi.SpecificPolicy{}, err
+				return nil, err
 			}
 			policies = append(policies, unpacked)
 		}
 		policy.Routes = policies
 	}
 
-	return policy, nil
+	return &policy, nil
 }
 
-func unpackPolicyMatcher(m interface{}) (gapi.Matcher, error) {
+func unpackPolicyMatcher(m interface{}) models.ObjectMatcher {
 	json := m.(map[string]interface{})
-
-	var matchType gapi.MatchType
-	switch json["match"].(string) {
-	case "=":
-		matchType = gapi.MatchEqual
-	case "!=":
-		matchType = gapi.MatchNotEqual
-	case "=~":
-		matchType = gapi.MatchRegexp
-	case "!~":
-		matchType = gapi.MatchNotRegexp
-	default:
-		return gapi.Matcher{}, fmt.Errorf("unknown match operator: %s", json["match"].(string))
-	}
-	return gapi.Matcher{
-		Name:  json["label"].(string),
-		Type:  matchType,
-		Value: json["value"].(string),
-	}, nil
+	return models.ObjectMatcher{json["label"].(string), json["match"].(string), json["value"].(string)}
 }
