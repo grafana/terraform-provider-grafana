@@ -46,7 +46,6 @@ func TestAccSyntheticMonitoringInstallation(t *testing.T) {
 			})
 		})
 	}
-
 }
 
 func testAccSyntheticMonitoringInstallation_Base(stackSlug, apiKeyName, region string) string {
