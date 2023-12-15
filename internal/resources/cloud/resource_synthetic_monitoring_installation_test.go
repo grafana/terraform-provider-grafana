@@ -17,7 +17,6 @@ func TestAccSyntheticMonitoringInstallation(t *testing.T) {
 		"eu":             "https://synthetic-monitoring-api-eu-west.grafana.net",
 	} {
 		t.Run(region, func(t *testing.T) {
-
 			var stack gapi.Stack
 			stackPrefix := "tfsminstalltest"
 			testAccDeleteExistingStacks(t, stackPrefix)
