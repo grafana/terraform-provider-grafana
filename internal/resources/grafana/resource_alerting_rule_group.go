@@ -286,8 +286,7 @@ func deleteAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta i
 	group := resp.Payload
 
 	for _, r := range group.Rules {
-		params := provisioning.NewDeleteAlertRuleParams().WithUID(r.UID)
-		_, err := client.Provisioning.DeleteAlertRule(params)
+		_, err := client.Provisioning.DeleteAlertRule(provisioning.NewDeleteAlertRuleParams().WithUID(r.UID))
 		if diag, shouldReturn := common.CheckReadError("rule group", data, err); shouldReturn {
 			return diag
 		}
