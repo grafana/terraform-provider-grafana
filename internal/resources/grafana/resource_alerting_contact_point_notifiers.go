@@ -1707,7 +1707,7 @@ func (t telegramNotifier) unpack(raw interface{}, name string) gapi.ContactPoint
 
 	unpackNotifierStringField(&json, &settings, "token", "bottoken")
 	unpackNotifierStringField(&json, &settings, "chat_id", "chatid")
-	unpackNotifierStringField(&json, &settings, "message_thread_id", "messagehtreadid")
+	unpackNotifierStringField(&json, &settings, "message_thread_id", "messagethreadid")
 	unpackNotifierStringField(&json, &settings, "message", "message")
 	unpackNotifierStringField(&json, &settings, "parse_mode", "parse_mode")
 
