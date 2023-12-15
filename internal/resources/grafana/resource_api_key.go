@@ -4,7 +4,8 @@ import (
 	"context"
 	"strconv"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/client/api_keys"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -62,29 +63,30 @@ Manages Grafana API Keys.
 }
 
 func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c, orgID := DeprecatedClientFromNewOrgResource(m, d)
+	c, orgID := OAPIClientFromNewOrgResource(m, d)
 
-	request := gapi.CreateAPIKeyRequest{
+	request := models.AddAPIKeyCommand{
 		Name:          d.Get("name").(string),
 		Role:          d.Get("role").(string),
 		SecondsToLive: int64(d.Get("seconds_to_live").(int)),
 	}
-	response, err := c.CreateAPIKey(request)
+	response, err := c.APIKeys.AddAPIkey(&request)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(MakeOrgResourceID(orgID, response.ID))
-	d.Set("key", response.Key)
+	d.SetId(MakeOrgResourceID(orgID, response.Payload.ID))
+	d.Set("key", response.Payload.Key)
 
 	// Fill the true resource's state after a create by performing a read
 	return resourceAPIKeyRead(ctx, d, m)
 }
 
 func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c, orgID, idStr := DeprecatedClientFromExistingOrgResource(m, d.Id())
+	c, orgID, idStr := OAPIClientFromExistingOrgResource(m, d.Id())
 
-	response, err := c.GetAPIKeys(true)
+	includeExpired := true
+	response, err := c.APIKeys.GetAPIkeys(api_keys.NewGetAPIkeysParams().WithIncludeExpired(&includeExpired))
 	if err, shouldReturn := common.CheckReadError("API key", d, err); shouldReturn {
 		return err
 	}
@@ -93,7 +95,7 @@ func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	for _, key := range response {
+	for _, key := range response.Payload {
 		if id == key.ID {
 			d.SetId(MakeOrgResourceID(orgID, key.ID))
 			d.Set("org_id", strconv.FormatInt(orgID, 10))
@@ -115,13 +117,13 @@ func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface
 }
 
 func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c, _, idStr := DeprecatedClientFromExistingOrgResource(m, d.Id())
+	c, _, idStr := OAPIClientFromExistingOrgResource(m, d.Id())
 	id, err := strconv.ParseInt(idStr, 10, 32)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	_, err = c.DeleteAPIKey(id)
+	_, err = c.APIKeys.DeleteAPIkey(id)
 	diag, _ := common.CheckReadError("API key", d, err)
 	return diag
 }
