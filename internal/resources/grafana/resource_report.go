@@ -9,12 +9,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-openapi/strfmt"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
@@ -240,51 +241,56 @@ func ResourceReport() *schema.Resource {
 }
 
 func CreateReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := DeprecatedClientFromNewOrgResource(meta, d)
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
-	report, err := schemaToReport(client, d)
+	report, err := schemaToReport(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	id, err := client.NewReport(report)
+	res, err := client.Reports.CreateReport(&report)
 	if err != nil {
 		data, _ := json.Marshal(report)
 		return diag.Errorf("error creating the following report:\n%s\n%v", string(data), err)
 	}
-	d.SetId(MakeOrgResourceID(orgID, id))
+
+	d.SetId(MakeOrgResourceID(orgID, res.Payload.ID))
 	return ReadReport(ctx, d, meta)
 }
 
 func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := DeprecatedClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	r, err := client.Report(id)
+	r, err := client.Reports.GetReport(id)
 	if err, shouldReturn := common.CheckReadError("report", d, err); shouldReturn {
 		return err
 	}
 
-	d.SetId(MakeOrgResourceID(r.OrgID, id))
-	d.Set("dashboard_id", r.Dashboards[0].Dashboard.ID)
-	d.Set("dashboard_uid", r.Dashboards[0].Dashboard.UID)
-	d.Set("name", r.Name)
-	d.Set("recipients", strings.Split(r.Recipients, ","))
-	d.Set("reply_to", r.ReplyTo)
-	d.Set("message", r.Message)
-	d.Set("include_dashboard_link", r.EnableDashboardURL)
-	d.Set("include_table_csv", r.EnableCSV)
-	d.Set("layout", r.Options.Layout)
-	d.Set("orientation", r.Options.Orientation)
-	d.Set("org_id", strconv.FormatInt(r.OrgID, 10))
+	d.SetId(MakeOrgResourceID(r.Payload.OrgID, id))
+	d.Set("dashboard_id", r.Payload.Dashboards[0].Dashboard.ID)
+	d.Set("dashboard_uid", r.Payload.Dashboards[0].Dashboard.UID)
+	d.Set("name", r.Payload.Name)
+	d.Set("recipients", strings.Split(r.Payload.Recipients, ","))
+	d.Set("reply_to", r.Payload.ReplyTo)
+	d.Set("message", r.Payload.Message)
+	d.Set("include_dashboard_link", r.Payload.EnableDashboardURL)
+	d.Set("include_table_csv", r.Payload.EnableCSV)
+	d.Set("layout", r.Payload.Options.Layout)
+	d.Set("orientation", r.Payload.Options.Orientation)
+	d.Set("org_id", strconv.FormatInt(r.Payload.OrgID, 10))
 
 	if _, ok := d.GetOk("formats"); ok {
-		d.Set("formats", common.StringSliceToSet(r.Formats))
+		formats := make([]string, len(r.Payload.Formats))
+		for i, format := range r.Payload.Formats {
+			formats[i] = string(format)
+		}
+		d.Set("formats", common.StringSliceToSet(formats))
 	}
 
-	timeRange := r.Dashboards[0].TimeRange
+	timeRange := r.Payload.Dashboards[0].TimeRange
 	if timeRange.From != "" {
 		d.Set("time_range", []interface{}{
 			map[string]interface{}{
@@ -295,19 +301,22 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	}
 
 	schedule := map[string]interface{}{
-		"frequency":     r.Schedule.Frequency,
-		"workdays_only": r.Schedule.WorkdaysOnly,
+		"frequency":     r.Payload.Schedule.Frequency,
+		"workdays_only": r.Payload.Schedule.WorkdaysOnly,
 	}
-	if r.Schedule.IntervalAmount != 0 && r.Schedule.IntervalFrequency != "" {
-		schedule["custom_interval"] = fmt.Sprintf("%d %s", r.Schedule.IntervalAmount, r.Schedule.IntervalFrequency)
+	if r.Payload.Schedule.IntervalAmount != 0 && r.Payload.Schedule.IntervalFrequency != "" {
+		schedule["custom_interval"] = fmt.Sprintf("%d %s", r.Payload.Schedule.IntervalAmount, r.Payload.Schedule.IntervalFrequency)
 	}
-	if r.Schedule.StartDate != nil {
-		schedule["start_time"] = r.Schedule.StartDate.Format(time.RFC3339)
+
+	if r.Payload.Schedule.StartDate != nil {
+		strfmt.MarshalFormat = time.RFC3339
+		schedule["start_time"] = r.Payload.Schedule.StartDate.String()
 	}
-	if r.Schedule.EndDate != nil {
-		schedule["end_time"] = r.Schedule.EndDate.Format(time.RFC3339)
+	if r.Payload.Schedule.EndDate != nil {
+		strfmt.MarshalFormat = time.RFC3339
+		schedule["end_time"] = r.Payload.Schedule.EndDate.String()
 	}
-	if r.Schedule.DayOfMonth == "last" {
+	if r.Payload.Schedule.DayOfMonth == "last" {
 		schedule["last_day_of_month"] = true
 	}
 
@@ -317,19 +326,18 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func UpdateReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := DeprecatedClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	report, err := schemaToReport(client, d)
+	report, err := schemaToReport(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	report.ID = id
 
-	if err := client.UpdateReport(report); err != nil {
+	if _, err := client.Reports.UpdateReport(id, &report); err != nil {
 		data, _ := json.Marshal(report)
 		return diag.Errorf("error updating the following report:\n%s\n%v", string(data), err)
 	}
@@ -337,71 +345,64 @@ func UpdateReport(ctx context.Context, d *schema.ResourceData, meta interface{})
 }
 
 func DeleteReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := DeprecatedClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	err = client.DeleteReport(id)
+	_, err = client.Reports.DeleteReport(id)
 	diag, _ := common.CheckReadError("report", d, err)
 	return diag
 }
 
-func schemaToReport(client *gapi.Client, d *schema.ResourceData) (gapi.Report, error) {
-	id := int64(d.Get("dashboard_id").(int))
-	uid := d.Get("dashboard_uid").(string)
-	if uid == "" {
-		dashboards, err := client.DashboardsByIDs([]int64{id})
-		if err != nil {
-			return gapi.Report{}, fmt.Errorf("error getting dashboard %d: %v", id, err)
-		}
-		for _, dashboard := range dashboards {
-			if int64(dashboard.ID) == id {
-				uid = dashboard.UID
-				break
-			}
-		}
-		if uid == "" {
-			return gapi.Report{}, fmt.Errorf("dashboard %d not found", id)
-		}
-	}
-
+func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateConfigCmd, error) {
 	frequency := d.Get("schedule.0.frequency").(string)
-	report := gapi.Report{
-		Dashboards: []gapi.ReportDashboard{
-			{
-				Dashboard: gapi.ReportDashboardIdentifier{
-					UID: uid,
-				},
-			},
-		},
+	report := models.CreateOrUpdateConfigCmd{
 		Name:               d.Get("name").(string),
 		Recipients:         strings.Join(common.ListToStringSlice(d.Get("recipients").([]interface{})), ","),
 		ReplyTo:            d.Get("reply_to").(string),
 		Message:            d.Get("message").(string),
 		EnableDashboardURL: d.Get("include_dashboard_link").(bool),
 		EnableCSV:          d.Get("include_table_csv").(bool),
-		Options: gapi.ReportOptions{
+		Options: &models.ReportOptionsDTO{
 			Layout:      d.Get("layout").(string),
 			Orientation: d.Get("orientation").(string),
 		},
-		Schedule: gapi.ReportSchedule{
+		Schedule: &models.ScheduleDTO{
 			Frequency: frequency,
 			TimeZone:  "GMT",
 		},
-		Formats: []string{reportFormatPDF},
+		Formats: []models.Type{reportFormatPDF},
+	}
+
+	id := int64(d.Get("dashboard_id").(int))
+	uid := d.Get("dashboard_uid").(string)
+	if uid == "" {
+		// It triggers the old way to generate reports
+		report.DashboardID = id
+	} else {
+		report.Dashboards = []*models.DashboardDTO{
+			{
+				Dashboard: &models.DashboardReportDTO{
+					UID: uid,
+				},
+			},
+		}
 	}
 
 	if v, ok := d.GetOk("formats"); ok && v != nil {
-		report.Formats = common.SetToStringSlice(v.(*schema.Set))
+		formats := common.SetToStringSlice(v.(*schema.Set))
+		for _, format := range formats {
+			report.Formats = append(report.Formats, models.Type(format))
+		}
 	}
 
 	// Set dashboard time range
 	timeRange := d.Get("time_range").([]interface{})
 	if len(timeRange) > 0 {
 		timeRange := timeRange[0].(map[string]interface{})
-		report.Dashboards[0].TimeRange = gapi.ReportDashboardTimeRange{From: timeRange["from"].(string), To: timeRange["to"].(string)}
+		report.Dashboards[0].TimeRange = &models.TimeRangeDTO{From: timeRange["from"].(string), To: timeRange["to"].(string)}
 	}
 
 	// Set schedule start time
@@ -409,10 +410,11 @@ func schemaToReport(client *gapi.Client, d *schema.ResourceData) (gapi.Report, e
 		if startTimeStr := d.Get("schedule.0.start_time").(string); startTimeStr != "" {
 			startDate, err := time.Parse(time.RFC3339, startTimeStr)
 			if err != nil {
-				return gapi.Report{}, err
+				return models.CreateOrUpdateConfigCmd{}, err
 			}
-			startDate = startDate.UTC()
-			report.Schedule.StartDate = &startDate
+
+			date := strfmt.DateTime(startDate.UTC())
+			report.Schedule.StartDate = &date
 		}
 	}
 
@@ -421,10 +423,11 @@ func schemaToReport(client *gapi.Client, d *schema.ResourceData) (gapi.Report, e
 		if endTimeStr := d.Get("schedule.0.end_time").(string); endTimeStr != "" {
 			endDate, err := time.Parse(time.RFC3339, endTimeStr)
 			if err != nil {
-				return gapi.Report{}, err
+				return models.CreateOrUpdateConfigCmd{}, err
 			}
-			endDate = endDate.UTC()
-			report.Schedule.EndDate = &endDate
+
+			date := strfmt.DateTime(endDate.UTC())
+			report.Schedule.EndDate = &date
 		}
 	}
 
@@ -441,7 +444,7 @@ func schemaToReport(client *gapi.Client, d *schema.ResourceData) (gapi.Report, e
 		customInterval := d.Get("schedule.0.custom_interval").(string)
 		amount, unit, err := parseCustomReportInterval(customInterval)
 		if err != nil {
-			return gapi.Report{}, err
+			return models.CreateOrUpdateConfigCmd{}, err
 		}
 		report.Schedule.IntervalAmount = int64(amount)
 		report.Schedule.IntervalFrequency = unit
