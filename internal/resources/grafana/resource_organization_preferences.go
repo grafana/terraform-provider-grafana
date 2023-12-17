@@ -62,11 +62,12 @@ func ResourceOrganizationPreferences() *schema.Resource {
 				Description:  "The Organization timezone. Available values are `utc`, `browser`, or an empty string for the default.",
 				ValidateFunc: validation.StringInSlice([]string{"utc", "browser", ""}, false),
 			},
-			// TODO: add validation?
 			"week_start": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Organization week start.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The Organization week start day. Available values are `sunday`, `monday`, `saturday`, or an empty string for the default.",
+				ValidateFunc: validation.StringInSlice([]string{"sunday", "monday", "saturday", ""}, false),
+				Default:      "",
 			},
 		},
 	}

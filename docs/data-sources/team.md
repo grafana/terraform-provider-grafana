@@ -61,6 +61,7 @@ Read-Only:
 - `home_dashboard_uid` (String)
 - `theme` (String)
 - `timezone` (String)
+- `week_start` (String)
 
 
 <a id="nestedatt--team_sync"></a>
