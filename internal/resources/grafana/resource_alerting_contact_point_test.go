@@ -3,6 +3,7 @@ package grafana_test
 import (
 	"fmt"
 	"regexp"
+	"strings"
 	"testing"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
@@ -76,7 +77,6 @@ func TestAccContactPoint_compound(t *testing.T) {
 	var points []gapi.ContactPoint
 
 	// TODO: Make parallelizable
-	// Error: wrong number of contact points on the server, expected 2 but got []{..., ..., ...} (len=3)
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		// Implicitly tests deletion.
@@ -90,6 +90,34 @@ func TestAccContactPoint_compound(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "name", "Compound Contact Point"),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.#", "2"),
 				),
+			},
+			// Test import by name
+			{
+				ResourceName:      "grafana_contact_point.compound_contact_point",
+				ImportState:       true,
+				ImportStateId:     "Compound Contact Point",
+				ImportStateVerify: true,
+			},
+			// Test import by UID
+			{
+				ResourceName:      "grafana_contact_point.compound_contact_point",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					resource, ok := s.RootModule().Resources["grafana_contact_point.compound_contact_point"]
+					if !ok {
+						return "", fmt.Errorf("resource not found")
+					}
+					firstUID, ok := resource.Primary.Attributes["email.0.uid"]
+					if !ok {
+						return "", fmt.Errorf("uid for first email notifier not found")
+					}
+					secondUID, ok := resource.Primary.Attributes["email.1.uid"]
+					if !ok {
+						return "", fmt.Errorf("uid for second email notifier not found")
+					}
+					return strings.Join([]string{firstUID, secondUID}, ";"), nil
+				},
 			},
 			// Test update.
 			{
@@ -108,9 +136,9 @@ func TestAccContactPoint_compound(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testContactPointCheckExists("grafana_contact_point.compound_contact_point", &points, 3),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.#", "3"),
-					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.0.addresses.0", "one@company.org"),
-					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.1.addresses.0", "three@company.org"),
-					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.2.addresses.0", "five@company.org"),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.0.addresses.0", "five@company.org"),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.1.addresses.0", "one@company.org"),
+					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.2.addresses.0", "three@company.org"),
 				),
 			},
 			// Test removal of a point from a compound one does not leak.
@@ -320,15 +348,15 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 						if !ok {
 							return fmt.Errorf("resource not found: %s, resources: %#v", rname, s.RootModule().Resources)
 						}
-						uid := rs.Primary.ID
+						name := rs.Primary.ID
 
 						client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
-						pt, err := client.ContactPoint(uid)
+						pt, err := client.ContactPointsByName(name)
 						if err != nil {
 							return fmt.Errorf("error getting resource: %w", err)
 						}
 
-						if val, ok := pt.Settings["endpointUrl"]; ok {
+						if val, ok := pt[0].Settings["endpointUrl"]; ok {
 							return fmt.Errorf("endpointUrl was still present in the settings when it should have been omitted. value: %#v", val)
 						}
 
