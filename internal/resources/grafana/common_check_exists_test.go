@@ -33,6 +33,20 @@ var (
 			return payloadOrError(resp, err)
 		},
 	)
+	alertingNotificationPolicyCheckExists = newCheckExistsHelper(
+		func(t *models.Route) string { return "Global" }, // It's a singleton. ID doesn't matter.
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Route, error) {
+			resp, err := client.Provisioning.GetPolicyTree()
+			if err != nil {
+				return nil, err
+			}
+			tree := resp.Payload
+			if len(tree.Routes) == 0 || tree.Receiver == "grafana-default-email" {
+				return nil, &runtime.APIError{Code: 404, Response: "the default notification policy is set"}
+			}
+			return tree, nil
+		},
+	)
 	alertingRuleGroupCheckExists = newCheckExistsHelper(
 		func(g *models.AlertRuleGroup) string { return g.FolderUID + ";" + g.Title },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.AlertRuleGroup, error) {
