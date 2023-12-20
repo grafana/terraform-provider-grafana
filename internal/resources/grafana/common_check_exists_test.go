@@ -8,6 +8,7 @@ import (
 	"github.com/go-openapi/runtime"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/api_keys"
+	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
@@ -19,6 +20,20 @@ import (
 // Helpers that check if a resource exists or doesn't. To define a new one, use the newCheckExistsHelper function.
 // A function that gets a resource by their Terraform ID is required.
 var (
+	alertingContactPointCheckExists = newCheckExistsHelper(
+		func(p *models.ContactPoints) string { return (*p)[0].Name },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.ContactPoints, error) {
+			params := provisioning.NewGetContactpointsParams().WithName(&id)
+			resp, err := client.Provisioning.GetContactpoints(params)
+			if err != nil {
+				return nil, err
+			}
+			if len(resp.Payload) == 0 {
+				return nil, &runtime.APIError{Code: 404}
+			}
+			return &resp.Payload, nil
+		},
+	)
 	alertingMessageTemplateCheckExists = newCheckExistsHelper(
 		func(t *models.NotificationTemplate) string { return t.Name },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.NotificationTemplate, error) {
