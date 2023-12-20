@@ -25,10 +25,10 @@ Manages Grafana Alerting message templates.
 
 This resource requires Grafana 9.1.0 or later.
 `,
-		CreateContext: putMessageTemplate,
+		CreateContext: common.WithAlertingMutex[schema.CreateContextFunc](putMessageTemplate),
 		ReadContext:   readMessageTemplate,
-		UpdateContext: putMessageTemplate,
-		DeleteContext: deleteMessageTemplate,
+		UpdateContext: common.WithAlertingMutex[schema.UpdateContextFunc](putMessageTemplate),
+		DeleteContext: common.WithAlertingMutex[schema.DeleteContextFunc](deleteMessageTemplate),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -71,9 +71,6 @@ func readMessageTemplate(ctx context.Context, data *schema.ResourceData, meta in
 }
 
 func putMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	lock.Lock()
-	defer lock.Unlock()
 	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
 	name := data.Get("name").(string)
@@ -104,9 +101,6 @@ func putMessageTemplate(ctx context.Context, data *schema.ResourceData, meta int
 }
 
 func deleteMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	lock.Lock()
-	defer lock.Unlock()
 	client, _, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	_, err := client.Provisioning.DeleteTemplate(name)
