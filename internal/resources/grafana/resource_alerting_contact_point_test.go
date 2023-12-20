@@ -28,7 +28,7 @@ func TestAccContactPoint_basic(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					checkAlertingExistsWithLength("grafana_contact_point.my_contact_point", &points, 1),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.my_contact_point", &points, 1),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "name", "My Contact Point"),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.0.disable_resolve_message", "false"),
@@ -49,7 +49,7 @@ func TestAccContactPoint_basic(t *testing.T) {
 					"company.org": "user.net",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					checkAlertingExistsWithLength("grafana_contact_point.my_contact_point", &points, 1),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.my_contact_point", &points, 1),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.0.addresses.0", "one@user.net"),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.0.addresses.1", "two@user.net"),
@@ -61,7 +61,7 @@ func TestAccContactPoint_basic(t *testing.T) {
 					"My Contact Point": "A Different Contact Point",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					checkAlertingExistsWithLength("grafana_contact_point.my_contact_point", &points, 1),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.my_contact_point", &points, 1),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "name", "A Different Contact Point"),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.#", "1"),
 				),
@@ -85,7 +85,7 @@ func TestAccContactPoint_compound(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_compound_receiver.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					checkAlertingExistsWithLength("grafana_contact_point.compound_contact_point", &points, 2),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.compound_contact_point", &points, 2),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "name", "Compound Contact Point"),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.#", "2"),
 				),
@@ -124,7 +124,7 @@ func TestAccContactPoint_compound(t *testing.T) {
 					"one": "asdf",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					checkAlertingExistsWithLength("grafana_contact_point.compound_contact_point", &points, 2),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.compound_contact_point", &points, 2),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.#", "2"),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.0.addresses.0", "asdf@company.org"),
 				),
@@ -133,7 +133,7 @@ func TestAccContactPoint_compound(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_compound_receiver_added.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					checkAlertingExistsWithLength("grafana_contact_point.compound_contact_point", &points, 3),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.compound_contact_point", &points, 3),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.#", "3"),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.0.addresses.0", "five@company.org"),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.1.addresses.0", "one@company.org"),
@@ -144,7 +144,7 @@ func TestAccContactPoint_compound(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_compound_receiver_subtracted.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					checkAlertingExistsWithLength("grafana_contact_point.compound_contact_point", &points, 1),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.compound_contact_point", &points, 1),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.0.addresses.0", "one@company.org"),
 				),
@@ -155,7 +155,7 @@ func TestAccContactPoint_compound(t *testing.T) {
 					"Compound Contact Point": "A Different Contact Point",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					checkAlertingExistsWithLength("grafana_contact_point.compound_contact_point", &points, 2),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.compound_contact_point", &points, 2),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "name", "A Different Contact Point"),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.#", "2"),
 				),
@@ -178,7 +178,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_receiver_types.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					checkAlertingExistsWithLength("grafana_contact_point.receiver_types", &points, 19),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.receiver_types", &points, 19),
 					// alertmanager
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.0.url", "http://my-am"),
@@ -337,7 +337,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_default_settings.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					checkAlertingExistsWithLength("grafana_contact_point.default_settings", &points, 1),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.default_settings", &points, 1),
 					resource.TestCheckResourceAttr("grafana_contact_point.default_settings", "slack.#", "1"),
 					resource.TestCheckNoResourceAttr("grafana_contact_point.default_settings", "slack.endpoint_url"),
 					func(s *terraform.State) error {
@@ -380,7 +380,7 @@ func TestAccContactPoint_notifiers10_2(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_receiver_types_10_2.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					checkAlertingExistsWithLength("grafana_contact_point.receiver_types", &points, 1),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.receiver_types", &points, 1),
 					// oncall
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "oncall.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "oncall.0.url", "http://my-url"),
@@ -410,7 +410,7 @@ func TestAccContactPoint_notifiers10_3(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_receiver_types_10_3.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					checkAlertingExistsWithLength("grafana_contact_point.receiver_types", &points, 1),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.receiver_types", &points, 1),
 					// opsgenie
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.url", "http://opsgenie-api"),
@@ -449,7 +449,7 @@ func TestAccContactPoint_empty(t *testing.T) {
 	})
 }
 
-func checkAlertingExistsWithLength(rn string, v *models.ContactPoints, expectedLength int) resource.TestCheckFunc {
+func checkAlertingContactPointExistsWithLength(rn string, v *models.ContactPoints, expectedLength int) resource.TestCheckFunc {
 	return resource.ComposeTestCheckFunc(
 		alertingContactPointCheckExists.exists(rn, v),
 		func(s *terraform.State) error {
