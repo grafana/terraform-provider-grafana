@@ -165,11 +165,11 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 			if common.IsNotFoundError(err) {
 				params := provisioning.NewPostContactpointsParams().WithBody(p)
 				resp, err := client.Provisioning.PostContactpoints(params)
-				ps[i].tfState["uid"] = resp.Payload.UID
-				newUIDs = append(newUIDs, resp.Payload.UID)
 				if err != nil {
 					return diag.FromErr(err)
 				}
+				ps[i].tfState["uid"] = resp.Payload.UID
+				newUIDs = append(newUIDs, resp.Payload.UID)
 				continue
 			}
 			return diag.FromErr(err)
