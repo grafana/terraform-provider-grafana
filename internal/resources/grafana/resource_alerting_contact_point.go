@@ -59,6 +59,7 @@ This resource requires Grafana 9.1.0 or later.
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
+				ForceNew:    true,
 				Required:    true,
 				Description: "The name of the contact point.",
 			},
