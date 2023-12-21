@@ -75,7 +75,7 @@ func ResourceReport() *schema.Resource {
 			},
 			"dashboard_id": {
 				Type:         schema.TypeInt,
-				ExactlyOneOf: []string{"dashboard_id", "dashboard_uid"},
+				ExactlyOneOf: []string{"dashboard_id", "dashboard_uid", "dashboards"},
 				Computed:     true,
 				Optional:     true,
 				Deprecated:   "Use dashboard_uid instead",
@@ -83,9 +83,10 @@ func ResourceReport() *schema.Resource {
 			},
 			"dashboard_uid": {
 				Type:         schema.TypeString,
-				ExactlyOneOf: []string{"dashboard_id", "dashboard_uid"},
+				ExactlyOneOf: []string{"dashboard_id", "dashboard_uid", "dashboards"},
 				Computed:     true,
 				Optional:     true,
+				Deprecated:   "Use dashboards instead",
 				Description:  "Dashboard to be sent in the report.",
 			},
 			"recipients": {
@@ -149,6 +150,7 @@ func ResourceReport() *schema.Resource {
 				Optional:    true,
 				Description: "Time range of the report.",
 				MaxItems:    1,
+				Deprecated:  "Use time_range in dashboards instead. This field is completely ignored when dashboards is set.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"from": {
@@ -232,6 +234,51 @@ func ResourceReport() *schema.Resource {
 							Optional:    true,
 							Description: "Send the report on the last day of the month",
 							Default:     false,
+						},
+					},
+				},
+			},
+			"dashboards": {
+				Type:        schema.TypeList,
+				Description: "List of dashboards to render into the report",
+				Optional:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"uid": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Dashboard uid.",
+						},
+						"name": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Dashboard name",
+						},
+						"time_range": {
+							Type:        schema.TypeList,
+							MinItems:    1,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Time range of the report.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"from": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Start of the time range.",
+									},
+									"to": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "End of the time range.",
+									},
+								},
+							},
+						},
+						"report_variables": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Variable templates of the report",
 						},
 					},
 				},
@@ -322,6 +369,23 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 
 	d.Set("schedule", []interface{}{schedule})
 
+	dashboards := make([]interface{}, len(r.Payload.Dashboards))
+	for i, dashboard := range r.Payload.Dashboards {
+		dashboards[i] = map[string]interface{}{
+			"uid":              dashboard.Dashboard.UID,
+			"name":             dashboard.Dashboard.Name,
+			"report_variables": dashboard.ReportVariables,
+			"time_range": []interface{}{
+				map[string]interface{}{
+					"to":   dashboard.TimeRange.To,
+					"from": dashboard.TimeRange.From,
+				},
+			},
+		}
+	}
+
+	d.Set("dashboards", dashboards)
+
 	return nil
 }
 
@@ -376,33 +440,13 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateConfigCmd, err
 		Formats: []models.Type{reportFormatPDF},
 	}
 
-	id := int64(d.Get("dashboard_id").(int))
-	uid := d.Get("dashboard_uid").(string)
-	if uid == "" {
-		// It triggers the old way to generate reports
-		report.DashboardID = id
-	} else {
-		report.Dashboards = []*models.DashboardDTO{
-			{
-				Dashboard: &models.DashboardReportDTO{
-					UID: uid,
-				},
-			},
-		}
-	}
+	report = setDashboards(report, d)
 
 	if v, ok := d.GetOk("formats"); ok && v != nil {
 		formats := common.SetToStringSlice(v.(*schema.Set))
 		for _, format := range formats {
 			report.Formats = append(report.Formats, models.Type(format))
 		}
-	}
-
-	// Set dashboard time range
-	timeRange := d.Get("time_range").([]interface{})
-	if len(timeRange) > 0 {
-		timeRange := timeRange[0].(map[string]interface{})
-		report.Dashboards[0].TimeRange = &models.TimeRangeDTO{From: timeRange["from"].(string), To: timeRange["to"].(string)}
 	}
 
 	// Set schedule start time
@@ -451,6 +495,59 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateConfigCmd, err
 	}
 
 	return report, nil
+}
+
+func setDashboards(report models.CreateOrUpdateConfigCmd, d *schema.ResourceData) models.CreateOrUpdateConfigCmd {
+	dashboards := d.Get("dashboards").([]interface{})
+	if len(dashboards) > 0 {
+		for _, dashboard := range dashboards {
+			dash := dashboard.(map[string]interface{})
+			timeRange := dash["time_range"].([]interface{})
+			tr := &models.TimeRangeDTO{}
+			if len(timeRange) > 0 {
+				timeRange := timeRange[0].(map[string]interface{})
+				tr = &models.TimeRangeDTO{From: timeRange["from"].(string), To: timeRange["to"].(string)}
+			}
+
+			report.Dashboards = append(report.Dashboards, &models.DashboardDTO{
+				Dashboard: &models.DashboardReportDTO{
+					UID:  dash["uid"].(string),
+					Name: dash["name"].(string),
+				},
+				TimeRange:       tr,
+				ReportVariables: dash["report_variables"].(string),
+			})
+		}
+		return report
+	}
+
+	id := int64(d.Get("dashboard_id").(int))
+	uid := d.Get("dashboard_uid").(string)
+
+	// Set dashboard time range
+	timeRange := d.Get("time_range").([]interface{})
+	tr := &models.TimeRangeDTO{}
+	if len(timeRange) > 0 {
+		timeRange := timeRange[0].(map[string]interface{})
+		tr = &models.TimeRangeDTO{From: timeRange["from"].(string), To: timeRange["to"].(string)}
+	}
+
+	if uid == "" {
+		// It triggers the old way to generate reports
+		report.DashboardID = id
+		report.Options.TimeRange = tr
+	} else {
+		report.Dashboards = []*models.DashboardDTO{
+			{
+				Dashboard: &models.DashboardReportDTO{
+					UID: uid,
+				},
+				TimeRange: tr,
+			},
+		}
+	}
+
+	return report
 }
 
 func reportWorkdaysOnlyConfigAllowed(frequency string) bool {

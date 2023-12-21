@@ -29,10 +29,13 @@ EOD
 
 resource "grafana_report" "test" {
   name          = "my report"
-  dashboard_uid = grafana_dashboard.test.uid
   recipients    = ["some@email.com"]
   schedule {
     frequency = "hourly"
+  }
+  
+  dashboards {
+    uid = grafana_dashboard.test.uid
   }
 }
 ```
@@ -49,7 +52,8 @@ resource "grafana_report" "test" {
 ### Optional
 
 - `dashboard_id` (Number, Deprecated) Dashboard to be sent in the report. This field is deprecated, use `dashboard_uid` instead.
-- `dashboard_uid` (String) Dashboard to be sent in the report.
+- `dashboard_uid` (String, Deprecated) Dashboard to be sent in the report.
+- `dashboards` (Block List) List of dashboards to render into the report (see [below for nested schema](#nestedblock--dashboards))
 - `formats` (Set of String) Specifies what kind of attachment to generate for the report. Allowed values: `pdf`, `csv`, `image`.
 - `include_dashboard_link` (Boolean) Whether to include a link to the dashboard in the report. Defaults to `true`.
 - `include_table_csv` (Boolean) Whether to include a CSV file of table panel data. Defaults to `false`.
@@ -58,7 +62,7 @@ resource "grafana_report" "test" {
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `orientation` (String) Orientation of the report. Allowed values: `landscape`, `portrait`. Defaults to `landscape`.
 - `reply_to` (String) Reply-to email address of the report.
-- `time_range` (Block List, Max: 1) Time range of the report. (see [below for nested schema](#nestedblock--time_range))
+- `time_range` (Block List, Max: 1, Deprecated) Time range of the report. (see [below for nested schema](#nestedblock--time_range))
 
 ### Read-Only
 
@@ -79,6 +83,29 @@ Optional:
 - `last_day_of_month` (Boolean) Send the report on the last day of the month Defaults to `false`.
 - `start_time` (String) Start time of the report. If empty, the start date will be set to the creation time. Note that times will be saved as UTC in Grafana.
 - `workdays_only` (Boolean) Whether to send the report only on work days. Defaults to `false`.
+
+
+<a id="nestedblock--dashboards"></a>
+### Nested Schema for `dashboards`
+
+Required:
+
+- `uid` (String) Dashboard uid.
+
+Optional:
+
+- `name` (String) Dashboard name
+- `report_variables` (String) Variable templates of the report
+- `time_range` (Block List, Max: 1) Time range of the report. (see [below for nested schema](#nestedblock--dashboards--time_range))
+
+<a id="nestedblock--dashboards--time_range"></a>
+### Nested Schema for `dashboards.time_range`
+
+Optional:
+
+- `from` (String) Start of the time range.
+- `to` (String) End of the time range.
+
 
 
 <a id="nestedblock--time_range"></a>
