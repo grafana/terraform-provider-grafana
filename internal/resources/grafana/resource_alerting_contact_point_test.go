@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 )
 
@@ -103,19 +103,7 @@ func TestAccContactPoint_compound(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					resource, ok := s.RootModule().Resources["grafana_contact_point.compound_contact_point"]
-					if !ok {
-						return "", fmt.Errorf("resource not found")
-					}
-					firstUID, ok := resource.Primary.Attributes["email.0.uid"]
-					if !ok {
-						return "", fmt.Errorf("uid for first email notifier not found")
-					}
-					secondUID, ok := resource.Primary.Attributes["email.1.uid"]
-					if !ok {
-						return "", fmt.Errorf("uid for second email notifier not found")
-					}
-					return strings.Join([]string{firstUID, secondUID}, ";"), nil
+					return strings.Join([]string{points[0].UID, points[1].UID}, ";"), nil
 				},
 			},
 			// Test update.
@@ -341,20 +329,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.default_settings", "slack.#", "1"),
 					resource.TestCheckNoResourceAttr("grafana_contact_point.default_settings", "slack.endpoint_url"),
 					func(s *terraform.State) error {
-						rname := "grafana_contact_point.default_settings"
-						rs, ok := s.RootModule().Resources[rname]
-						if !ok {
-							return fmt.Errorf("resource not found: %s, resources: %#v", rname, s.RootModule().Resources)
-						}
-						name := rs.Primary.ID
-
-						client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
-						pt, err := client.ContactPointsByName(name)
-						if err != nil {
-							return fmt.Errorf("error getting resource: %w", err)
-						}
-
-						if val, ok := pt[0].Settings["endpointUrl"]; ok {
+						if val, ok := points[0].Settings.(map[string]interface{})["endpointUrl"]; ok {
 							return fmt.Errorf("endpointUrl was still present in the settings when it should have been omitted. value: %#v", val)
 						}
 
@@ -430,6 +405,46 @@ func TestAccContactPoint_notifiers10_3(t *testing.T) {
 	})
 }
 
+func TestAccContactPoint_inOrg(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	var points models.ContactPoints
+	var org models.OrgDetailsDTO
+	name := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		Steps: []resource.TestStep{
+			// Creation
+			{
+				Config: testAccContactPointInOrg(name),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.test", &points, 1),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "email.#", "1"),
+					checkResourceIsInOrg("grafana_contact_point.test", "grafana_organization.test"),
+				),
+			},
+			// Import
+			{
+				ResourceName:      "grafana_contact_point.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Deletion
+			{
+				Config: testutils.WithoutResource(t, testAccContactPointInOrg(name), "grafana_contact_point.test"),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					alertingContactPointCheckExists.destroyed(&points, nil),
+				),
+			},
+		},
+	})
+}
+
 func TestAccContactPoint_empty(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
@@ -454,9 +469,29 @@ func checkAlertingContactPointExistsWithLength(rn string, v *models.ContactPoint
 		alertingContactPointCheckExists.exists(rn, v),
 		func(s *terraform.State) error {
 			if len(*v) != expectedLength {
-				return fmt.Errorf("expected %d contact points, got %d", expectedLength, len(*v))
+				receivers := make([]string, len(*v))
+				for i, v := range *v {
+					receivers[i] = fmt.Sprintf("%+v", v)
+				}
+				return fmt.Errorf("expected %d contact points, got %d. Receivers:\n%s", expectedLength, len(*v), strings.Join(receivers, "\n"))
 			}
 			return nil
 		},
 	)
+}
+
+func testAccContactPointInOrg(name string) string {
+	return fmt.Sprintf(`
+	resource "grafana_organization" "test" {
+		name = "%[1]s"
+	}
+
+	resource "grafana_contact_point" "test" {
+		org_id = grafana_organization.test.id
+		name = "%[1]s"
+		email {
+			addresses = [ "hello@example.com" ]
+		}
+	}
+	`, name)
 }
