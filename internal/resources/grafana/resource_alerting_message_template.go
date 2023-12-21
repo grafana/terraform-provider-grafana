@@ -50,6 +50,13 @@ This resource requires Grafana 9.1.0 or later.
 					return strings.TrimSpace(v.(string))
 				},
 			},
+			"disable_provenance": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				ForceNew:    true, // TODO: The API doesn't return provenance, so we have to force new for now.
+				Description: "Allow modifying the message template from other sources than Terraform or the Grafana API.",
+			},
 		},
 	}
 }
@@ -87,6 +94,10 @@ func putMessageTemplate(ctx context.Context, data *schema.ResourceData, meta int
 			WithBody(&models.NotificationTemplateContent{
 				Template: content,
 			})
+		if v, ok := data.GetOk("disable_provenance"); ok && v.(bool) {
+			disabled := "disabled"
+			params.SetXDisableProvenance(&disabled)
+		}
 		if _, err := client.Provisioning.PutTemplate(params); err != nil {
 			if orgID > 1 && err.(*runtime.APIError).IsCode(500) {
 				return retry.RetryableError(err)
