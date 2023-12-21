@@ -35,6 +35,12 @@ This resource requires Grafana 9.1.0 or later.
 
 		SchemaVersion: 0,
 		Schema: map[string]*schema.Schema{
+			"disable_provenance": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Allow modifying the notification policy from other sources than Terraform or the Grafana API.",
+			},
 			"contact_point": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -194,6 +200,11 @@ func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta 
 	}
 
 	params := provisioning.NewPutPolicyTreeParams().WithBody(npt)
+	if data.Get("disable_provenance").(bool) {
+		disabled := "disabled"
+		params.SetXDisableProvenance(&disabled)
+	}
+
 	if _, err := client.Provisioning.PutPolicyTree(params); err != nil {
 		return diag.FromErr(err)
 	}
@@ -213,6 +224,7 @@ func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, me
 }
 
 func packNotifPolicy(npt *models.Route, data *schema.ResourceData) {
+	data.Set("disable_provenance", npt.Provenance == "")
 	data.Set("contact_point", npt.Receiver)
 	data.Set("group_by", npt.GroupBy)
 	data.Set("group_wait", npt.GroupWait)

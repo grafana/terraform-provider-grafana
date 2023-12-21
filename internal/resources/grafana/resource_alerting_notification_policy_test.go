@@ -1,6 +1,7 @@
 package grafana_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -85,4 +86,65 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccNotificationPolicy_disableProvenance(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	var policy models.Route
+
+	// TODO: Make parallizable
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
+		Steps: []resource.TestStep{
+			// Create
+			{
+				Config: testAccNotificationPolicyDisableProvenance(false),
+				Check: resource.ComposeTestCheckFunc(
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "false"),
+				),
+			},
+			// Import (tests that disable_provenance is fetched from API)
+			{
+				ResourceName:      "grafana_notification_policy.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Disable provenance
+			{
+				Config: testAccNotificationPolicyDisableProvenance(true),
+				Check: resource.ComposeTestCheckFunc(
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "true"),
+				),
+			},
+			// Import (tests that disable_provenance is fetched from API)
+			{
+				ResourceName:      "grafana_notification_policy.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Re-enable provenance
+			{
+				Config: testAccNotificationPolicyDisableProvenance(false),
+				Check: resource.ComposeTestCheckFunc(
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "false"),
+				),
+			},
+		},
+	})
+}
+
+func testAccNotificationPolicyDisableProvenance(disableProvenance bool) string {
+	return fmt.Sprintf(`
+	resource "grafana_notification_policy" "test" {
+		group_by      = ["hello"]
+		contact_point = "grafana-default-email"
+		disable_provenance = %t
+	  }
+	`, disableProvenance)
 }
