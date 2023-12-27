@@ -70,6 +70,13 @@ This resource requires Grafana 9.1.0 or later.
 				Required:    true,
 				Description: "The name of the contact point.",
 			},
+			"disable_provenance": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				ForceNew:    true, // Can't modify provenance on contact points
+				Description: "Allow modifying the contact point from other sources than Terraform or the Grafana API.",
+			},
 		},
 	}
 
@@ -166,6 +173,10 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 		if uid = p.tfState["uid"].(string); uid != "" {
 			// If the contact point already has a UID, update it.
 			params := provisioning.NewPutContactpointParams().WithUID(uid).WithBody(p.gfState)
+			if data.Get("disable_provenance").(bool) {
+				disabled := "disabled"
+				params.SetXDisableProvenance(&disabled)
+			}
 			if _, err := client.Provisioning.PutContactpoint(params); err != nil {
 				return diag.FromErr(err)
 			}
@@ -174,7 +185,12 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 			// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
 			// The alertmanager is provisioned asynchronously when the org is created.
 			err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-				resp, err := client.Provisioning.PostContactpoints(provisioning.NewPostContactpointsParams().WithBody(p.gfState))
+				params := provisioning.NewPostContactpointsParams().WithBody(p.gfState)
+				if data.Get("disable_provenance").(bool) {
+					disabled := "disabled"
+					params.SetXDisableProvenance(&disabled)
+				}
+				resp, err := client.Provisioning.PostContactpoints(params)
 				if orgID > 1 && err != nil && err.(*runtime.APIError).IsCode(500) {
 					return retry.RetryableError(err)
 				} else if err != nil {
@@ -285,8 +301,12 @@ func unpackPointConfig(n notifier, data interface{}, name string) *models.Embedd
 
 func packContactPoints(ps []*models.EmbeddedContactPoint, data *schema.ResourceData) error {
 	pointsPerNotifier := map[notifier][]interface{}{}
+	disableProvenance := true
 	for _, p := range ps {
 		data.Set("name", p.Name)
+		if p.Provenance != "" {
+			disableProvenance = false
+		}
 
 		for _, n := range notifiers {
 			if *p.Type == n.meta().typeStr {
@@ -299,6 +319,7 @@ func packContactPoints(ps []*models.EmbeddedContactPoint, data *schema.ResourceD
 			}
 		}
 	}
+	data.Set("disable_provenance", disableProvenance)
 
 	for n, pts := range pointsPerNotifier {
 		data.Set(n.meta().field, pts)
