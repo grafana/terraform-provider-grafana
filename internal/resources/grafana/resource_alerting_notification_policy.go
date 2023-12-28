@@ -71,6 +71,12 @@ This resource requires Grafana 9.1.0 or later.
 				Description: "Routing rules for specific label sets.",
 				Elem:        policySchema(supportedPolicyTreeDepth),
 			},
+			"continue": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Whether to continue matching subsequent rules if an alert matches the current rule. Otherwise, the rule will be 'consumed' by the first policy to match it.",
+				Default:     false,
+			},
 		},
 	}
 }
@@ -218,6 +224,7 @@ func packNotifPolicy(npt *models.Route, data *schema.ResourceData) {
 	data.Set("group_wait", npt.GroupWait)
 	data.Set("group_interval", npt.GroupInterval)
 	data.Set("repeat_interval", npt.RepeatInterval)
+	data.Set("continue", npt.Continue)
 
 	if len(npt.Routes) > 0 {
 		policies := make([]interface{}, 0, len(npt.Routes))
@@ -300,6 +307,7 @@ func unpackNotifPolicy(data *schema.ResourceData) (*models.Route, error) {
 		GroupWait:      data.Get("group_wait").(string),
 		GroupInterval:  data.Get("group_interval").(string),
 		RepeatInterval: data.Get("repeat_interval").(string),
+		Continue:       data.Get("continue").(bool),
 		Routes:         children,
 	}, nil
 }

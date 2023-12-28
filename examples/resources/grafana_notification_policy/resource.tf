@@ -24,6 +24,8 @@ resource "grafana_notification_policy" "my_notification_policy" {
   group_interval  = "6m"
   repeat_interval = "3h"
 
+  continue = true
+
   policy {
     matcher {
       label = "mylabel"

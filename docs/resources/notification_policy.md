@@ -49,6 +49,8 @@ resource "grafana_notification_policy" "my_notification_policy" {
   group_interval  = "6m"
   repeat_interval = "3h"
 
+  continue = true
+
   policy {
     matcher {
       label = "mylabel"
@@ -106,6 +108,7 @@ resource "grafana_notification_policy" "my_notification_policy" {
 
 ### Optional
 
+- `continue` (Boolean) Whether to continue matching subsequent rules if an alert matches the current rule. Otherwise, the rule will be 'consumed' by the first policy to match it. Defaults to `false`.
 - `group_interval` (String) Minimum time interval between two notifications for the same group. Default is 5 minutes.
 - `group_wait` (String) Time to wait to buffer alerts of the same group before sending a notification. Default is 30 seconds.
 - `policy` (Block List) Routing rules for specific label sets. (see [below for nested schema](#nestedblock--policy))
