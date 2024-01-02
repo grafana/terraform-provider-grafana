@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
@@ -18,7 +17,7 @@ import (
 func TestAccResourceReport_basic(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 
-	var report gapi.Report
+	var report models.ConfigDTO
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -108,7 +107,7 @@ func TestAccResourceReport_basic(t *testing.T) {
 func TestAccResourceReport_CreateFromDashboardID(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 
-	var report gapi.Report
+	var report models.ConfigDTO
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -129,7 +128,7 @@ func TestAccResourceReport_CreateFromDashboardID(t *testing.T) {
 func TestAccResourceReport_InOrg(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 
-	var report gapi.Report
+	var report models.ConfigDTO
 	var org models.OrgDetailsDTO
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
@@ -153,7 +152,7 @@ func TestAccResourceReport_InOrg(t *testing.T) {
 	})
 }
 
-func testAccReportCheckExists(rn string, report *gapi.Report) resource.TestCheckFunc {
+func testAccReportCheckExists(rn string, report *models.ConfigDTO) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
 		if !ok {
@@ -164,7 +163,7 @@ func testAccReportCheckExists(rn string, report *gapi.Report) resource.TestCheck
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI
 		orgID, reportIDStr := grafana.SplitOrgResourceID(rs.Primary.ID)
 		reportID, err := strconv.ParseInt(reportIDStr, 10, 64)
 		if err != nil {
@@ -173,28 +172,28 @@ func testAccReportCheckExists(rn string, report *gapi.Report) resource.TestCheck
 
 		// If the org ID is set, check that the report doesn't exist in the default org
 		if orgID > 1 {
-			report, err := client.Report(reportID)
+			report, err := client.Reports.GetReport(reportID)
 			if err == nil || report != nil {
 				return fmt.Errorf("expected no report with ID %s in default org but found one", reportIDStr)
 			}
 			client = client.WithOrgID(orgID)
 		}
 
-		gotReport, err := client.Report(reportID)
+		gotReport, err := client.Reports.GetReport(reportID)
 		if err != nil {
 			return fmt.Errorf("error getting report: %w", err)
 		}
 
-		*report = *gotReport
+		*report = *gotReport.Payload
 
 		return nil
 	}
 }
 
-func testAccReportCheckDestroy(report *gapi.Report) resource.TestCheckFunc {
+func testAccReportCheckDestroy(report *models.ConfigDTO) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
-		_, err := client.Report(report.ID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI
+		_, err := client.Reports.GetReport(report.ID)
 		if err == nil {
 			return fmt.Errorf("report still exists")
 		}
