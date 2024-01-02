@@ -270,12 +270,6 @@ func ResourceReport() *schema.Resource {
 								},
 							},
 						},
-						"report_variables": {
-							Type:        schema.TypeMap,
-							Optional:    true,
-							Default:     map[string]interface{}{},
-							Description: "Variable templates of the report",
-						},
 					},
 				},
 			},
@@ -371,19 +365,8 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	d.Set("schedule", []interface{}{schedule})
 
 	for i, dashboard := range r.Payload.Dashboards {
-		rv := dashboard.ReportVariables.(map[string]interface{})
-		for k, v := range rv {
-			values := v.([]interface{})
-			formattedVals := make([]string, len(values))
-			for i, v := range values {
-				formattedVals[i] = fmt.Sprintf("%s", v)
-			}
-			rv[k] = strings.Join(formattedVals, ",")
-		}
-
 		dashboards[i] = map[string]interface{}{
-			"uid":              dashboard.Dashboard.UID,
-			"report_variables": rv,
+			"uid": dashboard.Dashboard.UID,
 			"time_range": []interface{}{
 				map[string]interface{}{
 					"to":   dashboard.TimeRange.To,
@@ -522,8 +505,7 @@ func setDashboards(report models.CreateOrUpdateConfigCmd, d *schema.ResourceData
 				Dashboard: &models.DashboardReportDTO{
 					UID: dash["uid"].(string),
 				},
-				TimeRange:       tr,
-				ReportVariables: dash["report_variables"].(map[string]interface{}),
+				TimeRange: tr,
 			})
 		}
 		return report
