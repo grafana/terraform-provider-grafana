@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
@@ -15,10 +14,51 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
+func TestAccResourceReport_Multiple_Dashboards(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t)
+
+	var report models.ConfigDTO
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      testAccReportCheckDestroy(&report),
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_report/multiple-dashboards.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccReportCheckExists("grafana_report.test", &report),
+					resource.TestCheckResourceAttrSet("grafana_report.test", "id"),
+					resource.TestCheckNoResourceAttr("grafana_report.test", "dashboard_id"),
+					resource.TestCheckNoResourceAttr("grafana_report.test", "dashboard_uid"),
+					resource.TestCheckResourceAttr("grafana_report.test", "time_range.#", "0"),
+					resource.TestCheckResourceAttr("grafana_report.test", "name", "multiple dashboards"),
+					resource.TestCheckResourceAttr("grafana_report.test", "recipients.0", "some@email.com"),
+					resource.TestCheckNoResourceAttr("grafana_report.test", "recipients.1"),
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.frequency", "monthly"),
+					resource.TestCheckResourceAttrSet("grafana_report.test", "schedule.0.start_time"), // Date set to current time
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", ""),  // No end time
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.last_day_of_month", "true"),
+					resource.TestCheckResourceAttr("grafana_report.test", "orientation", "landscape"),
+					resource.TestCheckResourceAttr("grafana_report.test", "layout", "grid"),
+					resource.TestCheckResourceAttr("grafana_report.test", "include_dashboard_link", "true"),
+					resource.TestCheckResourceAttr("grafana_report.test", "include_table_csv", "false"),
+					resource.TestCheckNoResourceAttr("grafana_report.test", "time_range.0.from"),
+					resource.TestCheckNoResourceAttr("grafana_report.test", "time_range.0.to"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.uid", "report"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.time_range.0.from", "now-1h"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.time_range.0.to", "now"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.report_variables.server", `[server1,server2]`),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.1.uid", "report2"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceReport_basic(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 
-	var report gapi.Report
+	var report models.ConfigDTO
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -99,33 +139,6 @@ func TestAccResourceReport_basic(t *testing.T) {
 					resource.TestCheckNoResourceAttr("grafana_report.test", "time_range.0.to"),
 				),
 			},
-			{
-				Config: testutils.TestAccExample(t, "resources/grafana_report/multiple-dashboards.tf"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccReportCheckExists("grafana_report.test", &report),
-					resource.TestCheckResourceAttrSet("grafana_report.test", "id"),
-					resource.TestCheckNoResourceAttr("grafana_report.test", "dashboard_id"),
-					resource.TestCheckNoResourceAttr("grafana_report.test", "dashboard_uid"),
-					resource.TestCheckResourceAttr("grafana_report.test", "name", "my report"),
-					resource.TestCheckResourceAttr("grafana_report.test", "recipients.0", "some@email.com"),
-					resource.TestCheckNoResourceAttr("grafana_report.test", "recipients.1"),
-					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.frequency", "monthly"),
-					resource.TestCheckResourceAttrSet("grafana_report.test", "schedule.0.start_time"), // Date set to current time
-					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", ""),  // No end time
-					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.last_day_of_month", "true"),
-					resource.TestCheckResourceAttr("grafana_report.test", "orientation", "landscape"),
-					resource.TestCheckResourceAttr("grafana_report.test", "layout", "grid"),
-					resource.TestCheckResourceAttr("grafana_report.test", "include_dashboard_link", "true"),
-					resource.TestCheckResourceAttr("grafana_report.test", "include_table_csv", "false"),
-					resource.TestCheckNoResourceAttr("grafana_report.test", "time_range.0.from"),
-					resource.TestCheckNoResourceAttr("grafana_report.test", "time_range.0.to"),
-					resource.TestCheckResourceAttrSet("grafana_report.test", "dashboards.0.uid"),
-					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.time_range.0.from", "now-1h"),
-					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.time_range.0.to", "now"),
-					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.report_variables", `{"server":["server1","server2"]}`),
-					resource.TestCheckResourceAttrSet("grafana_report.test", "dashboards.1.uid"),
-				),
-			},
 		},
 	})
 }
@@ -135,7 +148,7 @@ func TestAccResourceReport_basic(t *testing.T) {
 func TestAccResourceReport_CreateFromDashboardID(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 
-	var report gapi.Report
+	var report models.ConfigDTO
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
@@ -156,7 +169,7 @@ func TestAccResourceReport_CreateFromDashboardID(t *testing.T) {
 func TestAccResourceReport_InOrg(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 
-	var report gapi.Report
+	var report models.ConfigDTO
 	var org models.OrgDetailsDTO
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
@@ -180,7 +193,7 @@ func TestAccResourceReport_InOrg(t *testing.T) {
 	})
 }
 
-func testAccReportCheckExists(rn string, report *gapi.Report) resource.TestCheckFunc {
+func testAccReportCheckExists(rn string, report *models.ConfigDTO) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
 		if !ok {
@@ -191,7 +204,7 @@ func testAccReportCheckExists(rn string, report *gapi.Report) resource.TestCheck
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI
 		orgID, reportIDStr := grafana.SplitOrgResourceID(rs.Primary.ID)
 		reportID, err := strconv.ParseInt(reportIDStr, 10, 64)
 		if err != nil {
@@ -200,25 +213,25 @@ func testAccReportCheckExists(rn string, report *gapi.Report) resource.TestCheck
 
 		// If the org ID is set, check that the report doesn't exist in the default org
 		if orgID > 1 {
-			report, err := client.Report(reportID)
+			report, err := client.Reports.GetReport(reportID)
 			if err == nil || report != nil {
 				return fmt.Errorf("expected no report with ID %s in default org but found one", reportIDStr)
 			}
 			client = client.WithOrgID(orgID)
 		}
 
-		gotReport, err := client.Report(reportID)
+		gotReport, err := client.Reports.GetReport(reportID)
 		if err != nil {
 			return fmt.Errorf("error getting report: %w", err)
 		}
 
-		*report = *gotReport
+		*report = *gotReport.Payload
 
 		return nil
 	}
 }
 
-func testAccReportCheckDestroy(report *gapi.Report) resource.TestCheckFunc {
+func testAccReportCheckDestroy(report *models.ConfigDTO) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
 		_, err := client.Report(report.ID)

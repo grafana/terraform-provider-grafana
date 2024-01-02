@@ -32,7 +32,9 @@ resource "grafana_report" "test" {
       from = "now-1h"
       to   = "now"
     }
-    report_variables = "{\"server\":[\"server1\",\"server2\"]}"
+    report_variables = {
+      "server" = "[server1,server2]"
+    }
   }
 
   dashboards {

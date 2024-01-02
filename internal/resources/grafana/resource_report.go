@@ -249,11 +249,6 @@ func ResourceReport() *schema.Resource {
 							Required:    true,
 							Description: "Dashboard uid.",
 						},
-						"name": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Description: "Dashboard name",
-						},
 						"time_range": {
 							Type:        schema.TypeList,
 							MinItems:    1,
@@ -276,8 +271,9 @@ func ResourceReport() *schema.Resource {
 							},
 						},
 						"report_variables": {
-							Type:        schema.TypeString,
+							Type:        schema.TypeMap,
 							Optional:    true,
+							Default:     map[string]interface{}{},
 							Description: "Variable templates of the report",
 						},
 					},
@@ -311,14 +307,29 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	r, err := client.Reports.GetReport(id)
 	if err, shouldReturn := common.CheckReadError("report", d, err); shouldReturn {
 		return err
 	}
 
+	dashboards := make([]interface{}, len(r.Payload.Dashboards))
+	if len(dashboards) == 1 {
+		d.Set("dashboard_id", r.Payload.Dashboards[0].Dashboard.ID)
+		d.Set("dashboard_uid", r.Payload.Dashboards[0].Dashboard.UID)
+
+		timeRange := r.Payload.Dashboards[0].TimeRange
+		if timeRange.From != "" {
+			d.Set("time_range", []interface{}{
+				map[string]interface{}{
+					"from": timeRange.From,
+					"to":   timeRange.To,
+				},
+			})
+		}
+	}
+
 	d.SetId(MakeOrgResourceID(r.Payload.OrgID, id))
-	d.Set("dashboard_id", r.Payload.Dashboards[0].Dashboard.ID)
-	d.Set("dashboard_uid", r.Payload.Dashboards[0].Dashboard.UID)
 	d.Set("name", r.Payload.Name)
 	d.Set("recipients", strings.Split(r.Payload.Recipients, ","))
 	d.Set("reply_to", r.Payload.ReplyTo)
@@ -335,16 +346,6 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 			formats[i] = string(format)
 		}
 		d.Set("formats", common.StringSliceToSet(formats))
-	}
-
-	timeRange := r.Payload.Dashboards[0].TimeRange
-	if timeRange.From != "" {
-		d.Set("time_range", []interface{}{
-			map[string]interface{}{
-				"from": timeRange.From,
-				"to":   timeRange.To,
-			},
-		})
 	}
 
 	schedule := map[string]interface{}{
@@ -369,12 +370,20 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 
 	d.Set("schedule", []interface{}{schedule})
 
-	dashboards := make([]interface{}, len(r.Payload.Dashboards))
 	for i, dashboard := range r.Payload.Dashboards {
+		rv := dashboard.ReportVariables.(map[string]interface{})
+		for k, v := range rv {
+			values := v.([]interface{})
+			formattedVals := make([]string, len(values))
+			for i, v := range values {
+				formattedVals[i] = fmt.Sprintf("%s", v)
+			}
+			rv[k] = strings.Join(formattedVals, ",")
+		}
+
 		dashboards[i] = map[string]interface{}{
 			"uid":              dashboard.Dashboard.UID,
-			"name":             dashboard.Dashboard.Name,
-			"report_variables": dashboard.ReportVariables,
+			"report_variables": rv,
 			"time_range": []interface{}{
 				map[string]interface{}{
 					"to":   dashboard.TimeRange.To,
@@ -511,11 +520,10 @@ func setDashboards(report models.CreateOrUpdateConfigCmd, d *schema.ResourceData
 
 			report.Dashboards = append(report.Dashboards, &models.DashboardDTO{
 				Dashboard: &models.DashboardReportDTO{
-					UID:  dash["uid"].(string),
-					Name: dash["name"].(string),
+					UID: dash["uid"].(string),
 				},
 				TimeRange:       tr,
-				ReportVariables: dash["report_variables"].(string),
+				ReportVariables: dash["report_variables"].(map[string]interface{}),
 			})
 		}
 		return report
