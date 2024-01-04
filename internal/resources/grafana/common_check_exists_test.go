@@ -65,6 +65,9 @@ var (
 	)
 	dashboardCheckExists = newCheckExistsHelper(
 		func(d *models.DashboardFullWithMeta) string {
+			if d.Dashboard == nil {
+				return ""
+			}
 			return d.Dashboard.(map[string]interface{})["uid"].(string)
 		},
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.DashboardFullWithMeta, error) {
