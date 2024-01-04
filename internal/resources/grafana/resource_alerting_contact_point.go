@@ -46,10 +46,10 @@ Manages Grafana Alerting contact points.
 
 This resource requires Grafana 9.1.0 or later.
 `,
-		CreateContext: updateContactPoint,
+		CreateContext: common.WithAlertingMutex[schema.CreateContextFunc](updateContactPoint),
 		ReadContext:   readContactPoint,
-		UpdateContext: updateContactPoint,
-		DeleteContext: deleteContactPoint,
+		UpdateContext: common.WithAlertingMutex[schema.UpdateContextFunc](updateContactPoint),
+		DeleteContext: common.WithAlertingMutex[schema.DeleteContextFunc](deleteContactPoint),
 
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -139,9 +139,6 @@ func readContactPoint(ctx context.Context, data *schema.ResourceData, meta inter
 }
 
 func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	lock.Lock()
-	defer lock.Unlock()
 	client := OAPIGlobalClient(meta) // TODO: Support org-scoped contact points
 
 	ps := unpackContactPoints(data)
@@ -198,9 +195,6 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 }
 
 func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	lock.Lock()
-	defer lock.Unlock()
 	client := OAPIGlobalClient(meta) // TODO: Support org-scoped contact points
 
 	name := data.Id()
