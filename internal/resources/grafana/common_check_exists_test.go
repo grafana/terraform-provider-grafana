@@ -72,6 +72,14 @@ var (
 			return payloadOrError(resp, err)
 		},
 	)
+	dashboardPublicCheckExists = newCheckExistsHelper(
+		func(d *models.PublicDashboard) string { return d.DashboardUID + ":" + d.UID },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.PublicDashboard, error) {
+			dashboardUID, _, _ := strings.Cut(id, ":")
+			resp, err := client.DashboardPublic.GetPublicDashboard(dashboardUID)
+			return payloadOrError(resp, err)
+		},
+	)
 	datasourceCheckExists = newCheckExistsHelper(
 		func(d *models.DataSource) string { return strconv.FormatInt(d.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.DataSource, error) {
