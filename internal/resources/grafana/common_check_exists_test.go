@@ -79,6 +79,30 @@ var (
 			return payloadOrError(resp, err)
 		},
 	)
+	datasourcePermissionsCheckExists = newCheckExistsHelper(
+		datasourceCheckExists.getIDFunc, // We use the DS as the reference
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.DataSource, error) {
+			ds, err := datasourceCheckExists.getResourceFunc(client, id)
+			if err != nil {
+				return nil, err
+			}
+			resp, err := client.AccessControl.GetResourcePermissions(ds.UID, "datasources")
+			if err != nil {
+				return nil, err
+			}
+			// Only managed permissions should be checked
+			var managedPermissions []*models.ResourcePermissionDTO
+			for _, p := range resp.Payload {
+				if p.IsManaged {
+					managedPermissions = append(managedPermissions, p)
+				}
+			}
+			if len(managedPermissions) == 0 {
+				return nil, &runtime.APIError{Code: 404, Response: "no managed permissions found"}
+			}
+			return ds, nil
+		},
+	)
 	folderCheckExists = newCheckExistsHelper(
 		func(f *models.Folder) string { return strconv.FormatInt(f.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Folder, error) {
@@ -124,6 +148,30 @@ var (
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.ServiceAccountDTO, error) {
 			resp, err := client.ServiceAccounts.RetrieveServiceAccount(mustParseInt64(id))
 			return payloadOrError(resp, err)
+		},
+	)
+	serviceAccountPermissionsCheckExists = newCheckExistsHelper(
+		serviceAccountCheckExists.getIDFunc, // We use the SA as the reference
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.ServiceAccountDTO, error) {
+			sa, err := serviceAccountCheckExists.getResourceFunc(client, id)
+			if err != nil {
+				return nil, err
+			}
+			resp, err := client.AccessControl.GetResourcePermissions(id, "serviceaccounts")
+			if err != nil {
+				return nil, err
+			}
+			// Only managed permissions should be checked
+			var managedPermissions []*models.ResourcePermissionDTO
+			for _, p := range resp.Payload {
+				if p.IsManaged {
+					managedPermissions = append(managedPermissions, p)
+				}
+			}
+			if len(managedPermissions) == 0 {
+				return nil, &runtime.APIError{Code: 404, Response: "no managed permissions found"}
+			}
+			return sa, nil
 		},
 	)
 	teamCheckExists = newCheckExistsHelper(
