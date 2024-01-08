@@ -226,7 +226,7 @@ available at “https://<stack_slug>.grafana.net".`,
 				Computed: true,
 			},
 		},
-    CustomizeDiff: customdiff.All(
+		CustomizeDiff: customdiff.All(
 			customdiff.ComputedIf("url", func(_ context.Context, diff *schema.ResourceDiff, meta interface{}) bool {
 				return diff.HasChange("slug")
 			}),
@@ -243,7 +243,7 @@ available at “https://<stack_slug>.grafana.net".`,
 				return diff.HasChange("slug")
 			}),
 		),
-    }
+	}
 }
 
 func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
