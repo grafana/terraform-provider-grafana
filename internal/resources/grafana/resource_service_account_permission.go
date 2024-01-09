@@ -4,12 +4,16 @@ import (
 	"context"
 	"strconv"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/access_control"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
+
+const serviceAccountsPermissionsType = "serviceaccounts"
 
 func ResourceServiceAccountPermission() *schema.Resource {
 	return &schema.Resource{
@@ -83,7 +87,7 @@ func ReadServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, 
 }
 
 func CreateServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := DeprecatedClientFromNewOrgResource(meta, d)
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 	_, idStr := SplitOrgResourceID(d.Get("service_account_id").(string))
 	d.SetId(MakeOrgResourceID(orgID, idStr))
 
@@ -101,7 +105,7 @@ func CreateServiceAccountPermissions(ctx context.Context, d *schema.ResourceData
 }
 
 func UpdateServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := DeprecatedClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	old, new := d.GetChange("permissions")
 	err := updateServiceAccountPermissions(client, idStr, old, new)
@@ -113,7 +117,7 @@ func UpdateServiceAccountPermissions(ctx context.Context, d *schema.ResourceData
 }
 
 func DeleteServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	oAPIClient, _, _ := OAPIClientFromExistingOrgResource(meta, d.Id())
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	_, serviceAccountID := SplitOrgResourceID(d.Get("service_account_id").(string))
 	id, err := strconv.ParseInt(serviceAccountID, 10, 64)
@@ -121,29 +125,24 @@ func DeleteServiceAccountPermissions(ctx context.Context, d *schema.ResourceData
 		return diag.FromErr(err)
 	}
 
-	_, err = oAPIClient.ServiceAccounts.RetrieveServiceAccount(id)
+	_, err = client.ServiceAccounts.RetrieveServiceAccount(id)
 	if diags, shouldReturn := common.CheckReadError("service account permissions", d, err); shouldReturn {
 		return diags
 	}
 
-	client, _, idStr := DeprecatedClientFromExistingOrgResource(meta, d.Id())
 	return diag.FromErr(updateServiceAccountPermissions(client, idStr, d.Get("permissions"), nil))
 }
 
 func getServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) (interface{}, diag.Diagnostics) {
-	client, _, idStr := DeprecatedClientFromExistingOrgResource(meta, d.Id())
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return nil, diag.FromErr(err)
-	}
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	saPermissions, err := client.ListServiceAccountResourcePermissions(id)
+	resp, err := client.AccessControl.GetResourcePermissions(idStr, serviceAccountsPermissionsType)
 	if err, shouldReturn := common.CheckReadError("service account permissions", d, err); shouldReturn {
 		return nil, err
 	}
 
 	saPerms := make([]interface{}, 0)
-	for _, p := range saPermissions {
+	for _, p := range resp.Payload {
 		// Only managed service account permissions can be provisioned through this resource.
 		if !p.IsManaged {
 			continue
@@ -159,12 +158,7 @@ func getServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, m
 	return saPerms, nil
 }
 
-func updateServiceAccountPermissions(client *gapi.Client, idStr string, from, to interface{}) error {
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return err
-	}
-
+func updateServiceAccountPermissions(client *goapi.GrafanaHTTPAPI, idStr string, from, to interface{}) error {
 	oldTeamPerms := make(map[int64]string, 0)
 	oldUserPerms := make(map[int64]string, 0)
 	for _, p := range listOrSet(from) {
@@ -181,12 +175,12 @@ func updateServiceAccountPermissions(client *gapi.Client, idStr string, from, to
 		}
 	}
 
-	var permissionList []gapi.SetResourcePermissionItem
+	var permissionList []*models.SetResourcePermissionCommand
 
 	// Iterate over permissions from the configuration (the desired permission setup)
 	for _, p := range listOrSet(to) {
 		permission := p.(map[string]interface{})
-		permissionItem := gapi.SetResourcePermissionItem{}
+		permissionItem := models.SetResourcePermissionCommand{}
 		_, teamIDStr := SplitOrgResourceID(permission["team_id"].(string))
 		teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
 		_, userIDStr := SplitOrgResourceID(permission["user_id"].(string))
@@ -212,24 +206,28 @@ func updateServiceAccountPermissions(client *gapi.Client, idStr string, from, to
 			permissionItem.UserID = userID
 		}
 		permissionItem.Permission = permission["permission"].(string)
-		permissionList = append(permissionList, permissionItem)
+		permissionList = append(permissionList, &permissionItem)
 	}
 
 	// Remove the permissions that are in the state but not in the config
 	for teamID := range oldTeamPerms {
-		permissionList = append(permissionList, gapi.SetResourcePermissionItem{
+		permissionList = append(permissionList, &models.SetResourcePermissionCommand{
 			TeamID:     teamID,
 			Permission: "",
 		})
 	}
 	for userID := range oldUserPerms {
-		permissionList = append(permissionList, gapi.SetResourcePermissionItem{
+		permissionList = append(permissionList, &models.SetResourcePermissionCommand{
 			UserID:     userID,
 			Permission: "",
 		})
 	}
 
-	_, err = client.SetServiceAccountResourcePermissions(id, gapi.SetResourcePermissionsBody{Permissions: permissionList})
+	params := access_control.NewSetResourcePermissionsParams().
+		WithResource(serviceAccountsPermissionsType).
+		WithResourceID(idStr).
+		WithBody(&models.SetPermissionsCommand{Permissions: permissionList})
+	_, err := client.AccessControl.SetResourcePermissions(params)
 	return err
 }
 
