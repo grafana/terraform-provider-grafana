@@ -188,6 +188,14 @@ var (
 			return payloadOrError(resp, err)
 		},
 	)
+
+	reportCheckExists = newCheckExistsHelper(
+		func(u *models.Report) string { return strconv.FormatInt(u.ID, 10) },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Report, error) {
+			resp, err := client.Reports.GetReport(mustParseInt64(id))
+			return payloadOrError(resp, err)
+		},
+	)
 )
 
 type checkExistsGetResourceFunc[T interface{}] func(client *goapi.GrafanaHTTPAPI, id string) (*T, error)

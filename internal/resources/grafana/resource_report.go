@@ -376,17 +376,27 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReportConfig, 
 		Formats: []models.Type{reportFormatPDF},
 	}
 
+	// Set dashboard time range
+	timeRange := d.Get("time_range").([]interface{})
+	tr := &models.ReportTimeRange{}
+	if len(timeRange) > 0 {
+		timeRange := timeRange[0].(map[string]interface{})
+		tr = &models.ReportTimeRange{From: timeRange["from"].(string), To: timeRange["to"].(string)}
+	}
+
 	id := int64(d.Get("dashboard_id").(int))
 	uid := d.Get("dashboard_uid").(string)
 	if uid == "" {
 		// It triggers the old way to generate reports
 		report.DashboardID = id
+		report.Options.TimeRange = tr
 	} else {
 		report.Dashboards = []*models.ReportDashboard{
 			{
 				Dashboard: &models.ReportDashboardID{
 					UID: uid,
 				},
+				TimeRange: tr,
 			},
 		}
 	}
@@ -396,13 +406,6 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReportConfig, 
 		for _, format := range formats {
 			report.Formats = append(report.Formats, models.Type(format))
 		}
-	}
-
-	// Set dashboard time range
-	timeRange := d.Get("time_range").([]interface{})
-	if len(timeRange) > 0 {
-		timeRange := timeRange[0].(map[string]interface{})
-		report.Dashboards[0].TimeRange = &models.ReportTimeRange{From: timeRange["from"].(string), To: timeRange["to"].(string)}
 	}
 
 	// Set schedule start time
