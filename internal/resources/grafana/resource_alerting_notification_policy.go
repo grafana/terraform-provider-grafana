@@ -2,10 +2,14 @@ package grafana
 
 import (
 	"context"
+	"strconv"
+	"time"
 
+	"github.com/go-openapi/runtime"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
@@ -35,6 +39,7 @@ This resource requires Grafana 9.1.0 or later.
 
 		SchemaVersion: 0,
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"disable_provenance": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -179,7 +184,7 @@ func policySchema(depth uint) *schema.Resource {
 }
 
 func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta) // TODO: Support org-scoped policies
+	client, orgID, _ := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	resp, err := client.Provisioning.GetPolicyTree()
 	if err != nil {
@@ -187,12 +192,13 @@ func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta
 	}
 
 	packNotifPolicy(resp.Payload, data)
-	data.SetId(PolicySingletonID)
+	data.SetId(MakeOrgResourceID(orgID, PolicySingletonID))
+	data.Set("org_id", strconv.FormatInt(orgID, 10))
 	return nil
 }
 
 func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta) // TODO: Support org-scoped policies
+	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
 	npt, err := unpackNotifPolicy(data)
 	if err != nil {
@@ -205,16 +211,26 @@ func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta 
 		params.SetXDisableProvenance(&disabled)
 	}
 
-	if _, err := client.Provisioning.PutPolicyTree(params); err != nil {
+	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		_, err := client.Provisioning.PutPolicyTree(params)
+		if orgID > 1 && err != nil && err.(*runtime.APIError).IsCode(500) {
+			return retry.RetryableError(err)
+		} else if err != nil {
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	})
+
+	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	data.SetId(PolicySingletonID)
+	data.SetId(MakeOrgResourceID(orgID, PolicySingletonID))
 	return readNotificationPolicy(ctx, data, meta)
 }
 
 func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta) // TODO: Support org-scoped policies
+	client, _, _ := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	if _, err := client.Provisioning.ResetPolicyTree(); err != nil {
 		return diag.FromErr(err)
