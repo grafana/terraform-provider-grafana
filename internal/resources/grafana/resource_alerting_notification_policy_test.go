@@ -141,10 +141,28 @@ func TestAccNotificationPolicy_disableProvenance(t *testing.T) {
 
 func testAccNotificationPolicyDisableProvenance(disableProvenance bool) string {
 	return fmt.Sprintf(`
+	resource "grafana_contact_point" "a_contact_point" {
+		name = "A Contact Point"
+	  
+		email {
+		  addresses = ["one@company.org", "two@company.org"]
+		}
+	  }
+
 	resource "grafana_notification_policy" "test" {
 		group_by      = ["hello"]
-		contact_point = "grafana-default-email"
+		contact_point = grafana_contact_point.a_contact_point.name
 		disable_provenance = %t
+
+		policy {
+			group_by = ["hello"]
+			matcher {
+				label = "Name"
+				match = "=~"
+				value = "host.*|host-b.*"
+			}
+			contact_point = grafana_contact_point.a_contact_point.name
+		}
 	  }
 	`, disableProvenance)
 }
