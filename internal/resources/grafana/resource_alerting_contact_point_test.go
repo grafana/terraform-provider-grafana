@@ -6,29 +6,29 @@ import (
 	"strings"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 )
 
 func TestAccContactPoint_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
 
-	var points []gapi.ContactPoint
+	var points models.ContactPoints
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		// Implicitly tests deletion.
-		CheckDestroy: testContactPointCheckDestroy(points),
+		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.my_contact_point", &points, 1),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.my_contact_point", &points, 1),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "name", "My Contact Point"),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.0.disable_resolve_message", "false"),
@@ -49,7 +49,7 @@ func TestAccContactPoint_basic(t *testing.T) {
 					"company.org": "user.net",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.my_contact_point", &points, 1),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.my_contact_point", &points, 1),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.0.addresses.0", "one@user.net"),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.0.addresses.1", "two@user.net"),
@@ -61,10 +61,9 @@ func TestAccContactPoint_basic(t *testing.T) {
 					"My Contact Point": "A Different Contact Point",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.my_contact_point", &points, 1),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.my_contact_point", &points, 1),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "name", "A Different Contact Point"),
 					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.#", "1"),
-					testContactPointCheckAllDestroy("My Contact Point"),
 				),
 			},
 		},
@@ -74,19 +73,19 @@ func TestAccContactPoint_basic(t *testing.T) {
 func TestAccContactPoint_compound(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
 
-	var points []gapi.ContactPoint
+	var points models.ContactPoints
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		// Implicitly tests deletion.
-		CheckDestroy: testContactPointCheckDestroy(points),
+		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_compound_receiver.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.compound_contact_point", &points, 2),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.compound_contact_point", &points, 2),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "name", "Compound Contact Point"),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.#", "2"),
 				),
@@ -104,19 +103,7 @@ func TestAccContactPoint_compound(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					resource, ok := s.RootModule().Resources["grafana_contact_point.compound_contact_point"]
-					if !ok {
-						return "", fmt.Errorf("resource not found")
-					}
-					firstUID, ok := resource.Primary.Attributes["email.0.uid"]
-					if !ok {
-						return "", fmt.Errorf("uid for first email notifier not found")
-					}
-					secondUID, ok := resource.Primary.Attributes["email.1.uid"]
-					if !ok {
-						return "", fmt.Errorf("uid for second email notifier not found")
-					}
-					return strings.Join([]string{firstUID, secondUID}, ";"), nil
+					return strings.Join([]string{points[0].UID, points[1].UID}, ";"), nil
 				},
 			},
 			// Test update.
@@ -125,7 +112,7 @@ func TestAccContactPoint_compound(t *testing.T) {
 					"one": "asdf",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.compound_contact_point", &points, 2),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.compound_contact_point", &points, 2),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.#", "2"),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.0.addresses.0", "asdf@company.org"),
 				),
@@ -134,7 +121,7 @@ func TestAccContactPoint_compound(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_compound_receiver_added.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.compound_contact_point", &points, 3),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.compound_contact_point", &points, 3),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.#", "3"),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.0.addresses.0", "five@company.org"),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.1.addresses.0", "one@company.org"),
@@ -145,7 +132,7 @@ func TestAccContactPoint_compound(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_compound_receiver_subtracted.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.compound_contact_point", &points, 1),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.compound_contact_point", &points, 1),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.0.addresses.0", "one@company.org"),
 				),
@@ -156,10 +143,9 @@ func TestAccContactPoint_compound(t *testing.T) {
 					"Compound Contact Point": "A Different Contact Point",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.compound_contact_point", &points, 2),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.compound_contact_point", &points, 2),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "name", "A Different Contact Point"),
 					resource.TestCheckResourceAttr("grafana_contact_point.compound_contact_point", "email.#", "2"),
-					testContactPointCheckAllDestroy("Compound Contact Point"),
 				),
 			},
 		},
@@ -169,18 +155,18 @@ func TestAccContactPoint_compound(t *testing.T) {
 func TestAccContactPoint_notifiers(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
-	var points []gapi.ContactPoint
+	var points models.ContactPoints
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		// Implicitly tests deletion.
-		CheckDestroy: testContactPointCheckDestroy(points),
+		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_receiver_types.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 19),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.receiver_types", &points, 19),
 					// alertmanager
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "alertmanager.0.url", "http://my-am"),
@@ -339,24 +325,11 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_default_settings.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.default_settings", &points, 1),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.default_settings", &points, 1),
 					resource.TestCheckResourceAttr("grafana_contact_point.default_settings", "slack.#", "1"),
 					resource.TestCheckNoResourceAttr("grafana_contact_point.default_settings", "slack.endpoint_url"),
 					func(s *terraform.State) error {
-						rname := "grafana_contact_point.default_settings"
-						rs, ok := s.RootModule().Resources[rname]
-						if !ok {
-							return fmt.Errorf("resource not found: %s, resources: %#v", rname, s.RootModule().Resources)
-						}
-						name := rs.Primary.ID
-
-						client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
-						pt, err := client.ContactPointsByName(name)
-						if err != nil {
-							return fmt.Errorf("error getting resource: %w", err)
-						}
-
-						if val, ok := pt[0].Settings["endpointUrl"]; ok {
+						if val, ok := points[0].Settings.(map[string]interface{})["endpointUrl"]; ok {
 							return fmt.Errorf("endpointUrl was still present in the settings when it should have been omitted. value: %#v", val)
 						}
 
@@ -371,18 +344,18 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 func TestAccContactPoint_notifiers10_2(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=10.2.0")
 
-	var points []gapi.ContactPoint
+	var points models.ContactPoints
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		// Implicitly tests deletion.
-		CheckDestroy: testContactPointCheckDestroy(points),
+		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_receiver_types_10_2.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 1),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.receiver_types", &points, 1),
 					// oncall
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "oncall.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "oncall.0.url", "http://my-url"),
@@ -401,18 +374,18 @@ func TestAccContactPoint_notifiers10_2(t *testing.T) {
 func TestAccContactPoint_notifiers10_3(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Switch to `testutils.CheckOSSTestsEnabled(t, ">=10.3.0")` once 10.3 is released.
 
-	var points []gapi.ContactPoint
+	var points models.ContactPoints
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		// Implicitly tests deletion.
-		CheckDestroy: testContactPointCheckDestroy(points),
+		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_receiver_types_10_3.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testContactPointCheckExists("grafana_contact_point.receiver_types", &points, 1),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.receiver_types", &points, 1),
 					// opsgenie
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.url", "http://opsgenie-api"),
@@ -432,6 +405,46 @@ func TestAccContactPoint_notifiers10_3(t *testing.T) {
 	})
 }
 
+func TestAccContactPoint_inOrg(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	var points models.ContactPoints
+	var org models.OrgDetailsDTO
+	name := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		Steps: []resource.TestStep{
+			// Creation
+			{
+				Config: testAccContactPointInOrg(name),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.test", &points, 1),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "email.#", "1"),
+					checkResourceIsInOrg("grafana_contact_point.test", "grafana_organization.test"),
+				),
+			},
+			// Import
+			{
+				ResourceName:      "grafana_contact_point.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Deletion
+			{
+				Config: testutils.WithoutResource(t, testAccContactPointInOrg(name), "grafana_contact_point.test"),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					alertingContactPointCheckExists.destroyed(&points, nil),
+				),
+			},
+		},
+	})
+}
+
 func TestAccContactPoint_empty(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
@@ -440,87 +453,45 @@ func TestAccContactPoint_empty(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
-				Config:      testAccEmptyContactPoint,
+				Config: `
+				resource "grafana_contact_point" "dev_null" {
+					name = "empty-test"
+				}
+				`,
 				ExpectError: regexp.MustCompile(`Missing required argument`),
 			},
 		},
 	})
 }
 
-func testContactPointCheckExists(rname string, pts *[]gapi.ContactPoint, expCount int) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		resource, ok := s.RootModule().Resources[rname]
-		if !ok {
-			return fmt.Errorf("resource not found: %s, resources: %#v", rname, s.RootModule().Resources)
-		}
-
-		name, ok := resource.Primary.Attributes["name"]
-		if !ok {
-			return fmt.Errorf("resource name not set")
-		}
-
-		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
-		points, err := client.ContactPointsByName(name)
-		if err != nil {
-			return fmt.Errorf("error getting resource: %w", err)
-		}
-
-		// Work around query parameters not being supported in some older patch versions.
-		filtered := make([]gapi.ContactPoint, 0, len(points))
-		for i := range points {
-			if points[i].Name == name {
-				filtered = append(filtered, points[i])
+func checkAlertingContactPointExistsWithLength(rn string, v *models.ContactPoints, expectedLength int) resource.TestCheckFunc {
+	return resource.ComposeTestCheckFunc(
+		alertingContactPointCheckExists.exists(rn, v),
+		func(s *terraform.State) error {
+			if len(*v) != expectedLength {
+				receivers := make([]string, len(*v))
+				for i, v := range *v {
+					receivers[i] = fmt.Sprintf("%+v", v)
+				}
+				return fmt.Errorf("expected %d contact points, got %d. Receivers:\n%s", expectedLength, len(*v), strings.Join(receivers, "\n"))
 			}
-		}
+			return nil
+		},
+	)
+}
 
-		if len(filtered) != expCount {
-			return fmt.Errorf("wrong number of contact points on the server, expected %d but got %#v", expCount, filtered)
-		}
-
-		*pts = points
-		return nil
+func testAccContactPointInOrg(name string) string {
+	return fmt.Sprintf(`
+	resource "grafana_organization" "test" {
+		name = "%[1]s"
 	}
-}
 
-func testContactPointCheckDestroy(points []gapi.ContactPoint) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
-		for _, p := range points {
-			_, err := client.ContactPoint(p.UID)
-			if err == nil {
-				return fmt.Errorf("contact point still exists on the server")
-			}
+	resource "grafana_contact_point" "test" {
+		org_id = grafana_organization.test.id
+		name = "%[1]s"
+		email {
+			addresses = [ "hello@example.com" ]
 		}
-		points = []gapi.ContactPoint{}
-		return nil
 	}
+	`, name)
 }
-
-func testContactPointCheckAllDestroy(name string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
-		points, err := client.ContactPointsByName(name)
-		if err != nil {
-			return fmt.Errorf("error getting resource: %w", err)
-		}
-
-		// Work around query parameters not being supported in some older patch versions.
-		filtered := make([]gapi.ContactPoint, 0, len(points))
-		for i := range points {
-			if points[i].Name == name {
-				filtered = append(filtered, points[i])
-			}
-		}
-
-		if len(filtered) > 0 {
-			return fmt.Errorf("contact points still exist on the server: %#v", filtered)
-		}
-		return nil
-	}
-}
-
-const testAccEmptyContactPoint = `
-resource "grafana_contact_point" "dev_null" {
-	name = "empty-test"
-}
-`

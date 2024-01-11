@@ -8,6 +8,7 @@ import (
 	"github.com/go-openapi/runtime"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/api_keys"
+	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
@@ -19,6 +20,20 @@ import (
 // Helpers that check if a resource exists or doesn't. To define a new one, use the newCheckExistsHelper function.
 // A function that gets a resource by their Terraform ID is required.
 var (
+	alertingContactPointCheckExists = newCheckExistsHelper(
+		func(p *models.ContactPoints) string { return (*p)[0].Name },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.ContactPoints, error) {
+			params := provisioning.NewGetContactpointsParams().WithName(&id)
+			resp, err := client.Provisioning.GetContactpoints(params)
+			if err != nil {
+				return nil, err
+			}
+			if len(resp.Payload) == 0 {
+				return nil, &runtime.APIError{Code: 404}
+			}
+			return &resp.Payload, nil
+		},
+	)
 	alertingMessageTemplateCheckExists = newCheckExistsHelper(
 		func(t *models.NotificationTemplate) string { return t.Name },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.NotificationTemplate, error) {
@@ -31,6 +46,20 @@ var (
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.MuteTimeInterval, error) {
 			resp, err := client.Provisioning.GetMuteTiming(id)
 			return payloadOrError(resp, err)
+		},
+	)
+	alertingNotificationPolicyCheckExists = newCheckExistsHelper(
+		func(t *models.Route) string { return "Global" }, // It's a singleton. ID doesn't matter.
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Route, error) {
+			resp, err := client.Provisioning.GetPolicyTree()
+			if err != nil {
+				return nil, err
+			}
+			tree := resp.Payload
+			if len(tree.Routes) == 0 || tree.Receiver == "grafana-default-email" {
+				return nil, &runtime.APIError{Code: 404, Response: "the default notification policy is set"}
+			}
+			return tree, nil
 		},
 	)
 	alertingRuleGroupCheckExists = newCheckExistsHelper(
@@ -65,10 +94,21 @@ var (
 	)
 	dashboardCheckExists = newCheckExistsHelper(
 		func(d *models.DashboardFullWithMeta) string {
+			if d.Dashboard == nil {
+				return ""
+			}
 			return d.Dashboard.(map[string]interface{})["uid"].(string)
 		},
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.DashboardFullWithMeta, error) {
 			resp, err := client.Dashboards.GetDashboardByUID(id)
+			return payloadOrError(resp, err)
+		},
+	)
+	dashboardPublicCheckExists = newCheckExistsHelper(
+		func(d *models.PublicDashboard) string { return d.DashboardUID + ":" + d.UID },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.PublicDashboard, error) {
+			dashboardUID, _, _ := strings.Cut(id, ":")
+			resp, err := client.DashboardPublic.GetPublicDashboard(dashboardUID)
 			return payloadOrError(resp, err)
 		},
 	)

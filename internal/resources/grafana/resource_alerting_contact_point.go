@@ -3,11 +3,15 @@ package grafana
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
+	"github.com/go-openapi/runtime"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -57,6 +61,7 @@ This resource requires Grafana 9.1.0 or later.
 
 		SchemaVersion: 0,
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"name": {
 				Type:        schema.TypeString,
 				ForceNew:    true,
@@ -86,11 +91,10 @@ This resource requires Grafana 9.1.0 or later.
 }
 
 func readContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta) // TODO: Support org-scoped contact points
+	client, orgID, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	// First, try to fetch the contact point by name.
 	// If that fails, try to fetch it by the UID of its notifiers.
-	name := data.Id()
 	resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams().WithName(&name))
 	if err != nil {
 		return diag.FromErr(err)
@@ -134,19 +138,21 @@ func readContactPoint(ctx context.Context, data *schema.ResourceData, meta inter
 	if err := packContactPoints(points, data); err != nil {
 		return diag.FromErr(err)
 	}
+	data.Set("org_id", strconv.FormatInt(orgID, 10))
+	data.SetId(MakeOrgResourceID(orgID, points[0].Name))
 
 	return nil
 }
 
 func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta) // TODO: Support org-scoped contact points
+	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
 	ps := unpackContactPoints(data)
 
 	// If the contact point already exists, we need to fetch its current state so that we can compare it to the proposed state.
 	var currentPoints models.ContactPoints
 	if !data.IsNewResource() {
-		name := data.Id()
+		name := data.Get("name").(string)
 		resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams().WithName(&name))
 		if err != nil && !common.IsNotFoundError(err) {
 			return diag.FromErr(err)
@@ -168,11 +174,21 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 			}
 		} else {
 			// If the contact point does not have a UID, create it.
-			resp, err := client.Provisioning.PostContactpoints(provisioning.NewPostContactpointsParams().WithBody(p.gfState))
+			// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+			// The alertmanager is provisioned asynchronously when the org is created.
+			err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+				resp, err := client.Provisioning.PostContactpoints(provisioning.NewPostContactpointsParams().WithBody(p.gfState))
+				if orgID > 1 && err != nil && err.(*runtime.APIError).IsCode(500) {
+					return retry.RetryableError(err)
+				} else if err != nil {
+					return retry.NonRetryableError(err)
+				}
+				uid = resp.Payload.UID
+				return nil
+			})
 			if err != nil {
 				return diag.FromErr(err)
 			}
-			uid = resp.Payload.UID
 		}
 
 		// Since this is a new resource, the proposed state won't have a UID.
@@ -190,14 +206,13 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 		}
 	}
 
-	data.SetId(data.Get("name").(string))
+	data.SetId(MakeOrgResourceID(orgID, data.Get("name").(string)))
 	return readContactPoint(ctx, data, meta)
 }
 
 func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta) // TODO: Support org-scoped contact points
+	client, _, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	name := data.Id()
 	resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams().WithName(&name))
 	if err, shouldReturn := common.CheckReadError("contact point", data, err); shouldReturn {
 		return err
@@ -245,7 +260,6 @@ func packContactPoints(ps []*models.EmbeddedContactPoint, data *schema.ResourceD
 	pointsPerNotifier := map[notifier][]interface{}{}
 	for _, p := range ps {
 		data.Set("name", p.Name)
-		data.SetId(p.Name)
 
 		for _, n := range notifiers {
 			if *p.Type == n.meta().typeStr {

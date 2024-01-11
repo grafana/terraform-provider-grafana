@@ -51,6 +51,7 @@ resource "grafana_contact_point" "my_contact_point" {
 - `line` (Block Set) A contact point that sends notifications to LINE.me. (see [below for nested schema](#nestedblock--line))
 - `oncall` (Block Set) A contact point that sends notifications to Grafana On-Call. (see [below for nested schema](#nestedblock--oncall))
 - `opsgenie` (Block Set) A contact point that sends notifications to OpsGenie. (see [below for nested schema](#nestedblock--opsgenie))
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `pagerduty` (Block Set) A contact point that sends notifications to PagerDuty. (see [below for nested schema](#nestedblock--pagerduty))
 - `pushover` (Block Set) A contact point that sends notifications to Pushover. (see [below for nested schema](#nestedblock--pushover))
 - `sensugo` (Block Set) A contact point that sends notifications to SensuGo. (see [below for nested schema](#nestedblock--sensugo))
