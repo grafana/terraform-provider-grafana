@@ -25,16 +25,22 @@ Sets the global notification policy for Grafana.
 This resource requires Grafana 9.1.0 or later.
 `,
 
-		CreateContext: putNotificationPolicy,
+		CreateContext: common.WithAlertingMutex[schema.CreateContextFunc](putNotificationPolicy),
 		ReadContext:   readNotificationPolicy,
-		UpdateContext: putNotificationPolicy,
-		DeleteContext: deleteNotificationPolicy,
+		UpdateContext: common.WithAlertingMutex[schema.UpdateContextFunc](putNotificationPolicy),
+		DeleteContext: common.WithAlertingMutex[schema.DeleteContextFunc](deleteNotificationPolicy),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		SchemaVersion: 0,
 		Schema: map[string]*schema.Schema{
+			"disable_provenance": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Allow modifying the notification policy from other sources than Terraform or the Grafana API.",
+			},
 			"contact_point": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -186,9 +192,6 @@ func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta
 }
 
 func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	lock.Lock()
-	defer lock.Unlock()
 	client := OAPIGlobalClient(meta) // TODO: Support org-scoped policies
 
 	npt, err := unpackNotifPolicy(data)
@@ -197,6 +200,11 @@ func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta 
 	}
 
 	params := provisioning.NewPutPolicyTreeParams().WithBody(npt)
+	if data.Get("disable_provenance").(bool) {
+		disabled := "disabled"
+		params.SetXDisableProvenance(&disabled)
+	}
+
 	if _, err := client.Provisioning.PutPolicyTree(params); err != nil {
 		return diag.FromErr(err)
 	}
@@ -206,9 +214,6 @@ func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta 
 }
 
 func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	lock.Lock()
-	defer lock.Unlock()
 	client := OAPIGlobalClient(meta) // TODO: Support org-scoped policies
 
 	if _, err := client.Provisioning.ResetPolicyTree(); err != nil {
@@ -219,6 +224,7 @@ func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, me
 }
 
 func packNotifPolicy(npt *models.Route, data *schema.ResourceData) {
+	data.Set("disable_provenance", npt.Provenance == "")
 	data.Set("contact_point", npt.Receiver)
 	data.Set("group_by", npt.GroupBy)
 	data.Set("group_wait", npt.GroupWait)

@@ -356,24 +356,32 @@ func DeleteReport(ctx context.Context, d *schema.ResourceData, meta interface{})
 	return diag
 }
 
-func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateConfigCmd, error) {
+func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReportConfig, error) {
 	frequency := d.Get("schedule.0.frequency").(string)
-	report := models.CreateOrUpdateConfigCmd{
+	report := models.CreateOrUpdateReportConfig{
 		Name:               d.Get("name").(string),
 		Recipients:         strings.Join(common.ListToStringSlice(d.Get("recipients").([]interface{})), ","),
 		ReplyTo:            d.Get("reply_to").(string),
 		Message:            d.Get("message").(string),
 		EnableDashboardURL: d.Get("include_dashboard_link").(bool),
 		EnableCSV:          d.Get("include_table_csv").(bool),
-		Options: &models.ReportOptionsDTO{
+		Options: &models.ReportOptions{
 			Layout:      d.Get("layout").(string),
 			Orientation: d.Get("orientation").(string),
 		},
-		Schedule: &models.ScheduleDTO{
+		Schedule: &models.ReportSchedule{
 			Frequency: frequency,
 			TimeZone:  "GMT",
 		},
 		Formats: []models.Type{reportFormatPDF},
+	}
+
+	// Set dashboard time range
+	timeRange := d.Get("time_range").([]interface{})
+	tr := &models.ReportTimeRange{}
+	if len(timeRange) > 0 {
+		timeRange := timeRange[0].(map[string]interface{})
+		tr = &models.ReportTimeRange{From: timeRange["from"].(string), To: timeRange["to"].(string)}
 	}
 
 	id := int64(d.Get("dashboard_id").(int))
@@ -381,12 +389,14 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateConfigCmd, err
 	if uid == "" {
 		// It triggers the old way to generate reports
 		report.DashboardID = id
+		report.Options.TimeRange = tr
 	} else {
-		report.Dashboards = []*models.DashboardDTO{
+		report.Dashboards = []*models.ReportDashboard{
 			{
-				Dashboard: &models.DashboardReportDTO{
+				Dashboard: &models.ReportDashboardID{
 					UID: uid,
 				},
+				TimeRange: tr,
 			},
 		}
 	}
@@ -398,19 +408,12 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateConfigCmd, err
 		}
 	}
 
-	// Set dashboard time range
-	timeRange := d.Get("time_range").([]interface{})
-	if len(timeRange) > 0 {
-		timeRange := timeRange[0].(map[string]interface{})
-		report.Dashboards[0].TimeRange = &models.TimeRangeDTO{From: timeRange["from"].(string), To: timeRange["to"].(string)}
-	}
-
 	// Set schedule start time
 	if frequency != reportFrequencyNever {
 		if startTimeStr := d.Get("schedule.0.start_time").(string); startTimeStr != "" {
 			startDate, err := time.Parse(time.RFC3339, startTimeStr)
 			if err != nil {
-				return models.CreateOrUpdateConfigCmd{}, err
+				return models.CreateOrUpdateReportConfig{}, err
 			}
 
 			date := strfmt.DateTime(startDate.UTC())
@@ -423,7 +426,7 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateConfigCmd, err
 		if endTimeStr := d.Get("schedule.0.end_time").(string); endTimeStr != "" {
 			endDate, err := time.Parse(time.RFC3339, endTimeStr)
 			if err != nil {
-				return models.CreateOrUpdateConfigCmd{}, err
+				return models.CreateOrUpdateReportConfig{}, err
 			}
 
 			date := strfmt.DateTime(endDate.UTC())
@@ -444,7 +447,7 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateConfigCmd, err
 		customInterval := d.Get("schedule.0.custom_interval").(string)
 		amount, unit, err := parseCustomReportInterval(customInterval)
 		if err != nil {
-			return models.CreateOrUpdateConfigCmd{}, err
+			return models.CreateOrUpdateReportConfig{}, err
 		}
 		report.Schedule.IntervalAmount = int64(amount)
 		report.Schedule.IntervalFrequency = unit
