@@ -76,6 +76,7 @@ func TestAccTeam_preferences(t *testing.T) {
 					resource.TestCheckNoResourceAttr("grafana_team.test", "preferences.0.home_dashboard_uid"),
 					resource.TestCheckNoResourceAttr("grafana_team.test", "preferences.0.theme"),
 					resource.TestCheckNoResourceAttr("grafana_team.test", "preferences.0.timezone"),
+					resource.TestCheckNoResourceAttr("grafana_team.test", "preferences.0.week_start"),
 				),
 			},
 			{
@@ -89,6 +90,7 @@ func TestAccTeam_preferences(t *testing.T) {
 					resource.TestMatchResourceAttr("grafana_team.test", "preferences.0.home_dashboard_uid", common.UIDRegexp),
 					resource.TestCheckResourceAttr("grafana_team.test", "preferences.0.theme", "dark"),
 					resource.TestCheckResourceAttr("grafana_team.test", "preferences.0.timezone", "utc"),
+					resource.TestCheckResourceAttr("grafana_team.test", "preferences.0.week_start", "monday"),
 				),
 			},
 			{
@@ -323,6 +325,7 @@ func testAccTeamDefinition(name string, teamMembers []string, withPreferences bo
 		theme              = "dark"
 		timezone           = "utc"
 		home_dashboard_uid = grafana_dashboard.test.uid
+		week_start         = "monday"
 	}
 `
 	}

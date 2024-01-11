@@ -32,17 +32,17 @@ func testAccResourceOrganizationPreferences(t *testing.T, withUID bool) {
 	prefs := models.Preferences{
 		Theme:     "light",
 		Timezone:  "utc",
-		WeekStart: "Monday",
+		WeekStart: "monday",
 	}
 	updatedPrefs := models.Preferences{
 		Theme:     "dark",
 		Timezone:  "utc",
-		WeekStart: "Tuesday",
+		WeekStart: "sunday",
 	}
 	finalPrefs := models.Preferences{
 		Theme:     "",
 		Timezone:  "browser",
-		WeekStart: "Monday",
+		WeekStart: "saturday",
 	}
 	emptyPrefs := models.Preferences{
 		Theme:     "",
