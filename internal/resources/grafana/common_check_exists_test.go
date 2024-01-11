@@ -183,6 +183,24 @@ var (
 			return payloadOrError(resp, err)
 		},
 	)
+	roleAssignmentCheckExists = newCheckExistsHelper(
+		func(r *models.RoleDTO) string { return r.UID },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.RoleDTO, error) {
+			resp, err := client.AccessControl.GetRole(id)
+			if err != nil {
+				return nil, err
+			}
+			assignResp, err := client.AccessControl.GetRoleAssignments(id)
+			if err != nil {
+				return nil, err
+			}
+			assignments := assignResp.Payload
+			if len(assignments.ServiceAccounts) == 0 && len(assignments.Teams) == 0 && len(assignments.Users) == 0 {
+				return nil, &runtime.APIError{Code: 404, Response: "no assignments found"}
+			}
+			return resp.Payload, nil
+		},
+	)
 	serviceAccountCheckExists = newCheckExistsHelper(
 		func(t *models.ServiceAccountDTO) string { return strconv.FormatInt(t.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.ServiceAccountDTO, error) {
