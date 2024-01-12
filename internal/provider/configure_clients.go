@@ -15,6 +15,7 @@ import (
 	gapi "github.com/grafana/grafana-api-golang-client"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/machine-learning-go-client/mlapi"
+	slo "github.com/grafana/slo-openapi-client/go"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
 
 	"github.com/go-openapi/strfmt"
@@ -37,6 +38,9 @@ func createClients(providerConfig frameworkProviderConfig) (*common.Client, erro
 			return nil, err
 		}
 		if err = createMLClient(c, providerConfig); err != nil {
+			return nil, err
+		}
+		if err = createSLOClient(c, providerConfig); err != nil {
 			return nil, err
 		}
 	}
@@ -161,6 +165,16 @@ func createMLClient(client *common.Client, providerConfig frameworkProviderConfi
 	var err error
 	client.MLAPI, err = mlapi.New(mlURL, mlcfg)
 	return err
+}
+
+func createSLOClient(client *common.Client, providerConfig frameworkProviderConfig) error {
+	sloConfig := slo.NewConfiguration()
+	sloConfig.Host = client.GrafanaAPIURLParsed.Host
+	sloConfig.Scheme = client.GrafanaAPIURLParsed.Scheme
+	sloConfig.DefaultHeader["Authorization"] = "Bearer " + providerConfig.Auth.ValueString()
+	sloConfig.HTTPClient = getRetryClient(providerConfig)
+	client.SLOClient = slo.NewAPIClient(sloConfig)
+	return nil
 }
 
 func createCloudClient(providerConfig frameworkProviderConfig) (*gapi.Client, error) {
