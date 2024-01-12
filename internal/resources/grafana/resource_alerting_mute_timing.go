@@ -3,13 +3,14 @@ package grafana
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
+	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
 func ResourceMuteTiming() *schema.Resource {
@@ -33,6 +34,7 @@ This resource requires Grafana 9.1.0 or later.
 
 		SchemaVersion: 0,
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -117,49 +119,61 @@ This resource requires Grafana 9.1.0 or later.
 }
 
 func readMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).DeprecatedGrafanaAPI
+	client, orgID, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	name := data.Id()
-	mt, err := client.MuteTiming(name)
+	resp, err := client.Provisioning.GetMuteTiming(name)
 	if err, shouldReturn := common.CheckReadError("mute timing", data, err); shouldReturn {
 		return err
 	}
+	mt := resp.Payload
 
-	data.SetId(mt.Name)
+	data.SetId(MakeOrgResourceID(orgID, mt.Name))
+	data.Set("org_id", strconv.FormatInt(orgID, 10))
 	data.Set("name", mt.Name)
 	data.Set("intervals", packIntervals(mt.TimeIntervals))
 	return nil
 }
 
 func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).DeprecatedGrafanaAPI
+	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
-	mt := unpackMuteTiming(data)
+	intervals := data.Get("intervals").([]interface{})
+	params := provisioning.NewPostMuteTimingParams().
+		WithBody(&models.MuteTimeInterval{
+			Name:          data.Get("name").(string),
+			TimeIntervals: unpackIntervals(intervals),
+		})
 
-	if err := client.NewMuteTiming(&mt); err != nil {
+	resp, err := client.Provisioning.PostMuteTiming(params)
+	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	data.SetId(mt.Name)
+	data.SetId(MakeOrgResourceID(orgID, resp.Payload.Name))
 	return readMuteTiming(ctx, data, meta)
 }
 
 func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).DeprecatedGrafanaAPI
+	client, _, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	mt := unpackMuteTiming(data)
+	intervals := data.Get("intervals").([]interface{})
+	params := provisioning.NewPutMuteTimingParams().
+		WithName(name).
+		WithBody(&models.MuteTimeInterval{
+			Name:          name,
+			TimeIntervals: unpackIntervals(intervals),
+		})
 
-	if err := client.UpdateMuteTiming(&mt); err != nil {
+	_, err := client.Provisioning.PutMuteTiming(params)
+	if err != nil {
 		return diag.FromErr(err)
 	}
 	return readMuteTiming(ctx, data, meta)
 }
 
 func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).DeprecatedGrafanaAPI
-	name := data.Id()
+	client, _, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	err := client.DeleteMuteTiming(name)
+	_, err := client.Provisioning.DeleteMuteTiming(name)
 	diag, _ := common.CheckReadError("mute timing", data, err)
 	return diag
 }
@@ -190,16 +204,7 @@ func suppressMonthDiff(k, oldValue, newValue string, d *schema.ResourceData) boo
 	return oldNormalized == newNormalized
 }
 
-func unpackMuteTiming(d *schema.ResourceData) gapi.MuteTiming {
-	intervals := d.Get("intervals").([]interface{})
-	mt := gapi.MuteTiming{
-		Name:          d.Get("name").(string),
-		TimeIntervals: unpackIntervals(intervals),
-	}
-	return mt
-}
-
-func packIntervals(nts []gapi.TimeInterval) []interface{} {
+func packIntervals(nts []*models.TimeInterval) []interface{} {
 	if nts == nil {
 		return nil
 	}
@@ -215,35 +220,19 @@ func packIntervals(nts []gapi.TimeInterval) []interface{} {
 			in["times"] = times
 		}
 		if ti.Weekdays != nil {
-			wkdays := make([]interface{}, 0, len(ti.Weekdays))
-			for _, wd := range ti.Weekdays {
-				wkdays = append(wkdays, wd)
-			}
-			in["weekdays"] = wkdays
+			in["weekdays"] = common.StringSliceToList(ti.Weekdays)
 		}
 		if ti.DaysOfMonth != nil {
-			mdays := make([]interface{}, 0, len(ti.DaysOfMonth))
-			for _, dom := range ti.DaysOfMonth {
-				mdays = append(mdays, dom)
-			}
-			in["days_of_month"] = mdays
+			in["days_of_month"] = common.StringSliceToList(ti.DaysOfMonth)
 		}
 		if ti.Months != nil {
-			ms := make([]interface{}, 0, len(ti.Months))
-			for _, m := range ti.Months {
-				ms = append(ms, m)
-			}
-			in["months"] = ms
+			in["months"] = common.StringSliceToList(ti.Months)
 		}
 		if ti.Years != nil {
-			ys := make([]interface{}, 0, len(ti.Years))
-			for _, y := range ti.Years {
-				ys = append(ys, y)
-			}
-			in["years"] = ys
+			in["years"] = common.StringSliceToList(ti.Years)
 		}
 		if ti.Location != "" {
-			in["location"] = string(ti.Location)
+			in["location"] = ti.Location
 		}
 		intervals = append(intervals, in)
 	}
@@ -251,71 +240,57 @@ func packIntervals(nts []gapi.TimeInterval) []interface{} {
 	return intervals
 }
 
-func unpackIntervals(raw []interface{}) []gapi.TimeInterval {
+func unpackIntervals(raw []interface{}) []*models.TimeInterval {
 	if raw == nil {
 		return nil
 	}
 
-	result := make([]gapi.TimeInterval, len(raw))
+	result := make([]*models.TimeInterval, len(raw))
 	for i, r := range raw {
-		interval := gapi.TimeInterval{}
+		interval := models.TimeInterval{}
 		block := r.(map[string]interface{})
 
 		if vals, ok := block["times"]; ok && vals != nil {
 			vals := vals.([]interface{})
-			interval.Times = make([]gapi.TimeRange, len(vals))
+			interval.Times = make([]*models.TimeIntervalRange, len(vals))
 			for i := range vals {
 				interval.Times[i] = unpackTimeRange(vals[i])
 			}
 		}
 		if vals, ok := block["weekdays"]; ok && vals != nil {
-			vals := vals.([]interface{})
-			interval.Weekdays = make([]gapi.WeekdayRange, len(vals))
-			for i := range vals {
-				interval.Weekdays[i] = gapi.WeekdayRange(vals[i].(string))
-			}
+			interval.Weekdays = common.ListToStringSlice(vals.([]interface{}))
 		}
 		if vals, ok := block["days_of_month"]; ok && vals != nil {
-			vals := vals.([]interface{})
-			interval.DaysOfMonth = make([]gapi.DayOfMonthRange, len(vals))
-			for i := range vals {
-				interval.DaysOfMonth[i] = gapi.DayOfMonthRange(vals[i].(string))
-			}
+			interval.DaysOfMonth = common.ListToStringSlice(vals.([]interface{}))
 		}
 		if vals, ok := block["months"]; ok && vals != nil {
-			vals := vals.([]interface{})
-			interval.Months = make([]gapi.MonthRange, len(vals))
-			for i := range vals {
-				interval.Months[i] = gapi.MonthRange(vals[i].(string))
-			}
+			interval.Months = common.ListToStringSlice(vals.([]interface{}))
 		}
 		if vals, ok := block["years"]; ok && vals != nil {
-			vals := vals.([]interface{})
-			interval.Years = make([]gapi.YearRange, len(vals))
-			for i := range vals {
-				interval.Years[i] = gapi.YearRange(vals[i].(string))
-			}
+			interval.Years = common.ListToStringSlice(vals.([]interface{}))
 		}
+
 		if vals, ok := block["location"]; ok && vals != nil {
-			interval.Location = gapi.Location(vals.(string))
+			interval.Location = vals.(string)
 		}
-		result[i] = interval
+
+		result[i] = &interval
 	}
 
 	return result
 }
 
-func packTimeRange(time gapi.TimeRange) interface{} {
+func packTimeRange(time *models.TimeIntervalRange) interface{} {
 	return map[string]string{
-		"start": time.StartMinute,
-		"end":   time.EndMinute,
+		"start": time.StartTime,
+		"end":   time.EndTime,
 	}
 }
 
-func unpackTimeRange(raw interface{}) gapi.TimeRange {
+func unpackTimeRange(raw interface{}) *models.TimeIntervalRange {
 	vals := raw.(map[string]interface{})
-	return gapi.TimeRange{
-		StartMinute: vals["start"].(string),
-		EndMinute:   vals["end"].(string),
+	return &models.TimeIntervalRange{
+		StartTime: vals["start"].(string),
+		EndTime:   vals["end"].(string),
 	}
 }
