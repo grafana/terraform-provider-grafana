@@ -314,7 +314,7 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	}
 
 	dashboards := make([]interface{}, len(r.Payload.Dashboards))
-	if len(dashboards) == 1 {
+	if d.Get("dashboard_id").(int) != 0 || d.Get("dashboard_uid").(string) != "" {
 		d.Set("dashboard_id", r.Payload.Dashboards[0].Dashboard.ID)
 		d.Set("dashboard_uid", r.Payload.Dashboards[0].Dashboard.UID)
 
