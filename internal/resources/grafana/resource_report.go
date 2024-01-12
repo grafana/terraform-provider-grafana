@@ -269,8 +269,14 @@ func ResourceReport() *schema.Resource {
 									},
 								},
 							},
+							DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+								return oldValue == "1" && newValue == "0"
+							},
 						},
 					},
+				},
+				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+					return d.Get("dashboard_id").(int) != 0 && d.Get("dashboard_uid").(string) != ""
 				},
 			},
 		},
