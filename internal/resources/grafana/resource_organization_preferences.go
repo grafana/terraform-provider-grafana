@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -74,9 +74,9 @@ func ResourceOrganizationPreferences() *schema.Resource {
 }
 
 func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := DeprecatedClientFromNewOrgResource(meta, d)
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
-	_, err := client.UpdateAllOrgPreferences(gapi.Preferences{
+	_, err := client.OrgPreferences.UpdateOrgPreferences(&models.UpdatePrefsCmd{
 		Theme:            d.Get("theme").(string),
 		HomeDashboardID:  int64(d.Get("home_dashboard_id").(int)),
 		HomeDashboardUID: d.Get("home_dashboard_uid").(string),
@@ -93,19 +93,20 @@ func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 }
 
 func ReadOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).DeprecatedGrafanaAPI
+	client := OAPIGlobalClient(meta)
 	if id, _ := strconv.ParseInt(d.Id(), 10, 64); id > 0 {
 		client = client.WithOrgID(id)
 	}
 
-	prefs, err := client.OrgPreferences()
+	resp, err := client.OrgPreferences.GetOrgPreferences()
 	if err, shouldReturn := common.CheckReadError("organization preferences", d, err); shouldReturn {
 		return err
 	}
+	prefs := resp.Payload
 
 	d.Set("org_id", d.Id())
 	d.Set("theme", prefs.Theme)
-	d.Set("home_dashboard_id", prefs.HomeDashboardID)
+	d.Set("home_dashboard_id", int(prefs.HomeDashboardID))
 	d.Set("home_dashboard_uid", prefs.HomeDashboardUID)
 	d.Set("timezone", prefs.Timezone)
 	d.Set("week_start", prefs.WeekStart)
@@ -118,12 +119,12 @@ func UpdateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 }
 
 func DeleteOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).DeprecatedGrafanaAPI
+	client := OAPIGlobalClient(meta)
 	if id, _ := strconv.ParseInt(d.Id(), 10, 64); id > 0 {
 		client = client.WithOrgID(id)
 	}
 
-	if _, err := client.UpdateAllOrgPreferences(gapi.Preferences{}); err != nil {
+	if _, err := client.OrgPreferences.UpdateOrgPreferences(&models.UpdatePrefsCmd{}); err != nil {
 		return diag.FromErr(err)
 	}
 
