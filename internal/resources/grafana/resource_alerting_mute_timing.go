@@ -232,7 +232,7 @@ func packIntervals(nts []*models.TimeInterval) []interface{} {
 			in["years"] = common.StringSliceToList(ti.Years)
 		}
 		if ti.Location != "" {
-			in["location"] = string(ti.Location)
+			in["location"] = ti.Location
 		}
 		intervals = append(intervals, in)
 	}
