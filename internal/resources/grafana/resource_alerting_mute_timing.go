@@ -23,10 +23,10 @@ Manages Grafana Alerting mute timings.
 This resource requires Grafana 9.1.0 or later.
 `,
 
-		CreateContext: createMuteTiming,
+		CreateContext: common.WithAlertingMutex[schema.CreateContextFunc](createMuteTiming),
 		ReadContext:   readMuteTiming,
-		UpdateContext: updateMuteTiming,
-		DeleteContext: deleteMuteTiming,
+		UpdateContext: common.WithAlertingMutex[schema.UpdateContextFunc](updateMuteTiming),
+		DeleteContext: common.WithAlertingMutex[schema.DeleteContextFunc](deleteMuteTiming),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -132,13 +132,10 @@ func readMuteTiming(ctx context.Context, data *schema.ResourceData, meta interfa
 }
 
 func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
 	client := meta.(*common.Client).DeprecatedGrafanaAPI
 
 	mt := unpackMuteTiming(data)
 
-	lock.Lock()
-	defer lock.Unlock()
 	if err := client.NewMuteTiming(&mt); err != nil {
 		return diag.FromErr(err)
 	}
@@ -148,13 +145,10 @@ func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 }
 
 func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
 	client := meta.(*common.Client).DeprecatedGrafanaAPI
 
 	mt := unpackMuteTiming(data)
 
-	lock.Lock()
-	defer lock.Unlock()
 	if err := client.UpdateMuteTiming(&mt); err != nil {
 		return diag.FromErr(err)
 	}
@@ -162,12 +156,9 @@ func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 }
 
 func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
 	client := meta.(*common.Client).DeprecatedGrafanaAPI
 	name := data.Id()
 
-	lock.Lock()
-	defer lock.Unlock()
 	err := client.DeleteMuteTiming(name)
 	diag, _ := common.CheckReadError("mute timing", data, err)
 	return diag

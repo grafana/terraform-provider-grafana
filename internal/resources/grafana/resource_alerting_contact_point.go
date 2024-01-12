@@ -3,12 +3,15 @@ package grafana
 import (
 	"context"
 	"fmt"
-	"log"
+	"strconv"
 	"strings"
+	"time"
 
+	"github.com/go-openapi/runtime"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -47,19 +50,21 @@ Manages Grafana Alerting contact points.
 
 This resource requires Grafana 9.1.0 or later.
 `,
-		CreateContext: updateContactPoint,
+		CreateContext: common.WithAlertingMutex[schema.CreateContextFunc](updateContactPoint),
 		ReadContext:   readContactPoint,
-		UpdateContext: updateContactPoint,
-		DeleteContext: deleteContactPoint,
+		UpdateContext: common.WithAlertingMutex[schema.UpdateContextFunc](updateContactPoint),
+		DeleteContext: common.WithAlertingMutex[schema.DeleteContextFunc](deleteContactPoint),
 
 		Importer: &schema.ResourceImporter{
-			StateContext: importContactPoint,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		SchemaVersion: 0,
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"name": {
 				Type:        schema.TypeString,
+				ForceNew:    true,
 				Required:    true,
 				Description: "The name of the contact point.",
 			},
@@ -74,7 +79,7 @@ This resource requires Grafana 9.1.0 or later.
 
 	for _, n := range notifiers {
 		resource.Schema[n.meta().field] = &schema.Schema{
-			Type:         schema.TypeList,
+			Type:         schema.TypeSet,
 			Optional:     true,
 			Description:  n.meta().desc,
 			Elem:         n.schema(),
@@ -85,126 +90,141 @@ This resource requires Grafana 9.1.0 or later.
 	return resource
 }
 
-func importContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	name := data.Id()
-	client := OAPIGlobalClient(meta) // TODO: Support org-scoped contact points
-
-	params := provisioning.NewGetContactpointsParams().WithName(&name)
-	resp, err := client.Provisioning.GetContactpoints(params)
-	if err != nil {
-		return nil, err
-	}
-	ps := resp.Payload
-
-	if len(ps) == 0 {
-		return nil, fmt.Errorf("no contact points with the given name were found to import")
-	}
-
-	uids := make([]string, 0, len(ps))
-	for _, p := range ps {
-		uids = append(uids, p.UID)
-	}
-
-	data.SetId(packUIDs(uids))
-	return []*schema.ResourceData{data}, nil
-}
-
 func readContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta) // TODO: Support org-scoped contact points
+	client, orgID, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	uidsToFetch := unpackUIDs(data.Id())
-
-	resp, err := client.Provisioning.GetContactpoints(nil)
+	// First, try to fetch the contact point by name.
+	// If that fails, try to fetch it by the UID of its notifiers.
+	resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams().WithName(&name))
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	contactPointByUID := map[string]*models.EmbeddedContactPoint{}
-	for _, p := range resp.Payload {
-		contactPointByUID[p.UID] = p
+	points := resp.Payload
+	if len(points) == 0 {
+		// If the contact point was not found by name, try to fetch it by UID.
+		// This is a deprecated ID format (uid;uid2;uid3)
+		// TODO: Remove on the next major version
+		uidsMap := map[string]bool{}
+		for _, uid := range strings.Split(data.Id(), ";") {
+			uidsMap[uid] = false
+		}
+		resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		for i, p := range resp.Payload {
+			if _, ok := uidsMap[p.UID]; !ok {
+				continue
+			}
+			uidsMap[p.UID] = true
+			points = append(points, p)
+			if i > 0 && p.Name != points[0].Name {
+				return diag.FromErr(fmt.Errorf("contact point with UID %s has a different name (%s) than the contact point with UID %s (%s)", p.UID, p.Name, points[0].UID, points[0].Name))
+			}
+		}
+
+		for uid, found := range uidsMap {
+			if !found {
+				// Since this is an import, all UIDs should exist
+				return diag.FromErr(fmt.Errorf("contact point with UID %s was not found", uid))
+			}
+		}
 	}
 
-	points := []*models.EmbeddedContactPoint{}
-	for _, uid := range uidsToFetch {
-		p, ok := contactPointByUID[uid]
-		if !ok {
-			log.Printf("[WARN] removing contact point %s from state because it no longer exists in grafana", uid)
-			continue
-		}
-		points = append(points, p)
+	if len(points) == 0 {
+		return common.WarnMissing("contact point", data)
 	}
 
 	if err := packContactPoints(points, data); err != nil {
 		return diag.FromErr(err)
 	}
-	uids := make([]string, 0, len(points))
-	for _, p := range points {
-		uids = append(uids, p.UID)
-	}
-	data.SetId(packUIDs(uids))
+	data.Set("org_id", strconv.FormatInt(orgID, 10))
+	data.SetId(MakeOrgResourceID(orgID, points[0].Name))
 
 	return nil
 }
 
 func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	lock.Lock()
-	defer lock.Unlock()
-	client := OAPIGlobalClient(meta) // TODO: Support org-scoped contact points
+	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
-	existingUIDs := unpackUIDs(data.Id())
 	ps := unpackContactPoints(data)
 
-	unprocessedUIDs := toUIDSet(existingUIDs)
-	newUIDs := make([]string, 0, len(ps))
+	// If the contact point already exists, we need to fetch its current state so that we can compare it to the proposed state.
+	var currentPoints models.ContactPoints
+	if !data.IsNewResource() {
+		name := data.Get("name").(string)
+		resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams().WithName(&name))
+		if err != nil && !common.IsNotFoundError(err) {
+			return diag.FromErr(err)
+		}
+		if resp != nil {
+			currentPoints = resp.Payload
+		}
+	}
+
+	processedUIDs := map[string]bool{}
 	for i := range ps {
-		p := ps[i].gfState
-		delete(unprocessedUIDs, p.UID)
-		params := provisioning.NewPutContactpointParams().WithUID(p.UID).WithBody(p)
-		_, err := client.Provisioning.PutContactpoint(params)
-		if err != nil {
-			if common.IsNotFoundError(err) {
-				params := provisioning.NewPostContactpointsParams().WithBody(p)
-				resp, err := client.Provisioning.PostContactpoints(params)
-				ps[i].tfState["uid"] = resp.Payload.UID
-				newUIDs = append(newUIDs, resp.Payload.UID)
-				if err != nil {
-					return diag.FromErr(err)
-				}
-				continue
+		p := ps[i]
+		var uid string
+		if uid = p.tfState["uid"].(string); uid != "" {
+			// If the contact point already has a UID, update it.
+			params := provisioning.NewPutContactpointParams().WithUID(uid).WithBody(p.gfState)
+			if _, err := client.Provisioning.PutContactpoint(params); err != nil {
+				return diag.FromErr(err)
 			}
-			return diag.FromErr(err)
+		} else {
+			// If the contact point does not have a UID, create it.
+			// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+			// The alertmanager is provisioned asynchronously when the org is created.
+			err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+				resp, err := client.Provisioning.PostContactpoints(provisioning.NewPostContactpointsParams().WithBody(p.gfState))
+				if orgID > 1 && err != nil && err.(*runtime.APIError).IsCode(500) {
+					return retry.RetryableError(err)
+				} else if err != nil {
+					return retry.NonRetryableError(err)
+				}
+				uid = resp.Payload.UID
+				return nil
+			})
+			if err != nil {
+				return diag.FromErr(err)
+			}
 		}
-		newUIDs = append(newUIDs, p.UID)
+
+		// Since this is a new resource, the proposed state won't have a UID.
+		// We need the UID so that we can later associate it with the config returned in the api response.
+		ps[i].tfState["uid"] = uid
+		processedUIDs[uid] = true
 	}
 
-	// Any UIDs still left in the state that we haven't seen must map to deleted receivers.
-	// Delete them on the server and drop them from state.
-	for u := range unprocessedUIDs {
-		if _, err := client.Provisioning.DeleteContactpoints(u); err != nil {
-			return diag.FromErr(err)
+	for _, p := range currentPoints {
+		if _, ok := processedUIDs[p.UID]; !ok {
+			// If the contact point is not in the proposed state, delete it.
+			if _, err := client.Provisioning.DeleteContactpoints(p.UID); err != nil {
+				return diag.Errorf("failed to remove contact point notifier with UID %s from contact point %s: %v", p.UID, p.Name, err)
+			}
 		}
 	}
 
-	data.SetId(packUIDs(newUIDs))
-
+	data.SetId(MakeOrgResourceID(orgID, data.Get("name").(string)))
 	return readContactPoint(ctx, data, meta)
 }
 
 func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	lock.Lock()
-	defer lock.Unlock()
-	client := OAPIGlobalClient(meta) // TODO: Support org-scoped contact points
+	client, _, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	uids := unpackUIDs(data.Id())
+	resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams().WithName(&name))
+	if err, shouldReturn := common.CheckReadError("contact point", data, err); shouldReturn {
+		return err
+	}
 
-	for _, uid := range uids {
-		if _, err := client.Provisioning.DeleteContactpoints(uid); err != nil {
+	for _, cp := range resp.Payload {
+		if _, err := client.Provisioning.DeleteContactpoints(cp.UID); err != nil {
 			return diag.FromErr(err)
 		}
 	}
 
-	return diag.Diagnostics{}
+	return nil
 }
 
 func unpackContactPoints(data *schema.ResourceData) []statePair {
@@ -212,7 +232,7 @@ func unpackContactPoints(data *schema.ResourceData) []statePair {
 	name := data.Get("name").(string)
 	for _, n := range notifiers {
 		if points, ok := data.GetOk(n.meta().field); ok {
-			for _, p := range points.([]interface{}) {
+			for _, p := range points.(*schema.Set).List() {
 				result = append(result, statePair{
 					tfState: p.(map[string]interface{}),
 					gfState: unpackPointConfig(n, p, name),
@@ -307,24 +327,6 @@ func commonNotifierResource() *schema.Resource {
 	}
 }
 
-const UIDSeparator = ";"
-
-func packUIDs(uids []string) string {
-	return strings.Join(uids, UIDSeparator)
-}
-
-func unpackUIDs(packed string) []string {
-	return strings.Split(packed, UIDSeparator)
-}
-
-func toUIDSet(uids []string) map[string]bool {
-	set := map[string]bool{}
-	for _, uid := range uids {
-		set[uid] = true
-	}
-	return set
-}
-
 type notifier interface {
 	meta() notifierMeta
 	schema() *schema.Resource
@@ -367,7 +369,7 @@ func unpackNotifierStringField(tfSettings, gfSettings *map[string]interface{}, t
 
 func getNotifierConfigFromStateWithUID(data *schema.ResourceData, n notifier, uid string) map[string]interface{} {
 	if points, ok := data.GetOk(n.meta().field); ok {
-		for _, pt := range points.([]interface{}) {
+		for _, pt := range points.(*schema.Set).List() {
 			config := pt.(map[string]interface{})
 			if config["uid"] == uid {
 				return config

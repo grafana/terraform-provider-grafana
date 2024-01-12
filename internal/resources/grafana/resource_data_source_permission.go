@@ -8,9 +8,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/access_control"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
+
+const datasourcesPermissionsType = "datasources"
 
 func ResourceDatasourcePermission() *schema.Resource {
 	return &schema.Resource{
@@ -82,25 +86,24 @@ Manages the entire set of permissions for a datasource. Permissions that aren't 
 }
 
 func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := DeprecatedClientFromNewOrgResource(meta, d)
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	var list []interface{}
 	if v, ok := d.GetOk("permissions"); ok {
 		list = v.(*schema.Set).List()
 	}
 
-	_, datasourceIDStr := SplitOrgResourceID(d.Get("datasource_id").(string))
-	datasourceID, _ := strconv.ParseInt(datasourceIDStr, 10, 64)
-
-	dataSource, err := client.DataSource(datasourceID)
+	_, datasourceID := SplitOrgResourceID(d.Get("datasource_id").(string))
+	resp, err := client.Datasources.GetDataSourceByID(datasourceID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	datasource := resp.Payload
 
-	var configuredPermissions []gapi.SetResourcePermissionItem
+	var configuredPermissions []*models.SetResourcePermissionCommand
 	for _, permission := range list {
 		permission := permission.(map[string]interface{})
-		var permissionItem gapi.SetResourcePermissionItem
+		var permissionItem models.SetResourcePermissionCommand
 		_, teamIDStr := SplitOrgResourceID(permission["team_id"].(string))
 		teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
 		if teamID > 0 {
@@ -112,13 +115,13 @@ func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 			permissionItem.UserID = userID
 		}
 		if permission["built_in_role"].(string) != "" {
-			permissionItem.BuiltinRole = permission["built_in_role"].(string)
+			permissionItem.BuiltInRole = permission["built_in_role"].(string)
 		}
 		permissionItem.Permission = permission["permission"].(string)
-		configuredPermissions = append(configuredPermissions, permissionItem)
+		configuredPermissions = append(configuredPermissions, &permissionItem)
 	}
 
-	if err := updateDatasourcePermissions(client, dataSource.UID, configuredPermissions); err != nil {
+	if err := updateDatasourcePermissions(client, datasource.UID, configuredPermissions); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -128,25 +131,21 @@ func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 }
 
 func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := DeprecatedClientFromExistingOrgResource(meta, d.Id())
+	client, _, id := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	dataSource, err := client.DataSource(id)
+	resp, err := client.Datasources.GetDataSourceByID(id)
 	if diag, shouldReturn := common.CheckReadError("data source permissions", d, err); shouldReturn {
 		return diag
 	}
+	datasource := resp.Payload
 
-	response, err := client.ListDatasourceResourcePermissions(dataSource.UID)
+	listResp, err := client.AccessControl.GetResourcePermissions(datasource.UID, datasourcesPermissionsType)
 	if err, shouldReturn := common.CheckReadError("datasource permissions", d, err); shouldReturn {
 		return err
 	}
 
 	var permissionItems []interface{}
-	for _, permission := range response {
+	for _, permission := range listResp.Payload {
 		// Only managed permissions can be provisioned through this resource, so we disregard the permissions obtained through custom and fixed roles here
 		if !permission.IsManaged {
 			continue
@@ -166,37 +165,32 @@ func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta
 }
 
 func DeleteDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := DeprecatedClientFromExistingOrgResource(meta, d.Id())
+	client, _, id := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	dataSource, err := client.DataSource(id)
+	resp, err := client.Datasources.GetDataSourceByID(id)
 	if diags, shouldReturn := common.CheckReadError("data source permissions", d, err); shouldReturn {
 		return diags
 	}
+	datasource := resp.Payload
 
-	err = updateDatasourcePermissions(client, dataSource.UID, []gapi.SetResourcePermissionItem{})
+	err = updateDatasourcePermissions(client, datasource.UID, []*models.SetResourcePermissionCommand{})
 	diags, _ := common.CheckReadError("datasource permissions", d, err)
 	return diags
 }
 
-func updateDatasourcePermissions(client *gapi.Client, uid string, permissions []gapi.SetResourcePermissionItem) error {
-	areEqual := func(a *gapi.ResourcePermission, b gapi.SetResourcePermissionItem) bool {
-		return a.Permission == b.Permission && a.TeamID == b.TeamID && a.UserID == b.UserID && a.BuiltInRole == b.BuiltinRole
+func updateDatasourcePermissions(client *goapi.GrafanaHTTPAPI, uid string, permissions []*models.SetResourcePermissionCommand) error {
+	areEqual := func(a *models.ResourcePermissionDTO, b *models.SetResourcePermissionCommand) bool {
+		return a.Permission == b.Permission && a.TeamID == b.TeamID && a.UserID == b.UserID && a.BuiltInRole == b.BuiltInRole
 	}
 
-	response, err := client.ListDatasourceResourcePermissions(uid)
+	listResp, err := client.AccessControl.GetResourcePermissions(uid, datasourcesPermissionsType)
 	if err != nil {
 		return err
 	}
 
-	var permissionList []gapi.SetResourcePermissionItem
-
+	var permissionList []*models.SetResourcePermissionCommand
 deleteLoop:
-	for _, current := range response {
+	for _, current := range listResp.Payload {
 		// Only managed permissions can be provisioned through this resource, so we disregard the permissions obtained through custom and fixed roles here
 		if !current.IsManaged {
 			continue
@@ -207,35 +201,33 @@ deleteLoop:
 			}
 		}
 
-		permToRemove := gapi.SetResourcePermissionItem{
+		permToRemove := models.SetResourcePermissionCommand{
 			TeamID:      current.TeamID,
 			UserID:      current.UserID,
-			BuiltinRole: current.BuiltInRole,
+			BuiltInRole: current.BuiltInRole,
 			Permission:  "",
 		}
 
-		permissionList = append(permissionList, permToRemove)
+		permissionList = append(permissionList, &permToRemove)
 	}
 
 addLoop:
 	for _, new := range permissions {
-		for _, current := range response {
+		for _, current := range listResp.Payload {
 			if areEqual(current, new) {
 				continue addLoop
 			}
 		}
 
-		permToAdd := gapi.SetResourcePermissionItem{
-			TeamID:      new.TeamID,
-			UserID:      new.UserID,
-			BuiltinRole: new.BuiltinRole,
-			Permission:  new.Permission,
-		}
-
-		permissionList = append(permissionList, permToAdd)
+		permissionList = append(permissionList, new)
 	}
 
-	_, err = client.SetDatasourceResourcePermissions(uid, gapi.SetResourcePermissionsBody{Permissions: permissionList})
+	body := models.SetPermissionsCommand{Permissions: permissionList}
+	params := access_control.NewSetResourcePermissionsParams().
+		WithResource(datasourcesPermissionsType).
+		WithResourceID(uid).
+		WithBody(&body)
+	_, err = client.AccessControl.SetResourcePermissions(params)
 
 	return err
 }
