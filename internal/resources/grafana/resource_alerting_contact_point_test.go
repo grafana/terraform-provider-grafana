@@ -405,6 +405,52 @@ func TestAccContactPoint_notifiers10_3(t *testing.T) {
 	})
 }
 
+func TestAccContactPoint_sensitiveData(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	var points models.ContactPoints
+	name := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      alertingContactPointCheckExists.destroyed(&points, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccContactPointWithSensitiveData(name, "https://api.eu.opsgenie.com/v2/alerts", "mykey"),
+				Check: resource.ComposeTestCheckFunc(
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.test", &points, 1),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "opsgenie.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "opsgenie.0.url", "https://api.eu.opsgenie.com/v2/alerts"),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "opsgenie.0.api_key", "mykey"),
+				),
+			},
+			// Update non-sensitive data
+			{
+				Config: testAccContactPointWithSensitiveData(name, "http://my-url", "mykey"),
+				Check: resource.ComposeTestCheckFunc(
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.test", &points, 1),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "opsgenie.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "opsgenie.0.url", "http://my-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "opsgenie.0.api_key", "mykey"),
+				),
+			},
+			// Update sensitive data
+			{
+				Config: testAccContactPointWithSensitiveData(name, "http://my-url", "mykey2"),
+				Check: resource.ComposeTestCheckFunc(
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.test", &points, 1),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "opsgenie.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "opsgenie.0.url", "http://my-url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "opsgenie.0.api_key", "mykey2"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccContactPoint_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
@@ -494,4 +540,44 @@ func testAccContactPointInOrg(name string) string {
 		}
 	}
 	`, name)
+}
+
+func testAccContactPointWithSensitiveData(name, url, apiKey string) string {
+	return fmt.Sprintf(`
+	resource "grafana_contact_point" "test" {
+		name = "%[1]s"
+		opsgenie {
+			url               = "%[2]s"
+			api_key           = "%[3]s"
+			message           = "{{ .CommonAnnotations.summary }}"
+			send_tags_as      = "tags"
+			override_priority = true
+			settings = {
+			  tags        = <<EOT
+		{{- range .Alerts -}}
+		  {{- range .Labels.SortedPairs -}}
+			{{- if and (ne .Name "severity") (ne .Name "destination") -}}
+			  {{ .Name }}={{ .Value }},
+			{{- end -}}
+		  {{- end -}}
+		{{- end -}}
+		EOT
+			  og_priority = <<EOT
+		{{- range .Alerts -}}
+		  {{- range .Labels.SortedPairs -}}
+			{{- if eq .Name "severity" -}}
+			  {{- if eq .Value "warning" -}}
+				P5
+			  {{- else if eq .Value "critical" -}}
+				P3
+			  {{- else -}}
+				{{ .Value }}
+			  {{- end -}}
+			{{- end -}}
+		  {{- end -}}
+		{{- end -}}
+		EOT
+			}
+		  }
+	}`, name, url, apiKey)
 }
