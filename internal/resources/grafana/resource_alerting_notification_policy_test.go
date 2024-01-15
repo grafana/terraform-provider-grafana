@@ -158,6 +158,57 @@ func TestAccNotificationPolicy_error(t *testing.T) {
 	})
 }
 
+func TestAccNotificationPolicy_inOrg(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	var policy models.Route
+	var org models.OrgDetailsDTO
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			orgCheckExists.destroyed(&org, nil),
+			alertingNotificationPolicyCheckExists.destroyed(&policy, &org),
+		),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNotificationPolicyInOrg(),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+					checkResourceIsInOrg("grafana_notification_policy.test", "grafana_organization.test"),
+				),
+			},
+		},
+	})
+
+}
+
+func testAccNotificationPolicyInOrg() string {
+	return fmt.Sprintf(`
+	resource "grafana_organization" "test" {
+		name = "test"
+	}
+
+	resource "grafana_notification_policy" "test" {
+		group_by      = ["hello"]
+		contact_point = "A Contact Point"
+
+		policy {
+			group_by = ["hello"]
+			matcher {
+				label = "Name"
+				match = "=~"
+				value = "host.*|host-b.*"
+			}
+			contact_point = "A Contact Point"
+		}
+
+		org_id = grafana_organization.test.id
+	}
+	`)
+}
+
 func testAccNotificationPolicyDisableProvenance(disableProvenance bool) string {
 	return fmt.Sprintf(`
 	resource "grafana_contact_point" "a_contact_point" {
