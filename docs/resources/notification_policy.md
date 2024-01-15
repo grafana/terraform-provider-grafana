@@ -109,6 +109,7 @@ resource "grafana_notification_policy" "my_notification_policy" {
 - `disable_provenance` (Boolean) Allow modifying the notification policy from other sources than Terraform or the Grafana API. Defaults to `false`.
 - `group_interval` (String) Minimum time interval between two notifications for the same group. Default is 5 minutes.
 - `group_wait` (String) Time to wait to buffer alerts of the same group before sending a notification. Default is 30 seconds.
+- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `policy` (Block List) Routing rules for specific label sets. (see [below for nested schema](#nestedblock--policy))
 - `repeat_interval` (String) Minimum time interval for re-sending a notification if an alert is still firing. Default is 4 hours.
 
