@@ -78,7 +78,7 @@ func ResourceReport() *schema.Resource {
 				ExactlyOneOf: []string{"dashboard_id", "dashboard_uid", "dashboards"},
 				Computed:     true,
 				Optional:     true,
-				Deprecated:   "Use dashboard_uid instead",
+				Deprecated:   "Use dashboards instead",
 				Description:  "Dashboard to be sent in the report. This field is deprecated, use `dashboard_uid` instead.",
 			},
 			"dashboard_uid": {
