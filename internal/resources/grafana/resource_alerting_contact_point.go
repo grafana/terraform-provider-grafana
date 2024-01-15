@@ -230,6 +230,8 @@ func unpackContactPoints(data *schema.ResourceData) []statePair {
 		}
 		processedUIDs := map[string]bool{}
 		for _, p := range newPointsList {
+			// Checking if the point/receiver should be deleted
+			// If all fields are zeroed out, except UID, then the receiver should be deleted
 			deleted := false
 			pointMap := p.(map[string]interface{})
 			if uid, ok := pointMap["uid"]; ok && uid != "" {
@@ -243,12 +245,16 @@ func unpackContactPoints(data *schema.ResourceData) []statePair {
 				}
 			}
 
+			// Add the point/receiver to the result
+			// If it's not deleted, it will either be created or updated
 			result = append(result, statePair{
 				tfState: pointMap,
 				gfState: unpackPointConfig(n, p, name),
 				deleted: deleted,
 			})
 		}
+		// Checking if the point/receiver should be deleted
+		// If the point is not present in the "new" part of the diff, but is present in the "old" part, then the receiver should be deleted
 		for _, p := range oldPointsList {
 			pointMap := p.(map[string]interface{})
 			if uid, ok := pointMap["uid"]; ok && uid != "" && !processedUIDs[uid.(string)] {
