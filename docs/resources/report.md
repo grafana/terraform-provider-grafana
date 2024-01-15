@@ -29,13 +29,10 @@ EOD
 
 resource "grafana_report" "test" {
   name          = "my report"
+  dashboard_uid = grafana_dashboard.test.uid
   recipients    = ["some@email.com"]
   schedule {
     frequency = "hourly"
-  }
-  
-  dashboards {
-    uid = grafana_dashboard.test.uid
   }
 }
 ```
@@ -94,8 +91,6 @@ Required:
 
 Optional:
 
-- `name` (String) Dashboard name
-- `report_variables` (String) Variable templates of the report
 - `time_range` (Block List, Max: 1) Time range of the report. (see [below for nested schema](#nestedblock--dashboards--time_range))
 
 <a id="nestedblock--dashboards--time_range"></a>
