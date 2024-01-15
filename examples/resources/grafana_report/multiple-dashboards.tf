@@ -19,8 +19,8 @@ EOD
 }
 
 resource "grafana_report" "test" {
-  name          = "multiple dashboards"
-  recipients    = ["some@email.com"]
+  name       = "multiple dashboards"
+  recipients = ["some@email.com"]
   schedule {
     frequency         = "monthly"
     last_day_of_month = true
