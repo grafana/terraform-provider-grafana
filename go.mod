@@ -23,7 +23,6 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.20.0
 	github.com/hashicorp/terraform-plugin-mux v0.13.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.31.0
-	github.com/prometheus/common v0.46.0
 	golang.org/x/text v0.14.0
 )
 
