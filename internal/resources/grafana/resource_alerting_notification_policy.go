@@ -187,8 +187,8 @@ func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta
 	client, orgID, _ := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	resp, err := client.Provisioning.GetPolicyTree()
-	if err != nil {
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("notification policy", data, err); shouldReturn {
+		return err
 	}
 
 	packNotifPolicy(resp.Payload, data)
@@ -205,14 +205,14 @@ func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta 
 		return diag.FromErr(err)
 	}
 
-	params := provisioning.NewPutPolicyTreeParams().WithBody(npt)
+	putParams := provisioning.NewPutPolicyTreeParams().WithBody(npt)
 	if data.Get("disable_provenance").(bool) {
 		disabled := "disabled"
-		params.SetXDisableProvenance(&disabled)
+		putParams.SetXDisableProvenance(&disabled)
 	}
 
 	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-		_, err := client.Provisioning.PutPolicyTree(params)
+		_, err := client.Provisioning.PutPolicyTree(putParams)
 		if orgID > 1 && err != nil && err.(*runtime.APIError).IsCode(500) {
 			return retry.RetryableError(err)
 		} else if err != nil {
