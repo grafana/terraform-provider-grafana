@@ -18,7 +18,7 @@ import (
 type Client struct {
 	GrafanaAPIURL        string
 	GrafanaAPIURLParsed  *url.URL
-	GrafanaAPIConfig     *gapi.Config
+	GrafanaAPIConfig     *goapi.TransportConfig
 	DeprecatedGrafanaAPI *gapi.Client
 	GrafanaCloudAPI      *gapi.Client
 
