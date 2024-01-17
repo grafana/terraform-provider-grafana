@@ -32,6 +32,18 @@ func TestAccAlertRule_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.data.0.model", "{\"hide\":false,\"refId\":\"A\"}"),
 				),
 			},
+			// Test "for: 0s"
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_rule_group/resource.tf", map[string]string{
+					"2m": "0s",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_alert_rule", &group),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "name", "My Rule Group"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.#", "1"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.for", "0s"),
+				),
+			},
 			// Test import.
 			{
 				ResourceName:      "grafana_rule_group.my_alert_rule",
