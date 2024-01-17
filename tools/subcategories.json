@@ -61,6 +61,7 @@
     "data-sources/organization": "Grafana OSS",
     "data-sources/organization_preferences": "Grafana OSS",
     "data-sources/role": "Grafana Enterprise",
+    "data-sources/service_account": "Grafana OSS",
     "data-sources/team": "Grafana OSS",
     "data-sources/user": "Grafana OSS",
     "data-sources/users": "Grafana OSS",
