@@ -166,7 +166,7 @@ func TestAccResourceReport_CreateFromDashboardID(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					reportCheckExists.exists("grafana_report.test", &report),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "dashboard_id"),
-					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", "report-from-uid"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", randomUID),
 				),
 			},
 		},
