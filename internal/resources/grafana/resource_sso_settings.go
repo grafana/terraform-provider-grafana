@@ -26,7 +26,7 @@ Manages Grafana SSO Settings for OAuth2, SAML and LDAP.
 		},
 
 		Schema: map[string]*schema.Schema{
-			"provider": {
+			"provider_name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the SSO provider.",
