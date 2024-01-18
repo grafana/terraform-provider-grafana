@@ -58,20 +58,23 @@ func TestAccResourceReport_basic(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 
 	var report models.Report
+	var randomUID = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      reportCheckExists.destroyed(&report, nil),
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_report/resource.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_report/resource.tf", map[string]string{
+					`"uid": "report"`: fmt.Sprintf(`"uid": "%s"`, randomUID),
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					reportCheckExists.exists("grafana_report.test", &report),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "id"),
 					resource.TestCheckResourceAttr("grafana_report.test", "org_id", "1"),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "dashboard_id"),
 					resource.TestCheckResourceAttr("grafana_report.test", "name", "my report"),
-					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", "report"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", randomUID),
 					resource.TestCheckResourceAttr("grafana_report.test", "recipients.0", "some@email.com"),
 					resource.TestCheckNoResourceAttr("grafana_report.test", "recipients.1"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.frequency", "hourly"),
@@ -86,7 +89,9 @@ func TestAccResourceReport_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_report/all-options.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_report/all-options.tf", map[string]string{
+					`"uid": "report"`: fmt.Sprintf(`"uid": "%s"`, randomUID),
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					func(s *terraform.State) error {
 						// Check that the ID and dashboard ID are the same as the first run
@@ -96,7 +101,7 @@ func TestAccResourceReport_basic(t *testing.T) {
 							resource.TestCheckResourceAttr("grafana_report.test", "dashboard_id", strconv.FormatInt(report.Dashboards[0].Dashboard.ID, 10)),
 						)(s)
 					},
-					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", "report"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", randomUID),
 					resource.TestCheckResourceAttr("grafana_report.test", "name", "my report updated"),
 					resource.TestCheckResourceAttr("grafana_report.test", "recipients.0", "some@email.com"),
 					resource.TestCheckResourceAttr("grafana_report.test", "recipients.1", "some2@email.com"),
@@ -117,12 +122,14 @@ func TestAccResourceReport_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_report/monthly.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_report/monthly.tf", map[string]string{
+					`"uid": "report"`: fmt.Sprintf(`"uid": "%s"`, randomUID),
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					reportCheckExists.exists("grafana_report.test", &report),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "id"),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "dashboard_id"),
-					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", "report"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", randomUID),
 					resource.TestCheckResourceAttr("grafana_report.test", "name", "my report"),
 					resource.TestCheckResourceAttr("grafana_report.test", "recipients.0", "some@email.com"),
 					resource.TestCheckNoResourceAttr("grafana_report.test", "recipients.1"),
@@ -148,13 +155,14 @@ func TestAccResourceReport_CreateFromDashboardID(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 
 	var report models.Report
+	var randomUID = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      reportCheckExists.destroyed(&report, nil),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccReportCreateFromID,
+				Config: testAccReportCreateFromID(randomUID),
 				Check: resource.ComposeTestCheckFunc(
 					reportCheckExists.exists("grafana_report.test", &report),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "dashboard_id"),
@@ -192,12 +200,12 @@ func TestAccResourceReport_InOrg(t *testing.T) {
 	})
 }
 
-const testAccReportCreateFromID = `
-resource "grafana_dashboard" "test" {
+func testAccReportCreateFromID(uid string) string {
+	return fmt.Sprintf(`resource "grafana_dashboard" "test" {
 	config_json = <<EOD
   {
 	"title": "Dashboard for report from UID",
-	"uid": "report-from-uid"
+	"uid": "%s"
   }
   EOD
 	message     = "initial commit."
@@ -211,7 +219,8 @@ resource "grafana_dashboard" "test" {
 	  frequency = "hourly"
 	}
   }
-  `
+  `, uid)
+}
 
 func testAccReportCreateInOrg(name string) string {
 	return fmt.Sprintf(`
