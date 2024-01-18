@@ -17,11 +17,10 @@ import (
 )
 
 type Client struct {
-	GrafanaAPIURL        string
-	GrafanaAPIURLParsed  *url.URL
-	GrafanaAPIConfig     *goapi.TransportConfig
-	DeprecatedGrafanaAPI *gapi.Client
-	GrafanaCloudAPI      *gapi.Client
+	GrafanaAPIURL       string
+	GrafanaAPIURLParsed *url.URL
+	GrafanaAPIConfig    *goapi.TransportConfig
+	GrafanaCloudAPI     *gapi.Client
 
 	GrafanaOAPI *goapi.GrafanaHTTPAPI
 

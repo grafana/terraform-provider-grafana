@@ -21,7 +21,6 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -32,9 +31,6 @@ func createClients(providerConfig frameworkProviderConfig) (*common.Client, erro
 	c := &common.Client{}
 	if !providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull() {
 		if err = createGrafanaOAPIClient(c, providerConfig); err != nil {
-			return nil, err
-		}
-		if err = createGrafanaClient(c, providerConfig); err != nil {
 			return nil, err
 		}
 		if err = createMLClient(c, providerConfig); err != nil {
@@ -66,45 +62,6 @@ func createClients(providerConfig frameworkProviderConfig) (*common.Client, erro
 	grafana.StoreDashboardSHA256 = providerConfig.StoreDashboardSha256.ValueBool()
 
 	return c, nil
-}
-
-func createGrafanaClient(client *common.Client, providerConfig frameworkProviderConfig) error {
-	cli := cleanhttp.DefaultClient()
-	transport := cleanhttp.DefaultTransport()
-	// limiting the amount of concurrent HTTP connections from the provider
-	// makes it not overload the API and DB
-	transport.MaxConnsPerHost = 2
-
-	tlsClientConfig, err := parseTLSconfig(providerConfig)
-	if err != nil {
-		return err
-	}
-	transport.TLSClientConfig = tlsClientConfig
-	cli.Transport = transport
-	userInfo, orgID, apiKey, err := parseAuth(providerConfig)
-	if err != nil {
-		return err
-	}
-
-	cfg := gapi.Config{
-		Client:           cli,
-		NumRetries:       int(providerConfig.Retries.ValueInt64()),
-		RetryTimeout:     time.Second * time.Duration(providerConfig.RetryWait.ValueInt64()),
-		RetryStatusCodes: setToStringArray(providerConfig.RetryStatusCodes.Elements()),
-		BasicAuth:        userInfo,
-		OrgID:            orgID,
-		APIKey:           apiKey,
-	}
-
-	if cfg.HTTPHeaders, err = getHTTPHeadersMap(providerConfig); err != nil {
-		return err
-	}
-
-	client.DeprecatedGrafanaAPI, err = gapi.New(client.GrafanaAPIURL, cfg)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func createGrafanaOAPIClient(client *common.Client, providerConfig frameworkProviderConfig) error {

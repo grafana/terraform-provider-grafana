@@ -1,11 +1,12 @@
 package slo_test
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	slo "github.com/grafana/slo-openapi-client/go"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -18,7 +19,7 @@ func TestAccResourceSlo(t *testing.T) {
 
 	randomName := acctest.RandomWithPrefix("SLO Terraform Testing")
 
-	var slo gapi.Slo
+	var slo slo.Slo
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		// Implicitly tests destroy
@@ -95,7 +96,7 @@ func TestAccResourceSlo(t *testing.T) {
 	})
 }
 
-func testAccSloCheckExists(rn string, slo *gapi.Slo) resource.TestCheckFunc {
+func testAccSloCheckExists(rn string, slo *slo.Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
 		if !ok {
@@ -106,25 +107,31 @@ func testAccSloCheckExists(rn string, slo *gapi.Slo) resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
-		gotSlo, err := client.GetSlo(rs.Primary.ID)
+		client := testutils.Provider.Meta().(*common.Client).SLOClient
+		req := client.DefaultAPI.V1SloIdGet(context.Background(), rs.Primary.ID)
+		gotSlo, _, err := req.Execute()
 
 		if err != nil {
 			return fmt.Errorf("error getting SLO: %s", err)
 		}
 
-		*slo = gotSlo
+		*slo = *gotSlo
 
 		return nil
 	}
 }
 
-func testAlertingExists(expectation bool, rn string, slo *gapi.Slo) resource.TestCheckFunc {
+func testAlertingExists(expectation bool, rn string, slo *slo.Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs := s.RootModule().Resources[rn]
-		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
-		gotSlo, _ := client.GetSlo(rs.Primary.ID)
-		*slo = gotSlo
+		client := testutils.Provider.Meta().(*common.Client).SLOClient
+		req := client.DefaultAPI.V1SloIdGet(context.Background(), rs.Primary.ID)
+		gotSlo, _, err := req.Execute()
+
+		if err != nil {
+			return fmt.Errorf("error getting SLO: %s", err)
+		}
+		*slo = *gotSlo
 
 		if slo.Alerting == nil && expectation == false {
 			return nil
@@ -138,10 +145,15 @@ func testAlertingExists(expectation bool, rn string, slo *gapi.Slo) resource.Tes
 	}
 }
 
-func testAccSloCheckDestroy(slo *gapi.Slo) resource.TestCheckFunc {
+func testAccSloCheckDestroy(slo *slo.Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
-		client.DeleteSlo(slo.UUID)
+		client := testutils.Provider.Meta().(*common.Client).SLOClient
+		req := client.DefaultAPI.V1SloIdGet(context.Background(), slo.Uuid)
+		gotSlo, _, _ := req.Execute()
+
+		if gotSlo != nil {
+			return fmt.Errorf("SLO still exists")
+		}
 
 		return nil
 	}
