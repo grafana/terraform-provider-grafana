@@ -2,6 +2,7 @@ package grafana_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -134,6 +135,24 @@ func TestAccNotificationPolicy_disableProvenance(t *testing.T) {
 					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
 					resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "false"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccNotificationPolicy_error(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `resource "grafana_notification_policy" "test" {
+					group_by      = ["..."]
+					contact_point = "invalid"
+				  }`,
+				// This tests that the API error message is propagated to the user.
+				ExpectError: regexp.MustCompile("400.+invalid object specification: receiver 'invalid' does not exist"),
 			},
 		},
 	})
