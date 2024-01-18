@@ -149,13 +149,15 @@ func testAccSloCheckDestroy(slo *slo.Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).SLOClient
 		req := client.DefaultAPI.V1SloIdGet(context.Background(), slo.Uuid)
-		gotSlo, _, _ := req.Execute()
-
-		if gotSlo != nil {
-			return fmt.Errorf("SLO still exists")
+		gotSlo, resp, _ := req.Execute()
+		if resp.StatusCode == 404 {
+			return nil
+		}
+		if gotSlo.ReadOnly.Status.Type == "deleting" {
+			return nil
 		}
 
-		return nil
+		return fmt.Errorf("Grafana SLO still exists: %+v, status: %+v", gotSlo, gotSlo.ReadOnly.Status)
 	}
 }
 
