@@ -187,8 +187,8 @@ func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta
 	client, orgID, _ := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	resp, err := client.Provisioning.GetPolicyTree()
-	if err, shouldReturn := common.CheckReadError("notification policy", data, err); shouldReturn {
-		return err
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	packNotifPolicy(resp.Payload, data)

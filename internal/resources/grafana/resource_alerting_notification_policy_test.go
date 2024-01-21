@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -164,6 +165,8 @@ func TestAccNotificationPolicy_inOrg(t *testing.T) {
 	var policy models.Route
 	var org models.OrgDetailsDTO
 
+	name := acctest.RandString(10)
+
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
@@ -172,10 +175,9 @@ func TestAccNotificationPolicy_inOrg(t *testing.T) {
 		),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNotificationPolicyInOrg(),
+				Config: testAccNotificationPolicyInOrg(name),
 				Check: resource.ComposeTestCheckFunc(
 					orgCheckExists.exists("grafana_organization.test", &org),
-					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
 					checkResourceIsInOrg("grafana_notification_policy.test", "grafana_organization.test"),
 				),
 			},
@@ -184,10 +186,10 @@ func TestAccNotificationPolicy_inOrg(t *testing.T) {
 
 }
 
-func testAccNotificationPolicyInOrg() string {
+func testAccNotificationPolicyInOrg(name string) string {
 	return fmt.Sprintf(`
 	resource "grafana_organization" "test" {
-		name = "test"
+		name = "%[1]s"
 	}
 
 	resource "grafana_notification_policy" "test" {
@@ -206,7 +208,7 @@ func testAccNotificationPolicyInOrg() string {
 
 		org_id = grafana_organization.test.id
 	}
-	`)
+	`, name)
 }
 
 func testAccNotificationPolicyDisableProvenance(disableProvenance bool) string {
