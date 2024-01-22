@@ -56,6 +56,7 @@ resource "grafana_contact_point" "my_contact_point" {
 - `pushover` (Block Set) A contact point that sends notifications to Pushover. (see [below for nested schema](#nestedblock--pushover))
 - `sensugo` (Block Set) A contact point that sends notifications to SensuGo. (see [below for nested schema](#nestedblock--sensugo))
 - `slack` (Block Set) A contact point that sends notifications to Slack. (see [below for nested schema](#nestedblock--slack))
+- `sns` (Block Set) A contact point that sends notifications to Amazon SNS. Requires Amazon Managed Grafana. (see [below for nested schema](#nestedblock--sns))
 - `teams` (Block Set) A contact point that sends notifications to Microsoft Teams. (see [below for nested schema](#nestedblock--teams))
 - `telegram` (Block Set) A contact point that sends notifications to Telegram. (see [below for nested schema](#nestedblock--telegram))
 - `threema` (Block Set) A contact point that sends notifications to Threema. (see [below for nested schema](#nestedblock--threema))
@@ -369,6 +370,31 @@ Optional:
 - `token` (String, Sensitive) A Slack API token,for sending messages directly without the webhook method.
 - `url` (String, Sensitive) A Slack webhook URL,for sending messages via the webhook method.
 - `username` (String) Username for the bot to use.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--sns"></a>
+### Nested Schema for `sns`
+
+Required:
+
+- `topic` (String) The Amazon SNS topic to send notifications to.
+
+Optional:
+
+- `access_key` (String, Sensitive) AWS access key ID used to authenticate with Amazon SNS.
+- `assume_role_arn` (String) The Amazon Resource Name (ARN) of the role to assume to send notifications to Amazon SNS.
+- `auth_provider` (String) The authentication provider to use. Valid values are `default`, `arn` and `keys`. Default is `default`. Defaults to `default`.
+- `body` (String)
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `external_id` (String) The external ID to use when assuming the role.
+- `message_format` (String) The format of the message to send. Valid values are `text`, `body` and `json`. Default is `text`. Defaults to `text`.
+- `secret_key` (String, Sensitive) AWS secret access key used to authenticate with Amazon SNS.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `subject` (String)
 
 Read-Only:
 
