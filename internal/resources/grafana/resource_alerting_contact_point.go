@@ -31,6 +31,7 @@ var notifiers = []notifier{
 	pushoverNotifier{},
 	sensugoNotifier{},
 	slackNotifier{},
+	snsNotifier{},
 	teamsNotifier{},
 	telegramNotifier{},
 	threemaNotifier{},
