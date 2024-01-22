@@ -54,7 +54,7 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 
 	resp, err := client.SsoSettings.GetProviderSettings(provider)
 	if err != nil {
-		return diag.Errorf("failed to get the SSO settings for provider %s: %s", provider, err)
+		return diag.Errorf("failed to get the SSO settings for provider %s: %v", provider, err)
 	}
 
 	settings := resp.GetPayload()
@@ -77,7 +77,7 @@ func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 
 	_, err := client.SsoSettings.UpdateProviderSettings(provider, &ssoSettings)
 	if err != nil {
-		return diag.Errorf("failed to create the SSO settings for provider %s: %s", provider, err)
+		return diag.Errorf("failed to create the SSO settings for provider %s: %v", provider, err)
 	}
 
 	return ReadSSOSettings(ctx, d, meta)
@@ -90,7 +90,7 @@ func DeleteSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 
 	_, err := client.SsoSettings.RemoveProviderSettings(provider)
 	if err != nil {
-		return diag.Errorf("failed to remove the SSO settings for provider %s: %s", provider, err)
+		return diag.Errorf("failed to remove the SSO settings for provider %s: %v", provider, err)
 	}
 
 	return nil
