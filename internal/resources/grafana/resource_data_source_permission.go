@@ -121,7 +121,7 @@ func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 		configuredPermissions = append(configuredPermissions, &permissionItem)
 	}
 
-	if err := updateDatasourcePermissions(client, datasource.UID, configuredPermissions); err != nil {
+	if err := updateResourcePermissions(client, datasource.UID, datasourcesPermissionsType, configuredPermissions); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -173,17 +173,17 @@ func DeleteDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 	}
 	datasource := resp.Payload
 
-	err = updateDatasourcePermissions(client, datasource.UID, []*models.SetResourcePermissionCommand{})
+	err = updateResourcePermissions(client, datasource.UID, datasourcesPermissionsType, []*models.SetResourcePermissionCommand{})
 	diags, _ := common.CheckReadError("datasource permissions", d, err)
 	return diags
 }
 
-func updateDatasourcePermissions(client *goapi.GrafanaHTTPAPI, uid string, permissions []*models.SetResourcePermissionCommand) error {
+func updateResourcePermissions(client *goapi.GrafanaHTTPAPI, uid, resourceType string, permissions []*models.SetResourcePermissionCommand) error {
 	areEqual := func(a *models.ResourcePermissionDTO, b *models.SetResourcePermissionCommand) bool {
 		return a.Permission == b.Permission && a.TeamID == b.TeamID && a.UserID == b.UserID && a.BuiltInRole == b.BuiltInRole
 	}
 
-	listResp, err := client.AccessControl.GetResourcePermissions(uid, datasourcesPermissionsType)
+	listResp, err := client.AccessControl.GetResourcePermissions(uid, resourceType)
 	if err != nil {
 		return err
 	}
@@ -191,8 +191,8 @@ func updateDatasourcePermissions(client *goapi.GrafanaHTTPAPI, uid string, permi
 	var permissionList []*models.SetResourcePermissionCommand
 deleteLoop:
 	for _, current := range listResp.Payload {
-		// Only managed permissions can be provisioned through this resource, so we disregard the permissions obtained through custom and fixed roles here
-		if !current.IsManaged {
+		// Only managed and non-inherited permissions can be provisioned through this resource, so we disregard the permissions obtained through custom and fixed roles here
+		if !current.IsManaged || current.IsInherited {
 			continue
 		}
 		for _, new := range permissions {
@@ -224,7 +224,7 @@ addLoop:
 
 	body := models.SetPermissionsCommand{Permissions: permissionList}
 	params := access_control.NewSetResourcePermissionsParams().
-		WithResource(datasourcesPermissionsType).
+		WithResource(resourceType).
 		WithResourceID(uid).
 		WithBody(&body)
 	_, err = client.AccessControl.SetResourcePermissions(params)
