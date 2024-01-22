@@ -28,6 +28,7 @@ jobs:
             GRAFANA_AUTH=cloud-instance-tests:auth
             GRAFANA_ONCALL_ACCESS_TOKEN=cloud-instance-tests:oncall-token
             GRAFANA_SM_ACCESS_TOKEN=cloud-instance-tests:sm-token
+            GRAFANA_SM_URL=cloud-instance-tests:sm-url
             GRAFANA_URL=cloud-instance-tests:url
       - uses: iFaxity/wait-on-action@v1.1.0
         with:
