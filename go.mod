@@ -12,6 +12,7 @@ require (
 	github.com/grafana/grafana-api-golang-client v0.27.0
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20240112155719-7845a7890289
 	github.com/grafana/machine-learning-go-client v0.5.0
+	github.com/grafana/slo-openapi-client/go v0.0.0-20240112175006-de02e75b9d73
 	github.com/grafana/synthetic-monitoring-agent v0.19.3
 	github.com/grafana/synthetic-monitoring-api-go-client v0.7.0
 	github.com/hashicorp/go-cleanhttp v0.5.2

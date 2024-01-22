@@ -3,7 +3,7 @@ package slo
 import (
 	"context"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	slo "github.com/grafana/slo-openapi-client/go"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -43,8 +43,12 @@ Datasource for retrieving all SLOs.
 func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	client := m.(*common.Client).DeprecatedGrafanaAPI
-	apiSlos, _ := client.ListSlos()
+	client := m.(*common.Client).SLOClient
+	req := client.DefaultAPI.V1SloGet(ctx)
+	apiSlos, _, err := req.Execute()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	terraformSlos := []interface{}{}
 
@@ -65,10 +69,10 @@ func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{
 	return diags
 }
 
-func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
+func convertDatasourceSlo(slo slo.Slo) map[string]interface{} {
 	ret := make(map[string]interface{})
 
-	ret["uuid"] = slo.UUID
+	ret["uuid"] = slo.Uuid
 	ret["name"] = slo.Name
 	ret["description"] = slo.Description
 
@@ -76,7 +80,7 @@ func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 
 	ret["destination_datasource"] = unpackDestinationDatasource(slo.DestinationDatasource)
 
-	retLabels := unpackLabels(&slo.Labels)
+	retLabels := unpackLabels(slo.Labels)
 	ret["label"] = retLabels
 
 	retObjectives := unpackObjectives(slo.Objectives)
@@ -88,11 +92,11 @@ func convertDatasourceSlo(slo gapi.Slo) map[string]interface{} {
 	return ret
 }
 
-func unpackQuery(apiquery gapi.Query) []map[string]interface{} {
+func unpackQuery(apiquery slo.Query) []map[string]interface{} {
 	retQuery := []map[string]interface{}{}
 
-	if apiquery.Type == gapi.QueryTypeFreeform {
-		query := map[string]interface{}{"type": gapi.QueryTypeFreeform}
+	if apiquery.Type == QueryTypeFreeform {
+		query := map[string]interface{}{"type": QueryTypeFreeform}
 
 		freeformquerystring := map[string]interface{}{"query": apiquery.Freeform.Query}
 		freeform := []map[string]interface{}{}
@@ -102,8 +106,8 @@ func unpackQuery(apiquery gapi.Query) []map[string]interface{} {
 		retQuery = append(retQuery, query)
 	}
 
-	if apiquery.Type == gapi.QueryTypeRatio {
-		query := map[string]interface{}{"type": gapi.QueryTypeRatio}
+	if apiquery.Type == QueryTypeRatio {
+		query := map[string]interface{}{"type": QueryTypeRatio}
 
 		ratio := []map[string]interface{}{}
 		body := map[string]interface{}{
@@ -121,7 +125,7 @@ func unpackQuery(apiquery gapi.Query) []map[string]interface{} {
 	return retQuery
 }
 
-func unpackObjectives(objectives []gapi.Objective) []map[string]interface{} {
+func unpackObjectives(objectives []slo.Objective) []map[string]interface{} {
 	retObjectives := []map[string]interface{}{}
 
 	for _, objective := range objectives {
@@ -134,23 +138,40 @@ func unpackObjectives(objectives []gapi.Objective) []map[string]interface{} {
 	return retObjectives
 }
 
-func unpackLabels(labels *[]gapi.Label) []map[string]interface{} {
+func unpackLabels(labelsInterface interface{}) []map[string]interface{} {
 	retLabels := []map[string]interface{}{}
 
-	if labels != nil {
-		for _, label := range *labels {
-			retLabel := make(map[string]interface{})
-			retLabel["key"] = label.Key
-			retLabel["value"] = label.Value
-			retLabels = append(retLabels, retLabel)
+	var labels []slo.Label
+	switch v := labelsInterface.(type) {
+	case *[]slo.Label:
+		labels = *v
+	case []slo.Label:
+		labels = v
+	case []interface{}:
+		for _, labelInterface := range v {
+			switch v := labelInterface.(type) {
+			case map[string]interface{}:
+				label := slo.Label{
+					Key:   v["key"].(string),
+					Value: v["value"].(string),
+				}
+				labels = append(labels, label)
+			case slo.Label:
+				labels = append(labels, v)
+			}
 		}
-		return retLabels
 	}
 
-	return nil
+	for _, label := range labels {
+		retLabel := make(map[string]interface{})
+		retLabel["key"] = label.Key
+		retLabel["value"] = label.Value
+		retLabels = append(retLabels, retLabel)
+	}
+	return retLabels
 }
 
-func unpackAlerting(alertData *gapi.Alerting) []map[string]interface{} {
+func unpackAlerting(alertData *slo.Alerting) []map[string]interface{} {
 	retAlertData := []map[string]interface{}{}
 
 	if alertData == nil {
@@ -158,8 +179,8 @@ func unpackAlerting(alertData *gapi.Alerting) []map[string]interface{} {
 	}
 
 	alertObject := make(map[string]interface{})
-	alertObject["label"] = unpackLabels(&alertData.Labels)
-	alertObject["annotation"] = unpackLabels(&alertData.Annotations)
+	alertObject["label"] = unpackLabels(alertData.Labels)
+	alertObject["annotation"] = unpackLabels(alertData.Annotations)
 
 	if alertData.FastBurn != nil {
 		alertObject["fastburn"] = unpackAlertingMetadata(*alertData.FastBurn)
@@ -173,17 +194,17 @@ func unpackAlerting(alertData *gapi.Alerting) []map[string]interface{} {
 	return retAlertData
 }
 
-func unpackAlertingMetadata(metaData gapi.AlertingMetadata) []map[string]interface{} {
+func unpackAlertingMetadata(metaData slo.AlertingMetadata) []map[string]interface{} {
 	retAlertMetaData := []map[string]interface{}{}
 	labelsAnnotsStruct := make(map[string]interface{})
 
 	if metaData.Annotations != nil {
-		retAnnotations := unpackLabels(&metaData.Annotations)
+		retAnnotations := unpackLabels(metaData.Annotations)
 		labelsAnnotsStruct["annotation"] = retAnnotations
 	}
 
 	if metaData.Labels != nil {
-		retLabels := unpackLabels(&metaData.Labels)
+		retLabels := unpackLabels(metaData.Labels)
 		labelsAnnotsStruct["label"] = retLabels
 	}
 
@@ -191,11 +212,11 @@ func unpackAlertingMetadata(metaData gapi.AlertingMetadata) []map[string]interfa
 	return retAlertMetaData
 }
 
-func unpackDestinationDatasource(destinationDatasource *gapi.DestinationDatasource) []map[string]interface{} {
+func unpackDestinationDatasource(destinationDatasource *slo.DestinationDatasource) []map[string]interface{} {
 	retDestinationDatasources := []map[string]interface{}{}
 
 	retDestinationDatasource := make(map[string]interface{})
-	retDestinationDatasource["uid"] = destinationDatasource.UID
+	retDestinationDatasource["uid"] = destinationDatasource.Uid
 
 	retDestinationDatasources = append(retDestinationDatasources, retDestinationDatasource)
 
