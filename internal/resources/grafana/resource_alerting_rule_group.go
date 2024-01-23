@@ -334,7 +334,11 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		return nil, err
 	}
 
-	forDuration, err := strfmt.ParseDuration(json["for"].(string))
+	forStr := json["for"].(string)
+	if forStr == "" {
+		forStr = "0"
+	}
+	forDuration, err := strfmt.ParseDuration(forStr)
 	if err != nil {
 		return nil, err
 	}
