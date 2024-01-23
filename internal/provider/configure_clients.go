@@ -13,6 +13,7 @@ import (
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	slo "github.com/grafana/slo-openapi-client/go"
@@ -41,8 +42,7 @@ func createClients(providerConfig frameworkProviderConfig) (*common.Client, erro
 		}
 	}
 	if !providerConfig.CloudAPIKey.IsNull() {
-		c.GrafanaCloudAPI, err = createCloudClient(providerConfig)
-		if err != nil {
+		if err := createCloudClient(c, providerConfig); err != nil {
 			return nil, err
 		}
 	}
@@ -138,19 +138,38 @@ func createSLOClient(client *common.Client, providerConfig frameworkProviderConf
 	return nil
 }
 
-func createCloudClient(providerConfig frameworkProviderConfig) (*gapi.Client, error) {
+func createCloudClient(client *common.Client, providerConfig frameworkProviderConfig) error {
+	// Configure old client
+	// TODO: Remove this once the old client is no longer used
 	cfg := gapi.Config{
 		APIKey:       providerConfig.CloudAPIKey.ValueString(),
 		NumRetries:   int(providerConfig.Retries.ValueInt64()),
 		RetryTimeout: time.Second * time.Duration(providerConfig.RetryWait.ValueInt64()),
 	}
-
 	var err error
 	if cfg.HTTPHeaders, err = getHTTPHeadersMap(providerConfig); err != nil {
-		return nil, err
+		return err
+	}
+	if client.GrafanaCloudAPI, err = gapi.New(providerConfig.CloudAPIURL.ValueString(), cfg); err != nil {
+		return err
 	}
 
-	return gapi.New(providerConfig.CloudAPIURL.ValueString(), cfg)
+	// Configure new client (OpenAPI)
+	openAPIConfig := gcom.NewConfiguration()
+	parsedURL, err := url.Parse(providerConfig.CloudAPIURL.ValueString())
+	if err != nil {
+		return err
+	}
+	openAPIConfig.Host = parsedURL.Host
+	openAPIConfig.Scheme = "https"
+	openAPIConfig.HTTPClient = getRetryClient(providerConfig)
+	openAPIConfig.DefaultHeader["Authorization"] = "Bearer " + providerConfig.CloudAPIKey.ValueString()
+	for k, v := range cfg.HTTPHeaders {
+		openAPIConfig.DefaultHeader[k] = v
+	}
+	client.GrafanaCloudAPIOpenAPI = gcom.NewAPIClient(openAPIConfig)
+
+	return nil
 }
 
 func createOnCallClient(providerConfig frameworkProviderConfig) (*onCallAPI.Client, error) {

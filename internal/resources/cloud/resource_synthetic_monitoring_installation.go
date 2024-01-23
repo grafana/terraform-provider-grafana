@@ -4,10 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -70,15 +68,9 @@ This resource cannot be imported but it can be used on an existing Synthetic Mon
 }
 
 func ResourceInstallationCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	cloudClient := meta.(*common.Client).GrafanaCloudAPI
-	var stack gapi.Stack
-
-	stackIDInt, err := strconv.ParseInt(d.Get("stack_id").(string), 10, 64)
-	if err == nil {
-		stack, err = cloudClient.StackByID(stackIDInt)
-	} else {
-		stack, err = cloudClient.StackBySlug(d.Get("stack_id").(string))
-	}
+	cloudClient := meta.(*common.Client).GrafanaCloudAPIOpenAPI
+	req := cloudClient.InstancesAPI.GetInstance(ctx, d.Get("stack_id").(string))
+	stack, _, err := req.Execute()
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -94,7 +86,7 @@ func ResourceInstallationCreate(ctx context.Context, d *schema.ResourceData, met
 	}
 
 	smClient := SMAPI.NewClient(apiURL, "", nil)
-	stackID, metricsID, logsID := stack.ID, int64(stack.HmInstancePromID), int64(stack.HlInstanceID)
+	stackID, metricsID, logsID := int64(stack.Id), int64(stack.HmInstancePromId), int64(stack.HlInstanceId)
 	resp, err := smClient.Install(ctx, stackID, metricsID, logsID, d.Get("metrics_publisher_key").(string))
 	if err != nil {
 		return diag.FromErr(err)
