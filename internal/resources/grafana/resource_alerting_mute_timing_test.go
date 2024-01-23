@@ -100,5 +100,4 @@ resource "grafana_mute_timing" "my_mute_timing" {
 			},
 		},
 	})
-
 }
