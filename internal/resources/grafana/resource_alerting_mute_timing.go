@@ -49,7 +49,7 @@ This resource requires Grafana 9.1.0 or later.
 				// Therefore TF will see delete+create instead of modify, which breaks the diff-suppression.
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "The time intervals at which to mute notifications.",
+				Description: "The time intervals at which to mute notifications. Use an empty block to mute all the time.",
 				Elem: &schema.Resource{
 					SchemaVersion: 0,
 					Schema: map[string]*schema.Schema{
@@ -248,7 +248,11 @@ func unpackIntervals(raw []interface{}) []*models.TimeInterval {
 	result := make([]*models.TimeInterval, len(raw))
 	for i, r := range raw {
 		interval := models.TimeInterval{}
-		block := r.(map[string]interface{})
+
+		block := map[string]interface{}{}
+		if r != nil {
+			block = r.(map[string]interface{})
+		}
 
 		if vals, ok := block["times"]; ok && vals != nil {
 			vals := vals.([]interface{})

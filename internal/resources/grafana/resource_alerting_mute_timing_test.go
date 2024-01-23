@@ -1,6 +1,7 @@
 package grafana_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -68,4 +69,36 @@ func TestAccMuteTiming_basic(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccMuteTiming_AllTime(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">9.0.0")
+
+	var mt models.MuteTimeInterval
+	name := "My Mute Timing"
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      alertingMuteTimingCheckExists.destroyed(&mt, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource "grafana_mute_timing" "my_mute_timing" {
+	  name = "%s"
+	  intervals {}
+}`, name),
+				Check: resource.ComposeTestCheckFunc(
+					alertingMuteTimingCheckExists.exists("grafana_mute_timing.my_mute_timing", &mt),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "name", name),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.times.#", "0"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.weekdays.#", "0"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.days_of_month.#", "0"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.months.#", "0"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.years.#", "0"),
+					resource.TestCheckNoResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.location"),
+				),
+			},
+		},
+	})
+
 }
