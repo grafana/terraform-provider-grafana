@@ -2,9 +2,13 @@ package grafana_test
 
 import (
 	"fmt"
+	"os"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
@@ -311,6 +315,69 @@ func TestAccResourceTeam_InOrg(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.destroyed(&team, &org),
 					orgCheckExists.exists("grafana_organization.test", &org),
+				),
+			},
+		},
+	})
+}
+
+// This tests that API keys/service account tokens cannot be used at the same time as org_id
+// because API keys are already org-scoped.
+func TestAccTeam_OrgScopedOnAPIKey(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	// Create a service account within an org
+	name := acctest.RandString(10)
+	globalClient := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+	org, err := globalClient.Orgs.CreateOrg(&models.CreateOrgCommand{Name: name})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if _, err := globalClient.Orgs.DeleteOrgByID(*org.Payload.OrgID); err != nil {
+			t.Fatal(err)
+		}
+	}()
+	orgClient := grafana.OAPIGlobalClient(testutils.Provider.Meta()).WithOrgID(*org.Payload.OrgID)
+	sa, err := orgClient.ServiceAccounts.CreateServiceAccount(
+		service_accounts.NewCreateServiceAccountParams().WithBody(&models.CreateServiceAccountForm{
+			Name: name,
+			Role: "Admin",
+		},
+		))
+	if err != nil {
+		t.Fatal(err)
+	}
+	saToken, err := orgClient.ServiceAccounts.CreateToken(
+		service_accounts.NewCreateTokenParams().WithBody(&models.AddServiceAccountTokenCommand{
+			Name: name,
+		},
+		).WithServiceAccountID(sa.Payload.ID),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	prevAuth := os.Getenv("GRAFANA_AUTH")
+	os.Setenv("GRAFANA_AUTH", saToken.Payload.Key)
+	defer os.Setenv("GRAFANA_AUTH", prevAuth)
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`resource "grafana_team" "test" {
+					org_id = %d
+					name = "test"
+				}`, *org.Payload.OrgID),
+				ExpectError: regexp.MustCompile("org_id is only supported with basic auth. API keys are already org-scoped"),
+			},
+			{
+				Config: `resource "grafana_team" "test" {
+					name = "test"
+				}`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_team.test", "name", "test"),
+					resource.TestCheckResourceAttr("grafana_team.test", "org_id", strconv.FormatInt(*org.Payload.OrgID, 10)),
 				),
 			},
 		},

@@ -85,6 +85,10 @@ func createGrafanaOAPIClient(client *common.Client, providerConfig frameworkProv
 		return err
 	}
 
+	if orgID > 1 && apiKey != "" {
+		return fmt.Errorf("org_id is only supported with basic auth. API keys are already org-scoped")
+	}
+
 	cfg := goapi.TransportConfig{
 		Host:             client.GrafanaAPIURLParsed.Host,
 		BasePath:         apiPath,

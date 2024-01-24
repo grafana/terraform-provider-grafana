@@ -36,44 +36,47 @@ func init() {
 func Provider(version string) *schema.Provider {
 	var (
 		// Resources that require the Grafana client to exist.
-		grafanaClientResources = addResourcesMetadataValidation(grafanaClientPresent, map[string]*schema.Resource{
-			// Grafana
-			"grafana_annotation":                 grafana.ResourceAnnotation(),
-			"grafana_api_key":                    grafana.ResourceAPIKey(),
-			"grafana_contact_point":              grafana.ResourceContactPoint(),
-			"grafana_dashboard":                  grafana.ResourceDashboard(),
-			"grafana_dashboard_public":           grafana.ResourcePublicDashboard(),
-			"grafana_dashboard_permission":       grafana.ResourceDashboardPermission(),
-			"grafana_data_source":                grafana.ResourceDataSource(),
-			"grafana_data_source_permission":     grafana.ResourceDatasourcePermission(),
-			"grafana_folder":                     grafana.ResourceFolder(),
-			"grafana_folder_permission":          grafana.ResourceFolderPermission(),
-			"grafana_library_panel":              grafana.ResourceLibraryPanel(),
-			"grafana_message_template":           grafana.ResourceMessageTemplate(),
-			"grafana_mute_timing":                grafana.ResourceMuteTiming(),
-			"grafana_notification_policy":        grafana.ResourceNotificationPolicy(),
-			"grafana_organization":               grafana.ResourceOrganization(),
-			"grafana_organization_preferences":   grafana.ResourceOrganizationPreferences(),
-			"grafana_playlist":                   grafana.ResourcePlaylist(),
-			"grafana_report":                     grafana.ResourceReport(),
-			"grafana_role":                       grafana.ResourceRole(),
-			"grafana_role_assignment":            grafana.ResourceRoleAssignment(),
-			"grafana_rule_group":                 grafana.ResourceRuleGroup(),
-			"grafana_team":                       grafana.ResourceTeam(),
-			"grafana_team_external_group":        grafana.ResourceTeamExternalGroup(),
-			"grafana_service_account_token":      grafana.ResourceServiceAccountToken(),
-			"grafana_service_account":            grafana.ResourceServiceAccount(),
-			"grafana_service_account_permission": grafana.ResourceServiceAccountPermission(),
-			"grafana_user":                       grafana.ResourceUser(),
+		grafanaClientResources = addCreateReadResourcesMetadataValidation(
+			readGrafanaClientValidation,
+			createGrafanaClientValidation,
+			map[string]*schema.Resource{
+				// Grafana
+				"grafana_annotation":                 grafana.ResourceAnnotation(),
+				"grafana_api_key":                    grafana.ResourceAPIKey(),
+				"grafana_contact_point":              grafana.ResourceContactPoint(),
+				"grafana_dashboard":                  grafana.ResourceDashboard(),
+				"grafana_dashboard_public":           grafana.ResourcePublicDashboard(),
+				"grafana_dashboard_permission":       grafana.ResourceDashboardPermission(),
+				"grafana_data_source":                grafana.ResourceDataSource(),
+				"grafana_data_source_permission":     grafana.ResourceDatasourcePermission(),
+				"grafana_folder":                     grafana.ResourceFolder(),
+				"grafana_folder_permission":          grafana.ResourceFolderPermission(),
+				"grafana_library_panel":              grafana.ResourceLibraryPanel(),
+				"grafana_message_template":           grafana.ResourceMessageTemplate(),
+				"grafana_mute_timing":                grafana.ResourceMuteTiming(),
+				"grafana_notification_policy":        grafana.ResourceNotificationPolicy(),
+				"grafana_organization":               grafana.ResourceOrganization(),
+				"grafana_organization_preferences":   grafana.ResourceOrganizationPreferences(),
+				"grafana_playlist":                   grafana.ResourcePlaylist(),
+				"grafana_report":                     grafana.ResourceReport(),
+				"grafana_role":                       grafana.ResourceRole(),
+				"grafana_role_assignment":            grafana.ResourceRoleAssignment(),
+				"grafana_rule_group":                 grafana.ResourceRuleGroup(),
+				"grafana_team":                       grafana.ResourceTeam(),
+				"grafana_team_external_group":        grafana.ResourceTeamExternalGroup(),
+				"grafana_service_account_token":      grafana.ResourceServiceAccountToken(),
+				"grafana_service_account":            grafana.ResourceServiceAccount(),
+				"grafana_service_account_permission": grafana.ResourceServiceAccountPermission(),
+				"grafana_user":                       grafana.ResourceUser(),
 
-			// Machine Learning
-			"grafana_machine_learning_job":              machinelearning.ResourceJob(),
-			"grafana_machine_learning_holiday":          machinelearning.ResourceHoliday(),
-			"grafana_machine_learning_outlier_detector": machinelearning.ResourceOutlierDetector(),
+				// Machine Learning
+				"grafana_machine_learning_job":              machinelearning.ResourceJob(),
+				"grafana_machine_learning_holiday":          machinelearning.ResourceHoliday(),
+				"grafana_machine_learning_outlier_detector": machinelearning.ResourceOutlierDetector(),
 
-			// SLO
-			"grafana_slo": slo.ResourceSlo(),
-		})
+				// SLO
+				"grafana_slo": slo.ResourceSlo(),
+			})
 
 		// Resources that require the Synthetic Monitoring client to exist.
 		smClientResources = addResourcesMetadataValidation(smClientPresent, map[string]*schema.Resource{
@@ -106,24 +109,27 @@ func Provider(version string) *schema.Provider {
 		})
 
 		// Datasources that require the Grafana client to exist.
-		grafanaClientDatasources = addResourcesMetadataValidation(grafanaClientPresent, map[string]*schema.Resource{
-			"grafana_dashboard":                grafana.DatasourceDashboard(),
-			"grafana_dashboards":               grafana.DatasourceDashboards(),
-			"grafana_data_source":              grafana.DatasourceDatasource(),
-			"grafana_folder":                   grafana.DatasourceFolder(),
-			"grafana_folders":                  grafana.DatasourceFolders(),
-			"grafana_library_panel":            grafana.DatasourceLibraryPanel(),
-			"grafana_user":                     grafana.DatasourceUser(),
-			"grafana_users":                    grafana.DatasourceUsers(),
-			"grafana_role":                     grafana.DatasourceRole(),
-			"grafana_service_account":          grafana.DatasourceServiceAccount(),
-			"grafana_team":                     grafana.DatasourceTeam(),
-			"grafana_organization":             grafana.DatasourceOrganization(),
-			"grafana_organization_preferences": grafana.DatasourceOrganizationPreferences(),
+		grafanaClientDatasources = addCreateReadResourcesMetadataValidation(
+			readGrafanaClientValidation,
+			createGrafanaClientValidation,
+			map[string]*schema.Resource{
+				"grafana_dashboard":                grafana.DatasourceDashboard(),
+				"grafana_dashboards":               grafana.DatasourceDashboards(),
+				"grafana_data_source":              grafana.DatasourceDatasource(),
+				"grafana_folder":                   grafana.DatasourceFolder(),
+				"grafana_folders":                  grafana.DatasourceFolders(),
+				"grafana_library_panel":            grafana.DatasourceLibraryPanel(),
+				"grafana_user":                     grafana.DatasourceUser(),
+				"grafana_users":                    grafana.DatasourceUsers(),
+				"grafana_role":                     grafana.DatasourceRole(),
+				"grafana_service_account":          grafana.DatasourceServiceAccount(),
+				"grafana_team":                     grafana.DatasourceTeam(),
+				"grafana_organization":             grafana.DatasourceOrganization(),
+				"grafana_organization_preferences": grafana.DatasourceOrganizationPreferences(),
 
-			// SLO
-			"grafana_slos": slo.DatasourceSlo(),
-		})
+				// SLO
+				"grafana_slos": slo.DatasourceSlo(),
+			})
 
 		// Datasources that require the Synthetic Monitoring client to exist.
 		smClientDatasources = addResourcesMetadataValidation(smClientPresent, map[string]*schema.Resource{
