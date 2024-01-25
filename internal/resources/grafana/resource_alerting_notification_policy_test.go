@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -156,6 +157,70 @@ func TestAccNotificationPolicy_error(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccNotificationPolicy_inOrg(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	var policy models.Route
+	var org models.OrgDetailsDTO
+
+	name := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNotificationPolicyInOrg(name),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+					checkResourceIsInOrg("grafana_notification_policy.test", "grafana_organization.test"),
+				),
+			},
+			{
+				Config: testutils.WithoutResource(t, testAccNotificationPolicyInOrg(name), "grafana_notification_policy.test"),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					alertingNotificationPolicyCheckExists.destroyed(&policy, &org),
+				),
+			},
+		},
+	})
+}
+
+func testAccNotificationPolicyInOrg(name string) string {
+	return fmt.Sprintf(`
+	resource "grafana_organization" "test" {
+		name = "%[1]s"
+	}
+
+	resource "grafana_contact_point" "a_contact_point" {
+		org_id = grafana_organization.test.id
+		name = "A Contact Point"
+		email {
+			addresses = ["test@example.com"]
+		}
+	}
+
+	resource "grafana_notification_policy" "test" {
+		org_id = grafana_organization.test.id
+		group_by      = ["hello"]
+		contact_point = grafana_contact_point.a_contact_point.name
+
+		policy {
+			group_by = ["hello"]
+			matcher {
+				label = "Name"
+				match = "=~"
+				value = "host.*|host-b.*"
+			}
+			contact_point = grafana_contact_point.a_contact_point.name
+		}
+
+	}
+	`, name)
 }
 
 func testAccNotificationPolicyDisableProvenance(disableProvenance bool) string {
