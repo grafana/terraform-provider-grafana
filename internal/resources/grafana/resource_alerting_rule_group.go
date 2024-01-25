@@ -259,8 +259,7 @@ func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta inte
 	})
 
 	if data.Get("disable_provenance").(bool) {
-		disableProvenance := "disabled" // This can be any non-empty string.
-		putParams.SetXDisableProvenance(&disableProvenance)
+		putParams.SetXDisableProvenance(&provenanceDisabled)
 	}
 
 	resp, err := client.Provisioning.PutAlertRuleGroup(putParams)

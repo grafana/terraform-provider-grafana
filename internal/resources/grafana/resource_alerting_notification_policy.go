@@ -207,8 +207,7 @@ func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta 
 
 	putParams := provisioning.NewPutPolicyTreeParams().WithBody(npt)
 	if data.Get("disable_provenance").(bool) {
-		disabled := "disabled"
-		putParams.SetXDisableProvenance(&disabled)
+		putParams.SetXDisableProvenance(&provenanceDisabled)
 	}
 
 	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {

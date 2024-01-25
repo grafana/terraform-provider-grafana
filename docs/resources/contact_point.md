@@ -44,6 +44,7 @@ resource "grafana_contact_point" "my_contact_point" {
 
 - `alertmanager` (Block Set) A contact point that sends notifications to other Alertmanager instances. (see [below for nested schema](#nestedblock--alertmanager))
 - `dingding` (Block Set) A contact point that sends notifications to DingDing. (see [below for nested schema](#nestedblock--dingding))
+- `disable_provenance` (Boolean) Allow modifying the contact point from other sources than Terraform or the Grafana API. Defaults to `false`.
 - `discord` (Block Set) A contact point that sends notifications as Discord messages (see [below for nested schema](#nestedblock--discord))
 - `email` (Block Set) A contact point that sends notifications to an email address. (see [below for nested schema](#nestedblock--email))
 - `googlechat` (Block Set) A contact point that sends notifications to Google Chat. (see [below for nested schema](#nestedblock--googlechat))

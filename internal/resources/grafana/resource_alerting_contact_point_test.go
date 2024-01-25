@@ -510,6 +510,58 @@ func TestAccContactPoint_empty(t *testing.T) {
 	})
 }
 
+func TestAccContactPoint_disableProvenance(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	var points models.ContactPoints
+	name := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      alertingContactPointCheckExists.destroyed(&points, nil),
+		Steps: []resource.TestStep{
+			// Create
+			{
+				Config: testContactPointDisableProvenance(name, false),
+				Check: resource.ComposeTestCheckFunc(
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.my_contact_point", &points, 1),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "name", name),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "disable_provenance", "false"),
+				),
+			},
+			// Import (tests that disable_provenance is fetched from API)
+			{
+				ResourceName:      "grafana_contact_point.my_contact_point",
+				ImportState:       true,
+				ImportStateId:     name,
+				ImportStateVerify: true,
+			},
+			// Disable provenance
+			{
+				Config: testContactPointDisableProvenance(name, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "name", name),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "disable_provenance", "true"),
+				),
+			},
+			// Import (tests that disable_provenance is fetched from API)
+			{
+				ResourceName:      "grafana_contact_point.my_contact_point",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Re-enable provenance
+			{
+				Config: testContactPointDisableProvenance(name, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "name", name),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "disable_provenance", "false"),
+				),
+			},
+		},
+	})
+}
+
 func checkAlertingContactPointExistsWithLength(rn string, v *models.ContactPoints, expectedLength int) resource.TestCheckFunc {
 	return resource.ComposeTestCheckFunc(
 		alertingContactPointCheckExists.exists(rn, v),
@@ -524,6 +576,18 @@ func checkAlertingContactPointExistsWithLength(rn string, v *models.ContactPoint
 			return nil
 		},
 	)
+}
+
+func testContactPointDisableProvenance(name string, disableProvenance bool) string {
+	return fmt.Sprintf(`
+	resource "grafana_contact_point" "my_contact_point" {
+		name      = "%s"
+		disable_provenance = %t
+		email {
+			addresses = [ "hello@example.com" ]
+		}
+	  }
+	`, name, disableProvenance)
 }
 
 func testAccContactPointInOrg(name string) string {
