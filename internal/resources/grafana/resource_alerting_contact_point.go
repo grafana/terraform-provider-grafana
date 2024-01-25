@@ -18,6 +18,8 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
+var provenanceDisabled = "disabled"
+
 var notifiers = []notifier{
 	alertmanagerNotifier{},
 	dingDingNotifier{},
@@ -174,8 +176,7 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 			// If the contact point already has a UID, update it.
 			params := provisioning.NewPutContactpointParams().WithUID(uid).WithBody(p.gfState)
 			if data.Get("disable_provenance").(bool) {
-				disabled := "disabled"
-				params.SetXDisableProvenance(&disabled)
+				params.SetXDisableProvenance(&provenanceDisabled)
 			}
 			if _, err := client.Provisioning.PutContactpoint(params); err != nil {
 				return diag.FromErr(err)
@@ -187,8 +188,7 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 			err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 				params := provisioning.NewPostContactpointsParams().WithBody(p.gfState)
 				if data.Get("disable_provenance").(bool) {
-					disabled := "disabled"
-					params.SetXDisableProvenance(&disabled)
+					params.SetXDisableProvenance(&provenanceDisabled)
 				}
 				resp, err := client.Provisioning.PostContactpoints(params)
 				if orgID > 1 && err != nil && err.(*runtime.APIError).IsCode(500) {
