@@ -188,7 +188,6 @@ func TestAccNotificationPolicy_inOrg(t *testing.T) {
 			},
 		},
 	})
-
 }
 
 func testAccNotificationPolicyInOrg(name string) string {
