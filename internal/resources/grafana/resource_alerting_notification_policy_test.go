@@ -169,16 +169,21 @@ func TestAccNotificationPolicy_inOrg(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy: resource.ComposeTestCheckFunc(
-			orgCheckExists.destroyed(&org, nil),
-			alertingNotificationPolicyCheckExists.destroyed(&policy, &org),
-		),
+		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccNotificationPolicyInOrg(name),
 				Check: resource.ComposeTestCheckFunc(
 					orgCheckExists.exists("grafana_organization.test", &org),
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
 					checkResourceIsInOrg("grafana_notification_policy.test", "grafana_organization.test"),
+				),
+			},
+			{
+				Config: testutils.WithoutResource(t, testAccNotificationPolicyInOrg(name), "grafana_notification_policy.test"),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					alertingNotificationPolicyCheckExists.destroyed(&policy, &org),
 				),
 			},
 		},
@@ -192,9 +197,18 @@ func testAccNotificationPolicyInOrg(name string) string {
 		name = "%[1]s"
 	}
 
+	resource "grafana_contact_point" "a_contact_point" {
+		org_id = grafana_organization.test.id
+		name = "A Contact Point"
+		email {
+			addresses = ["test@example.com"]
+		}
+	}
+
 	resource "grafana_notification_policy" "test" {
+		org_id = grafana_organization.test.id
 		group_by      = ["hello"]
-		contact_point = "A Contact Point"
+		contact_point = grafana_contact_point.a_contact_point.name
 
 		policy {
 			group_by = ["hello"]
@@ -203,10 +217,9 @@ func testAccNotificationPolicyInOrg(name string) string {
 				match = "=~"
 				value = "host.*|host-b.*"
 			}
-			contact_point = "A Contact Point"
+			contact_point = grafana_contact_point.a_contact_point.name
 		}
 
-		org_id = grafana_organization.test.id
 	}
 	`, name)
 }

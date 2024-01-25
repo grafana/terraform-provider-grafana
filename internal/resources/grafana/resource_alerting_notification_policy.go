@@ -213,9 +213,12 @@ func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta 
 
 	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		_, err := client.Provisioning.PutPolicyTree(putParams)
-		if orgID > 1 && err != nil && err.(*runtime.APIError).IsCode(500) {
-			return retry.RetryableError(err)
-		} else if err != nil {
+		if orgID > 1 && err != nil {
+			if apiError, ok := err.(*runtime.APIError); ok && (apiError.IsCode(500) || apiError.IsCode(404)) {
+				return retry.RetryableError(err)
+			}
+		}
+		if err != nil {
 			return retry.NonRetryableError(err)
 		}
 		return nil
