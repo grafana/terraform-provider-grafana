@@ -16,7 +16,9 @@ var cloudAPIKeyRoles = []string{"Viewer", "Editor", "Admin", "MetricsPublisher",
 
 func ResourceAPIKey() *schema.Resource {
 	return &schema.Resource{
-		Description: `Manages a single API key on the Grafana Cloud portal (on the organization level)
+		Description: `This resource is deprecated and will be removed in a future release. Please use grafana_cloud_access_policy instead.
+
+Manages a single API key on the Grafana Cloud portal (on the organization level)
 * [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#api-keys)
 `,
 		CreateContext: ResourceAPIKeyCreate,
@@ -25,6 +27,7 @@ func ResourceAPIKey() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+		DeprecationMessage: "This resource is deprecated and will be removed in a future release. Please use `grafana_cloud_access_policy` instead.",
 
 		Schema: map[string]*schema.Schema{
 			"cloud_org_slug": {
