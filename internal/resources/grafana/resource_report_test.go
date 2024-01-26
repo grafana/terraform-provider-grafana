@@ -25,8 +25,8 @@ func TestAccResourceReport_Multiple_Dashboards(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_report/multiple-dashboards.tf", map[string]string{
-					`"uid": "report"`:  fmt.Sprintf(`"uid": "%s"`, randomUID),
-					`"uid": "report2"`: fmt.Sprintf(`"uid": "%s"`, randomUID2),
+					`"report-dashboard"`:   fmt.Sprintf(`"%s"`, randomUID),
+					`"report-dashboard-2"`: fmt.Sprintf(`"%s"`, randomUID2),
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					reportCheckExists.exists("grafana_report.test", &report),
@@ -71,7 +71,7 @@ func TestAccResourceReport_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_report/resource.tf", map[string]string{
-					`"uid": "report"`: fmt.Sprintf(`"uid": "%s"`, randomUID),
+					`"report-dashboard"`: fmt.Sprintf(`"%s"`, randomUID),
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					reportCheckExists.exists("grafana_report.test", &report),
@@ -95,7 +95,7 @@ func TestAccResourceReport_basic(t *testing.T) {
 			},
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_report/all-options.tf", map[string]string{
-					`"uid": "report"`: fmt.Sprintf(`"uid": "%s"`, randomUID),
+					`"report-dashboard"`: fmt.Sprintf(`"%s"`, randomUID),
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					func(s *terraform.State) error {
@@ -128,7 +128,7 @@ func TestAccResourceReport_basic(t *testing.T) {
 			},
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_report/monthly.tf", map[string]string{
-					`"uid": "report"`: fmt.Sprintf(`"uid": "%s"`, randomUID),
+					`"report-dashboard"`: fmt.Sprintf(`"%s"`, randomUID),
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					reportCheckExists.exists("grafana_report.test", &report),
@@ -193,7 +193,7 @@ func TestAccResourceReport_InOrg(t *testing.T) {
 				Config: testAccReportCreateInOrg(name),
 				Check: resource.ComposeTestCheckFunc(
 					reportCheckExists.exists("grafana_report.test", &report),
-					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", "report-in-org"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", name),
 
 					// Check that the dashboard is in the correct organization
 					resource.TestMatchResourceAttr("grafana_report.test", "id", nonDefaultOrgIDRegexp),
@@ -209,8 +209,8 @@ func testAccReportCreateFromID(uid string) string {
 	return fmt.Sprintf(`resource "grafana_dashboard" "test" {
 	config_json = <<EOD
   {
-	"title": "Dashboard for report from UID",
-	"uid": "%s"
+	"title": "%[1]s",
+	"uid": "%[1]s"
   }
   EOD
 	message     = "initial commit."
@@ -237,8 +237,8 @@ resource "grafana_dashboard" "test" {
 	org_id      = grafana_organization.test.id
 	config_json = <<EOD
 {
-	"title": "Dashboard for report in org",
-	"uid": "report-in-org"
+	"title": "%[1]s",
+	"uid": "%[1]s"
 }
 EOD
 	message     = "initial commit."
