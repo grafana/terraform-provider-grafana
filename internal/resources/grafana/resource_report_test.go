@@ -16,13 +16,18 @@ func TestAccResourceReport_Multiple_Dashboards(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t)
 
 	var report models.Report
+	var randomUID = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+	var randomUID2 = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      reportCheckExists.destroyed(&report, nil),
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_report/multiple-dashboards.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_report/multiple-dashboards.tf", map[string]string{
+					`"uid": "report"`:  fmt.Sprintf(`"uid": "%s"`, randomUID),
+					`"uid": "report2"`: fmt.Sprintf(`"uid": "%s"`, randomUID2),
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					reportCheckExists.exists("grafana_report.test", &report),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "id"),
@@ -42,12 +47,12 @@ func TestAccResourceReport_Multiple_Dashboards(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_report.test", "include_table_csv", "false"),
 					resource.TestCheckNoResourceAttr("grafana_report.test", "time_range.0.from"),
 					resource.TestCheckNoResourceAttr("grafana_report.test", "time_range.0.to"),
-					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.uid", "report"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.uid", randomUID),
 					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.time_range.0.from", "now-1h"),
 					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.time_range.0.to", "now"),
 					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.1.time_range.0.from", ""),
 					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.1.time_range.0.to", ""),
-					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.1.uid", "report2"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.1.uid", randomUID2),
 				),
 			},
 		},
