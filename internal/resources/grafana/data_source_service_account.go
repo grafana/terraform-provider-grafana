@@ -2,8 +2,11 @@ package grafana
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -30,12 +33,21 @@ func DatasourceServiceAccount() *schema.Resource {
 func DatasourceServiceAccountRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 	name := d.Get("name").(string)
+	sa, err := findServiceAccountByName(client, name)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.SetId(MakeOrgResourceID(orgID, sa.ID))
+	return ReadServiceAccount(ctx, d, meta)
+}
+
+func findServiceAccountByName(client *client.GrafanaHTTPAPI, name string) (*models.ServiceAccountDTO, error) {
 	var page int64 = 0
 	for {
 		params := service_accounts.NewSearchOrgServiceAccountsWithPagingParams().WithPage(&page)
 		resp, err := client.ServiceAccounts.SearchOrgServiceAccountsWithPaging(params)
 		if err != nil {
-			return diag.FromErr(err)
+			return nil, err
 		}
 		serviceAccounts := resp.Payload.ServiceAccounts
 		if len(serviceAccounts) == 0 {
@@ -43,10 +55,9 @@ func DatasourceServiceAccountRead(ctx context.Context, d *schema.ResourceData, m
 		}
 		for _, sa := range serviceAccounts {
 			if sa.Name == name {
-				d.SetId(MakeOrgResourceID(orgID, sa.ID))
-				return ReadServiceAccount(ctx, d, meta)
+				return sa, nil
 			}
 		}
 	}
-	return diag.Errorf("service account %q not found", name)
+	return nil, fmt.Errorf("service account %q not found", name)
 }
