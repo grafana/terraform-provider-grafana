@@ -8,6 +8,7 @@ import (
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	slo "github.com/grafana/slo-openapi-client/go"
@@ -17,10 +18,11 @@ import (
 )
 
 type Client struct {
-	GrafanaAPIURL       string
-	GrafanaAPIURLParsed *url.URL
-	GrafanaAPIConfig    *goapi.TransportConfig
-	GrafanaCloudAPI     *gapi.Client
+	GrafanaAPIURL          string
+	GrafanaAPIURLParsed    *url.URL
+	GrafanaAPIConfig       *goapi.TransportConfig
+	GrafanaCloudAPI        *gapi.Client
+	GrafanaCloudAPIOpenAPI *gcom.APIClient
 
 	GrafanaOAPI *goapi.GrafanaHTTPAPI
 
