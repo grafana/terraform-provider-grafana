@@ -62,7 +62,10 @@ func ResourceStack() *schema.Resource {
 				Description: `
 Subdomain that the Grafana instance will be available at (i.e. setting slug to “<stack_slug>” will make the instance
 available at “https://<stack_slug>.grafana.net".`,
-				ValidateFunc: validation.StringMatch(stackSlugRegex, "must be a lowercase alphanumeric string and must start with a letter."),
+				ValidateFunc: validation.All(
+					validation.StringMatch(stackSlugRegex, "must be a lowercase alphanumeric string and must start with a letter."),
+					validation.StringLenBetween(1, 29),
+				),
 			},
 			"region_slug": {
 				Type:        schema.TypeString,

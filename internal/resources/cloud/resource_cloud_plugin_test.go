@@ -2,7 +2,6 @@ package cloud_test
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -14,7 +13,7 @@ import (
 func TestAccResourcePluginInstallation(t *testing.T) {
 	testutils.CheckCloudAPITestsEnabled(t)
 
-	slug := os.Getenv("GRAFANA_CLOUD_ORG")
+	slug := GetRandomStackName("tfplugin")
 	pluginSlug := "aws-datasource-provisioner-app"
 	pluginVersion := "1.7.0"
 
@@ -91,7 +90,7 @@ func testAccCloudPluginDeleteExisting(t *testing.T, instanceSlug, pluginSlug str
 }
 
 func testAccGrafanaCloudPluginInstallation(stackSlug, name, version string) string {
-	return fmt.Sprintf(`
+	return testAccStackConfigBasic(stackSlug, stackSlug) + fmt.Sprintf(`
 		resource "grafana_cloud_plugin_installation" "test-installation" {
 			stack_slug = "%s"
 			slug       = "%s"
