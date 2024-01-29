@@ -104,7 +104,7 @@ output "emea_weekday__rolling_users" {
 - `by_month` (Set of Number) This parameter takes a list of months. Valid values are 1 to 12
 - `by_monthday` (Set of Number) This parameter takes a list of days of the month.  Valid values are 1 to 31 or -31 to -1
 - `frequency` (String) The frequency of the event. Can be hourly, daily, weekly, monthly
-- `interval` (Number) The positive integer representing at which intervals the recurrence rule repeats. Required if a frequency is set (fallback to 1 if omitted but it will later be detected as a change).
+- `interval` (Number) The positive integer representing at which intervals the recurrence rule repeats.
 - `level` (Number) The priority level. The higher the value, the higher the priority.
 - `rolling_users` (List of Set of String) The list of lists with on-call users (for rolling_users event type)
 - `start_rotation_from_user_index` (Number) The index of the list of users in rolling_users, from which on-call rotation starts.
