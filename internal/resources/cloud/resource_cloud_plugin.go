@@ -93,6 +93,6 @@ func ResourcePluginInstallationDelete(ctx context.Context, d *schema.ResourceDat
 	splitID := strings.SplitN(d.Id(), "_", 2)
 	stackSlug, pluginSlug := splitID[0], splitID[1]
 
-	_, _, err := client.InstancesAPI.DeleteInstancePlugin(ctx, stackSlug, pluginSlug).Execute()
+	_, _, err := client.InstancesAPI.DeleteInstancePlugin(ctx, stackSlug, pluginSlug).XRequestId(clientRequestID()).Execute()
 	return diag.FromErr(err)
 }
