@@ -27,6 +27,7 @@ var onCallShiftTypeOptions = []string{
 var onCallShiftTypeOptionsVerbal = strings.Join(onCallShiftTypeOptions, ", ")
 
 var onCallShiftFrequencyOptions = []string{
+	"hourly",
 	"daily",
 	"weekly",
 	"monthly",
