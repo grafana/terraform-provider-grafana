@@ -20,8 +20,8 @@ description: |-
 resource "grafana_dashboard" "test" {
   config_json = <<EOD
 {
-  "title": "Dashboard for report",
-  "uid": "report"
+  "uid": "report-dashboard",
+  "title": "report-dashboard"
 }
 EOD
   message     = "inital commit."
