@@ -126,7 +126,7 @@ func ResourceOnCallShift() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				ValidateFunc: validation.IntAtLeast(1),
-				Description:  "The positive integer representing at which intervals the recurrence rule repeats.",
+				Description:  "The positive integer representing at which intervals the recurrence rule repeats. Required if a frequency is set (fallback to 1 if omitted but it will later be detected as a change).",
 			},
 			"week_start": {
 				Type:         schema.TypeString,
