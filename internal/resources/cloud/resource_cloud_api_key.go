@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -60,55 +60,50 @@ Manages a single API key on the Grafana Cloud portal (on the organization level)
 }
 
 func ResourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).GrafanaCloudAPI
+	c := meta.(*common.Client).GrafanaCloudAPIOpenAPI
 
-	req := &gapi.CreateCloudAPIKeyInput{
+	req := gcom.PostApiKeysRequest{
 		Name: d.Get("name").(string),
 		Role: d.Get("role").(string),
 	}
 	org := d.Get("cloud_org_slug").(string)
 
-	resp, err := c.CreateCloudAPIKey(org, req)
+	resp, _, err := c.OrgsAPI.PostApiKeys(ctx, org).
+		PostApiKeysRequest(req).
+		XRequestId(clientRequestID()).
+		Execute()
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.Set("key", resp.Token)
+	d.Set("key", *resp.Token)
 	d.SetId(org + "-" + resp.Name)
 
 	return ResourceAPIKeyRead(ctx, d, meta)
 }
 
 func ResourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).GrafanaCloudAPI
+	c := meta.(*common.Client).GrafanaCloudAPIOpenAPI
 
 	splitID := strings.SplitN(d.Id(), "-", 2)
 	org, name := splitID[0], splitID[1]
 
-	resp, err := c.ListCloudAPIKeys(org)
+	resp, _, err := c.OrgsAPI.GetApiKey(ctx, name, org).Execute()
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	for _, apiKey := range resp.Items {
-		if apiKey.Name == name {
-			d.Set("name", apiKey.Name)
-			d.Set("role", apiKey.Role)
-			break
-		}
-	}
+	d.Set("name", resp.Name)
+	d.Set("role", resp.Role)
 	d.Set("cloud_org_slug", org)
 
 	return nil
 }
 
 func ResourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).GrafanaCloudAPI
+	c := meta.(*common.Client).GrafanaCloudAPIOpenAPI
 
-	if err := c.DeleteCloudAPIKey(d.Get("cloud_org_slug").(string), d.Get("name").(string)); err != nil {
-		return diag.FromErr(err)
-	}
-
+	_, err := c.OrgsAPI.DelApiKey(ctx, d.Get("name").(string), d.Get("cloud_org_slug").(string)).XRequestId(clientRequestID()).Execute()
 	d.SetId("")
-	return nil
+	return diag.FromErr(err)
 }
