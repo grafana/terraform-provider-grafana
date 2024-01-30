@@ -41,6 +41,7 @@ func TestAccResourceReport_Multiple_Dashboards(t *testing.T) {
 					resource.TestCheckResourceAttrSet("grafana_report.test", "schedule.0.start_time"), // Date set to current time
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", ""),  // No end time
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.last_day_of_month", "true"),
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.timezone", "America/New_York"),
 					resource.TestCheckResourceAttr("grafana_report.test", "orientation", "landscape"),
 					resource.TestCheckResourceAttr("grafana_report.test", "layout", "grid"),
 					resource.TestCheckResourceAttr("grafana_report.test", "include_dashboard_link", "true"),
@@ -85,6 +86,7 @@ func TestAccResourceReport_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.frequency", "hourly"),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "schedule.0.start_time"), // Date set to current time
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", ""),  // No end time
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.timezone", "GMT"),
 					resource.TestCheckResourceAttr("grafana_report.test", "orientation", "landscape"),
 					resource.TestCheckResourceAttr("grafana_report.test", "layout", "grid"),
 					resource.TestCheckResourceAttr("grafana_report.test", "include_dashboard_link", "true"),
@@ -114,6 +116,7 @@ func TestAccResourceReport_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.workdays_only", "true"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.start_time", "2020-01-01T07:00:00Z"), // Date transformed to UTC
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", "2020-01-15T08:30:00Z"),   // Date transformed to UTC
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.timezone", "GMT"),
 					resource.TestCheckResourceAttr("grafana_report.test", "orientation", "portrait"),
 					resource.TestCheckResourceAttr("grafana_report.test", "layout", "simple"),
 					resource.TestCheckResourceAttr("grafana_report.test", "include_dashboard_link", "false"),

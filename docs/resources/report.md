@@ -79,6 +79,7 @@ Optional:
 - `end_time` (String) End time of the report. If empty, the report will be sent indefinitely (according to frequency). Note that times will be saved as UTC in Grafana.
 - `last_day_of_month` (Boolean) Send the report on the last day of the month Defaults to `false`.
 - `start_time` (String) Start time of the report. If empty, the start date will be set to the creation time. Note that times will be saved as UTC in Grafana.
+- `timezone` (String) Set the report time zone. Defaults to `GMT`.
 - `workdays_only` (Boolean) Whether to send the report only on work days. Defaults to `false`.
 
 

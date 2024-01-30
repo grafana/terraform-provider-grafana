@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	_ "time/tzdata"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -235,6 +236,15 @@ func ResourceReport() *schema.Resource {
 							Description: "Send the report on the last day of the month",
 							Default:     false,
 						},
+						"timezone": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Set the report time zone.",
+							Default:     "GMT",
+							ValidateDiagFunc: func(i interface{}, path cty.Path) diag.Diagnostics {
+								return diag.FromErr(validateTimezone(i))
+							},
+						},
 					},
 				},
 			},
@@ -351,6 +361,7 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	schedule := map[string]interface{}{
 		"frequency":     r.Payload.Schedule.Frequency,
 		"workdays_only": r.Payload.Schedule.WorkdaysOnly,
+		"timezone":      r.Payload.Schedule.TimeZone,
 	}
 	if r.Payload.Schedule.IntervalAmount != 0 && r.Payload.Schedule.IntervalFrequency != "" {
 		schedule["custom_interval"] = fmt.Sprintf("%d %s", r.Payload.Schedule.IntervalAmount, r.Payload.Schedule.IntervalFrequency)
@@ -420,6 +431,7 @@ func DeleteReport(ctx context.Context, d *schema.ResourceData, meta interface{})
 
 func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReportConfig, error) {
 	frequency := d.Get("schedule.0.frequency").(string)
+	timezone := d.Get("schedule.0.timezone").(string)
 	report := models.CreateOrUpdateReportConfig{
 		Name:               d.Get("name").(string),
 		Recipients:         strings.Join(common.ListToStringSlice(d.Get("recipients").([]interface{})), ","),
@@ -433,7 +445,7 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReportConfig, 
 		},
 		Schedule: &models.ReportSchedule{
 			Frequency: frequency,
-			TimeZone:  "GMT",
+			TimeZone:  timezone,
 		},
 		Formats: []models.Type{reportFormatPDF},
 	}
@@ -570,4 +582,10 @@ func parseCustomReportInterval(i interface{}) (int, string, error) {
 	}
 
 	return number, unit, nil
+}
+
+func validateTimezone(i interface{}) error {
+	timezone := i.(string)
+	_, err := time.LoadLocation(timezone)
+	return err
 }

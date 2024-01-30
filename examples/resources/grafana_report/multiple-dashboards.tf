@@ -24,6 +24,7 @@ resource "grafana_report" "test" {
   schedule {
     frequency         = "monthly"
     last_day_of_month = true
+    timezone = "America/New_York"
   }
 
   dashboards {
