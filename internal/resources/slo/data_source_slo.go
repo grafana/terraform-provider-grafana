@@ -20,13 +20,13 @@ Datasource for retrieving all SLOs.
 				`,
 		ReadContext: datasourceSloRead,
 		Schema: map[string]*schema.Schema{
-			"slos": &schema.Schema{
+			"slos": {
 				Type:        schema.TypeList,
 				Computed:    true,
 				Description: `Returns a list of all SLOs"`,
 				Elem: &schema.Resource{
 					Schema: common.CloneResourceSchemaForDatasource(ResourceSlo(), map[string]*schema.Schema{
-						"uuid": &schema.Schema{
+						"uuid": {
 							Type:        schema.TypeString,
 							Description: `A unique, random identifier. This value will also be the name of the resource stored in the API server. This value is read-only.`,
 							Computed:    true,
@@ -47,7 +47,7 @@ func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{
 	req := client.DefaultAPI.V1SloGet(ctx)
 	apiSlos, _, err := req.Execute()
 	if err != nil {
-		return diag.FromErr(err)
+		return apiError("Could not retrieve SLOs", err)
 	}
 
 	terraformSlos := []interface{}{}
@@ -217,6 +217,11 @@ func unpackDestinationDatasource(destinationDatasource *slo.DestinationDatasourc
 
 	retDestinationDatasource := make(map[string]interface{})
 	retDestinationDatasource["uid"] = destinationDatasource.Uid
+
+	retDestinationDatasource["type"] = defaultDestinationDatasourceType
+	if destinationDatasource.Type != nil {
+		retDestinationDatasource["type"] = *destinationDatasource.Type
+	}
 
 	retDestinationDatasources = append(retDestinationDatasources, retDestinationDatasource)
 
