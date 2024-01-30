@@ -1,16 +1,17 @@
 package cloud_test
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
 
-	"strconv"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -22,7 +23,7 @@ func TestResourceStack_Basic(t *testing.T) {
 
 	prefix := "tfresourcetest"
 
-	var stack gapi.Stack
+	var stack gcom.FormattedApiInstance
 	resourceName := GetRandomStackName(prefix)
 	stackDescription := "This is a test stack"
 
@@ -115,15 +116,15 @@ func TestResourceStack_Basic(t *testing.T) {
 }
 
 func testAccDeleteExistingStacks(t *testing.T, prefix string) {
-	client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
-	resp, err := client.Stacks()
+	client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPIOpenAPI
+	resp, _, err := client.InstancesAPI.GetInstances(context.Background()).Execute()
 	if err != nil {
 		t.Error(err)
 	}
 
 	for _, stack := range resp.Items {
 		if strings.HasPrefix(stack.Name, prefix) {
-			err := client.DeleteStack(stack.Slug)
+			_, _, err := client.InstancesAPI.DeleteInstance(context.Background(), stack.Slug).XRequestId(cloud.ClientRequestID()).Execute()
 			if err != nil {
 				t.Error(err)
 			}
@@ -131,7 +132,7 @@ func testAccDeleteExistingStacks(t *testing.T, prefix string) {
 	}
 }
 
-func testAccStackCheckExists(rn string, a *gapi.Stack) resource.TestCheckFunc {
+func testAccStackCheckExists(rn string, a *gcom.FormattedApiInstance) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
 		if !ok {
@@ -141,29 +142,29 @@ func testAccStackCheckExists(rn string, a *gapi.Stack) resource.TestCheckFunc {
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource id not set")
 		}
-		id, err := strconv.ParseInt(rs.Primary.ID, 10, 64)
-		if err != nil {
-			return fmt.Errorf("resource id is malformed")
-		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
-		stack, err := client.StackByID(id)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPIOpenAPI
+		stack, _, err := client.InstancesAPI.GetInstance(context.Background(), rs.Primary.ID).Execute()
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
 		}
 
-		*a = stack
+		*a = *stack
+
+		if destroyErr := testAccStackCheckDestroy(a)(s); destroyErr == nil {
+			return fmt.Errorf("expected the stack's destroy check to fail, but it didn't")
+		}
 
 		return nil
 	}
 }
 
-func testAccStackCheckDestroy(a *gapi.Stack) resource.TestCheckFunc {
+func testAccStackCheckDestroy(a *gcom.FormattedApiInstance) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
-		stack, err := client.StackBySlug(a.Slug)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPIOpenAPI
+		stack, _, err := client.InstancesAPI.GetInstance(context.Background(), a.Slug).Execute()
 		if err == nil && stack.Name != "" {
-			return fmt.Errorf("stack `%s` with ID `%d` still exists after destroy", stack.Name, stack.ID)
+			return fmt.Errorf("stack `%s` with ID `%d` still exists after destroy", stack.Name, int(stack.Id))
 		}
 
 		return nil

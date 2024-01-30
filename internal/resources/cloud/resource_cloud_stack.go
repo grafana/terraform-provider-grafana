@@ -263,7 +263,7 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 	}
 
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-		req := client.InstancesAPI.PostInstances(ctx).PostInstancesRequest(stack).XRequestId(clientRequestID())
+		req := client.InstancesAPI.PostInstances(ctx).PostInstancesRequest(stack).XRequestId(ClientRequestID())
 		createdStack, _, err := req.Execute()
 		switch {
 		case err != nil && strings.Contains(strings.ToLower(err.Error()), "conflict"):
@@ -315,7 +315,7 @@ func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 			Description: common.Ref(d.Get("description").(string)),
 			Url:         common.Ref(d.Get("url").(string)),
 		}
-		req := client.InstancesAPI.PostInstance(ctx, d.Id()).PostInstanceRequest(stack).XRequestId(clientRequestID())
+		req := client.InstancesAPI.PostInstance(ctx, d.Id()).PostInstanceRequest(stack).XRequestId(ClientRequestID())
 		_, _, err := req.Execute()
 		if err != nil {
 			return apiError(err)
@@ -331,7 +331,7 @@ func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 
 func DeleteStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
-	req := client.InstancesAPI.DeleteInstance(ctx, d.Id()).XRequestId(clientRequestID())
+	req := client.InstancesAPI.DeleteInstance(ctx, d.Id()).XRequestId(ClientRequestID())
 	_, _, err := req.Execute()
 	return apiError(err)
 }

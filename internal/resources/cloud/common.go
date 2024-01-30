@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 )
 
-func clientRequestID() string {
+func ClientRequestID() string {
 	uuid, err := uuid.GenerateUUID()
 	if err != nil {
 		return ""

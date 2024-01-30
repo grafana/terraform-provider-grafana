@@ -1,10 +1,11 @@
 package cloud_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -14,7 +15,7 @@ import (
 func TestAccResourcePluginInstallation(t *testing.T) {
 	testutils.CheckCloudAPITestsEnabled(t)
 
-	var stack gapi.Stack
+	var stack gcom.FormattedApiInstance
 	stackPrefix := "tfplugin"
 	stackSlug := GetRandomStackName(stackPrefix)
 	pluginSlug := "aws-datasource-provisioner-app"
@@ -54,8 +55,8 @@ func TestAccResourcePluginInstallation(t *testing.T) {
 
 func testAccCloudPluginInstallationCheckExists(stackSlug string, pluginSlug string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
-		_, err := client.GetCloudPluginInstallation(stackSlug, pluginSlug)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPIOpenAPI
+		_, _, err := client.InstancesAPI.GetInstancePlugin(context.Background(), stackSlug, pluginSlug).Execute()
 		if err != nil {
 			return fmt.Errorf("error getting installation: %s", err)
 		}

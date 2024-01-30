@@ -59,7 +59,7 @@ func ResourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceDat
 	}
 	_, _, err := client.InstancesAPI.PostInstancePlugins(ctx, stackSlug).
 		PostInstancePluginsRequest(req).
-		XRequestId(clientRequestID()).Execute()
+		XRequestId(ClientRequestID()).Execute()
 	if err != nil {
 		return apiError(err)
 	}
@@ -93,6 +93,6 @@ func ResourcePluginInstallationDelete(ctx context.Context, d *schema.ResourceDat
 	splitID := strings.SplitN(d.Id(), "_", 2)
 	stackSlug, pluginSlug := splitID[0], splitID[1]
 
-	_, _, err := client.InstancesAPI.DeleteInstancePlugin(ctx, stackSlug, pluginSlug).XRequestId(clientRequestID()).Execute()
+	_, _, err := client.InstancesAPI.DeleteInstancePlugin(ctx, stackSlug, pluginSlug).XRequestId(ClientRequestID()).Execute()
 	return apiError(err)
 }
