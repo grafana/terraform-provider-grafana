@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -62,13 +62,19 @@ func ResourceStack() *schema.Resource {
 				Description: `
 Subdomain that the Grafana instance will be available at (i.e. setting slug to “<stack_slug>” will make the instance
 available at “https://<stack_slug>.grafana.net".`,
-				ValidateFunc: validation.StringMatch(stackSlugRegex, "must be a lowercase alphanumeric string and must start with a letter."),
+				ValidateFunc: validation.All(
+					validation.StringMatch(stackSlugRegex, "must be a lowercase alphanumeric string and must start with a letter."),
+					validation.StringLenBetween(1, 29),
+				),
 			},
 			"region_slug": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
 				Description: `Region slug to assign to this stack. Changing region will destroy the existing stack and create a new one in the desired region. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.`,
+				DiffSuppressFunc: func(_, oldValue, newValue string, _ *schema.ResourceData) bool {
+					return oldValue == newValue || newValue == "" // Ignore default region
+				},
 			},
 			"url": {
 				Type:        schema.TypeString,
@@ -81,9 +87,8 @@ available at “https://<stack_slug>.grafana.net".`,
 				Optional:    true,
 				Default:     true,
 				Description: "Whether to wait for readiness of the stack after creating it. The check is a HEAD request to the stack URL (Grafana instance).",
-				// Suppress the diff if the new value is "false" because this attribute is only used at creation-time
-				// If the diff is suppress for a "true" value, the attribute cannot be read at all
-				DiffSuppressFunc: func(_, _, newValue string, _ *schema.ResourceData) bool { return newValue == "false" },
+				// Suppress the diff if the stack is already created
+				DiffSuppressFunc: func(_, _, _ string, d *schema.ResourceData) bool { return !d.IsNewResource() },
 			},
 			"wait_for_readiness_timeout": {
 				Type:             schema.TypeString,
@@ -247,17 +252,18 @@ available at “https://<stack_slug>.grafana.net".`,
 }
 
 func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
+	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
 
-	stack := &gapi.CreateStackInput{
+	stack := gcom.PostInstancesRequest{
 		Name:   d.Get("name").(string),
-		Slug:   d.Get("slug").(string),
-		URL:    d.Get("url").(string),
-		Region: d.Get("region_slug").(string),
+		Slug:   common.Ref(d.Get("slug").(string)),
+		Url:    common.Ref(d.Get("url").(string)),
+		Region: common.Ref(d.Get("region_slug").(string)),
 	}
 
-	err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
-		stackID, err := client.NewStack(stack)
+	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		req := client.InstancesAPI.PostInstances(ctx).PostInstancesRequest(stack).XRequestId(clientRequestID())
+		createdStack, _, err := req.Execute()
 		switch {
 		case err != nil && strings.Contains(strings.ToLower(err.Error()), "conflict"):
 			// If the API returns a conflict error, it means that the stack already exists
@@ -268,15 +274,16 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 		case err != nil:
 			// If we had an error that isn't a a conflict error (already exists), try to read the stack
 			// Sometimes, the stack is created but the API returns an error (e.g. 504)
-			readStack, readErr := client.StackBySlug(stack.Slug)
+			readReq := client.InstancesAPI.GetInstance(ctx, *stack.Slug)
+			readStack, _, readErr := readReq.Execute()
 			if readErr == nil {
-				d.SetId(strconv.FormatInt(readStack.ID, 10))
+				d.SetId(strconv.FormatInt(int64(readStack.Id), 10))
 				return nil
 			}
 			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
 			return retry.RetryableError(fmt.Errorf("failed to create stack: %v", err))
 		default:
-			d.SetId(strconv.FormatInt(stackID, 10))
+			d.SetId(strconv.FormatInt(int64(createdStack.Id), 10))
 		}
 		return nil
 	})
@@ -292,8 +299,7 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 }
 
 func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
-	stackID, _ := strconv.ParseInt(d.Id(), 10, 64)
+	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
 
 	// The underlying API olnly allows to update the name and description.
 	allowedChanges := []string{"name", "description", "slug"}
@@ -302,12 +308,13 @@ func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 	}
 
 	if d.HasChange("name") || d.HasChange("description") || d.HasChanges("slug") {
-		stack := &gapi.UpdateStackInput{
-			Name:        d.Get("name").(string),
-			Slug:        d.Get("slug").(string),
-			Description: d.Get("description").(string),
+		stack := gcom.PostInstanceRequest{
+			Name:        common.Ref(d.Get("name").(string)),
+			Slug:        common.Ref(d.Get("slug").(string)),
+			Description: common.Ref(d.Get("description").(string)),
 		}
-		err := client.UpdateStack(stackID, stack)
+		req := client.InstancesAPI.PostInstance(ctx, d.Id()).PostInstanceRequest(stack).XRequestId(clientRequestID())
+		_, _, err := req.Execute()
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -321,17 +328,16 @@ func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 }
 
 func DeleteStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
-	if err := client.DeleteStack(d.Id()); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
+	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
+	req := client.InstancesAPI.DeleteInstance(ctx, d.Id()).XRequestId(clientRequestID())
+	_, _, err := req.Execute()
+	return diag.FromErr(err)
 }
 
 func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
-	stack, err := getStackFromIDOrSlug(client, d.Id())
+	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
+	req := client.InstancesAPI.GetInstance(ctx, d.Id())
+	stack, _, err := req.Execute()
 	if err, shouldReturn := common.CheckReadError("stack", d, err); shouldReturn {
 		return err
 	}
@@ -342,7 +348,7 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 		return nil
 	}
 
-	if err := FlattenStack(d, *stack); err != nil {
+	if err := FlattenStack(d, stack); err != nil {
 		return diag.FromErr(err)
 	}
 	// Always set the wait attribute to true after creation
@@ -352,75 +358,56 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 	return nil
 }
 
-func FlattenStack(d *schema.ResourceData, stack gapi.Stack) error {
-	id := strconv.FormatInt(stack.ID, 10)
+func FlattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance) error {
+	id := strconv.FormatInt(int64(stack.Id), 10)
 	d.SetId(id)
 	d.Set("name", stack.Name)
 	d.Set("slug", stack.Slug)
-	d.Set("url", stack.URL)
+	d.Set("url", stack.Url)
 	d.Set("status", stack.Status)
 	d.Set("region_slug", stack.RegionSlug)
 	d.Set("description", stack.Description)
 
-	d.Set("org_id", stack.OrgID)
+	d.Set("org_id", stack.OrgId)
 	d.Set("org_slug", stack.OrgSlug)
 	d.Set("org_name", stack.OrgName)
 
-	d.Set("prometheus_user_id", stack.HmInstancePromID)
-	d.Set("prometheus_url", stack.HmInstancePromURL)
+	d.Set("prometheus_user_id", stack.HmInstancePromId)
+	d.Set("prometheus_url", stack.HmInstancePromUrl)
 	d.Set("prometheus_name", stack.HmInstancePromName)
-	reURL, err := appendPath(stack.HmInstancePromURL, "/api/prom")
+	reURL, err := appendPath(stack.HmInstancePromUrl, "/api/prom")
 	if err != nil {
 		return err
 	}
 	d.Set("prometheus_remote_endpoint", reURL)
-	rweURL, err := appendPath(stack.HmInstancePromURL, "/api/prom/push")
+	rweURL, err := appendPath(stack.HmInstancePromUrl, "/api/prom/push")
 	if err != nil {
 		return err
 	}
 	d.Set("prometheus_remote_write_endpoint", rweURL)
 	d.Set("prometheus_status", stack.HmInstancePromStatus)
 
-	d.Set("logs_user_id", stack.HlInstanceID)
-	d.Set("logs_url", stack.HlInstanceURL)
+	d.Set("logs_user_id", stack.HlInstanceId)
+	d.Set("logs_url", stack.HlInstanceUrl)
 	d.Set("logs_name", stack.HlInstanceName)
 	d.Set("logs_status", stack.HlInstanceStatus)
 
-	d.Set("alertmanager_user_id", stack.AmInstanceID)
+	d.Set("alertmanager_user_id", stack.AmInstanceId)
 	d.Set("alertmanager_name", stack.AmInstanceName)
-	d.Set("alertmanager_url", stack.AmInstanceURL)
+	d.Set("alertmanager_url", stack.AmInstanceUrl)
 	d.Set("alertmanager_status", stack.AmInstanceStatus)
 
-	d.Set("traces_user_id", stack.HtInstanceID)
+	d.Set("traces_user_id", stack.HtInstanceId)
 	d.Set("traces_name", stack.HtInstanceName)
-	d.Set("traces_url", stack.HtInstanceURL)
+	d.Set("traces_url", stack.HtInstanceUrl)
 	d.Set("traces_status", stack.HtInstanceStatus)
 
-	d.Set("graphite_user_id", stack.HmInstanceGraphiteID)
+	d.Set("graphite_user_id", stack.HmInstanceGraphiteId)
 	d.Set("graphite_name", stack.HmInstanceGraphiteName)
-	d.Set("graphite_url", stack.HmInstanceGraphiteURL)
+	d.Set("graphite_url", stack.HmInstanceGraphiteUrl)
 	d.Set("graphite_status", stack.HmInstanceGraphiteStatus)
 
 	return nil
-}
-
-func getStackFromIDOrSlug(client *gapi.Client, id string) (*gapi.Stack, error) {
-	numericalID, err := strconv.ParseInt(id, 10, 64)
-	if err != nil {
-		// If the ID is not a number, then it may be a slug
-		stack, err := client.StackBySlug(id)
-		if err != nil {
-			return nil, fmt.Errorf("failed to find stack by ID or slug '%s': %w", id, err)
-		}
-		return &stack, nil
-	}
-
-	stack, err := client.StackByID(numericalID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &stack, nil
 }
 
 // Append path to baseurl
@@ -453,7 +440,7 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 		}
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			return retry.NonRetryableError(err)
+			return retry.RetryableError(err)
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != 200 {

@@ -46,7 +46,7 @@ resource "grafana_mute_timing" "my_mute_timing" {
 
 ### Optional
 
-- `intervals` (Block List) The time intervals at which to mute notifications. (see [below for nested schema](#nestedblock--intervals))
+- `intervals` (Block List) The time intervals at which to mute notifications. Use an empty block to mute all the time. (see [below for nested schema](#nestedblock--intervals))
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 
 ### Read-Only

@@ -92,8 +92,7 @@ func putMessageTemplate(ctx context.Context, data *schema.ResourceData, meta int
 				Template: content,
 			})
 		if v, ok := data.GetOk("disable_provenance"); ok && v.(bool) {
-			disabled := "disabled"
-			params.SetXDisableProvenance(&disabled)
+			params.SetXDisableProvenance(&provenanceDisabled)
 		}
 		if _, err := client.Provisioning.PutTemplate(params); err != nil {
 			if orgID > 1 && err.(*runtime.APIError).IsCode(500) {

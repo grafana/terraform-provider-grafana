@@ -259,8 +259,7 @@ func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta inte
 	})
 
 	if data.Get("disable_provenance").(bool) {
-		disableProvenance := "disabled" // This can be any non-empty string.
-		putParams.SetXDisableProvenance(&disableProvenance)
+		putParams.SetXDisableProvenance(&provenanceDisabled)
 	}
 
 	resp, err := client.Provisioning.PutAlertRuleGroup(putParams)
@@ -334,7 +333,11 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		return nil, err
 	}
 
-	forDuration, err := strfmt.ParseDuration(json["for"].(string))
+	forStr := json["for"].(string)
+	if forStr == "" {
+		forStr = "0"
+	}
+	forDuration, err := strfmt.ParseDuration(forStr)
 	if err != nil {
 		return nil, err
 	}

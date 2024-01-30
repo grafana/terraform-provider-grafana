@@ -13,14 +13,15 @@ import (
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/machine-learning-go-client/mlapi"
+	slo "github.com/grafana/slo-openapi-client/go"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -33,16 +34,15 @@ func createClients(providerConfig frameworkProviderConfig) (*common.Client, erro
 		if err = createGrafanaOAPIClient(c, providerConfig); err != nil {
 			return nil, err
 		}
-		if err = createGrafanaClient(c, providerConfig); err != nil {
+		if err = createMLClient(c, providerConfig); err != nil {
 			return nil, err
 		}
-		if err = createMLClient(c, providerConfig); err != nil {
+		if err = createSLOClient(c, providerConfig); err != nil {
 			return nil, err
 		}
 	}
 	if !providerConfig.CloudAPIKey.IsNull() {
-		c.GrafanaCloudAPI, err = createCloudClient(providerConfig)
-		if err != nil {
+		if err := createCloudClient(c, providerConfig); err != nil {
 			return nil, err
 		}
 	}
@@ -64,45 +64,6 @@ func createClients(providerConfig frameworkProviderConfig) (*common.Client, erro
 	return c, nil
 }
 
-func createGrafanaClient(client *common.Client, providerConfig frameworkProviderConfig) error {
-	cli := cleanhttp.DefaultClient()
-	transport := cleanhttp.DefaultTransport()
-	// limiting the amount of concurrent HTTP connections from the provider
-	// makes it not overload the API and DB
-	transport.MaxConnsPerHost = 2
-
-	tlsClientConfig, err := parseTLSconfig(providerConfig)
-	if err != nil {
-		return err
-	}
-	transport.TLSClientConfig = tlsClientConfig
-	cli.Transport = transport
-	userInfo, orgID, apiKey, err := parseAuth(providerConfig)
-	if err != nil {
-		return err
-	}
-
-	cfg := gapi.Config{
-		Client:           cli,
-		NumRetries:       int(providerConfig.Retries.ValueInt64()),
-		RetryTimeout:     time.Second * time.Duration(providerConfig.RetryWait.ValueInt64()),
-		RetryStatusCodes: setToStringArray(providerConfig.RetryStatusCodes.Elements()),
-		BasicAuth:        userInfo,
-		OrgID:            orgID,
-		APIKey:           apiKey,
-	}
-
-	if cfg.HTTPHeaders, err = getHTTPHeadersMap(providerConfig); err != nil {
-		return err
-	}
-
-	client.DeprecatedGrafanaAPI, err = gapi.New(client.GrafanaAPIURL, cfg)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func createGrafanaOAPIClient(client *common.Client, providerConfig frameworkProviderConfig) error {
 	tlsClientConfig, err := parseTLSconfig(providerConfig)
 	if err != nil {
@@ -122,6 +83,10 @@ func createGrafanaOAPIClient(client *common.Client, providerConfig frameworkProv
 	userInfo, orgID, apiKey, err := parseAuth(providerConfig)
 	if err != nil {
 		return err
+	}
+
+	if orgID > 1 && apiKey != "" {
+		return fmt.Errorf("org_id is only supported with basic auth. API keys are already org-scoped")
 	}
 
 	cfg := goapi.TransportConfig{
@@ -163,19 +128,48 @@ func createMLClient(client *common.Client, providerConfig frameworkProviderConfi
 	return err
 }
 
-func createCloudClient(providerConfig frameworkProviderConfig) (*gapi.Client, error) {
+func createSLOClient(client *common.Client, providerConfig frameworkProviderConfig) error {
+	sloConfig := slo.NewConfiguration()
+	sloConfig.Host = client.GrafanaAPIURLParsed.Host
+	sloConfig.Scheme = client.GrafanaAPIURLParsed.Scheme
+	sloConfig.DefaultHeader["Authorization"] = "Bearer " + providerConfig.Auth.ValueString()
+	sloConfig.HTTPClient = getRetryClient(providerConfig)
+	client.SLOClient = slo.NewAPIClient(sloConfig)
+	return nil
+}
+
+func createCloudClient(client *common.Client, providerConfig frameworkProviderConfig) error {
+	// Configure old client
+	// TODO: Remove this once the old client is no longer used
 	cfg := gapi.Config{
 		APIKey:       providerConfig.CloudAPIKey.ValueString(),
 		NumRetries:   int(providerConfig.Retries.ValueInt64()),
 		RetryTimeout: time.Second * time.Duration(providerConfig.RetryWait.ValueInt64()),
 	}
-
 	var err error
 	if cfg.HTTPHeaders, err = getHTTPHeadersMap(providerConfig); err != nil {
-		return nil, err
+		return err
+	}
+	if client.GrafanaCloudAPI, err = gapi.New(providerConfig.CloudAPIURL.ValueString(), cfg); err != nil {
+		return err
 	}
 
-	return gapi.New(providerConfig.CloudAPIURL.ValueString(), cfg)
+	// Configure new client (OpenAPI)
+	openAPIConfig := gcom.NewConfiguration()
+	parsedURL, err := url.Parse(providerConfig.CloudAPIURL.ValueString())
+	if err != nil {
+		return err
+	}
+	openAPIConfig.Host = parsedURL.Host
+	openAPIConfig.Scheme = "https"
+	openAPIConfig.HTTPClient = getRetryClient(providerConfig)
+	openAPIConfig.DefaultHeader["Authorization"] = "Bearer " + providerConfig.CloudAPIKey.ValueString()
+	for k, v := range cfg.HTTPHeaders {
+		openAPIConfig.DefaultHeader[k] = v
+	}
+	client.GrafanaCloudAPIOpenAPI = gcom.NewAPIClient(openAPIConfig)
+
+	return nil
 }
 
 func createOnCallClient(providerConfig frameworkProviderConfig) (*onCallAPI.Client, error) {

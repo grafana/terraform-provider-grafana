@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +17,8 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
+
+var provenanceDisabled = "disabled"
 
 var notifiers = []notifier{
 	alertmanagerNotifier{},
@@ -31,6 +34,7 @@ var notifiers = []notifier{
 	pushoverNotifier{},
 	sensugoNotifier{},
 	slackNotifier{},
+	snsNotifier{},
 	teamsNotifier{},
 	telegramNotifier{},
 	threemaNotifier{},
@@ -68,6 +72,13 @@ This resource requires Grafana 9.1.0 or later.
 				Required:    true,
 				Description: "The name of the contact point.",
 			},
+			"disable_provenance": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				ForceNew:    true, // Can't modify provenance on contact points
+				Description: "Allow modifying the contact point from other sources than Terraform or the Grafana API.",
+			},
 		},
 	}
 
@@ -100,7 +111,7 @@ func readContactPoint(ctx context.Context, data *schema.ResourceData, meta inter
 		return diag.FromErr(err)
 	}
 	points := resp.Payload
-	if len(points) == 0 {
+	if len(points) == 0 && !strings.Contains(name, ":") {
 		// If the contact point was not found by name, try to fetch it by UID.
 		// This is a deprecated ID format (uid;uid2;uid3)
 		// TODO: Remove on the next major version
@@ -149,26 +160,24 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 
 	ps := unpackContactPoints(data)
 
-	// If the contact point already exists, we need to fetch its current state so that we can compare it to the proposed state.
-	var currentPoints models.ContactPoints
-	if !data.IsNewResource() {
-		name := data.Get("name").(string)
-		resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams().WithName(&name))
-		if err != nil && !common.IsNotFoundError(err) {
-			return diag.FromErr(err)
-		}
-		if resp != nil {
-			currentPoints = resp.Payload
-		}
-	}
-
-	processedUIDs := map[string]bool{}
 	for i := range ps {
 		p := ps[i]
+		if p.deleted {
+			uid := p.tfState["uid"].(string)
+			// If the contact point is not in the proposed state, delete it.
+			if _, err := client.Provisioning.DeleteContactpoints(uid); err != nil {
+				return diag.Errorf("failed to remove contact point notifier with UID %s from contact point %s: %v", uid, data.Id(), err)
+			}
+			continue
+		}
+
 		var uid string
 		if uid = p.tfState["uid"].(string); uid != "" {
 			// If the contact point already has a UID, update it.
 			params := provisioning.NewPutContactpointParams().WithUID(uid).WithBody(p.gfState)
+			if data.Get("disable_provenance").(bool) {
+				params.SetXDisableProvenance(&provenanceDisabled)
+			}
 			if _, err := client.Provisioning.PutContactpoint(params); err != nil {
 				return diag.FromErr(err)
 			}
@@ -177,7 +186,11 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 			// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
 			// The alertmanager is provisioned asynchronously when the org is created.
 			err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-				resp, err := client.Provisioning.PostContactpoints(provisioning.NewPostContactpointsParams().WithBody(p.gfState))
+				params := provisioning.NewPostContactpointsParams().WithBody(p.gfState)
+				if data.Get("disable_provenance").(bool) {
+					params.SetXDisableProvenance(&provenanceDisabled)
+				}
+				resp, err := client.Provisioning.PostContactpoints(params)
 				if orgID > 1 && err != nil && err.(*runtime.APIError).IsCode(500) {
 					return retry.RetryableError(err)
 				} else if err != nil {
@@ -194,16 +207,6 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 		// Since this is a new resource, the proposed state won't have a UID.
 		// We need the UID so that we can later associate it with the config returned in the api response.
 		ps[i].tfState["uid"] = uid
-		processedUIDs[uid] = true
-	}
-
-	for _, p := range currentPoints {
-		if _, ok := processedUIDs[p.UID]; !ok {
-			// If the contact point is not in the proposed state, delete it.
-			if _, err := client.Provisioning.DeleteContactpoints(p.UID); err != nil {
-				return diag.Errorf("failed to remove contact point notifier with UID %s from contact point %s: %v", p.UID, p.Name, err)
-			}
-		}
 	}
 
 	data.SetId(MakeOrgResourceID(orgID, data.Get("name").(string)))
@@ -227,15 +230,55 @@ func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 	return nil
 }
 
+// unpackContactPoints unpacks the contact points from the Terraform state.
+// It returns a slice of statePairs, which contain the Terraform state and the Grafana state for each contact point.
+// It also tracks receivers that should be deleted. There are two cases where a receiver should be deleted:
+// - The receiver is present in the "new" part of the diff, but all fields are zeroed out (except UID).
+// - The receiver is present in the "old" part of the diff, but not in the "new" part.
 func unpackContactPoints(data *schema.ResourceData) []statePair {
 	result := make([]statePair, 0)
 	name := data.Get("name").(string)
 	for _, n := range notifiers {
-		if points, ok := data.GetOk(n.meta().field); ok {
-			for _, p := range points.(*schema.Set).List() {
+		oldPoints, newPoints := data.GetChange(n.meta().field)
+		oldPointsList := oldPoints.(*schema.Set).List()
+		newPointsList := newPoints.(*schema.Set).List()
+		if len(oldPointsList) == 0 && len(newPointsList) == 0 {
+			continue
+		}
+		processedUIDs := map[string]bool{}
+		for _, p := range newPointsList {
+			// Checking if the point/receiver should be deleted
+			// If all fields are zeroed out, except UID, then the receiver should be deleted
+			deleted := false
+			pointMap := p.(map[string]interface{})
+			if uid, ok := pointMap["uid"]; ok && uid != "" {
+				deleted = true
+				processedUIDs[uid.(string)] = true
+			}
+			for fieldName, fieldSchema := range n.schema().Schema {
+				if !fieldSchema.Computed && fieldSchema.Required && !reflect.ValueOf(pointMap[fieldName]).IsZero() {
+					deleted = false
+					break
+				}
+			}
+
+			// Add the point/receiver to the result
+			// If it's not deleted, it will either be created or updated
+			result = append(result, statePair{
+				tfState: pointMap,
+				gfState: unpackPointConfig(n, p, name),
+				deleted: deleted,
+			})
+		}
+		// Checking if the point/receiver should be deleted
+		// If the point is not present in the "new" part of the diff, but is present in the "old" part, then the receiver should be deleted
+		for _, p := range oldPointsList {
+			pointMap := p.(map[string]interface{})
+			if uid, ok := pointMap["uid"]; ok && uid != "" && !processedUIDs[uid.(string)] {
 				result = append(result, statePair{
 					tfState: p.(map[string]interface{}),
-					gfState: unpackPointConfig(n, p, name),
+					gfState: nil,
+					deleted: true,
 				})
 			}
 		}
@@ -258,8 +301,12 @@ func unpackPointConfig(n notifier, data interface{}, name string) *models.Embedd
 
 func packContactPoints(ps []*models.EmbeddedContactPoint, data *schema.ResourceData) error {
 	pointsPerNotifier := map[notifier][]interface{}{}
+	disableProvenance := true
 	for _, p := range ps {
 		data.Set("name", p.Name)
+		if p.Provenance != "" {
+			disableProvenance = false
+		}
 
 		for _, n := range notifiers {
 			if *p.Type == n.meta().typeStr {
@@ -272,6 +319,7 @@ func packContactPoints(ps []*models.EmbeddedContactPoint, data *schema.ResourceD
 			}
 		}
 	}
+	data.Set("disable_provenance", disableProvenance)
 
 	for n, pts := range pointsPerNotifier {
 		data.Set(n.meta().field, pts)
@@ -294,7 +342,7 @@ func packCommonNotifierFields(p *models.EmbeddedContactPoint) map[string]interfa
 func packSettings(p *models.EmbeddedContactPoint) map[string]interface{} {
 	settings := map[string]interface{}{}
 	for k, v := range p.Settings.(map[string]interface{}) {
-		settings[k] = fmt.Sprintf("%#v", v)
+		settings[k] = fmt.Sprintf("%s", v)
 	}
 	return settings
 }
@@ -344,6 +392,7 @@ type notifierMeta struct {
 type statePair struct {
 	tfState map[string]interface{}
 	gfState *models.EmbeddedContactPoint
+	deleted bool
 }
 
 func packNotifierStringField(gfSettings, tfSettings *map[string]interface{}, gfKey, tfKey string) {

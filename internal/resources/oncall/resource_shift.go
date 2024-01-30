@@ -27,6 +27,7 @@ var onCallShiftTypeOptions = []string{
 var onCallShiftTypeOptionsVerbal = strings.Join(onCallShiftTypeOptions, ", ")
 
 var onCallShiftFrequencyOptions = []string{
+	"hourly",
 	"daily",
 	"weekly",
 	"monthly",
@@ -101,6 +102,9 @@ func ResourceOnCallShift() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice(onCallShiftFrequencyOptions, false),
 				Description:  fmt.Sprintf("The frequency of the event. Can be %s", onCallShiftFrequencyOptionsVerbal),
+				RequiredWith: []string{
+					"interval",
+				},
 			},
 			"users": {
 				Type: schema.TypeSet,
@@ -126,6 +130,9 @@ func ResourceOnCallShift() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.IntAtLeast(1),
 				Description:  "The positive integer representing at which intervals the recurrence rule repeats.",
+				RequiredWith: []string{
+					"frequency",
+				},
 			},
 			"week_start": {
 				Type:         schema.TypeString,
