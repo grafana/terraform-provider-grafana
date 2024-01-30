@@ -144,6 +144,7 @@ func TestAccResourceReport_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.frequency", "monthly"),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "schedule.0.start_time"), // Date set to current time
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", ""),  // No end time
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.timezone", "GMT"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.last_day_of_month", "true"),
 					resource.TestCheckResourceAttr("grafana_report.test", "orientation", "landscape"),
 					resource.TestCheckResourceAttr("grafana_report.test", "layout", "grid"),
