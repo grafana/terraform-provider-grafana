@@ -73,6 +73,7 @@ resource "grafana_oncall_on_call_shift" "emea_weekday_shift" {
   start      = "2022-02-28T03:00:00"
   duration   = 60 * 60 * 12 // 12 hours
   frequency  = "weekly"
+  interval   = 1
   by_day     = ["MO", "TU", "WE", "TH", "FR"]
   week_start = "MO"
   // Run `terraform refresh` and `terraform output` to see the flattened list of users in the rotation

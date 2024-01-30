@@ -46,6 +46,13 @@ func TestAccOnCallOnCallShift_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "frequency", "hourly"),
 				),
 			},
+			{
+				Config: testAccOnCallOnCallShiftConfigSingle(scheduleName, shiftName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallOnCallShiftResourceExists("grafana_oncall_on_call_shift.test-acc-on_call_shift"),
+					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "name", shiftName),
+				),
+			},
 		},
 	})
 }
@@ -102,6 +109,23 @@ resource "grafana_oncall_on_call_shift" "test-acc-on_call_shift" {
 	level = 1
 	frequency = "hourly"
 	interval = 2
+}
+`, scheduleName, shiftName)
+}
+
+func testAccOnCallOnCallShiftConfigSingle(scheduleName, shiftName string) string {
+	return fmt.Sprintf(`
+resource "grafana_oncall_schedule" "test-acc-schedule" {
+	type = "calendar"
+	name = "%s"
+	time_zone = "UTC"
+}
+
+resource "grafana_oncall_on_call_shift" "test-acc-on_call_shift" {
+	name = "%s"
+	type = "single_event"
+	start = "2020-09-04T16:00:00"
+	duration = 60
 }
 `, scheduleName, shiftName)
 }
