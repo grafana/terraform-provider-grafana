@@ -49,7 +49,7 @@ func TestAccSyntheticMonitoringInstallation(t *testing.T) {
 }
 
 func testAccSyntheticMonitoringInstallation_Base(stackSlug, apiKeyName, region string) string {
-	return testAccStackConfigBasicWithCustomResourceName(stackSlug, stackSlug, region, "test") +
+	return testAccStackConfigBasicWithCustomResourceName(stackSlug, stackSlug, region, "test", "description") +
 		testAccCloudAPIKeyConfig(apiKeyName, "MetricsPublisher")
 }
 

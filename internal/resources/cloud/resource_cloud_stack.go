@@ -255,10 +255,11 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
 
 	stack := gcom.PostInstancesRequest{
-		Name:   d.Get("name").(string),
-		Slug:   common.Ref(d.Get("slug").(string)),
-		Url:    common.Ref(d.Get("url").(string)),
-		Region: common.Ref(d.Get("region_slug").(string)),
+		Name:        d.Get("name").(string),
+		Slug:        common.Ref(d.Get("slug").(string)),
+		Url:         common.Ref(d.Get("url").(string)),
+		Region:      common.Ref(d.Get("region_slug").(string)),
+		Description: common.Ref(d.Get("description").(string)),
 	}
 
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
