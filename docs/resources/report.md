@@ -91,7 +91,7 @@ Required:
 
 Optional:
 
-- `report_variables` (Map of String) Add report variables to the dashboard. Values should be a string separated by commas.
+- `report_variables` (Map of String) Add report variables to the dashboard. Values should be separated by commas.
 - `time_range` (Block List, Max: 1) Time range of the report. (see [below for nested schema](#nestedblock--dashboards--time_range))
 
 <a id="nestedblock--dashboards--time_range"></a>

@@ -32,7 +32,7 @@ resource "grafana_report" "test" {
       from = "now-1h"
       to   = "now"
     }
-    report_variables = { 
+    report_variables = {
       query0 = "a,b"
       query1 = "c,d"
     }
