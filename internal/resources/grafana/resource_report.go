@@ -273,6 +273,13 @@ func ResourceReport() *schema.Resource {
 								return oldValue == "1" && newValue == "0"
 							},
 						},
+						"report_variables": {
+							Type:             schema.TypeMap,
+							Description:      "Add report variables to the dashboard. Values should be separated by commas.",
+							Optional:         true,
+							Elem:             schema.TypeString,
+							ValidateDiagFunc: validateReportVariables,
+						},
 					},
 				},
 				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
@@ -379,6 +386,7 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 					"from": dashboard.TimeRange.From,
 				},
 			},
+			"report_variables": parseReportVariables(dashboard.ReportVariables),
 		}
 	}
 
@@ -511,7 +519,8 @@ func setDashboards(report models.CreateOrUpdateReportConfig, d *schema.ResourceD
 				Dashboard: &models.ReportDashboardID{
 					UID: dash["uid"].(string),
 				},
-				TimeRange: tr,
+				TimeRange:       tr,
+				ReportVariables: parseReportVariables(dash["report_variables"]),
 			})
 		}
 		return report
@@ -570,4 +579,41 @@ func parseCustomReportInterval(i interface{}) (int, string, error) {
 	}
 
 	return number, unit, nil
+}
+
+func validateReportVariables(i interface{}, path cty.Path) diag.Diagnostics {
+	m, ok := i.(map[string]interface{})
+	if !ok {
+		return diag.FromErr(errors.New("report_variables schema should be a map of strings seperated by commas"))
+	}
+
+	for _, v := range m {
+		if _, ok := v.(string); !ok {
+			return diag.FromErr(fmt.Errorf("value %#v isn't a string", v))
+		}
+	}
+
+	return nil
+}
+
+func parseReportVariables(reportVariables interface{}) map[string]interface{} {
+	if reportVariables == nil {
+		return nil
+	}
+	rvMap := reportVariables.(map[string]interface{})
+	newMap := make(map[string]interface{}, len(rvMap))
+	for k, rv := range rvMap {
+		switch rvType := rv.(type) {
+		case []interface{}:
+			values := make([]string, len(rvType))
+			for i, v := range rvType {
+				values[i] = v.(string)
+			}
+			newMap[k] = strings.Join(values, ",")
+		case string:
+			newMap[k] = strings.Split(rvType, ",")
+		}
+	}
+
+	return newMap
 }
