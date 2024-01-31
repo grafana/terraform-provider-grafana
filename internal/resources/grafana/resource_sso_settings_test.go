@@ -10,7 +10,7 @@ import (
 )
 
 func TestSSOSettings(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t, "=main")
 
 	var settings models.SSOSettings
 
