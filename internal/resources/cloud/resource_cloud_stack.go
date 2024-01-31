@@ -62,13 +62,19 @@ func ResourceStack() *schema.Resource {
 				Description: `
 Subdomain that the Grafana instance will be available at (i.e. setting slug to “<stack_slug>” will make the instance
 available at “https://<stack_slug>.grafana.net".`,
-				ValidateFunc: validation.StringMatch(stackSlugRegex, "must be a lowercase alphanumeric string and must start with a letter."),
+				ValidateFunc: validation.All(
+					validation.StringMatch(stackSlugRegex, "must be a lowercase alphanumeric string and must start with a letter."),
+					validation.StringLenBetween(1, 29),
+				),
 			},
 			"region_slug": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
 				Description: `Region slug to assign to this stack. Changing region will destroy the existing stack and create a new one in the desired region. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.`,
+				DiffSuppressFunc: func(_, oldValue, newValue string, _ *schema.ResourceData) bool {
+					return oldValue == newValue || newValue == "" // Ignore default region
+				},
 			},
 			"url": {
 				Type:        schema.TypeString,
@@ -81,9 +87,8 @@ available at “https://<stack_slug>.grafana.net".`,
 				Optional:    true,
 				Default:     true,
 				Description: "Whether to wait for readiness of the stack after creating it. The check is a HEAD request to the stack URL (Grafana instance).",
-				// Suppress the diff if the new value is "false" because this attribute is only used at creation-time
-				// If the diff is suppress for a "true" value, the attribute cannot be read at all
-				DiffSuppressFunc: func(_, _, newValue string, _ *schema.ResourceData) bool { return newValue == "false" },
+				// Suppress the diff if the stack is already created
+				DiffSuppressFunc: func(_, _, _ string, d *schema.ResourceData) bool { return !d.IsNewResource() },
 			},
 			"wait_for_readiness_timeout": {
 				Type:             schema.TypeString,
