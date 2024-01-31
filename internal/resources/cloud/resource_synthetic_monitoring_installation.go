@@ -43,7 +43,7 @@ This resource cannot be imported but it can be used on an existing Synthetic Mon
 				Sensitive:   true,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The Cloud API Key with the `MetricsPublisher` role used to publish metrics to the SM API",
+				Description: "The [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) with the following scopes: `stacks:read`, `metrics:write`, `logs:write`, `traces:write`. This is used to publish metrics and logs to Grafana Cloud stack.",
 			},
 			"stack_sm_api_url": {
 				Type:        schema.TypeString,
