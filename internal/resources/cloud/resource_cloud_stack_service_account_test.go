@@ -76,7 +76,7 @@ func testAccGrafanaAuthCheckServiceAccounts(stack *gcom.FormattedApiInstance, ex
 
 		response, err := c.ServiceAccounts.SearchOrgServiceAccountsWithPaging(service_accounts.NewSearchOrgServiceAccountsWithPagingParams())
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get service accounts: %w", err)
 		}
 
 		var foundSAs []string

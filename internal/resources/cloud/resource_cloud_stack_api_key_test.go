@@ -72,7 +72,7 @@ func testAccGrafanaAuthCheckKeys(stack *gcom.FormattedApiInstance, expectedKeys 
 
 		response, err := c.APIKeys.GetAPIkeys(api_keys.NewGetAPIkeysParams())
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get API keys: %w", err)
 		}
 
 		var foundKeys []string
@@ -141,9 +141,12 @@ func createTemporaryStackGrafanaClient(ctx context.Context, cloudClient *gcom.AP
 	}
 
 	client := goapi.NewHTTPClientWithConfig(nil, &goapi.TransportConfig{
-		Host:    stackURLParsed.Host,
-		Schemes: []string{stackURLParsed.Scheme},
-		APIKey:  token.Key,
+		Host:         stackURLParsed.Host,
+		Schemes:      []string{stackURLParsed.Scheme},
+		BasePath:     "api",
+		APIKey:       token.Key,
+		NumRetries:   5,
+		RetryTimeout: 10 * time.Second,
 	})
 
 	cleanup := func() error {
