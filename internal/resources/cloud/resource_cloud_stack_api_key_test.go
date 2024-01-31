@@ -39,7 +39,7 @@ func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccStackConfigBasic(slug, slug),
+				Config: testAccStackConfigBasic(slug, slug, "description"),
 				Check:  testAccGrafanaAuthKeyCheckDestroyCloud,
 			},
 		},
@@ -47,7 +47,7 @@ func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
 }
 
 func testAccGrafanaAuthKeyFromCloud(name, slug string) string {
-	return testAccStackConfigBasic(name, slug) + `
+	return testAccStackConfigBasic(name, slug, "description") + `
 	resource "grafana_cloud_stack_api_key" "management" {
 		stack_slug = grafana_cloud_stack.test.slug
 		name       = "management-key"
