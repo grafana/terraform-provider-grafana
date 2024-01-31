@@ -237,13 +237,11 @@ func ResourceReport() *schema.Resource {
 							Default:     false,
 						},
 						"timezone": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Description: "Set the report time zone.",
-							Default:     "GMT",
-							ValidateDiagFunc: func(i interface{}, path cty.Path) diag.Diagnostics {
-								return diag.FromErr(validateTimezone(i))
-							},
+							Type:             schema.TypeString,
+							Optional:         true,
+							Description:      "Set the report time zone.",
+							Default:          "GMT",
+							ValidateDiagFunc: validateTimezone,
 						},
 					},
 				},
@@ -584,8 +582,8 @@ func parseCustomReportInterval(i interface{}) (int, string, error) {
 	return number, unit, nil
 }
 
-func validateTimezone(i interface{}) error {
+func validateTimezone(i interface{}, path cty.Path) diag.Diagnostics {
 	timezone := i.(string)
 	_, err := time.LoadLocation(timezone)
-	return err
+	return diag.FromErr(err)
 }
