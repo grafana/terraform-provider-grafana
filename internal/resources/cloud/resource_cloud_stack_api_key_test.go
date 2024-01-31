@@ -143,7 +143,7 @@ func createTemporaryStackGrafanaClient(ctx context.Context, cloudClient *gcom.AP
 	client := goapi.NewHTTPClientWithConfig(nil, &goapi.TransportConfig{
 		Host:    stackURLParsed.Host,
 		Schemes: []string{stackURLParsed.Scheme},
-		APIKey:  token.Token,
+		APIKey:  token.Key,
 	})
 
 	cleanup := func() error {
