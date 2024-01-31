@@ -584,7 +584,7 @@ func parseCustomReportInterval(i interface{}) (int, string, error) {
 func validateReportVariables(i interface{}, path cty.Path) diag.Diagnostics {
 	m, ok := i.(map[string]interface{})
 	if !ok {
-		return diag.FromErr(errors.New("report_variables schema should be a map of strings seperated by commas"))
+		return diag.FromErr(errors.New("report_variables schema should be a map of strings separated by commas"))
 	}
 
 	for _, v := range m {
