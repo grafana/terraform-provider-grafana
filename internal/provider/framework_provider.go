@@ -100,14 +100,6 @@ func (c *frameworkProviderConfig) SetDefaults() error {
 		})
 	}
 
-	// Validating here so that it's done for both provider versions (SDK and Plugin Framework)
-	if c.Auth.IsNull() && c.CloudAPIKey.IsNull() && c.SMAccessToken.IsNull() && c.OncallAccessToken.IsNull() {
-		return fmt.Errorf("at least one of the following attributes must be set: auth, cloud_api_key, sm_access_token, oncall_access_token")
-	}
-	if !c.Auth.IsNull() && c.URL.IsNull() || c.Auth.IsNull() && !c.URL.IsNull() {
-		return fmt.Errorf("both auth and url must be set")
-	}
-
 	return nil
 }
 

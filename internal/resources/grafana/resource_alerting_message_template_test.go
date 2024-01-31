@@ -31,9 +31,10 @@ func TestAccMessageTemplate_basic(t *testing.T) {
 			},
 			// Test import.
 			{
-				ResourceName:      "grafana_message_template.my_template",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "grafana_message_template.my_template",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"disable_provenance"},
 			},
 			// Test update with heredoc template doesn't change
 			{
@@ -100,9 +101,10 @@ func TestAccMessageTemplate_inOrg(t *testing.T) {
 			},
 			// Test import.
 			{
-				ResourceName:      "grafana_message_template.my_template",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "grafana_message_template.my_template",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"disable_provenance"},
 			},
 			// Test delete template in org.
 			{

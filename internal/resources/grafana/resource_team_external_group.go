@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 
@@ -122,15 +121,8 @@ func applyTeamExternalGroup(client *goapi.GrafanaHTTPAPI, teamID int64, addGroup
 
 	for _, group := range removeGroups {
 		group := group
-		// Post 10.2, the group is a query param
 		params := teamsSync.NewRemoveTeamGroupAPIQueryParams().WithTeamID(teamID).WithGroupID(&group)
-		_, newAPIErr := client.SyncTeamGroups.RemoveTeamGroupAPIQuery(params)
-		if newAPIErr == nil {
-			continue
-		}
-		// Pre 10.2, the group was a path param
-		if _, oldAPIErr := client.SyncTeamGroups.RemoveTeamGroupAPI(teamID, group); oldAPIErr != nil {
-			err := errors.Join(newAPIErr, oldAPIErr)
+		if _, err := client.SyncTeamGroups.RemoveTeamGroupAPIQuery(params); err != nil {
 			return fmt.Errorf("error removing group %s from team %d: %w", group, teamID, err)
 		}
 	}

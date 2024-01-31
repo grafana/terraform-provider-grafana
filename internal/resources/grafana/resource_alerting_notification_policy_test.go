@@ -2,30 +2,32 @@ package grafana_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 )
 
 func TestAccNotificationPolicy_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
+	var policy models.Route
+
 	// TODO: Make parallizable
 	resource.Test(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		// Implicitly tests deletion.
-		CheckDestroy: testNotifPolicyCheckDestroy(),
+		CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_notification_policy/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					testNotifPolicyCheckExists("grafana_notification_policy.my_notification_policy"),
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.my_notification_policy", &policy),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "contact_point", "A Contact Point"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "group_by.#", "1"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "group_by.0", "..."),
@@ -78,7 +80,7 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 					"...": "alertname",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testNotifPolicyCheckExists("grafana_notification_policy.my_notification_policy"),
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.my_notification_policy", &policy),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "contact_point", "A Contact Point"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "group_by.#", "1"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "group_by.0", "alertname"),
@@ -88,45 +90,163 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 	})
 }
 
-func testNotifPolicyCheckDestroy() resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
-		npt, err := client.NotificationPolicyTree()
-		if err != nil {
-			return fmt.Errorf("failed to get notification policies")
-		}
+func TestAccNotificationPolicy_disableProvenance(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
-		if !notifPolicyIsDefault(npt) {
-			return fmt.Errorf("notification policy tree was not reset back to the default")
-		}
-		return nil
-	}
+	var policy models.Route
+
+	// TODO: Make parallizable
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
+		Steps: []resource.TestStep{
+			// Create
+			{
+				Config: testAccNotificationPolicyDisableProvenance(false),
+				Check: resource.ComposeTestCheckFunc(
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "false"),
+				),
+			},
+			// Import (tests that disable_provenance is fetched from API)
+			{
+				ResourceName:      "grafana_notification_policy.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Disable provenance
+			{
+				Config: testAccNotificationPolicyDisableProvenance(true),
+				Check: resource.ComposeTestCheckFunc(
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "true"),
+				),
+			},
+			// Import (tests that disable_provenance is fetched from API)
+			{
+				ResourceName:      "grafana_notification_policy.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Re-enable provenance
+			{
+				Config: testAccNotificationPolicyDisableProvenance(false),
+				Check: resource.ComposeTestCheckFunc(
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "false"),
+				),
+			},
+		},
+	})
 }
 
-func testNotifPolicyCheckExists(rname string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		resource, ok := s.RootModule().Resources[rname]
-		if !ok {
-			return fmt.Errorf("resource not found: %s, resources: %#v", rname, s.RootModule().Resources)
-		}
+func TestAccNotificationPolicy_error(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
-		if resource.Primary.ID == "" {
-			return fmt.Errorf("resource id not set")
-		}
-
-		client := testutils.Provider.Meta().(*common.Client).DeprecatedGrafanaAPI
-		npt, err := client.NotificationPolicyTree()
-		if err != nil {
-			return fmt.Errorf("failed to get notification policies")
-		}
-
-		if notifPolicyIsDefault(npt) {
-			return fmt.Errorf("policy tree on the server is still the default one")
-		}
-		return nil
-	}
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `resource "grafana_notification_policy" "test" {
+					group_by      = ["..."]
+					contact_point = "invalid"
+				  }`,
+				// This tests that the API error message is propagated to the user.
+				ExpectError: regexp.MustCompile("400.+invalid object specification: receiver 'invalid' does not exist"),
+			},
+		},
+	})
 }
 
-func notifPolicyIsDefault(np gapi.NotificationPolicyTree) bool {
-	return np.Receiver == "grafana-default-email"
+func TestAccNotificationPolicy_inOrg(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	var policy models.Route
+	var org models.OrgDetailsDTO
+
+	name := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNotificationPolicyInOrg(name),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+					checkResourceIsInOrg("grafana_notification_policy.test", "grafana_organization.test"),
+				),
+			},
+			{
+				Config: testutils.WithoutResource(t, testAccNotificationPolicyInOrg(name), "grafana_notification_policy.test"),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					alertingNotificationPolicyCheckExists.destroyed(&policy, &org),
+				),
+			},
+		},
+	})
+}
+
+func testAccNotificationPolicyInOrg(name string) string {
+	return fmt.Sprintf(`
+	resource "grafana_organization" "test" {
+		name = "%[1]s"
+	}
+
+	resource "grafana_contact_point" "a_contact_point" {
+		org_id = grafana_organization.test.id
+		name = "A Contact Point"
+		email {
+			addresses = ["test@example.com"]
+		}
+	}
+
+	resource "grafana_notification_policy" "test" {
+		org_id = grafana_organization.test.id
+		group_by      = ["hello"]
+		contact_point = grafana_contact_point.a_contact_point.name
+
+		policy {
+			group_by = ["hello"]
+			matcher {
+				label = "Name"
+				match = "=~"
+				value = "host.*|host-b.*"
+			}
+			contact_point = grafana_contact_point.a_contact_point.name
+		}
+
+	}
+	`, name)
+}
+
+func testAccNotificationPolicyDisableProvenance(disableProvenance bool) string {
+	return fmt.Sprintf(`
+	resource "grafana_contact_point" "a_contact_point" {
+		name = "A Contact Point"
+	  
+		email {
+		  addresses = ["one@company.org", "two@company.org"]
+		}
+	  }
+
+	resource "grafana_notification_policy" "test" {
+		group_by      = ["hello"]
+		contact_point = grafana_contact_point.a_contact_point.name
+		disable_provenance = %t
+
+		policy {
+			group_by = ["hello"]
+			matcher {
+				label = "Name"
+				match = "=~"
+				value = "host.*|host-b.*"
+			}
+			contact_point = grafana_contact_point.a_contact_point.name
+		}
+	  }
+	`, disableProvenance)
 }

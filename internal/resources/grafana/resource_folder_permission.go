@@ -12,6 +12,8 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
+const foldersPermissionsType = "folders"
+
 func ResourceFolderPermission() *schema.Resource {
 	return &schema.Resource{
 
@@ -91,12 +93,12 @@ func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 	if v, ok := d.GetOk("permissions"); ok {
 		list = v.(*schema.Set).List()
 	}
-	permissionList := models.UpdateDashboardACLCommand{}
+	var permissionList []*models.SetResourcePermissionCommand
 	for _, permission := range list {
 		permission := permission.(map[string]interface{})
-		permissionItem := models.DashboardACLUpdateItem{}
+		permissionItem := models.SetResourcePermissionCommand{}
 		if permission["role"].(string) != "" {
-			permissionItem.Role = permission["role"].(string)
+			permissionItem.BuiltInRole = permission["role"].(string)
 		}
 		_, teamIDStr := SplitOrgResourceID(permission["team_id"].(string))
 		teamID, _ := strconv.ParseInt(teamIDStr, 10, 64)
@@ -108,13 +110,13 @@ func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 		if userID > 0 {
 			permissionItem.UserID = userID
 		}
-		permissionItem.Permission = parsePermissionType(permission["permission"].(string))
-		permissionList.Items = append(permissionList.Items, &permissionItem)
+		permissionItem.Permission = permission["permission"].(string)
+		permissionList = append(permissionList, &permissionItem)
 	}
 
 	folderUID := d.Get("folder_uid").(string)
 
-	if _, err := client.FolderPermissions.UpdateFolderPermissions(folderUID, &permissionList); err != nil {
+	if err := updateResourcePermissions(client, folderUID, foldersPermissionsType, permissionList); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -126,25 +128,25 @@ func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 func ReadFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID, folderUID := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	resp, err := client.FolderPermissions.GetFolderPermissionList(folderUID, nil)
+	resp, err := client.AccessControl.GetResourcePermissions(folderUID, foldersPermissionsType)
 	if err, shouldReturn := common.CheckReadError("folder permissions", d, err); shouldReturn {
 		return err
 	}
 
 	folderPermissions := resp.Payload
-	permissionItems := make([]interface{}, len(folderPermissions))
-	count := 0
+	var permissionItems []interface{}
 	for _, permission := range folderPermissions {
-		if permission.UID != "" {
-			permissionItem := make(map[string]interface{})
-			permissionItem["role"] = permission.Role
-			permissionItem["team_id"] = strconv.FormatInt(permission.TeamID, 10)
-			permissionItem["user_id"] = strconv.FormatInt(permission.UserID, 10)
-			permissionItem["permission"] = permission.PermissionName
-
-			permissionItems[count] = permissionItem
-			count++
+		// Only managed permissions can be provisioned through this resource, so we disregard the permissions obtained through custom and fixed roles here
+		if !permission.IsManaged || permission.IsInherited {
+			continue
 		}
+		permissionItem := make(map[string]interface{})
+		permissionItem["role"] = permission.BuiltInRole
+		permissionItem["team_id"] = strconv.FormatInt(permission.TeamID, 10)
+		permissionItem["user_id"] = strconv.FormatInt(permission.UserID, 10)
+		permissionItem["permission"] = permission.Permission
+
+		permissionItems = append(permissionItems, permissionItem)
 	}
 
 	d.SetId(MakeOrgResourceID(orgID, folderUID))
@@ -160,8 +162,7 @@ func DeleteFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 	// we will simply remove all permissions, leaving a folder that only an admin can access.
 	// if for some reason the parent folder doesn't exist, we'll just ignore the error
 	client, _, folderUID := OAPIClientFromExistingOrgResource(meta, d.Id())
-	emptyPermissions := models.UpdateDashboardACLCommand{}
-	_, err := client.FolderPermissions.UpdateFolderPermissions(folderUID, &emptyPermissions)
+	err := updateResourcePermissions(client, folderUID, foldersPermissionsType, []*models.SetResourcePermissionCommand{})
 	diags, _ := common.CheckReadError("folder permissions", d, err)
 	return diags
 }

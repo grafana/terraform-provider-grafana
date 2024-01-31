@@ -4,7 +4,6 @@ import (
 	"context"
 	"strconv"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -107,16 +106,13 @@ func UpdateRoleAssignments(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func DeleteRoleAssignments(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := DeprecatedClientFromExistingOrgResource(meta, d.Id())
+	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	ra := &gapi.RoleAssignments{
-		RoleUID:         uid,
-		Users:           []int{},
-		Teams:           []int{},
-		ServiceAccounts: []int{},
-	}
-
-	_, err := client.UpdateRoleAssignments(ra)
+	_, err := client.AccessControl.SetRoleAssignments(uid, &models.SetRoleAssignmentsCommand{
+		ServiceAccounts: []int64{},
+		Teams:           []int64{},
+		Users:           []int64{},
+	})
 	return diag.FromErr(err)
 }
 

@@ -22,7 +22,7 @@ The Grafana provider provides configuration management resources for
 
 ### Installing Synthetic Monitoring on a new Grafana Cloud Stack
 
-{{ tffile "examples/provider/provider-sm.tf" }}
+{{ tffile "examples/resources/grafana_synthetic_monitoring_installation/resource.tf" }}
 
 ### Managing Grafana OnCall
 
@@ -41,7 +41,7 @@ This can be a Grafana API key, basic auth `username:password`, or a
 
 ### `cloud_api_key`
 
-An API key created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/create-api-key/).
+An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/create-api-key/).
 
 ### `sm_access_token`
 

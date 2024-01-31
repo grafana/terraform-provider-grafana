@@ -42,3 +42,13 @@ text = "deprecatedComment: the proper format is `Deprecated: <text>`"
 [[issues.exclude-rules]]
 linters = ["gosec"]
 text = "G402: TLS MinVersion too low."
+
+# TODO: Use Folder UID instead where possible
+[[issues.exclude-rules]]
+linters = ["staticcheck"]
+text = "use FolderUID instead"
+
+# TODO: Use Folder UID instead where possible
+[[issues.exclude-rules]]
+linters = ["staticcheck"]
+text = "use UID instead"

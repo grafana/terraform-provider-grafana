@@ -71,11 +71,6 @@ func TestProviderConfigure(t *testing.T) {
 		check       func(t *testing.T, provider *schema.Provider)
 	}{
 		{
-			name:        "no config",
-			env:         map[string]string{},
-			expectedErr: "at least one of the following attributes must be set: auth, cloud_api_key, sm_access_token, oncall_access_token",
-		},
-		{
 			name: "grafana config from env",
 			env: map[string]string{
 				"GRAFANA_AUTH": "admin:admin",

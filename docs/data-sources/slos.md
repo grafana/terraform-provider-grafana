@@ -176,6 +176,7 @@ Read-Only:
 
 Read-Only:
 
+- `type` (String)
 - `uid` (String)
 
 

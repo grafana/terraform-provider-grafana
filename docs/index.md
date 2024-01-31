@@ -120,11 +120,10 @@ resource "grafana_cloud_stack" "sm_stack" {
 // Step 2: Install Synthetic Monitoring on the stack
 resource "grafana_cloud_access_policy" "sm_metrics_publish" {
   provider = grafana.cloud
-  region   = var.cloud_region
-  name     = "metric-publisher-for-sm"
 
+  region = var.cloud_region
+  name   = "metric-publisher-for-sm"
   scopes = ["metrics:write", "stacks:read"]
-
   realm {
     type       = "stack"
     identifier = grafana_cloud_stack.sm_stack.id
@@ -132,14 +131,16 @@ resource "grafana_cloud_access_policy" "sm_metrics_publish" {
 }
 
 resource "grafana_cloud_access_policy_token" "sm_metrics_publish" {
-  provider         = grafana.cloud
+  provider = grafana.cloud
+
   region           = var.cloud_region
   access_policy_id = grafana_cloud_access_policy.sm_metrics_publish.policy_id
   name             = "metric-publisher-for-sm"
 }
 
 resource "grafana_synthetic_monitoring_installation" "sm_stack" {
-  provider              = grafana.cloud
+  provider = grafana.cloud
+
   stack_id              = grafana_cloud_stack.sm_stack.id
   metrics_publisher_key = grafana_cloud_access_policy_token.sm_metrics_publish.token
 }
@@ -155,23 +156,6 @@ provider "grafana" {
 data "grafana_synthetic_monitoring_probes" "main" {
   provider   = grafana.sm
   depends_on = [grafana_synthetic_monitoring_installation.sm_stack]
-}
-
-resource "grafana_synthetic_monitoring_check" "ping" {
-  provider = grafana.sm
-
-  job     = "Ping Default"
-  target  = "grafana.com"
-  enabled = false
-  probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
-  ]
-  labels = {
-    foo = "bar"
-  }
-  settings {
-    ping {}
-  }
 }
 ```
 
@@ -250,7 +234,7 @@ This can be a Grafana API key, basic auth `username:password`, or a
 
 ### `cloud_api_key`
 
-An API key created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/create-api-key/).
+An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/create-api-key/).
 
 ### `sm_access_token`
 

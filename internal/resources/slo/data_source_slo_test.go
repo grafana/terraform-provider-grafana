@@ -3,7 +3,7 @@ package slo_test
 import (
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	slo "github.com/grafana/slo-openapi-client/go"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -14,7 +14,7 @@ func TestAccDataSourceSlo(t *testing.T) {
 
 	randomName := acctest.RandomWithPrefix("SLO Terraform Testing")
 
-	var slo gapi.Slo
+	var slo slo.Slo
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		CheckDestroy:      testAccSloCheckDestroy(&slo),

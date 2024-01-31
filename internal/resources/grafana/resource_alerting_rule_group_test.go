@@ -32,6 +32,18 @@ func TestAccAlertRule_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.data.0.model", "{\"hide\":false,\"refId\":\"A\"}"),
 				),
 			},
+			// Test "for: 0s"
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_rule_group/resource.tf", map[string]string{
+					"2m": "0s",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_alert_rule", &group),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "name", "My Rule Group"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.#", "1"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.for", "0s"),
+				),
+			},
 			// Test import.
 			{
 				ResourceName:      "grafana_rule_group.my_alert_rule",
@@ -330,6 +342,30 @@ func TestAccAlertRule_disableProvenance(t *testing.T) {
 	})
 }
 
+func TestAccAlertRule_zeroSeconds(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	var group models.AlertRuleGroup
+	var name = acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      alertingRuleGroupCheckExists.destroyed(&group, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAlertRuleZeroSeconds(name),
+				Check: resource.ComposeTestCheckFunc(
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_rule_group", &group),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "name", name),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.#", "1"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.name", "My Random Walk Alert"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.for", "0s"),
+				),
+			},
+		},
+	})
+}
+
 func testAccAlertRuleGroupInOrgConfig(name string, interval int, disableProvenance bool) string {
 	return fmt.Sprintf(`
 resource "grafana_organization" "test" {
@@ -372,4 +408,45 @@ resource "grafana_rule_group" "test" {
 	}
 }
 `, name, interval, disableProvenance)
+}
+
+func testAccAlertRuleZeroSeconds(name string) string {
+	return fmt.Sprintf(`
+resource "grafana_folder" "rule_folder" {
+	title = "%[1]s"
+}
+
+resource "grafana_data_source" "testdata_datasource" {
+	name = "%[1]s"
+	type = "grafana-testdata-datasource"
+	url  = "http://localhost:3333"
+}
+
+resource "grafana_rule_group" "my_rule_group" {
+	name             = "%[1]s"
+	folder_uid       = grafana_folder.rule_folder.uid
+	interval_seconds = 60
+	org_id           = 1
+
+	rule {
+		name      = "My Random Walk Alert"
+		condition = "C"
+		for       = "0s"
+
+		// Query the datasource.
+		data {
+			ref_id = "A"
+			relative_time_range {
+				from = 600
+				to   = 0
+			}
+			datasource_uid = grafana_data_source.testdata_datasource.uid
+			model = jsonencode({
+				intervalMs    = 1000
+				maxDataPoints = 43200
+				refId         = "A"
+			})
+		}
+	}
+}`, name)
 }

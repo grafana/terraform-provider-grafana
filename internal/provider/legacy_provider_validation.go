@@ -14,30 +14,42 @@ import (
 // These validations are added to the Create and Read functions of all resources,
 // because they are entrypoints (code that will be run in all cases).
 
-type metadataValidation func(resourceName string, m interface{}) error
+type metadataValidation func(resourceName string, d *schema.ResourceData, m interface{}) error
 
-func grafanaClientPresent(resourceName string, m interface{}) error {
+func readGrafanaClientValidation(resourceName string, d *schema.ResourceData, m interface{}) error {
 	if m.(*common.Client).GrafanaOAPI == nil {
 		return fmt.Errorf("the Grafana client is required for `%s`. Set the auth and url provider attributes", resourceName)
 	}
 	return nil
 }
 
-func smClientPresent(resourceName string, m interface{}) error {
+func createGrafanaClientValidation(resourceName string, d *schema.ResourceData, m interface{}) error {
+	if err := readGrafanaClientValidation(resourceName, d, m); err != nil {
+		return err
+	}
+	orgID, ok := d.GetOk("org_id")
+	orgIDStr, orgIDOk := orgID.(string)
+	if ok && orgIDOk && orgIDStr != "" && orgIDStr != "0" && m.(*common.Client).GrafanaAPIConfig.APIKey != "" {
+		return fmt.Errorf("org_id is only supported with basic auth. API keys are already org-scoped")
+	}
+	return nil
+}
+
+func smClientPresent(resourceName string, d *schema.ResourceData, m interface{}) error {
 	if m.(*common.Client).SMAPI == nil {
 		return fmt.Errorf("the Synthetic Monitoring client is required for `%s`. Set the sm_access_token provider attribute", resourceName)
 	}
 	return nil
 }
 
-func cloudClientPresent(resourceName string, m interface{}) error {
+func cloudClientPresent(resourceName string, d *schema.ResourceData, m interface{}) error {
 	if m.(*common.Client).GrafanaCloudAPI == nil {
 		return fmt.Errorf("the Cloud API client is required for `%s`. Set the cloud_api_key provider attribute", resourceName)
 	}
 	return nil
 }
 
-func onCallClientPresent(resourceName string, m interface{}) error {
+func onCallClientPresent(resourceName string, d *schema.ResourceData, m interface{}) error {
 	if m.(*common.Client).OnCallClient == nil {
 		return fmt.Errorf("the Oncall client is required for `%s`. Set the oncall_access_token provider attribute", resourceName)
 	}
@@ -45,6 +57,10 @@ func onCallClientPresent(resourceName string, m interface{}) error {
 }
 
 func addResourcesMetadataValidation(validateFunc metadataValidation, resources map[string]*schema.Resource) map[string]*schema.Resource {
+	return addCreateReadResourcesMetadataValidation(validateFunc, validateFunc, resources)
+}
+
+func addCreateReadResourcesMetadataValidation(readValidateFunc, createValidateFunc metadataValidation, resources map[string]*schema.Resource) map[string]*schema.Resource {
 	for name, r := range resources {
 		name := name
 		//nolint:staticcheck
@@ -54,7 +70,7 @@ func addResourcesMetadataValidation(validateFunc metadataValidation, resources m
 		if r.ReadContext != nil {
 			prev := r.ReadContext
 			r.ReadContext = func(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-				if err := validateFunc(name, m); err != nil {
+				if err := readValidateFunc(name, d, m); err != nil {
 					return diag.FromErr(err)
 				}
 				return prev(ctx, d, m)
@@ -67,7 +83,7 @@ func addResourcesMetadataValidation(validateFunc metadataValidation, resources m
 		if r.CreateContext != nil {
 			prev := r.CreateContext
 			r.CreateContext = func(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-				if err := validateFunc(name, m); err != nil {
+				if err := createValidateFunc(name, d, m); err != nil {
 					return diag.FromErr(err)
 				}
 				return prev(ctx, d, m)

@@ -28,6 +28,7 @@ jobs:
             GRAFANA_AUTH=cloud-instance-tests:auth
             GRAFANA_ONCALL_ACCESS_TOKEN=cloud-instance-tests:oncall-token
             GRAFANA_SM_ACCESS_TOKEN=cloud-instance-tests:sm-token
+            GRAFANA_SM_URL=cloud-instance-tests:sm-url
             GRAFANA_URL=cloud-instance-tests:url
       - uses: iFaxity/wait-on-action@v1.1.0
         with:
@@ -81,7 +82,7 @@ jobs:
           repo_secrets: |
             GF_ENTERPRISE_LICENSE_TEXT=enterprise:license
       - name: Cache Docker image
-        uses: ScribeMD/docker-cache@0.3.6
+        uses: ScribeMD/docker-cache@0.3.7
         with:
           key: docker-${{ runner.os }}-${{ matrix.type == 'enterprise' && 'enterprise' || 'oss' }}-${{ matrix.version }}
       - run: make testacc-${{ matrix.type }}-docker

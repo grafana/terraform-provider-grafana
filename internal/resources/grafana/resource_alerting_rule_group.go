@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	promModel "github.com/prometheus/common/model"
 )
 
 func ResourceRuleGroup() *schema.Resource {
@@ -87,8 +86,8 @@ This resource requires Grafana 9.1.0 or later.
 							Description:      "The amount of time for which the rule must be breached for the rule to be considered to be Firing. Before this time has elapsed, the rule is only considered to be Pending.",
 							ValidateDiagFunc: common.ValidateDurationWithDays,
 							DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
-								oldDuration, _ := promModel.ParseDuration(oldValue)
-								newDuration, _ := promModel.ParseDuration(newValue)
+								oldDuration, _ := strfmt.ParseDuration(oldValue)
+								newDuration, _ := strfmt.ParseDuration(newValue)
 								return oldDuration == newDuration
 							},
 						},
@@ -260,8 +259,7 @@ func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta inte
 	})
 
 	if data.Get("disable_provenance").(bool) {
-		disableProvenance := "disabled" // This can be any non-empty string.
-		putParams.SetXDisableProvenance(&disableProvenance)
+		putParams.SetXDisableProvenance(&provenanceDisabled)
 	}
 
 	resp, err := client.Provisioning.PutAlertRuleGroup(putParams)
@@ -335,7 +333,11 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		return nil, err
 	}
 
-	forDuration, err := strfmt.ParseDuration(json["for"].(string))
+	forStr := json["for"].(string)
+	if forStr == "" {
+		forStr = "0"
+	}
+	forDuration, err := strfmt.ParseDuration(forStr)
 	if err != nil {
 		return nil, err
 	}

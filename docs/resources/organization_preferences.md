@@ -17,7 +17,7 @@ description: |-
 resource "grafana_organization_preferences" "test" {
   theme      = "light"
   timezone   = "utc"
-  week_start = "Tuesday"
+  week_start = "sunday"
 }
 ```
 
@@ -31,7 +31,7 @@ resource "grafana_organization_preferences" "test" {
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `theme` (String) The Organization theme. Available values are `light`, `dark`, `system`, or an empty string for the default.
 - `timezone` (String) The Organization timezone. Available values are `utc`, `browser`, or an empty string for the default.
-- `week_start` (String) The Organization week start.
+- `week_start` (String) The Organization week start day. Available values are `sunday`, `monday`, `saturday`, or an empty string for the default. Defaults to ``.
 
 ### Read-Only
 

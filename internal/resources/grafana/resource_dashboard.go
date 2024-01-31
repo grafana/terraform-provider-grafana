@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
@@ -94,46 +94,48 @@ Manages Grafana dashboards.
 }
 
 func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := DeprecatedClientFromNewOrgResource(meta, d)
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	dashboard, err := makeDashboard(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	resp, err := client.NewDashboard(dashboard)
+	resp, err := client.Dashboards.PostDashboard(&dashboard)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(MakeOrgResourceID(orgID, resp.UID))
+	d.SetId(MakeOrgResourceID(orgID, *resp.Payload.UID))
 	return ReadDashboard(ctx, d, meta)
 }
 
 func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	metaClient := meta.(*common.Client)
-	client, orgID, uid := DeprecatedClientFromExistingOrgResource(meta, d.Id())
+	client, orgID, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	dashboard, err := client.DashboardByUID(uid)
+	resp, err := client.Dashboards.GetDashboardByUID(uid)
 	if err, shouldReturn := common.CheckReadError("dashboard", d, err); shouldReturn {
 		return err
 	}
+	dashboard := resp.Payload
+	model := dashboard.Dashboard.(map[string]interface{})
 
 	d.SetId(MakeOrgResourceID(orgID, uid))
 	d.Set("org_id", strconv.FormatInt(orgID, 10))
-	d.Set("uid", dashboard.Model["uid"].(string))
-	d.Set("dashboard_id", int64(dashboard.Model["id"].(float64)))
-	d.Set("version", int64(dashboard.Model["version"].(float64)))
+	d.Set("uid", model["uid"].(string))
+	d.Set("dashboard_id", int64(model["id"].(float64)))
+	d.Set("version", int64(model["version"].(float64)))
 	d.Set("url", metaClient.GrafanaSubpath(dashboard.Meta.URL))
 
 	// If the folder was originally set to a numeric ID, we read the folder ID
 	// Othwerwise, we read the folder UID
 	_, folderID := SplitOrgResourceID(d.Get("folder").(string))
-	if common.IDRegexp.MatchString(folderID) && dashboard.Meta.Folder > 0 {
-		d.Set("folder", strconv.FormatInt(dashboard.FolderID, 10))
+	if common.IDRegexp.MatchString(folderID) && dashboard.Meta.FolderID > 0 {
+		d.Set("folder", strconv.FormatInt(dashboard.Meta.FolderID, 10))
 	} else {
 		d.Set("folder", dashboard.Meta.FolderUID)
 	}
 
-	configJSONBytes, err := json.Marshal(dashboard.Model)
+	configJSONBytes, err := json.Marshal(dashboard.Dashboard)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -166,30 +168,31 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 }
 
 func UpdateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID := DeprecatedClientFromNewOrgResource(meta, d)
+	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	dashboard, err := makeDashboard(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	dashboard.Model["id"] = d.Get("dashboard_id").(int)
+	dashboard.Dashboard.(map[string]interface{})["id"] = d.Get("dashboard_id").(int)
 	dashboard.Overwrite = true
-	resp, err := client.NewDashboard(dashboard)
+	resp, err := client.Dashboards.PostDashboard(&dashboard)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(MakeOrgResourceID(orgID, resp.UID))
+	d.SetId(MakeOrgResourceID(orgID, *resp.Payload.UID))
 	return ReadDashboard(ctx, d, meta)
 }
 
 func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, uid := DeprecatedClientFromExistingOrgResource(meta, d.Id())
-	err, _ := common.CheckReadError("dashboard", d, client.DeleteDashboardByUID(uid))
+	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
+	_, deleteErr := client.Dashboards.DeleteDashboardByUID(uid)
+	err, _ := common.CheckReadError("dashboard", d, deleteErr)
 	return err
 }
 
-func makeDashboard(d *schema.ResourceData) (gapi.Dashboard, error) {
-	dashboard := gapi.Dashboard{
+func makeDashboard(d *schema.ResourceData) (models.SaveDashboardCommand, error) {
+	dashboard := models.SaveDashboardCommand{
 		Overwrite: d.Get("overwrite").(bool),
 		Message:   d.Get("message").(string),
 	}
@@ -207,8 +210,7 @@ func makeDashboard(d *schema.ResourceData) (gapi.Dashboard, error) {
 		return dashboard, err
 	}
 	delete(dashboardJSON, "id")
-	delete(dashboardJSON, "version")
-	dashboard.Model = dashboardJSON
+	dashboard.Dashboard = dashboardJSON
 	return dashboard, nil
 }
 

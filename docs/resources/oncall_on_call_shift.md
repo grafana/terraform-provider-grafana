@@ -73,6 +73,7 @@ resource "grafana_oncall_on_call_shift" "emea_weekday_shift" {
   start      = "2022-02-28T03:00:00"
   duration   = 60 * 60 * 12 // 12 hours
   frequency  = "weekly"
+  interval   = 1
   by_day     = ["MO", "TU", "WE", "TH", "FR"]
   week_start = "MO"
   // Run `terraform refresh` and `terraform output` to see the flattened list of users in the rotation
@@ -102,7 +103,7 @@ output "emea_weekday__rolling_users" {
 - `by_day` (Set of String) This parameter takes a list of days in iCal format. Can be MO, TU, WE, TH, FR, SA, SU
 - `by_month` (Set of Number) This parameter takes a list of months. Valid values are 1 to 12
 - `by_monthday` (Set of Number) This parameter takes a list of days of the month.  Valid values are 1 to 31 or -31 to -1
-- `frequency` (String) The frequency of the event. Can be daily, weekly, monthly
+- `frequency` (String) The frequency of the event. Can be hourly, daily, weekly, monthly
 - `interval` (Number) The positive integer representing at which intervals the recurrence rule repeats.
 - `level` (Number) The priority level. The higher the value, the higher the priority.
 - `rolling_users` (List of Set of String) The list of lists with on-call users (for rolling_users event type)

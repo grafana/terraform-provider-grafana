@@ -2,10 +2,14 @@ package grafana
 
 import (
 	"context"
+	"strconv"
+	"time"
 
+	"github.com/go-openapi/runtime"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
@@ -25,16 +29,23 @@ Sets the global notification policy for Grafana.
 This resource requires Grafana 9.1.0 or later.
 `,
 
-		CreateContext: putNotificationPolicy,
+		CreateContext: common.WithAlertingMutex[schema.CreateContextFunc](putNotificationPolicy),
 		ReadContext:   readNotificationPolicy,
-		UpdateContext: putNotificationPolicy,
-		DeleteContext: deleteNotificationPolicy,
+		UpdateContext: common.WithAlertingMutex[schema.UpdateContextFunc](putNotificationPolicy),
+		DeleteContext: common.WithAlertingMutex[schema.DeleteContextFunc](deleteNotificationPolicy),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		SchemaVersion: 0,
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
+			"disable_provenance": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Allow modifying the notification policy from other sources than Terraform or the Grafana API.",
+			},
 			"contact_point": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -173,7 +184,7 @@ func policySchema(depth uint) *schema.Resource {
 }
 
 func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta) // TODO: Support org-scoped policies
+	client, orgID, _ := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	resp, err := client.Provisioning.GetPolicyTree()
 	if err != nil {
@@ -181,35 +192,47 @@ func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta
 	}
 
 	packNotifPolicy(resp.Payload, data)
-	data.SetId(PolicySingletonID)
+	data.SetId(MakeOrgResourceID(orgID, PolicySingletonID))
+	data.Set("org_id", strconv.FormatInt(orgID, 10))
 	return nil
 }
 
 func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	lock.Lock()
-	defer lock.Unlock()
-	client := OAPIGlobalClient(meta) // TODO: Support org-scoped policies
+	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
 	npt, err := unpackNotifPolicy(data)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	params := provisioning.NewPutPolicyTreeParams().WithBody(npt)
-	if _, err := client.Provisioning.PutPolicyTree(params); err != nil {
+	putParams := provisioning.NewPutPolicyTreeParams().WithBody(npt)
+	if data.Get("disable_provenance").(bool) {
+		putParams.SetXDisableProvenance(&provenanceDisabled)
+	}
+
+	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		_, err := client.Provisioning.PutPolicyTree(putParams)
+		if orgID > 1 && err != nil {
+			if apiError, ok := err.(*runtime.APIError); ok && (apiError.IsCode(500) || apiError.IsCode(404)) {
+				return retry.RetryableError(err)
+			}
+		}
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	})
+
+	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	data.SetId(PolicySingletonID)
+	data.SetId(MakeOrgResourceID(orgID, PolicySingletonID))
 	return readNotificationPolicy(ctx, data, meta)
 }
 
 func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	lock.Lock()
-	defer lock.Unlock()
-	client := OAPIGlobalClient(meta) // TODO: Support org-scoped policies
+	client, _, _ := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	if _, err := client.Provisioning.ResetPolicyTree(); err != nil {
 		return diag.FromErr(err)
@@ -219,6 +242,7 @@ func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, me
 }
 
 func packNotifPolicy(npt *models.Route, data *schema.ResourceData) {
+	data.Set("disable_provenance", npt.Provenance == "")
 	data.Set("contact_point", npt.Receiver)
 	data.Set("group_by", npt.GroupBy)
 	data.Set("group_wait", npt.GroupWait)

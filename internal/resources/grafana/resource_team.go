@@ -116,6 +116,13 @@ Team Sync can be provisioned using [grafana_team_external_group resource](https:
 							Description:  "The default timezone for this team. Available values are `utc`, `browser`, or an empty string for the default.",
 							Default:      "",
 						},
+						"week_start": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validation.StringInSlice([]string{"sunday", "monday", "saturday", ""}, false),
+							Description:  "The default week start day for this team. Available values are `sunday`, `monday`, `saturday`, or an empty string for the default.",
+							Default:      "",
+						},
 					},
 				},
 			},
@@ -220,12 +227,13 @@ func readTeamFromID(client *goapi.GrafanaHTTPAPI, teamID int64, d *schema.Resour
 		})
 	}
 
-	if preferences.Theme+preferences.Timezone+preferences.HomeDashboardUID != "" {
+	if preferences.Theme+preferences.Timezone+preferences.HomeDashboardUID+preferences.WeekStart != "" {
 		d.Set("preferences", []map[string]interface{}{
 			{
 				"theme":              preferences.Theme,
 				"home_dashboard_uid": preferences.HomeDashboardUID,
 				"timezone":           preferences.Timezone,
+				"week_start":         preferences.WeekStart,
 			},
 		})
 	}
@@ -272,11 +280,12 @@ func DeleteTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func updateTeamPreferences(client *goapi.GrafanaHTTPAPI, teamID int64, d *schema.ResourceData) diag.Diagnostics {
-	if d.IsNewResource() || d.HasChanges("preferences.0.theme", "preferences.0.home_dashboard_uid", "preferences.0.timezone") {
+	if d.IsNewResource() || d.HasChanges("preferences.0.theme", "preferences.0.home_dashboard_uid", "preferences.0.timezone", "preferences.0.week_start") {
 		body := models.UpdatePrefsCmd{
 			Theme:            d.Get("preferences.0.theme").(string),
 			HomeDashboardUID: d.Get("preferences.0.home_dashboard_uid").(string),
 			Timezone:         d.Get("preferences.0.timezone").(string),
+			WeekStart:        d.Get("preferences.0.week_start").(string),
 		}
 		_, err := client.Teams.UpdateTeamPreferences(strconv.FormatInt(teamID, 10), &body)
 		return diag.FromErr(err)

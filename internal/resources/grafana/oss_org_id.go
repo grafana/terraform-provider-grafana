@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -38,30 +37,6 @@ func SplitOrgResourceID(id string) (int64, string) {
 	}
 
 	return 0, id
-}
-
-// Deprecated: Use OAPIClientFromExistingOrgResource instead
-func DeprecatedClientFromExistingOrgResource(meta interface{}, id string) (*gapi.Client, int64, string) {
-	orgID, restOfID := SplitOrgResourceID(id)
-	client := meta.(*common.Client).DeprecatedGrafanaAPI
-	if orgID == 0 {
-		orgID = meta.(*common.Client).GrafanaAPIConfig.OrgID // It's configured globally. TODO: Remove this once we drop support for the global org_id
-	} else if orgID > 0 {
-		client = client.WithOrgID(orgID)
-	}
-	return client, orgID, restOfID
-}
-
-// Deprecated: Use OAPIClientFromNewOrgResource instead
-func DeprecatedClientFromNewOrgResource(meta interface{}, d *schema.ResourceData) (*gapi.Client, int64) {
-	orgID := parseOrgID(d)
-	client := meta.(*common.Client).DeprecatedGrafanaAPI
-	if orgID == 0 {
-		orgID = meta.(*common.Client).GrafanaAPIConfig.OrgID // It's configured globally. TODO: Remove this once we drop support for the global org_id
-	} else if orgID > 0 {
-		client = client.WithOrgID(orgID)
-	}
-	return client, orgID
 }
 
 // OAPIClientFromExistingOrgResource creates a client from the ID of an org-scoped resource
