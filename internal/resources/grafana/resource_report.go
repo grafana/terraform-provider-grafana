@@ -386,7 +386,7 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 					"from": dashboard.TimeRange.From,
 				},
 			},
-			"report_variables": parseReportVariables(dashboard.ReportVariables),
+			"report_variables": parseReportVariablesResponse(dashboard.ReportVariables),
 		}
 	}
 
@@ -520,7 +520,7 @@ func setDashboards(report models.CreateOrUpdateReportConfig, d *schema.ResourceD
 					UID: dash["uid"].(string),
 				},
 				TimeRange:       tr,
-				ReportVariables: parseReportVariables(dash["report_variables"]),
+				ReportVariables: parseReportVariablesRequest(dash["report_variables"]),
 			})
 		}
 		return report
@@ -596,23 +596,31 @@ func validateReportVariables(i interface{}, path cty.Path) diag.Diagnostics {
 	return nil
 }
 
-func parseReportVariables(reportVariables interface{}) map[string]interface{} {
+func parseReportVariablesRequest(reportVariables interface{}) map[string][]string {
+	if reportVariables == nil {
+		return nil
+	}
+	rvMap := reportVariables.(map[string]interface{})
+	newMap := make(map[string][]string, len(rvMap))
+	for k, rv := range rvMap {
+		newMap[k] = strings.Split(rv.(string), ",")
+	}
+
+	return newMap
+}
+func parseReportVariablesResponse(reportVariables interface{}) map[string]interface{} {
 	if reportVariables == nil {
 		return nil
 	}
 	rvMap := reportVariables.(map[string]interface{})
 	newMap := make(map[string]interface{}, len(rvMap))
 	for k, rv := range rvMap {
-		switch rvType := rv.(type) {
-		case []interface{}:
-			values := make([]string, len(rvType))
-			for i, v := range rvType {
-				values[i] = v.(string)
-			}
-			newMap[k] = strings.Join(values, ",")
-		case string:
-			newMap[k] = strings.Split(rvType, ",")
+		rvType := rv.([]interface{})
+		values := make([]string, len(rvType))
+		for i, v := range rvType {
+			values[i] = v.(string)
 		}
+		newMap[k] = strings.Join(values, ",")
 	}
 
 	return newMap
