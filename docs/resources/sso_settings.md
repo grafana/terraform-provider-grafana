@@ -20,10 +20,10 @@ Manages Grafana SSO Settings for OAuth2, SAML and LDAP.
 resource "grafana_sso_settings" "github_sso_settings" {
   provider_name = "github"
   settings {
-    client_id             = "github_client_id",
-    client_secret         = "github_client_secret",
-    team_ids              = "12,50,123",
-    allowed_organizations = "organization1,organization2",
+    client_id             = "github_client_id"
+    client_secret         = "github_client_secret"
+    team_ids              = "12,50,123"
+    allowed_organizations = "organization1,organization2"
   }
 }
 ```
@@ -34,8 +34,54 @@ resource "grafana_sso_settings" "github_sso_settings" {
 ### Required
 
 - `provider_name` (String) The name of the SSO provider.
-- `settings` (Set) The SSO settings set.
+- `settings` (Block Set, Min: 1, Max: 1) The SSO settings set. (see [below for nested schema](#nestedblock--settings))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+<a id="nestedblock--settings"></a>
+### Nested Schema for `settings`
+
+Required:
+
+- `client_id` (String) The client Id of your OAuth2 app.
+
+Optional:
+
+- `allow_assign_grafana_admin` (Boolean) If enabled, it will automatically sync the Grafana server administrator role.
+- `allow_sign_up` (Boolean) If not enabled, only existing Grafana users can log in using OAuth.
+- `allowed_domains` (String) List of comma- or space-separated domains. The user should belong to at least one domain to log in.
+- `allowed_groups` (String) List of comma- or space-separated groups. The user should be a member of at least one group to log in. If you configure allowed_groups, you must also configure groups_attribute_path.
+- `allowed_organizations` (String) List of comma- or space-separated organizations. The user should be a member of at least one organization to log in.
+- `api_url` (String) The user information endpoint of your OAuth2 provider.
+- `auth_style` (String) It determines how client_id and client_secret are sent to Oauth2 provider. Possible values are AutoDetect, InParams, InHeader. Default is AutoDetect.
+- `auth_url` (String) The authorization endpoint of your OAuth2 provider.
+- `auto_login` (Boolean) Log in automatically, skipping the login screen.
+- `client_secret` (String, Sensitive) The client secret of your OAuth2 app.
+- `define_allowed_groups` (Boolean) Define allowed groups.
+- `define_allowed_teams_ids` (Boolean) Define allowed teams ids.
+- `email_attribute_name` (String) Name of the key to use for user email lookup within the attributes map of OAuth2 ID token.
+- `email_attribute_path` (String) JMESPath expression to use for user email lookup from the user information.
+- `empty_scopes` (Boolean) If enabled, no scopes will be sent to the OAuth2 provider.
+- `enabled` (Boolean) Define whether this configuration is enabled for the specified provider. Defaults to `true`.
+- `groups_attribute_path` (String) JMESPath expression to use for user group lookup. If you configure allowed_groups, you must also configure groups_attribute_path.
+- `id_token_attribute_name` (String) The name of the key used to extract the ID token from the returned OAuth2 token.
+- `login_attribute_path` (String) JMESPath expression to use for user login lookup from the user ID token.
+- `name` (String) Helpful if you use more than one identity providers or SSO protocols.
+- `name_attribute_path` (String) JMESPath expression to use for user name lookup from the user ID token. This name will be used as the user’s display name.
+- `role_attribute_path` (String) JMESPath expression to use for Grafana role lookup.
+- `role_attribute_strict` (Boolean) If enabled, denies user login if the Grafana role cannot be extracted using Role attribute path.
+- `scopes` (String) List of comma- or space-separated OAuth2 scopes.
+- `signout_redirect_url` (String) The URL to redirect the user to after signing out from Grafana.
+- `skip_org_role_sync` (Boolean) Prevent synchronizing users’ organization roles from your IdP.
+- `team_ids` (String) String list of Team Ids. If set, the user must be a member of one of the given teams to log in. If you configure team_ids, you must also configure teams_url and team_ids_attribute_path.
+- `team_ids_attribute_path` (String) The JMESPath expression to use for Grafana Team Id lookup within the results returned by the teams_url endpoint.
+- `teams_url` (String) The URL used to query for Team Ids. If not set, the default value is /teams. If you configure teams_url, you must also configure team_ids_attribute_path.
+- `tls_client_ca` (String) The path to the trusted certificate authority list. Is not applicable on Grafana Cloud.
+- `tls_client_cert` (String) The path to the certificate. Is not applicable on Grafana Cloud.
+- `tls_client_key` (String) The path to the key. Is not applicable on Grafana Cloud.
+- `tls_skip_verify_insecure` (Boolean) If enabled, the client accepts any certificate presented by the server and any host name in that certificate. You should only use this for testing, because this mode leaves SSL/TLS susceptible to man-in-the-middle attacks.
+- `token_url` (String) The token endpoint of your OAuth2 provider.
+- `use_pkce` (Boolean) If enabled, Grafana will use Proof Key for Code Exchange (PKCE) with the OAuth2 Authorization Code Grant.
+- `use_refresh_token` (Boolean) If enabled, Grafana will fetch a new access token using the refresh token provided by the OAuth2 provider.

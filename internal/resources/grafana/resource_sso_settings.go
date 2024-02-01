@@ -318,6 +318,8 @@ func DeleteSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 }
 
 // copied and adapted from https://github.com/grafana/grafana/blob/main/pkg/services/featuremgmt/strcase/snake.go#L70
+//
+//nolint:gocyclo
 func toSnake(s string) string {
 	delimiter := byte('_')
 
