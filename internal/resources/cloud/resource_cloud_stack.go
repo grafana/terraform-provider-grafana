@@ -271,7 +271,7 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 			// It may also mean that the stack was recently deleted and is still in the process of being deleted
 			// In that case, we want to retry
 			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
-			return retry.RetryableError(fmt.Errorf("a stack with the name '%s' already exists: %w", stack.Name, err))
+			return retry.RetryableError(err)
 		case err != nil:
 			// If we had an error that isn't a a conflict error (already exists), try to read the stack
 			// Sometimes, the stack is created but the API returns an error (e.g. 504)
@@ -289,7 +289,7 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 		return nil
 	})
 	if err != nil {
-		return diag.FromErr(err)
+		return apiError(err)
 	}
 
 	if diag := ReadStack(ctx, d, meta); diag != nil {
@@ -318,7 +318,7 @@ func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 		req := client.InstancesAPI.PostInstance(ctx, d.Id()).PostInstanceRequest(stack).XRequestId(clientRequestID())
 		_, _, err := req.Execute()
 		if err != nil {
-			return diag.FromErr(err)
+			return apiError(err)
 		}
 	}
 
@@ -333,7 +333,7 @@ func DeleteStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
 	req := client.InstancesAPI.DeleteInstance(ctx, d.Id()).XRequestId(clientRequestID())
 	_, _, err := req.Execute()
-	return diag.FromErr(err)
+	return apiError(err)
 }
 
 func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

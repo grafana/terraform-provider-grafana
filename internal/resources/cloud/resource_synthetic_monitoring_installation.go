@@ -72,7 +72,7 @@ func ResourceInstallationCreate(ctx context.Context, d *schema.ResourceData, met
 	req := cloudClient.InstancesAPI.GetInstance(ctx, d.Get("stack_id").(string))
 	stack, _, err := req.Execute()
 	if err != nil {
-		return diag.FromErr(err)
+		return apiError(err)
 	}
 
 	// TODO: Get this URL programatically
