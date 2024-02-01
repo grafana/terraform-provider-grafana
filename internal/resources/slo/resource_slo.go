@@ -19,7 +19,6 @@ const (
 	QueryTypeRatio     string = "ratio"
 	QueryTypeThreshold string = "threshold"
 )
-const defaultDestinationDatasourceType = "mimir"
 
 func ResourceSlo() *schema.Resource {
 	return &schema.Resource{
@@ -61,12 +60,6 @@ Resource manages Grafana SLOs.
 							Type:        schema.TypeString,
 							Description: `UID for the Mimir Datasource`,
 							Optional:    true,
-						},
-						"type": {
-							Type:        schema.TypeString,
-							Description: `Type of the Datasource`,
-							Optional:    true,
-							Default:     defaultDestinationDatasourceType,
 						},
 					},
 				},
@@ -388,9 +381,7 @@ func packSloResource(d *schema.ResourceData) (slo.Slo, error) {
 }
 
 func packDestinationDatasource(destinationdatasource map[string]interface{}) (slo.DestinationDatasource, error) {
-	packedDestinationDatasource := slo.DestinationDatasource{
-		Type: common.Ref(destinationdatasource["type"].(string)),
-	}
+	packedDestinationDatasource := slo.DestinationDatasource{}
 
 	if destinationdatasource["uid"].(string) != "" {
 		datasourceUID := destinationdatasource["uid"].(string)
