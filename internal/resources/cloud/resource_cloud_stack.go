@@ -302,17 +302,18 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
 
-	// The underlying API olnly allows to update the name and description.
-	allowedChanges := []string{"name", "description", "slug"}
+	// The underlying API only allows to update the name, slug, url and description.
+	allowedChanges := []string{"name", "description", "slug", "url"}
 	if d.HasChangesExcept(allowedChanges...) {
-		return diag.Errorf("Error: Only name, slug and description can be updated.")
+		return diag.Errorf("Error: Only name, slug, url and description can be updated.")
 	}
 
-	if d.HasChange("name") || d.HasChange("description") || d.HasChanges("slug") {
+	if d.HasChange("name") || d.HasChange("description") || d.HasChanges("slug") || d.HasChanges("url") {
 		stack := gcom.PostInstanceRequest{
 			Name:        common.Ref(d.Get("name").(string)),
 			Slug:        common.Ref(d.Get("slug").(string)),
 			Description: common.Ref(d.Get("description").(string)),
+			Url:         common.Ref(d.Get("url").(string)),
 		}
 		req := client.InstancesAPI.PostInstance(ctx, d.Id()).PostInstanceRequest(stack).XRequestId(clientRequestID())
 		_, _, err := req.Execute()
