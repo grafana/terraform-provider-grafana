@@ -255,10 +255,11 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
 
 	stack := gcom.PostInstancesRequest{
-		Name:   d.Get("name").(string),
-		Slug:   common.Ref(d.Get("slug").(string)),
-		Url:    common.Ref(d.Get("url").(string)),
-		Region: common.Ref(d.Get("region_slug").(string)),
+		Name:        d.Get("name").(string),
+		Slug:        common.Ref(d.Get("slug").(string)),
+		Url:         common.Ref(d.Get("url").(string)),
+		Region:      common.Ref(d.Get("region_slug").(string)),
+		Description: common.Ref(d.Get("description").(string)),
 	}
 
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
@@ -270,7 +271,7 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 			// It may also mean that the stack was recently deleted and is still in the process of being deleted
 			// In that case, we want to retry
 			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
-			return retry.RetryableError(fmt.Errorf("a stack with the name '%s' already exists: %w", stack.Name, err))
+			return retry.RetryableError(err)
 		case err != nil:
 			// If we had an error that isn't a a conflict error (already exists), try to read the stack
 			// Sometimes, the stack is created but the API returns an error (e.g. 504)
@@ -288,7 +289,7 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 		return nil
 	})
 	if err != nil {
-		return diag.FromErr(err)
+		return apiError(err)
 	}
 
 	if diag := ReadStack(ctx, d, meta); diag != nil {
@@ -301,22 +302,23 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
 
-	// The underlying API olnly allows to update the name and description.
-	allowedChanges := []string{"name", "description", "slug"}
+	// The underlying API only allows to update the name, slug, url and description.
+	allowedChanges := []string{"name", "description", "slug", "url"}
 	if d.HasChangesExcept(allowedChanges...) {
-		return diag.Errorf("Error: Only name, slug and description can be updated.")
+		return diag.Errorf("Error: Only name, slug, url and description can be updated.")
 	}
 
-	if d.HasChange("name") || d.HasChange("description") || d.HasChanges("slug") {
+	if d.HasChange("name") || d.HasChange("description") || d.HasChanges("slug") || d.HasChanges("url") {
 		stack := gcom.PostInstanceRequest{
 			Name:        common.Ref(d.Get("name").(string)),
 			Slug:        common.Ref(d.Get("slug").(string)),
 			Description: common.Ref(d.Get("description").(string)),
+			Url:         common.Ref(d.Get("url").(string)),
 		}
 		req := client.InstancesAPI.PostInstance(ctx, d.Id()).PostInstanceRequest(stack).XRequestId(clientRequestID())
 		_, _, err := req.Execute()
 		if err != nil {
-			return diag.FromErr(err)
+			return apiError(err)
 		}
 	}
 
@@ -331,7 +333,7 @@ func DeleteStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
 	req := client.InstancesAPI.DeleteInstance(ctx, d.Id()).XRequestId(clientRequestID())
 	_, _, err := req.Execute()
-	return diag.FromErr(err)
+	return apiError(err)
 }
 
 func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

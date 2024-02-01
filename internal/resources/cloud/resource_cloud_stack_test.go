@@ -31,6 +31,7 @@ func TestResourceStack_Basic(t *testing.T) {
 		resource.TestMatchResourceAttr("grafana_cloud_stack.test", "id", common.IDRegexp),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "name", resourceName),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "slug", resourceName),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "description", stackDescription),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "prometheus_remote_endpoint", "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom"),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "prometheus_remote_write_endpoint", "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push"),
@@ -50,21 +51,21 @@ func TestResourceStack_Basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create a basic stack
 			{
-				Config: testAccStackConfigBasic(resourceName, resourceName),
+				Config: testAccStackConfigBasic(resourceName, resourceName, stackDescription),
 				Check:  firstStepChecks,
 			},
 			// Check that we can't takeover a stack without importing it
 			// The retrying logic for creation is very permissive,
 			// but it shouldn't allow to apply an already existing stack on a new resource
 			{
-				Config: testAccStackConfigBasic(resourceName, resourceName) +
-					testAccStackConfigBasicWithCustomResourceName(resourceName, resourceName, "eu", "test2"), // new stack with same name/slug
-				ExpectError: regexp.MustCompile(fmt.Sprintf(".*a stack with the name '%s' already exists.*", resourceName)),
+				Config: testAccStackConfigBasic(resourceName, resourceName, stackDescription) +
+					testAccStackConfigBasicWithCustomResourceName(resourceName, resourceName, "eu", "test2", stackDescription), // new stack with same name/slug
+				ExpectError: regexp.MustCompile(".*That URL has already been taken.*"),
 			},
 			// Test that the stack is correctly recreated if it's tainted and reapplied
 			// This is a special case because stack deletion is asynchronous
 			{
-				Config: testAccStackConfigBasic(resourceName, resourceName),
+				Config: testAccStackConfigBasic(resourceName, resourceName, stackDescription),
 				Check:  firstStepChecks,
 				Taint:  []string{"grafana_cloud_stack.test"},
 			},
@@ -75,7 +76,7 @@ func TestResourceStack_Basic(t *testing.T) {
 					testAccDeleteExistingStacks(t, prefix)
 					time.Sleep(10 * time.Second)
 				},
-				Config: testAccStackConfigBasic(resourceName, resourceName),
+				Config: testAccStackConfigBasic(resourceName, resourceName, stackDescription),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
 					resource.TestMatchResourceAttr("grafana_cloud_stack.test", "id", common.IDRegexp),
@@ -169,18 +170,19 @@ func testAccStackCheckDestroy(a *gapi.Stack) resource.TestCheckFunc {
 	}
 }
 
-func testAccStackConfigBasic(name string, slug string) string {
-	return testAccStackConfigBasicWithCustomResourceName(name, slug, "eu", "test")
+func testAccStackConfigBasic(name string, slug string, description string) string {
+	return testAccStackConfigBasicWithCustomResourceName(name, slug, "eu", "test", description)
 }
 
-func testAccStackConfigBasicWithCustomResourceName(name, slug, region, resourceName string) string {
+func testAccStackConfigBasicWithCustomResourceName(name, slug, region, resourceName, description string) string {
 	return fmt.Sprintf(`
 	resource "grafana_cloud_stack" "%s" {
 		name  = "%s"
 		slug  = "%s"
 		region_slug = "%s"
+		description = "%s"
 	  }
-	`, resourceName, name, slug, region)
+	`, resourceName, name, slug, region, description)
 }
 
 func testAccStackConfigUpdate(name string, slug string, description string) string {

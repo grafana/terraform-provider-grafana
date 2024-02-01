@@ -73,7 +73,7 @@ func ResourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, meta inte
 		XRequestId(clientRequestID()).
 		Execute()
 	if err != nil {
-		return diag.FromErr(err)
+		return apiError(err)
 	}
 
 	d.Set("key", *resp.Token)
@@ -90,7 +90,7 @@ func ResourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta interf
 
 	resp, _, err := c.OrgsAPI.GetApiKey(ctx, name, org).Execute()
 	if err != nil {
-		return diag.FromErr(err)
+		return apiError(err)
 	}
 
 	d.Set("name", resp.Name)
@@ -105,5 +105,5 @@ func ResourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, meta inte
 
 	_, err := c.OrgsAPI.DelApiKey(ctx, d.Get("name").(string), d.Get("cloud_org_slug").(string)).XRequestId(clientRequestID()).Execute()
 	d.SetId("")
-	return diag.FromErr(err)
+	return apiError(err)
 }

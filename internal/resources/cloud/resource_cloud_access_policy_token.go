@@ -108,7 +108,7 @@ func CreateCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, m
 
 	result, err := client.CreateCloudAccessPolicyToken(region, tokenInput)
 	if err != nil {
-		return diag.FromErr(err)
+		return apiError(err)
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", region, result.ID))
@@ -130,7 +130,7 @@ func UpdateCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, m
 		DisplayName: displayName,
 	})
 	if err != nil {
-		return diag.FromErr(err)
+		return apiError(err)
 	}
 
 	return ReadCloudAccessPolicyToken(ctx, d, meta)
@@ -165,5 +165,5 @@ func DeleteCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, m
 	client := meta.(*common.Client).GrafanaCloudAPI
 	region, id, _ := strings.Cut(d.Id(), "/")
 
-	return diag.FromErr(client.DeleteCloudAccessPolicyToken(region, id))
+	return apiError(client.DeleteCloudAccessPolicyToken(region, id))
 }

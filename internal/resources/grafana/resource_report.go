@@ -281,6 +281,13 @@ func ResourceReport() *schema.Resource {
 								return oldValue == "1" && newValue == "0"
 							},
 						},
+						"report_variables": {
+							Type:             schema.TypeMap,
+							Description:      "Add report variables to the dashboard. Values should be separated by commas.",
+							Optional:         true,
+							Elem:             schema.TypeString,
+							ValidateDiagFunc: validateReportVariables,
+						},
 					},
 				},
 				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
@@ -388,6 +395,7 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 					"from": dashboard.TimeRange.From,
 				},
 			},
+			"report_variables": parseReportVariablesResponse(dashboard.ReportVariables),
 		}
 	}
 
@@ -521,7 +529,8 @@ func setDashboards(report models.CreateOrUpdateReportConfig, d *schema.ResourceD
 				Dashboard: &models.ReportDashboardID{
 					UID: dash["uid"].(string),
 				},
-				TimeRange: tr,
+				TimeRange:       tr,
+				ReportVariables: parseReportVariablesRequest(dash["report_variables"]),
 			})
 		}
 		return report
@@ -586,4 +595,49 @@ func validateTimezone(i interface{}, path cty.Path) diag.Diagnostics {
 	timezone := i.(string)
 	_, err := time.LoadLocation(timezone)
 	return diag.FromErr(err)
+}
+
+func validateReportVariables(i interface{}, path cty.Path) diag.Diagnostics {
+	m, ok := i.(map[string]interface{})
+	if !ok {
+		return diag.FromErr(errors.New("report_variables schema should be a map of strings separated by commas"))
+	}
+
+	for _, v := range m {
+		if _, ok := v.(string); !ok {
+			return diag.FromErr(fmt.Errorf("value %#v isn't a string", v))
+		}
+	}
+
+	return nil
+}
+
+func parseReportVariablesRequest(reportVariables interface{}) map[string][]string {
+	if reportVariables == nil {
+		return nil
+	}
+	rvMap := reportVariables.(map[string]interface{})
+	newMap := make(map[string][]string, len(rvMap))
+	for k, rv := range rvMap {
+		newMap[k] = strings.Split(rv.(string), ",")
+	}
+
+	return newMap
+}
+func parseReportVariablesResponse(reportVariables interface{}) map[string]interface{} {
+	if reportVariables == nil {
+		return nil
+	}
+	rvMap := reportVariables.(map[string]interface{})
+	newMap := make(map[string]interface{}, len(rvMap))
+	for k, rv := range rvMap {
+		rvType := rv.([]interface{})
+		values := make([]string, len(rvType))
+		for i, v := range rvType {
+			values[i] = v.(string)
+		}
+		newMap[k] = strings.Join(values, ",")
+	}
+
+	return newMap
 }
