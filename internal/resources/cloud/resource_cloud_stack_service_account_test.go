@@ -1,13 +1,13 @@
 package cloud_test
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"strings"
 	"testing"
-	"time"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
+	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -17,7 +17,7 @@ import (
 func TestAccGrafanaServiceAccountFromCloud(t *testing.T) {
 	testutils.CheckCloudAPITestsEnabled(t)
 
-	var stack gapi.Stack
+	var stack gcom.FormattedApiInstance
 	prefix := "tfsatest"
 	slug := GetRandomStackName(prefix)
 
@@ -32,6 +32,7 @@ func TestAccGrafanaServiceAccountFromCloud(t *testing.T) {
 				Config: testAccGrafanaServiceAccountFromCloud(slug, slug),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
+					testAccGrafanaAuthCheckServiceAccounts(&stack, []string{"management-sa"}),
 					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "name", "management-sa"),
 					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "role", "Admin"),
 					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "is_disabled", "false"),
@@ -42,7 +43,7 @@ func TestAccGrafanaServiceAccountFromCloud(t *testing.T) {
 			},
 			{
 				Config: testAccStackConfigBasic(slug, slug, "description"),
-				Check:  testAccGrafanaServiceAccountCheckDestroyCloud,
+				Check:  testAccGrafanaAuthCheckServiceAccounts(&stack, []string{}),
 			},
 		},
 	})
@@ -64,43 +65,46 @@ func testAccGrafanaServiceAccountFromCloud(name, slug string) string {
 	`
 }
 
-// Checks that all service accounts and service account tokens are deleted, to be called before the stack is completely destroyed
-func testAccGrafanaServiceAccountCheckDestroyCloud(s *terraform.State) error {
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "grafana_cloud_stack" {
-			continue
-		}
-
-		cloudClient := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
-		c, cleanup, err := cloudClient.CreateTemporaryStackGrafanaClient(rs.Primary.Attributes["slug"], "test-service-account-", 60*time.Second)
+func testAccGrafanaAuthCheckServiceAccounts(stack *gcom.FormattedApiInstance, expectedSAs []string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		cloudClient := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPIOpenAPI
+		c, cleanup, err := createTemporaryStackGrafanaClient(context.Background(), cloudClient, stack.Slug, "test-api-key-")
 		if err != nil {
 			return err
 		}
 		defer cleanup()
 
-		response, err := c.GetServiceAccounts()
+		response, err := c.ServiceAccounts.SearchOrgServiceAccountsWithPaging(service_accounts.NewSearchOrgServiceAccountsWithPagingParams())
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get service accounts: %w", err)
 		}
 
-		for _, sa := range response {
-			if strings.HasPrefix(sa.Name, "test-service-account-") {
-				continue // this is a service account created by this test
+		var foundSAs []string
+		for _, sa := range response.Payload.ServiceAccounts {
+			if !strings.HasPrefix(sa.Name, "test-api-key-") {
+				foundSAs = append(foundSAs, sa.Name)
+				if sa.Tokens == 0 {
+					return fmt.Errorf("expected to find at least one token for service account %s", sa.Name)
+				}
 			}
+		}
 
-			tokens, err := c.GetServiceAccountTokens(sa.ID)
-			if err != nil {
-				return err
+		if len(foundSAs) != len(expectedSAs) {
+			return fmt.Errorf("expected %d keys, got %d", len(expectedSAs), len(foundSAs))
+		}
+		for _, expectedSA := range expectedSAs {
+			found := false
+			for _, foundSA := range foundSAs {
+				if expectedSA == foundSA {
+					found = true
+					break
+				}
 			}
-			if len(tokens) > 0 {
-				return fmt.Errorf("found unexpected service account tokens for service account %s: %v", sa.Name, tokens)
+			if !found {
+				return fmt.Errorf("expected to find key %s, but it was not found", expectedSA)
 			}
-
-			return fmt.Errorf("found unexpected service account: %v", sa)
 		}
 
 		return nil
 	}
-
-	return errors.New("no cloud stack created")
 }

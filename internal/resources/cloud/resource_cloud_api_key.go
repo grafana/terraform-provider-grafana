@@ -70,7 +70,7 @@ func ResourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, meta inte
 
 	resp, _, err := c.OrgsAPI.PostApiKeys(ctx, org).
 		PostApiKeysRequest(req).
-		XRequestId(clientRequestID()).
+		XRequestId(ClientRequestID()).
 		Execute()
 	if err != nil {
 		return apiError(err)
@@ -103,7 +103,7 @@ func ResourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta interf
 func ResourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).GrafanaCloudAPIOpenAPI
 
-	_, err := c.OrgsAPI.DelApiKey(ctx, d.Get("name").(string), d.Get("cloud_org_slug").(string)).XRequestId(clientRequestID()).Execute()
+	_, err := c.OrgsAPI.DelApiKey(ctx, d.Get("name").(string), d.Get("cloud_org_slug").(string)).XRequestId(ClientRequestID()).Execute()
 	d.SetId("")
 	return apiError(err)
 }
