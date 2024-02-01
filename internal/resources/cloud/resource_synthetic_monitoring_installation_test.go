@@ -3,7 +3,7 @@ package cloud_test
 import (
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -17,7 +17,7 @@ func TestAccSyntheticMonitoringInstallation(t *testing.T) {
 		"eu":             "https://synthetic-monitoring-api-eu-west.grafana.net",
 	} {
 		t.Run(region, func(t *testing.T) {
-			var stack gapi.Stack
+			var stack gcom.FormattedApiInstance
 			stackPrefix := "tfsminstalltest"
 			testAccDeleteExistingStacks(t, stackPrefix)
 			stackSlug := GetRandomStackName(stackPrefix)
@@ -49,7 +49,7 @@ func TestAccSyntheticMonitoringInstallation(t *testing.T) {
 }
 
 func testAccSyntheticMonitoringInstallation_Base(stackSlug, apiKeyName, region string) string {
-	return testAccStackConfigBasicWithCustomResourceName(stackSlug, stackSlug, region, "test") +
+	return testAccStackConfigBasicWithCustomResourceName(stackSlug, stackSlug, region, "test", "description") +
 		testAccCloudAPIKeyConfig(apiKeyName, "MetricsPublisher")
 }
 

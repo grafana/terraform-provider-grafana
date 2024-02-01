@@ -10,7 +10,7 @@ require (
 	github.com/go-openapi/strfmt v0.22.0
 	github.com/grafana/amixr-api-go-client v0.0.11
 	github.com/grafana/grafana-api-golang-client v0.27.0
-	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240126175209-247049a95c63
+	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240131153028-3f1ec24f35fa
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20240131162504-9263d72bd697
 	github.com/grafana/machine-learning-go-client v0.5.0
 	github.com/grafana/slo-openapi-client/go v0.0.0-20240112175006-de02e75b9d73
@@ -23,7 +23,7 @@ require (
 	github.com/hashicorp/terraform-plugin-docs v0.18.0
 	github.com/hashicorp/terraform-plugin-framework v1.5.0
 	github.com/hashicorp/terraform-plugin-go v0.21.0
-	github.com/hashicorp/terraform-plugin-mux v0.13.0
+	github.com/hashicorp/terraform-plugin-mux v0.14.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.32.0
 	golang.org/x/text v0.14.0
 )

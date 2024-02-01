@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
@@ -15,7 +15,7 @@ func TestAccDataSourceStack_Basic(t *testing.T) {
 	prefix := "tfdatatest"
 
 	resourceName := GetRandomStackName(prefix)
-	var stack gapi.Stack
+	var stack gcom.FormattedApiInstance
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
