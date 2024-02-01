@@ -182,7 +182,8 @@ func checkSemverConstraint(t *testing.T, semverConstraintOptional ...string) {
 
 	semverConstraint := semverConstraintOptional[0]
 	versionStr := os.Getenv("GRAFANA_VERSION")
-	if semverConstraint != "" && versionStr != "" {
+	// added versionStr != "main" as a workaround for the sso settings resource
+	if semverConstraint != "" && versionStr != "" && versionStr != "main" {
 		version := semver.MustParse(versionStr)
 		c, err := semver.NewConstraint(semverConstraint)
 		if err != nil {

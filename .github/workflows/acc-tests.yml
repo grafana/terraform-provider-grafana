@@ -46,7 +46,9 @@ jobs:
         type: ['oss']
         subset: ['basic', 'other', 'long']
         include:
-          - version: '10.2.0'
+          # workaround for the sso settings resource
+          # previous version was 10.2.0
+          - version: 'main'
             type: 'oss'
             subset: examples
           # TLS proxy tests, run only on latest version

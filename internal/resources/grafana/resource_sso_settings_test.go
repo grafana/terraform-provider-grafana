@@ -12,7 +12,7 @@ import (
 func TestSSOSettings(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=10.4.0")
 
-	var settings models.SSOSettings
+	var settings models.GetProviderSettingsOKBody
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
