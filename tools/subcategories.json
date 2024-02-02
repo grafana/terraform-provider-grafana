@@ -46,7 +46,6 @@
     "resources/oncall_route": "OnCall",
     "resources/oncall_schedule": "OnCall",
     "resources/slo": "SLO",
-    "resources/sso_settings": "Grafana OSS",
     "resources/synthetic_monitoring_check": "Synthetic Monitoring",
     "resources/synthetic_monitoring_installation": "Synthetic Monitoring",
     "resources/synthetic_monitoring_probe": "Synthetic Monitoring",
