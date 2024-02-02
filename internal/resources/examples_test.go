@@ -116,6 +116,10 @@ func TestAccExamples(t *testing.T) {
 
 			for _, filename := range filenames {
 				t.Run(filename, func(t *testing.T) {
+					// temporary skip the sso resource because it is not yet available in Grafana
+					if strings.Contains(filename, "sso_settings") {
+						t.Skip()
+					}
 					resource.Test(t, resource.TestCase{
 						ProviderFactories: testutils.ProviderFactories,
 						Steps: []resource.TestStep{{
@@ -128,12 +132,11 @@ func TestAccExamples(t *testing.T) {
 	}
 
 	// Sanity check that we have all resources and datasources have been tested
-	// remove this check because the SSO Settings API is not available yet in Grafana
-	//for rName := range testutils.Provider.ResourcesMap {
-	//	if _, ok := testedResources["resources/"+strings.TrimPrefix(rName, "grafana_")]; !ok {
-	//		t.Errorf("Resource %s was not tested", rName)
-	//	}
-	//}
+	for rName := range testutils.Provider.ResourcesMap {
+		if _, ok := testedResources["resources/"+strings.TrimPrefix(rName, "grafana_")]; !ok {
+			t.Errorf("Resource %s was not tested", rName)
+		}
+	}
 	for rName := range testutils.Provider.DataSourcesMap {
 		if _, ok := testedResources["data-sources/"+strings.TrimPrefix(rName, "grafana_")]; !ok {
 			t.Errorf("Datasource %s was not tested", rName)
