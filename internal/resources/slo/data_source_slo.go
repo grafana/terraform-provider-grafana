@@ -218,11 +218,6 @@ func unpackDestinationDatasource(destinationDatasource *slo.DestinationDatasourc
 	retDestinationDatasource := make(map[string]interface{})
 	retDestinationDatasource["uid"] = destinationDatasource.Uid
 
-	retDestinationDatasource["type"] = defaultDestinationDatasourceType
-	if destinationDatasource.Type != nil {
-		retDestinationDatasource["type"] = *destinationDatasource.Type
-	}
-
 	retDestinationDatasources = append(retDestinationDatasources, retDestinationDatasource)
 
 	return retDestinationDatasources

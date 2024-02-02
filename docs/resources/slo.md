@@ -280,7 +280,6 @@ Required:
 
 Optional:
 
-- `type` (String) Type of the Datasource Defaults to `mimir`.
 - `uid` (String) UID for the Mimir Datasource
 
 

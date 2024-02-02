@@ -135,7 +135,7 @@ func CreateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta i
 		Realms:      expandCloudAccessPolicyRealm(d.Get("realm").(*schema.Set).List()),
 	})
 	if err != nil {
-		return diag.FromErr(err)
+		return apiError(err)
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", region, result.ID))
@@ -158,7 +158,7 @@ func UpdateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta i
 		Realms:      expandCloudAccessPolicyRealm(d.Get("realm").(*schema.Set).List()),
 	})
 	if err != nil {
-		return diag.FromErr(err)
+		return apiError(err)
 	}
 
 	return ReadCloudAccessPolicy(ctx, d, meta)
@@ -188,7 +188,7 @@ func ReadCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta int
 func DeleteCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaCloudAPI
 	region, id, _ := strings.Cut(d.Id(), "/")
-	return diag.FromErr(client.DeleteCloudAccessPolicy(region, id))
+	return apiError(client.DeleteCloudAccessPolicy(region, id))
 }
 
 func validateCloudAccessPolicyScope(v interface{}, path cty.Path) diag.Diagnostics {

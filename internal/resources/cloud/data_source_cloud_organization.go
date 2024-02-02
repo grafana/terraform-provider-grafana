@@ -53,7 +53,7 @@ func DataSourceOrganizationRead(ctx context.Context, d *schema.ResourceData, met
 	}
 	org, err := client.GetCloudOrg(id)
 	if err != nil {
-		return diag.FromErr(err)
+		return apiError(err)
 	}
 
 	id = strconv.FormatInt(org.ID, 10)

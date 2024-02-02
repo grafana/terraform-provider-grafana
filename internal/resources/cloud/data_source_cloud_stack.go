@@ -39,7 +39,7 @@ func DataSourceStackRead(ctx context.Context, d *schema.ResourceData, meta inter
 	req := client.InstancesAPI.GetInstance(ctx, slug)
 	stack, _, err := req.Execute()
 	if err != nil {
-		return diag.FromErr(err)
+		return apiError(err)
 	}
 
 	if err := FlattenStack(d, stack); err != nil {

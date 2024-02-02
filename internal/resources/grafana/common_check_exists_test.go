@@ -161,6 +161,9 @@ var (
 		func(o *models.OrgDetailsDTO) string { return strconv.FormatInt(o.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.OrgDetailsDTO, error) {
 			resp, err := client.Orgs.GetOrgByID(mustParseInt64(id))
+			if err, ok := err.(runtime.ClientResponseStatus); ok && err.IsCode(403) {
+				return nil, &runtime.APIError{Code: 404, Response: "forbidden. The org either does not exist or the user does not have access to it"}
+			}
 			return payloadOrError(resp, err)
 		},
 	)

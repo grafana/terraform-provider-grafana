@@ -94,6 +94,10 @@ source selected (via the 'type' argument).
 				Optional:    true,
 				Default:     false,
 				Description: "Whether to set the data source as default. This should only be `true` to a single data source.",
+				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+					// You can't unset the default data source, because you need one, you have to set another as default instead.
+					return oldValue == "true" && newValue == "false" || oldValue == newValue
+				},
 			},
 			"url": {
 				Type:        schema.TypeString,
