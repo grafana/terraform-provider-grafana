@@ -68,13 +68,7 @@ var settingsSchema = &schema.Resource{
 			Type:        schema.TypeString,
 			Optional:    true,
 			Sensitive:   true,
-			Computed:    true,
 			Description: "The client secret of your OAuth2 app.",
-			// suppress this because the API returns this field redacted
-			DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
-				return true
-			},
-			DiffSuppressOnRefresh: true,
 		},
 		"allowed_organizations": {
 			Type:        schema.TypeString,
@@ -261,11 +255,25 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 
 	payload := resp.GetPayload()
 
+	var settingsFromTfState map[string]any
+	settingsFromTfStateList := d.Get(settingsKey).(*schema.Set).List()
+	if len(settingsFromTfStateList) > 0 {
+		settingsFromTfState = settingsFromTfStateList[0].(map[string]any)
+	}
+
 	settingsSnake := make(map[string]any)
 	for k, v := range payload.Settings.(map[string]any) {
 		key := toSnake(k)
+
 		if _, ok := settingsSchema.Schema[key]; ok {
-			settingsSnake[key] = v
+			if isSecret(key) {
+				// secrets are not exposed by the SSO Settings API, we get them from the terraform state
+				if val, ok := settingsFromTfState[key]; ok {
+					settingsSnake[key] = val
+				}
+			} else {
+				settingsSnake[key] = v
+			}
 		}
 	}
 
@@ -365,4 +373,15 @@ func toSnake(s string) string {
 	}
 
 	return n.String()
+}
+
+func isSecret(fieldName string) bool {
+	secretFieldPatterns := []string{"secret"}
+
+	for _, v := range secretFieldPatterns {
+		if strings.Contains(strings.ToLower(fieldName), strings.ToLower(v)) {
+			return true
+		}
+	}
+	return false
 }
