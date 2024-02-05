@@ -2,11 +2,15 @@ package cloud
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"net/url"
 	"strconv"
 	"time"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -61,29 +65,31 @@ This can be used to bootstrap a management service account for a new stack
 }
 
 func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, cleanup, err := getClientForSAManagement(d, meta)
+	cloudClient := meta.(*common.Client).GrafanaCloudAPI
+	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	defer cleanup()
 
-	isDisabled := d.Get("is_disabled").(bool)
-	req := gapi.CreateServiceAccountRequest{
+	req := service_accounts.NewCreateServiceAccountParams().WithBody(&models.CreateServiceAccountForm{
 		Name:       d.Get("name").(string),
 		Role:       d.Get("role").(string),
-		IsDisabled: &isDisabled,
-	}
-	sa, err := client.CreateServiceAccount(req)
+		IsDisabled: d.Get("is_disabled").(bool),
+	})
+	resp, err := client.ServiceAccounts.CreateServiceAccount(req)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	sa := resp.Payload
 
 	d.SetId(strconv.FormatInt(sa.ID, 10))
 	return readStackServiceAccount(ctx, d, meta)
 }
 
 func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, cleanup, err := getClientForSAManagement(d, meta)
+	cloudClient := meta.(*common.Client).GrafanaCloudAPI
+	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -94,37 +100,31 @@ func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta i
 		return diag.FromErr(err)
 	}
 
-	sas, err := client.GetServiceAccounts()
+	resp, err := client.ServiceAccounts.RetrieveServiceAccount(id)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	sa := resp.Payload
 
-	for _, sa := range sas {
-		if sa.ID == id {
-			err = d.Set("name", sa.Name)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			err = d.Set("role", sa.Role)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			err = d.Set("is_disabled", sa.IsDisabled)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-
-			return nil
-		}
+	err = d.Set("name", sa.Name)
+	if err != nil {
+		return diag.FromErr(err)
 	}
-	log.Printf("[WARN] removing service account %d from state because it no longer exists in grafana", id)
-	d.SetId("")
+	err = d.Set("role", sa.Role)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = d.Set("is_disabled", sa.IsDisabled)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
 
 func updateStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, cleanup, err := getClientForSAManagement(d, meta)
+	cloudClient := meta.(*common.Client).GrafanaCloudAPI
+	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -135,19 +135,20 @@ func updateStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(err)
 	}
 
-	updateRequest := gapi.UpdateServiceAccountRequest{}
+	updateRequest := service_accounts.NewUpdateServiceAccountParams().
+		WithBody(&models.UpdateServiceAccountForm{}).
+		WithServiceAccountID(id)
 	if d.HasChange("name") {
-		updateRequest.Name = d.Get("name").(string)
+		updateRequest.Body.Name = d.Get("name").(string)
 	}
 	if d.HasChange("role") {
-		updateRequest.Role = d.Get("role").(string)
+		updateRequest.Body.Role = d.Get("role").(string)
 	}
 	if d.HasChange("is_disabled") {
-		isDisabled := d.Get("is_disabled").(bool)
-		updateRequest.IsDisabled = &isDisabled
+		updateRequest.Body.IsDisabled = d.Get("is_disabled").(bool)
 	}
 
-	if _, err := client.UpdateServiceAccount(id, updateRequest); err != nil {
+	if _, err := client.ServiceAccounts.UpdateServiceAccount(updateRequest); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -155,7 +156,8 @@ func updateStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta
 }
 
 func deleteStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, cleanup, err := getClientForSAManagement(d, meta)
+	cloudClient := meta.(*common.Client).GrafanaCloudAPI
+	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -166,11 +168,61 @@ func deleteStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(err)
 	}
 
-	_, err = client.DeleteServiceAccount(id)
+	_, err = client.ServiceAccounts.DeleteServiceAccount(id)
 	return diag.FromErr(err)
 }
 
-func getClientForSAManagement(d *schema.ResourceData, m interface{}) (c *gapi.Client, cleanup func() error, err error) {
-	cloudClient := m.(*common.Client).GrafanaCloudAPI
-	return cloudClient.CreateTemporaryStackGrafanaClient(d.Get("stack_slug").(string), "terraform-temp-sa-", 60*time.Second)
+func CreateTemporaryStackGrafanaClient(ctx context.Context, cloudClient *gcom.APIClient, stackSlug, tempSaPrefix string) (*goapi.GrafanaHTTPAPI, func() error, error) {
+	stack, _, err := cloudClient.InstancesAPI.GetInstance(ctx, stackSlug).Execute()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	name := fmt.Sprintf("%s%d", tempSaPrefix, time.Now().UnixNano())
+
+	req := gcom.PostInstanceServiceAccountsRequest{
+		Name: name,
+		Role: "Admin",
+	}
+
+	sa, _, err := cloudClient.InstancesAPI.PostInstanceServiceAccounts(ctx, stackSlug).
+		PostInstanceServiceAccountsRequest(req).
+		XRequestId(ClientRequestID()).
+		Execute()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	tokenRequest := gcom.PostInstanceServiceAccountTokensRequest{
+		Name:          name,
+		SecondsToLive: common.Ref(int32(60)),
+	}
+	token, _, err := cloudClient.InstancesAPI.PostInstanceServiceAccountTokens(ctx, stackSlug, fmt.Sprintf("%d", int(*sa.Id))).
+		PostInstanceServiceAccountTokensRequest(tokenRequest).
+		XRequestId(ClientRequestID()).
+		Execute()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	stackURLParsed, err := url.Parse(stack.Url)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	client := goapi.NewHTTPClientWithConfig(nil, &goapi.TransportConfig{
+		Host:         stackURLParsed.Host,
+		Schemes:      []string{stackURLParsed.Scheme},
+		BasePath:     "api",
+		APIKey:       *token.Key,
+		NumRetries:   5,
+		RetryTimeout: 10 * time.Second,
+	})
+
+	cleanup := func() error {
+		_, err = client.ServiceAccounts.DeleteServiceAccount(*sa.Id)
+		return err
+	}
+
+	return client, cleanup, nil
 }

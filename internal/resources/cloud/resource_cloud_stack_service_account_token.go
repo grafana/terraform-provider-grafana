@@ -4,9 +4,9 @@ import (
 	"context"
 	"log"
 	"strconv"
-	"time"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -66,7 +66,8 @@ This can be used to bootstrap a management service account token for a new stack
 }
 
 func stackServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c, cleanup, err := getClientForSATokenManagement(d, m)
+	cloudClient := m.(*common.Client).GrafanaCloudAPI
+	c, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -80,18 +81,18 @@ func stackServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData,
 	name := d.Get("name").(string)
 	ttl := d.Get("seconds_to_live").(int)
 
-	request := gapi.CreateServiceAccountTokenRequest{
-		Name:             name,
-		ServiceAccountID: serviceAccountID,
-		SecondsToLive:    int64(ttl),
-	}
-	response, err := c.CreateServiceAccountToken(request)
+	request := service_accounts.NewCreateTokenParams().WithBody(&models.AddServiceAccountTokenCommand{
+		Name:          name,
+		SecondsToLive: int64(ttl),
+	}).WithServiceAccountID(serviceAccountID)
+	response, err := c.ServiceAccounts.CreateToken(request)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	t := response.Payload
 
-	d.SetId(strconv.FormatInt(response.ID, 10))
-	err = d.Set("key", response.Key)
+	d.SetId(strconv.FormatInt(t.ID, 10))
+	err = d.Set("key", t.Key)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -101,7 +102,8 @@ func stackServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData,
 }
 
 func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c, cleanup, err := getClientForSATokenManagement(d, m)
+	cloudClient := m.(*common.Client).GrafanaCloudAPI
+	c, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -112,7 +114,7 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	response, err := c.GetServiceAccountTokens(serviceAccountID)
+	response, err := c.ServiceAccounts.ListTokens(serviceAccountID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -121,14 +123,14 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	for _, key := range response {
+	for _, key := range response.Payload {
 		if id == key.ID {
 			d.SetId(strconv.FormatInt(key.ID, 10))
 			err = d.Set("name", key.Name)
 			if err != nil {
 				return diag.FromErr(err)
 			}
-			if key.Expiration != nil && !key.Expiration.IsZero() {
+			if !key.Expiration.IsZero() {
 				err = d.Set("expiration", key.Expiration.String())
 				if err != nil {
 					return diag.FromErr(err)
@@ -147,7 +149,8 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m
 }
 
 func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c, cleanup, err := getClientForSATokenManagement(d, m)
+	cloudClient := m.(*common.Client).GrafanaCloudAPI
+	c, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -163,15 +166,10 @@ func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 
-	_, err = c.DeleteServiceAccountToken(serviceAccountID, id)
+	_, err = c.ServiceAccounts.DeleteToken(id, serviceAccountID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	return nil
-}
-
-func getClientForSATokenManagement(d *schema.ResourceData, m interface{}) (c *gapi.Client, cleanup func() error, err error) {
-	cloudClient := m.(*common.Client).GrafanaCloudAPI
-	return cloudClient.CreateTemporaryStackGrafanaClient(d.Get("stack_slug").(string), "terraform-temp-sa-token-", 60*time.Second)
 }

@@ -68,7 +68,7 @@ This resource cannot be imported but it can be used on an existing Synthetic Mon
 }
 
 func ResourceInstallationCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	cloudClient := meta.(*common.Client).GrafanaCloudAPIOpenAPI
+	cloudClient := meta.(*common.Client).GrafanaCloudAPI
 	req := cloudClient.InstancesAPI.GetInstance(ctx, d.Get("stack_id").(string))
 	stack, _, err := req.Execute()
 	if err != nil {

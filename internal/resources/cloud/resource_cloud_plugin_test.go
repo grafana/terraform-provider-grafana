@@ -55,7 +55,7 @@ func TestAccResourcePluginInstallation(t *testing.T) {
 
 func testAccCloudPluginInstallationCheckExists(stackSlug string, pluginSlug string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPIOpenAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 		_, _, err := client.InstancesAPI.GetInstancePlugin(context.Background(), stackSlug, pluginSlug).Execute()
 		if err != nil {
 			return fmt.Errorf("error getting installation: %s", err)

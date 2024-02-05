@@ -252,7 +252,7 @@ available at “https://<stack_slug>.grafana.net".`,
 }
 
 func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
+	client := meta.(*common.Client).GrafanaCloudAPI
 
 	stack := gcom.PostInstancesRequest{
 		Name:        d.Get("name").(string),
@@ -300,7 +300,7 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 }
 
 func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
+	client := meta.(*common.Client).GrafanaCloudAPI
 
 	// The underlying API only allows to update the name, slug, url and description.
 	allowedChanges := []string{"name", "description", "slug", "url"}
@@ -330,14 +330,14 @@ func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 }
 
 func DeleteStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
+	client := meta.(*common.Client).GrafanaCloudAPI
 	req := client.InstancesAPI.DeleteInstance(ctx, d.Id()).XRequestId(ClientRequestID())
 	_, _, err := req.Execute()
 	return apiError(err)
 }
 
 func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
+	client := meta.(*common.Client).GrafanaCloudAPI
 	req := client.InstancesAPI.GetInstance(ctx, d.Id())
 	stack, _, err := req.Execute()
 	if err, shouldReturn := common.CheckReadError("stack", d, err); shouldReturn {

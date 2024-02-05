@@ -9,6 +9,7 @@ import (
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -67,8 +68,8 @@ func testAccGrafanaServiceAccountFromCloud(name, slug string) string {
 
 func testAccGrafanaAuthCheckServiceAccounts(stack *gcom.FormattedApiInstance, expectedSAs []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		cloudClient := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPIOpenAPI
-		c, cleanup, err := createTemporaryStackGrafanaClient(context.Background(), cloudClient, stack.Slug, "test-api-key-")
+		cloudClient := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+		c, cleanup, err := cloud.CreateTemporaryStackGrafanaClient(context.Background(), cloudClient, stack.Slug, "test-api-key-")
 		if err != nil {
 			return err
 		}

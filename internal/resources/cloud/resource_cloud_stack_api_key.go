@@ -6,7 +6,8 @@ import (
 	"strings"
 	"time"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	"github.com/grafana/grafana-openapi-client-go/client/api_keys"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
@@ -75,15 +76,16 @@ func resourceStackAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m in
 	role := d.Get("role").(string)
 	ttl := d.Get("seconds_to_live").(int)
 
-	c, cleanup, err := getClientForAPIKeyManagement(d, m)
+	cloudClient := m.(*common.Client).GrafanaCloudAPI
+	c, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	defer cleanup()
 
-	request := gapi.CreateAPIKeyRequest{Name: name, Role: role, SecondsToLive: int64(ttl)}
+	request := &models.AddAPIKeyCommand{Name: name, Role: role, SecondsToLive: int64(ttl)}
 	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-		response, err := c.CreateAPIKey(request)
+		response, err := c.APIKeys.AddAPIkey(request)
 
 		if err != nil {
 			if strings.Contains(err.Error(), "Your instance is loading, and will be ready shortly.") {
@@ -91,9 +93,10 @@ func resourceStackAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m in
 			}
 			return retry.NonRetryableError(err)
 		}
+		key := response.Payload
 
-		d.SetId(strconv.FormatInt(response.ID, 10))
-		d.Set("key", response.Key)
+		d.SetId(strconv.FormatInt(key.ID, 10))
+		d.Set("key", key.Key)
 		return nil
 	})
 
@@ -106,13 +109,14 @@ func resourceStackAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m in
 }
 
 func resourceStackAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c, cleanup, err := getClientForAPIKeyManagement(d, m)
+	cloudClient := m.(*common.Client).GrafanaCloudAPI
+	c, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	defer cleanup()
 
-	response, err := c.GetAPIKeys(true)
+	response, err := c.APIKeys.GetAPIkeys(api_keys.NewGetAPIkeysParams().WithIncludeExpired(common.Ref((true))))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -121,7 +125,7 @@ func resourceStackAPIKeyRead(ctx context.Context, d *schema.ResourceData, m inte
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	for _, key := range response {
+	for _, key := range response.Payload {
 		if id == key.ID {
 			d.SetId(strconv.FormatInt(key.ID, 10))
 			d.Set("name", key.Name)
@@ -147,21 +151,17 @@ func resourceStackAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m in
 		return diag.FromErr(err)
 	}
 
-	c, cleanup, err := getClientForAPIKeyManagement(d, m)
+	cloudClient := m.(*common.Client).GrafanaCloudAPI
+	c, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	defer cleanup()
 
-	_, err = c.DeleteAPIKey(id)
+	_, err = c.APIKeys.DeleteAPIkey(id)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	return nil
-}
-
-func getClientForAPIKeyManagement(d *schema.ResourceData, m interface{}) (c *gapi.Client, cleanup func() error, err error) {
-	cloudClient := m.(*common.Client).GrafanaCloudAPI
-	return cloudClient.CreateTemporaryStackGrafanaClient(d.Get("stack_slug").(string), "terraform-temp-", 60*time.Second)
 }

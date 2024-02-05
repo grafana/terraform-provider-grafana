@@ -60,7 +60,7 @@ Manages a single API key on the Grafana Cloud portal (on the organization level)
 }
 
 func ResourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).GrafanaCloudAPIOpenAPI
+	c := meta.(*common.Client).GrafanaCloudAPI
 
 	req := gcom.PostApiKeysRequest{
 		Name: d.Get("name").(string),
@@ -83,7 +83,7 @@ func ResourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, meta inte
 }
 
 func ResourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).GrafanaCloudAPIOpenAPI
+	c := meta.(*common.Client).GrafanaCloudAPI
 
 	splitID := strings.SplitN(d.Id(), "-", 2)
 	org, name := splitID[0], splitID[1]
@@ -101,7 +101,7 @@ func ResourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func ResourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).GrafanaCloudAPIOpenAPI
+	c := meta.(*common.Client).GrafanaCloudAPI
 
 	_, err := c.OrgsAPI.DelApiKey(ctx, d.Get("name").(string), d.Get("cloud_org_slug").(string)).XRequestId(ClientRequestID()).Execute()
 	d.SetId("")

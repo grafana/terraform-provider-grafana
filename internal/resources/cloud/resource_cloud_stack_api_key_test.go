@@ -3,13 +3,10 @@ package cloud_test
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/api_keys"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/grafana/terraform-provider-grafana/internal/resources/cloud"
@@ -63,8 +60,8 @@ func testAccGrafanaAuthKeyFromCloud(name, slug string) string {
 
 func testAccGrafanaAuthCheckKeys(stack *gcom.FormattedApiInstance, expectedKeys []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		cloudClient := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPIOpenAPI
-		c, cleanup, err := createTemporaryStackGrafanaClient(context.Background(), cloudClient, stack.Slug, "test-api-key-")
+		cloudClient := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+		c, cleanup, err := cloud.CreateTemporaryStackGrafanaClient(context.Background(), cloudClient, stack.Slug, "test-api-key-")
 		if err != nil {
 			return err
 		}
@@ -100,59 +97,4 @@ func testAccGrafanaAuthCheckKeys(stack *gcom.FormattedApiInstance, expectedKeys 
 
 		return nil
 	}
-}
-
-func createTemporaryStackGrafanaClient(ctx context.Context, cloudClient *gcom.APIClient, stackSlug, tempSaPrefix string) (*goapi.GrafanaHTTPAPI, func() error, error) {
-	stack, _, err := cloudClient.InstancesAPI.GetInstance(ctx, stackSlug).Execute()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	name := fmt.Sprintf("%s%d", tempSaPrefix, time.Now().UnixNano())
-
-	req := gcom.PostInstanceServiceAccountsRequest{
-		Name: name,
-		Role: "Admin",
-	}
-
-	sa, _, err := cloudClient.InstancesAPI.PostInstanceServiceAccounts(ctx, stackSlug).
-		PostInstanceServiceAccountsRequest(req).
-		XRequestId(cloud.ClientRequestID()).
-		Execute()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	tokenRequest := gcom.PostInstanceServiceAccountTokensRequest{
-		Name:          name,
-		SecondsToLive: common.Ref(int32(60)),
-	}
-	token, _, err := cloudClient.InstancesAPI.PostInstanceServiceAccountTokens(ctx, stackSlug, fmt.Sprintf("%d", int(sa.Id))).
-		PostInstanceServiceAccountTokensRequest(tokenRequest).
-		XRequestId(cloud.ClientRequestID()).
-		Execute()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	stackURLParsed, err := url.Parse(stack.Url)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	client := goapi.NewHTTPClientWithConfig(nil, &goapi.TransportConfig{
-		Host:         stackURLParsed.Host,
-		Schemes:      []string{stackURLParsed.Scheme},
-		BasePath:     "api",
-		APIKey:       token.Key,
-		NumRetries:   5,
-		RetryTimeout: 10 * time.Second,
-	})
-
-	cleanup := func() error {
-		_, err = client.ServiceAccounts.DeleteServiceAccount(int64(sa.Id))
-		return err
-	}
-
-	return client, cleanup, nil
 }
