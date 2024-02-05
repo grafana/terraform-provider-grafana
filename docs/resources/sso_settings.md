@@ -19,7 +19,7 @@ Manages Grafana SSO Settings for OAuth2, SAML and LDAP.
 ```terraform
 resource "grafana_sso_settings" "github_sso_settings" {
   provider_name = "github"
-  settings {
+  oauth2_settings {
     client_id             = "github_client_id"
     client_secret         = "github_client_secret"
     team_ids              = "12,50,123"
@@ -33,15 +33,15 @@ resource "grafana_sso_settings" "github_sso_settings" {
 
 ### Required
 
+- `oauth2_settings` (Block Set, Min: 1, Max: 1) The SSO settings set. (see [below for nested schema](#nestedblock--oauth2_settings))
 - `provider_name` (String) The name of the SSO provider.
-- `settings` (Block Set, Min: 1, Max: 1) The SSO settings set. (see [below for nested schema](#nestedblock--settings))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
 
-<a id="nestedblock--settings"></a>
-### Nested Schema for `settings`
+<a id="nestedblock--oauth2_settings"></a>
+### Nested Schema for `oauth2_settings`
 
 Required:
 

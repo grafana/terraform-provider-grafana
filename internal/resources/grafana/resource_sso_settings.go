@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	providerKey = "provider_name"
-	settingsKey = "settings"
+	providerKey       = "provider_name"
+	oauth2SettingsKey = "oauth2_settings"
 )
 
 func ResourceSSOSettings() *schema.Resource {
@@ -39,7 +39,7 @@ Manages Grafana SSO Settings for OAuth2, SAML and LDAP.
 				Required:    true,
 				Description: "The name of the SSO provider.",
 			},
-			settingsKey: {
+			oauth2SettingsKey: {
 				Type:        schema.TypeSet,
 				Required:    true,
 				MaxItems:    1,
@@ -248,6 +248,10 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 
 	provider := d.Get(providerKey).(string)
 
+	// only one of oauth2, saml, ldap settings can be provided in a resource
+	// currently we implemented only the oauth2 settings
+	settingsKey := oauth2SettingsKey
+
 	resp, err := client.SsoSettings.GetProviderSettings(provider)
 	if err != nil {
 		return diag.Errorf("failed to get the SSO settings for provider %s: %v", provider, err)
@@ -290,6 +294,10 @@ func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 	client := OAPIGlobalClient(meta)
 
 	provider := d.Get(providerKey).(string)
+
+	// only one of oauth2, saml, ldap settings can be provided in a resource
+	// currently we implemented only the oauth2 settings
+	settingsKey := oauth2SettingsKey
 
 	settings := make(map[string]any)
 	settingsList := d.Get(settingsKey).(*schema.Set).List()
