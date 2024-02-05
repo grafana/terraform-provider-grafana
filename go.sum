@@ -96,8 +96,8 @@ github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeN
 github.com/google/go-querystring v1.0.0 h1:Xkwi/a1rcvNg1PPYe5vI8GbeBY/jrVuDX5ASuANWTrk=
 github.com/google/go-querystring v1.0.0/go.mod h1:odCYkC5MyYFN7vkCjXpyrEuKhc/BUO6wN/zVPAxq5ck=
 github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
-github.com/google/uuid v1.5.0 h1:1p67kYwdtXjb0gL0BPiP1Av9wiZPo5A8z2cWkTZ+eyU=
-github.com/google/uuid v1.5.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
+github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/grafana/amixr-api-go-client v0.0.11 h1:jlE+5t0tRuCtjbpM81j70Dr2J4eCySuWyNGdfLMGdhE=
 github.com/grafana/amixr-api-go-client v0.0.11/go.mod h1:N6x26XUrM5zGtK5zL5vNJnAn2JFMxLFPPLTw/6pDkFE=
 github.com/grafana/grafana-api-golang-client v0.27.0 h1:zIwMXcbCB4n588i3O2N6HfNcQogCNTd/vPkEXTr7zX8=
@@ -110,10 +110,10 @@ github.com/grafana/machine-learning-go-client v0.5.0 h1:Q1K+MPSy8vfMm2jsk3WQ7O77
 github.com/grafana/machine-learning-go-client v0.5.0/go.mod h1:QFfZz8NkqVF8++skjkKQXJEZfpCYd8S0yTWJUpsLLTA=
 github.com/grafana/slo-openapi-client/go v0.0.0-20240112175006-de02e75b9d73 h1:E5vAeB5q1H3BVeNhtd1dI8RubucJdPwpx/ElNtKD3ls=
 github.com/grafana/slo-openapi-client/go v0.0.0-20240112175006-de02e75b9d73/go.mod h1:EvM3pcxqS+avXd0G8VMyo/kITr9QsN1CwZTNgYtQ9lI=
-github.com/grafana/synthetic-monitoring-agent v0.19.3 h1:BQ9Tk50YxtGDlwfrgaodTNuW8diSWTvQxFgC3n1jP1E=
-github.com/grafana/synthetic-monitoring-agent v0.19.3/go.mod h1:XdtKpgS1ukINUmAPYfGAAfLF+Ltn7C6ajH6im5kJK1w=
-github.com/grafana/synthetic-monitoring-api-go-client v0.7.0 h1:3ZfQzmXDBPcQTTgMAIIiTw5Dwxm/B4lzf34Sto0d0YY=
-github.com/grafana/synthetic-monitoring-api-go-client v0.7.0/go.mod h1:ET64tbp14yq3U8X97/IO/KbG+FqU5Z8DigWrzGUHX40=
+github.com/grafana/synthetic-monitoring-agent v0.19.4 h1:6L3Nb9Sw1XmIs7jPcbquTilWUc+H63MvFFpNXIYzymA=
+github.com/grafana/synthetic-monitoring-agent v0.19.4/go.mod h1:9S3Yx8EMaluA90aD4YCJnJH/Xpk+SMgMGd7NWdn41Lg=
+github.com/grafana/synthetic-monitoring-api-go-client v0.8.0 h1:Tm4MtwwYmPNInGfnj66l6j6KOshMkNV4emIVKJdlXMg=
+github.com/grafana/synthetic-monitoring-api-go-client v0.8.0/go.mod h1:TGaywTdL2Z+PJhpWzJEmJFRF5K55vKz2f39mWY/GvV8=
 github.com/hashicorp/cli v1.1.6 h1:CMOV+/LJfL1tXCOKrgAX0uRKnzjj/mpmqNXloRSy2K8=
 github.com/hashicorp/cli v1.1.6/go.mod h1:MPon5QYlgjjo0BSoAiN0ESeT5fRzDjVRp+uioJ0piz4=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
@@ -325,8 +325,8 @@ golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e/go.mod h1:RxMgew5VJxzue5/jJ
 golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.1.0/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
-golang.org/x/sync v0.5.0 h1:60k92dhOjHxJkrqnwsfl8KuaHbn/5dl0lUPUklKo3qE=
-golang.org/x/sync v0.5.0/go.mod h1:Czt+wKu1gCyEFDUtn0jG5QVvpJ6rzVqr5aXyt9drQfk=
+golang.org/x/sync v0.6.0 h1:5BMeUDZ7vkXGfEr1x9B4bRcTH4lpkTkpdh0T/J+qjbQ=
+golang.org/x/sync v0.6.0/go.mod h1:Czt+wKu1gCyEFDUtn0jG5QVvpJ6rzVqr5aXyt9drQfk=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190412213103-97732733099d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200116001909-b77594299b42/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
