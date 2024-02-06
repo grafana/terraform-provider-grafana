@@ -106,8 +106,8 @@ github.com/grafana/machine-learning-go-client v0.5.0 h1:Q1K+MPSy8vfMm2jsk3WQ7O77
 github.com/grafana/machine-learning-go-client v0.5.0/go.mod h1:QFfZz8NkqVF8++skjkKQXJEZfpCYd8S0yTWJUpsLLTA=
 github.com/grafana/slo-openapi-client/go v0.0.0-20240112175006-de02e75b9d73 h1:E5vAeB5q1H3BVeNhtd1dI8RubucJdPwpx/ElNtKD3ls=
 github.com/grafana/slo-openapi-client/go v0.0.0-20240112175006-de02e75b9d73/go.mod h1:EvM3pcxqS+avXd0G8VMyo/kITr9QsN1CwZTNgYtQ9lI=
-github.com/grafana/synthetic-monitoring-agent v0.19.4 h1:6L3Nb9Sw1XmIs7jPcbquTilWUc+H63MvFFpNXIYzymA=
-github.com/grafana/synthetic-monitoring-agent v0.19.4/go.mod h1:9S3Yx8EMaluA90aD4YCJnJH/Xpk+SMgMGd7NWdn41Lg=
+github.com/grafana/synthetic-monitoring-agent v0.19.5 h1:YNNcWa+aVqlvYPGP4L3xPjXJJD/eyCjkSCim3s5fknI=
+github.com/grafana/synthetic-monitoring-agent v0.19.5/go.mod h1:9S3Yx8EMaluA90aD4YCJnJH/Xpk+SMgMGd7NWdn41Lg=
 github.com/grafana/synthetic-monitoring-api-go-client v0.8.0 h1:Tm4MtwwYmPNInGfnj66l6j6KOshMkNV4emIVKJdlXMg=
 github.com/grafana/synthetic-monitoring-api-go-client v0.8.0/go.mod h1:TGaywTdL2Z+PJhpWzJEmJFRF5K55vKz2f39mWY/GvV8=
 github.com/hashicorp/cli v1.1.6 h1:CMOV+/LJfL1tXCOKrgAX0uRKnzjj/mpmqNXloRSy2K8=
