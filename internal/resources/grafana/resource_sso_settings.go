@@ -45,13 +45,13 @@ Manages Grafana SSO Settings for OAuth2, SAML and LDAP.
 				MaxItems:    1,
 				MinItems:    1,
 				Description: "The SSO settings set.",
-				Elem:        settingsSchema,
+				Elem:        oauth2SettingsSchema,
 			},
 		},
 	}
 }
 
-var settingsSchema = &schema.Resource{
+var oauth2SettingsSchema = &schema.Resource{
 	Schema: map[string]*schema.Schema{
 		"enabled": {
 			Type:        schema.TypeBool,
@@ -251,6 +251,7 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 	// only one of oauth2, saml, ldap settings can be provided in a resource
 	// currently we implemented only the oauth2 settings
 	settingsKey := oauth2SettingsKey
+	settingsSchema := oauth2SettingsSchema
 
 	resp, err := client.SsoSettings.GetProviderSettings(provider)
 	if err != nil {
