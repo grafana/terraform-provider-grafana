@@ -3,7 +3,6 @@ package cloud
 import (
 	"context"
 	"strconv"
-	"time"
 
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -51,19 +50,19 @@ func DataSourceOrganizationRead(ctx context.Context, d *schema.ResourceData, met
 	if id == "" {
 		id = d.Get("slug").(string)
 	}
-	org, err := client.GetCloudOrg(id)
+	org, _, err := client.OrgsAPI.GetOrg(ctx, id).Execute()
 	if err != nil {
 		return apiError(err)
 	}
 
-	id = strconv.FormatInt(org.ID, 10)
+	id = strconv.FormatInt(int64(*org.Id), 10)
 	d.SetId(id)
 	d.Set("id", id)
 	d.Set("name", org.Name)
 	d.Set("slug", org.Slug)
-	d.Set("url", org.URL)
-	d.Set("created_at", org.CreatedAt.Format(time.RFC3339))
-	d.Set("updated_at", org.UpdatedAt.Format(time.RFC3339))
+	d.Set("url", org.Url)
+	d.Set("created_at", org.CreatedAt)
+	d.Set("updated_at", org.UpdatedAt.Get())
 
 	return nil
 }

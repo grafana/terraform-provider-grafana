@@ -63,7 +63,7 @@ func TestAccCloudApiKey_Basic(t *testing.T) {
 
 func testAccCheckCloudAPIKeyExists(apiKeyName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPIOpenAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 		res, _, err := client.OrgsAPI.GetApiKeys(context.Background(), os.Getenv("GRAFANA_CLOUD_ORG")).Execute()
 		if err != nil {
 			return err
@@ -91,7 +91,7 @@ func testAccCheckCloudAPIKeyDestroy(apiKeyName string) resource.TestCheckFunc {
 
 func testAccDeleteExistingCloudAPIKeys(t *testing.T, prefix string) {
 	org := os.Getenv("GRAFANA_CLOUD_ORG")
-	client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPIOpenAPI
+	client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 	resp, _, err := client.OrgsAPI.GetApiKeys(context.Background(), org).Execute()
 	if err != nil {
 		t.Error(err)

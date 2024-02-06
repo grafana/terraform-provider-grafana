@@ -32,7 +32,7 @@ available at “https://<stack_slug>.grafana.net".`,
 }
 
 func DataSourceStackRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
+	client := meta.(*common.Client).GrafanaCloudAPI
 
 	slug := d.Get("slug").(string)
 

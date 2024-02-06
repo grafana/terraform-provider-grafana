@@ -48,7 +48,7 @@ Manages Grafana Cloud Plugin Installations.
 }
 
 func ResourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
+	client := meta.(*common.Client).GrafanaCloudAPI
 
 	stackSlug := d.Get("stack_slug").(string)
 	pluginSlug := d.Get("slug").(string)
@@ -70,7 +70,7 @@ func ResourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceDat
 }
 
 func ResourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
+	client := meta.(*common.Client).GrafanaCloudAPI
 
 	splitID := strings.SplitN(d.Id(), "_", 2)
 	stackSlug, pluginSlug := splitID[0], splitID[1]
@@ -88,7 +88,7 @@ func ResourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData,
 }
 
 func ResourcePluginInstallationDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
+	client := meta.(*common.Client).GrafanaCloudAPI
 
 	splitID := strings.SplitN(d.Id(), "_", 2)
 	stackSlug, pluginSlug := splitID[0], splitID[1]
