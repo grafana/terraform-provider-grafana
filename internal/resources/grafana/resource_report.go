@@ -38,6 +38,8 @@ const (
 	reportFormatPDF   = "pdf"
 	reportFormatCSV   = "csv"
 	reportFormatImage = "image"
+
+	timeDateShortFormat = "2006-01-02T15:04"
 )
 
 var (
@@ -184,32 +186,18 @@ func ResourceReport() *schema.Resource {
 							ValidateFunc: validation.StringInSlice(reportFrequencies, false),
 						},
 						"start_time": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							Description:  "Start time of the report. If empty, the start date will be set to the creation time. Note that times will be saved as UTC in Grafana.",
-							ValidateFunc: validation.IsRFC3339Time,
-							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-								oldParsed, _ := time.Parse(time.RFC3339, old)
-								newParsed, _ := time.Parse(time.RFC3339, new)
-
-								// If empty, the start date will be set to the current time (at the time of creation)
-								if new == "" && oldParsed.Before(time.Now()) {
-									return true
-								}
-
-								return oldParsed.Equal(newParsed)
-							},
+							Type:             schema.TypeString,
+							Optional:         true,
+							Description:      "Start time of the report. If empty, the start date will be set to the creation time. Note that times will be saved as UTC in Grafana.",
+							ValidateDiagFunc: validateDate,
+							DiffSuppressFunc: checkStartTimeDiff,
 						},
 						"end_time": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							Description:  "End time of the report. If empty, the report will be sent indefinitely (according to frequency). Note that times will be saved as UTC in Grafana.",
-							ValidateFunc: validation.IsRFC3339Time,
-							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-								oldParsed, _ := time.Parse(time.RFC3339, old)
-								newParsed, _ := time.Parse(time.RFC3339, new)
-								return oldParsed.Equal(newParsed)
-							},
+							Type:             schema.TypeString,
+							Optional:         true,
+							Description:      "End time of the report. If empty, the report will be sent indefinitely (according to frequency). Note that times will be saved as UTC in Grafana.",
+							ValidateDiagFunc: validateDate,
+							DiffSuppressFunc: checkEndTimeDiff,
 						},
 						"workdays_only": {
 							Type:        schema.TypeBool,
@@ -465,29 +453,30 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReportConfig, 
 		}
 	}
 
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
+		return models.CreateOrUpdateReportConfig{}, err
+	}
+
 	// Set schedule start time
 	if frequency != reportFrequencyNever {
 		if startTimeStr := d.Get("schedule.0.start_time").(string); startTimeStr != "" {
-			startDate, err := time.Parse(time.RFC3339, startTimeStr)
+			date, err := formatDate(startTimeStr, location)
 			if err != nil {
 				return models.CreateOrUpdateReportConfig{}, err
 			}
-
-			date := strfmt.DateTime(startDate.UTC())
-			report.Schedule.StartDate = &date
+			report.Schedule.StartDate = date
 		}
 	}
 
 	// Set schedule end time
 	if frequency != reportFrequencyOnce && frequency != reportFrequencyNever {
 		if endTimeStr := d.Get("schedule.0.end_time").(string); endTimeStr != "" {
-			endDate, err := time.Parse(time.RFC3339, endTimeStr)
+			date, err := formatDate(endTimeStr, location)
 			if err != nil {
 				return models.CreateOrUpdateReportConfig{}, err
 			}
-
-			date := strfmt.DateTime(endDate.UTC())
-			report.Schedule.EndDate = &date
+			report.Schedule.EndDate = date
 		}
 	}
 
@@ -624,6 +613,7 @@ func parseReportVariablesRequest(reportVariables interface{}) map[string][]strin
 
 	return newMap
 }
+
 func parseReportVariablesResponse(reportVariables interface{}) map[string]interface{} {
 	if reportVariables == nil {
 		return nil
@@ -640,4 +630,84 @@ func parseReportVariablesResponse(reportVariables interface{}) map[string]interf
 	}
 
 	return newMap
+}
+
+func validateDate(i interface{}, _ cty.Path) diag.Diagnostics {
+	v, ok := i.(string)
+	if !ok {
+		return diag.FromErr(fmt.Errorf("time should be a string"))
+	}
+
+	_, timezoneFormat := time.Parse(time.RFC3339, v)
+	_, noTimezoneFormat := time.Parse(timeDateShortFormat, v)
+
+	if timezoneFormat != nil && noTimezoneFormat != nil {
+		return diag.FromErr(fmt.Errorf("time format should be %s or %s", time.RFC3339, timeDateShortFormat))
+	}
+
+	return nil
+}
+
+func formatDate(date string, timezone *time.Location) (*strfmt.DateTime, error) {
+	parsedDate, err := time.Parse(timeDateShortFormat, date)
+	if err != nil {
+		return checkTimezoneFormatDate(date, timezone)
+	}
+
+	dateTime := strfmt.DateTime(parsedDate.In(timezone))
+	return &dateTime, nil
+}
+
+func checkTimezoneFormatDate(date string, timezone *time.Location) (*strfmt.DateTime, error) {
+	parsedDate, err := time.Parse(time.RFC3339, date)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fail if timezone isn't GMT. GMT is skipped to avoid to break old implementations.
+	if timezone.String() != "GMT" {
+		return nil, fmt.Errorf("date formatted with timezone isn't compatible: %s. Please, remove timezone from the date if you want to set a timezone", date)
+	}
+
+	dateTime := strfmt.DateTime(parsedDate.UTC())
+	return &dateTime, nil
+}
+
+func checkStartTimeDiff(_, old, new string, _ *schema.ResourceData) bool {
+	oldParsed, newParsed, shouldSkip := checkDateTime(old, new)
+	if shouldSkip {
+		return true
+	}
+
+	// If empty, the start date will be set to the current time (at the time of creation)
+	if new == "" && oldParsed.Before(time.Now()) {
+		return true
+	}
+
+	return oldParsed.Equal(newParsed)
+}
+
+func checkEndTimeDiff(_, old, new string, _ *schema.ResourceData) bool {
+	oldParsed, newParsed, shouldSkip := checkDateTime(old, new)
+	if shouldSkip {
+		return true
+	}
+
+	return oldParsed.Equal(newParsed)
+}
+
+func checkDateTime(old, new string) (time.Time, time.Time, bool) {
+	oldParsed, oldErr := time.Parse(time.RFC3339, old)
+	newParsed, newErr := time.Parse(time.RFC3339, new)
+
+	if oldErr != nil && newErr != nil {
+		oldParsed, _ = time.Parse(timeDateShortFormat, old)
+		newParsed, _ = time.Parse(timeDateShortFormat, new)
+	} else if newErr != nil {
+		if _, err := time.Parse(timeDateShortFormat, new); err == nil {
+			return time.Time{}, time.Time{}, true
+		}
+	}
+
+	return oldParsed, newParsed, false
 }

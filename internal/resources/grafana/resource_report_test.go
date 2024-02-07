@@ -38,8 +38,8 @@ func TestAccResourceReport_Multiple_Dashboards(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_report.test", "recipients.0", "some@email.com"),
 					resource.TestCheckNoResourceAttr("grafana_report.test", "recipients.1"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.frequency", "monthly"),
-					resource.TestCheckResourceAttrSet("grafana_report.test", "schedule.0.start_time"), // Date set to current time
-					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", ""),  // No end time
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.start_time", "2024-02-10T15:00:00-05:00"),
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", "2024-02-15T10:00:00-05:00"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.last_day_of_month", "true"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.timezone", "America/New_York"),
 					resource.TestCheckResourceAttr("grafana_report.test", "orientation", "landscape"),
