@@ -148,18 +148,18 @@ func TestSSOSettings_twoResourcesForOneProvider(t *testing.T) {
 							return err
 						}
 
-						firstClientId, ok := first.Attributes["oauth2_settings.0.client_id"]
+						firstClientID, ok := first.Attributes["oauth2_settings.0.client_id"]
 						if !ok {
 							return fmt.Errorf("client_id not found in settings")
 						}
 
-						secondClientId, ok := second.Attributes["oauth2_settings.0.client_id"]
+						secondClientID, ok := second.Attributes["oauth2_settings.0.client_id"]
 						if !ok {
 							return fmt.Errorf("client_id not found in settings")
 						}
 
-						if firstClientId != secondClientId {
-							return fmt.Errorf("client_id is not the same: %s vs. %s", firstClientId, secondClientId)
+						if firstClientID != secondClientID {
+							return fmt.Errorf("client_id is not the same: %s vs. %s", firstClientID, secondClientID)
 						}
 
 						return nil
