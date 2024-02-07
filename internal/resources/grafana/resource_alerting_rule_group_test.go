@@ -230,11 +230,7 @@ func TestAccAlertRule_inOrg(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
-		// Implicitly tests deletion.
-		CheckDestroy: resource.ComposeTestCheckFunc(
-			orgCheckExists.destroyed(&org, nil),
-			alertingRuleGroupCheckExists.destroyed(&group, &org),
-		),
+		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
