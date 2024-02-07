@@ -246,7 +246,7 @@ var oauth2SettingsSchema = &schema.Resource{
 func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := OAPIGlobalClient(meta)
 
-	provider := d.Get(providerKey).(string)
+	provider := d.Id()
 
 	// only one of oauth2, saml, ldap settings can be provided in a resource
 	// currently we implemented only the oauth2 settings
