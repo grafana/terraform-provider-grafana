@@ -372,7 +372,7 @@ func TestAccContactPoint_notifiers10_2(t *testing.T) {
 }
 
 func TestAccContactPoint_notifiers10_3(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Switch to `testutils.CheckOSSTestsEnabled(t, ">=10.3.0")` once 10.3 is released.
+	testutils.CheckOSSTestsEnabled(t, ">=10.3.0")
 
 	var points models.ContactPoints
 
