@@ -12,7 +12,7 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/models"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 )
 
@@ -21,7 +21,7 @@ func TestSSOSettings_basic(t *testing.T) {
 
 	providers := []string{"github", "gitlab", "google", "generic_oauth", "azuread", "okta"}
 
-	api := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(1)
+	api := grafana.OAPIGlobalClient(testutils.Provider.Meta())
 
 	for _, provider := range providers {
 		defaultSettings, err := api.SsoSettings.GetProviderSettings(provider)
@@ -65,7 +65,7 @@ func TestSSOSettings_applyExample(t *testing.T) {
 
 	provider := "github"
 
-	api := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(1)
+	api := grafana.OAPIGlobalClient(testutils.Provider.Meta())
 	defaultSettings, err := api.SsoSettings.GetProviderSettings(provider)
 	if err != nil {
 		t.Fatalf("failed to fetch the default settings for provider %s: %v", provider, err)
@@ -172,8 +172,6 @@ func TestSSOSettings_twoResourcesForOneProvider(t *testing.T) {
 }
 
 func TestSSOSettings_resourceWithNoSettings(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=10.4.0")
-
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
@@ -186,8 +184,6 @@ func TestSSOSettings_resourceWithNoSettings(t *testing.T) {
 }
 
 func TestSSOSettings_resourceWithEmptySettings(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=10.4.0")
-
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
@@ -200,8 +196,6 @@ func TestSSOSettings_resourceWithEmptySettings(t *testing.T) {
 }
 
 func TestSSOSettings_resourceWithManySettings(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=10.4.0")
-
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
