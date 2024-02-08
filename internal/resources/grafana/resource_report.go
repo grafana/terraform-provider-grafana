@@ -188,14 +188,14 @@ func ResourceReport() *schema.Resource {
 						"start_time": {
 							Type:             schema.TypeString,
 							Optional:         true,
-							Description:      "Start time of the report. If empty, the start date will be set to the creation time. Note that times will be saved as UTC in Grafana.",
+							Description:      fmt.Sprintf("Start time of the report. If empty, the start date will be set to the creation time. Note that times will be saved as UTC in Grafana. Use %s format if you want to set a custom timezone", timeDateShortFormat),
 							ValidateDiagFunc: validateDate,
 							DiffSuppressFunc: checkStartTimeDiff,
 						},
 						"end_time": {
 							Type:             schema.TypeString,
 							Optional:         true,
-							Description:      "End time of the report. If empty, the report will be sent indefinitely (according to frequency). Note that times will be saved as UTC in Grafana.",
+							Description:      fmt.Sprintf("End time of the report. If empty, the report will be sent indefinitely (according to frequency). Note that times will be saved as UTC in Grafana. Use %s format if you want to set a custom timezone", timeDateShortFormat),
 							ValidateDiagFunc: validateDate,
 							DiffSuppressFunc: checkEndTimeDiff,
 						},

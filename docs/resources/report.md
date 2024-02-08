@@ -76,9 +76,9 @@ Optional:
 
 - `custom_interval` (String) Custom interval of the report.
 **Note:** This field is only available when frequency is set to `custom`.
-- `end_time` (String) End time of the report. If empty, the report will be sent indefinitely (according to frequency). Note that times will be saved as UTC in Grafana.
+- `end_time` (String) End time of the report. If empty, the report will be sent indefinitely (according to frequency). Note that times will be saved as UTC in Grafana. Use 2006-01-02T15:04 format if you want to set a custom timezone
 - `last_day_of_month` (Boolean) Send the report on the last day of the month Defaults to `false`.
-- `start_time` (String) Start time of the report. If empty, the start date will be set to the creation time. Note that times will be saved as UTC in Grafana.
+- `start_time` (String) Start time of the report. If empty, the start date will be set to the creation time. Note that times will be saved as UTC in Grafana. Use 2006-01-02T15:04 format if you want to set a custom timezone
 - `timezone` (String) Set the report time zone. Defaults to `GMT`.
 - `workdays_only` (Boolean) Whether to send the report only on work days. Defaults to `false`.
 
