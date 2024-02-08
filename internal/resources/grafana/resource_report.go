@@ -39,7 +39,7 @@ const (
 	reportFormatCSV   = "csv"
 	reportFormatImage = "image"
 
-	timeDateShortFormat = "2006-01-02T15:04"
+	timeDateShortFormat = "2006-01-02T15:04:05"
 )
 
 var (
