@@ -108,7 +108,7 @@ var oauth2SettingsSchema = &schema.Resource{
 		"allowed_groups": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "List of comma- or space-separated groups. The user should be a member of at least one group to log in. If you configure allowed_groups, you must also configure groups_attribute_path.",
+			Description: "List of comma- or space-separated groups. The user should be a member of at least one group to log in. For Generic OAuth, if you configure allowed_groups, you must also configure groups_attribute_path.",
 		},
 		"api_url": {
 			Type:        schema.TypeString,

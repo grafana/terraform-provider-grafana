@@ -52,7 +52,7 @@ Optional:
 - `allow_assign_grafana_admin` (Boolean) If enabled, it will automatically sync the Grafana server administrator role.
 - `allow_sign_up` (Boolean) If not enabled, only existing Grafana users can log in using OAuth.
 - `allowed_domains` (String) List of comma- or space-separated domains. The user should belong to at least one domain to log in.
-- `allowed_groups` (String) List of comma- or space-separated groups. The user should be a member of at least one group to log in. If you configure allowed_groups, you must also configure groups_attribute_path.
+- `allowed_groups` (String) List of comma- or space-separated groups. The user should be a member of at least one group to log in. For Generic OAuth, if you configure allowed_groups, you must also configure groups_attribute_path.
 - `allowed_organizations` (String) List of comma- or space-separated organizations. The user should be a member of at least one organization to log in.
 - `api_url` (String) The user information endpoint of your OAuth2 provider.
 - `auth_style` (String) It determines how client_id and client_secret are sent to Oauth2 provider. Possible values are AutoDetect, InParams, InHeader. Default is AutoDetect.
