@@ -143,27 +143,27 @@ var oauth2SettingsSchema = &schema.Resource{
 		"email_attribute_name": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "Name of the key to use for user email lookup within the attributes map of OAuth2 ID token.",
+			Description: "Name of the key to use for user email lookup within the attributes map of OAuth2 ID token. Only applicable to Generic OAuth.",
 		},
 		"email_attribute_path": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "JMESPath expression to use for user email lookup from the user information.",
+			Description: "JMESPath expression to use for user email lookup from the user information. Only applicable to Generic OAuth.",
 		},
 		"name_attribute_path": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "JMESPath expression to use for user name lookup from the user ID token. This name will be used as the user’s display name.",
+			Description: "JMESPath expression to use for user name lookup from the user ID token. This name will be used as the user’s display name. Only applicable to Generic OAuth.",
 		},
 		"login_attribute_path": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "JMESPath expression to use for user login lookup from the user ID token.",
+			Description: "JMESPath expression to use for user login lookup from the user ID token. Only applicable to Generic OAuth.",
 		},
 		"id_token_attribute_name": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "The name of the key used to extract the ID token from the returned OAuth2 token.",
+			Description: "The name of the key used to extract the ID token from the returned OAuth2 token. Only applicable to Generic OAuth.",
 		},
 		"role_attribute_strict": {
 			Type:        schema.TypeBool,
@@ -233,12 +233,12 @@ var oauth2SettingsSchema = &schema.Resource{
 		"team_ids_attribute_path": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "The JMESPath expression to use for Grafana Team Id lookup within the results returned by the teams_url endpoint.",
+			Description: "The JMESPath expression to use for Grafana Team Id lookup within the results returned by the teams_url endpoint. Only applicable to Generic OAuth.",
 		},
 		"team_ids": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "String list of Team Ids. If set, the user must be a member of one of the given teams to log in. If you configure team_ids, you must also configure teams_url and team_ids_attribute_path.",
+			Description: "String list of Team Ids. If set, the user must be a member of one of the given teams to log in. If you configure team_ids, you must also configure teams_url and team_ids_attribute_path. Only applicable to Generic OAuth.",
 		},
 	},
 }

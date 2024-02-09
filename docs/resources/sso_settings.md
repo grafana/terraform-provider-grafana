@@ -61,22 +61,22 @@ Optional:
 - `client_secret` (String, Sensitive) The client secret of your OAuth2 app.
 - `define_allowed_groups` (Boolean) Define allowed groups.
 - `define_allowed_teams_ids` (Boolean) Define allowed teams ids.
-- `email_attribute_name` (String) Name of the key to use for user email lookup within the attributes map of OAuth2 ID token.
-- `email_attribute_path` (String) JMESPath expression to use for user email lookup from the user information.
+- `email_attribute_name` (String) Name of the key to use for user email lookup within the attributes map of OAuth2 ID token. Only applicable to Generic OAuth.
+- `email_attribute_path` (String) JMESPath expression to use for user email lookup from the user information. Only applicable to Generic OAuth.
 - `empty_scopes` (Boolean) If enabled, no scopes will be sent to the OAuth2 provider.
 - `enabled` (Boolean) Define whether this configuration is enabled for the specified provider. Defaults to `true`.
 - `groups_attribute_path` (String) JMESPath expression to use for user group lookup. If you configure allowed_groups, you must also configure groups_attribute_path.
-- `id_token_attribute_name` (String) The name of the key used to extract the ID token from the returned OAuth2 token.
-- `login_attribute_path` (String) JMESPath expression to use for user login lookup from the user ID token.
+- `id_token_attribute_name` (String) The name of the key used to extract the ID token from the returned OAuth2 token. Only applicable to Generic OAuth.
+- `login_attribute_path` (String) JMESPath expression to use for user login lookup from the user ID token. Only applicable to Generic OAuth.
 - `name` (String) Helpful if you use more than one identity providers or SSO protocols.
-- `name_attribute_path` (String) JMESPath expression to use for user name lookup from the user ID token. This name will be used as the user’s display name.
+- `name_attribute_path` (String) JMESPath expression to use for user name lookup from the user ID token. This name will be used as the user’s display name. Only applicable to Generic OAuth.
 - `role_attribute_path` (String) JMESPath expression to use for Grafana role lookup.
 - `role_attribute_strict` (Boolean) If enabled, denies user login if the Grafana role cannot be extracted using Role attribute path.
 - `scopes` (String) List of comma- or space-separated OAuth2 scopes.
 - `signout_redirect_url` (String) The URL to redirect the user to after signing out from Grafana.
 - `skip_org_role_sync` (Boolean) Prevent synchronizing users’ organization roles from your IdP.
-- `team_ids` (String) String list of Team Ids. If set, the user must be a member of one of the given teams to log in. If you configure team_ids, you must also configure teams_url and team_ids_attribute_path.
-- `team_ids_attribute_path` (String) The JMESPath expression to use for Grafana Team Id lookup within the results returned by the teams_url endpoint.
+- `team_ids` (String) String list of Team Ids. If set, the user must be a member of one of the given teams to log in. If you configure team_ids, you must also configure teams_url and team_ids_attribute_path. Only applicable to Generic OAuth.
+- `team_ids_attribute_path` (String) The JMESPath expression to use for Grafana Team Id lookup within the results returned by the teams_url endpoint. Only applicable to Generic OAuth.
 - `teams_url` (String) The URL used to query for Team Ids. If not set, the default value is /teams. If you configure teams_url, you must also configure team_ids_attribute_path.
 - `tls_client_ca` (String) The path to the trusted certificate authority list. Is not applicable on Grafana Cloud.
 - `tls_client_cert` (String) The path to the certificate. Is not applicable on Grafana Cloud.
