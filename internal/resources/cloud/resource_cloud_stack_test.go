@@ -41,6 +41,10 @@ func TestResourceStack_Basic(t *testing.T) {
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "logs_user_id"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "traces_user_id"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "graphite_user_id"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_user_id"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_name"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_url"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_status"),
 	)
 
 	resource.ParallelTest(t, resource.TestCase{
