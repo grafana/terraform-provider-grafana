@@ -228,7 +228,7 @@ var oauth2SettingsSchema = &schema.Resource{
 		"teams_url": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "The URL used to query for Team Ids. If not set, the default value is /teams. If you configure teams_url, you must also configure team_ids_attribute_path.",
+			Description: "The URL used to query for Team Ids. If not set, the default value is /teams. If you configure teams_url, you must also configure team_ids_attribute_path. Only applicable to Generic OAuth.",
 		},
 		"team_ids_attribute_path": {
 			Type:        schema.TypeString,
@@ -238,7 +238,7 @@ var oauth2SettingsSchema = &schema.Resource{
 		"team_ids": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "String list of Team Ids. If set, the user must be a member of one of the given teams to log in. If you configure team_ids, you must also configure teams_url and team_ids_attribute_path. Only applicable to Generic OAuth.",
+			Description: "String list of Team Ids. If set, the user must be a member of one of the given teams to log in. If you configure team_ids, you must also configure teams_url and team_ids_attribute_path.",
 		},
 	},
 }

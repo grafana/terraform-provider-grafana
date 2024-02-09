@@ -75,9 +75,9 @@ Optional:
 - `scopes` (String) List of comma- or space-separated OAuth2 scopes.
 - `signout_redirect_url` (String) The URL to redirect the user to after signing out from Grafana.
 - `skip_org_role_sync` (Boolean) Prevent synchronizing users’ organization roles from your IdP.
-- `team_ids` (String) String list of Team Ids. If set, the user must be a member of one of the given teams to log in. If you configure team_ids, you must also configure teams_url and team_ids_attribute_path. Only applicable to Generic OAuth.
+- `team_ids` (String) String list of Team Ids. If set, the user must be a member of one of the given teams to log in. If you configure team_ids, you must also configure teams_url and team_ids_attribute_path.
 - `team_ids_attribute_path` (String) The JMESPath expression to use for Grafana Team Id lookup within the results returned by the teams_url endpoint. Only applicable to Generic OAuth.
-- `teams_url` (String) The URL used to query for Team Ids. If not set, the default value is /teams. If you configure teams_url, you must also configure team_ids_attribute_path.
+- `teams_url` (String) The URL used to query for Team Ids. If not set, the default value is /teams. If you configure teams_url, you must also configure team_ids_attribute_path. Only applicable to Generic OAuth.
 - `tls_client_ca` (String) The path to the trusted certificate authority list. Is not applicable on Grafana Cloud.
 - `tls_client_cert` (String) The path to the certificate. Is not applicable on Grafana Cloud.
 - `tls_client_key` (String) The path to the key. Is not applicable on Grafana Cloud.
