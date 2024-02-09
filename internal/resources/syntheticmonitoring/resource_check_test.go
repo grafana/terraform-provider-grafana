@@ -34,6 +34,7 @@ func TestAccResourceCheck_dns(t *testing.T) {
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.dns", "tenant_id"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "job", jobName),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "target", "grafana.com"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "timeout", "3000"), // default
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.dns", "probes.0"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "labels.foo", "bar"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "settings.0.dns.0.ip_version", "V4"),
@@ -300,6 +301,7 @@ func TestAccResourceCheck_multihttp(t *testing.T) {
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.multihttp", "tenant_id"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "job", jobName),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "target", "https://www.grafana-dev.com"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "timeout", "5000"), // multihttp has a default timeout of 5000
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.multihttp", "probes.0"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "labels.foo", "bar"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.0.request.0.method", "GET"),

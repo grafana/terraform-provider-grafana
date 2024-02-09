@@ -16,6 +16,11 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
+const (
+	checkDefaultTimeout          = 3000
+	checkMultiHTTPDefaultTimeout = 5000
+)
+
 var (
 
 	// Set variables for schemas used in multiple fields and/or used to transform
@@ -675,7 +680,18 @@ multiple checks for a single endpoint to check different capabilities.
 					"The minimum acceptable value is 1 second (1000 ms), and the maximum 10 seconds (10000 ms).",
 				Type:     schema.TypeInt,
 				Optional: true,
-				Default:  3000,
+				Default:  checkDefaultTimeout,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					// Suppress diff if it's a multihttp check with a timeout of 5000 (default timeout for those)
+					// and it's being changed to 3000 (default timeout set here).
+					if d.Get("settings.0.multihttp.0") != nil &&
+						old == strconv.Itoa(checkMultiHTTPDefaultTimeout) &&
+						new == strconv.Itoa(checkDefaultTimeout) {
+						return true
+					}
+
+					return old == new
+				},
 			},
 			"enabled": {
 				Description: "Whether to enable the check.",
@@ -1093,13 +1109,18 @@ func makeCheck(d *schema.ResourceData) (*sm.Check, error) {
 		return nil, fmt.Errorf("invalid settings: %w", err)
 	}
 
+	timeout := int64(d.Get("timeout").(int))
+	if timeout == checkDefaultTimeout && settings.Multihttp != nil {
+		timeout = checkMultiHTTPDefaultTimeout
+	}
+
 	return &sm.Check{
 		Id:               id,
 		TenantId:         int64(d.Get("tenant_id").(int)),
 		Job:              d.Get("job").(string),
 		Target:           d.Get("target").(string),
 		Frequency:        int64(d.Get("frequency").(int)),
-		Timeout:          int64(d.Get("timeout").(int)),
+		Timeout:          timeout,
 		Enabled:          d.Get("enabled").(bool),
 		AlertSensitivity: d.Get("alert_sensitivity").(string),
 		BasicMetricsOnly: d.Get("basic_metrics_only").(bool),
