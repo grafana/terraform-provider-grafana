@@ -53,6 +53,10 @@ available at “https://<stack_slug>.grafana.net".
 - `org_id` (Number) Organization id to assign to this stack.
 - `org_name` (String) Organization name to assign to this stack.
 - `org_slug` (String) Organization slug to assign to this stack.
+- `profiles_name` (String)
+- `profiles_status` (String)
+- `profiles_url` (String)
+- `profiles_user_id` (Number)
 - `prometheus_name` (String) Prometheus name for this instance.
 - `prometheus_remote_endpoint` (String) Use this URL to query hosted metrics data e.g. Prometheus data source in Grafana
 - `prometheus_remote_write_endpoint` (String) Use this URL to send prometheus metrics to Grafana cloud

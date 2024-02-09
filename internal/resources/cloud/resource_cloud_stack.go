@@ -101,135 +101,48 @@ available at “https://<stack_slug>.grafana.net".`,
 				},
 				Description: "How long to wait for readiness (if enabled).",
 			},
-			"org_id": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "Organization id to assign to this stack.",
-			},
-			"org_slug": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Organization slug to assign to this stack.",
-			},
-			"org_name": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Organization name to assign to this stack.",
-			},
-			"status": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Status of the stack.",
-			},
+			"org_id":   common.ComputedIntWithDescription("Organization id to assign to this stack."),
+			"org_slug": common.ComputedStringWithDescription("Organization slug to assign to this stack."),
+			"org_name": common.ComputedStringWithDescription("Organization name to assign to this stack."),
+			"status":   common.ComputedStringWithDescription("Status of the stack."),
 
-			// Hosted Metrics
-			"prometheus_user_id": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "Prometheus user ID. Used for e.g. remote_write.",
-			},
-			"prometheus_url": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Prometheus url for this instance.",
-			},
-			"prometheus_name": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Prometheus name for this instance.",
-			},
-			"prometheus_remote_endpoint": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Use this URL to query hosted metrics data e.g. Prometheus data source in Grafana",
-			},
-			"prometheus_remote_write_endpoint": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Use this URL to send prometheus metrics to Grafana cloud",
-			},
-			"prometheus_status": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Prometheus status for this instance.",
-			},
+			// Metrics (Mimir/Prometheus)
+			"prometheus_user_id":               common.ComputedIntWithDescription("Prometheus user ID. Used for e.g. remote_write."),
+			"prometheus_url":                   common.ComputedStringWithDescription("Prometheus url for this instance."),
+			"prometheus_name":                  common.ComputedStringWithDescription("Prometheus name for this instance."),
+			"prometheus_remote_endpoint":       common.ComputedStringWithDescription("Use this URL to query hosted metrics data e.g. Prometheus data source in Grafana"),
+			"prometheus_remote_write_endpoint": common.ComputedStringWithDescription("Use this URL to send prometheus metrics to Grafana cloud"),
+			"prometheus_status":                common.ComputedStringWithDescription("Prometheus status for this instance."),
 
-			// Alerting
-			"alertmanager_user_id": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "User ID of the Alertmanager instance configured for this stack.",
-			},
-			"alertmanager_name": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Name of the Alertmanager instance configured for this stack.",
-			},
-			"alertmanager_url": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Base URL of the Alertmanager instance configured for this stack.",
-			},
-			"alertmanager_status": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Status of the Alertmanager instance configured for this stack.",
-			},
+			// Alertmanager
+			"alertmanager_user_id": common.ComputedIntWithDescription("User ID of the Alertmanager instance configured for this stack."),
+			"alertmanager_name":    common.ComputedStringWithDescription("Name of the Alertmanager instance configured for this stack."),
+			"alertmanager_url":     common.ComputedStringWithDescription("Base URL of the Alertmanager instance configured for this stack."),
+			"alertmanager_status":  common.ComputedStringWithDescription("Status of the Alertmanager instance configured for this stack."),
 
-			// Hosted Logs
-			"logs_user_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-			"logs_name": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"logs_url": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"logs_status": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
+			// Logs (Loki)
+			"logs_user_id": common.ComputedInt(),
+			"logs_name":    common.ComputedString(),
+			"logs_url":     common.ComputedString(),
+			"logs_status":  common.ComputedString(),
 
-			// Traces
-			"traces_user_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-			"traces_name": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"traces_url": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Base URL of the Traces instance configured for this stack. To use this in the Tempo data source in Grafana, append `/tempo` to the URL.",
-			},
-			"traces_status": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
+			// Traces (Tempo)
+			"traces_user_id": common.ComputedInt(),
+			"traces_name":    common.ComputedString(),
+			"traces_url":     common.ComputedStringWithDescription("Base URL of the Traces instance configured for this stack. To use this in the Tempo data source in Grafana, append `/tempo` to the URL."),
+			"traces_status":  common.ComputedString(),
+
+			// Profiles (Pyroscope)
+			"profiles_user_id": common.ComputedInt(),
+			"profiles_name":    common.ComputedString(),
+			"profiles_url":     common.ComputedString(),
+			"profiles_status":  common.ComputedString(),
 
 			// Graphite
-			"graphite_user_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-			"graphite_name": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"graphite_url": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"graphite_status": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
+			"graphite_user_id": common.ComputedInt(),
+			"graphite_name":    common.ComputedString(),
+			"graphite_url":     common.ComputedString(),
+			"graphite_status":  common.ComputedString(),
 		},
 		CustomizeDiff: customdiff.All(
 			customdiff.ComputedIf("url", func(_ context.Context, diff *schema.ResourceDiff, meta interface{}) bool {
@@ -403,6 +316,11 @@ func FlattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance) erro
 	d.Set("traces_name", stack.HtInstanceName)
 	d.Set("traces_url", stack.HtInstanceUrl)
 	d.Set("traces_status", stack.HtInstanceStatus)
+
+	d.Set("profiles_user_id", stack.HpInstanceId)
+	d.Set("profiles_name", stack.HpInstanceName)
+	d.Set("profiles_url", stack.HpInstanceUrl)
+	d.Set("profiles_status", stack.HpInstanceStatus)
 
 	d.Set("graphite_user_id", stack.HmInstanceGraphiteId)
 	d.Set("graphite_name", stack.HmInstanceGraphiteName)

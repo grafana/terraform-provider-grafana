@@ -74,3 +74,27 @@ func ValidateDurationWithDays(i interface{}, p cty.Path) diag.Diagnostics {
 	}
 	return nil
 }
+
+func ComputedInt() *schema.Schema {
+	return computedWithDescription(schema.TypeInt, "")
+}
+
+func ComputedIntWithDescription(description string) *schema.Schema {
+	return computedWithDescription(schema.TypeInt, description)
+}
+
+func ComputedString() *schema.Schema {
+	return computedWithDescription(schema.TypeString, "")
+}
+
+func ComputedStringWithDescription(description string) *schema.Schema {
+	return computedWithDescription(schema.TypeString, description)
+}
+
+func computedWithDescription(t schema.ValueType, description string) *schema.Schema {
+	return &schema.Schema{
+		Type:        t,
+		Computed:    true,
+		Description: description,
+	}
+}
