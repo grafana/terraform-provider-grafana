@@ -242,8 +242,10 @@ func testConfigForProvider(provider string, prefix string) string {
 	return fmt.Sprintf(`resource "grafana_sso_settings" "%[2]s_sso_settings" {
   provider_name = "%[2]s"
   oauth2_settings {
-    client_id             = "%[1]s_%[2]s_client_id"
-    client_secret         = "%[1]s_%[2]s_client_secret"
+    client_id     = "%[1]s_%[2]s_client_id"
+    client_secret = "%[1]s_%[2]s_client_secret"
+    auth_url      = "https://myidp.com/oauth/authorize"
+    token_url     = "https://myidp.com/oauth/token"
   }
 }`, prefix, provider)
 }
@@ -251,14 +253,18 @@ func testConfigForProvider(provider string, prefix string) string {
 const testConfigWithTwoResourcesForOneProvider = `resource "grafana_sso_settings" "first_sso_settings" {
   provider_name = "azuread"
   oauth2_settings {
-    client_id             = "first_gitlab_client_id"
+    client_id = "first_gitlab_client_id"
+    auth_url  = "https://login.microsoftonline.com/TENANT_ID/oauth2/v2.0/authorize"
+    token_url = "https://login.microsoftonline.com/TENANT_ID/oauth2/v2.0/token"
   }
 }
 
 resource "grafana_sso_settings" "second_sso_settings" {
   provider_name = "azuread"
   oauth2_settings {
-    client_id             = "second_gitlab_client_id"
+    client_id = "second_gitlab_client_id"
+    auth_url  = "https://login.microsoftonline.com/TENANT_ID/oauth2/v2.0/authorize"
+    token_url = "https://login.microsoftonline.com/TENANT_ID/oauth2/v2.0/token"
   }
 }`
 
@@ -275,12 +281,16 @@ const testConfigWithNoSettings = `resource "grafana_sso_settings" "sso_settings"
 const testConfigWithManySettings = `resource "grafana_sso_settings" "sso_settings" {
   provider_name = "gitlab"
   oauth2_settings {
-    client_id             = "first_gitlab_client_id"
-    client_secret         = "first_gitlab_client_secret"
+    client_id     = "first_gitlab_client_id"
+    client_secret = "first_gitlab_client_secret"
+    auth_url      = "https://gitlab.com/oauth/authorize"
+    token_url     = "https://gitlab.com/oauth/token"
   }
 
   oauth2_settings {
-    client_id             = "second_gitlab_client_id"
-    client_secret         = "second_gitlab_client_secret"
+    client_id     = "second_gitlab_client_id"
+    client_secret = "second_gitlab_client_secret"
+    auth_url      = "https://gitlab.com/oauth/authorize"
+    token_url     = "https://gitlab.com/oauth/token"
   }
 }`

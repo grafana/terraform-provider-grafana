@@ -82,7 +82,7 @@ var oauth2SettingsSchema = &schema.Resource{
 		},
 		"auth_url": {
 			Type:        schema.TypeString,
-			Optional:    true,
+			Required:    true,
 			Description: "The authorization endpoint of your OAuth2 provider.",
 		},
 		"auth_style": {
@@ -92,7 +92,7 @@ var oauth2SettingsSchema = &schema.Resource{
 		},
 		"token_url": {
 			Type:        schema.TypeString,
-			Optional:    true,
+			Required:    true,
 			Description: "The token endpoint of your OAuth2 provider.",
 		},
 		"scopes": {
