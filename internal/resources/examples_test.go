@@ -116,6 +116,10 @@ func TestAccExamples(t *testing.T) {
 
 			for _, filename := range filenames {
 				t.Run(filename, func(t *testing.T) {
+					// temporary skip the sso resource because it is not yet available in Grafana
+					if strings.Contains(filename, "sso_settings") {
+						testutils.CheckOSSTestsEnabled(t, ">=10.4.0")
+					}
 					resource.Test(t, resource.TestCase{
 						ProviderFactories: testutils.ProviderFactories,
 						Steps: []resource.TestStep{{

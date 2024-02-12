@@ -67,6 +67,7 @@ func Provider(version string) *schema.Provider {
 				"grafana_service_account_token":      grafana.ResourceServiceAccountToken(),
 				"grafana_service_account":            grafana.ResourceServiceAccount(),
 				"grafana_service_account_permission": grafana.ResourceServiceAccountPermission(),
+				"grafana_sso_settings":               grafana.ResourceSSOSettings(),
 				"grafana_user":                       grafana.ResourceUser(),
 
 				// Machine Learning
