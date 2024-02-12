@@ -257,14 +257,6 @@ var (
 			return payloadOrError(resp, err)
 		},
 	)
-
-	ssoSettingsCheckExists = newCheckExistsHelper(
-		func(u *models.GetProviderSettingsOKBody) string { return u.Provider },
-		func(client *goapi.GrafanaHTTPAPI, provider string) (*models.GetProviderSettingsOKBody, error) {
-			resp, err := client.SsoSettings.GetProviderSettings(provider)
-			return payloadOrError(resp, err)
-		},
-	)
 )
 
 type checkExistsGetResourceFunc[T interface{}] func(client *goapi.GrafanaHTTPAPI, id string) (*T, error)
