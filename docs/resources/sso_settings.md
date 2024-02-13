@@ -3,13 +3,13 @@
 page_title: "grafana_sso_settings Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Manages Grafana SSO Settings for OAuth2, SAML and LDAP.
+  Manages Grafana SSO Settings for OAuth2. SAML support will be added soon.
   Official documentation https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/sso-settings/
 ---
 
 # grafana_sso_settings (Resource)
 
-Manages Grafana SSO Settings for OAuth2, SAML and LDAP.
+Manages Grafana SSO Settings for OAuth2. SAML support will be added soon.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/sso-settings/)
@@ -36,7 +36,7 @@ resource "grafana_sso_settings" "github_sso_settings" {
 ### Required
 
 - `oauth2_settings` (Block Set, Min: 1, Max: 1) The SSO settings set. (see [below for nested schema](#nestedblock--oauth2_settings))
-- `provider_name` (String) The name of the SSO provider.
+- `provider_name` (String) The name of the SSO provider. Supported values: github, gitlab, google, azuread, okta, generic_oauth.
 
 ### Read-Only
 
