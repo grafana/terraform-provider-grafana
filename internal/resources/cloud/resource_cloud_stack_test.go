@@ -36,7 +36,8 @@ func TestResourceStack_Basic(t *testing.T) {
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.tf", "true"),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.source", "terraform"),
-		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.#", "2"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.to_delete", "true"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.#", "3"),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "prometheus_remote_endpoint", "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom"),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "prometheus_remote_write_endpoint", "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "prometheus_user_id"),
@@ -104,6 +105,9 @@ func TestResourceStack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "slug", resourceName),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "description", stackDescription),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.tf", "true"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.source", "terraform-updated"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.#", "2"),
 				),
 			},
 			// Test import from ID
@@ -191,8 +195,9 @@ func testAccStackConfigBasicWithCustomResourceName(name, slug, region, resourceN
 		region_slug = "%s"
 		description = "%s"
 		labels = {
-			tf     = "true"
-			source = "terraform"
+			tf        = "true"
+			source    = "terraform"
+			to_delete = "true"
 		}
 	  }
 	`, resourceName, name, slug, region, description)
@@ -205,6 +210,10 @@ func testAccStackConfigUpdate(name string, slug string, description string) stri
 		slug  = "%s"
 		region_slug = "eu"
 		description = "%s"
+		labels = {
+			tf     = "true"
+			source = "terraform-updated"
+		}
 	  }
 	`, name, slug, description)
 }
