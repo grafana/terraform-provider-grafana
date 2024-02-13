@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
 )
@@ -19,7 +20,7 @@ func ResourceSSOSettings() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
-Manages Grafana SSO Settings for OAuth2, SAML and LDAP.
+Manages Grafana SSO Settings for OAuth2. SAML support will be added soon.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/sso-settings/)
@@ -35,9 +36,10 @@ Manages Grafana SSO Settings for OAuth2, SAML and LDAP.
 
 		Schema: map[string]*schema.Schema{
 			providerKey: {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the SSO provider.",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "The name of the SSO provider. Supported values: github, gitlab, google, azuread, okta, generic_oauth.",
+				ValidateFunc: validation.StringInSlice([]string{"github", "gitlab", "google", "azuread", "okta", "generic_oauth"}, false),
 			},
 			oauth2SettingsKey: {
 				Type:        schema.TypeSet,

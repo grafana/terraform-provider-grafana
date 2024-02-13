@@ -64,6 +64,20 @@ func TestSSOSettings_basic(t *testing.T) {
 	}
 }
 
+func TestSSOSettings_resourceWithInvalidProvider(t *testing.T) {
+	provider := "invalid_provider"
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testConfigForProvider(provider, "new"),
+				ExpectError: regexp.MustCompile("expected provider_name to be one of"),
+			},
+		},
+	})
+}
+
 func TestSSOSettings_resourceWithNoSettings(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
