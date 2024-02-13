@@ -105,6 +105,12 @@ available at “https://<stack_slug>.grafana.net".`,
 			"org_slug": common.ComputedStringWithDescription("Organization slug to assign to this stack."),
 			"org_name": common.ComputedStringWithDescription("Organization name to assign to this stack."),
 			"status":   common.ComputedStringWithDescription("Status of the stack."),
+			"labels": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: "A map of labels to assign to the stack.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
 
 			// Metrics (Mimir/Prometheus)
 			"prometheus_user_id":               common.ComputedIntWithDescription("Prometheus user ID. Used for e.g. remote_write."),
@@ -176,6 +182,7 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 		Url:         common.Ref(d.Get("url").(string)),
 		Region:      common.Ref(d.Get("region_slug").(string)),
 		Description: common.Ref(d.Get("description").(string)),
+		Labels:      common.Ref(common.UnpackMap[string](d.Get("labels"))),
 	}
 
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
@@ -230,6 +237,7 @@ func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 			Slug:        common.Ref(d.Get("slug").(string)),
 			Description: common.Ref(d.Get("description").(string)),
 			Url:         common.Ref(d.Get("url").(string)),
+			Labels:      common.Ref(common.UnpackMap[string](d.Get("labels"))),
 		}
 		req := client.InstancesAPI.PostInstance(ctx, d.Id()).PostInstanceRequest(stack).XRequestId(ClientRequestID())
 		_, _, err := req.Execute()
@@ -294,6 +302,7 @@ func FlattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("status", stack.Status)
 	d.Set("region_slug", stack.RegionSlug)
 	d.Set("description", stack.Description)
+	d.Set("labels", stack.Labels)
 
 	d.Set("org_id", stack.OrgId)
 	d.Set("org_slug", stack.OrgSlug)

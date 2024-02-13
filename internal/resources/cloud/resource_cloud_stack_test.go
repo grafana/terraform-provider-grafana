@@ -34,6 +34,9 @@ func TestResourceStack_Basic(t *testing.T) {
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "slug", resourceName),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "description", stackDescription),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.tf", "true"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.source", "terraform"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.#", "2"),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "prometheus_remote_endpoint", "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom"),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "prometheus_remote_write_endpoint", "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "prometheus_user_id"),
@@ -187,6 +190,10 @@ func testAccStackConfigBasicWithCustomResourceName(name, slug, region, resourceN
 		slug  = "%s"
 		region_slug = "%s"
 		description = "%s"
+		labels = {
+			tf     = "true"
+			source = "terraform"
+		}
 	  }
 	`, resourceName, name, slug, region, description)
 }

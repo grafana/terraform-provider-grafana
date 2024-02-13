@@ -68,6 +68,14 @@ func ListOfSetsToStringSlice(listSet []interface{}) [][]string {
 	return ret
 }
 
+func UnpackMap[T any](m interface{}) map[string]T {
+	ret := make(map[string]T)
+	for k, v := range m.(map[string]interface{}) {
+		ret[k] = v.(T)
+	}
+	return ret
+}
+
 func Ref[T any](v T) *T {
 	return &v
 }
