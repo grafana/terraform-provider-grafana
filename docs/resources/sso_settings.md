@@ -62,6 +62,7 @@ Optional:
 - `auth_style` (String) It determines how client_id and client_secret are sent to Oauth2 provider. Possible values are AutoDetect, InParams, InHeader. Default is AutoDetect.
 - `auto_login` (Boolean) Log in automatically, skipping the login screen.
 - `client_secret` (String, Sensitive) The client secret of your OAuth2 app.
+- `custom` (Map of String) Custom fields to configure for OAuth2. Refer to the Grafana docs for a list of supported custom fields.
 - `define_allowed_groups` (Boolean) Define allowed groups.
 - `define_allowed_teams_ids` (Boolean) Define allowed teams ids.
 - `email_attribute_name` (String) Name of the key to use for user email lookup within the attributes map of OAuth2 ID token. Only applicable to Generic OAuth.
