@@ -23,7 +23,10 @@ import (
 
 const defaultReadinessTimeout = time.Minute * 5
 
-var stackSlugRegex = regexp.MustCompile("^[a-z][a-z0-9]+$")
+var (
+	stackLabelRegex = regexp.MustCompile(`^[a-zA-Z0-9/\-.]+$`)
+	stackSlugRegex  = regexp.MustCompile(`^[a-z][a-z0-9]+$`)
+)
 
 func ResourceStack() *schema.Resource {
 	return &schema.Resource{
@@ -108,8 +111,23 @@ available at “https://<stack_slug>.grafana.net".`,
 			"labels": {
 				Type:        schema.TypeMap,
 				Optional:    true,
-				Description: "A map of labels to assign to the stack.",
+				Description: fmt.Sprintf("A map of labels to assign to the stack. Label keys and values must match the following regexp: %q and stacks cannot have more than 10 labels.", stackLabelRegex.String()),
 				Elem:        &schema.Schema{Type: schema.TypeString},
+				ValidateFunc: func(i interface{}, s string) ([]string, []error) {
+					labels := i.(map[string]interface{})
+					if len(labels) > 10 {
+						return nil, []error{fmt.Errorf("stacks cannot have more than 10 labels")}
+					}
+					for k, v := range labels {
+						if !stackLabelRegex.MatchString(k) {
+							return nil, []error{fmt.Errorf("label key %q does not match %q", k, stackLabelRegex.String())}
+						}
+						if !stackLabelRegex.MatchString(v.(string)) {
+							return nil, []error{fmt.Errorf("label value %q does not match %q", v, stackLabelRegex.String())}
+						}
+					}
+					return nil, nil
+				},
 			},
 
 			// Metrics (Mimir/Prometheus)

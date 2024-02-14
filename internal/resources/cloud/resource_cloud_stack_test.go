@@ -127,6 +127,61 @@ func TestResourceStack_Basic(t *testing.T) {
 	})
 }
 
+func TestResourceStack_Invalid(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `resource "grafana_cloud_stack" "test" { 
+					name = "test" 
+					slug = "ABC" // Can't start with an uppercase letter
+				}`,
+				ExpectError: regexp.MustCompile(`.*invalid value for slug \(must be a lowercase alphanumeric string and must start with a letter.*`),
+			},
+			{
+				Config: `resource "grafana_cloud_stack" "test" {
+					name = "test"
+					slug = "test"
+					labels = {
+						invalid_key = "true" // Can't have an underscore
+					}
+				}`,
+				ExpectError: regexp.MustCompile(`Error: label key "invalid_key" does not match .+"`),
+			},
+			{
+				Config: `resource "grafana_cloud_stack" "test" {
+					name = "test"
+					slug = "test"
+					labels = {
+						"key" = "invalid$"
+					}
+				}`,
+				ExpectError: regexp.MustCompile(`Error: label value "invalid\$" does not match .+"`),
+			},
+			{
+				Config: `resource "grafana_cloud_stack" "test" {
+					name = "test"
+					slug = "test"
+					labels = {
+						"1" = "1"
+						"2" = "2"
+						"3" = "3"
+						"4" = "4"
+						"5" = "5"
+						"6" = "6"
+						"7" = "7"
+						"8" = "8"
+						"9" = "9"
+						"10" = "10"
+						"11" = "11"
+					}
+				}`,
+				ExpectError: regexp.MustCompile("Error: stacks cannot have more than 10 labels"),
+			},
+		},
+	})
+}
+
 func testAccDeleteExistingStacks(t *testing.T, prefix string) {
 	client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 	resp, _, err := client.InstancesAPI.GetInstances(context.Background()).Execute()
