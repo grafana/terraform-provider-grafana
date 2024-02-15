@@ -47,9 +47,7 @@ resource "grafana_sso_settings" "github_sso_settings" {
 
 Required:
 
-- `auth_url` (String) The authorization endpoint of your OAuth2 provider.
 - `client_id` (String) The client Id of your OAuth2 app.
-- `token_url` (String) The token endpoint of your OAuth2 provider.
 
 Optional:
 
@@ -60,6 +58,7 @@ Optional:
 - `allowed_organizations` (String) List of comma- or space-separated organizations. The user should be a member of at least one organization to log in.
 - `api_url` (String) The user information endpoint of your OAuth2 provider.
 - `auth_style` (String) It determines how client_id and client_secret are sent to Oauth2 provider. Possible values are AutoDetect, InParams, InHeader. Default is AutoDetect.
+- `auth_url` (String) The authorization endpoint of your OAuth2 provider. Required for azuread, okta and generic_oauth providers.
 - `auto_login` (Boolean) Log in automatically, skipping the login screen.
 - `client_secret` (String, Sensitive) The client secret of your OAuth2 app.
 - `custom` (Map of String) Custom fields to configure for OAuth2. Refer to the Grafana docs for a list of supported custom fields.
@@ -86,5 +85,6 @@ Optional:
 - `tls_client_cert` (String) The path to the certificate. Is not applicable on Grafana Cloud.
 - `tls_client_key` (String) The path to the key. Is not applicable on Grafana Cloud.
 - `tls_skip_verify_insecure` (Boolean) If enabled, the client accepts any certificate presented by the server and any host name in that certificate. You should only use this for testing, because this mode leaves SSL/TLS susceptible to man-in-the-middle attacks.
+- `token_url` (String) The token endpoint of your OAuth2 provider. Required for azuread, okta and generic_oauth providers.
 - `use_pkce` (Boolean) If enabled, Grafana will use Proof Key for Code Exchange (PKCE) with the OAuth2 Authorization Code Grant.
 - `use_refresh_token` (Boolean) If enabled, Grafana will fetch a new access token using the refresh token provided by the OAuth2 provider.

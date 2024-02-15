@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -86,8 +87,8 @@ var oauth2SettingsSchema = &schema.Resource{
 		},
 		"auth_url": {
 			Type:        schema.TypeString,
-			Required:    true,
-			Description: "The authorization endpoint of your OAuth2 provider.",
+			Optional:    true,
+			Description: "The authorization endpoint of your OAuth2 provider. Required for azuread, okta and generic_oauth providers.",
 		},
 		"auth_style": {
 			Type:        schema.TypeString,
@@ -96,8 +97,8 @@ var oauth2SettingsSchema = &schema.Resource{
 		},
 		"token_url": {
 			Type:        schema.TypeString,
-			Required:    true,
-			Description: "The token endpoint of your OAuth2 provider.",
+			Optional:    true,
+			Description: "The token endpoint of your OAuth2 provider. Required for azuread, okta and generic_oauth providers.",
 		},
 		"scopes": {
 			Type:        schema.TypeString,
@@ -294,7 +295,8 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 				if val, ok := settingsFromTfState[key]; ok {
 					settingsSnake[key] = val
 				}
-			} else {
+			} else if !isIgnored(provider, key) {
+				// some fields cannot be updated, but they are returned by the API, so we ignore them
 				settingsSnake[key] = v
 			}
 		} else if _, ok := customFieldsFromTfState[key]; ok {
@@ -334,6 +336,11 @@ func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 	}
 
 	settings = mergeCustomFields(settings)
+
+	err := validateOAuth2Settings(provider, settings)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	ssoSettings := models.UpdateProviderSettingsParamsBody{
 		Provider: provider,
@@ -381,6 +388,40 @@ func getSettingsFromResourceData(d *schema.ResourceData, settingsKey string) (ma
 	}
 
 	return nil, fmt.Errorf("no valid settings found for the provider %s", d.Get(providerKey).(string))
+}
+
+func validateOAuth2Settings(provider string, settings map[string]any) error {
+	authURL := settings["auth_url"].(string)
+	tokenURL := settings["token_url"].(string)
+	apiURL := settings["api_url"].(string)
+
+	switch provider {
+	case "github", "gitlab", "google":
+		if authURL != "" {
+			return fmt.Errorf("auth_url must be empty for the provider %s", provider)
+		}
+		if tokenURL != "" {
+			return fmt.Errorf("token_url must be empty for the provider %s", provider)
+		}
+		if apiURL != "" {
+			return fmt.Errorf("api_url must be empty for the provider %s", provider)
+		}
+	case "azuread", "generic_oauth", "okta":
+		if authURL == "" {
+			return fmt.Errorf("auth_url must be set for the provider %s", provider)
+		}
+		if !isValidURL(authURL) {
+			return fmt.Errorf("auth_url must be a valid http/https URL")
+		}
+		if tokenURL == "" {
+			return fmt.Errorf("token_url must be set for the provider %s", provider)
+		}
+		if !isValidURL(tokenURL) {
+			return fmt.Errorf("token_url must be a valid http/https URL")
+		}
+	}
+
+	return nil
 }
 
 // copied and adapted from https://github.com/grafana/grafana/blob/main/pkg/services/featuremgmt/strcase/snake.go#L70
@@ -468,4 +509,23 @@ func mergeCustomFields(settings map[string]any) map[string]any {
 	}
 
 	return merged
+}
+
+func isIgnored(provider string, fieldName string) bool {
+	switch provider {
+	case "github", "gitlab", "google":
+		switch fieldName {
+		case "auth_url", "token_url", "api_url":
+			return true
+		}
+	}
+	return false
+}
+
+func isValidURL(actual string) bool {
+	parsed, err := url.ParseRequestURI(actual)
+	if err != nil {
+		return false
+	}
+	return strings.HasPrefix(parsed.Scheme, "http") && parsed.Host != ""
 }

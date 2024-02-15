@@ -126,6 +126,21 @@ func TestSSOSettings_resourceWithInvalidCustomField(t *testing.T) {
 	})
 }
 
+func TestSSOSettings_resourceWithValidationErrors(t *testing.T) {
+	for _, config := range testConfigsWithValidationErrors {
+		resource.Test(t, resource.TestCase{
+			ProviderFactories: testutils.ProviderFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					// all validation errors contain the word "must"
+					ExpectError: regexp.MustCompile("must"),
+				},
+			},
+		})
+	}
+}
+
 func checkSsoSettingsReset(api *client.GrafanaHTTPAPI, provider string, defaultSettings *models.GetProviderSettingsOKBody) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		settings, err := api.SsoSettings.GetProviderSettings(provider)
@@ -142,18 +157,24 @@ func checkSsoSettingsReset(api *client.GrafanaHTTPAPI, provider string, defaultS
 }
 
 func testConfigForProvider(provider string, prefix string) string {
+	urls := ""
+	switch provider {
+	case "azuread", "generic_oauth", "okta":
+		urls = `auth_url = "https://myidp.com/oauth/authorize"
+    token_url = "https://myidp.com/oauth/token"`
+	}
+
 	return fmt.Sprintf(`resource "grafana_sso_settings" "%[2]s_sso_settings" {
   provider_name = "%[2]s"
   oauth2_settings {
     client_id     = "%[1]s_%[2]s_client_id"
     client_secret = "%[1]s_%[2]s_client_secret"
-    auth_url      = "https://myidp.com/oauth/authorize"
-    token_url     = "https://myidp.com/oauth/token"
+    %[3]s
     custom = {
       test = "test"
     }
   }
-}`, prefix, provider)
+}`, prefix, provider, urls)
 }
 
 const testConfigWithEmptySettings = `resource "grafana_sso_settings" "sso_settings" {
@@ -195,3 +216,47 @@ const testConfigWithInvalidCustomField = `resource "grafana_sso_settings" "sso_s
     }
   }
 }`
+
+var testConfigsWithValidationErrors = []string{
+	// no token_url provided for azuread
+	`resource "grafana_sso_settings" "azure_sso_settings" {
+  provider_name = "azuread"
+  oauth2_settings {
+    client_id = "client_id"
+    auth_url  = "https://login.microsoftonline.com/12345/oauth2/v2.0/authorize"
+  }
+}`,
+	// invalid auth_url provided for okta
+	`resource "grafana_sso_settings" "okta_sso_settings" {
+  provider_name = "okta"
+  oauth2_settings {
+    client_id = "client_id"
+    auth_url  = "ftp://login.microsoftonline.com/12345/oauth2/v2.0/authorize"
+    token_url = "https://login.microsoftonline.com/12345/oauth2/v2.0/token"
+  }
+}`,
+	// auth_url is not empty for github
+	`resource "grafana_sso_settings" "github_sso_settings" {
+  provider_name = "github"
+  oauth2_settings {
+    client_id = "client_id"
+    auth_url  = "https://login.microsoftonline.com/12345/oauth2/v2.0/authorize"
+  }
+}`,
+	// token_url is not empty for gitlab
+	`resource "grafana_sso_settings" "gitlab_sso_settings" {
+  provider_name = "gitlab"
+  oauth2_settings {
+    client_id = "client_id"
+    token_url  = "https://login.microsoftonline.com/12345/oauth2/v2.0/token"
+  }
+}`,
+	// api_url is not empty for google
+	`resource "grafana_sso_settings" "google_sso_settings" {
+  provider_name = "google"
+  oauth2_settings {
+    client_id = "client_id"
+    api_url  = "https://login.microsoftonline.com/12345/oauth2/v2.0/userinfo"
+  }
+}`,
+}
