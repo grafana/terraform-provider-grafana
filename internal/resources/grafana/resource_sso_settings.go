@@ -364,13 +364,13 @@ func validateOAuth2Settings(provider string, settings map[string]any) error {
 		if authURL == "" {
 			return fmt.Errorf("auth_url must be set for the provider %s", provider)
 		}
-		if !isValidUrl(authURL) {
+		if !isValidURL(authURL) {
 			return fmt.Errorf("auth_url must be a valid http/https URL")
 		}
 		if tokenURL == "" {
 			return fmt.Errorf("token_url must be set for the provider %s", provider)
 		}
-		if !isValidUrl(tokenURL) {
+		if !isValidURL(tokenURL) {
 			return fmt.Errorf("token_url must be a valid http/https URL")
 		}
 	}
@@ -450,7 +450,7 @@ func isIgnored(provider string, fieldName string) bool {
 	return false
 }
 
-func isValidUrl(actual string) bool {
+func isValidURL(actual string) bool {
 	parsed, err := url.ParseRequestURI(actual)
 	if err != nil {
 		return false
