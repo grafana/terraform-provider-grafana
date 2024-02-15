@@ -211,7 +211,7 @@ const testConfigWithInvalidCustomField = `resource "grafana_sso_settings" "sso_s
     client_secret = "first_gitlab_client_secret"
     auth_url      = "https://gitlab.com/oauth/authorize"
     token_url     = "https://gitlab.com/oauth/token"
-	custom        = {
+    custom        = {
       token_url = "https://gitlab-clone.com/oauth/token"
     }
   }

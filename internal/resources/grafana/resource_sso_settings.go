@@ -337,7 +337,7 @@ func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 
 	settings = mergeCustomFields(settings)
 
-	err := validateOAuth2Settings(provider, settings)
+	err = validateOAuth2Settings(provider, settings)
 	if err != nil {
 		return diag.FromErr(err)
 	}
