@@ -248,7 +248,7 @@ var oauth2SettingsSchema = &schema.Resource{
 		customFieldsKey: {
 			Type:        schema.TypeMap,
 			Optional:    true,
-			Description: "Custom fields to configure for OAuth2. Refer to the Grafana docs for a list of supported custom fields.",
+			Description: "Custom fields to configure for OAuth2 such as the [force_use_graph_api](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/azuread/#force-fetching-groups-from-microsoft-graph-api) field.",
 			Elem: &schema.Schema{
 				Type: schema.TypeString,
 			},
