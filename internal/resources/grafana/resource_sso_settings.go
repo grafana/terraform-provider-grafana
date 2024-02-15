@@ -345,32 +345,32 @@ func DeleteSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 }
 
 func validateOAuth2Settings(provider string, settings map[string]any) error {
-	authUrl := settings["auth_url"].(string)
-	tokenUrl := settings["token_url"].(string)
-	apiUrl := settings["api_url"].(string)
+	authURL := settings["auth_url"].(string)
+	tokenURL := settings["token_url"].(string)
+	apiURL := settings["api_url"].(string)
 
 	switch provider {
 	case "github", "gitlab", "google":
-		if authUrl != "" {
+		if authURL != "" {
 			return fmt.Errorf("auth_url must be empty for the provider %s", provider)
 		}
-		if tokenUrl != "" {
+		if tokenURL != "" {
 			return fmt.Errorf("token_url must be empty for the provider %s", provider)
 		}
-		if apiUrl != "" {
+		if apiURL != "" {
 			return fmt.Errorf("api_url must be empty for the provider %s", provider)
 		}
 	case "azuread", "generic_oauth", "okta":
-		if authUrl == "" {
+		if authURL == "" {
 			return fmt.Errorf("auth_url must be set for the provider %s", provider)
 		}
-		if !isValidUrl(authUrl) {
+		if !isValidUrl(authURL) {
 			return fmt.Errorf("auth_url must be a valid http/https URL")
 		}
-		if tokenUrl == "" {
+		if tokenURL == "" {
 			return fmt.Errorf("token_url must be set for the provider %s", provider)
 		}
-		if !isValidUrl(tokenUrl) {
+		if !isValidUrl(tokenURL) {
 			return fmt.Errorf("token_url must be a valid http/https URL")
 		}
 	}
