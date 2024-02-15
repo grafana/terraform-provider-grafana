@@ -2,6 +2,8 @@ package grafana
 
 import (
 	"context"
+	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -84,8 +86,8 @@ var oauth2SettingsSchema = &schema.Resource{
 		},
 		"auth_url": {
 			Type:        schema.TypeString,
-			Required:    true,
-			Description: "The authorization endpoint of your OAuth2 provider.",
+			Optional:    true,
+			Description: "The authorization endpoint of your OAuth2 provider. Required for azuread, okta and generic_oauth providers.",
 		},
 		"auth_style": {
 			Type:        schema.TypeString,
@@ -94,8 +96,8 @@ var oauth2SettingsSchema = &schema.Resource{
 		},
 		"token_url": {
 			Type:        schema.TypeString,
-			Required:    true,
-			Description: "The token endpoint of your OAuth2 provider.",
+			Optional:    true,
+			Description: "The token endpoint of your OAuth2 provider. Required for azuread, okta and generic_oauth providers.",
 		},
 		"scopes": {
 			Type:        schema.TypeString,
@@ -278,7 +280,8 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 				if val, ok := settingsFromTfState[key]; ok {
 					settingsSnake[key] = val
 				}
-			} else {
+			} else if !isIgnored(provider, key) {
+				// some fields cannot be updated, but they are returned by the API, so we ignore them
 				settingsSnake[key] = v
 			}
 		}
@@ -308,12 +311,17 @@ func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 		settings = settingsList[0].(map[string]any)
 	}
 
+	err := validateOAuth2Settings(provider, settings)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	ssoSettings := models.UpdateProviderSettingsParamsBody{
 		Provider: provider,
 		Settings: settings,
 	}
 
-	_, err := client.SsoSettings.UpdateProviderSettings(provider, &ssoSettings)
+	_, err = client.SsoSettings.UpdateProviderSettings(provider, &ssoSettings)
 	if err != nil {
 		return diag.Errorf("failed to create the SSO settings for provider %s: %v", provider, err)
 	}
@@ -331,6 +339,40 @@ func DeleteSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 	_, err := client.SsoSettings.RemoveProviderSettings(provider)
 	if err != nil {
 		return diag.Errorf("failed to remove the SSO settings for provider %s: %v", provider, err)
+	}
+
+	return nil
+}
+
+func validateOAuth2Settings(provider string, settings map[string]any) error {
+	authUrl := settings["auth_url"].(string)
+	tokenUrl := settings["token_url"].(string)
+	apiUrl := settings["api_url"].(string)
+
+	switch provider {
+	case "github", "gitlab", "google":
+		if authUrl != "" {
+			return fmt.Errorf("auth_url must be empty for the provider %s", provider)
+		}
+		if tokenUrl != "" {
+			return fmt.Errorf("token_url must be empty for the provider %s", provider)
+		}
+		if apiUrl != "" {
+			return fmt.Errorf("api_url must be empty for the provider %s", provider)
+		}
+	case "azuread", "generic_oauth", "okta":
+		if authUrl == "" {
+			return fmt.Errorf("auth_url must be set for the provider %s", provider)
+		}
+		if !isValidUrl(authUrl) {
+			return fmt.Errorf("auth_url must be a valid http/https URL")
+		}
+		if tokenUrl == "" {
+			return fmt.Errorf("token_url must be set for the provider %s", provider)
+		}
+		if !isValidUrl(tokenUrl) {
+			return fmt.Errorf("token_url must be a valid http/https URL")
+		}
 	}
 
 	return nil
@@ -395,4 +437,23 @@ func isSecret(fieldName string) bool {
 		}
 	}
 	return false
+}
+
+func isIgnored(provider string, fieldName string) bool {
+	switch provider {
+	case "github", "gitlab", "google":
+		switch fieldName {
+		case "auth_url", "token_url", "api_url":
+			return true
+		}
+	}
+	return false
+}
+
+func isValidUrl(actual string) bool {
+	parsed, err := url.ParseRequestURI(actual)
+	if err != nil {
+		return false
+	}
+	return strings.HasPrefix(parsed.Scheme, "http") && parsed.Host != ""
 }
