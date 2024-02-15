@@ -370,8 +370,8 @@ func getSettingsFromResourceData(d *schema.ResourceData, settingsKey string) (ma
 		return nil, fmt.Errorf("no settings found for the provider %s", d.Get(providerKey).(string))
 	}
 
-	// sometimes the settings set contains some empty items
-	// TODO investigate why this happens
+	// TODO investigate why we need this
+	// sometimes the settings set contains some empty items that we want to ignore
 	// we are only interested in the settings that have the client_id set because the client_id is a required field
 	for _, item := range settingsList {
 		settings := item.(map[string]any)
@@ -380,7 +380,7 @@ func getSettingsFromResourceData(d *schema.ResourceData, settingsKey string) (ma
 		}
 	}
 
-	return nil, fmt.Errorf("no settings found")
+	return nil, fmt.Errorf("no valid settings found for the provider %s", d.Get(providerKey).(string))
 }
 
 // copied and adapted from https://github.com/grafana/grafana/blob/main/pkg/services/featuremgmt/strcase/snake.go#L70
