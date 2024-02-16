@@ -279,11 +279,15 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 		settingsFromTfState = settingsFromTfStateList[0].(map[string]any)
 	}
 
-	settingsSnake := make(map[string]any)
-
 	customFieldsFromTfState := make(map[string]any)
 	if settingsFromTfState[customFieldsKey] != nil {
 		customFieldsFromTfState = settingsFromTfState[customFieldsKey].(map[string]any)
+	}
+
+	settingsSnake := make(map[string]any)
+
+	if _, ok := settingsSnake[customFieldsKey]; !ok {
+		settingsSnake[customFieldsKey] = make(map[string]any)
 	}
 
 	for k, v := range payload.Settings.(map[string]any) {
@@ -300,10 +304,10 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 				settingsSnake[key] = v
 			}
 		} else if _, ok := customFieldsFromTfState[key]; ok {
-			if _, ok := settingsSnake[customFieldsKey]; !ok {
-				settingsSnake[customFieldsKey] = make(map[string]any)
-			}
 			settingsSnake[customFieldsKey].(map[string]any)[key] = v
+		} else if _, ok := customFieldsFromTfState[k]; ok {
+			// for covering the case when a custom field name is in camelCase
+			settingsSnake[customFieldsKey].(map[string]any)[k] = v
 		}
 	}
 

@@ -91,6 +91,7 @@ func TestSSOSettings_customFields(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.client_secret", "client_secret"),
 					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.custom.custom_field", "custom1"),
 					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.custom.another_custom_field", "custom2"),
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.custom.camelCaseField", "custom3"),
 					// check that all custom fields are returned by the API
 					func(s *terraform.State) error {
 						resp, err := api.SsoSettings.GetProviderSettings(provider)
@@ -110,6 +111,9 @@ func TestSSOSettings_customFields(t *testing.T) {
 						}
 						if settings["anotherCustomField"] != "custom2" {
 							t.Fatalf("expected value for another_custom_field is not equal to the actual value: %s", settings["anotherCustomField"])
+						}
+						if settings["camelCaseField"] != "custom3" {
+							t.Fatalf("expected value for camelCaseField is not equal to the actual value: %s", settings["camelCaseField"])
 						}
 
 						return nil
@@ -232,9 +236,6 @@ func testConfigForProvider(provider string, prefix string) string {
     client_id     = "%[1]s_%[2]s_client_id"
     client_secret = "%[1]s_%[2]s_client_secret"
     %[3]s
-    custom = {
-      test = "test"
-    }
   }
 }`, prefix, provider, urls)
 }
@@ -247,6 +248,7 @@ const testConfigWithCustomFields = `resource "grafana_sso_settings" "sso_setting
     custom = {
       custom_field = "custom1"
       another_custom_field = "custom2"
+      camelCaseField = "custom3"
     }
   }
 }`
