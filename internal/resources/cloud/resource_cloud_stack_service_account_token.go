@@ -5,6 +5,7 @@ import (
 	"log"
 	"strconv"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -98,7 +99,7 @@ func stackServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	// Fill the true resource's state by performing a read
-	return stackServiceAccountTokenRead(ctx, d, m)
+	return stackServiceAccountTokenReadWithClient(c, d)
 }
 
 func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -109,6 +110,10 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m
 	}
 	defer cleanup()
 
+	return stackServiceAccountTokenReadWithClient(c, d)
+}
+
+func stackServiceAccountTokenReadWithClient(c *goapi.GrafanaHTTPAPI, d *schema.ResourceData) diag.Diagnostics {
 	serviceAccountID, err := strconv.ParseInt(d.Get("service_account_id").(string), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)

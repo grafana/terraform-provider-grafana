@@ -84,7 +84,7 @@ func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta
 	sa := resp.Payload
 
 	d.SetId(strconv.FormatInt(sa.ID, 10))
-	return readStackServiceAccount(ctx, d, meta)
+	return readStackServiceAccountWithClient(client, d)
 }
 
 func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -95,6 +95,10 @@ func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta i
 	}
 	defer cleanup()
 
+	return readStackServiceAccountWithClient(client, d)
+}
+
+func readStackServiceAccountWithClient(client *goapi.GrafanaHTTPAPI, d *schema.ResourceData) diag.Diagnostics {
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -152,7 +156,7 @@ func updateStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(err)
 	}
 
-	return readStackServiceAccount(ctx, d, meta)
+	return readStackServiceAccountWithClient(client, d)
 }
 
 func deleteStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
