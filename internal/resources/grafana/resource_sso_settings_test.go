@@ -64,6 +64,68 @@ func TestSSOSettings_basic(t *testing.T) {
 	}
 }
 
+func TestSSOSettings_customFields(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, "=main")
+
+	api := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+
+	provider := "github"
+
+	defaultSettings, err := api.SsoSettings.GetProviderSettings(provider)
+	if err != nil {
+		t.Fatalf("failed to fetch the default settings for provider %s: %v", provider, err)
+	}
+
+	resourceName := "grafana_sso_settings.sso_settings"
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      checkSsoSettingsReset(api, provider, defaultSettings.Payload),
+		Steps: []resource.TestStep{
+			{
+				Config: testConfigWithCustomFields,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.client_id", "client_id"),
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.client_secret", "client_secret"),
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.custom.custom_field", "custom1"),
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.custom.another_custom_field", "custom2"),
+					// check that all custom fields are returned by the API
+					func(s *terraform.State) error {
+						resp, err := api.SsoSettings.GetProviderSettings(provider)
+						if err != nil {
+							return err
+						}
+
+						payload := resp.GetPayload()
+						settings := payload.Settings.(map[string]any)
+
+						// the API returns the settings names in camelCase
+						if settings["clientId"] != "client_id" {
+							t.Fatalf("expected value for client_id is not equal to the actual value: %s", settings["clientId"])
+						}
+						if settings["customField"] != "custom1" {
+							t.Fatalf("expected value for custom_field is not equal to the actual value: %s", settings["customField"])
+						}
+						if settings["anotherCustomField"] != "custom2" {
+							t.Fatalf("expected value for another_custom_field is not equal to the actual value: %s", settings["anotherCustomField"])
+						}
+
+						return nil
+					},
+				),
+			},
+			{
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"oauth2_settings.0.client_secret", "oauth2_settings.0.custom"},
+			},
+		},
+	})
+}
+
 func TestSSOSettings_resourceWithInvalidProvider(t *testing.T) {
 	provider := "invalid_provider"
 
@@ -176,6 +238,18 @@ func testConfigForProvider(provider string, prefix string) string {
   }
 }`, prefix, provider, urls)
 }
+
+const testConfigWithCustomFields = `resource "grafana_sso_settings" "sso_settings" {
+  provider_name = "github"
+  oauth2_settings {
+    client_id     = "client_id"
+    client_secret = "client_secret"
+    custom = {
+      custom_field = "custom1"
+      another_custom_field = "custom2"
+    }
+  }
+}`
 
 const testConfigWithEmptySettings = `resource "grafana_sso_settings" "sso_settings" {
   provider_name = "okta"
