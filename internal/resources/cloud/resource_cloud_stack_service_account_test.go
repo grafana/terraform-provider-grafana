@@ -30,16 +30,22 @@ func TestAccGrafanaServiceAccountFromCloud(t *testing.T) {
 		CheckDestroy:      testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGrafanaServiceAccountFromCloud(slug, slug),
+				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, true),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
 					testAccGrafanaAuthCheckServiceAccounts(&stack, []string{"management-sa"}),
 					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "name", "management-sa"),
 					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "role", "Admin"),
-					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "is_disabled", "false"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "is_disabled", "true"),
 					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account_token.management_token", "name", "management-sa-token"),
 					resource.TestCheckNoResourceAttr("grafana_cloud_stack_service_account_token.management_token", "expiration"),
 					resource.TestCheckResourceAttrSet("grafana_cloud_stack_service_account_token.management_token", "key"),
+				),
+			},
+			{
+				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "is_disabled", "false"),
 				),
 			},
 			{
@@ -50,12 +56,13 @@ func TestAccGrafanaServiceAccountFromCloud(t *testing.T) {
 	})
 }
 
-func testAccGrafanaServiceAccountFromCloud(name, slug string) string {
-	return testAccStackConfigBasic(name, slug, "description") + `
+func testAccGrafanaServiceAccountFromCloud(name, slug string, disabled bool) string {
+	return testAccStackConfigBasic(name, slug, "description") + fmt.Sprintf(`
 	resource "grafana_cloud_stack_service_account" "management" {
 		stack_slug = grafana_cloud_stack.test.slug
-		name       = "management-sa"
-		role       = "Admin"
+		name        = "management-sa"
+		role        = "Admin"
+		is_disabled = %t
 	}
 
 	resource "grafana_cloud_stack_service_account_token" "management_token" {
@@ -63,7 +70,7 @@ func testAccGrafanaServiceAccountFromCloud(name, slug string) string {
 		service_account_id = grafana_cloud_stack_service_account.management.id
 		name       = "management-sa-token"
 	}
-	`
+	`, disabled)
 }
 
 func testAccGrafanaAuthCheckServiceAccounts(stack *gcom.FormattedApiInstance, expectedSAs []string) resource.TestCheckFunc {

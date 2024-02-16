@@ -58,6 +58,7 @@ This can be used to bootstrap a management service account for a new stack
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
+				ForceNew:    true,
 				Description: "The disabled status for the service account.",
 			},
 		},
@@ -136,17 +137,12 @@ func updateStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta
 	}
 
 	updateRequest := service_accounts.NewUpdateServiceAccountParams().
-		WithBody(&models.UpdateServiceAccountForm{}).
+		WithBody(&models.UpdateServiceAccountForm{
+			Name:       d.Get("name").(string),
+			Role:       d.Get("role").(string),
+			IsDisabled: d.Get("is_disabled").(bool),
+		}).
 		WithServiceAccountID(id)
-	if d.HasChange("name") {
-		updateRequest.Body.Name = d.Get("name").(string)
-	}
-	if d.HasChange("role") {
-		updateRequest.Body.Role = d.Get("role").(string)
-	}
-	if d.HasChange("is_disabled") {
-		updateRequest.Body.IsDisabled = d.Get("is_disabled").(bool)
-	}
 
 	if _, err := client.ServiceAccounts.UpdateServiceAccount(updateRequest); err != nil {
 		return diag.FromErr(err)
