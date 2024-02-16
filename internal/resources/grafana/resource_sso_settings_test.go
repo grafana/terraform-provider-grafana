@@ -57,7 +57,7 @@ func TestSSOSettings_basic(t *testing.T) {
 					ResourceName:            resourceName,
 					ImportState:             true,
 					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"oauth2_settings.0.client_secret"},
+					ImportStateVerifyIgnore: []string{"oauth2_settings.0.client_secret", "oauth2_settings.0.custom"},
 				},
 			},
 		})
@@ -114,6 +114,18 @@ func TestSSOSettings_resourceWithManySettings(t *testing.T) {
 	})
 }
 
+func TestSSOSettings_resourceWithInvalidCustomField(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testConfigWithInvalidCustomField,
+				ExpectError: regexp.MustCompile("Invalid custom field"),
+			},
+		},
+	})
+}
+
 func TestSSOSettings_resourceWithValidationErrors(t *testing.T) {
 	for _, config := range testConfigsWithValidationErrors {
 		resource.Test(t, resource.TestCase{
@@ -157,7 +169,10 @@ func testConfigForProvider(provider string, prefix string) string {
   oauth2_settings {
     client_id     = "%[1]s_%[2]s_client_id"
     client_secret = "%[1]s_%[2]s_client_secret"
-	%[3]s
+    %[3]s
+    custom = {
+      test = "test"
+    }
   }
 }`, prefix, provider, urls)
 }
@@ -186,6 +201,19 @@ const testConfigWithManySettings = `resource "grafana_sso_settings" "sso_setting
     client_secret = "second_gitlab_client_secret"
     auth_url      = "https://gitlab.com/oauth/authorize"
     token_url     = "https://gitlab.com/oauth/token"
+  }
+}`
+
+const testConfigWithInvalidCustomField = `resource "grafana_sso_settings" "sso_settings" {
+  provider_name = "gitlab"
+  oauth2_settings {
+    client_id     = "first_gitlab_client_id"
+    client_secret = "first_gitlab_client_secret"
+    auth_url      = "https://gitlab.com/oauth/authorize"
+    token_url     = "https://gitlab.com/oauth/token"
+    custom        = {
+      token_url = "https://gitlab-clone.com/oauth/token"
+    }
   }
 }`
 

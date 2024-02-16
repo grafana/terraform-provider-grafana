@@ -16,6 +16,7 @@ import (
 const (
 	providerKey       = "provider_name"
 	oauth2SettingsKey = "oauth2_settings"
+	customFieldsKey   = "custom"
 )
 
 func ResourceSSOSettings() *schema.Resource {
@@ -244,6 +245,14 @@ var oauth2SettingsSchema = &schema.Resource{
 			Optional:    true,
 			Description: "String list of Team Ids. If set, the user must be a member of one of the given teams to log in. If you configure team_ids, you must also configure teams_url and team_ids_attribute_path.",
 		},
+		customFieldsKey: {
+			Type:        schema.TypeMap,
+			Optional:    true,
+			Description: "Custom fields to configure for OAuth2 such as the [force_use_graph_api](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/azuread/#force-fetching-groups-from-microsoft-graph-api) field.",
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+		},
 	},
 }
 
@@ -271,6 +280,12 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 	}
 
 	settingsSnake := make(map[string]any)
+
+	customFieldsFromTfState := make(map[string]any)
+	if settingsFromTfState[customFieldsKey] != nil {
+		customFieldsFromTfState = settingsFromTfState[customFieldsKey].(map[string]any)
+	}
+
 	for k, v := range payload.Settings.(map[string]any) {
 		key := toSnake(k)
 
@@ -284,6 +299,11 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 				// some fields cannot be updated, but they are returned by the API, so we ignore them
 				settingsSnake[key] = v
 			}
+		} else if _, ok := customFieldsFromTfState[key]; ok {
+			if _, ok := settingsSnake[customFieldsKey]; !ok {
+				settingsSnake[customFieldsKey] = make(map[string]any)
+			}
+			settingsSnake[customFieldsKey].(map[string]any)[key] = v
 		}
 	}
 
@@ -305,13 +325,19 @@ func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 	// currently we implemented only the oauth2 settings
 	settingsKey := oauth2SettingsKey
 
-	settings := make(map[string]any)
-	settingsList := d.Get(settingsKey).(*schema.Set).List()
-	if len(settingsList) > 0 {
-		settings = settingsList[0].(map[string]any)
+	settings, err := getSettingsFromResourceData(d, settingsKey)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
-	err := validateOAuth2Settings(provider, settings)
+	diags := validateCustomFields(settings)
+	if diags != nil {
+		return diags
+	}
+
+	settings = mergeCustomFields(settings)
+
+	err = validateOAuth2Settings(provider, settings)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -342,6 +368,26 @@ func DeleteSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 	}
 
 	return nil
+}
+
+func getSettingsFromResourceData(d *schema.ResourceData, settingsKey string) (map[string]any, error) {
+	settingsList := d.Get(settingsKey).(*schema.Set).List()
+
+	if len(settingsList) == 0 {
+		return nil, fmt.Errorf("no settings found for the provider %s", d.Get(providerKey).(string))
+	}
+
+	// TODO investigate why we need this
+	// sometimes the settings set contains some empty items that we want to ignore
+	// we are only interested in the settings that have the client_id set because the client_id is a required field
+	for _, item := range settingsList {
+		settings := item.(map[string]any)
+		if settings["client_id"] != "" {
+			return settings, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no valid settings found for the provider %s", d.Get(providerKey).(string))
 }
 
 func validateOAuth2Settings(provider string, settings map[string]any) error {
@@ -437,6 +483,32 @@ func isSecret(fieldName string) bool {
 		}
 	}
 	return false
+}
+
+func validateCustomFields(settings map[string]any) diag.Diagnostics {
+	for key := range settings[customFieldsKey].(map[string]any) {
+		if _, ok := oauth2SettingsSchema.Schema[key]; ok {
+			return diag.Errorf("Invalid custom field %s, the field is already defined in the settings schema", key)
+		}
+	}
+
+	return nil
+}
+
+func mergeCustomFields(settings map[string]any) map[string]any {
+	merged := make(map[string]any)
+
+	for key, val := range settings {
+		if key != customFieldsKey {
+			merged[key] = val
+		}
+	}
+
+	for key, val := range settings[customFieldsKey].(map[string]any) {
+		merged[key] = val
+	}
+
+	return merged
 }
 
 func isIgnored(provider string, fieldName string) bool {
