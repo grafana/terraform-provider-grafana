@@ -65,7 +65,7 @@ func TestSSOSettings_basic(t *testing.T) {
 }
 
 func TestSSOSettings_customFields(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, "=main")
+	testutils.CheckOSSTestsEnabled(t, ">=10.4.0")
 
 	api := grafana.OAPIGlobalClient(testutils.Provider.Meta())
 
