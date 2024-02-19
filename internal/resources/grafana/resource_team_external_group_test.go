@@ -14,7 +14,7 @@ import (
 )
 
 func TestAccTeamExternalGroup_basic(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	name := acctest.RandString(10)
 	var team models.TeamDTO
