@@ -17,7 +17,7 @@ import (
 )
 
 func TestSSOSettings_basic(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=10.4.0")
+	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Run on v10.4.0 once it's released
 
 	providers := []string{"github", "gitlab", "google", "generic_oauth", "azuread", "okta"}
 
@@ -65,7 +65,7 @@ func TestSSOSettings_basic(t *testing.T) {
 }
 
 func TestSSOSettings_customFields(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=10.4.0")
+	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Run on v10.4.0 once it's released
 
 	api := grafana.OAPIGlobalClient(testutils.Provider.Meta())
 

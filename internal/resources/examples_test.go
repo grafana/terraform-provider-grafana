@@ -118,7 +118,7 @@ func TestAccExamples(t *testing.T) {
 				t.Run(filename, func(t *testing.T) {
 					// temporary skip the sso resource because it is not yet available in Grafana
 					if strings.Contains(filename, "sso_settings") {
-						testutils.CheckOSSTestsEnabled(t, ">=10.4.0")
+						testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Run on v10.4.0 once it's released
 					}
 					resource.Test(t, resource.TestCase{
 						ProviderFactories: testutils.ProviderFactories,
