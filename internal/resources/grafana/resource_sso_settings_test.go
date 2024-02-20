@@ -227,7 +227,8 @@ func testConfigForProvider(provider string, prefix string) string {
 	switch provider {
 	case "azuread", "generic_oauth", "okta":
 		urls = `auth_url = "https://myidp.com/oauth/authorize"
-    token_url = "https://myidp.com/oauth/token"`
+    token_url = "https://myidp.com/oauth/token"
+	api_url = "https://myidp.com/oauth/userinfo"`
 	}
 
 	return fmt.Sprintf(`resource "grafana_sso_settings" "%[2]s_sso_settings" {

@@ -20,8 +20,6 @@ Manages Grafana SSO Settings for OAuth2. SAML support will be added soon.
 resource "grafana_sso_settings" "github_sso_settings" {
   provider_name = "github"
   oauth2_settings {
-    auth_url              = "https://github.com/login/oauth/authorize"
-    token_url             = "https://github.com/login/oauth/access_token"
     client_id             = "github_client_id"
     client_secret         = "github_client_secret"
     team_ids              = "12,50,123"
@@ -56,7 +54,7 @@ Optional:
 - `allowed_domains` (String) List of comma- or space-separated domains. The user should belong to at least one domain to log in.
 - `allowed_groups` (String) List of comma- or space-separated groups. The user should be a member of at least one group to log in. For Generic OAuth, if you configure allowed_groups, you must also configure groups_attribute_path.
 - `allowed_organizations` (String) List of comma- or space-separated organizations. The user should be a member of at least one organization to log in.
-- `api_url` (String) The user information endpoint of your OAuth2 provider.
+- `api_url` (String) The user information endpoint of your OAuth2 provider. Required for azuread, okta and generic_oauth providers.
 - `auth_style` (String) It determines how client_id and client_secret are sent to Oauth2 provider. Possible values are AutoDetect, InParams, InHeader. Default is AutoDetect.
 - `auth_url` (String) The authorization endpoint of your OAuth2 provider. Required for azuread, okta and generic_oauth providers.
 - `auto_login` (Boolean) Log in automatically, skipping the login screen.
