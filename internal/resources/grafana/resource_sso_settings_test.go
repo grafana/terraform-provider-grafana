@@ -309,7 +309,8 @@ var testConfigsWithValidationErrors = []string{
   oauth2_settings {
     client_id = "client_id"
     auth_url  = "ftp://login.microsoftonline.com/12345/oauth2/v2.0/authorize"
-    token_url = "https://login.microsoftonline.com/12345/oauth2/v2.0/token"
+    token_url = "https://tenantid123.okta.com/oauth2/v1/token"
+	api_url = "https://tenantid123.okta.com/oauth2/v1/userinfo"
   }
 }`,
 	// auth_url is not empty for github
