@@ -17,9 +17,9 @@ import (
 )
 
 func TestSSOSettings_basic(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=10.4.0")
+	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Run on v10.4.0 once it's released
 
-	providers := []string{"github", "gitlab", "google", "generic_oauth", "azuread", "okta"}
+	providers := []string{"gitlab", "google", "generic_oauth", "azuread", "okta"}
 
 	api := grafana.OAPIGlobalClient(testutils.Provider.Meta())
 
@@ -65,7 +65,7 @@ func TestSSOSettings_basic(t *testing.T) {
 }
 
 func TestSSOSettings_customFields(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=10.4.0")
+	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Run on v10.4.0 once it's released
 
 	api := grafana.OAPIGlobalClient(testutils.Provider.Meta())
 
@@ -227,7 +227,8 @@ func testConfigForProvider(provider string, prefix string) string {
 	switch provider {
 	case "azuread", "generic_oauth", "okta":
 		urls = `auth_url = "https://myidp.com/oauth/authorize"
-    token_url = "https://myidp.com/oauth/token"`
+    token_url = "https://myidp.com/oauth/token"
+	api_url = "https://myidp.com/oauth/userinfo"`
 	}
 
 	return fmt.Sprintf(`resource "grafana_sso_settings" "%[2]s_sso_settings" {
@@ -308,7 +309,8 @@ var testConfigsWithValidationErrors = []string{
   oauth2_settings {
     client_id = "client_id"
     auth_url  = "ftp://login.microsoftonline.com/12345/oauth2/v2.0/authorize"
-    token_url = "https://login.microsoftonline.com/12345/oauth2/v2.0/token"
+    token_url = "https://tenantid123.okta.com/oauth2/v1/token"
+	api_url = "https://tenantid123.okta.com/oauth2/v1/userinfo"
   }
 }`,
 	// auth_url is not empty for github

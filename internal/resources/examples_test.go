@@ -33,57 +33,61 @@ func TestAccExamples(t *testing.T) {
 	testedResources := map[string]struct{}{}
 	for _, testDef := range []struct {
 		category  string
-		testCheck func(*testing.T)
+		testCheck func(t *testing.T, filename string)
 	}{
 		{
 			category: "Alerting",
-			testCheck: func(t *testing.T) {
+			testCheck: func(t *testing.T, filename string) {
 				testutils.CheckOSSTestsEnabled(t, ">=10.2.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 			},
 		},
 		{
 			category: "Grafana OSS",
-			testCheck: func(t *testing.T) {
-				testutils.CheckOSSTestsEnabled(t, ">=10.2.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
+			testCheck: func(t *testing.T, filename string) {
+				if strings.Contains(filename, "sso_settings") {
+					testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Run on v10.4.0 once it's released
+				} else {
+					testutils.CheckOSSTestsEnabled(t, ">=10.2.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
+				}
 			},
 		},
 		{
 			category: "Grafana Enterprise",
-			testCheck: func(t *testing.T) {
+			testCheck: func(t *testing.T, filename string) {
 				testutils.CheckEnterpriseTestsEnabled(t)
 			},
 		},
 
 		{
 			category: "Machine Learning",
-			testCheck: func(t *testing.T) {
+			testCheck: func(t *testing.T, filename string) {
 				t.Skip() // TODO: Make all examples work
 				testutils.CheckCloudInstanceTestsEnabled(t)
 			},
 		},
 		{
 			category: "SLO",
-			testCheck: func(t *testing.T) {
+			testCheck: func(t *testing.T, filename string) {
 				testutils.CheckCloudInstanceTestsEnabled(t)
 			},
 		},
 		{
 			category: "OnCall",
-			testCheck: func(t *testing.T) {
+			testCheck: func(t *testing.T, filename string) {
 				t.Skip() // TODO: Make all examples work
 				testutils.CheckCloudInstanceTestsEnabled(t)
 			},
 		},
 		{
 			category: "Cloud",
-			testCheck: func(t *testing.T) {
+			testCheck: func(t *testing.T, filename string) {
 				t.Skip() // TODO: Make all examples work
 				testutils.CheckCloudAPITestsEnabled(t)
 			},
 		},
 		{
 			category: "Synthetic Monitoring",
-			testCheck: func(t *testing.T) {
+			testCheck: func(t *testing.T, filename string) {
 				t.Skip() // TODO: Make all examples work
 				testutils.CheckCloudInstanceTestsEnabled(t)
 			},
@@ -112,14 +116,9 @@ func TestAccExamples(t *testing.T) {
 
 		// Test each example in the category. We're only interested to see if it applies without errors.
 		t.Run(testDef.category, func(t *testing.T) {
-			testDef.testCheck(t)
-
 			for _, filename := range filenames {
 				t.Run(filename, func(t *testing.T) {
-					// temporary skip the sso resource because it is not yet available in Grafana
-					if strings.Contains(filename, "sso_settings") {
-						testutils.CheckOSSTestsEnabled(t, ">=10.4.0")
-					}
+					testDef.testCheck(t, filename)
 					resource.Test(t, resource.TestCase{
 						ProviderFactories: testutils.ProviderFactories,
 						Steps: []resource.TestStep{{

@@ -118,7 +118,7 @@ var oauth2SettingsSchema = &schema.Resource{
 		"api_url": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "The user information endpoint of your OAuth2 provider.",
+			Description: "The user information endpoint of your OAuth2 provider. Required for azuread, okta and generic_oauth providers.",
 		},
 		"role_attribute_path": {
 			Type:        schema.TypeString,
@@ -422,6 +422,12 @@ func validateOAuth2Settings(provider string, settings map[string]any) error {
 		}
 		if !isValidURL(tokenURL) {
 			return fmt.Errorf("token_url must be a valid http/https URL")
+		}
+		if apiURL == "" {
+			return fmt.Errorf("api_url must be set for the provider %s", provider)
+		}
+		if !isValidURL(apiURL) {
+			return fmt.Errorf("api_url must be a valid http/https URL")
 		}
 	}
 
