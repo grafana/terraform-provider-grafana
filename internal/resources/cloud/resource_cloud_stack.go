@@ -143,6 +143,9 @@ available at “https://<stack_slug>.grafana.net".`,
 			"graphite_name":    common.ComputedString(),
 			"graphite_url":     common.ComputedString(),
 			"graphite_status":  common.ComputedString(),
+
+			// OTLP
+			"otlp_url": common.ComputedStringWithDescription("Base URL of the OTLP instance configured for this stack. See https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/ for docs on how to use this."),
 		},
 		CustomizeDiff: customdiff.All(
 			customdiff.ComputedIf("url", func(_ context.Context, diff *schema.ResourceDiff, meta interface{}) bool {
@@ -263,17 +266,26 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 		return nil
 	}
 
-	if err := FlattenStack(d, stack); err != nil {
+	connectionsReq := client.InstancesAPI.GetConnections(ctx, d.Id())
+	connections, _, err := connectionsReq.Execute()
+	if err != nil {
+		return apiError(err)
+	}
+
+	if err := FlattenStack(d, stack, connections); err != nil {
 		return diag.FromErr(err)
 	}
 	// Always set the wait attribute to true after creation
 	// It no longer matters and this will prevent drift if the stack was imported
-	d.Set("wait_for_readiness", true)
+	// The "if" condition is here to allow using the same Read function for the data source
+	if v, ok := d.GetOk("wait_for_readiness"); ok && !v.(bool) {
+		d.Set("wait_for_readiness", true)
+	}
 
 	return nil
 }
 
-func FlattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance) error {
+func FlattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, connections *gcom.FormattedApiInstanceConnections) error {
 	id := strconv.FormatInt(int64(stack.Id), 10)
 	d.SetId(id)
 	d.Set("name", stack.Name)
@@ -326,6 +338,10 @@ func FlattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance) erro
 	d.Set("graphite_name", stack.HmInstanceGraphiteName)
 	d.Set("graphite_url", stack.HmInstanceGraphiteUrl)
 	d.Set("graphite_status", stack.HmInstanceGraphiteStatus)
+
+	if otlpURL := connections.OtlpHttpUrl; otlpURL.IsSet() {
+		d.Set("otlp_url", otlpURL.Get())
+	}
 
 	return nil
 }

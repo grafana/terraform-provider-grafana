@@ -56,6 +56,7 @@ available at “https://<stack_slug>.grafana.net".
 - `org_id` (Number) Organization id to assign to this stack.
 - `org_name` (String) Organization name to assign to this stack.
 - `org_slug` (String) Organization slug to assign to this stack.
+- `otlp_url` (String) Base URL of the OTLP instance configured for this stack. See https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/ for docs on how to use this.
 - `profiles_name` (String)
 - `profiles_status` (String)
 - `profiles_url` (String)

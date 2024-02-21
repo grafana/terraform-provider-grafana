@@ -55,7 +55,7 @@ func DataSourceOrganizationRead(ctx context.Context, d *schema.ResourceData, met
 		return apiError(err)
 	}
 
-	id = strconv.FormatInt(int64(*org.Id), 10)
+	id = strconv.FormatInt(int64(org.Id), 10)
 	d.SetId(id)
 	d.Set("id", id)
 	d.Set("name", org.Name)
