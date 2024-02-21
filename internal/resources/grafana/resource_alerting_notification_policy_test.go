@@ -172,7 +172,16 @@ func TestAccNotificationPolicy_inOrg(t *testing.T) {
 		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNotificationPolicyInOrg(name),
+				Config: testAccNotificationPolicyInOrg(name, "my-key"),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+					checkResourceIsInOrg("grafana_notification_policy.test", "grafana_organization.test"),
+				),
+			},
+			// Change contact point config
+			{
+				Config: testAccNotificationPolicyInOrg(name, "my-key2"),
 				Check: resource.ComposeTestCheckFunc(
 					orgCheckExists.exists("grafana_organization.test", &org),
 					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
@@ -180,7 +189,7 @@ func TestAccNotificationPolicy_inOrg(t *testing.T) {
 				),
 			},
 			{
-				Config: testutils.WithoutResource(t, testAccNotificationPolicyInOrg(name), "grafana_notification_policy.test"),
+				Config: testutils.WithoutResource(t, testAccNotificationPolicyInOrg(name, "my-key2"), "grafana_notification_policy.test"),
 				Check: resource.ComposeTestCheckFunc(
 					orgCheckExists.exists("grafana_organization.test", &org),
 					alertingNotificationPolicyCheckExists.destroyed(&policy, &org),
@@ -190,7 +199,7 @@ func TestAccNotificationPolicy_inOrg(t *testing.T) {
 	})
 }
 
-func testAccNotificationPolicyInOrg(name string) string {
+func testAccNotificationPolicyInOrg(name, key string) string {
 	return fmt.Sprintf(`
 	resource "grafana_organization" "test" {
 		name = "%[1]s"
@@ -199,8 +208,11 @@ func testAccNotificationPolicyInOrg(name string) string {
 	resource "grafana_contact_point" "a_contact_point" {
 		org_id = grafana_organization.test.id
 		name = "A Contact Point"
-		email {
-			addresses = ["test@example.com"]
+		pagerduty {
+			integration_key = "%[2]s"
+			details = {
+				"key" = "%[2]s"
+			}
 		}
 	}
 
@@ -220,7 +232,7 @@ func testAccNotificationPolicyInOrg(name string) string {
 		}
 
 	}
-	`, name)
+	`, name, key)
 }
 
 func testAccNotificationPolicyDisableProvenance(disableProvenance bool) string {
