@@ -34,6 +34,10 @@ func TestResourceStack_Basic(t *testing.T) {
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "slug", resourceName),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "description", stackDescription),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.tf", "true"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.source", "terraform"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.todelete", "true"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.%", "3"),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "prometheus_remote_endpoint", "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom"),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "prometheus_remote_write_endpoint", "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "prometheus_user_id"),
@@ -101,6 +105,9 @@ func TestResourceStack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "slug", resourceName),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "description", stackDescription),
 					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.tf", "true"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.source", "terraform-updated"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.%", "2"),
 				),
 			},
 			// Test import from ID
@@ -115,6 +122,61 @@ func TestResourceStack_Basic(t *testing.T) {
 				ImportStateId:     resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestResourceStack_Invalid(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `resource "grafana_cloud_stack" "test" { 
+					name = "test" 
+					slug = "ABC" // Can't start with an uppercase letter
+				}`,
+				ExpectError: regexp.MustCompile(`.*invalid value for slug \(must be a lowercase alphanumeric string and must start with a letter.*`),
+			},
+			{
+				Config: `resource "grafana_cloud_stack" "test" {
+					name = "test"
+					slug = "test"
+					labels = {
+						invalid_key = "true" // Can't have an underscore
+					}
+				}`,
+				ExpectError: regexp.MustCompile(`Error: label key "invalid_key" does not match .+"`),
+			},
+			{
+				Config: `resource "grafana_cloud_stack" "test" {
+					name = "test"
+					slug = "test"
+					labels = {
+						"key" = "invalid$"
+					}
+				}`,
+				ExpectError: regexp.MustCompile(`Error: label value "invalid\$" does not match .+"`),
+			},
+			{
+				Config: `resource "grafana_cloud_stack" "test" {
+					name = "test"
+					slug = "test"
+					labels = {
+						"1" = "1"
+						"2" = "2"
+						"3" = "3"
+						"4" = "4"
+						"5" = "5"
+						"6" = "6"
+						"7" = "7"
+						"8" = "8"
+						"9" = "9"
+						"10" = "10"
+						"11" = "11"
+					}
+				}`,
+				ExpectError: regexp.MustCompile("Error: stacks cannot have more than 10 labels"),
 			},
 		},
 	})
@@ -187,6 +249,11 @@ func testAccStackConfigBasicWithCustomResourceName(name, slug, region, resourceN
 		slug  = "%s"
 		region_slug = "%s"
 		description = "%s"
+		labels = {
+			tf        = "true"
+			source    = "terraform"
+			todelete = "true"
+		}
 	  }
 	`, resourceName, name, slug, region, description)
 }
@@ -198,6 +265,10 @@ func testAccStackConfigUpdate(name string, slug string, description string) stri
 		slug  = "%s"
 		region_slug = "eu"
 		description = "%s"
+		labels = {
+			tf     = "true"
+			source = "terraform-updated"
+		}
 	  }
 	`, name, slug, description)
 }

@@ -23,7 +23,10 @@ import (
 
 const defaultReadinessTimeout = time.Minute * 5
 
-var stackSlugRegex = regexp.MustCompile("^[a-z][a-z0-9]+$")
+var (
+	stackLabelRegex = regexp.MustCompile(`^[a-zA-Z0-9/\-.]+$`)
+	stackSlugRegex  = regexp.MustCompile(`^[a-z][a-z0-9]+$`)
+)
 
 func ResourceStack() *schema.Resource {
 	return &schema.Resource{
@@ -105,6 +108,27 @@ available at “https://<stack_slug>.grafana.net".`,
 			"org_slug": common.ComputedStringWithDescription("Organization slug to assign to this stack."),
 			"org_name": common.ComputedStringWithDescription("Organization name to assign to this stack."),
 			"status":   common.ComputedStringWithDescription("Status of the stack."),
+			"labels": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: fmt.Sprintf("A map of labels to assign to the stack. Label keys and values must match the following regexp: %q and stacks cannot have more than 10 labels.", stackLabelRegex.String()),
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				ValidateFunc: func(i interface{}, s string) ([]string, []error) {
+					labels := i.(map[string]interface{})
+					if len(labels) > 10 {
+						return nil, []error{fmt.Errorf("stacks cannot have more than 10 labels")}
+					}
+					for k, v := range labels {
+						if !stackLabelRegex.MatchString(k) {
+							return nil, []error{fmt.Errorf("label key %q does not match %q", k, stackLabelRegex.String())}
+						}
+						if !stackLabelRegex.MatchString(v.(string)) {
+							return nil, []error{fmt.Errorf("label value %q does not match %q", v, stackLabelRegex.String())}
+						}
+					}
+					return nil, nil
+				},
+			},
 
 			// Metrics (Mimir/Prometheus)
 			"prometheus_user_id":               common.ComputedIntWithDescription("Prometheus user ID. Used for e.g. remote_write."),
@@ -176,6 +200,7 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 		Url:         common.Ref(d.Get("url").(string)),
 		Region:      common.Ref(d.Get("region_slug").(string)),
 		Description: common.Ref(d.Get("description").(string)),
+		Labels:      common.Ref(common.UnpackMap[string](d.Get("labels"))),
 	}
 
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
@@ -218,10 +243,9 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaCloudAPI
 
-	// The underlying API only allows to update the name, slug, url and description.
-	allowedChanges := []string{"name", "description", "slug", "url"}
+	allowedChanges := []string{"name", "description", "slug", "url", "labels"}
 	if d.HasChangesExcept(allowedChanges...) {
-		return diag.Errorf("Error: Only name, slug, url and description can be updated.")
+		return diag.Errorf("Error: Only %s and description can be updated.", strings.Join(allowedChanges, ", "))
 	}
 
 	if d.HasChange("name") || d.HasChange("description") || d.HasChanges("slug") || d.HasChanges("url") {
@@ -230,6 +254,7 @@ func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 			Slug:        common.Ref(d.Get("slug").(string)),
 			Description: common.Ref(d.Get("description").(string)),
 			Url:         common.Ref(d.Get("url").(string)),
+			Labels:      common.Ref(common.UnpackMap[string](d.Get("labels"))),
 		}
 		req := client.InstancesAPI.PostInstance(ctx, d.Id()).PostInstanceRequest(stack).XRequestId(ClientRequestID())
 		_, _, err := req.Execute()
@@ -294,6 +319,7 @@ func FlattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("status", stack.Status)
 	d.Set("region_slug", stack.RegionSlug)
 	d.Set("description", stack.Description)
+	d.Set("labels", stack.Labels)
 
 	d.Set("org_id", stack.OrgId)
 	d.Set("org_slug", stack.OrgSlug)
