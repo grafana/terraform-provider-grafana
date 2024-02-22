@@ -131,6 +131,8 @@ func TestSSOSettings_customFields(t *testing.T) {
 }
 
 func TestSSOSettings_resourceWithInvalidProvider(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
 	provider := "invalid_provider"
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -145,6 +147,8 @@ func TestSSOSettings_resourceWithInvalidProvider(t *testing.T) {
 }
 
 func TestSSOSettings_resourceWithNoSettings(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
@@ -157,6 +161,8 @@ func TestSSOSettings_resourceWithNoSettings(t *testing.T) {
 }
 
 func TestSSOSettings_resourceWithEmptySettings(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
@@ -169,6 +175,8 @@ func TestSSOSettings_resourceWithEmptySettings(t *testing.T) {
 }
 
 func TestSSOSettings_resourceWithManySettings(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
@@ -181,6 +189,8 @@ func TestSSOSettings_resourceWithManySettings(t *testing.T) {
 }
 
 func TestSSOSettings_resourceWithInvalidCustomField(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,
 		Steps: []resource.TestStep{
@@ -193,6 +203,8 @@ func TestSSOSettings_resourceWithInvalidCustomField(t *testing.T) {
 }
 
 func TestSSOSettings_resourceWithValidationErrors(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
 	for _, config := range testConfigsWithValidationErrors {
 		resource.Test(t, resource.TestCase{
 			ProviderFactories: testutils.ProviderFactories,
