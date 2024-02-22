@@ -5,6 +5,7 @@ on:
       tests:
         description: 'Tests to run (regex passed to -run)'
         default: '.*'
+  workflow_call: {} # This is needed to allow the workflow to be called from other workflows
 
 # These permissions are needed to assume roles from Github's OIDC.
 permissions:
