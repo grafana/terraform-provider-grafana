@@ -32,8 +32,8 @@ type frameworkProviderConfig struct {
 
 	StoreDashboardSha256 types.Bool `tfsdk:"store_dashboard_sha256"`
 
-	CloudAPIKey types.String `tfsdk:"cloud_api_key"`
-	CloudAPIURL types.String `tfsdk:"cloud_api_url"`
+	CloudAccessPolicyToken types.String `tfsdk:"cloud_access_policy_token"`
+	CloudAPIURL            types.String `tfsdk:"cloud_api_url"`
 
 	SMAccessToken types.String `tfsdk:"sm_access_token"`
 	SMURL         types.String `tfsdk:"sm_url"`
@@ -52,7 +52,8 @@ func (c *frameworkProviderConfig) SetDefaults() error {
 	c.TLSKey = envDefaultFuncString(c.TLSKey, "GRAFANA_TLS_KEY")
 	c.TLSCert = envDefaultFuncString(c.TLSCert, "GRAFANA_TLS_CERT")
 	c.CACert = envDefaultFuncString(c.CACert, "GRAFANA_CA_CERT")
-	c.CloudAPIKey = envDefaultFuncString(c.CloudAPIKey, "GRAFANA_CLOUD_API_KEY")
+	c.CloudAccessPolicyToken = envDefaultFuncString(c.CloudAccessPolicyToken, "GRAFANA_CLOUD_ACCESS_POLICY_TOKEN")
+	c.CloudAccessPolicyToken = envDefaultFuncString(c.CloudAccessPolicyToken, "GRAFANA_CLOUD_API_KEY") // Backwards compatibility. TODO: Remove once cloud_api_key is removed
 	c.CloudAPIURL = envDefaultFuncString(c.CloudAPIURL, "GRAFANA_CLOUD_API_URL", "https://grafana.com")
 	c.SMAccessToken = envDefaultFuncString(c.SMAccessToken, "GRAFANA_SM_ACCESS_TOKEN")
 	c.SMURL = envDefaultFuncString(c.SMURL, "GRAFANA_SM_URL", "https://synthetic-monitoring-api.grafana.net")
@@ -170,10 +171,16 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 				MarkdownDescription: "Set to true if you want to save only the sha256sum instead of complete dashboard model JSON in the tfstate.",
 			},
 
+			"cloud_access_policy_token": schema.StringAttribute{
+				Optional:            true,
+				Sensitive:           true,
+				MarkdownDescription: "Access Policy Token for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_ACCESS_POLICY_TOKEN` environment variable.",
+			},
 			"cloud_api_key": schema.StringAttribute{
 				Optional:            true,
 				Sensitive:           true,
-				MarkdownDescription: "Access Policy Token (or API key) for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_API_KEY` environment variable.",
+				DeprecationMessage:  "Use `cloud_access_policy_token` instead.",
+				MarkdownDescription: "Deprecated: Use `cloud_access_policy_token` instead.",
 			},
 			"cloud_api_url": schema.StringAttribute{
 				Optional:            true,

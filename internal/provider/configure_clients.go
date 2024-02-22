@@ -40,7 +40,7 @@ func createClients(providerConfig frameworkProviderConfig) (*common.Client, erro
 			return nil, err
 		}
 	}
-	if !providerConfig.CloudAPIKey.IsNull() {
+	if !providerConfig.CloudAccessPolicyToken.IsNull() {
 		if err := createCloudClient(c, providerConfig); err != nil {
 			return nil, err
 		}
@@ -146,7 +146,7 @@ func createCloudClient(client *common.Client, providerConfig frameworkProviderCo
 	openAPIConfig.Host = parsedURL.Host
 	openAPIConfig.Scheme = "https"
 	openAPIConfig.HTTPClient = getRetryClient(providerConfig)
-	openAPIConfig.DefaultHeader["Authorization"] = "Bearer " + providerConfig.CloudAPIKey.ValueString()
+	openAPIConfig.DefaultHeader["Authorization"] = "Bearer " + providerConfig.CloudAccessPolicyToken.ValueString()
 	httpHeaders, err := getHTTPHeadersMap(providerConfig)
 	if err != nil {
 		return err

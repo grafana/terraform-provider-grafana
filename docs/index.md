@@ -206,7 +206,8 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 
 - `auth` (String, Sensitive) API token, basic auth in the `username:password` format or `anonymous` (string literal). May alternatively be set via the `GRAFANA_AUTH` environment variable.
 - `ca_cert` (String) Certificate CA bundle (file path or literal value) to use to verify the Grafana server's certificate. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.
-- `cloud_api_key` (String, Sensitive) Access Policy Token (or API key) for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_API_KEY` environment variable.
+- `cloud_access_policy_token` (String, Sensitive) Access Policy Token for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_ACCESS_POLICY_TOKEN` environment variable.
+- `cloud_api_key` (String, Sensitive, Deprecated) Deprecated: Use `cloud_access_policy_token` instead.
 - `cloud_api_url` (String) Grafana Cloud's API URL. May alternatively be set via the `GRAFANA_CLOUD_API_URL` environment variable.
 - `http_headers` (Map of String, Sensitive) Optional. HTTP headers mapping keys to values used for accessing the Grafana and Grafana Cloud APIs. May alternatively be set via the `GRAFANA_HTTP_HEADERS` environment variable in JSON format.
 - `insecure_skip_verify` (Boolean) Skip TLS certificate verification. May alternatively be set via the `GRAFANA_INSECURE_SKIP_VERIFY` environment variable.
@@ -230,57 +231,16 @@ One, or many, of the following authentication settings must be set. Each authent
 ### `auth`
 
 This can be a Grafana API key, basic auth `username:password`, or a
-[Grafana API key](https://grafana.com/docs/grafana/latest/developers/http_api/create-api-tokens-for-org/).
+[Grafana Service Account token](https://grafana.com/docs/grafana/latest/developers/http_api/create-api-tokens-for-org/).
 
-### `cloud_api_key`
+### `cloud_access_policy_token`
 
 An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/create-api-key/).
 
 ### `sm_access_token`
 
-[Synthetic Monitoring](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/)
-endpoints require a dedicated access token. You may obtain an access token with its
-[Registration API](https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#registration-api).
-
-```console
-curl \
-  -X POST \
-  -H 'Content-type: application/json; charset=utf-8' \
-  -H "Authorization: Bearer $GRAFANA_CLOUD_API_KEY" \
-  -d '{"stackId": <stack-id>, "metricsInstanceId": <metrics-instance-id>, "logsInstanceId": <logs-instance-id>}' \
-  "$SM_API_URL/api/v1/register/install"
-```
-
-`GRAFANA_CLOUD_API_KEY` is an API key created on the
-[Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/create-api-key/).
-It must have the `MetricsPublisher` role.
-
-`SM_API_URL` is the URL of the Synthetic Monitoring API.
-Based on the region of your Grafana Cloud stack, you need to use a different API URL.
-
-Please [see API docs](https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#api-url) to find `SM_API_URL` for your region.
-
-`stackId`, `metricsInstanceId`, and `logsInstanceId` may also be obtained on
-the portal. First, you need to create a Stack by clicking "Add Stack". When it's
-created you will be taken to its landing page on the portal. Get your `stackId`
-from the URL in your browser:
-
-```
-https://grafana.com/orgs/<org-slug>/stacks/<stack-id>
-```
-
-Next, go to "Details" for Prometheus. Again, get `metricsInstanceId` from your URL:
-
-```
-https://grafana.com/orgs/<org-slug>/hosted-metrics/<metrics-instance-id>
-```
-
-Finally, go back to your stack page, and go to "Details" for Loki to get
-`logsInstanceId`.
-
-```
-https://grafana.com/orgs/<org-slug>/hosted-logs/<logs-instance-id>
-```
+[Grafana Synthetic Monitoring](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/) uses distinct tokens for API access. 
+You can use the `grafana_synthetic_monitoring_installation` resource as shown above or you can request a new Synthetic Monitoring API key in Synthetics -> Config page.
 
 ### `oncall_access_token`
 
