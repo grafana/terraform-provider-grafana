@@ -25,7 +25,7 @@ jobs:
         uses: grafana/shared-workflows/actions/get-vault-secrets@main
         with:
           repo_secrets: |
-            GRAFANA_CLOUD_API_KEY=cloud-tests:api-key
+            GRAFANA_CLOUD_ACCESS_POLICY_TOKEN=cloud-tests:api-key
             GRAFANA_CLOUD_ORG=cloud-tests:org
       - run: make testacc-cloud-api
         env:

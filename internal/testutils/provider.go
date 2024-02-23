@@ -136,7 +136,7 @@ func CheckCloudAPITestsEnabled(t *testing.T) {
 		t.Skip("TF_ACC_CLOUD_API must be set to a truthy value for Cloud API acceptance tests")
 	}
 
-	CheckEnvVarsSet(t, "GRAFANA_CLOUD_API_KEY", "GRAFANA_CLOUD_ORG")
+	CheckEnvVarsSet(t, "GRAFANA_CLOUD_ACCESS_POLICY_TOKEN", "GRAFANA_CLOUD_ORG")
 }
 
 // CheckCloudInstanceTestsEnabled checks if tests that run on cloud instances are enabled. This should be the first line of any test that tests Grafana Cloud Pro features

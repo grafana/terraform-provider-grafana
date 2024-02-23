@@ -222,16 +222,23 @@ func Provider(version string) *schema.Provider {
 				Description: "Skip TLS certificate verification. May alternatively be set via the `GRAFANA_INSECURE_SKIP_VERIFY` environment variable.",
 			},
 
+			"cloud_access_policy_token": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Sensitive:     true,
+				ConflictsWith: []string{"cloud_api_key"},
+				Description:   "Access Policy Token for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_ACCESS_POLICY_TOKEN` environment variable.",
+			},
 			"cloud_api_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Sensitive:   true,
-				Description: "Access Policy Token (or API key) for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_API_KEY` environment variable.",
+				Deprecated:  "Use `cloud_access_policy_token` instead.",
+				Description: "Deprecated: Use `cloud_access_policy_token` instead.",
 			},
 			"cloud_api_url": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				DefaultFunc:  schema.EnvDefaultFunc("GRAFANA_CLOUD_API_URL", "https://grafana.com"),
 				Description:  "Grafana Cloud's API URL. May alternatively be set via the `GRAFANA_CLOUD_API_URL` environment variable.",
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
@@ -310,25 +317,28 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		}
 
 		cfg := frameworkProviderConfig{
-			Auth:                 stringValueOrNull(d, "auth"),
-			URL:                  stringValueOrNull(d, "url"),
-			OrgID:                int64ValueOrNull(d, "org_id"),
-			TLSKey:               stringValueOrNull(d, "tls_key"),
-			TLSCert:              stringValueOrNull(d, "tls_cert"),
-			CACert:               stringValueOrNull(d, "ca_cert"),
-			InsecureSkipVerify:   boolValueOrNull(d, "insecure_skip_verify"),
-			CloudAPIKey:          stringValueOrNull(d, "cloud_api_key"),
-			CloudAPIURL:          stringValueOrNull(d, "cloud_api_url"),
-			SMAccessToken:        stringValueOrNull(d, "sm_access_token"),
-			SMURL:                stringValueOrNull(d, "sm_url"),
-			OncallAccessToken:    stringValueOrNull(d, "oncall_access_token"),
-			OncallURL:            stringValueOrNull(d, "oncall_url"),
-			StoreDashboardSha256: boolValueOrNull(d, "store_dashboard_sha256"),
-			HTTPHeaders:          headers,
-			Retries:              int64ValueOrNull(d, "retries"),
-			RetryStatusCodes:     statusCodes,
-			RetryWait:            types.Int64Value(int64(d.Get("retry_wait").(int))),
-			UserAgent:            types.StringValue(p.UserAgent("terraform-provider-grafana", version)),
+			Auth:                   stringValueOrNull(d, "auth"),
+			URL:                    stringValueOrNull(d, "url"),
+			OrgID:                  int64ValueOrNull(d, "org_id"),
+			TLSKey:                 stringValueOrNull(d, "tls_key"),
+			TLSCert:                stringValueOrNull(d, "tls_cert"),
+			CACert:                 stringValueOrNull(d, "ca_cert"),
+			InsecureSkipVerify:     boolValueOrNull(d, "insecure_skip_verify"),
+			CloudAccessPolicyToken: stringValueOrNull(d, "cloud_access_policy_token"),
+			CloudAPIURL:            stringValueOrNull(d, "cloud_api_url"),
+			SMAccessToken:          stringValueOrNull(d, "sm_access_token"),
+			SMURL:                  stringValueOrNull(d, "sm_url"),
+			OncallAccessToken:      stringValueOrNull(d, "oncall_access_token"),
+			OncallURL:              stringValueOrNull(d, "oncall_url"),
+			StoreDashboardSha256:   boolValueOrNull(d, "store_dashboard_sha256"),
+			HTTPHeaders:            headers,
+			Retries:                int64ValueOrNull(d, "retries"),
+			RetryStatusCodes:       statusCodes,
+			RetryWait:              types.Int64Value(int64(d.Get("retry_wait").(int))),
+			UserAgent:              types.StringValue(p.UserAgent("terraform-provider-grafana", version)),
+		}
+		if cfg.CloudAccessPolicyToken.IsNull() {
+			cfg.CloudAccessPolicyToken = stringValueOrNull(d, "cloud_api_key") // TODO: Remove once `cloud_api_key` is removed
 		}
 		if err := cfg.SetDefaults(); err != nil {
 			return nil, diag.FromErr(err)

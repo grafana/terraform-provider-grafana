@@ -121,7 +121,7 @@ func TestProviderConfigure(t *testing.T) {
 		{
 			name: "grafana cloud config from env",
 			env: map[string]string{
-				"GRAFANA_CLOUD_API_KEY": "testtest",
+				"GRAFANA_CLOUD_ACCESS_POLICY_TOKEN": "testtest",
 			},
 		},
 		{
