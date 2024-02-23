@@ -18,8 +18,8 @@ func TestAccResourcePluginInstallation(t *testing.T) {
 	var stack gcom.FormattedApiInstance
 	stackPrefix := "tfplugin"
 	stackSlug := GetRandomStackName(stackPrefix)
-	pluginSlug := "aws-datasource-provisioner-app"
-	pluginVersion := "1.7.0"
+	pluginSlug := "grafana-googlesheets-datasource" // TODO: Add datasource to find a plugin and use that
+	pluginVersion := "1.2.5"
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:          func() { testAccDeleteExistingStacks(t, stackPrefix) },
@@ -32,8 +32,8 @@ func TestAccResourcePluginInstallation(t *testing.T) {
 					testAccCloudPluginInstallationCheckExists(stackSlug, pluginSlug),
 					resource.TestCheckResourceAttrSet("grafana_cloud_plugin_installation.test-installation", "id"),
 					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation", "stack_slug", stackSlug),
-					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation", "slug", "aws-datasource-provisioner-app"),
-					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation", "version", "1.7.0")),
+					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation", "slug", "grafana-googlesheets-datasource"),
+					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation", "version", "1.2.5")),
 			},
 			{
 				ResourceName:      "grafana_cloud_plugin_installation.test-installation",
