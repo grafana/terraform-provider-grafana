@@ -128,6 +128,12 @@ func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 func ReadFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID, folderUID := OAPIClientFromExistingOrgResource(meta, d.Id())
 
+	// Check if the folder still exists
+	_, err := client.Folders.GetFolderByUID(folderUID)
+	if err, shouldReturn := common.CheckReadError("folder", d, err); shouldReturn {
+		return err
+	}
+
 	resp, err := client.AccessControl.GetResourcePermissions(folderUID, foldersPermissionsType)
 	if err, shouldReturn := common.CheckReadError("folder permissions", d, err); shouldReturn {
 		return err
