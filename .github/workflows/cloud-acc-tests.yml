@@ -5,6 +5,13 @@ on:
       tests:
         description: 'Tests to run (regex passed to -run)'
         default: '.*'
+  workflow_call:
+    inputs:
+      tests:
+        type: string
+        description: 'Tests to run (regex passed to -run)'
+        default: '.*'
+    
 
 # These permissions are needed to assume roles from Github's OIDC.
 permissions:
