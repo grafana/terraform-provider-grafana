@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/api_keys"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -105,7 +106,7 @@ func resourceStackAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m in
 	}
 
 	// Fill the true resource's state after a create by performing a read
-	return resourceStackAPIKeyRead(ctx, d, m)
+	return resourceStackAPIKeyReadWithClient(c, d)
 }
 
 func resourceStackAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -116,6 +117,10 @@ func resourceStackAPIKeyRead(ctx context.Context, d *schema.ResourceData, m inte
 	}
 	defer cleanup()
 
+	return resourceStackAPIKeyReadWithClient(c, d)
+}
+
+func resourceStackAPIKeyReadWithClient(c *goapi.GrafanaHTTPAPI, d *schema.ResourceData) diag.Diagnostics {
 	response, err := c.APIKeys.GetAPIkeys(api_keys.NewGetAPIkeysParams().WithIncludeExpired(common.Ref((true))))
 	if err != nil {
 		return diag.FromErr(err)
