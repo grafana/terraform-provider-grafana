@@ -4,12 +4,20 @@ page_title: "grafana_cloud_access_policy_token Resource - terraform-provider-gra
 subcategory: "Cloud"
 description: |-
   Official documentation https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/API documentation https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#create-a-token
+  Required access policy scopes:
+  accesspolicies:readaccesspolicies:writeaccesspolicies:delete
 ---
 
 # grafana_cloud_access_policy_token (Resource)
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#create-a-token)
+
+Required access policy scopes:
+
+* accesspolicies:read
+* accesspolicies:write
+* accesspolicies:delete
 
 ## Example Usage
 
