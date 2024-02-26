@@ -26,9 +26,8 @@ resource "grafana_cloud_stack" "test" {
 
 ### Required
 
-- `name` (String) Name of stack. Conventionally matches the url of the instance (e.g. “<stack_slug>.grafana.net”).
-- `slug` (String) Subdomain that the Grafana instance will be available at (i.e. setting slug to “<stack_slug>” will make the instance
-available at “https://<stack_slug>.grafana.net".
+- `name` (String) Name of stack. Conventionally matches the url of the instance (e.g. `<stack_slug>.grafana.net`).
+- `slug` (String) Subdomain that the Grafana instance will be available at. Setting slug to `<stack_slug>` will make the instance available at `https://<stack_slug>.grafana.net`.
 
 ### Optional
 

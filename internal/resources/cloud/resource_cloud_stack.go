@@ -52,7 +52,7 @@ func ResourceStack() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Name of stack. Conventionally matches the url of the instance (e.g. “<stack_slug>.grafana.net”).",
+				Description: "Name of stack. Conventionally matches the url of the instance (e.g. `<stack_slug>.grafana.net`).",
 			},
 			"description": {
 				Type:        schema.TypeString,
@@ -62,9 +62,8 @@ func ResourceStack() *schema.Resource {
 			"slug": {
 				Type:     schema.TypeString,
 				Required: true,
-				Description: `
-Subdomain that the Grafana instance will be available at (i.e. setting slug to “<stack_slug>” will make the instance
-available at “https://<stack_slug>.grafana.net".`,
+				Description: "Subdomain that the Grafana instance will be available at. " +
+					"Setting slug to `<stack_slug>` will make the instance available at `https://<stack_slug>.grafana.net`.",
 				ValidateFunc: validation.All(
 					validation.StringMatch(stackSlugRegex, "must be a lowercase alphanumeric string and must start with a letter."),
 					validation.StringLenBetween(1, 29),

@@ -50,7 +50,7 @@ available at “https://<stack_slug>.grafana.net".
 - `logs_status` (String)
 - `logs_url` (String)
 - `logs_user_id` (Number)
-- `name` (String) Name of stack. Conventionally matches the url of the instance (e.g. “<stack_slug>.grafana.net”).
+- `name` (String) Name of stack. Conventionally matches the url of the instance (e.g. `<stack_slug>.grafana.net`).
 - `org_id` (Number) Organization id to assign to this stack.
 - `org_name` (String) Organization name to assign to this stack.
 - `org_slug` (String) Organization slug to assign to this stack.
