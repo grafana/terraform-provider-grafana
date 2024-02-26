@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-var ResourcePluginInstallationID = common.NewTFIDWithLegacySeparator("grafana_cloud_plugin_installation", "_", "stackSlug", "pluginSlug")
+var ResourcePluginInstallationID = common.NewTFIDWithLegacySeparator("grafana_cloud_plugin_installation", "_", "stackSlug", "pluginSlug") //nolint:staticcheck
 
 func ResourcePluginInstallation() *schema.Resource {
 	return &schema.Resource{
