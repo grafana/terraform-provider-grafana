@@ -60,14 +60,14 @@ func (id *TFID) Make(parts ...any) string {
 	return strings.Join(stringParts, defaultSeparator)
 }
 
-func (s *TFID) Split(id string) ([]string, error) {
-	for _, sep := range s.separators {
-		parts := strings.Split(id, sep)
-		if len(parts) == len(s.expectedFields) {
+func (id *TFID) Split(resourceID string) ([]string, error) {
+	for _, sep := range id.separators {
+		parts := strings.Split(resourceID, sep)
+		if len(parts) == len(id.expectedFields) {
 			return parts, nil
 		}
 	}
-	return nil, fmt.Errorf("id %q does not match expected format. Should be in the format: %s", id, strings.Join(s.expectedFields, defaultSeparator))
+	return nil, fmt.Errorf("id %q does not match expected format. Should be in the format: %s", resourceID, strings.Join(id.expectedFields, defaultSeparator))
 }
 
 // GenerateImportFiles generates import files for all resources that use a helper defined in this package
@@ -75,7 +75,7 @@ func GenerateImportFiles(path string) error {
 	for _, id := range allIDs {
 		resourcePath := filepath.Join(path, "resources", id.resourceName, "import.sh")
 		log.Printf("Generating import file for %s (writing to %s)\n", id.resourceName, resourcePath)
-		err := os.WriteFile(resourcePath, []byte(id.Example()), 0644)
+		err := os.WriteFile(resourcePath, []byte(id.Example()), 0600)
 		if err != nil {
 			return err
 		}
