@@ -44,5 +44,5 @@ resource "grafana_cloud_api_key" "test" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_cloud_api_key.resource_name "{{org-name}}-{{api_key_name}}"
+terraform import grafana_cloud_api_key.name "{{ orgSlug }}:{{ apiKeyName }}"
 ```

@@ -2,7 +2,6 @@ package cloud
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -13,6 +12,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
+
+var ResourceAccessPolicyID = common.NewTFIDWithLegacySeparator("grafana_cloud_access_policy", "/", "region", "policyId")
 
 func ResourceAccessPolicy() *schema.Resource {
 	return &schema.Resource{
@@ -140,14 +141,19 @@ func CreateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta i
 		return apiError(err)
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s", region, *result.Id))
+	d.SetId(ResourceAccessPolicyID.Make(region, result.Id))
 
 	return ReadCloudAccessPolicy(ctx, d, meta)
 }
 
 func UpdateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaCloudAPI
-	region, id, _ := strings.Cut(d.Id(), "/")
+
+	split, err := ResourceAccessPolicyID.Split(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	region, id := split[0], split[1]
 
 	displayName := d.Get("display_name").(string)
 	if displayName == "" {
@@ -160,8 +166,7 @@ func UpdateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta i
 			Scopes:      common.ListToStringSlice(d.Get("scopes").(*schema.Set).List()),
 			Realms:      expandCloudAccessPolicyRealm(d.Get("realm").(*schema.Set).List()),
 		})
-	_, _, err := req.Execute()
-	if err != nil {
+	if _, _, err = req.Execute(); err != nil {
 		return apiError(err)
 	}
 
@@ -171,7 +176,12 @@ func UpdateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta i
 func ReadCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaCloudAPI
 
-	region, id, _ := strings.Cut(d.Id(), "/")
+	split, err := ResourceAccessPolicyID.Split(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	region, id := split[0], split[1]
+
 	result, _, err := client.AccesspoliciesAPI.GetAccessPolicy(ctx, id).Region(region).Execute()
 	if err, shouldReturn := common.CheckReadError("access policy", d, err); shouldReturn {
 		return err
@@ -187,14 +197,21 @@ func ReadCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta int
 	if updated := result.UpdatedAt; updated != nil {
 		d.Set("updated_at", updated.Format(time.RFC3339))
 	}
+	d.SetId(ResourceAccessPolicyID.Make(region, result.Id))
 
 	return nil
 }
 
 func DeleteCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaCloudAPI
-	region, id, _ := strings.Cut(d.Id(), "/")
-	_, _, err := client.AccesspoliciesAPI.DeleteAccessPolicy(ctx, id).Region(region).XRequestId(ClientRequestID()).Execute()
+
+	split, err := ResourceAccessPolicyID.Split(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	region, id := split[0], split[1]
+
+	_, _, err = client.AccesspoliciesAPI.DeleteAccessPolicy(ctx, id).Region(region).XRequestId(ClientRequestID()).Execute()
 	return apiError(err)
 }
 

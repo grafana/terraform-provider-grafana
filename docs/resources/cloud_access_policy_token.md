@@ -64,3 +64,11 @@ resource "grafana_cloud_access_policy_token" "test" {
 - `id` (String) The ID of this resource.
 - `token` (String, Sensitive)
 - `updated_at` (String) Last update date of the access policy token.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_cloud_access_policy_token.name "{{ region }}:{{ tokenId }}"
+```
