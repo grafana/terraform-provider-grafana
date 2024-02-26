@@ -11,6 +11,18 @@ permissions:
   id-token: write
 
 jobs:
+  # Tests that Terraform can actually install and use the provider
+  # Ex: https://github.com/grafana/terraform-provider-grafana/issues/1372
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: 
+          go-version: '1.21'
+      - uses: hashicorp/setup-terraform@v3
+      - run: make integration-test
+
   cloudinstance:
     concurrency: cloud-instance
     runs-on: ubuntu-latest
