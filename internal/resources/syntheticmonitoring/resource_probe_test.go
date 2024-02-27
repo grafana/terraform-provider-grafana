@@ -94,6 +94,64 @@ func TestAccResourceProbe_recreate(t *testing.T) {
 	})
 }
 
+// Test that a probe that is used in a check can be deleted or recreated
+func TestAccResourceProbe_recreateProbeUsedInCheck(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	randomName := acctest.RandomWithPrefix("tf")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testSyntheticMonitoringProbeAndCheck(randomName, "test1"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.first", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.second", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.first", "name", randomName+"test1-first"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.second", "name", randomName+"test1-second"),
+				),
+			},
+			// Change the name of the probe
+			{
+				Config: testSyntheticMonitoringProbeAndCheck(randomName, "test2"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.first", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.second", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.first", "name", randomName+"test2-first"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.second", "name", randomName+"test2-second"),
+				),
+			},
+			// Taint a single probe and recreate
+			{
+				Config: testSyntheticMonitoringProbeAndCheck(randomName, "test2"),
+				Taint:  []string{"grafana_synthetic_monitoring_probe.first"},
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.first", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.second", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.first", "name", randomName+"test2-first"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.second", "name", randomName+"test2-second"),
+				),
+			},
+			// Taint everything and recreate
+			{
+				Config: testSyntheticMonitoringProbeAndCheck(randomName, "test2"),
+				Taint:  []string{"grafana_synthetic_monitoring_probe.first", "grafana_synthetic_monitoring_probe.second", "grafana_synthetic_monitoring_check.http"},
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.first", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_probe.second", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.first", "name", randomName+"test2-first"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.second", "name", randomName+"test2-second"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceProbe_InvalidLabels(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
@@ -125,6 +183,41 @@ func TestAccResourceProbe_InvalidLabels(t *testing.T) {
 		ProviderFactories: testutils.ProviderFactories,
 		Steps:             steps,
 	})
+}
+
+func testSyntheticMonitoringProbeAndCheck(name, probeSuffix string) string {
+	return fmt.Sprintf(`
+resource "grafana_synthetic_monitoring_probe" "first" {
+	name      = "%[1]s%[2]s-first"
+	latitude  = 27.98606
+	longitude = 86.92262
+	region    = "APAC"
+}
+
+resource "grafana_synthetic_monitoring_probe" "second" {
+	name      = "%[1]s%[2]s-second"
+	latitude  = 26.98606
+	longitude = 87.92262
+	region    = "APAC"
+}
+
+resource "grafana_synthetic_monitoring_check" "http" {
+	job     = "%[1]s"
+	target  = "https://%[1]s.com"
+	enabled = false
+	probes = [
+	  grafana_synthetic_monitoring_probe.first.id,
+	  grafana_synthetic_monitoring_probe.second.id,
+	]
+	labels = {
+	  foo = "bar"
+	}
+	settings {
+	  http {}
+	}
+  }
+  
+`, name, probeSuffix)
 }
 
 func testSyntheticMonitoringProbeLabel(name, value string) string {
