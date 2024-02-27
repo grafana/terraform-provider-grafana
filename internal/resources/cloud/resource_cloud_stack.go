@@ -81,9 +81,13 @@ available at “https://<stack_slug>.grafana.net".`,
 			},
 			"url": {
 				Type:        schema.TypeString,
-				Computed:    true,
 				Optional:    true,
 				Description: "Custom URL for the Grafana instance. Must have a CNAME setup to point to `.grafana.net` before creating the stack",
+				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+					return oldValue == newValue ||
+						// No diff if we're using the default URL
+						(oldValue == defaultStackURL(d.Get("slug").(string)) && newValue == "")
+				},
 			},
 			"wait_for_readiness": {
 				Type:        schema.TypeBool,
@@ -223,7 +227,7 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 				return nil
 			}
 			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
-			return retry.RetryableError(fmt.Errorf("failed to create stack: %v", err))
+			return retry.RetryableError(fmt.Errorf("failed to create stack: %w", err))
 		default:
 			d.SetId(strconv.FormatInt(int64(createdStack.Id), 10))
 		}
@@ -243,24 +247,23 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaCloudAPI
 
-	allowedChanges := []string{"name", "description", "slug", "url", "labels"}
-	if d.HasChangesExcept(allowedChanges...) {
-		return diag.Errorf("Error: Only %s and description can be updated.", strings.Join(allowedChanges, ", "))
+	// Default to the slug if the URL is not set
+	url := d.Get("url").(string)
+	if url == "" {
+		url = defaultStackURL(d.Get("slug").(string))
 	}
 
-	if d.HasChange("name") || d.HasChange("description") || d.HasChanges("slug") || d.HasChanges("url") {
-		stack := gcom.PostInstanceRequest{
-			Name:        common.Ref(d.Get("name").(string)),
-			Slug:        common.Ref(d.Get("slug").(string)),
-			Description: common.Ref(d.Get("description").(string)),
-			Url:         common.Ref(d.Get("url").(string)),
-			Labels:      common.Ref(common.UnpackMap[string](d.Get("labels"))),
-		}
-		req := client.InstancesAPI.PostInstance(ctx, d.Id()).PostInstanceRequest(stack).XRequestId(ClientRequestID())
-		_, _, err := req.Execute()
-		if err != nil {
-			return apiError(err)
-		}
+	stack := gcom.PostInstanceRequest{
+		Name:        common.Ref(d.Get("name").(string)),
+		Slug:        common.Ref(d.Get("slug").(string)),
+		Description: common.Ref(d.Get("description").(string)),
+		Url:         &url,
+		Labels:      common.Ref(common.UnpackMap[string](d.Get("labels"))),
+	}
+	req := client.InstancesAPI.PostInstance(ctx, d.Id()).PostInstanceRequest(stack).XRequestId(ClientRequestID())
+	_, _, err := req.Execute()
+	if err != nil {
+		return apiError(err)
 	}
 
 	if diag := ReadStack(ctx, d, meta); diag != nil {
@@ -424,4 +427,8 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 	}
 
 	return nil
+}
+
+func defaultStackURL(slug string) string {
+	return fmt.Sprintf("https://%s.grafana.net", slug)
 }

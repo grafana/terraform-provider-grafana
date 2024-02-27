@@ -32,6 +32,7 @@ func TestResourceStack_Basic(t *testing.T) {
 		resource.TestMatchResourceAttr("grafana_cloud_stack.test", "id", common.IDRegexp),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "name", resourceName),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "slug", resourceName),
+		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "url", "https://"+resourceName+".grafana.net"),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "description", stackDescription),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "status", "active"),
 		resource.TestCheckResourceAttr("grafana_cloud_stack.test", "labels.tf", "true"),
