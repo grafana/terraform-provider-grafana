@@ -32,6 +32,10 @@ This resource cannot be imported but it can be used on an existing Synthetic Mon
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/installation/)
 * [API documentation](https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#apiv1registerinstall)
+
+Required access policy scopes:
+
+* stacks:read
 `,
 		CreateContext: ResourceInstallationCreate,
 		ReadContext:   ResourceInstallationRead,

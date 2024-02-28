@@ -16,6 +16,12 @@ func ResourcePluginInstallation() *schema.Resource {
 Manages Grafana Cloud Plugin Installations.
 
 * [Plugin Catalog](https://grafana.com/grafana/plugins/)
+
+Required access policy scopes:
+
+* stack-plugins:read
+* stack-plugins:write
+* stack-plugins:delete
 `,
 		Schema: map[string]*schema.Schema{
 			"stack_slug": {
