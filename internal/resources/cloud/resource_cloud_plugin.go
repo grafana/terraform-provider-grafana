@@ -2,13 +2,14 @@ package cloud
 
 import (
 	"context"
-	"strings"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+var ResourcePluginInstallationID = common.NewTFIDWithLegacySeparator("grafana_cloud_plugin_installation", "_", "stackSlug", "pluginSlug") //nolint:staticcheck
 
 func ResourcePluginInstallation() *schema.Resource {
 	return &schema.Resource{
@@ -70,7 +71,7 @@ func ResourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceDat
 		return apiError(err)
 	}
 
-	d.SetId(stackSlug + "_" + pluginSlug)
+	d.SetId(ResourcePluginInstallationID.Make(stackSlug, pluginSlug))
 
 	return nil
 }
@@ -78,8 +79,11 @@ func ResourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceDat
 func ResourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaCloudAPI
 
-	splitID := strings.SplitN(d.Id(), "_", 2)
-	stackSlug, pluginSlug := splitID[0], splitID[1]
+	split, err := ResourcePluginInstallationID.Split(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	stackSlug, pluginSlug := split[0], split[1]
 
 	installation, _, err := client.InstancesAPI.GetInstancePlugin(ctx, stackSlug, pluginSlug).Execute()
 	if err, shouldReturn := common.CheckReadError("plugin", d, err); shouldReturn {
@@ -89,6 +93,7 @@ func ResourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData,
 	d.Set("stack_slug", installation.InstanceSlug)
 	d.Set("slug", installation.PluginSlug)
 	d.Set("version", installation.Version)
+	d.SetId(ResourcePluginInstallationID.Make(stackSlug, pluginSlug))
 
 	return nil
 }
@@ -96,9 +101,12 @@ func ResourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData,
 func ResourcePluginInstallationDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*common.Client).GrafanaCloudAPI
 
-	splitID := strings.SplitN(d.Id(), "_", 2)
-	stackSlug, pluginSlug := splitID[0], splitID[1]
+	split, err := ResourcePluginInstallationID.Split(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	stackSlug, pluginSlug := split[0], split[1]
 
-	_, _, err := client.InstancesAPI.DeleteInstancePlugin(ctx, stackSlug, pluginSlug).XRequestId(ClientRequestID()).Execute()
+	_, _, err = client.InstancesAPI.DeleteInstancePlugin(ctx, stackSlug, pluginSlug).XRequestId(ClientRequestID()).Execute()
 	return apiError(err)
 }

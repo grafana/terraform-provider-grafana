@@ -3,6 +3,7 @@ package cloud_test
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
@@ -39,6 +40,27 @@ func TestAccResourcePluginInstallation(t *testing.T) {
 				ResourceName:      "grafana_cloud_plugin_installation.test-installation",
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+			// Import with different ID formats (Legacy and current)
+			{
+				ResourceName:      "grafana_cloud_plugin_installation.test-installation",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId:     fmt.Sprintf("%s_%s", stackSlug, pluginSlug),
+			},
+			{
+				ResourceName:      "grafana_cloud_plugin_installation.test-installation",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId:     fmt.Sprintf("%s:%s", stackSlug, pluginSlug),
+			},
+			// Test import with invalid ID
+			{
+				ResourceName:      "grafana_cloud_plugin_installation.test-installation",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId:     "noseparator",
+				ExpectError:       regexp.MustCompile("Error: id \"noseparator\" does not match expected format. Should be in the format: stackSlug:pluginSlug"),
 			},
 			// Test deletion (stack must keep existing to really test deletion)
 			{

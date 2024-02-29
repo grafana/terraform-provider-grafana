@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-mux/tf6to5server"
 )
 
+//go:generate go run ./tools/genimports examples
 //go:generate ./tools/generate-docs.sh
 
 var (

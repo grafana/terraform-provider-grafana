@@ -3,7 +3,6 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
@@ -12,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
+var ResourceAPIKeyID = common.NewTFIDWithLegacySeparator("grafana_cloud_api_key", "-", "orgSlug", "apiKeyName") //nolint:staticcheck
 var cloudAPIKeyRoles = []string{"Viewer", "Editor", "Admin", "MetricsPublisher", "PluginPublisher"}
 
 func ResourceAPIKey() *schema.Resource {
@@ -83,7 +83,7 @@ func ResourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	}
 
 	d.Set("key", *resp.Token)
-	d.SetId(org + "-" + resp.Name)
+	d.SetId(ResourceAPIKeyID.Make(org, resp.Name))
 
 	return ResourceAPIKeyRead(ctx, d, meta)
 }
@@ -91,8 +91,11 @@ func ResourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, meta inte
 func ResourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).GrafanaCloudAPI
 
-	splitID := strings.SplitN(d.Id(), "-", 2)
-	org, name := splitID[0], splitID[1]
+	split, err := ResourceAPIKeyID.Split(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	org, name := split[0], split[1]
 
 	resp, _, err := c.OrgsAPI.GetApiKey(ctx, name, org).Execute()
 	if err != nil {
@@ -102,6 +105,7 @@ func ResourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta interf
 	d.Set("name", resp.Name)
 	d.Set("role", resp.Role)
 	d.Set("cloud_org_slug", org)
+	d.SetId(ResourceAPIKeyID.Make(org, resp.Name))
 
 	return nil
 }
@@ -109,7 +113,13 @@ func ResourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta interf
 func ResourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).GrafanaCloudAPI
 
-	_, err := c.OrgsAPI.DelApiKey(ctx, d.Get("name").(string), d.Get("cloud_org_slug").(string)).XRequestId(ClientRequestID()).Execute()
+	split, err := ResourceAPIKeyID.Split(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	org, name := split[0], split[1]
+
+	_, err = c.OrgsAPI.DelApiKey(ctx, name, org).XRequestId(ClientRequestID()).Execute()
 	d.SetId("")
 	return apiError(err)
 }

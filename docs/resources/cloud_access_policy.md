@@ -97,5 +97,5 @@ Required:
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_cloud_access_policy.policyname {{region}}/{{policy_id}}
+terraform import grafana_cloud_access_policy.name "{{ region }}:{{ policyId }}"
 ```
