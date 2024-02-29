@@ -9,12 +9,13 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceStackServiceAccountToken() *schema.Resource {
-	return &schema.Resource{
+func resourceStackServiceAccountToken() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Manages service account tokens of a Grafana Cloud stack using the Cloud API
 This can be used to bootstrap a management service account token for a new stack
@@ -67,6 +68,12 @@ Required access policy scopes:
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_cloud_stack_service_account_token",
+		nil,
+		schema,
+	)
 }
 
 func stackServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {

@@ -157,7 +157,7 @@ func Provider(version string) *schema.Provider {
 			slo.ResourcesMap,
 			syntheticmonitoring.ResourcesMap,
 			oncall.ResourcesMap,
-			cloud.ResourcesMap,
+			cloud.ResourcesMap(),
 		),
 
 		DataSourcesMap: mergeResourceMaps(

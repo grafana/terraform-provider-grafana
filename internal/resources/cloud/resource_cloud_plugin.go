@@ -11,16 +11,14 @@ import (
 
 var (
 	//nolint:staticcheck
-	resourcePluginInstallationID = common.NewResourceIDWithLegacySeparator(
-		"grafana_cloud_plugin_installation",
-		"_",
+	resourcePluginInstallationID = common.NewResourceIDWithLegacySeparator("_",
 		common.StringIDField("stackSlug"),
 		common.StringIDField("pluginSlug"),
 	)
 )
 
-func resourcePluginInstallation() *schema.Resource {
-	return &schema.Resource{
+func resourcePluginInstallation() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Manages Grafana Cloud Plugin Installations.
 
@@ -60,6 +58,12 @@ Required access policy scopes:
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 	}
+
+	return common.NewResource(
+		"grafana_cloud_plugin_installation",
+		resourcePluginInstallationID,
+		schema,
+	)
 }
 
 func resourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {

@@ -18,14 +18,13 @@ import (
 
 var (
 	resourceStackServiceAccountID = common.NewResourceID(
-		"grafana_cloud_stack_service_account",
 		common.StringIDField("stackSlug"),
 		common.IntIDField("serviceAccountID"),
 	)
 )
 
-func resourceStackServiceAccount() *schema.Resource {
-	return &schema.Resource{
+func resourceStackServiceAccount() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 Manages service accounts of a Grafana Cloud stack using the Cloud API
@@ -74,6 +73,12 @@ Required access policy scopes:
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_cloud_stack_service_account",
+		resourceStackServiceAccountID,
+		schema,
+	)
 }
 
 func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
