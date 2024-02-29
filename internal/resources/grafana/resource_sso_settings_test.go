@@ -309,12 +309,22 @@ const testConfigWithInvalidCustomField = `resource "grafana_sso_settings" "sso_s
 var testConfigsWithValidationErrors = []string{
 	// no token_url provided for azuread
 	`resource "grafana_sso_settings" "azure_sso_settings" {
-  provider_name = "azuread"
-  oauth2_settings {
-    client_id = "client_id"
-    auth_url  = "https://login.microsoftonline.com/12345/oauth2/v2.0/authorize"
-  }
-}`,
+	  provider_name = "azuread"
+	  oauth2_settings {
+	    client_id = "client_id"
+	    auth_url  = "https://login.microsoftonline.com/12345/oauth2/v2.0/authorize"
+	  }
+	}`,
+	// api_url is not empty for azuread
+	`resource "grafana_sso_settings" "azure_sso_settings" {
+	provider_name = "azuread"
+	oauth2_settings {
+		client_id = "client_id"
+	  	auth_url  = "https://login.microsoftonline.com/12345/oauth2/v2.0/authorize"
+	  	token_url = "https://login.microsoftonline.com/12345/oauth2/v2.0/token"
+		api_url = ""
+	}
+	}`,
 	// invalid auth_url provided for okta
 	`resource "grafana_sso_settings" "okta_sso_settings" {
   provider_name = "okta"

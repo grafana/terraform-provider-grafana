@@ -394,42 +394,94 @@ func getSettingsFromResourceData(d *schema.ResourceData, settingsKey string) (ma
 	return nil, fmt.Errorf("no valid settings found for the provider %s", d.Get(providerKey).(string))
 }
 
-func validateOAuth2Settings(provider string, settings map[string]any) error {
-	authURL := settings["auth_url"].(string)
-	tokenURL := settings["token_url"].(string)
-	apiURL := settings["api_url"].(string)
+type validateFunc func(settingsMap map[string]any, provider string) error
 
-	switch provider {
-	case "github", "gitlab", "google":
-		if authURL != "" {
-			return fmt.Errorf("auth_url must be empty for the provider %s", provider)
-		}
-		if tokenURL != "" {
-			return fmt.Errorf("token_url must be empty for the provider %s", provider)
-		}
-		if apiURL != "" {
-			return fmt.Errorf("api_url must be empty for the provider %s", provider)
-		}
-	case "azuread", "generic_oauth", "okta":
-		if authURL == "" {
-			return fmt.Errorf("auth_url must be set for the provider %s", provider)
-		}
-		if !isValidURL(authURL) {
-			return fmt.Errorf("auth_url must be a valid http/https URL")
-		}
-		if tokenURL == "" {
-			return fmt.Errorf("token_url must be set for the provider %s", provider)
-		}
-		if !isValidURL(tokenURL) {
-			return fmt.Errorf("token_url must be a valid http/https URL")
-		}
-		if apiURL == "" {
-			return fmt.Errorf("api_url must be set for the provider %s", provider)
-		}
-		if !isValidURL(apiURL) {
-			return fmt.Errorf("api_url must be a valid http/https URL")
+var validationsByProvider = map[string][]validateFunc{
+	"azuread": {
+		validateNotEmpty("auth_url"),
+		validateUrl("auth_url"),
+		validateNotEmpty("token_url"),
+		validateUrl("token_url"),
+		validateEmpty("api_url"),
+		validateUrl("token_url"),
+	},
+	"generic_oauth": {
+		validateNotEmpty("auth_url"),
+		validateNotEmpty("token_url"),
+		validateNotEmpty("api_url"),
+		validateUrl("auth_url"),
+		validateUrl("token_url"),
+		validateUrl("api_url"),
+	},
+	"okta": {
+		validateNotEmpty("auth_url"),
+		validateNotEmpty("token_url"),
+		validateNotEmpty("api_url"),
+		validateUrl("auth_url"),
+		validateUrl("token_url"),
+		validateUrl("api_url"),
+	},
+	"github": {
+		validateEmpty("auth_url"),
+		validateEmpty("token_url"),
+		validateEmpty("api_url"),
+	},
+	"gitlab": {
+		validateEmpty("auth_url"),
+		validateEmpty("token_url"),
+		validateEmpty("api_url"),
+	},
+	"google": {
+		validateEmpty("auth_url"),
+		validateEmpty("token_url"),
+		validateEmpty("api_url"),
+	},
+}
+
+func validateOAuth2Settings(provider string, settings map[string]any) error {
+	validators := validationsByProvider[provider]
+	for _, validateF := range validators {
+		err := validateF(settings, provider)
+		if err != nil {
+			return err
 		}
 	}
+
+	// authURL := settings["auth_url"].(string)
+	// tokenURL := settings["token_url"].(string)
+	// apiURL := settings["api_url"].(string)
+
+	// switch provider {
+	// case "github", "gitlab", "google":
+	// 	if authURL != "" {
+	// 		return fmt.Errorf("auth_url must be empty for the provider %s", provider)
+	// 	}
+	// 	if tokenURL != "" {
+	// 		return fmt.Errorf("token_url must be empty for the provider %s", provider)
+	// 	}
+	// 	if apiURL != "" {
+	// 		return fmt.Errorf("api_url must be empty for the provider %s", provider)
+	// 	}
+	// case "azuread", "generic_oauth", "okta":
+	// 	if authURL == "" {
+	// 		return fmt.Errorf("auth_url must be set for the provider %s", provider)
+	// 	}
+	// 	if !isValidURL(authURL) {
+	// 		return fmt.Errorf("auth_url must be a valid http/https URL")
+	// 	}
+	// 	if tokenURL == "" {
+	// 		return fmt.Errorf("token_url must be set for the provider %s", provider)
+	// 	}
+	// 	if !isValidURL(tokenURL) {
+	// 		return fmt.Errorf("token_url must be a valid http/https URL")
+	// 	}
+	// 	if apiURL == "" {
+	// 		return fmt.Errorf("api_url must be set for the provider %s", provider)
+	// 	}
+	// 	if !isValidURL(apiURL) {
+	// 		return fmt.Errorf("api_url must be a valid http/https URL")
+	// 	}
+	// }
 
 	return nil
 }
@@ -538,4 +590,33 @@ func isValidURL(actual string) bool {
 		return false
 	}
 	return strings.HasPrefix(parsed.Scheme, "http") && parsed.Host != ""
+}
+
+func validateNotEmpty(key string) validateFunc {
+	return func(settingsMap map[string]any, provider string) error {
+		if settingsMap[key] == "" {
+			return fmt.Errorf("%s must be set for the provider %s", key, provider)
+		}
+
+		return nil
+	}
+}
+
+func validateEmpty(key string) validateFunc {
+	return func(settingsMap map[string]any, provider string) error {
+		if settingsMap[key].(string) != "" {
+			return fmt.Errorf("%s must be empty for the provider %s", key, provider)
+		}
+
+		return nil
+	}
+}
+
+func validateUrl(key string) validateFunc {
+	return func(settingsMap map[string]any, provider string) error {
+		if !isValidURL(settingsMap[key].(string)) {
+			return fmt.Errorf("%s must be a valid http/https URL for the provider %s", key, provider)
+		}
+		return nil
+	}
 }
