@@ -1,23 +1,37 @@
 package common
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+<<<<<<< HEAD
+=======
+var allResources = []*Resource{}
+
+type ResourceListIDsFunc func(ctx context.Context, cache *sync.Map, client *Client) ([]string, error)
+>>>>>>> c8238793 (tfgen1)
 type Resource struct {
-	Name   string
-	IDType *ResourceID
-	Schema *schema.Resource
+	Name        string
+	IDType      *ResourceID
+	ListIDsFunc ResourceListIDsFunc
+	Schema      *schema.Resource
 }
 
 func NewResource(name string, idType *ResourceID, schema *schema.Resource) *Resource {
+	return NewResourceWithLister(name, idType, nil, schema)
+}
+
+func NewResourceWithLister(name string, idType *ResourceID, lister ResourceListIDsFunc, schema *schema.Resource) *Resource {
 	r := &Resource{
-		Name:   name,
-		IDType: idType,
-		Schema: schema,
+		Name:        name,
+		IDType:      idType,
+		ListIDsFunc: lister,
+		Schema:      schema,
 	}
 	return r
 }
