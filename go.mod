@@ -24,6 +24,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.22.1
 	github.com/hashicorp/terraform-plugin-mux v0.15.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.33.0
+	github.com/zclconf/go-cty v1.14.2
 	golang.org/x/text v0.14.0
 )
 
@@ -94,7 +95,6 @@ require (
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/yuin/goldmark v1.6.0 // indirect
 	github.com/yuin/goldmark-meta v1.1.0 // indirect
-	github.com/zclconf/go-cty v1.14.2 // indirect
 	go.mongodb.org/mongo-driver v1.14.0 // indirect
 	go.opentelemetry.io/otel v1.24.0 // indirect
 	go.opentelemetry.io/otel/metric v1.24.0 // indirect

@@ -2,6 +2,9 @@ package cloud
 
 import (
 	"context"
+	"fmt"
+	"sync"
+	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
@@ -63,7 +66,43 @@ Required access policy scopes:
 		"grafana_cloud_plugin_installation",
 		resourcePluginInstallationID,
 		schema,
-	)
+	).WithLister(listStackPlugins)
+}
+
+func listStackPlugins(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
+	cloudClient := client.GrafanaCloudAPI
+	if cloudClient == nil {
+		return nil, fmt.Errorf("client not configured for Grafana Cloud API")
+	}
+
+	startTime := time.Now()
+
+	var stacks []gcom.FormattedApiInstance
+	waitTime := 2 * time.Minute
+	for {
+		if time.Since(startTime) > waitTime { // Shouldn't take more than 2 minutes to get stacks
+			return nil, fmt.Errorf("timed out after %s waiting for stacks to be available", waitTime)
+		}
+		stacksAny, ok := cache.Load(resourceStack().Name)
+		if !ok {
+			continue
+		}
+		stacks = stacksAny.([]gcom.FormattedApiInstance)
+		break
+	}
+
+	var pluginIDs []string
+	for _, stack := range stacks {
+		plugins, _, err := cloudClient.InstancesAPI.GetInstancePlugins(ctx, stack.Slug).Execute()
+		if err != nil {
+			return nil, err
+		}
+		for _, plugin := range plugins.Items {
+			pluginIDs = append(pluginIDs, resourcePluginInstallationID.Make(stack.Slug, plugin.PluginSlug))
+		}
+	}
+
+	return pluginIDs, nil
 }
 
 func resourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {

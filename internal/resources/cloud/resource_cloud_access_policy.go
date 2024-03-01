@@ -2,7 +2,9 @@ package cloud
 
 import (
 	"context"
+	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
@@ -133,8 +135,45 @@ Required access policy scopes:
 	return common.NewLegacySDKResource(
 		"grafana_cloud_access_policy",
 		resourceAccessPolicyID,
+		// listAccessPolicies,
 		schema,
 	)
+}
+
+func listAccessPolicies(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
+	cloudClient := client.GrafanaCloudAPI
+	if cloudClient == nil {
+		return nil, fmt.Errorf("client not configured for Grafana Cloud API")
+	}
+
+	regionsReq := cloudClient.StackRegionsAPI.GetStackRegions(ctx)
+	regionsResp, _, err := regionsReq.Execute()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list regions: %w", err)
+	}
+
+	org, _ := cache.Load("org")
+	orgReq := cloudClient.OrgsAPI.GetOrg(ctx, org.(string))
+	orgResp, _, err := orgReq.Execute()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get org with slug %s: %w", org, err)
+	}
+
+	var policies []string
+	for _, region := range regionsResp.Items {
+		regionSlug := region.FormattedApiStackRegionAnyOf.Slug
+		req := cloudClient.AccesspoliciesAPI.GetAccessPolicies(ctx).Region(regionSlug).OrgId(int32(orgResp.Id))
+		resp, _, err := req.Execute()
+		if err != nil {
+			return nil, fmt.Errorf("failed to list access policies in region %s: %w", regionSlug, err)
+		}
+
+		for _, policy := range resp.Items {
+			policies = append(policies, resourceAccessPolicyID.Make(regionSlug, policy.Id))
+		}
+	}
+
+	return policies, nil
 }
 
 func createCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {

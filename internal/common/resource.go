@@ -1,16 +1,20 @@
 package common
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+type ResourceListIDsFunc func(ctx context.Context, cache *sync.Map, client *Client) ([]string, error)
 type Resource struct {
 	Name                  string
 	IDType                *ResourceID
+	ListIDsFunc           ResourceListIDsFunc
 	Schema                *schema.Resource
 	PluginFrameworkSchema resource.ResourceWithConfigure
 }
@@ -30,6 +34,11 @@ func NewResource(name string, idType *ResourceID, schema resource.ResourceWithCo
 		IDType:                idType,
 		PluginFrameworkSchema: schema,
 	}
+	return r
+}
+
+func (r *Resource) WithLister(lister ResourceListIDsFunc) *Resource {
+	r.ListIDsFunc = lister
 	return r
 }
 

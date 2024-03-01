@@ -189,7 +189,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			statusCodes = types.SetValueMust(types.StringType, statusCodesValue)
 		}
 
-		cfg := frameworkProviderConfig{
+		cfg := FrameworkProviderConfig{
 			Auth:                   stringValueOrNull(d, "auth"),
 			URL:                    stringValueOrNull(d, "url"),
 			OrgID:                  int64ValueOrNull(d, "org_id"),
@@ -217,7 +217,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			return nil, diag.FromErr(err)
 		}
 
-		clients, err := createClients(cfg)
+		clients, err := CreateClients(cfg)
 		return clients, diag.FromErr(err)
 	}
 }

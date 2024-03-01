@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
@@ -203,7 +204,28 @@ Required access policy scopes:
 		"grafana_cloud_stack",
 		resourceStackID,
 		schema,
-	)
+	).WithLister(listStacks)
+}
+
+func listStacks(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
+	cloudClient := client.GrafanaCloudAPI
+	if cloudClient == nil {
+		return nil, fmt.Errorf("client not configured for Grafana Cloud API")
+	}
+
+	req := cloudClient.InstancesAPI.GetInstances(ctx)
+	resp, _, err := req.Execute()
+	if err != nil {
+		cache.Store(resourceStack().Name, []gcom.FormattedApiInstance{})
+		return nil, err
+	}
+	cache.Store(resourceStack().Name, resp.Items)
+
+	var stackSlugs []string
+	for _, stack := range resp.Items {
+		stackSlugs = append(stackSlugs, stack.Slug)
+	}
+	return stackSlugs, nil
 }
 
 func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {

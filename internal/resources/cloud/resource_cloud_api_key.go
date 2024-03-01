@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
@@ -74,7 +75,28 @@ Required access policy scopes:
 		"grafana_cloud_api_key",
 		resourceAPIKeyID,
 		schema,
-	)
+	).WithLister(listAPIKeys)
+}
+
+func listAPIKeys(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
+	cloudClient := client.GrafanaCloudAPI
+	if cloudClient == nil {
+		return nil, fmt.Errorf("client not configured for Grafana Cloud API")
+	}
+
+	org, _ := cache.Load("org")
+	req := cloudClient.OrgsAPI.GetApiKeys(ctx, org.(string))
+	resp, _, err := req.Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	var keys []string
+	for _, key := range resp.Items {
+		keys = append(keys, resourceAPIKeyID.Make(key.OrgSlug, key.Name))
+	}
+
+	return keys, nil
 }
 
 func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, c *gcom.APIClient) diag.Diagnostics {
