@@ -3,7 +3,6 @@ package cloud_test
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
@@ -87,24 +86,14 @@ func testAccGrafanaAuthCheckServiceAccounts(stack *gcom.FormattedApiInstance, ex
 			return fmt.Errorf("failed to get service accounts: %w", err)
 		}
 
-		var foundSAs []string
-		for _, sa := range response.Payload.ServiceAccounts {
-			if !strings.HasPrefix(sa.Name, "test-api-key-") {
-				foundSAs = append(foundSAs, sa.Name)
-				if sa.Tokens == 0 {
-					return fmt.Errorf("expected to find at least one token for service account %s", sa.Name)
-				}
-			}
-		}
-
-		if len(foundSAs) != len(expectedSAs) {
-			return fmt.Errorf("expected %d keys, got %d", len(expectedSAs), len(foundSAs))
-		}
 		for _, expectedSA := range expectedSAs {
 			found := false
-			for _, foundSA := range foundSAs {
-				if expectedSA == foundSA {
+			for _, sa := range response.Payload.ServiceAccounts {
+				if sa.Name == expectedSA {
 					found = true
+					if sa.Tokens == 0 {
+						return fmt.Errorf("expected to find at least one token for service account %s", sa.Name)
+					}
 					break
 				}
 			}

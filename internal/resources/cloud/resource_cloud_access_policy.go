@@ -13,7 +13,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var ResourceAccessPolicyID = common.NewResourceIDWithLegacySeparator("grafana_cloud_access_policy", "/", "region", "policyId") //nolint:staticcheck
+var (
+	//nolint:staticcheck
+	resourceAccessPolicyID = common.NewResourceIDWithLegacySeparator(
+		"grafana_cloud_access_policy",
+		"/",
+		common.StringIDField("region"),
+		common.StringIDField("policyId"),
+	)
+)
 
 func resourceAccessPolicy() *schema.Resource {
 	return &schema.Resource{
@@ -146,13 +154,13 @@ func createCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 		return apiError(err)
 	}
 
-	d.SetId(ResourceAccessPolicyID.Make(region, result.Id))
+	d.SetId(resourceAccessPolicyID.Make(region, result.Id))
 
 	return readCloudAccessPolicy(ctx, d, client)
 }
 
 func updateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
-	split, err := ResourceAccessPolicyID.Split(d.Id())
+	split, err := resourceAccessPolicyID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -163,7 +171,7 @@ func updateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 		displayName = d.Get("name").(string)
 	}
 
-	req := client.AccesspoliciesAPI.PostAccessPolicy(ctx, id).Region(region).XRequestId(ClientRequestID()).
+	req := client.AccesspoliciesAPI.PostAccessPolicy(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).
 		PostAccessPolicyRequest(gcom.PostAccessPolicyRequest{
 			DisplayName: &displayName,
 			Scopes:      common.ListToStringSlice(d.Get("scopes").(*schema.Set).List()),
@@ -177,13 +185,13 @@ func updateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 }
 
 func readCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
-	split, err := ResourceAccessPolicyID.Split(d.Id())
+	split, err := resourceAccessPolicyID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	region, id := split[0], split[1]
 
-	result, _, err := client.AccesspoliciesAPI.GetAccessPolicy(ctx, id).Region(region).Execute()
+	result, _, err := client.AccesspoliciesAPI.GetAccessPolicy(ctx, id.(string)).Region(region.(string)).Execute()
 	if err, shouldReturn := common.CheckReadError("access policy", d, err); shouldReturn {
 		return err
 	}
@@ -198,19 +206,19 @@ func readCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *
 	if updated := result.UpdatedAt; updated != nil {
 		d.Set("updated_at", updated.Format(time.RFC3339))
 	}
-	d.SetId(ResourceAccessPolicyID.Make(region, result.Id))
+	d.SetId(resourceAccessPolicyID.Make(region, result.Id))
 
 	return nil
 }
 
 func deleteCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
-	split, err := ResourceAccessPolicyID.Split(d.Id())
+	split, err := resourceAccessPolicyID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	region, id := split[0], split[1]
 
-	_, _, err = client.AccesspoliciesAPI.DeleteAccessPolicy(ctx, id).Region(region).XRequestId(ClientRequestID()).Execute()
+	_, _, err = client.AccesspoliciesAPI.DeleteAccessPolicy(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
 	return apiError(err)
 }
 

@@ -154,7 +154,7 @@ func testAccCloudAccessPolicyCheckExists(rn string, a *gcom.AuthAccessPolicy) re
 			return fmt.Errorf("resource id not set")
 		}
 
-		region, id, _ := strings.Cut(rs.Primary.ID, "/")
+		region, id, _ := strings.Cut(rs.Primary.ID, ":")
 
 		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 		policy, _, err := client.AccesspoliciesAPI.GetAccessPolicy(context.Background(), id).Region(region).Execute()
@@ -179,7 +179,7 @@ func testAccCloudAccessPolicyTokenCheckExists(rn string, a *gcom.AuthToken) reso
 			return fmt.Errorf("resource id not set")
 		}
 
-		region, id, _ := strings.Cut(rs.Primary.ID, "/")
+		region, id, _ := strings.Cut(rs.Primary.ID, ":")
 
 		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 		token, _, err := client.TokensAPI.GetToken(context.Background(), id).Region(region).Execute()
@@ -195,6 +195,9 @@ func testAccCloudAccessPolicyTokenCheckExists(rn string, a *gcom.AuthToken) reso
 
 func testAccCloudAccessPolicyCheckDestroy(region string, a *gcom.AuthAccessPolicy) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
+		if a == nil {
+			return nil
+		}
 		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 		policy, _, err := client.AccesspoliciesAPI.GetAccessPolicy(context.Background(), *a.Id).Region(region).Execute()
 		if err == nil && policy.Name != "" {
@@ -207,6 +210,9 @@ func testAccCloudAccessPolicyCheckDestroy(region string, a *gcom.AuthAccessPolic
 
 func testAccCloudAccessPolicyTokenCheckDestroy(region string, a *gcom.AuthToken) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
+		if a == nil {
+			return nil
+		}
 		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 		token, _, err := client.TokensAPI.GetToken(context.Background(), *a.Id).Region(region).Execute()
 		if err == nil && token.Name != "" {
