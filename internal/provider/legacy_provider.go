@@ -80,19 +80,6 @@ func Provider(version string) *schema.Provider {
 			"grafana_synthetic_monitoring_probe": syntheticmonitoring.ResourceProbe(),
 		})
 
-		// Resources that require the Cloud client to exist.
-		cloudClientResources = addResourcesMetadataValidation(cloudClientPresent, map[string]*schema.Resource{
-			"grafana_cloud_access_policy":               cloud.ResourceAccessPolicy(),
-			"grafana_cloud_access_policy_token":         cloud.ResourceAccessPolicyToken(),
-			"grafana_cloud_api_key":                     cloud.ResourceAPIKey(),
-			"grafana_cloud_plugin_installation":         cloud.ResourcePluginInstallation(),
-			"grafana_cloud_stack":                       cloud.ResourceStack(),
-			"grafana_cloud_stack_api_key":               cloud.ResourceStackAPIKey(),
-			"grafana_cloud_stack_service_account":       cloud.ResourceStackServiceAccount(),
-			"grafana_cloud_stack_service_account_token": cloud.ResourceStackServiceAccountToken(),
-			"grafana_synthetic_monitoring_installation": cloud.ResourceInstallation(),
-		})
-
 		// Resources that require the OnCall client to exist.
 		onCallClientResources = addResourcesMetadataValidation(onCallClientPresent, map[string]*schema.Resource{
 			"grafana_oncall_integration":      oncall.ResourceIntegration(),
@@ -131,13 +118,6 @@ func Provider(version string) *schema.Provider {
 		smClientDatasources = addResourcesMetadataValidation(smClientPresent, map[string]*schema.Resource{
 			"grafana_synthetic_monitoring_probe":  syntheticmonitoring.DataSourceProbe(),
 			"grafana_synthetic_monitoring_probes": syntheticmonitoring.DataSourceProbes(),
-		})
-
-		// Datasources that require the Cloud client to exist.
-		cloudClientDatasources = addResourcesMetadataValidation(cloudClientPresent, map[string]*schema.Resource{
-			"grafana_cloud_ips":          cloud.DataSourceIPs(),
-			"grafana_cloud_organization": cloud.DataSourceOrganization(),
-			"grafana_cloud_stack":        cloud.DataSourceStack(),
 		})
 
 		// Datasources that require the OnCall client to exist.
@@ -275,7 +255,7 @@ func Provider(version string) *schema.Provider {
 			machinelearning.ResourcesMap,
 			smClientResources,
 			onCallClientResources,
-			cloudClientResources,
+			cloud.ResourcesMap,
 		),
 
 		DataSourcesMap: mergeResourceMaps(
@@ -283,7 +263,7 @@ func Provider(version string) *schema.Provider {
 			machinelearning.DatasourcesMap,
 			smClientDatasources,
 			onCallClientDatasources,
-			cloudClientDatasources,
+			cloud.DatasourcesMap,
 		),
 	}
 

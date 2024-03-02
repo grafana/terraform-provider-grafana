@@ -28,7 +28,7 @@ var (
 	stackSlugRegex  = regexp.MustCompile(`^[a-z][a-z0-9]+$`)
 )
 
-func ResourceStack() *schema.Resource {
+func resourceStack() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
@@ -41,10 +41,10 @@ Required access policy scopes:
 * stacks:delete
 `,
 
-		CreateContext: CreateStack,
-		UpdateContext: UpdateStack,
-		DeleteContext: DeleteStack,
-		ReadContext:   ReadStack,
+		CreateContext: withClient[schema.CreateContextFunc](createStack),
+		UpdateContext: withClient[schema.UpdateContextFunc](updateStack),
+		DeleteContext: withClient[schema.DeleteContextFunc](deleteStack),
+		ReadContext:   withClient[schema.ReadContextFunc](readStack),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -200,9 +200,7 @@ Required access policy scopes:
 	}
 }
 
-func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
-
+func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	stack := gcom.PostInstancesRequest{
 		Name:        d.Get("name").(string),
 		Slug:        common.Ref(d.Get("slug").(string)),
@@ -242,16 +240,14 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 		return apiError(err)
 	}
 
-	if diag := ReadStack(ctx, d, meta); diag != nil {
+	if diag := readStack(ctx, d, client); diag != nil {
 		return diag
 	}
 
 	return waitForStackReadiness(ctx, d)
 }
 
-func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
-
+func updateStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	// Default to the slug if the URL is not set
 	url := d.Get("url").(string)
 	if url == "" {
@@ -271,22 +267,20 @@ func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 		return apiError(err)
 	}
 
-	if diag := ReadStack(ctx, d, meta); diag != nil {
+	if diag := readStack(ctx, d, client); diag != nil {
 		return diag
 	}
 
 	return waitForStackReadiness(ctx, d)
 }
 
-func DeleteStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
+func deleteStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	req := client.InstancesAPI.DeleteInstance(ctx, d.Id()).XRequestId(ClientRequestID())
 	_, _, err := req.Execute()
 	return apiError(err)
 }
 
-func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
+func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	req := client.InstancesAPI.GetInstance(ctx, d.Id())
 	stack, _, err := req.Execute()
 	if err, shouldReturn := common.CheckReadError("stack", d, err); shouldReturn {

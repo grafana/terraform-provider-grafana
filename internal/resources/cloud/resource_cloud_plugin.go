@@ -11,7 +11,7 @@ import (
 
 var ResourcePluginInstallationID = common.NewResourceIDWithLegacySeparator("grafana_cloud_plugin_installation", "_", "stackSlug", "pluginSlug") //nolint:staticcheck
 
-func ResourcePluginInstallation() *schema.Resource {
+func resourcePluginInstallation() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 Manages Grafana Cloud Plugin Installations.
@@ -44,19 +44,17 @@ Required access policy scopes:
 				ForceNew:    true,
 			},
 		},
-		CreateContext: ResourcePluginInstallationCreate,
-		ReadContext:   ResourcePluginInstallationRead,
+		CreateContext: withClient[schema.CreateContextFunc](resourcePluginInstallationCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourcePluginInstallationRead),
 		UpdateContext: nil,
-		DeleteContext: ResourcePluginInstallationDelete,
+		DeleteContext: withClient[schema.DeleteContextFunc](resourcePluginInstallationDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 	}
 }
 
-func ResourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
-
+func resourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	stackSlug := d.Get("stack_slug").(string)
 	pluginSlug := d.Get("slug").(string)
 
@@ -76,9 +74,7 @@ func ResourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceDat
 	return nil
 }
 
-func ResourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
-
+func resourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	split, err := ResourcePluginInstallationID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
@@ -98,9 +94,7 @@ func ResourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData,
 	return nil
 }
 
-func ResourcePluginInstallationDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
-
+func resourcePluginInstallationDelete(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	split, err := ResourcePluginInstallationID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)

@@ -6,8 +6,8 @@ import (
 	"log"
 	"strings"
 
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -20,7 +20,7 @@ var smAPIURLsExceptions = map[string]string{
 	"us-azure":        "https://synthetic-monitoring-api-us-central2.grafana.net",
 }
 
-func ResourceInstallation() *schema.Resource {
+func resourceSyntheticMonitoringInstallation() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
@@ -37,9 +37,9 @@ Required access policy scopes:
 
 * stacks:read
 `,
-		CreateContext: ResourceInstallationCreate,
-		ReadContext:   ResourceInstallationRead,
-		DeleteContext: ResourceInstallationDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceInstallationCreate),
+		ReadContext:   resourceInstallationRead,
+		DeleteContext: resourceInstallationDelete,
 
 		Schema: map[string]*schema.Schema{
 			"metrics_publisher_key": {
@@ -71,8 +71,7 @@ Required access policy scopes:
 	}
 }
 
-func ResourceInstallationCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	cloudClient := meta.(*common.Client).GrafanaCloudAPI
+func resourceInstallationCreate(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
 	req := cloudClient.InstancesAPI.GetInstance(ctx, d.Get("stack_id").(string))
 	stack, _, err := req.Execute()
 	if err != nil {
@@ -98,12 +97,12 @@ func ResourceInstallationCreate(ctx context.Context, d *schema.ResourceData, met
 	d.SetId(fmt.Sprintf("%s;%d", apiURL, stackID))
 	d.Set("sm_access_token", resp.AccessToken)
 	d.Set("stack_sm_api_url", apiURL)
-	return ResourceInstallationRead(ctx, d, meta)
+	return resourceInstallationRead(ctx, d, nil)
 }
 
 // Management of the installation is a one-off operation. The state cannot be updated through a read operation.
 // This read function will only invalidate the state (forcing recreation) if the installation has been deleted.
-func ResourceInstallationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceInstallationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	apiURL := strings.Split(d.Id(), ";")[0]
 	tempClient := SMAPI.NewClient(apiURL, d.Get("sm_access_token").(string), nil)
 	if err := tempClient.ValidateToken(ctx); err != nil {
@@ -114,7 +113,7 @@ func ResourceInstallationRead(ctx context.Context, d *schema.ResourceData, meta 
 	return nil
 }
 
-func ResourceInstallationDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceInstallationDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	apiURL := strings.Split(d.Id(), ";")[0]
 	tempClient := SMAPI.NewClient(apiURL, d.Get("sm_access_token").(string), nil)
 	if err := tempClient.DeleteToken(ctx); err != nil {

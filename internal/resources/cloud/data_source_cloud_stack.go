@@ -3,16 +3,17 @@ package cloud
 import (
 	"context"
 
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DataSourceStack() *schema.Resource {
+func datasourceStack() *schema.Resource {
 	return &schema.Resource{
 		Description: "Data source for Grafana Stack",
-		ReadContext: DataSourceStackRead,
-		Schema: common.CloneResourceSchemaForDatasource(ResourceStack(), map[string]*schema.Schema{
+		ReadContext: withClient[schema.ReadContextFunc](datasourceStackRead),
+		Schema: common.CloneResourceSchemaForDatasource(resourceStack(), map[string]*schema.Schema{
 			"slug": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -31,7 +32,7 @@ available at “https://<stack_slug>.grafana.net".`,
 	}
 }
 
-func DataSourceStackRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func datasourceStackRead(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	d.SetId(d.Get("slug").(string))
-	return ReadStack(ctx, d, meta)
+	return readStack(ctx, d, client)
 }

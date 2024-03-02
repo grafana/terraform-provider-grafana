@@ -42,13 +42,6 @@ func smClientPresent(resourceName string, d *schema.ResourceData, m interface{})
 	return nil
 }
 
-func cloudClientPresent(resourceName string, d *schema.ResourceData, m interface{}) error {
-	if m.(*common.Client).GrafanaCloudAPI == nil {
-		return fmt.Errorf("the Cloud API client is required for `%s`. Set the cloud_api_key provider attribute", resourceName)
-	}
-	return nil
-}
-
 func onCallClientPresent(resourceName string, d *schema.ResourceData, m interface{}) error {
 	if m.(*common.Client).OnCallClient == nil {
 		return fmt.Errorf("the Oncall client is required for `%s`. Set the oncall_access_token provider attribute", resourceName)

@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func ResourceStackServiceAccount() *schema.Resource {
+func resourceStackServiceAccount() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
@@ -32,10 +32,10 @@ Required access policy scopes:
 * stack-service-accounts:write
 `,
 
-		CreateContext: createStackServiceAccount,
-		ReadContext:   readStackServiceAccount,
-		UpdateContext: updateStackServiceAccount,
-		DeleteContext: deleteStackServiceAccount,
+		CreateContext: withClient[schema.CreateContextFunc](createStackServiceAccount),
+		ReadContext:   withClient[schema.ReadContextFunc](readStackServiceAccount),
+		UpdateContext: withClient[schema.UpdateContextFunc](updateStackServiceAccount),
+		DeleteContext: withClient[schema.DeleteContextFunc](deleteStackServiceAccount),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -68,8 +68,7 @@ Required access policy scopes:
 	}
 }
 
-func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	cloudClient := meta.(*common.Client).GrafanaCloudAPI
+func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
 	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
@@ -91,8 +90,7 @@ func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta
 	return readStackServiceAccountWithClient(client, d)
 }
 
-func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	cloudClient := meta.(*common.Client).GrafanaCloudAPI
+func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
 	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
@@ -130,8 +128,7 @@ func readStackServiceAccountWithClient(client *goapi.GrafanaHTTPAPI, d *schema.R
 	return nil
 }
 
-func updateStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	cloudClient := meta.(*common.Client).GrafanaCloudAPI
+func updateStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
 	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
@@ -158,8 +155,7 @@ func updateStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta
 	return readStackServiceAccountWithClient(client, d)
 }
 
-func deleteStackServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	cloudClient := meta.(*common.Client).GrafanaCloudAPI
+func deleteStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
 	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
