@@ -10,28 +10,28 @@ import (
 
 var (
 	defaultSeparator = ":"
-	allIDs           = []*TFID{}
+	allIDs           = []*ResourceID{}
 )
 
-type TFID struct {
+type ResourceID struct {
 	resourceName   string
 	separators     []string
 	expectedFields []string
 }
 
-func NewTFID(resourceName string, expectedFields ...string) *TFID {
-	return newTFIDWithSeparators(resourceName, []string{defaultSeparator}, expectedFields...)
+func NewResourceID(resourceName string, expectedFields ...string) *ResourceID {
+	return newResourceIDWithSeparators(resourceName, []string{defaultSeparator}, expectedFields...)
 }
 
-// Deprecated: Use NewTFID instead
+// Deprecated: Use NewResourceID instead
 // We should standardize on a single separator, so that function should only be used for old resources
-// On major versions, switch to NewTFID and remove uses of this function
-func NewTFIDWithLegacySeparator(resourceName, legacySeparator string, expectedFields ...string) *TFID {
-	return newTFIDWithSeparators(resourceName, []string{defaultSeparator, legacySeparator}, expectedFields...)
+// On major versions, switch to NewResourceID and remove uses of this function
+func NewResourceIDWithLegacySeparator(resourceName, legacySeparator string, expectedFields ...string) *ResourceID {
+	return newResourceIDWithSeparators(resourceName, []string{defaultSeparator, legacySeparator}, expectedFields...)
 }
 
-func newTFIDWithSeparators(resourceName string, separators []string, expectedFields ...string) *TFID {
-	tfID := &TFID{
+func newResourceIDWithSeparators(resourceName string, separators []string, expectedFields ...string) *ResourceID {
+	tfID := &ResourceID{
 		resourceName:   resourceName,
 		separators:     separators,
 		expectedFields: expectedFields,
@@ -40,7 +40,7 @@ func newTFIDWithSeparators(resourceName string, separators []string, expectedFie
 	return tfID
 }
 
-func (id *TFID) Example() string {
+func (id *ResourceID) Example() string {
 	fields := make([]string, len(id.expectedFields))
 	for i := range fields {
 		fields[i] = fmt.Sprintf("{{ %s }}", id.expectedFields[i])
@@ -49,7 +49,7 @@ func (id *TFID) Example() string {
 `, id.resourceName, strings.Join(fields, defaultSeparator))
 }
 
-func (id *TFID) Make(parts ...any) string {
+func (id *ResourceID) Make(parts ...any) string {
 	if len(parts) != len(id.expectedFields) {
 		panic(fmt.Sprintf("expected %d fields, got %d", len(id.expectedFields), len(parts))) // This is a coding error, so panic is appropriate
 	}
@@ -60,7 +60,7 @@ func (id *TFID) Make(parts ...any) string {
 	return strings.Join(stringParts, defaultSeparator)
 }
 
-func (id *TFID) Split(resourceID string) ([]string, error) {
+func (id *ResourceID) Split(resourceID string) ([]string, error) {
 	for _, sep := range id.separators {
 		parts := strings.Split(resourceID, sep)
 		if len(parts) == len(id.expectedFields) {

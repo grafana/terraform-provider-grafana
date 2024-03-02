@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var ResourceAccessPolicyTokenID = common.NewTFIDWithLegacySeparator("grafana_cloud_access_policy_token", "/", "region", "tokenId") //nolint:staticcheck
+var ResourceAccessPolicyTokenID = common.NewResourceIDWithLegacySeparator("grafana_cloud_access_policy_token", "/", "region", "tokenId") //nolint:staticcheck
 
 func ResourceAccessPolicyToken() *schema.Resource {
 	return &schema.Resource{

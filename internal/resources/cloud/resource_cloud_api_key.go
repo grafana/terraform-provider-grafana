@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var ResourceAPIKeyID = common.NewTFIDWithLegacySeparator("grafana_cloud_api_key", "-", "orgSlug", "apiKeyName") //nolint:staticcheck
+var ResourceAPIKeyID = common.NewResourceIDWithLegacySeparator("grafana_cloud_api_key", "-", "orgSlug", "apiKeyName") //nolint:staticcheck
 var cloudAPIKeyRoles = []string{"Viewer", "Editor", "Admin", "MetricsPublisher", "PluginPublisher"}
 
 func ResourceAPIKey() *schema.Resource {
