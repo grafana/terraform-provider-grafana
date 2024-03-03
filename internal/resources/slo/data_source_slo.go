@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DatasourceSlo() *schema.Resource {
+func datasourceSlo() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 Datasource for retrieving all SLOs.
@@ -18,14 +18,14 @@ Datasource for retrieving all SLOs.
 * [API documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/api/)
 * [Additional Information On Alerting Rule Annotations and Labels](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/#templating/)
 				`,
-		ReadContext: datasourceSloRead,
+		ReadContext: withClient[schema.ReadContextFunc](datasourceSloRead),
 		Schema: map[string]*schema.Schema{
 			"slos": {
 				Type:        schema.TypeList,
 				Computed:    true,
 				Description: `Returns a list of all SLOs"`,
 				Elem: &schema.Resource{
-					Schema: common.CloneResourceSchemaForDatasource(ResourceSlo(), map[string]*schema.Schema{
+					Schema: common.CloneResourceSchemaForDatasource(resourceSlo(), map[string]*schema.Schema{
 						"uuid": {
 							Type:        schema.TypeString,
 							Description: `A unique, random identifier. This value will also be the name of the resource stored in the API server. This value is read-only.`,
@@ -40,10 +40,9 @@ Datasource for retrieving all SLOs.
 
 // Function sends a GET request to the SLO API Endpoint which returns a list of all SLOs
 // Maps the API Response body to the Terraform Schema and displays as a READ in the terminal
-func datasourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func datasourceSloRead(ctx context.Context, d *schema.ResourceData, client *slo.APIClient) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	client := m.(*common.Client).SLOClient
 	req := client.DefaultAPI.V1SloGet(ctx)
 	apiSlos, _, err := req.Execute()
 	if err != nil {
