@@ -222,6 +222,9 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagemen
 	}
 
 	for _, stack := range stacks.Items {
+		// TODO: Make sure the instance is not paused (by curling it)
+		// When the instance is paused, we can't create service accounts in it
+
 		tempClient, cleanup, err := cloud.CreateTemporaryStackGrafanaClient(ctx, cloudClient, stack.Slug, "temp-sa-")
 		if err != nil {
 			return nil, fmt.Errorf("failed to create temporary client for stack %q: %w", stack.Slug, err)
