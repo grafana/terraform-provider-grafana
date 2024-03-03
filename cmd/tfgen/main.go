@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -252,11 +253,27 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagemen
 
 		// Create the management service account
 		saBlock := hclwrite.NewBlock("resource", []string{"grafana_cloud_stack_service_account", stack.Slug})
+		saBlock.Body().SetAttributeTraversal("provider", hcl.Traversal{
+			hcl.TraverseRoot{
+				Name: "grafana",
+			},
+			hcl.TraverseAttr{
+				Name: "cloud",
+			},
+		})
 		saBlock.Body().SetAttributeValue("stack_slug", cty.StringVal(stack.Slug))
 		saBlock.Body().SetAttributeValue("name", cty.StringVal(managementServiceAccountName))
-		saBlock.Body().SetAttributeValue("role", cty.StringVal("admin"))
+		saBlock.Body().SetAttributeValue("role", cty.StringVal("Admin"))
 
 		saTokenBlock := hclwrite.NewBlock("resource", []string{"grafana_cloud_stack_service_account_token", stack.Slug})
+		saTokenBlock.Body().SetAttributeTraversal("provider", hcl.Traversal{
+			hcl.TraverseRoot{
+				Name: "grafana",
+			},
+			hcl.TraverseAttr{
+				Name: "cloud",
+			},
+		})
 		saTokenBlock.Body().SetAttributeValue("stack_slug", cty.StringVal(stack.Slug))
 		saTokenBlock.Body().SetAttributeTraversal("service_account_id", hcl.Traversal{
 			hcl.TraverseRoot{
@@ -302,10 +319,40 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagemen
 
 		// TODO: Terraform apply -t sa+token
 		// Then go into the state and find the management key
-
+		applyCommand := exec.Command("terraform", "apply", "-auto-approve", "-target=grafana_cloud_stack_service_account."+stack.Slug, "-target=grafana_cloud_stack_service_account_token."+stack.Slug)
+		applyCommand.Dir = outPath
+		applyCommand.Stdout = os.Stdout
+		applyCommand.Stderr = os.Stderr
+		if err := applyCommand.Run(); err != nil {
+			return nil, fmt.Errorf("failed to apply management service account blocks for stack %q: %w", stack.Slug, err)
+		}
 	}
 
-	return nil, nil
+	managedStacks := []stack{}
+	stateCmd := exec.Command("terraform", "show", "-json")
+	stateCmd.Dir = outPath
+	state, err := stateCmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read terraform state: %w", err)
+	}
+	var parsed map[string]interface{}
+	if err := json.Unmarshal(state, &parsed); err != nil {
+		return nil, fmt.Errorf("failed to parse terraform state: %w", err)
+	}
+	values := parsed["values"].(map[string]interface{})
+	rootModule := values["root_module"].(map[string]interface{})
+	resources := rootModule["resources"].([]interface{})
+	for _, resource := range resources {
+		resource := resource.(map[string]interface{})
+		if resource["type"].(string) == "grafana_cloud_stack_service_account_token" {
+			managedStacks = append(managedStacks, stack{
+				slug:          resource["values"].(map[string]interface{})["stack_slug"].(string),
+				managementKey: resource["values"].(map[string]interface{})["key"].(string),
+			})
+		}
+	}
+
+	return managedStacks, nil
 }
 
 func writeBlocks(filepath string, blocks []*hclwrite.Block) error {
