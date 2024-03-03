@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"sync"
 
+	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/v2/pkg/provider"
@@ -20,6 +21,13 @@ import (
 )
 
 var allowedTerraformChars = regexp.MustCompile(`[^a-zA-Z0-9_-]`)
+
+const managementServiceAccountName = "tfgen-management"
+
+type stack struct {
+	slug          string
+	managementKey string
+}
 
 func main() {
 	ctx := context.Background()
@@ -42,12 +50,6 @@ func main() {
 	}
 
 	// Install provider
-	providerFilePath := filepath.Join(outPath, "provider.tf")
-	providerFile, err := os.Create(providerFilePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	providerContents := hclwrite.NewFile()
 	providerBlock := hclwrite.NewBlock("terraform", nil)
 	requiredProvidersBlock := hclwrite.NewBlock("required_providers", nil)
 	requiredProvidersBlock.Body().SetAttributeValue("grafana", cty.ObjectVal(map[string]cty.Value{
@@ -56,11 +58,7 @@ func main() {
 	}))
 
 	providerBlock.Body().AppendBlock(requiredProvidersBlock)
-	providerContents.Body().AppendBlock(providerBlock)
-	if _, err := providerContents.WriteTo(providerFile); err != nil {
-		log.Fatal(err)
-	}
-	if err := providerFile.Close(); err != nil {
+	if err := writeBlocks(filepath.Join(outPath, "provider.tf"), []*hclwrite.Block{providerBlock}); err != nil {
 		log.Fatal(err)
 	}
 
@@ -79,30 +77,22 @@ func main() {
 		if orgSlug == "" {
 			log.Fatal("GRAFANA_CLOUD_ORG environment variable must be set")
 		}
-		err := genCloudResources(ctx, cloudAPIKey, orgSlug, outPath)
+		stacks, err := genCloudResources(ctx, cloudAPIKey, orgSlug, os.Getenv("GEN_ENTRYPOINT_INTO_STACKS") == "true", outPath)
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		fmt.Println(stacks)
 	}
 }
 
-func genCloudResources(ctx context.Context, apiKey, orgSlug, outPath string) error {
+func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagementKey bool, outPath string) ([]stack, error) {
 	// Gen provider
-	cloudProviderFilePath := filepath.Join(outPath, "cloud-provider.tf")
-	cloudProviderFile, err := os.Create(cloudProviderFilePath)
-	if err != nil {
-		return err
-	}
-	cloudProviderContents := hclwrite.NewFile()
 	providerBlock := hclwrite.NewBlock("provider", []string{"grafana"})
 	providerBlock.Body().SetAttributeValue("alias", cty.StringVal("cloud"))
 	providerBlock.Body().SetAttributeValue("cloud_access_policy_token", cty.StringVal(apiKey))
-	cloudProviderContents.Body().AppendBlock(providerBlock)
-	if _, err := cloudProviderContents.WriteTo(cloudProviderFile); err != nil {
-		return err
-	}
-	if err := cloudProviderFile.Close(); err != nil {
-		return err
+	if err := writeBlocks(filepath.Join(outPath, "cloud-provider.tf"), []*hclwrite.Block{providerBlock}); err != nil {
+		return nil, err
 	}
 
 	// Generate imports
@@ -110,20 +100,18 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug, outPath string) err
 		CloudAccessPolicyToken: types.StringValue(apiKey),
 	}
 	if err := config.SetDefaults(); err != nil {
-		return err
+		return nil, err
 	}
 
 	client, err := provider.CreateClients(config)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	cloudClient := client.GrafanaCloudAPI
 
 	cloudResources := cloud.Resources
 	cache := sync.Map{}
 	cache.Store("org", orgSlug)
-
-	// TODO: Parse and read file
-	f := hclwrite.NewFile()
 
 	// Generate HCL blocks in parallel with a wait group
 	wg := sync.WaitGroup{}
@@ -202,25 +190,16 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug, outPath string) err
 	close(results)
 
 	// Collect results
+	allBlocks := []*hclwrite.Block{}
 	for r := range results {
 		if r.err != nil {
-			return fmt.Errorf("failed to generate %s resources: %w", r.resource.Name, r.err)
+			return nil, fmt.Errorf("failed to generate %s resources: %w", r.resource.Name, r.err)
 		}
-		for _, b := range r.blocks {
-			f.Body().AppendBlock(b)
-		}
+		allBlocks = append(allBlocks, r.blocks...)
 	}
 
-	importsFilePath := filepath.Join(outPath, "cloud-imports.tf")
-	importsFile, err := os.Create(importsFilePath)
-	if err != nil {
-		return err
-	}
-	if _, err := f.WriteTo(importsFile); err != nil {
-		return err
-	}
-	if err := importsFile.Close(); err != nil {
-		return err
+	if err := writeBlocks(filepath.Join(outPath, "cloud-imports.tf"), allBlocks); err != nil {
+		return nil, err
 	}
 
 	genCommand := exec.Command("terraform", "plan", "-generate-config-out=cloud-resources.tf")
@@ -228,8 +207,116 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug, outPath string) err
 	genCommand.Stdout = os.Stdout
 	genCommand.Stderr = os.Stderr
 	if err := genCommand.Run(); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	if !addManagementKey {
+		return nil, nil
+	}
+
+	// Add management service account (grafana_cloud_stack_service_account)
+	// This one needs to be applied to prevent https://github.com/grafana/terraform-provider-grafana/issues/960
+	stacks, _, err := cloudClient.InstancesAPI.GetInstances(ctx).Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, stack := range stacks.Items {
+		tempClient, cleanup, err := cloud.CreateTemporaryStackGrafanaClient(ctx, cloudClient, stack.Slug, "temp-sa-")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create temporary client for stack %q: %w", stack.Slug, err)
+		}
+
+		serviceAccountsResp, err := tempClient.ServiceAccounts.SearchOrgServiceAccountsWithPaging(service_accounts.NewSearchOrgServiceAccountsWithPagingParams())
+		if err != nil {
+			return nil, fmt.Errorf("failed to search service accounts for stack %q: %w", stack.Slug, err)
+		}
+		for _, sa := range serviceAccountsResp.Payload.ServiceAccounts {
+			if sa.Name == managementServiceAccountName {
+				log.Printf("found existing management service account (%s) in stack %q\n", managementServiceAccountName, stack.Slug)
+				// Delete the SA to recreate it via TF
+				_, err := tempClient.ServiceAccounts.DeleteServiceAccount(sa.ID)
+				if err != nil {
+					return nil, fmt.Errorf("failed to delete existing management service account (%s) in stack %q: %w", managementServiceAccountName, stack.Slug, err)
+				}
+				break
+			}
+		}
+
+		if err := cleanup(); err != nil {
+			return nil, fmt.Errorf("failed to cleanup temporary client for stack %q: %w", stack.Slug, err)
+		}
+
+		// Create the management service account
+		saBlock := hclwrite.NewBlock("resource", []string{"grafana_cloud_stack_service_account", stack.Slug})
+		saBlock.Body().SetAttributeValue("stack_slug", cty.StringVal(stack.Slug))
+		saBlock.Body().SetAttributeValue("name", cty.StringVal(managementServiceAccountName))
+		saBlock.Body().SetAttributeValue("role", cty.StringVal("admin"))
+
+		saTokenBlock := hclwrite.NewBlock("resource", []string{"grafana_cloud_stack_service_account_token", stack.Slug})
+		saTokenBlock.Body().SetAttributeValue("stack_slug", cty.StringVal(stack.Slug))
+		saTokenBlock.Body().SetAttributeTraversal("service_account_id", hcl.Traversal{
+			hcl.TraverseRoot{
+				Name: "grafana_cloud_stack_service_account",
+			},
+			hcl.TraverseAttr{
+				Name: stack.Slug,
+			},
+			hcl.TraverseAttr{
+				Name: "id",
+			},
+		})
+		saTokenBlock.Body().SetAttributeValue("name", cty.StringVal(managementServiceAccountName))
+
+		providerBlock := hclwrite.NewBlock("provider", []string{"grafana"})
+		providerBlock.Body().SetAttributeValue("alias", cty.StringVal(stack.Slug))
+		providerBlock.Body().SetAttributeTraversal("url", hcl.Traversal{
+			hcl.TraverseRoot{
+				Name: "grafana_cloud_stack",
+			},
+			hcl.TraverseAttr{
+				Name: stack.Slug,
+			},
+			hcl.TraverseAttr{
+				Name: "url",
+			},
+		})
+		providerBlock.Body().SetAttributeTraversal("auth", hcl.Traversal{
+			hcl.TraverseRoot{
+				Name: "grafana_cloud_stack_service_account_token",
+			},
+			hcl.TraverseAttr{
+				Name: stack.Slug,
+			},
+			hcl.TraverseAttr{
+				Name: "key",
+			},
+		})
+
+		if err := writeBlocks(filepath.Join(outPath, fmt.Sprintf("stack-%s-provider.tf", stack.Slug)), []*hclwrite.Block{saBlock, saTokenBlock, providerBlock}); err != nil {
+			return nil, fmt.Errorf("failed to write management service account blocks for stack %q: %w", stack.Slug, err)
+		}
+
+		// TODO: Terraform apply -t sa+token
+		// Then go into the state and find the management key
+
+	}
+
+	return nil, nil
+}
+
+func writeBlocks(filepath string, blocks []*hclwrite.Block) error {
+	contents := hclwrite.NewFile()
+	for _, b := range blocks {
+		contents.Body().AppendBlock(b)
+	}
+
+	hclFile, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	if _, err := contents.WriteTo(hclFile); err != nil {
+		return err
+	}
+	return hclFile.Close()
 }
