@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"sync"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
@@ -92,11 +94,36 @@ Manages Grafana dashboards.
 		SchemaVersion: 1, // The state upgrader was removed in v2. To upgrade, users can first upgrade to the last v1 release, apply, then upgrade to v2.
 	}
 
-	return common.NewResource(
+	return common.NewResourceWithLister(
 		"grafana_dashboard",
 		orgResourceIDString("uid"),
+		listDashboards,
 		schema,
 	)
+}
+
+func listDashboards(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
+	return listDashboardOrFolder(client, "dash-db")
+}
+
+func listDashboardOrFolder(client *common.Client, searchType string) ([]string, error) {
+	grafanaClient := client.GrafanaOAPI
+	if grafanaClient == nil {
+		return nil, fmt.Errorf("client not configured for Grafana API")
+	}
+
+	resp, err := grafanaClient.Search.Search(search.NewSearchParams().WithType(common.Ref(searchType)))
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: Handle organizations, if not in cloud
+	uids := make([]string, 0, len(resp.Payload))
+	for _, folder := range resp.Payload {
+		uids = append(uids, folder.UID)
+	}
+
+	return uids, nil
 }
 
 func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
