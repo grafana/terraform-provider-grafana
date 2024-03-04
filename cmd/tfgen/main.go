@@ -186,65 +186,21 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagemen
 
 		// Create the management service account
 		saBlock := hclwrite.NewBlock("resource", []string{"grafana_cloud_stack_service_account", stack.Slug})
-		saBlock.Body().SetAttributeTraversal("provider", hcl.Traversal{
-			hcl.TraverseRoot{
-				Name: "grafana",
-			},
-			hcl.TraverseAttr{
-				Name: "cloud",
-			},
-		})
+		saBlock.Body().SetAttributeTraversal("provider", traversal("grafana", "cloud"))
 		saBlock.Body().SetAttributeValue("stack_slug", cty.StringVal(stack.Slug))
 		saBlock.Body().SetAttributeValue("name", cty.StringVal(managementServiceAccountName))
 		saBlock.Body().SetAttributeValue("role", cty.StringVal("Admin"))
 
 		saTokenBlock := hclwrite.NewBlock("resource", []string{"grafana_cloud_stack_service_account_token", stack.Slug})
-		saTokenBlock.Body().SetAttributeTraversal("provider", hcl.Traversal{
-			hcl.TraverseRoot{
-				Name: "grafana",
-			},
-			hcl.TraverseAttr{
-				Name: "cloud",
-			},
-		})
+		saTokenBlock.Body().SetAttributeTraversal("provider", traversal("grafana", "cloud"))
 		saTokenBlock.Body().SetAttributeValue("stack_slug", cty.StringVal(stack.Slug))
-		saTokenBlock.Body().SetAttributeTraversal("service_account_id", hcl.Traversal{
-			hcl.TraverseRoot{
-				Name: "grafana_cloud_stack_service_account",
-			},
-			hcl.TraverseAttr{
-				Name: stack.Slug,
-			},
-			hcl.TraverseAttr{
-				Name: "id",
-			},
-		})
+		saTokenBlock.Body().SetAttributeTraversal("service_account_id", traversal("grafana_cloud_stack_service_account", stack.Slug, "id"))
 		saTokenBlock.Body().SetAttributeValue("name", cty.StringVal(managementServiceAccountName))
 
 		providerBlock := hclwrite.NewBlock("provider", []string{"grafana"})
 		providerBlock.Body().SetAttributeValue("alias", cty.StringVal("stack-"+stack.Slug))
-		providerBlock.Body().SetAttributeTraversal("url", hcl.Traversal{
-			hcl.TraverseRoot{
-				Name: "grafana_cloud_stack",
-			},
-			hcl.TraverseAttr{
-				Name: stack.Slug,
-			},
-			hcl.TraverseAttr{
-				Name: "url",
-			},
-		})
-		providerBlock.Body().SetAttributeTraversal("auth", hcl.Traversal{
-			hcl.TraverseRoot{
-				Name: "grafana_cloud_stack_service_account_token",
-			},
-			hcl.TraverseAttr{
-				Name: stack.Slug,
-			},
-			hcl.TraverseAttr{
-				Name: "key",
-			},
-		})
+		providerBlock.Body().SetAttributeTraversal("url", traversal("grafana_cloud_stack", stack.Slug, "url"))
+		providerBlock.Body().SetAttributeTraversal("auth", traversal("grafana_cloud_stack_service_account_token", stack.Slug, "key"))
 
 		if err := writeBlocks(filepath.Join(outPath, fmt.Sprintf("stack-%s-provider.tf", stack.Slug)), []*hclwrite.Block{saBlock, saTokenBlock, providerBlock}); err != nil {
 			return nil, fmt.Errorf("failed to write management service account blocks for stack %q: %w", stack.Slug, err)
@@ -382,22 +338,8 @@ func generateImportBlocks(ctx context.Context, client *common.Client, cache *syn
 			blocks := make([]*hclwrite.Block, len(ids))
 			for i, id := range ids {
 				b := hclwrite.NewBlock("import", nil)
-				b.Body().SetAttributeTraversal("provider", hcl.Traversal{
-					hcl.TraverseRoot{
-						Name: "grafana",
-					},
-					hcl.TraverseAttr{
-						Name: provider,
-					},
-				})
-				b.Body().SetAttributeTraversal("to", hcl.Traversal{
-					hcl.TraverseRoot{
-						Name: resource.Name,
-					},
-					hcl.TraverseAttr{
-						Name: allowedTerraformChars.ReplaceAllString(id, "_"),
-					},
-				})
+				b.Body().SetAttributeTraversal("provider", traversal("grafana", provider))
+				b.Body().SetAttributeTraversal("to", traversal(resource.Name, allowedTerraformChars.ReplaceAllString(id, "_")))
 				b.Body().SetAttributeValue("id", cty.StringVal(id))
 
 				blocks[i] = b
@@ -439,4 +381,12 @@ func generateImportBlocks(ctx context.Context, client *common.Client, cache *syn
 	}
 
 	return nil
+}
+
+func traversal(root string, attrs ...string) hcl.Traversal {
+	tr := hcl.Traversal{hcl.TraverseRoot{Name: root}}
+	for _, attr := range attrs {
+		tr = append(tr, hcl.TraverseAttr{Name: attr})
+	}
+	return tr
 }
