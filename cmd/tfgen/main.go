@@ -16,6 +16,7 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/cloud"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/v2/pkg/provider"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
@@ -137,7 +138,7 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagemen
 	cache := sync.Map{}
 	cache.Store("org", orgSlug)
 
-	if err := generateImportBlocks(ctx, client, &cache, cloud.Resources, outPath); err != nil {
+	if err := generateImportBlocks(ctx, client, &cache, cloud.Resources, outPath, "cloud"); err != nil {
 		return nil, err
 	}
 
@@ -221,7 +222,7 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagemen
 		saTokenBlock.Body().SetAttributeValue("name", cty.StringVal(managementServiceAccountName))
 
 		providerBlock := hclwrite.NewBlock("provider", []string{"grafana"})
-		providerBlock.Body().SetAttributeValue("alias", cty.StringVal(stack.Slug))
+		providerBlock.Body().SetAttributeValue("alias", cty.StringVal("stack-"+stack.Slug))
 		providerBlock.Body().SetAttributeTraversal("url", hcl.Traversal{
 			hcl.TraverseRoot{
 				Name: "grafana_cloud_stack",
@@ -306,10 +307,40 @@ func writeBlocks(filepath string, blocks []*hclwrite.Block) error {
 }
 
 func genGrafanaResources(ctx context.Context, auth, url, stackName string, genProvider bool, outPath string) error {
+	if genProvider {
+		providerBlock := hclwrite.NewBlock("provider", []string{"grafana"})
+		providerBlock.Body().SetAttributeValue("alias", cty.StringVal(stackName))
+		providerBlock.Body().SetAttributeValue("url", cty.StringVal(url))
+		providerBlock.Body().SetAttributeValue("auth", cty.StringVal(auth))
+		if err := writeBlocks(filepath.Join(outPath, stackName+"-provider.tf"), []*hclwrite.Block{providerBlock}); err != nil {
+			return err
+		}
+	}
+
+	// Generate resources
+	config := provider.FrameworkProviderConfig{
+		URL:  types.StringValue(url),
+		Auth: types.StringValue(auth),
+	}
+	if err := config.SetDefaults(); err != nil {
+		return err
+	}
+
+	client, err := provider.CreateClients(config)
+	if err != nil {
+		return err
+	}
+
+	cache := sync.Map{}
+
+	if err := generateImportBlocks(ctx, client, &cache, grafana.Resources, outPath, stackName); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func generateImportBlocks(ctx context.Context, client *common.Client, cache *sync.Map, resources []*common.Resource, outPath string) error {
+func generateImportBlocks(ctx context.Context, client *common.Client, cache *sync.Map, resources []*common.Resource, outPath, provider string) error {
 	// Generate HCL blocks in parallel with a wait group
 	wg := sync.WaitGroup{}
 	wg.Add(len(resources))
@@ -356,7 +387,7 @@ func generateImportBlocks(ctx context.Context, client *common.Client, cache *syn
 						Name: "grafana",
 					},
 					hcl.TraverseAttr{
-						Name: "cloud",
+						Name: provider,
 					},
 				})
 				b.Body().SetAttributeTraversal("to", hcl.Traversal{
@@ -395,11 +426,11 @@ func generateImportBlocks(ctx context.Context, client *common.Client, cache *syn
 		allBlocks = append(allBlocks, r.blocks...)
 	}
 
-	if err := writeBlocks(filepath.Join(outPath, "cloud-imports.tf"), allBlocks); err != nil {
+	if err := writeBlocks(filepath.Join(outPath, provider+"-imports.tf"), allBlocks); err != nil {
 		return err
 	}
 
-	genCommand := exec.Command("terraform", "plan", "-generate-config-out=cloud-resources.tf")
+	genCommand := exec.Command("terraform", "plan", fmt.Sprintf("-generate-config-out=%s-resources.tf", provider))
 	genCommand.Dir = outPath
 	genCommand.Stdout = os.Stdout
 	genCommand.Stderr = os.Stderr
