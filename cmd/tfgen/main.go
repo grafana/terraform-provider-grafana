@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sync"
 
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/cloud"
@@ -27,6 +29,7 @@ const managementServiceAccountName = "tfgen-management"
 
 type stack struct {
 	slug          string
+	url           string
 	managementKey string
 }
 
@@ -83,7 +86,28 @@ func main() {
 			log.Fatal(err)
 		}
 
-		fmt.Println(stacks)
+		for _, stack := range stacks {
+			if err := genGrafanaResources(ctx, stack.managementKey, stack.url, "stack-"+stack.slug, false, outPath); err != nil {
+				log.Fatal(err)
+			}
+		}
+		return
+	}
+
+	// Else
+	grafanaAuth := os.Getenv("GRAFANA_AUTH") // TODO: CLI flag
+	grafanaUrl := os.Getenv("GRAFANA_URL")   // TODO: CLI flag
+	if grafanaAuth == "" || grafanaUrl == "" {
+		log.Fatal("GRAFANA_AUTH and GRAFANA_URL environment variables must be set")
+	}
+
+	grafanaUrlParsed, err := url.Parse(grafanaUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := genGrafanaResources(ctx, grafanaAuth, grafanaUrl, grafanaUrlParsed.Host, true, outPath); err != nil {
+		log.Fatal(err)
 	}
 }
 
@@ -110,104 +134,10 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagemen
 	}
 	cloudClient := client.GrafanaCloudAPI
 
-	cloudResources := cloud.Resources
 	cache := sync.Map{}
 	cache.Store("org", orgSlug)
 
-	// Generate HCL blocks in parallel with a wait group
-	wg := sync.WaitGroup{}
-	wg.Add(len(cloudResources))
-	type result struct {
-		resource *common.Resource
-		blocks   []*hclwrite.Block
-		err      error
-	}
-	results := make(chan result, len(cloudResources))
-
-	for _, resource := range cloudResources {
-		go func(resource *common.Resource) {
-			lister := resource.ListIDsFunc
-			if lister == nil {
-				log.Printf("Skipping %s because it does not have a lister\n", resource.Name)
-				wg.Done()
-				results <- result{
-					resource: resource,
-				}
-				return
-			}
-
-			log.Printf("Generating %s resources\n", resource.Name)
-			ids, err := lister(ctx, &cache, client)
-			if err != nil {
-				wg.Done()
-				results <- result{
-					resource: resource,
-					err:      err,
-				}
-				return
-			}
-
-			// Write blocks like these
-			//import {
-			//   to = aws_iot_thing.bar
-			//   id = "foo"
-			// }
-			blocks := make([]*hclwrite.Block, len(ids))
-			for i, id := range ids {
-				b := hclwrite.NewBlock("import", nil)
-				b.Body().SetAttributeTraversal("provider", hcl.Traversal{
-					hcl.TraverseRoot{
-						Name: "grafana",
-					},
-					hcl.TraverseAttr{
-						Name: "cloud",
-					},
-				})
-				b.Body().SetAttributeTraversal("to", hcl.Traversal{
-					hcl.TraverseRoot{
-						Name: resource.Name,
-					},
-					hcl.TraverseAttr{
-						Name: allowedTerraformChars.ReplaceAllString(id, "_"),
-					},
-				})
-				b.Body().SetAttributeValue("id", cty.StringVal(id))
-
-				blocks[i] = b
-				// TODO: Match and update existing import blocks
-			}
-
-			wg.Done()
-			results <- result{
-				resource: resource,
-				blocks:   blocks,
-			}
-			log.Printf("finished generating blocks for %s resources\n", resource.Name)
-		}(resource)
-	}
-
-	// Wait for all results
-	wg.Wait()
-	close(results)
-
-	// Collect results
-	allBlocks := []*hclwrite.Block{}
-	for r := range results {
-		if r.err != nil {
-			return nil, fmt.Errorf("failed to generate %s resources: %w", r.resource.Name, r.err)
-		}
-		allBlocks = append(allBlocks, r.blocks...)
-	}
-
-	if err := writeBlocks(filepath.Join(outPath, "cloud-imports.tf"), allBlocks); err != nil {
-		return nil, err
-	}
-
-	genCommand := exec.Command("terraform", "plan", "-generate-config-out=cloud-resources.tf")
-	genCommand.Dir = outPath
-	genCommand.Stdout = os.Stdout
-	genCommand.Stderr = os.Stderr
-	if err := genCommand.Run(); err != nil {
+	if err := generateImportBlocks(ctx, client, &cache, cloud.Resources, outPath); err != nil {
 		return nil, err
 	}
 
@@ -221,8 +151,10 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagemen
 	if err != nil {
 		return nil, err
 	}
+	stacksBySlug := map[string]gcom.FormattedApiInstance{}
 
 	for _, stack := range stacks.Items {
+		stacksBySlug[stack.Slug] = stack
 		// TODO: Make sure the instance is not paused (by curling it)
 		// When the instance is paused, we can't create service accounts in it
 
@@ -345,8 +277,10 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagemen
 	for _, resource := range resources {
 		resource := resource.(map[string]interface{})
 		if resource["type"].(string) == "grafana_cloud_stack_service_account_token" {
+			slug := resource["values"].(map[string]interface{})["stack_slug"].(string)
 			managedStacks = append(managedStacks, stack{
-				slug:          resource["values"].(map[string]interface{})["stack_slug"].(string),
+				slug:          slug,
+				url:           stacksBySlug[slug].Url,
 				managementKey: resource["values"].(map[string]interface{})["key"].(string),
 			})
 		}
@@ -369,4 +303,109 @@ func writeBlocks(filepath string, blocks []*hclwrite.Block) error {
 		return err
 	}
 	return hclFile.Close()
+}
+
+func genGrafanaResources(ctx context.Context, auth, url, stackName string, genProvider bool, outPath string) error {
+	return nil
+}
+
+func generateImportBlocks(ctx context.Context, client *common.Client, cache *sync.Map, resources []*common.Resource, outPath string) error {
+	// Generate HCL blocks in parallel with a wait group
+	wg := sync.WaitGroup{}
+	wg.Add(len(resources))
+	type result struct {
+		resource *common.Resource
+		blocks   []*hclwrite.Block
+		err      error
+	}
+	results := make(chan result, len(resources))
+
+	for _, resource := range resources {
+		go func(resource *common.Resource) {
+			lister := resource.ListIDsFunc
+			if lister == nil {
+				log.Printf("Skipping %s because it does not have a lister\n", resource.Name)
+				wg.Done()
+				results <- result{
+					resource: resource,
+				}
+				return
+			}
+
+			log.Printf("Generating %s resources\n", resource.Name)
+			ids, err := lister(ctx, cache, client)
+			if err != nil {
+				wg.Done()
+				results <- result{
+					resource: resource,
+					err:      err,
+				}
+				return
+			}
+
+			// Write blocks like these
+			//import {
+			//   to = aws_iot_thing.bar
+			//   id = "foo"
+			// }
+			blocks := make([]*hclwrite.Block, len(ids))
+			for i, id := range ids {
+				b := hclwrite.NewBlock("import", nil)
+				b.Body().SetAttributeTraversal("provider", hcl.Traversal{
+					hcl.TraverseRoot{
+						Name: "grafana",
+					},
+					hcl.TraverseAttr{
+						Name: "cloud",
+					},
+				})
+				b.Body().SetAttributeTraversal("to", hcl.Traversal{
+					hcl.TraverseRoot{
+						Name: resource.Name,
+					},
+					hcl.TraverseAttr{
+						Name: allowedTerraformChars.ReplaceAllString(id, "_"),
+					},
+				})
+				b.Body().SetAttributeValue("id", cty.StringVal(id))
+
+				blocks[i] = b
+				// TODO: Match and update existing import blocks
+			}
+
+			wg.Done()
+			results <- result{
+				resource: resource,
+				blocks:   blocks,
+			}
+			log.Printf("finished generating blocks for %s resources\n", resource.Name)
+		}(resource)
+	}
+
+	// Wait for all results
+	wg.Wait()
+	close(results)
+
+	// Collect results
+	allBlocks := []*hclwrite.Block{}
+	for r := range results {
+		if r.err != nil {
+			return fmt.Errorf("failed to generate %s resources: %w", r.resource.Name, r.err)
+		}
+		allBlocks = append(allBlocks, r.blocks...)
+	}
+
+	if err := writeBlocks(filepath.Join(outPath, "cloud-imports.tf"), allBlocks); err != nil {
+		return err
+	}
+
+	genCommand := exec.Command("terraform", "plan", "-generate-config-out=cloud-resources.tf")
+	genCommand.Dir = outPath
+	genCommand.Stdout = os.Stdout
+	genCommand.Stderr = os.Stderr
+	if err := genCommand.Run(); err != nil {
+		return err
+	}
+
+	return nil
 }
