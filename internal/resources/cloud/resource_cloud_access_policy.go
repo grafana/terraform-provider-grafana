@@ -168,7 +168,7 @@ func listAccessPolicies(ctx context.Context, cache *sync.Map, client *common.Cli
 			return nil, fmt.Errorf("failed to list access policies in region %s: %w", regionSlug, err)
 		}
 
-		for _, policy := range resp {
+		for _, policy := range resp.Items {
 			policies = append(policies, resourceAccessPolicyID.Make(regionSlug, policy.Id))
 		}
 	}

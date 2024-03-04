@@ -3,7 +3,9 @@ package grafana
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
+	"sync"
 
 	"github.com/grafana/grafana-openapi-client-go/client/folders"
 	"github.com/grafana/grafana-openapi-client-go/client/search"
@@ -67,11 +69,32 @@ func resourceFolder() *common.Resource {
 		},
 	}
 
-	return common.NewResource(
+	return common.NewResourceWithLister(
 		"grafana_folder",
 		orgResourceIDString("uid"),
+		listFolders,
 		schema,
 	)
+}
+
+func listFolders(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
+	grafanaClient := client.GrafanaOAPI
+	if grafanaClient == nil {
+		return nil, fmt.Errorf("client not configured for Grafana API")
+	}
+
+	resp, err := grafanaClient.Folders.GetFolders(folders.NewGetFoldersParams())
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: Handle organizations, if not in cloud
+	uids := make([]string, 0, len(resp.Payload))
+	for _, folder := range resp.Payload {
+		uids = append(uids, folder.UID)
+	}
+
+	return uids, nil
 }
 
 func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

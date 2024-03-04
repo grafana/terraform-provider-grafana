@@ -9,12 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-<<<<<<< HEAD
-=======
-var allResources = []*Resource{}
-
 type ResourceListIDsFunc func(ctx context.Context, cache *sync.Map, client *Client) ([]string, error)
->>>>>>> c8238793 (tfgen1)
 type Resource struct {
 	Name        string
 	IDType      *ResourceID
