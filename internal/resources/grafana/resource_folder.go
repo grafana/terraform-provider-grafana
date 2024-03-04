@@ -3,7 +3,6 @@ package grafana
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"sync"
 
@@ -77,23 +76,7 @@ func resourceFolder() *common.Resource {
 }
 
 func listFolders(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
-	grafanaClient := client.GrafanaOAPI
-	if grafanaClient == nil {
-		return nil, fmt.Errorf("client not configured for Grafana API")
-	}
-
-	resp, err := grafanaClient.Folders.GetFolders(folders.NewGetFoldersParams())
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: Handle organizations, if not in cloud
-	uids := make([]string, 0, len(resp.Payload))
-	for _, folder := range resp.Payload {
-		uids = append(uids, folder.UID)
-	}
-
-	return uids, nil
+	return listDashboardOrFolder(client, "dash-folder")
 }
 
 func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
@@ -337,9 +338,14 @@ func generateImportBlocks(ctx context.Context, client *common.Client, cache *syn
 			// }
 			blocks := make([]*hclwrite.Block, len(ids))
 			for i, id := range ids {
+				cleanedID := allowedTerraformChars.ReplaceAllString(id, "_")
+				if provider != "cloud" {
+					cleanedID = strings.ReplaceAll(provider, "-", "_") + "_" + cleanedID
+				}
+
 				b := hclwrite.NewBlock("import", nil)
 				b.Body().SetAttributeTraversal("provider", traversal("grafana", provider))
-				b.Body().SetAttributeTraversal("to", traversal(resource.Name, allowedTerraformChars.ReplaceAllString(id, "_")))
+				b.Body().SetAttributeTraversal("to", traversal(resource.Name, cleanedID))
 				b.Body().SetAttributeValue("id", cty.StringVal(id))
 
 				blocks[i] = b
