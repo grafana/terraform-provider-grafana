@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"sync"
 
 	slo "github.com/grafana/slo-openapi-client/go"
 
@@ -236,6 +237,30 @@ var keyvalueSchema = &schema.Resource{
 			Required: true,
 		},
 	},
+}
+
+func listSlos(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
+	sloClient := client.SLOClient
+	if sloClient == nil {
+		return nil, fmt.Errorf("client not configured for SLO API")
+	}
+
+	slolist, _, err := sloClient.DefaultAPI.V1SloGet(ctx).Execute()
+	if err != nil {
+		// // TODO: Uninitialized SLO plugin. This should be handled better
+		// cast, ok := err.(*slo.GenericOpenAPIError)
+		// if ok && strings.Contains(cast.Error(), "status: 500") {
+		// 	return nil, nil
+		// }
+
+		return nil, nil
+	}
+
+	var ids []string
+	for _, slo := range slolist.Slos {
+		ids = append(ids, slo.Uuid)
+	}
+	return ids, nil
 }
 
 func resourceSloCreate(ctx context.Context, d *schema.ResourceData, client *slo.APIClient) diag.Diagnostics {
