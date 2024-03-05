@@ -1,14 +1,12 @@
 package main
 
 import (
-	"errors"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
 func main() {
@@ -36,46 +34,9 @@ func main() {
 
 		fpath := filepath.Join(path, item.Name())
 
-		err := updateTFFile(fpath)
+		err := common.StripDefaults(fpath, nil)
 		if err != nil {
 			panic(err)
 		}
 	}
-}
-
-func updateTFFile(fpath string) error {
-	src, err := os.ReadFile(fpath)
-	if err != nil {
-		panic(err)
-	}
-
-	file, diags := hclwrite.ParseConfig(src, fpath, hcl.Pos{Line: 1, Column: 1})
-	if diags.HasErrors() {
-		err := errors.New("an error occurred")
-		if err != nil {
-			return err
-		}
-	}
-	hasChanges := false
-	for _, block := range file.Body().Blocks() {
-		for name, attribute := range block.Body().Attributes() {
-			if string(attribute.Expr().BuildTokens(nil).Bytes()) == " null" {
-				hasChanges = true
-				block.Body().RemoveAttribute(name)
-			}
-			if string(attribute.Expr().BuildTokens(nil).Bytes()) == " {}" {
-				hasChanges = true
-				block.Body().RemoveAttribute(name)
-			}
-			if name == "org_id" && string(attribute.Expr().BuildTokens(nil).Bytes()) == " \"0\"" {
-				hasChanges = true
-				block.Body().RemoveAttribute(name)
-			}
-		}
-	}
-	if hasChanges {
-		log.Printf("Updating file: %s\n", fpath)
-		return os.WriteFile(fpath, file.Bytes(), 0644)
-	}
-	return nil
 }
