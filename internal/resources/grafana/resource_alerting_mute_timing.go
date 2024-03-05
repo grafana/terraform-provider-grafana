@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -128,7 +129,34 @@ This resource requires Grafana 9.1.0 or later.
 		"grafana_mute_timing",
 		orgResourceIDString("name"),
 		schema,
-	)
+	).WithLister(listMuteTimings)
+}
+
+func listMuteTimings(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
+	orgIDs, err := waitForOrgIDs(cache)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for _, orgID := range orgIDs {
+		grafanaClient := client.GrafanaOAPI
+		if grafanaClient == nil {
+			return nil, fmt.Errorf("client not configured for Grafana API")
+		}
+		grafanaClient = grafanaClient.Clone().WithOrgID(orgID)
+
+		resp, err := grafanaClient.Provisioning.GetMuteTimings()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, muteTiming := range resp.Payload {
+			ids = append(ids, MakeOrgResourceID(orgID, muteTiming.Name))
+		}
+	}
+
+	return ids, nil
 }
 
 func readMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {

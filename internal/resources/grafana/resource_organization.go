@@ -7,6 +7,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/grafana/grafana-openapi-client-go/client/orgs"
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -147,7 +148,40 @@ set to true. This feature is only available in Grafana 10.2+.
 		"grafana_organization",
 		common.NewResourceID(common.IntIDField("id")),
 		schema,
-	)
+	).WithLister(listOrganizations)
+}
+
+func listOrganizations(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
+	if _, ok := cache.Load("orgIDs"); ok {
+		return []string{}, nil
+	}
+
+	grafanaClient := client.GrafanaOAPI.Clone().WithOrgID(0)
+	if grafanaClient == nil {
+		return nil, fmt.Errorf("client not configured for Grafana API")
+	}
+
+	var page int64 = 1
+	var orgIDs []string
+	var numericalOrgIDs []int64
+	for {
+		resp, err := grafanaClient.Orgs.SearchOrgs(orgs.NewSearchOrgsParams().WithPage(&page))
+		if err != nil {
+			return nil, err
+		}
+		for _, org := range resp.Payload {
+			orgIDs = append(orgIDs, strconv.FormatInt(org.ID, 10))
+			numericalOrgIDs = append(numericalOrgIDs, org.ID)
+		}
+		if len(resp.Payload) == 0 {
+			break
+		}
+		page++
+	}
+
+	cache.Store("orgIDs", numericalOrgIDs)
+	return orgIDs, nil
+
 }
 
 func CreateOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

@@ -76,7 +76,7 @@ func resourceFolder() *common.Resource {
 }
 
 func listFolders(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
-	return listDashboardOrFolder(client, "dash-folder")
+	return listDashboardOrFolder(client, cache, "dash-folder")
 }
 
 func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

@@ -3,10 +3,12 @@ package grafana
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -250,7 +252,39 @@ This resource requires Grafana 9.1.0 or later.
 		"grafana_rule_group",
 		resourceRuleGroupID,
 		schema,
-	)
+	).WithLister(listRuleGroups)
+}
+
+func listRuleGroups(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
+	orgIDs, err := waitForOrgIDs(cache)
+	if err != nil {
+		return nil, err
+	}
+
+	idMap := map[string]bool{}
+	for _, orgID := range orgIDs {
+		grafanaClient := client.GrafanaOAPI
+		if grafanaClient == nil {
+			return nil, fmt.Errorf("client not configured for Grafana API")
+		}
+		grafanaClient = grafanaClient.Clone().WithOrgID(orgID)
+
+		resp, err := grafanaClient.Provisioning.GetAlertRules()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, rule := range resp.Payload {
+			idMap[MakeOrgResourceID(orgID, resourceRuleGroupID.Make(rule.FolderUID, rule.RuleGroup))] = true
+		}
+	}
+
+	var ids []string
+	for id := range idMap {
+		ids = append(ids, id)
+	}
+
+	return ids, nil
 }
 
 func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {

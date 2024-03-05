@@ -2,8 +2,10 @@ package grafana
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-openapi/runtime"
@@ -64,7 +66,34 @@ This resource requires Grafana 9.1.0 or later.
 		"grafana_message_template",
 		orgResourceIDString("name"),
 		schema,
-	)
+	).WithLister(listMessageTemplate)
+}
+
+func listMessageTemplate(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
+	orgIDs, err := waitForOrgIDs(cache)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for _, orgID := range orgIDs {
+		grafanaClient := client.GrafanaOAPI
+		if grafanaClient == nil {
+			return nil, fmt.Errorf("client not configured for Grafana API")
+		}
+		grafanaClient = grafanaClient.Clone().WithOrgID(orgID)
+
+		resp, err := grafanaClient.Provisioning.GetTemplates()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, template := range resp.Payload {
+			ids = append(ids, MakeOrgResourceID(orgID, template.Name))
+		}
+	}
+
+	return ids, nil
 }
 
 func readMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {

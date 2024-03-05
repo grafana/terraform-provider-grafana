@@ -27,8 +27,6 @@ import (
 
 var allowedTerraformChars = regexp.MustCompile(`[^a-zA-Z0-9_-]`)
 
-const managementServiceAccountName = "tfgen-management"
-
 type stack struct {
 	slug          string
 	url           string
@@ -155,6 +153,11 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagemen
 	}
 	stacksBySlug := map[string]gcom.FormattedApiInstance{}
 
+	managementServiceAccountName := os.Getenv("MANAGEMENT_SERVICE_ACCOUNT_NAME") // TODO: CLI flag
+	if managementServiceAccountName == "" {
+		managementServiceAccountName = "tfgen-management"
+	}
+
 	for _, stack := range stacks.Items {
 		stacksBySlug[stack.Slug] = stack
 		// TODO: Make sure the instance is not paused (by curling it)
@@ -274,6 +277,11 @@ func genGrafanaResources(ctx context.Context, auth, url, stackName string, genPr
 		}
 	}
 
+	cache := sync.Map{}
+	if !strings.Contains(auth, ":") {
+		cache.Store("orgIDs", []int64{1})
+	}
+
 	// Generate resources
 	config := provider.FrameworkProviderConfig{
 		URL:  types.StringValue(url),
@@ -288,9 +296,14 @@ func genGrafanaResources(ctx context.Context, auth, url, stackName string, genPr
 		return err
 	}
 
-	cache := sync.Map{}
-
 	if err := generateImportBlocks(ctx, client, &cache, grafana.Resources, outPath, stackName); err != nil {
+		return err
+	}
+
+	log.Print("Stripping default values")
+	if err := common.StripDefaults(filepath.Join(outPath, stackName+"-resources.tf"), map[string]string{
+		"org_id": " \"1\"",
+	}); err != nil {
 		return err
 	}
 

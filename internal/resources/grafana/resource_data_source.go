@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -28,10 +29,10 @@ The required arguments for this resource vary depending on the type of data
 source selected (via the 'type' argument).
 `,
 
-		CreateContext: CreateDataSource,
-		UpdateContext: UpdateDataSource,
-		DeleteContext: DeleteDataSource,
-		ReadContext:   ReadDataSource,
+		CreateContext: createDataSource,
+		UpdateContext: updateDataSource,
+		DeleteContext: deleteDataSource,
+		ReadContext:   readDataSource,
 		SchemaVersion: 1,
 
 		Importer: &schema.ResourceImporter{
@@ -112,7 +113,7 @@ source selected (via the 'type' argument).
 		"grafana_data_source",
 		orgResourceIDString("uid"),
 		schema,
-	)
+	).WithLister(listDatasources)
 }
 
 func datasourceHTTPHeadersAttribute() *schema.Schema {
@@ -180,8 +181,34 @@ func datasourceSecureJSONDataAttribute() *schema.Schema {
 	}
 }
 
-// CreateDataSource creates a Grafana datasource
-func CreateDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func listDatasources(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
+	orgIDs, err := waitForOrgIDs(cache)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for _, orgID := range orgIDs {
+		grafanaClient := client.GrafanaOAPI
+		if grafanaClient == nil {
+			return nil, fmt.Errorf("client not configured for Grafana API")
+		}
+		grafanaClient = grafanaClient.Clone().WithOrgID(orgID)
+		resp, err := grafanaClient.Datasources.GetDataSources()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, ds := range resp.Payload {
+			ids = append(ids, MakeOrgResourceID(orgID, ds.UID))
+		}
+	}
+
+	return ids, nil
+}
+
+// createDataSource creates a Grafana datasource
+func createDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	dataSource, err := stateToDatasource(d)
@@ -196,11 +223,11 @@ func CreateDataSource(ctx context.Context, d *schema.ResourceData, meta interfac
 
 	// TODO: Switch to UID
 	d.SetId(MakeOrgResourceID(orgID, resp.Payload.Datasource.ID))
-	return ReadDataSource(ctx, d, meta)
+	return readDataSource(ctx, d, meta)
 }
 
-// UpdateDataSource updates a Grafana datasource
-func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+// updateDataSource updates a Grafana datasource
+func updateDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	dataSource, err := stateToDatasource(d)
@@ -227,8 +254,8 @@ func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta interfac
 	return diag.FromErr(err)
 }
 
-// ReadDataSource reads a Grafana datasource
-func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+// readDataSource reads a Grafana datasource
+func readDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	var resp interface{ GetPayload() *models.DataSource }
@@ -248,8 +275,8 @@ func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{
 	return datasourceToState(d, resp.GetPayload())
 }
 
-// DeleteDataSource deletes a Grafana datasource
-func DeleteDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+// deleteDataSource deletes a Grafana datasource
+func deleteDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	_, err := client.Datasources.DeleteDataSourceByID(idStr)

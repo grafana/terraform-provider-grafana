@@ -88,8 +88,16 @@ func newResourceIDWithSeparators(separators []string, expectedFields ...Resource
 // Make creates a resource ID from the given parts
 // The parts must have the correct number of fields and types
 func (id *ResourceID) Make(parts ...any) string {
-	if len(parts) != len(id.expectedFields) {
-		panic(fmt.Sprintf("expected %d fields, got %d", len(id.expectedFields), len(parts))) // This is a coding error, so panic is appropriate
+	// TODO: Manage optional fields correctly
+	var expectedFields []ResourceIDField
+	for _, f := range id.expectedFields {
+		if !f.Optional {
+			expectedFields = append(expectedFields, f)
+		}
+	}
+
+	if len(parts) != len(expectedFields) {
+		panic(fmt.Sprintf("expected %d fields, got %d", len(expectedFields), len(parts))) // This is a coding error, so panic is appropriate
 	}
 	stringParts := make([]string, len(parts))
 	for i, part := range parts {
@@ -97,7 +105,7 @@ func (id *ResourceID) Make(parts ...any) string {
 		if reflect.ValueOf(part).Kind() == reflect.Ptr {
 			part = reflect.ValueOf(part).Elem().Interface()
 		}
-		expectedField := id.expectedFields[i]
+		expectedField := expectedFields[i]
 		switch expectedField.Type {
 		case ResourceIDFieldTypeInt:
 			asInt, ok := part.(int64)

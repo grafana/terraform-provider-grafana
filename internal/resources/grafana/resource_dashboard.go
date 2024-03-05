@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -102,27 +103,50 @@ Manages Grafana dashboards.
 }
 
 func listDashboards(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
-	return listDashboardOrFolder(client, "dash-db")
+	return listDashboardOrFolder(client, cache, "dash-db")
 }
 
-func listDashboardOrFolder(client *common.Client, searchType string) ([]string, error) {
-	grafanaClient := client.GrafanaOAPI
-	if grafanaClient == nil {
-		return nil, fmt.Errorf("client not configured for Grafana API")
-	}
-
-	resp, err := grafanaClient.Search.Search(search.NewSearchParams().WithType(common.Ref(searchType)))
+func listDashboardOrFolder(client *common.Client, cache *sync.Map, searchType string) ([]string, error) {
+	orgIDs, err := waitForOrgIDs(cache)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Handle organizations, if not in cloud
-	uids := make([]string, 0, len(resp.Payload))
-	for _, folder := range resp.Payload {
-		uids = append(uids, folder.UID)
+	uids := []string{}
+	for _, orgID := range orgIDs {
+		grafanaClient := client.GrafanaOAPI
+		if grafanaClient == nil {
+			return nil, fmt.Errorf("client not configured for Grafana API")
+		}
+		grafanaClient = grafanaClient.Clone().WithOrgID(orgID)
+
+		resp, err := grafanaClient.Search.Search(search.NewSearchParams().WithType(common.Ref(searchType)))
+		if err != nil {
+			return nil, err
+		}
+
+		for _, item := range resp.Payload {
+			uids = append(uids, MakeOrgResourceID(orgID, item.UID))
+		}
 	}
 
 	return uids, nil
+}
+
+func waitForOrgIDs(cache *sync.Map) ([]int64, error) {
+	startTime := time.Now()
+	waitTime := 2 * time.Minute
+	for {
+		if time.Since(startTime) > waitTime {
+			return nil, fmt.Errorf("timed out after %s waiting for org IDs to be available", waitTime)
+		}
+		orgIDs, ok := cache.Load("orgIDs")
+		if !ok {
+			continue
+		}
+		return orgIDs.([]int64), nil
+	}
+
 }
 
 func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

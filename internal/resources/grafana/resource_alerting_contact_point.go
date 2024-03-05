@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-openapi/runtime"
@@ -18,31 +19,32 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-var provenanceDisabled = "disabled"
-
-var notifiers = []notifier{
-	alertmanagerNotifier{},
-	dingDingNotifier{},
-	discordNotifier{},
-	emailNotifier{},
-	googleChatNotifier{},
-	kafkaNotifier{},
-	lineNotifier{},
-	oncallNotifier{},
-	opsGenieNotifier{},
-	pagerDutyNotifier{},
-	pushoverNotifier{},
-	sensugoNotifier{},
-	slackNotifier{},
-	snsNotifier{},
-	teamsNotifier{},
-	telegramNotifier{},
-	threemaNotifier{},
-	victorOpsNotifier{},
-	webexNotifier{},
-	webhookNotifier{},
-	wecomNotifier{},
-}
+var (
+	provenanceDisabled = "disabled"
+	notifiers          = []notifier{
+		alertmanagerNotifier{},
+		dingDingNotifier{},
+		discordNotifier{},
+		emailNotifier{},
+		googleChatNotifier{},
+		kafkaNotifier{},
+		lineNotifier{},
+		oncallNotifier{},
+		opsGenieNotifier{},
+		pagerDutyNotifier{},
+		pushoverNotifier{},
+		sensugoNotifier{},
+		slackNotifier{},
+		snsNotifier{},
+		teamsNotifier{},
+		telegramNotifier{},
+		threemaNotifier{},
+		victorOpsNotifier{},
+		webexNotifier{},
+		webhookNotifier{},
+		wecomNotifier{},
+	}
+)
 
 func resourceContactPoint() *common.Resource {
 	resource := &schema.Resource{
@@ -102,7 +104,39 @@ This resource requires Grafana 9.1.0 or later.
 		"grafana_contact_point",
 		orgResourceIDString("name"),
 		resource,
-	)
+	).WithLister(listContactPoints)
+}
+
+func listContactPoints(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
+	orgIDs, err := waitForOrgIDs(cache)
+	if err != nil {
+		return nil, err
+	}
+
+	idMap := map[string]bool{}
+	for _, orgID := range orgIDs {
+		grafanaClient := client.GrafanaOAPI
+		if grafanaClient == nil {
+			return nil, fmt.Errorf("client not configured for Grafana API")
+		}
+		grafanaClient = grafanaClient.Clone().WithOrgID(orgID)
+
+		resp, err := grafanaClient.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
+		if err != nil {
+			return nil, err
+		}
+
+		for _, contactPoint := range resp.Payload {
+			idMap[MakeOrgResourceID(orgID, contactPoint.Name)] = true
+		}
+	}
+
+	var ids []string
+	for id := range idMap {
+		ids = append(ids, id)
+	}
+
+	return ids, nil
 }
 
 func readContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -110,12 +144,17 @@ func readContactPoint(ctx context.Context, data *schema.ResourceData, meta inter
 
 	// First, try to fetch the contact point by name.
 	// If that fails, try to fetch it by the UID of its notifiers.
-	resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams().WithName(&name))
+	resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	points := resp.Payload
-	if len(points) == 0 && !strings.Contains(name, ":") {
+	var points []*models.EmbeddedContactPoint
+	for _, p := range resp.Payload {
+		if p.Name == name {
+			points = append(points, p)
+		}
+	}
+	if len(points) == 0 && !strings.Contains(data.Id(), ":") {
 		// If the contact point was not found by name, try to fetch it by UID.
 		// This is a deprecated ID format (uid;uid2;uid3)
 		// TODO: Remove on the next major version
