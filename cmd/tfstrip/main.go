@@ -26,8 +26,14 @@ func main() {
 			panic(err)
 		}
 	}
-	for _, v := range file.Body().Blocks() {
-		log.Printf("%+v", v.Body().Attributes())
+	for _, block := range file.Body().Blocks() {
+		for name, attribute := range block.Body().Attributes() {
+			log.Printf("%+v", name)
+			if string(attribute.Expr().BuildTokens(nil).Bytes()) == " null" {
+				block.Body().RemoveAttribute(name)
+			}
+		}
 	}
 
+	log.Print(string(file.Bytes()))
 }
