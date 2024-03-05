@@ -69,11 +69,6 @@ func Provider(version string) *schema.Provider {
 				"grafana_service_account_permission": grafana.ResourceServiceAccountPermission(),
 				"grafana_sso_settings":               grafana.ResourceSSOSettings(),
 				"grafana_user":                       grafana.ResourceUser(),
-
-				// Machine Learning
-				"grafana_machine_learning_job":              machinelearning.ResourceJob(),
-				"grafana_machine_learning_holiday":          machinelearning.ResourceHoliday(),
-				"grafana_machine_learning_outlier_detector": machinelearning.ResourceOutlierDetector(),
 			})
 
 		// Resources that require the Synthetic Monitoring client to exist.
@@ -271,7 +266,8 @@ func Provider(version string) *schema.Provider {
 
 		ResourcesMap: mergeResourceMaps(
 			grafanaClientResources,
-			slo.ResourcesMap,
+			machinelearning.ResourcesMap,
+      slo.ResourcesMap,
 			smClientResources,
 			onCallClientResources,
 			cloudClientResources,
@@ -279,7 +275,8 @@ func Provider(version string) *schema.Provider {
 
 		DataSourcesMap: mergeResourceMaps(
 			grafanaClientDatasources,
-			slo.DatasourcesMap,
+			machinelearning.DatasourcesMap,
+      slo.DatasourcesMap,
 			smClientDatasources,
 			onCallClientDatasources,
 			cloudClientDatasources,

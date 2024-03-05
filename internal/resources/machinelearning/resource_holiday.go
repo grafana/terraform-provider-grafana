@@ -13,7 +13,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
-func ResourceHoliday() *schema.Resource {
+func resourceHoliday() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
@@ -30,10 +30,10 @@ resource "grafana_machine_learning_job" "test_job" {
 }
 ` + "```",
 
-		CreateContext: ResourceHolidayCreate,
-		ReadContext:   ResourceHolidayRead,
-		UpdateContext: ResourceHolidayUpdate,
-		DeleteContext: ResourceHolidayDelete,
+		CreateContext: checkClient(resourceHolidayCreate),
+		ReadContext:   checkClient(resourceHolidayRead),
+		UpdateContext: checkClient(resourceHolidayUpdate),
+		DeleteContext: checkClient(resourceHolidayDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -103,7 +103,7 @@ resource "grafana_machine_learning_job" "test_job" {
 	}
 }
 
-func ResourceHolidayCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceHolidayCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	holiday, err := makeMLHoliday(d)
 	if err != nil {
@@ -114,10 +114,10 @@ func ResourceHolidayCreate(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 	d.SetId(holiday.ID)
-	return ResourceHolidayRead(ctx, d, meta)
+	return resourceHolidayRead(ctx, d, meta)
 }
 
-func ResourceHolidayRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceHolidayRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	holiday, err := c.Holiday(ctx, d.Id())
 	if err, shouldReturn := common.CheckReadError("holiday", d, err); shouldReturn {
@@ -143,7 +143,7 @@ func ResourceHolidayRead(ctx context.Context, d *schema.ResourceData, meta inter
 	return nil
 }
 
-func ResourceHolidayUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceHolidayUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	job, err := makeMLHoliday(d)
 	if err != nil {
@@ -153,10 +153,10 @@ func ResourceHolidayUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	return ResourceHolidayRead(ctx, d, meta)
+	return resourceHolidayRead(ctx, d, meta)
 }
 
-func ResourceHolidayDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceHolidayDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	err := c.DeleteHoliday(ctx, d.Id())
 	if err != nil {
