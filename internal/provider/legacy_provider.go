@@ -267,7 +267,7 @@ func Provider(version string) *schema.Provider {
 		ResourcesMap: mergeResourceMaps(
 			grafanaClientResources,
 			machinelearning.ResourcesMap,
-      slo.ResourcesMap,
+			slo.ResourcesMap,
 			smClientResources,
 			onCallClientResources,
 			cloudClientResources,
@@ -276,7 +276,7 @@ func Provider(version string) *schema.Provider {
 		DataSourcesMap: mergeResourceMaps(
 			grafanaClientDatasources,
 			machinelearning.DatasourcesMap,
-      slo.DatasourcesMap,
+			slo.DatasourcesMap,
 			smClientDatasources,
 			onCallClientDatasources,
 			cloudClientDatasources,
