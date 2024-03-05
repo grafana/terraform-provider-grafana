@@ -35,40 +35,47 @@ func main() {
 		}
 
 		fpath := filepath.Join(path, item.Name())
-		src, err := os.ReadFile(fpath)
+
+		err := updateTFFile(fpath)
 		if err != nil {
 			panic(err)
 		}
+	}
+}
 
-		file, diags := hclwrite.ParseConfig(src, item.Name(), hcl.Pos{Line: 1, Column: 1})
-		if diags.HasErrors() {
-			err := errors.New("an error occurred")
-			if err != nil {
-				panic(err)
-			}
+func updateTFFile(fpath string) error {
+	src, err := os.ReadFile(fpath)
+	if err != nil {
+		panic(err)
+	}
+
+	file, diags := hclwrite.ParseConfig(src, fpath, hcl.Pos{Line: 1, Column: 1})
+	if diags.HasErrors() {
+		err := errors.New("an error occurred")
+		if err != nil {
+			return err
 		}
-		hasChanges := false
-		for _, block := range file.Body().Blocks() {
-			for name, attribute := range block.Body().Attributes() {
-				if string(attribute.Expr().BuildTokens(nil).Bytes()) == " null" {
-					hasChanges = true
-					block.Body().RemoveAttribute(name)
-				}
-				if string(attribute.Expr().BuildTokens(nil).Bytes()) == " {}" {
-					hasChanges = true
-					block.Body().RemoveAttribute(name)
-				}
-				if name == "org_id" && string(attribute.Expr().BuildTokens(nil).Bytes()) == " \"0\"" {
-					hasChanges = true
-					block.Body().RemoveAttribute(name)
-				}
+	}
+	hasChanges := false
+	for _, block := range file.Body().Blocks() {
+		for name, attribute := range block.Body().Attributes() {
+			if string(attribute.Expr().BuildTokens(nil).Bytes()) == " null" {
+				hasChanges = true
+				block.Body().RemoveAttribute(name)
 			}
-		}
-		if hasChanges {
-			log.Printf("Updating file: %s\n", item.Name())
-			if err := os.WriteFile(fpath, file.Bytes(), 0644); err != nil {
-				panic(err)
+			if string(attribute.Expr().BuildTokens(nil).Bytes()) == " {}" {
+				hasChanges = true
+				block.Body().RemoveAttribute(name)
+			}
+			if name == "org_id" && string(attribute.Expr().BuildTokens(nil).Bytes()) == " \"0\"" {
+				hasChanges = true
+				block.Body().RemoveAttribute(name)
 			}
 		}
 	}
+	if hasChanges {
+		log.Printf("Updating file: %s\n", fpath)
+		return os.WriteFile(fpath, file.Bytes(), 0644)
+	}
+	return nil
 }
