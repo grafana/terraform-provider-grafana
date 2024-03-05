@@ -58,6 +58,10 @@ func main() {
 					hasChanges = true
 					block.Body().RemoveAttribute(name)
 				}
+				if name == "org_id" && string(attribute.Expr().BuildTokens(nil).Bytes()) == " \"0\"" {
+					hasChanges = true
+					block.Body().RemoveAttribute(name)
+				}
 			}
 		}
 		if hasChanges {
