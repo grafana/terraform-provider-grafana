@@ -14,7 +14,7 @@ import (
 var ResourceAPIKeyID = common.NewResourceIDWithLegacySeparator("grafana_cloud_api_key", "-", "orgSlug", "apiKeyName") //nolint:staticcheck
 var cloudAPIKeyRoles = []string{"Viewer", "Editor", "Admin", "MetricsPublisher", "PluginPublisher"}
 
-func ResourceAPIKey() *schema.Resource {
+func resourceAPIKey() *schema.Resource {
 	return &schema.Resource{
 		Description: `This resource is deprecated and will be removed in a future release. Please use grafana_cloud_access_policy instead.
 
@@ -27,9 +27,9 @@ Required access policy scopes:
 * api-keys:write
 * api-keys:delete
 `,
-		CreateContext: ResourceAPIKeyCreate,
-		ReadContext:   ResourceAPIKeyRead,
-		DeleteContext: ResourceAPIKeyDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceAPIKeyCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceAPIKeyRead),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceAPIKeyDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -65,9 +65,7 @@ Required access policy scopes:
 	}
 }
 
-func ResourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).GrafanaCloudAPI
-
+func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, c *gcom.APIClient) diag.Diagnostics {
 	req := gcom.PostApiKeysRequest{
 		Name: d.Get("name").(string),
 		Role: d.Get("role").(string),
@@ -85,12 +83,10 @@ func ResourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	d.Set("key", *resp.Token)
 	d.SetId(ResourceAPIKeyID.Make(org, resp.Name))
 
-	return ResourceAPIKeyRead(ctx, d, meta)
+	return resourceAPIKeyRead(ctx, d, c)
 }
 
-func ResourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).GrafanaCloudAPI
-
+func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, c *gcom.APIClient) diag.Diagnostics {
 	split, err := ResourceAPIKeyID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
@@ -110,9 +106,7 @@ func ResourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta interf
 	return nil
 }
 
-func ResourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).GrafanaCloudAPI
-
+func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, c *gcom.APIClient) diag.Diagnostics {
 	split, err := ResourceAPIKeyID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)

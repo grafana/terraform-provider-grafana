@@ -5,15 +5,15 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceStackServiceAccountToken() *schema.Resource {
+func resourceStackServiceAccountToken() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 Manages service account tokens of a Grafana Cloud stack using the Cloud API
@@ -27,9 +27,9 @@ Required access policy scopes:
 * stack-service-accounts:write
 `,
 
-		CreateContext: stackServiceAccountTokenCreate,
-		ReadContext:   stackServiceAccountTokenRead,
-		DeleteContext: stackServiceAccountTokenDelete,
+		CreateContext: withClient[schema.CreateContextFunc](stackServiceAccountTokenCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](stackServiceAccountTokenRead),
+		DeleteContext: withClient[schema.DeleteContextFunc](stackServiceAccountTokenDelete),
 
 		Schema: map[string]*schema.Schema{
 			"stack_slug": {
@@ -69,8 +69,7 @@ Required access policy scopes:
 	}
 }
 
-func stackServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	cloudClient := m.(*common.Client).GrafanaCloudAPI
+func stackServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
 	c, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
@@ -105,8 +104,7 @@ func stackServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData,
 	return stackServiceAccountTokenReadWithClient(c, d)
 }
 
-func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	cloudClient := m.(*common.Client).GrafanaCloudAPI
+func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
 	c, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
@@ -156,8 +154,7 @@ func stackServiceAccountTokenReadWithClient(c *goapi.GrafanaHTTPAPI, d *schema.R
 	return nil
 }
 
-func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	cloudClient := m.(*common.Client).GrafanaCloudAPI
+func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
 	c, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
