@@ -308,7 +308,12 @@ func genGrafanaResources(ctx context.Context, auth, url, stackName string, genPr
 		return err
 	}
 
-	if err := generateImportBlocks(ctx, client, &cache, grafana.Resources, outPath, stackName); err != nil {
+	resources := grafana.Resources
+	if strings.HasPrefix(stackName, "stack-") { // TODO: is cloud. Find a better way to detect this
+		resources = append(resources, slo.Resources...)
+		resources = append(resources, machinelearning.Resources...)
+	}
+	if err := generateImportBlocks(ctx, client, &cache, resources, outPath, stackName); err != nil {
 		return err
 	}
 
