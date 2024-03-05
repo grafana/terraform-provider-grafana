@@ -70,11 +70,6 @@ func Provider(version string) *schema.Provider {
 				"grafana_sso_settings":               grafana.ResourceSSOSettings(),
 				"grafana_user":                       grafana.ResourceUser(),
 
-				// Machine Learning
-				"grafana_machine_learning_job":              machinelearning.ResourceJob(),
-				"grafana_machine_learning_holiday":          machinelearning.ResourceHoliday(),
-				"grafana_machine_learning_outlier_detector": machinelearning.ResourceOutlierDetector(),
-
 				// SLO
 				"grafana_slo": slo.ResourceSlo(),
 			})
@@ -277,6 +272,7 @@ func Provider(version string) *schema.Provider {
 
 		ResourcesMap: mergeResourceMaps(
 			grafanaClientResources,
+			machinelearning.ResourcesMap,
 			smClientResources,
 			onCallClientResources,
 			cloudClientResources,
@@ -284,6 +280,7 @@ func Provider(version string) *schema.Provider {
 
 		DataSourcesMap: mergeResourceMaps(
 			grafanaClientDatasources,
+			machinelearning.DatasourcesMap,
 			smClientDatasources,
 			onCallClientDatasources,
 			cloudClientDatasources,
