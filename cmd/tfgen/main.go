@@ -91,22 +91,29 @@ func main() {
 				log.Fatal(err)
 			}
 		}
-		return
+	} else {
+		grafanaAuth := os.Getenv("GRAFANA_AUTH") // TODO: CLI flag
+		grafanaUrl := os.Getenv("GRAFANA_URL")   // TODO: CLI flag
+		if grafanaAuth == "" || grafanaUrl == "" {
+			log.Fatal("GRAFANA_AUTH and GRAFANA_URL environment variables must be set")
+		}
+
+		grafanaUrlParsed, err := url.Parse(grafanaUrl)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if err := genGrafanaResources(ctx, grafanaAuth, grafanaUrl, grafanaUrlParsed.Host, true, outPath); err != nil {
+			log.Fatal(err)
+		}
 	}
 
-	// Else
-	grafanaAuth := os.Getenv("GRAFANA_AUTH") // TODO: CLI flag
-	grafanaUrl := os.Getenv("GRAFANA_URL")   // TODO: CLI flag
-	if grafanaAuth == "" || grafanaUrl == "" {
-		log.Fatal("GRAFANA_AUTH and GRAFANA_URL environment variables must be set")
-	}
-
-	grafanaUrlParsed, err := url.Parse(grafanaUrl)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err := genGrafanaResources(ctx, grafanaAuth, grafanaUrl, grafanaUrlParsed.Host, true, outPath); err != nil {
+	// Apply to actually import the resources into the state
+	applyCommand := exec.Command("terraform", "apply", "-auto-approve")
+	applyCommand.Dir = outPath
+	applyCommand.Stdout = os.Stdout
+	applyCommand.Stderr = os.Stderr
+	if err := applyCommand.Run(); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -138,6 +145,11 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagemen
 	cache.Store("org", orgSlug)
 
 	if err := generateImportBlocks(ctx, client, &cache, cloud.Resources, outPath, "cloud"); err != nil {
+		return nil, err
+	}
+
+	log.Println("Stripping default values for cloud")
+	if err := common.StripDefaults(filepath.Join(outPath, "cloud-resources.tf"), map[string]string{}); err != nil {
 		return nil, err
 	}
 
@@ -300,7 +312,7 @@ func genGrafanaResources(ctx context.Context, auth, url, stackName string, genPr
 		return err
 	}
 
-	log.Print("Stripping default values")
+	log.Printf("Stripping default values for %s\n", stackName)
 	if err := common.StripDefaults(filepath.Join(outPath, stackName+"-resources.tf"), map[string]string{
 		"org_id": " \"1\"",
 	}); err != nil {
