@@ -337,7 +337,7 @@ func createUser(meta interface{}, user string) (int64, error) {
 		Name:     user,
 		Login:    user,
 		Email:    user,
-		Password: pass,
+		Password: models.Password(pass),
 	}
 	resp, err := client.AdminUsers.AdminCreateUser(&u)
 	if err != nil {
