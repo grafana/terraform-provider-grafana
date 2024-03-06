@@ -7,7 +7,7 @@ description: |-
   This can be used to bootstrap a management service account for a new stack
   Official documentation https://grafana.com/docs/grafana/latest/administration/service-accounts/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/serviceaccount/#service-account-api
   Required access policy scopes:
-  stack-service-accounts:write
+  stack-service-accounts:readstack-service-accounts:write
 ---
 
 # grafana_cloud_stack_service_account (Resource)
@@ -20,6 +20,7 @@ This can be used to bootstrap a management service account for a new stack
 
 Required access policy scopes:
 
+* stack-service-accounts:read
 * stack-service-accounts:write
 
 ## Example Usage
