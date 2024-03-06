@@ -110,15 +110,6 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-
-	// Apply to actually import the resources into the state
-	applyCommand := exec.Command("terraform", "apply", "-auto-approve")
-	applyCommand.Dir = outPath
-	applyCommand.Stdout = os.Stdout
-	applyCommand.Stderr = os.Stderr
-	if err := applyCommand.Run(); err != nil {
-		log.Fatal(err)
-	}
 }
 
 func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagementKey bool, outPath string) ([]stack, error) {
@@ -209,8 +200,11 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagemen
 		return nil, err
 	}
 
-	log.Println("Stripping default values for cloud")
+	log.Println("Post-processing for cloud")
 	if err := common.StripDefaults(filepath.Join(outPath, "cloud-resources.tf"), map[string]string{}); err != nil {
+		return nil, err
+	}
+	if err := common.WrapJSONFieldsInFunction(filepath.Join(outPath, "cloud-resources.tf")); err != nil {
 		return nil, err
 	}
 
@@ -404,10 +398,16 @@ func genGrafanaResources(ctx context.Context, auth, url, stackName string, genPr
 		return err
 	}
 
-	log.Printf("Stripping default values for %s\n", stackName)
+	log.Printf("Post-processing for %s\n", stackName)
 	if err := common.StripDefaults(filepath.Join(outPath, stackName+"-resources.tf"), map[string]string{
 		"org_id": " \"1\"",
 	}); err != nil {
+		return err
+	}
+	if err := common.AbstractDashboards(filepath.Join(outPath, stackName+"-resources.tf")); err != nil {
+		return err
+	}
+	if err := common.WrapJSONFieldsInFunction(filepath.Join(outPath, stackName+"-resources.tf")); err != nil {
 		return err
 	}
 
@@ -495,7 +495,8 @@ func generateImportBlocks(ctx context.Context, client *common.Client, cache *syn
 		return err
 	}
 
-	genCommand := exec.Command("terraform", "plan", fmt.Sprintf("-generate-config-out=%s-resources.tf", provider))
+	generatedFilename := fmt.Sprintf("%s-resources.tf", provider)
+	genCommand := exec.Command("terraform", "plan", "-generate-config-out="+generatedFilename)
 	genCommand.Dir = outPath
 	genCommand.Stdout = os.Stdout
 	genCommand.Stderr = os.Stderr
