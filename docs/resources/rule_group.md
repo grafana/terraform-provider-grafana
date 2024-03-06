@@ -144,6 +144,7 @@ Optional:
 - `is_paused` (Boolean) Sets whether the alert should be paused or not. Defaults to `false`.
 - `labels` (Map of String) Key-value pairs to attach to the alert rule that can be used in matching, grouping, and routing. Defaults to `map[]`.
 - `no_data_state` (String) Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, and Alerting. Defaults to `NoData`.
+- `notification_settings` (Block List, Max: 1) Notification settings for the rule. If specified, it overrides the notification policies. Available since Grafana 10.4, requires feature flag 'alertingSimplifiedRouting' enabled. (see [below for nested schema](#nestedblock--rule--notification_settings))
 
 Read-Only:
 
@@ -170,6 +171,23 @@ Required:
 
 - `from` (Number) The number of seconds in the past, relative to when the rule is evaluated, at which the time range begins.
 - `to` (Number) The number of seconds in the past, relative to when the rule is evaluated, at which the time range ends.
+
+
+
+<a id="nestedblock--rule--notification_settings"></a>
+### Nested Schema for `rule.notification_settings`
+
+Required:
+
+- `contact_point` (String) The contact point to route notifications that match this rule to.
+
+Optional:
+
+- `group_by` (List of String) A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping. If empty, no grouping is used. If specified, requires labels 'alertname' and 'grafana_folder' to be included.
+- `group_interval` (String) Minimum time interval between two notifications for the same group. Default is 5 minutes.
+- `group_wait` (String) Time to wait to buffer alerts of the same group before sending a notification. Default is 30 seconds.
+- `mute_timings` (List of String) A list of mute timing names to apply to alerts that match this policy.
+- `repeat_interval` (String) Minimum time interval for re-sending a notification if an alert is still firing. Default is 4 hours.
 
 ## Import
 

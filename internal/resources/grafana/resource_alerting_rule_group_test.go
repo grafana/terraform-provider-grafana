@@ -1,13 +1,15 @@
 package grafana_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
+	"github.com/grafana/terraform-provider-grafana/internal/testutils"
 )
 
 func TestAccAlertRule_basic(t *testing.T) {
@@ -362,6 +364,39 @@ func TestAccAlertRule_zeroSeconds(t *testing.T) {
 	})
 }
 
+func TestAccAlertRule_NotificationSettings(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=10.4.0")
+
+	var group models.AlertRuleGroup
+	var name = acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		CheckDestroy:      alertingRuleGroupCheckExists.destroyed(&group, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAlertRuleWithNotificationSettings(name, []string{"alertname", "grafana_folder", "test"}),
+				Check: resource.ComposeTestCheckFunc(
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_rule_group", &group),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "name", name),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.#", "1"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.name", fmt.Sprintf("%s-alertrule", name)),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.contact_point", fmt.Sprintf("%s-receiver", name)),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.group_wait", "45s"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.group_interval", "6m"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.repeat_interval", "3h"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.mute_timings.#", "1"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.mute_timings.0", fmt.Sprintf("%s-mute-timing", name)),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.group_by.#", "3"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.group_by.0", "alertname"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.group_by.1", "grafana_folder"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.notification_settings.0.group_by.2", "test"),
+				),
+			},
+		},
+	})
+}
+
 func testAccAlertRuleGroupInOrgConfig(name string, interval int, disableProvenance bool) string {
 	return fmt.Sprintf(`
 resource "grafana_organization" "test" {
@@ -445,4 +480,72 @@ resource "grafana_rule_group" "my_rule_group" {
 		}
 	}
 }`, name)
+}
+
+func testAccAlertRuleWithNotificationSettings(name string, groupBy []string) string {
+	gr := ""
+	if len(groupBy) > 0 {
+		b, _ := json.Marshal(groupBy)
+		gr = "group_by = " + string(b)
+	}
+	return fmt.Sprintf(`
+resource "grafana_folder" "rule_folder" {
+	title = "%[1]s"
+}
+
+resource "grafana_data_source" "testdata_datasource" {
+	name = "%[1]s"
+	type = "grafana-testdata-datasource"
+	url  = "http://localhost:3333"
+}
+
+resource "grafana_mute_timing" "my_mute_timing" {
+		name = "%[1]s-mute-timing"
+		intervals {}
+}
+
+resource "grafana_contact_point" "my_contact_point" {
+	name      = "%[1]s-receiver"
+	email {
+		addresses = [ "hello@example.com" ]
+	}
+}
+
+resource "grafana_rule_group" "my_rule_group" {
+	name             = "%[1]s"
+	folder_uid       = grafana_folder.rule_folder.uid
+	interval_seconds = 60
+	org_id           = 1
+
+	rule {
+		name      = "%[1]s-alertrule"
+		condition = "C"
+		for       = "0s"
+
+		// Query the datasource.
+		data {
+			ref_id = "A"
+			relative_time_range {
+				from = 600
+				to   = 0
+			}
+			datasource_uid = grafana_data_source.testdata_datasource.uid
+			model = jsonencode({
+				intervalMs    = 1000
+				maxDataPoints = 43200
+				refId         = "A"
+			})
+		}
+
+		notification_settings {
+			contact_point = grafana_contact_point.my_contact_point.name
+			%[2]s
+			group_wait      = "45s"
+            group_interval  = "6m"
+            repeat_interval = "3h"
+			mute_timings = [grafana_mute_timing.my_mute_timing.name]
+		}
+	}
+}`, name, gr)
+
 }
