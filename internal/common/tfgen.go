@@ -42,7 +42,7 @@ func stripDefaultsFromBlock(block *hclwrite.Block, extraFieldsToRemove map[strin
 		if s := stripDefaultsFromBlock(innblock, extraFieldsToRemove); s {
 			hasChanges = true
 		}
-		if len(innblock.Body().Attributes()) == 0 {
+		if len(innblock.Body().Attributes()) == 0 && len(innblock.Body().Blocks()) == 0 {
 			if rm := block.Body().RemoveBlock(innblock); rm {
 				hasChanges = true
 			}
@@ -55,6 +55,11 @@ func stripDefaultsFromBlock(block *hclwrite.Block, extraFieldsToRemove map[strin
 			}
 		}
 		if string(attribute.Expr().BuildTokens(nil).Bytes()) == " {}" {
+			if rm := block.Body().RemoveAttribute(name); rm != nil {
+				hasChanges = true
+			}
+		}
+		if string(attribute.Expr().BuildTokens(nil).Bytes()) == " []" {
 			if rm := block.Body().RemoveAttribute(name); rm != nil {
 				hasChanges = true
 			}
