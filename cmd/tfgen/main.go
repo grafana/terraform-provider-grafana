@@ -341,7 +341,10 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagemen
 
 func writeBlocks(filepath string, blocks []*hclwrite.Block) error {
 	contents := hclwrite.NewFile()
-	for _, b := range blocks {
+	for i, b := range blocks {
+		if i > 0 {
+			contents.Body().AppendNewline()
+		}
 		contents.Body().AppendBlock(b)
 	}
 
