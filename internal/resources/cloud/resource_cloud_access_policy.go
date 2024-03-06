@@ -132,10 +132,10 @@ Required access policy scopes:
 		},
 	}
 
-	return common.NewResourceWithLister(
+	return common.NewResource(
 		"grafana_cloud_access_policy",
 		resourceAccessPolicyID,
-		listAccessPolicies,
+		// listAccessPolicies,
 		schema,
 	)
 }
