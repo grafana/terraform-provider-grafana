@@ -22,23 +22,11 @@ func StripDefaults(fpath string, extraFieldsToRemove map[string]string) error {
 			return err
 		}
 	}
+
 	hasChanges := false
 	for _, block := range file.Body().Blocks() {
-		for name, attribute := range block.Body().Attributes() {
-			if string(attribute.Expr().BuildTokens(nil).Bytes()) == " null" {
-				hasChanges = true
-				block.Body().RemoveAttribute(name)
-			}
-			if string(attribute.Expr().BuildTokens(nil).Bytes()) == " {}" {
-				hasChanges = true
-				block.Body().RemoveAttribute(name)
-			}
-			for key, value := range extraFieldsToRemove {
-				if name == key && string(attribute.Expr().BuildTokens(nil).Bytes()) == value {
-					hasChanges = true
-					block.Body().RemoveAttribute(name)
-				}
-			}
+		if s := stripDefaultsFromBlock(block, extraFieldsToRemove); s {
+			hasChanges = true
 		}
 	}
 	if hasChanges {
@@ -46,4 +34,38 @@ func StripDefaults(fpath string, extraFieldsToRemove map[string]string) error {
 		return os.WriteFile(fpath, file.Bytes(), 0644)
 	}
 	return nil
+}
+
+func stripDefaultsFromBlock(block *hclwrite.Block, extraFieldsToRemove map[string]string) bool {
+	hasChanges := false
+	for _, innblock := range block.Body().Blocks() {
+		if s := stripDefaultsFromBlock(innblock, extraFieldsToRemove); s {
+			hasChanges = true
+		}
+		if len(innblock.Body().Attributes()) == 0 {
+			if rm := block.Body().RemoveBlock(innblock); rm {
+				hasChanges = true
+			}
+		}
+	}
+	for name, attribute := range block.Body().Attributes() {
+		if string(attribute.Expr().BuildTokens(nil).Bytes()) == " null" {
+			if rm := block.Body().RemoveAttribute(name); rm != nil {
+				hasChanges = true
+			}
+		}
+		if string(attribute.Expr().BuildTokens(nil).Bytes()) == " {}" {
+			if rm := block.Body().RemoveAttribute(name); rm != nil {
+				hasChanges = true
+			}
+		}
+		for key, value := range extraFieldsToRemove {
+			if name == key && string(attribute.Expr().BuildTokens(nil).Bytes()) == value {
+				if rm := block.Body().RemoveAttribute(name); rm != nil {
+					hasChanges = true
+				}
+			}
+		}
+	}
+	return hasChanges
 }
