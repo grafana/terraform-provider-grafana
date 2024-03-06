@@ -29,6 +29,7 @@ This can be used to bootstrap a management service account for a new stack
 
 Required access policy scopes:
 
+* stacks:read
 * stack-service-accounts:write
 `,
 

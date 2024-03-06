@@ -9,7 +9,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-var ResourcePluginInstallationID = common.NewResourceIDWithLegacySeparator("grafana_cloud_plugin_installation", "_", "stackSlug", "pluginSlug") //nolint:staticcheck
+var (
+	//nolint:staticcheck
+	resourcePluginInstallationID = common.NewResourceIDWithLegacySeparator(
+		"grafana_cloud_plugin_installation",
+		"_",
+		common.StringIDField("stackSlug"),
+		common.StringIDField("pluginSlug"),
+	)
+)
 
 func resourcePluginInstallation() *schema.Resource {
 	return &schema.Resource{
@@ -69,19 +77,19 @@ func resourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceDat
 		return apiError(err)
 	}
 
-	d.SetId(ResourcePluginInstallationID.Make(stackSlug, pluginSlug))
+	d.SetId(resourcePluginInstallationID.Make(stackSlug, pluginSlug))
 
 	return nil
 }
 
 func resourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
-	split, err := ResourcePluginInstallationID.Split(d.Id())
+	split, err := resourcePluginInstallationID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	stackSlug, pluginSlug := split[0], split[1]
 
-	installation, _, err := client.InstancesAPI.GetInstancePlugin(ctx, stackSlug, pluginSlug).Execute()
+	installation, _, err := client.InstancesAPI.GetInstancePlugin(ctx, stackSlug.(string), pluginSlug.(string)).Execute()
 	if err, shouldReturn := common.CheckReadError("plugin", d, err); shouldReturn {
 		return err
 	}
@@ -89,18 +97,18 @@ func resourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData,
 	d.Set("stack_slug", installation.InstanceSlug)
 	d.Set("slug", installation.PluginSlug)
 	d.Set("version", installation.Version)
-	d.SetId(ResourcePluginInstallationID.Make(stackSlug, pluginSlug))
+	d.SetId(resourcePluginInstallationID.Make(stackSlug, pluginSlug))
 
 	return nil
 }
 
 func resourcePluginInstallationDelete(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
-	split, err := ResourcePluginInstallationID.Split(d.Id())
+	split, err := resourcePluginInstallationID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	stackSlug, pluginSlug := split[0], split[1]
 
-	_, _, err = client.InstancesAPI.DeleteInstancePlugin(ctx, stackSlug, pluginSlug).XRequestId(ClientRequestID()).Execute()
+	_, _, err = client.InstancesAPI.DeleteInstancePlugin(ctx, stackSlug.(string), pluginSlug.(string)).XRequestId(ClientRequestID()).Execute()
 	return apiError(err)
 }

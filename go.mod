@@ -9,7 +9,7 @@ require (
 	github.com/go-openapi/runtime v0.27.2
 	github.com/go-openapi/strfmt v0.22.2
 	github.com/grafana/amixr-api-go-client v0.0.11
-	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240301205126-15b8e07d4a10
+	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240305213348-af081a82f063
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20240306142804-861284d1ba83
 	github.com/grafana/machine-learning-go-client v0.5.0
 	github.com/grafana/slo-openapi-client/go v0.0.0-20240112175006-de02e75b9d73
