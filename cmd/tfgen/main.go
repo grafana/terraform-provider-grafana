@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -31,6 +32,8 @@ type stack struct {
 	slug          string
 	url           string
 	managementKey string
+	smURL         string
+	smToken       string
 }
 
 func main() {
@@ -87,7 +90,7 @@ func main() {
 		}
 
 		for _, stack := range stacks {
-			if err := genGrafanaResources(ctx, stack.managementKey, stack.url, "stack-"+stack.slug, false, outPath); err != nil {
+			if err := genGrafanaResources(ctx, stack.managementKey, stack.url, "stack-"+stack.slug, false, outPath, stack.smURL, stack.smToken); err != nil {
 				log.Fatal(err)
 			}
 		}
@@ -103,7 +106,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		if err := genGrafanaResources(ctx, grafanaAuth, grafanaUrl, grafanaUrlParsed.Host, true, outPath); err != nil {
+		if err := genGrafanaResources(ctx, grafanaAuth, grafanaUrl, grafanaUrlParsed.Host, true, outPath, "", ""); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -141,6 +144,64 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagemen
 	}
 	cloudClient := client.GrafanaCloudAPI
 
+	stacks, _, err := cloudClient.InstancesAPI.GetInstances(ctx).Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	// Cleanup SAs
+	managementServiceAccountName := os.Getenv("MANAGEMENT_SERVICE_ACCOUNT_NAME") // TODO: CLI flag
+	if managementServiceAccountName == "" {
+		managementServiceAccountName = "tfgen-management"
+	}
+	smAccessPolicy := func(stack gcom.FormattedApiInstance) string {
+		return stack.Slug + "-sm-metrics-publish"
+	}
+	if addManagementKey {
+		for _, stack := range stacks.Items {
+			tempClient, cleanup, err := cloud.CreateTemporaryStackGrafanaClient(ctx, cloudClient, stack.Slug, "temp-sa-")
+			if err != nil {
+				return nil, fmt.Errorf("failed to create temporary client for stack %q: %w", stack.Slug, err)
+			}
+
+			serviceAccountsResp, err := tempClient.ServiceAccounts.SearchOrgServiceAccountsWithPaging(service_accounts.NewSearchOrgServiceAccountsWithPagingParams())
+			if err != nil {
+				return nil, fmt.Errorf("failed to search service accounts for stack %q: %w", stack.Slug, err)
+			}
+			for _, sa := range serviceAccountsResp.Payload.ServiceAccounts {
+				if sa.Name == managementServiceAccountName {
+					log.Printf("found existing management service account (%s) in stack %q\n", managementServiceAccountName, stack.Slug)
+					// Delete the SA to recreate it via TF
+					_, err := tempClient.ServiceAccounts.DeleteServiceAccount(sa.ID)
+					if err != nil {
+						return nil, fmt.Errorf("failed to delete existing management service account (%s) in stack %q: %w", managementServiceAccountName, stack.Slug, err)
+					}
+					break
+				}
+			}
+
+			if err := cleanup(); err != nil {
+				return nil, fmt.Errorf("failed to cleanup temporary client for stack %q: %w", stack.Slug, err)
+			}
+
+			// Delete existing SM installation
+			resp, _, err := cloudClient.AccesspoliciesAPI.GetAccessPolicies(ctx).OrgId(int32(stack.OrgId)).Region(stack.RegionSlug).Execute()
+			if err != nil {
+				return nil, err
+			}
+			for _, policy := range resp.Items {
+				if policy.Name == smAccessPolicy(stack) {
+					log.Printf("found existing SM installation (%s) in stack %q\n", smAccessPolicy(stack), stack.Slug)
+					_, _, err := cloudClient.AccesspoliciesAPI.DeleteAccessPolicy(ctx, *policy.Id).XRequestId("tf-gen").OrgId(int32(stack.OrgId)).Region(stack.RegionSlug).Execute()
+					if err != nil {
+						return nil, fmt.Errorf("failed to delete existing SM installation (%s) in stack %q: %w", smAccessPolicy(stack), stack.Slug, err)
+					}
+					break
+				}
+			}
+		}
+	}
+
 	cache := sync.Map{}
 	cache.Store("org", orgSlug)
 
@@ -159,46 +220,13 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagemen
 
 	// Add management service account (grafana_cloud_stack_service_account)
 	// This one needs to be applied to prevent https://github.com/grafana/terraform-provider-grafana/issues/960
-	stacks, _, err := cloudClient.InstancesAPI.GetInstances(ctx).Execute()
-	if err != nil {
-		return nil, err
-	}
 	stacksBySlug := map[string]gcom.FormattedApiInstance{}
-
-	managementServiceAccountName := os.Getenv("MANAGEMENT_SERVICE_ACCOUNT_NAME") // TODO: CLI flag
-	if managementServiceAccountName == "" {
-		managementServiceAccountName = "tfgen-management"
-	}
-
+	stacksById := map[int]gcom.FormattedApiInstance{}
 	for _, stack := range stacks.Items {
 		stacksBySlug[stack.Slug] = stack
+		stacksById[int(stack.Id)] = stack
 		// TODO: Make sure the instance is not paused (by curling it)
 		// When the instance is paused, we can't create service accounts in it
-
-		tempClient, cleanup, err := cloud.CreateTemporaryStackGrafanaClient(ctx, cloudClient, stack.Slug, "temp-sa-")
-		if err != nil {
-			return nil, fmt.Errorf("failed to create temporary client for stack %q: %w", stack.Slug, err)
-		}
-
-		serviceAccountsResp, err := tempClient.ServiceAccounts.SearchOrgServiceAccountsWithPaging(service_accounts.NewSearchOrgServiceAccountsWithPagingParams())
-		if err != nil {
-			return nil, fmt.Errorf("failed to search service accounts for stack %q: %w", stack.Slug, err)
-		}
-		for _, sa := range serviceAccountsResp.Payload.ServiceAccounts {
-			if sa.Name == managementServiceAccountName {
-				log.Printf("found existing management service account (%s) in stack %q\n", managementServiceAccountName, stack.Slug)
-				// Delete the SA to recreate it via TF
-				_, err := tempClient.ServiceAccounts.DeleteServiceAccount(sa.ID)
-				if err != nil {
-					return nil, fmt.Errorf("failed to delete existing management service account (%s) in stack %q: %w", managementServiceAccountName, stack.Slug, err)
-				}
-				break
-			}
-		}
-
-		if err := cleanup(); err != nil {
-			return nil, fmt.Errorf("failed to cleanup temporary client for stack %q: %w", stack.Slug, err)
-		}
 
 		// Create the management service account
 		saBlock := hclwrite.NewBlock("resource", []string{"grafana_cloud_stack_service_account", stack.Slug})
@@ -213,18 +241,50 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagemen
 		saTokenBlock.Body().SetAttributeTraversal("service_account_id", traversal("grafana_cloud_stack_service_account", stack.Slug, "id"))
 		saTokenBlock.Body().SetAttributeValue("name", cty.StringVal(managementServiceAccountName))
 
+		// Create the SM installation
+		policyResourceName := stack.Slug + "_sm_metrics_publish"
+		smInstallationMetricsPublishBlock := hclwrite.NewBlock("resource", []string{"grafana_cloud_access_policy", policyResourceName})
+		smInstallationMetricsPublishBlock.Body().SetAttributeTraversal("provider", traversal("grafana", "cloud"))
+		smInstallationMetricsPublishBlock.Body().SetAttributeValue("region", cty.StringVal(stack.RegionSlug))
+		smInstallationMetricsPublishBlock.Body().SetAttributeValue("name", cty.StringVal(smAccessPolicy(stack)))
+		smInstallationMetricsPublishBlock.Body().SetAttributeValue("scopes", cty.ListVal([]cty.Value{cty.StringVal("metrics:write"), cty.StringVal("stacks:read")}))
+		smInstallationMetricsPublishRealmBlock := hclwrite.NewBlock("realm", nil)
+		smInstallationMetricsPublishRealmBlock.Body().SetAttributeValue("type", cty.StringVal("stack"))
+		smInstallationMetricsPublishRealmBlock.Body().SetAttributeTraversal("identifier", traversal("grafana_cloud_stack", stack.Slug, "id"))
+		smInstallationMetricsPublishBlock.Body().AppendBlock(smInstallationMetricsPublishRealmBlock)
+
+		smInstallationTokenBlock := hclwrite.NewBlock("resource", []string{"grafana_cloud_access_policy_token", policyResourceName})
+		smInstallationTokenBlock.Body().SetAttributeTraversal("provider", traversal("grafana", "cloud"))
+		smInstallationTokenBlock.Body().SetAttributeValue("region", cty.StringVal(stack.RegionSlug))
+		smInstallationTokenBlock.Body().SetAttributeTraversal("access_policy_id", traversal("grafana_cloud_access_policy", policyResourceName, "policy_id"))
+		smInstallationTokenBlock.Body().SetAttributeValue("name", cty.StringVal(smAccessPolicy(stack)))
+
+		smInstallationBlock := hclwrite.NewBlock("resource", []string{"grafana_synthetic_monitoring_installation", stack.Slug})
+		smInstallationBlock.Body().SetAttributeTraversal("provider", traversal("grafana", "cloud"))
+		smInstallationBlock.Body().SetAttributeTraversal("stack_id", traversal("grafana_cloud_stack", stack.Slug, "id"))
+		smInstallationBlock.Body().SetAttributeTraversal("metrics_publisher_key", traversal("grafana_cloud_access_policy_token", policyResourceName, "token"))
+
 		providerBlock := hclwrite.NewBlock("provider", []string{"grafana"})
 		providerBlock.Body().SetAttributeValue("alias", cty.StringVal("stack-"+stack.Slug))
 		providerBlock.Body().SetAttributeTraversal("url", traversal("grafana_cloud_stack", stack.Slug, "url"))
 		providerBlock.Body().SetAttributeTraversal("auth", traversal("grafana_cloud_stack_service_account_token", stack.Slug, "key"))
+		providerBlock.Body().SetAttributeTraversal("sm_access_token", traversal("grafana_synthetic_monitoring_installation", stack.Slug, "sm_access_token"))
+		providerBlock.Body().SetAttributeTraversal("sm_url", traversal("grafana_synthetic_monitoring_installation", stack.Slug, "stack_sm_api_url"))
 
-		if err := writeBlocks(filepath.Join(outPath, fmt.Sprintf("stack-%s-provider.tf", stack.Slug)), []*hclwrite.Block{saBlock, saTokenBlock, providerBlock}); err != nil {
+		if err := writeBlocks(filepath.Join(outPath, fmt.Sprintf("stack-%s-provider.tf", stack.Slug)), []*hclwrite.Block{saBlock, saTokenBlock, smInstallationMetricsPublishBlock, smInstallationTokenBlock, smInstallationBlock, providerBlock}); err != nil {
 			return nil, fmt.Errorf("failed to write management service account blocks for stack %q: %w", stack.Slug, err)
 		}
 
 		// TODO: Terraform apply -t sa+token
 		// Then go into the state and find the management key
-		applyCommand := exec.Command("terraform", "apply", "-auto-approve", "-target=grafana_cloud_stack_service_account."+stack.Slug, "-target=grafana_cloud_stack_service_account_token."+stack.Slug)
+		applyCommand := exec.Command(
+			"terraform", "apply", "-auto-approve",
+			"-target=grafana_cloud_stack_service_account."+stack.Slug,
+			"-target=grafana_cloud_stack_service_account_token."+stack.Slug,
+			"-target=grafana_cloud_access_policy."+policyResourceName,
+			"-target=grafana_cloud_access_policy_token."+policyResourceName,
+			"-target=grafana_synthetic_monitoring_installation."+stack.Slug,
+		)
 		applyCommand.Dir = outPath
 		applyCommand.Stdout = os.Stdout
 		applyCommand.Stderr = os.Stderr
@@ -247,16 +307,33 @@ func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagemen
 	values := parsed["values"].(map[string]interface{})
 	rootModule := values["root_module"].(map[string]interface{})
 	resources := rootModule["resources"].([]interface{})
+	stacksMap := map[string]stack{}
 	for _, resource := range resources {
 		resource := resource.(map[string]interface{})
 		if resource["type"].(string) == "grafana_cloud_stack_service_account_token" {
 			slug := resource["values"].(map[string]interface{})["stack_slug"].(string)
-			managedStacks = append(managedStacks, stack{
-				slug:          slug,
-				url:           stacksBySlug[slug].Url,
-				managementKey: resource["values"].(map[string]interface{})["key"].(string),
-			})
+			stack := stacksMap[slug]
+			stack.slug = slug
+			stack.url = stacksBySlug[slug].Url
+			stack.managementKey = resource["values"].(map[string]interface{})["key"].(string)
+			stacksMap[slug] = stack
 		}
+		if resource["type"].(string) == "grafana_synthetic_monitoring_installation" {
+			idStr := resource["values"].(map[string]interface{})["stack_id"].(string)
+			slug := idStr
+			if id, err := strconv.Atoi(idStr); err == nil {
+				slug = stacksById[id].Slug
+			}
+			stack := stacksMap[slug]
+			stack.smToken = resource["values"].(map[string]interface{})["sm_access_token"].(string)
+			stack.smURL = resource["values"].(map[string]interface{})["stack_sm_api_url"].(string)
+			stacksMap[slug] = stack
+		}
+
+	}
+
+	for _, stack := range stacksMap {
+		managedStacks = append(managedStacks, stack)
 	}
 
 	return managedStacks, nil
@@ -278,7 +355,7 @@ func writeBlocks(filepath string, blocks []*hclwrite.Block) error {
 	return hclFile.Close()
 }
 
-func genGrafanaResources(ctx context.Context, auth, url, stackName string, genProvider bool, outPath string) error {
+func genGrafanaResources(ctx context.Context, auth, url, stackName string, genProvider bool, outPath, smURL, smToken string) error {
 	if genProvider {
 		providerBlock := hclwrite.NewBlock("provider", []string{"grafana"})
 		providerBlock.Body().SetAttributeValue("alias", cty.StringVal(stackName))
@@ -299,6 +376,12 @@ func genGrafanaResources(ctx context.Context, auth, url, stackName string, genPr
 		URL:  types.StringValue(url),
 		Auth: types.StringValue(auth),
 	}
+	if smToken != "" {
+		config.SMAccessToken = types.StringValue(smToken)
+	}
+	if smURL != "" {
+		config.SMURL = types.StringValue(smURL)
+	}
 	if err := config.SetDefaults(); err != nil {
 		return err
 	}
@@ -312,6 +395,7 @@ func genGrafanaResources(ctx context.Context, auth, url, stackName string, genPr
 	if strings.HasPrefix(stackName, "stack-") { // TODO: is cloud. Find a better way to detect this
 		resources = append(resources, slo.Resources...)
 		resources = append(resources, machinelearning.Resources...)
+		resources = append(resources, syntheticmonitoring.Resources...)
 	}
 	if err := generateImportBlocks(ctx, client, &cache, resources, outPath, stackName); err != nil {
 		return err
