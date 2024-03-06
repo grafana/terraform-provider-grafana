@@ -75,7 +75,7 @@ func TestAccMuteTiming_AllTime(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">9.0.0")
 
 	var mt models.MuteTimeInterval
-	name := "My Mute Timing"
+	name := "My-Mute-Timing"
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProviderFactories: testutils.ProviderFactories,

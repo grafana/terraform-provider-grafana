@@ -204,7 +204,7 @@ func suppressMonthDiff(k, oldValue, newValue string, d *schema.ResourceData) boo
 	return oldNormalized == newNormalized
 }
 
-func packIntervals(nts []*models.TimeInterval) []interface{} {
+func packIntervals(nts []*models.TimeIntervalItem) []interface{} {
 	if nts == nil {
 		return nil
 	}
@@ -240,14 +240,14 @@ func packIntervals(nts []*models.TimeInterval) []interface{} {
 	return intervals
 }
 
-func unpackIntervals(raw []interface{}) []*models.TimeInterval {
+func unpackIntervals(raw []interface{}) []*models.TimeIntervalItem {
 	if raw == nil {
 		return nil
 	}
 
-	result := make([]*models.TimeInterval, len(raw))
+	result := make([]*models.TimeIntervalItem, len(raw))
 	for i, r := range raw {
-		interval := models.TimeInterval{}
+		interval := models.TimeIntervalItem{}
 
 		block := map[string]interface{}{}
 		if r != nil {
@@ -256,7 +256,7 @@ func unpackIntervals(raw []interface{}) []*models.TimeInterval {
 
 		if vals, ok := block["times"]; ok && vals != nil {
 			vals := vals.([]interface{})
-			interval.Times = make([]*models.TimeIntervalRange, len(vals))
+			interval.Times = make([]*models.TimeIntervalTimeRange, len(vals))
 			for i := range vals {
 				interval.Times[i] = unpackTimeRange(vals[i])
 			}
@@ -284,16 +284,16 @@ func unpackIntervals(raw []interface{}) []*models.TimeInterval {
 	return result
 }
 
-func packTimeRange(time *models.TimeIntervalRange) interface{} {
+func packTimeRange(time *models.TimeIntervalTimeRange) interface{} {
 	return map[string]string{
 		"start": time.StartTime,
 		"end":   time.EndTime,
 	}
 }
 
-func unpackTimeRange(raw interface{}) *models.TimeIntervalRange {
+func unpackTimeRange(raw interface{}) *models.TimeIntervalTimeRange {
 	vals := raw.(map[string]interface{})
-	return &models.TimeIntervalRange{
+	return &models.TimeIntervalTimeRange{
 		StartTime: vals["start"].(string),
 		EndTime:   vals["end"].(string),
 	}

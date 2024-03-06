@@ -72,7 +72,7 @@ func CreateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		Email:    d.Get("email").(string),
 		Name:     d.Get("name").(string),
 		Login:    d.Get("login").(string),
-		Password: d.Get("password").(string),
+		Password: models.Password(d.Get("password").(string)),
 	}
 	resp, err := client.AdminUsers.AdminCreateUser(&user)
 	if err != nil {
@@ -123,7 +123,7 @@ func UpdateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		return diag.FromErr(err)
 	}
 	if d.HasChange("password") {
-		f := models.AdminUpdateUserPasswordForm{Password: d.Get("password").(string)}
+		f := models.AdminUpdateUserPasswordForm{Password: models.Password(d.Get("password").(string))}
 		if _, err = client.AdminUsers.AdminUpdateUserPassword(id, &f); err != nil {
 			return diag.FromErr(err)
 		}
