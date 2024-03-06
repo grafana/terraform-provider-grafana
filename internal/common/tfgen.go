@@ -17,7 +17,7 @@ import (
 )
 
 func StripDefaults(fpath string, extraFieldsToRemove map[string]string) error {
-	file, err := readHCLFile(fpath)
+	file, err := ReadHCLFile(fpath)
 	if err != nil {
 		return err
 	}
@@ -36,7 +36,7 @@ func StripDefaults(fpath string, extraFieldsToRemove map[string]string) error {
 }
 
 func WrapJSONFieldsInFunction(fpath string) error {
-	file, err := readHCLFile(fpath)
+	file, err := ReadHCLFile(fpath)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func AbstractDashboards(fpath string) error {
 	fDir := filepath.Dir(fpath)
 	outPath := filepath.Join(fDir, "files")
 
-	file, err := readHCLFile(fpath)
+	file, err := ReadHCLFile(fpath)
 	if err != nil {
 		return err
 	}
@@ -163,7 +163,7 @@ func attributeToJson(attr *hclwrite.Attribute) ([]byte, error) {
 
 }
 
-func readHCLFile(fpath string) (*hclwrite.File, error) {
+func ReadHCLFile(fpath string) (*hclwrite.File, error) {
 	src, err := os.ReadFile(fpath)
 	if err != nil {
 		return nil, err

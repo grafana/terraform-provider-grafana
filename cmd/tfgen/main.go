@@ -110,6 +110,31 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+
+	if crossplanePath := os.Getenv("TFGEN_CROSSPLANE_OUTPUT"); crossplanePath != "" {
+		// Apply
+		tfPlanCmd := exec.Command("terraform", "plan")
+		tfPlanCmd.Dir = outPath
+		output, err := tfPlanCmd.CombinedOutput()
+		if err != nil {
+			log.Fatalf("failed to run terraform plan: %s: %s", err, output)
+		}
+		if !strings.Contains(string(output), "0 to add, 0 to change, 0 to destroy") {
+			log.Fatalf("terraform plan output has changes")
+		}
+
+		tfApplyCmd := exec.Command("terraform", "apply", "-auto-approve")
+		tfApplyCmd.Dir = outPath
+		tfApplyCmd.Stdout = os.Stdout
+		tfApplyCmd.Stderr = os.Stderr
+		if err := tfApplyCmd.Run(); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := tfToCrossplane(outPath, crossplanePath); err != nil {
+			log.Fatal(err)
+		}
+	}
 }
 
 func genCloudResources(ctx context.Context, apiKey, orgSlug string, addManagementKey bool, outPath string) ([]stack, error) {
