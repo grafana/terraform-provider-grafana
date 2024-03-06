@@ -135,9 +135,8 @@ Required access policy scopes:
 	return common.NewLegacySDKResource(
 		"grafana_cloud_access_policy",
 		resourceAccessPolicyID,
-		// listAccessPolicies,
 		schema,
-	)
+	).WithLister(listAccessPolicies)
 }
 
 func listAccessPolicies(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {

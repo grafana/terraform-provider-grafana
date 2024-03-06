@@ -7,6 +7,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -744,7 +745,29 @@ multiple checks for a single endpoint to check different capabilities.
 		},
 	}
 
-	return common.NewLegacySDKResource("grafana_synthetic_monitoring_check", resourceCheckID, schema)
+	return common.NewLegacySDKResource(
+		"grafana_synthetic_monitoring_check",
+		resourceCheckID,
+		schema,
+	).WithLister(listChecks)
+}
+
+func listChecks(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
+	smClient := client.SMAPI
+	if smClient == nil {
+		return nil, fmt.Errorf("client not configured for SM API")
+	}
+
+	checkList, err := smClient.ListChecks(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for _, check := range checkList {
+		ids = append(ids, strconv.FormatInt(check.Id, 10))
+	}
+	return ids, nil
 }
 
 func resourceCheckCreate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
