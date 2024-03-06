@@ -11,8 +11,16 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var ResourceAPIKeyID = common.NewResourceIDWithLegacySeparator("grafana_cloud_api_key", "-", "orgSlug", "apiKeyName") //nolint:staticcheck
-var cloudAPIKeyRoles = []string{"Viewer", "Editor", "Admin", "MetricsPublisher", "PluginPublisher"}
+var (
+	cloudAPIKeyRoles = []string{"Viewer", "Editor", "Admin", "MetricsPublisher", "PluginPublisher"}
+	//nolint:staticcheck
+	resourceAPIKeyID = common.NewResourceIDWithLegacySeparator(
+		"grafana_cloud_api_key",
+		"-",
+		common.StringIDField("orgSlug"),
+		common.StringIDField("apiKeyName"),
+	)
+)
 
 func resourceAPIKey() *schema.Resource {
 	return &schema.Resource{
@@ -81,19 +89,19 @@ func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, c *gcom.A
 	}
 
 	d.Set("key", *resp.Token)
-	d.SetId(ResourceAPIKeyID.Make(org, resp.Name))
+	d.SetId(resourceAPIKeyID.Make(org, resp.Name))
 
 	return resourceAPIKeyRead(ctx, d, c)
 }
 
 func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, c *gcom.APIClient) diag.Diagnostics {
-	split, err := ResourceAPIKeyID.Split(d.Id())
+	split, err := resourceAPIKeyID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	org, name := split[0], split[1]
 
-	resp, _, err := c.OrgsAPI.GetApiKey(ctx, name, org).Execute()
+	resp, _, err := c.OrgsAPI.GetApiKey(ctx, name.(string), org.(string)).Execute()
 	if err != nil {
 		return apiError(err)
 	}
@@ -101,19 +109,19 @@ func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, c *gcom.API
 	d.Set("name", resp.Name)
 	d.Set("role", resp.Role)
 	d.Set("cloud_org_slug", org)
-	d.SetId(ResourceAPIKeyID.Make(org, resp.Name))
+	d.SetId(resourceAPIKeyID.Make(org, resp.Name))
 
 	return nil
 }
 
 func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, c *gcom.APIClient) diag.Diagnostics {
-	split, err := ResourceAPIKeyID.Split(d.Id())
+	split, err := resourceAPIKeyID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	org, name := split[0], split[1]
 
-	_, err = c.OrgsAPI.DelApiKey(ctx, name, org).XRequestId(ClientRequestID()).Execute()
+	_, err = c.OrgsAPI.DelApiKey(ctx, name.(string), org.(string)).XRequestId(ClientRequestID()).Execute()
 	d.SetId("")
 	return apiError(err)
 }
