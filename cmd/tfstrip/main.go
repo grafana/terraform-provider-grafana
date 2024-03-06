@@ -38,5 +38,9 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		err = common.AbstractDashboards(fpath)
+		if err != nil {
+			panic(err)
+		}
 	}
 }

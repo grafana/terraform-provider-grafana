@@ -1,12 +1,18 @@
 package common
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func StripDefaults(fpath string, extraFieldsToRemove map[string]string) error {
@@ -73,4 +79,90 @@ func stripDefaultsFromBlock(block *hclwrite.Block, extraFieldsToRemove map[strin
 		}
 	}
 	return hasChanges
+}
+
+func AbstractDashboards(fpath string) error {
+	path := filepath.Dir(fpath)
+	outPath := filepath.Join(path, "files")
+
+	src, err := os.ReadFile(fpath)
+	if err != nil {
+		panic(err)
+	}
+
+	file, diags := hclwrite.ParseConfig(src, fpath, hcl.Pos{Line: 1, Column: 1})
+	if diags.HasErrors() {
+		err := errors.New("an error occurred")
+		if err != nil {
+			return err
+		}
+	}
+
+	hasChanges := false
+	dashboardJsons := map[string][]byte{}
+	for _, block := range file.Body().Blocks() {
+		labels := block.Labels()
+		if len(labels) == 0 || labels[0] != "grafana_dashboard" {
+			continue
+		}
+
+		dashboard, err := dashboardToJson(block)
+		if err != nil {
+			return err
+		}
+
+		if dashboard == nil {
+			continue
+		}
+
+		writeTo := filepath.Join(outPath, fmt.Sprintf("%s.json", block.Labels()[1]))
+
+		dashboardJsons[writeTo] = dashboard
+
+		block.Body().SetAttributeRaw(
+			"config_json",
+			hclwrite.TokensForFunctionCall("file",
+				hclwrite.TokensForValue(cty.StringVal(writeTo))))
+
+		hasChanges = true
+	}
+	if hasChanges {
+		log.Printf("Updating file: %s\n", fpath)
+		os.Mkdir(outPath, 0755)
+		for writeTo, dashboard := range dashboardJsons {
+			err := os.WriteFile(writeTo, dashboard, 0644)
+			if err != nil {
+				panic(err)
+			}
+		}
+		return os.WriteFile(fpath, file.Bytes(), 0644)
+	}
+	return nil
+}
+
+func dashboardToJson(block *hclwrite.Block) ([]byte, error) {
+	s := string(block.Body().GetAttribute("config_json").Expr().BuildTokens(nil).Bytes())
+	s = strings.TrimPrefix(s, " ")
+	if !strings.HasPrefix(s, "\"") {
+		// if expr is not a string, assume it's already converted, return (idempotency
+		return nil, nil
+	}
+	s, err := strconv.Unquote(s)
+	if err != nil {
+		return nil, err
+	}
+
+	var jsonMap map[string]interface{}
+	err = json.Unmarshal([]byte(s), &jsonMap)
+	if err != nil {
+		return nil, err
+	}
+
+	jsonMarshalled, err := json.MarshalIndent(jsonMap, "", "\t")
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonMarshalled, nil
+
 }
