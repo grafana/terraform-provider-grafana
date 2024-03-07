@@ -365,7 +365,7 @@ func TestAccAlertRule_zeroSeconds(t *testing.T) {
 }
 
 func TestAccAlertRule_NotificationSettings(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=10.4.0")
+	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Run on v10.4.0 once it's released
 
 	var group models.AlertRuleGroup
 	var name = acctest.RandString(10)
