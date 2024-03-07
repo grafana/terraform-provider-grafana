@@ -546,5 +546,4 @@ resource "grafana_rule_group" "my_rule_group" {
 		}
 	}
 }`, name, gr)
-
 }
