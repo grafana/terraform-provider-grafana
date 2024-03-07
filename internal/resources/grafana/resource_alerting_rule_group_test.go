@@ -515,7 +515,6 @@ resource "grafana_rule_group" "my_rule_group" {
 	name             = "%[1]s"
 	folder_uid       = grafana_folder.rule_folder.uid
 	interval_seconds = 60
-	org_id           = 1
 
 	rule {
 		name      = "%[1]s-alertrule"
