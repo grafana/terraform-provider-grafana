@@ -76,10 +76,11 @@ func stackServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData,
 	}
 	defer cleanup()
 
-	serviceAccountID, err := strconv.ParseInt(d.Get("service_account_id").(string), 10, 64)
+	split, err := resourceStackServiceAccountID.Split(d.Get("service_account_id").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	serviceAccountID := split[1].(int64)
 
 	name := d.Get("name").(string)
 	ttl := d.Get("seconds_to_live").(int)
@@ -115,10 +116,11 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, c
 }
 
 func stackServiceAccountTokenReadWithClient(c *goapi.GrafanaHTTPAPI, d *schema.ResourceData) diag.Diagnostics {
-	serviceAccountID, err := strconv.ParseInt(d.Get("service_account_id").(string), 10, 64)
+	split, err := resourceStackServiceAccountID.Split(d.Get("service_account_id").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	serviceAccountID := split[1].(int64)
 
 	response, err := c.ServiceAccounts.ListTokens(serviceAccountID)
 	if err != nil {
@@ -161,10 +163,11 @@ func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData,
 	}
 	defer cleanup()
 
-	serviceAccountID, err := strconv.ParseInt(d.Get("service_account_id").(string), 10, 64)
+	split, err := resourceStackServiceAccountID.Split(d.Get("service_account_id").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	serviceAccountID := split[1].(int64)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 32)
 	if err != nil {
