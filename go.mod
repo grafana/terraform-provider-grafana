@@ -7,7 +7,7 @@ toolchain go1.21.1
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/go-openapi/runtime v0.27.2
-	github.com/go-openapi/strfmt v0.22.2
+	github.com/go-openapi/strfmt v0.23.0
 	github.com/grafana/amixr-api-go-client v0.0.11
 	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240305213348-af081a82f063
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20240306142804-861284d1ba83
@@ -42,7 +42,7 @@ require (
 	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/analysis v0.22.2 // indirect
-	github.com/go-openapi/errors v0.21.1 // indirect
+	github.com/go-openapi/errors v0.22.0 // indirect
 	github.com/go-openapi/jsonpointer v0.20.2 // indirect
 	github.com/go-openapi/jsonreference v0.20.4 // indirect
 	github.com/go-openapi/loads v0.21.5 // indirect
