@@ -173,11 +173,11 @@ func ResourceProbeDelete(ctx context.Context, d *schema.ResourceData, meta inter
 	for _, check := range checks {
 		for i, probeID := range check.Probes {
 			if probeID == id {
-				check.Probes = append(check.Probes[:i], check.Probes[i+1:]...)
-				if len(check.Probes) == 0 {
+				if len(check.Probes) == 1 {
 					return diag.Errorf(`could not delete probe %d. It is the only probe for check %q.
 You must also taint the check, or assign a new probe to it before deleting this probe.`, id, check.Job)
 				}
+				check.Probes = append(check.Probes[:i], check.Probes[i+1:]...)
 				if _, err := c.UpdateCheck(ctx, check); err != nil {
 					return diag.Errorf(`error while deleting probe %d, failed to remove it from check %q: %s.`, id, check.Job, err)
 				}
