@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
@@ -15,6 +14,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+)
+
+var (
+	resourceStackServiceAccountID = common.NewResourceID(
+		"grafana_cloud_stack_service_account",
+		common.StringIDField("stackSlug"),
+		common.IntIDField("serviceAccountID"),
+	)
 )
 
 func resourceStackServiceAccount() *schema.Resource {
@@ -70,7 +77,8 @@ Required access policy scopes:
 }
 
 func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
+	stackSlug := d.Get("stack_slug").(string)
+	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, stackSlug, "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -87,27 +95,28 @@ func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, clou
 	}
 	sa := resp.Payload
 
-	d.SetId(strconv.FormatInt(sa.ID, 10))
-	return readStackServiceAccountWithClient(client, d)
+	d.SetId(resourceStackServiceAccountID.Make(stackSlug, sa.ID))
+	return readStackServiceAccountWithClient(client, d, sa.ID)
 }
 
 func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
+	split, err := resourceStackServiceAccountID.Split(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	stackSlug, serviceAccountID := split[0].(string), split[1].(int64)
+
+	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, stackSlug, "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	defer cleanup()
 
-	return readStackServiceAccountWithClient(client, d)
+	return readStackServiceAccountWithClient(client, d, serviceAccountID)
 }
 
-func readStackServiceAccountWithClient(client *goapi.GrafanaHTTPAPI, d *schema.ResourceData) diag.Diagnostics {
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	resp, err := client.ServiceAccounts.RetrieveServiceAccount(id)
+func readStackServiceAccountWithClient(client *goapi.GrafanaHTTPAPI, d *schema.ResourceData, serviceAccountID int64) diag.Diagnostics {
+	resp, err := client.ServiceAccounts.RetrieveServiceAccount(serviceAccountID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -130,16 +139,17 @@ func readStackServiceAccountWithClient(client *goapi.GrafanaHTTPAPI, d *schema.R
 }
 
 func updateStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
+	split, err := resourceStackServiceAccountID.Split(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	stackSlug, serviceAccountID := split[0].(string), split[1].(int64)
+
+	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, stackSlug, "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	defer cleanup()
-
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	updateRequest := service_accounts.NewUpdateServiceAccountParams().
 		WithBody(&models.UpdateServiceAccountForm{
@@ -147,28 +157,29 @@ func updateStackServiceAccount(ctx context.Context, d *schema.ResourceData, clou
 			Role:       d.Get("role").(string),
 			IsDisabled: d.Get("is_disabled").(bool),
 		}).
-		WithServiceAccountID(id)
+		WithServiceAccountID(serviceAccountID)
 
 	if _, err := client.ServiceAccounts.UpdateServiceAccount(updateRequest); err != nil {
 		return diag.FromErr(err)
 	}
 
-	return readStackServiceAccountWithClient(client, d)
+	return readStackServiceAccountWithClient(client, d, serviceAccountID)
 }
 
 func deleteStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
+	split, err := resourceStackServiceAccountID.Split(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	stackSlug, serviceAccountID := split[0].(string), split[1].(int64)
+
+	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, stackSlug, "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	defer cleanup()
 
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	_, err = client.ServiceAccounts.DeleteServiceAccount(id)
+	_, err = client.ServiceAccounts.DeleteServiceAccount(serviceAccountID)
 	return diag.FromErr(err)
 }
 

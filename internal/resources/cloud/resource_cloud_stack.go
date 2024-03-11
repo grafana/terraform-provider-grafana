@@ -26,6 +26,7 @@ const defaultReadinessTimeout = time.Minute * 5
 var (
 	stackLabelRegex = regexp.MustCompile(`^[a-zA-Z0-9/\-.]+$`)
 	stackSlugRegex  = regexp.MustCompile(`^[a-z][a-z0-9]+$`)
+	resourceStackID = common.NewResourceID("grafana_cloud_stack", common.StringIDField("stackSlugOrID"))
 )
 
 func resourceStack() *schema.Resource {
@@ -248,6 +249,11 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 }
 
 func updateStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	id, err := resourceStackID.Single(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	// Default to the slug if the URL is not set
 	url := d.Get("url").(string)
 	if url == "" {
@@ -261,8 +267,8 @@ func updateStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		Url:         &url,
 		Labels:      common.Ref(common.UnpackMap[string](d.Get("labels"))),
 	}
-	req := client.InstancesAPI.PostInstance(ctx, d.Id()).PostInstanceRequest(stack).XRequestId(ClientRequestID())
-	_, _, err := req.Execute()
+	req := client.InstancesAPI.PostInstance(ctx, id.(string)).PostInstanceRequest(stack).XRequestId(ClientRequestID())
+	_, _, err = req.Execute()
 	if err != nil {
 		return apiError(err)
 	}
@@ -275,13 +281,23 @@ func updateStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 }
 
 func deleteStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
-	req := client.InstancesAPI.DeleteInstance(ctx, d.Id()).XRequestId(ClientRequestID())
-	_, _, err := req.Execute()
+	id, err := resourceStackID.Single(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	req := client.InstancesAPI.DeleteInstance(ctx, id.(string)).XRequestId(ClientRequestID())
+	_, _, err = req.Execute()
 	return apiError(err)
 }
 
 func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
-	req := client.InstancesAPI.GetInstance(ctx, d.Id())
+	id, err := resourceStackID.Single(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	req := client.InstancesAPI.GetInstance(ctx, id.(string))
 	stack, _, err := req.Execute()
 	if err, shouldReturn := common.CheckReadError("stack", d, err); shouldReturn {
 		return err
@@ -293,13 +309,13 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 		return nil
 	}
 
-	connectionsReq := client.InstancesAPI.GetConnections(ctx, d.Id())
+	connectionsReq := client.InstancesAPI.GetConnections(ctx, id.(string))
 	connections, _, err := connectionsReq.Execute()
 	if err != nil {
 		return apiError(err)
 	}
 
-	if err := FlattenStack(d, stack, connections); err != nil {
+	if err := flattenStack(d, stack, connections); err != nil {
 		return diag.FromErr(err)
 	}
 	// Always set the wait attribute to true after creation
@@ -312,7 +328,7 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 	return nil
 }
 
-func FlattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, connections *gcom.FormattedApiInstanceConnections) error {
+func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, connections *gcom.FormattedApiInstanceConnections) error {
 	id := strconv.FormatInt(int64(stack.Id), 10)
 	d.SetId(id)
 	d.Set("name", stack.Name)
