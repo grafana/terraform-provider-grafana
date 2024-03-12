@@ -163,14 +163,31 @@ func ResourceProbeUpdate(ctx context.Context, d *schema.ResourceData, meta inter
 
 func ResourceProbeDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).SMAPI
-	var diags diag.Diagnostics
 	id, _ := strconv.ParseInt(d.Id(), 10, 64)
-	err := c.DeleteProbe(ctx, id)
+
+	// Remove the probe from any checks that use it.
+	checks, err := c.ListChecks(ctx)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	for _, check := range checks {
+		for i, probeID := range check.Probes {
+			if probeID == id {
+				if len(check.Probes) == 1 {
+					return diag.Errorf(`could not delete probe %d. It is the only probe for check %q.
+You must also taint the check, or assign a new probe to it before deleting this probe.`, id, check.Job)
+				}
+				check.Probes = append(check.Probes[:i], check.Probes[i+1:]...)
+				if _, err := c.UpdateCheck(ctx, check); err != nil {
+					return diag.Errorf(`error while deleting probe %d, failed to remove it from check %q: %s.`, id, check.Job, err)
+				}
+				break
+			}
+		}
+	}
+
 	d.SetId("")
-	return diags
+	return diag.FromErr(c.DeleteProbe(ctx, id))
 }
 
 // makeProbe populates an instance of sm.Probe. We need this for create and
