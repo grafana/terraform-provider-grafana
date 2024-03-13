@@ -3,11 +3,9 @@ package grafana
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
-	"github.com/grafana/grafana-openapi-client-go/client/folders"
-	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -20,53 +18,35 @@ func DatasourceFolder() *schema.Resource {
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder/)
 `,
 		ReadContext: dataSourceFolderRead,
-		Schema: map[string]*schema.Schema{
+		Schema: common.CloneResourceSchemaForDatasource(ResourceFolder(), map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"title": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The name of the Grafana folder.",
+				Description: "The title of the folder.",
 			},
-			"id": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "The numerical ID of the Grafana folder.",
-			},
-			"uid": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The uid of the Grafana folder.",
-			},
-			"url": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "The full URL of the folder.",
-			},
-		},
+			"prevent_destroy_if_not_empty": nil,
+		}),
 	}
 }
 
-func findFolderWithTitle(client *goapi.GrafanaHTTPAPI, title string) (*models.Folder, error) {
+func findFolderWithTitle(client *goapi.GrafanaHTTPAPI, title string) (string, error) {
 	var page int64 = 1
 
 	for {
-		params := folders.NewGetFoldersParams().WithPage(&page)
-		resp, err := client.Folders.GetFolders(params)
+		params := search.NewSearchParams().WithType(common.Ref("dash-folder")).WithPage(&page)
+		resp, err := client.Search.Search(params)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 
 		if len(resp.Payload) == 0 {
-			return nil, fmt.Errorf("folder with title %s not found", title)
+			return "", fmt.Errorf("folder with title %s not found", title)
 		}
 
 		for _, folder := range resp.Payload {
 			if folder.Title == title {
-				resp, err := client.Folders.GetFolderByUID(folder.UID)
-				if err != nil {
-					return nil, err
-				}
-				return resp.Payload, nil
+				return folder.UID, nil
 			}
 		}
 
@@ -75,19 +55,11 @@ func findFolderWithTitle(client *goapi.GrafanaHTTPAPI, title string) (*models.Fo
 }
 
 func dataSourceFolderRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	metaClient := meta.(*common.Client)
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
-
-	folder, err := findFolderWithTitle(client, d.Get("title").(string))
+	uid, err := findFolderWithTitle(client, d.Get("title").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	d.SetId(strconv.FormatInt(folder.ID, 10))
-	d.Set("org_id", strconv.FormatInt(orgID, 10))
-	d.Set("uid", folder.UID)
-	d.Set("title", folder.Title)
-	d.Set("url", metaClient.GrafanaSubpath(folder.URL))
-
-	return nil
+	d.SetId(MakeOrgResourceID(orgID, uid))
+	return ReadFolder(ctx, d, meta)
 }

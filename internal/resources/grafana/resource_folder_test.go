@@ -98,7 +98,7 @@ func TestAccFolder_basic(t *testing.T) {
 }
 
 func TestAccFolder_nested(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Switch to OSS once nested folders are enabled by default
+	testutils.CheckOSSTestsEnabled(t, ">=10.3.0")
 
 	var parentFolder models.Folder
 	var childFolder1 models.Folder
