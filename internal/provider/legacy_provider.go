@@ -77,17 +77,6 @@ func Provider(version string) *schema.Provider {
 			"grafana_synthetic_monitoring_probe": syntheticmonitoring.ResourceProbe(),
 		})
 
-		// Resources that require the OnCall client to exist.
-		onCallClientResources = addResourcesMetadataValidation(onCallClientPresent, map[string]*schema.Resource{
-			"grafana_oncall_integration":      oncall.ResourceIntegration(),
-			"grafana_oncall_route":            oncall.ResourceRoute(),
-			"grafana_oncall_escalation_chain": oncall.ResourceEscalationChain(),
-			"grafana_oncall_escalation":       oncall.ResourceEscalation(),
-			"grafana_oncall_on_call_shift":    oncall.ResourceOnCallShift(),
-			"grafana_oncall_schedule":         oncall.ResourceSchedule(),
-			"grafana_oncall_outgoing_webhook": oncall.ResourceOutgoingWebhook(),
-		})
-
 		// Datasources that require the Grafana client to exist.
 		grafanaClientDatasources = addCreateReadResourcesMetadataValidation(
 			readGrafanaClientValidation,
@@ -112,18 +101,6 @@ func Provider(version string) *schema.Provider {
 		smClientDatasources = addResourcesMetadataValidation(smClientPresent, map[string]*schema.Resource{
 			"grafana_synthetic_monitoring_probe":  syntheticmonitoring.DataSourceProbe(),
 			"grafana_synthetic_monitoring_probes": syntheticmonitoring.DataSourceProbes(),
-		})
-
-		// Datasources that require the OnCall client to exist.
-		onCallClientDatasources = addResourcesMetadataValidation(onCallClientPresent, map[string]*schema.Resource{
-			"grafana_oncall_user":             oncall.DataSourceUser(),
-			"grafana_oncall_escalation_chain": oncall.DataSourceEscalationChain(),
-			"grafana_oncall_schedule":         oncall.DataSourceSchedule(),
-			"grafana_oncall_slack_channel":    oncall.DataSourceSlackChannel(),
-			"grafana_oncall_action":           oncall.DataSourceAction(), // deprecated
-			"grafana_oncall_outgoing_webhook": oncall.DataSourceOutgoingWebhook(),
-			"grafana_oncall_user_group":       oncall.DataSourceUserGroup(),
-			"grafana_oncall_team":             oncall.DataSourceTeam(),
 		})
 	)
 
@@ -249,7 +226,7 @@ func Provider(version string) *schema.Provider {
 			machinelearning.ResourcesMap,
 			slo.ResourcesMap,
 			smClientResources,
-			onCallClientResources,
+			oncall.ResourcesMap,
 			cloud.ResourcesMap,
 		),
 
@@ -258,7 +235,7 @@ func Provider(version string) *schema.Provider {
 			machinelearning.DatasourcesMap,
 			slo.DatasourcesMap,
 			smClientDatasources,
-			onCallClientDatasources,
+			oncall.DatasourcesMap,
 			cloud.DatasourcesMap,
 		),
 	}

@@ -42,13 +42,6 @@ func smClientPresent(resourceName string, d *schema.ResourceData, m interface{})
 	return nil
 }
 
-func onCallClientPresent(resourceName string, d *schema.ResourceData, m interface{}) error {
-	if m.(*common.Client).OnCallClient == nil {
-		return fmt.Errorf("the Oncall client is required for `%s`. Set the oncall_access_token provider attribute", resourceName)
-	}
-	return nil
-}
-
 func addResourcesMetadataValidation(validateFunc metadataValidation, resources map[string]*schema.Resource) map[string]*schema.Resource {
 	return addCreateReadResourcesMetadataValidation(validateFunc, validateFunc, resources)
 }
