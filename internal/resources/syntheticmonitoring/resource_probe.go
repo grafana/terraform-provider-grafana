@@ -13,10 +13,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	sm "github.com/grafana/synthetic-monitoring-agent/pkg/pb/synthetic_monitoring"
+	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
-func ResourceProbe() *schema.Resource {
+func resourceProbe() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
@@ -28,10 +29,10 @@ Grafana Synthetic Monitoring Agent.
 * [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/private-probes/)
 `,
 
-		CreateContext: ResourceProbeCreate,
-		ReadContext:   ResourceProbeRead,
-		UpdateContext: ResourceProbeUpdate,
-		DeleteContext: ResourceProbeDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceProbeCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceProbeRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceProbeUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceProbeDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: ImportProbeStateWithToken,
 		},
@@ -103,8 +104,7 @@ Grafana Synthetic Monitoring Agent.
 	}
 }
 
-func ResourceProbeCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).SMAPI
+func resourceProbeCreate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	p := makeProbe(d)
 	res, token, err := c.AddProbe(ctx, *p)
 	if err != nil {
@@ -113,11 +113,10 @@ func ResourceProbeCreate(ctx context.Context, d *schema.ResourceData, meta inter
 	d.SetId(strconv.FormatInt(res.Id, 10))
 	d.Set("tenant_id", res.TenantId)
 	d.Set("auth_token", base64.StdEncoding.EncodeToString(token))
-	return ResourceProbeRead(ctx, d, meta)
+	return resourceProbeRead(ctx, d, c)
 }
 
-func ResourceProbeRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).SMAPI
+func resourceProbeRead(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -151,18 +150,16 @@ func ResourceProbeRead(ctx context.Context, d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func ResourceProbeUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).SMAPI
+func resourceProbeUpdate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	p := makeProbe(d)
 	_, err := c.UpdateProbe(ctx, *p)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	return ResourceProbeRead(ctx, d, meta)
+	return resourceProbeRead(ctx, d, c)
 }
 
-func ResourceProbeDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).SMAPI
+func resourceProbeDelete(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	id, _ := strconv.ParseInt(d.Id(), 10, 64)
 
 	// Remove the probe from any checks that use it.

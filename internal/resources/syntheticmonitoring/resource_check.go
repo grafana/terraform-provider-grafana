@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	sm "github.com/grafana/synthetic-monitoring-agent/pkg/pb/synthetic_monitoring"
+	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
@@ -624,7 +625,7 @@ var (
 	}
 )
 
-func ResourceCheck() *schema.Resource {
+func resourceCheck() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
@@ -637,14 +638,14 @@ multiple checks for a single endpoint to check different capabilities.
 * [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/checks/)
 `,
 
-		CreateContext: ResourceCheckCreate,
-		ReadContext:   ResourceCheckRead,
-		UpdateContext: ResourceCheckUpdate,
-		DeleteContext: ResourceCheckDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceCheckCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceCheckRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceCheckUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceCheckDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		CustomizeDiff: ResourceCheckCustomizeDiff,
+		CustomizeDiff: resourceCheckCustomizeDiff,
 
 		Schema: map[string]*schema.Schema{
 			"id": {
@@ -742,8 +743,7 @@ multiple checks for a single endpoint to check different capabilities.
 	}
 }
 
-func ResourceCheckCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).SMAPI
+func resourceCheckCreate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	chk, err := makeCheck(d)
 	if err != nil {
 		return diag.FromErr(err)
@@ -754,11 +754,10 @@ func ResourceCheckCreate(ctx context.Context, d *schema.ResourceData, meta inter
 	}
 	d.SetId(strconv.FormatInt(res.Id, 10))
 	d.Set("tenant_id", res.TenantId)
-	return ResourceCheckRead(ctx, d, meta)
+	return resourceCheckRead(ctx, d, c)
 }
 
-func ResourceCheckRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).SMAPI
+func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -1058,8 +1057,7 @@ func ResourceCheckRead(ctx context.Context, d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func ResourceCheckUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).SMAPI
+func resourceCheckUpdate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	chk, err := makeCheck(d)
 	if err != nil {
 		return diag.FromErr(err)
@@ -1068,11 +1066,10 @@ func ResourceCheckUpdate(ctx context.Context, d *schema.ResourceData, meta inter
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	return ResourceCheckRead(ctx, d, meta)
+	return resourceCheckRead(ctx, d, c)
 }
 
-func ResourceCheckDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).SMAPI
+func resourceCheckDelete(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	var diags diag.Diagnostics
 	id, _ := strconv.ParseInt(d.Id(), 10, 64)
 	err := c.DeleteCheck(ctx, id)
@@ -1477,7 +1474,7 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 // Ideally, we'd use `ExactlyOneOf` here but it doesn't support TypeSet.
 // Also, TypeSet doesn't support ValidateFunc.
 // To maintain backwards compatibility, we do a custom validation in the CustomizeDiff function.
-func ResourceCheckCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, meta interface{}) error {
+func resourceCheckCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, meta interface{}) error {
 	settingsList := diff.Get("settings").(*schema.Set).List()
 	if len(settingsList) == 0 {
 		return fmt.Errorf("at least one check setting must be defined")

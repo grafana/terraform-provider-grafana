@@ -71,12 +71,6 @@ func Provider(version string) *schema.Provider {
 				"grafana_user":                       grafana.ResourceUser(),
 			})
 
-		// Resources that require the Synthetic Monitoring client to exist.
-		smClientResources = addResourcesMetadataValidation(smClientPresent, map[string]*schema.Resource{
-			"grafana_synthetic_monitoring_check": syntheticmonitoring.ResourceCheck(),
-			"grafana_synthetic_monitoring_probe": syntheticmonitoring.ResourceProbe(),
-		})
-
 		// Datasources that require the Grafana client to exist.
 		grafanaClientDatasources = addCreateReadResourcesMetadataValidation(
 			readGrafanaClientValidation,
@@ -96,12 +90,6 @@ func Provider(version string) *schema.Provider {
 				"grafana_organization":             grafana.DatasourceOrganization(),
 				"grafana_organization_preferences": grafana.DatasourceOrganizationPreferences(),
 			})
-
-		// Datasources that require the Synthetic Monitoring client to exist.
-		smClientDatasources = addResourcesMetadataValidation(smClientPresent, map[string]*schema.Resource{
-			"grafana_synthetic_monitoring_probe":  syntheticmonitoring.DataSourceProbe(),
-			"grafana_synthetic_monitoring_probes": syntheticmonitoring.DataSourceProbes(),
-		})
 	)
 
 	p := &schema.Provider{
@@ -225,7 +213,7 @@ func Provider(version string) *schema.Provider {
 			grafanaClientResources,
 			machinelearning.ResourcesMap,
 			slo.ResourcesMap,
-			smClientResources,
+			syntheticmonitoring.ResourcesMap,
 			oncall.ResourcesMap,
 			cloud.ResourcesMap,
 		),
@@ -234,7 +222,7 @@ func Provider(version string) *schema.Provider {
 			grafanaClientDatasources,
 			machinelearning.DatasourcesMap,
 			slo.DatasourcesMap,
-			smClientDatasources,
+			syntheticmonitoring.DatasourcesMap,
 			oncall.DatasourcesMap,
 			cloud.DatasourcesMap,
 		),
