@@ -41,9 +41,15 @@ func TestAccMuteTiming_basic(t *testing.T) {
 			},
 			// Test import.
 			{
-				ResourceName:      "grafana_mute_timing.my_mute_timing",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "grafana_mute_timing.my_mute_timing",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"disable_provenance"},
+			},
+			// Test plan (should be empty)
+			{
+				Config:   testutils.TestAccExample(t, "resources/grafana_mute_timing/resource.tf"),
+				PlanOnly: true,
 			},
 			// Test update content.
 			{
