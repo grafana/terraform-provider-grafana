@@ -152,6 +152,72 @@ func TestAccResourceProbe_recreateProbeUsedInCheck(t *testing.T) {
 	})
 }
 
+func TestAccResourceProbe_Import(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	randomName := acctest.RandomWithPrefix("My Probe")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_probe/resource.tf", map[string]string{
+					"Mount Everest": randomName,
+				}),
+			},
+			// Test import with invalid token
+			{
+				ResourceName: "grafana_synthetic_monitoring_probe.main",
+				ImportState:  true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					id := s.RootModule().Resources["grafana_synthetic_monitoring_probe.main"].Primary.ID
+					return fmt.Sprintf("%s:xxx", id), nil
+				},
+				ExpectError: regexp.MustCompile(`invalid auth_token "xxx", expecting a base64-encoded string`),
+			},
+			// Test import with invalid id
+			{
+				ResourceName:  "grafana_synthetic_monitoring_probe.main",
+				ImportState:   true,
+				ImportStateId: ":aGVsbG8=",
+				ExpectError:   regexp.MustCompile(`invalid id ":aGVsbG8=", expected format 'probe_id:auth_token'`),
+			},
+			// Test import without token
+			{
+				ResourceName:            "grafana_synthetic_monitoring_probe.main",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"auth_token"},
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return s.RootModule().Resources["grafana_synthetic_monitoring_probe.main"].Primary.ID, nil
+				},
+				ImportStateCheck: func(is []*terraform.InstanceState) error {
+					if is[0].Attributes["auth_token"] != "" {
+						return fmt.Errorf("expected auth_token to be empty, got %s", is[0].Attributes["auth_token"])
+					}
+					return nil
+				},
+			},
+			// Test import with token
+			{
+				ResourceName:            "grafana_synthetic_monitoring_probe.main",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"auth_token"},
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return fmt.Sprintf("%s:aGVsbG8=", s.RootModule().Resources["grafana_synthetic_monitoring_probe.main"].Primary.ID), nil
+				},
+				ImportStateCheck: func(is []*terraform.InstanceState) error {
+					if is[0].Attributes["auth_token"] != "aGVsbG8=" {
+						return fmt.Errorf("expected auth_token to be 'aGVsbG8=', got %s", is[0].Attributes["auth_token"])
+					}
+					return nil
+				},
+			},
+		},
+	})
+}
+
 func TestAccResourceProbe_InvalidLabels(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 

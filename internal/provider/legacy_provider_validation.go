@@ -35,17 +35,6 @@ func createGrafanaClientValidation(resourceName string, d *schema.ResourceData, 
 	return nil
 }
 
-func smClientPresent(resourceName string, d *schema.ResourceData, m interface{}) error {
-	if m.(*common.Client).SMAPI == nil {
-		return fmt.Errorf("the Synthetic Monitoring client is required for `%s`. Set the sm_access_token provider attribute", resourceName)
-	}
-	return nil
-}
-
-func addResourcesMetadataValidation(validateFunc metadataValidation, resources map[string]*schema.Resource) map[string]*schema.Resource {
-	return addCreateReadResourcesMetadataValidation(validateFunc, validateFunc, resources)
-}
-
 func addCreateReadResourcesMetadataValidation(readValidateFunc, createValidateFunc metadataValidation, resources map[string]*schema.Resource) map[string]*schema.Resource {
 	for name, r := range resources {
 		name := name

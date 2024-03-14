@@ -8,14 +8,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	sm "github.com/grafana/synthetic-monitoring-agent/pkg/pb/synthetic_monitoring"
+	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
-func DataSourceProbe() *schema.Resource {
+func dataSourceProbe() *schema.Resource {
 	return &schema.Resource{
 		Description: "Data source for retrieving a single probe by name.",
-		ReadContext: DataSourceProbeRead,
-		Schema: common.CloneResourceSchemaForDatasource(ResourceProbe(), map[string]*schema.Schema{
+		ReadContext: withClient[schema.ReadContextFunc](dataSourceProbeRead),
+		Schema: common.CloneResourceSchemaForDatasource(resourceProbe(), map[string]*schema.Schema{
 			"name": {
 				Description: "Name of the probe.",
 				Type:        schema.TypeString,
@@ -26,8 +27,7 @@ func DataSourceProbe() *schema.Resource {
 	}
 }
 
-func DataSourceProbeRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).SMAPI
+func dataSourceProbeRead(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	var diags diag.Diagnostics
 	prbs, err := c.ListProbes(ctx)
 	if err != nil {
