@@ -1,6 +1,7 @@
 package grafana_test
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -65,6 +66,21 @@ func TestAccUser_basic(t *testing.T) {
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"password"},
+			},
+		},
+	})
+}
+
+func TestAccUser_NeedsBasicAuth(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+	orgScopedTest(t)
+
+	resource.Test(t, resource.TestCase{
+		ProviderFactories: testutils.ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccUserConfig_basic,
+				ExpectError: regexp.MustCompile("global scope resources cannot be managed with an API key. Use basic auth instead"),
 			},
 		},
 	})

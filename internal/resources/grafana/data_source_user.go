@@ -53,10 +53,12 @@ does not currently work with API Tokens. You must use basic auth.
 }
 
 func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta) // Users are global/org-agnostic
+	client, err := OAPIGlobalClient(meta) // Users are global/org-agnostic
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	var resp interface{ GetPayload() *models.UserProfileDTO }
-	var err error
 
 	emailOrLogin := d.Get("email").(string)
 	if emailOrLogin == "" {
