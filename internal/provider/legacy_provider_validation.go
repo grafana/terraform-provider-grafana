@@ -35,10 +35,6 @@ func createGrafanaClientValidation(resourceName string, d *schema.ResourceData, 
 	return nil
 }
 
-func addResourcesMetadataValidation(validateFunc metadataValidation, resources map[string]*schema.Resource) map[string]*schema.Resource {
-	return addCreateReadResourcesMetadataValidation(validateFunc, validateFunc, resources)
-}
-
 func addCreateReadResourcesMetadataValidation(readValidateFunc, createValidateFunc metadataValidation, resources map[string]*schema.Resource) map[string]*schema.Resource {
 	for name, r := range resources {
 		name := name
