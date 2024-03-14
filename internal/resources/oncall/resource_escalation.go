@@ -37,16 +37,16 @@ var durationOptions = []int{
 	3600,
 }
 
-func ResourceEscalation() *schema.Resource {
+func resourceEscalation() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/oncall/latest/configure/escalation-chains-and-routes/)
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/escalation_policies/)
 `,
-		CreateContext: resourceEscalationCreate,
-		ReadContext:   resourceEscalationRead,
-		UpdateContext: resourceEscalationUpdate,
-		DeleteContext: resourceEscalationDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceEscalationCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceEscalationRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceEscalationUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceEscalationDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -199,9 +199,7 @@ func ResourceEscalation() *schema.Resource {
 	}
 }
 
-func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	escalationChainIDData := d.Get("escalation_chain_id").(string)
 
 	createOptions := &onCallAPI.CreateEscalationOptions{
@@ -302,12 +300,10 @@ func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, m int
 
 	d.SetId(escalation.ID)
 
-	return resourceEscalationRead(ctx, d, m)
+	return resourceEscalationRead(ctx, d, client)
 }
 
-func resourceEscalationRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceEscalationRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	escalation, r, err := client.Escalations.GetEscalation(d.Id(), &onCallAPI.GetEscalationOptions{})
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
@@ -334,9 +330,7 @@ func resourceEscalationRead(ctx context.Context, d *schema.ResourceData, m inter
 	return nil
 }
 
-func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	updateOptions := &onCallAPI.UpdateEscalationOptions{
 		ManualOrder: true,
 	}
@@ -417,12 +411,10 @@ func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	d.SetId(escalation.ID)
-	return resourceEscalationRead(ctx, d, m)
+	return resourceEscalationRead(ctx, d, client)
 }
 
-func resourceEscalationDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceEscalationDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	_, err := client.Escalations.DeleteEscalation(d.Id(), &onCallAPI.DeleteEscalationOptions{})
 	if err != nil {
 		return diag.FromErr(err)

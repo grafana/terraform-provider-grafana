@@ -49,15 +49,15 @@ var onCallShiftWeekDayOptionsVerbal = strings.Join(onCallShiftWeekDayOptions, ",
 
 var sourceTerraform = 3
 
-func ResourceOnCallShift() *schema.Resource {
+func resourceOnCallShift() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/on_call_shifts/)
 `,
-		CreateContext: ResourceOnCallShiftCreate,
-		ReadContext:   ResourceOnCallShiftRead,
-		UpdateContext: ResourceOnCallShiftUpdate,
-		DeleteContext: ResourceOnCallShiftDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceOnCallShiftCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceOnCallShiftRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceOnCallShiftUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceOnCallShiftDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -183,9 +183,7 @@ func ResourceOnCallShift() *schema.Resource {
 	}
 }
 
-func ResourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	teamIDData := d.Get("team_id").(string)
 	typeData := d.Get("type").(string)
 	nameData := d.Get("name").(string)
@@ -303,12 +301,10 @@ func ResourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, m in
 
 	d.SetId(onCallShift.ID)
 
-	return ResourceOnCallShiftRead(ctx, d, m)
+	return resourceOnCallShiftRead(ctx, d, client)
 }
 
-func ResourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	typeData := d.Get("type").(string)
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
@@ -426,11 +422,10 @@ func ResourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, m in
 
 	d.SetId(onCallShift.ID)
 
-	return ResourceOnCallShiftRead(ctx, d, m)
+	return resourceOnCallShiftRead(ctx, d, client)
 }
 
-func ResourceOnCallShiftRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func resourceOnCallShiftRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.GetOnCallShiftOptions{}
 	onCallShift, r, err := client.OnCallShifts.GetOnCallShift(d.Id(), options)
 	if err != nil {
@@ -462,8 +457,7 @@ func ResourceOnCallShiftRead(ctx context.Context, d *schema.ResourceData, m inte
 	return nil
 }
 
-func ResourceOnCallShiftDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func resourceOnCallShiftDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.DeleteOnCallShiftOptions{}
 	_, err := client.OnCallShifts.DeleteOnCallShift(d.Id(), options)
 	if err != nil {

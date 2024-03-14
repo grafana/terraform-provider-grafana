@@ -17,15 +17,15 @@ var scheduleTypeOptions = []string{
 	"calendar",
 }
 
-func ResourceSchedule() *schema.Resource {
+func resourceSchedule() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/schedules/)
 `,
-		CreateContext: resourceScheduleCreate,
-		ReadContext:   resourceScheduleRead,
-		UpdateContext: resourceScheduleUpdate,
-		DeleteContext: resourceScheduleDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceScheduleCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceScheduleRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceScheduleUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceScheduleDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -101,9 +101,7 @@ func ResourceSchedule() *schema.Resource {
 	}
 }
 
-func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
 	typeData := d.Get("type").(string)
@@ -164,12 +162,10 @@ func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, m inter
 
 	d.SetId(schedule.ID)
 
-	return resourceScheduleRead(ctx, d, m)
+	return resourceScheduleRead(ctx, d, client)
 }
 
-func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
 	slackData := d.Get("slack").([]interface{})
@@ -229,11 +225,10 @@ func resourceScheduleUpdate(ctx context.Context, d *schema.ResourceData, m inter
 
 	d.SetId(schedule.ID)
 
-	return resourceScheduleRead(ctx, d, m)
+	return resourceScheduleRead(ctx, d, client)
 }
 
-func resourceScheduleRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func resourceScheduleRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.GetScheduleOptions{}
 	schedule, r, err := client.Schedules.GetSchedule(d.Id(), options)
 	if err != nil {
@@ -258,8 +253,7 @@ func resourceScheduleRead(ctx context.Context, d *schema.ResourceData, m interfa
 	return nil
 }
 
-func resourceScheduleDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func resourceScheduleDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.DeleteScheduleOptions{}
 	_, err := client.Schedules.DeleteSchedule(d.Id(), options)
 	if err != nil {
