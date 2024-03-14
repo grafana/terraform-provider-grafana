@@ -148,7 +148,7 @@ resource "grafana_role" "test" {
 	description = "test desc"
 	version = 1
 	uid = "%[1]s"
-	global = true
+	global = false
 	group = "testgroup"
 	display_name = "testdisplay"
 	hidden = true

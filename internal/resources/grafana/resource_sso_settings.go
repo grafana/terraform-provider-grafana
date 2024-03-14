@@ -257,10 +257,7 @@ var oauth2SettingsSchema = &schema.Resource{
 }
 
 func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, err := OAPIGlobalClient(meta)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	client, _ := OAPIGlobalClient(meta) // TODO: Check error. This resource works with a token. Is it org-scoped?
 
 	provider := d.Id()
 
@@ -324,10 +321,7 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 }
 
 func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, err := OAPIGlobalClient(meta)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	client, _ := OAPIGlobalClient(meta) // TODO: Check error. This resource works with a token. Is it org-scoped?
 
 	provider := d.Get(providerKey).(string)
 
@@ -368,10 +362,7 @@ func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 }
 
 func DeleteSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, err := OAPIGlobalClient(meta)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	client, _ := OAPIGlobalClient(meta) // TODO: Check error. This resource works with a token. Is it org-scoped?
 
 	provider := d.Get(providerKey).(string)
 

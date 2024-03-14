@@ -228,7 +228,6 @@ func roleConfig(name string, global bool) string {
 	  hidden = true
 	}
 	`, name, global)
-
 }
 
 const roleConfigWithPermissions = `

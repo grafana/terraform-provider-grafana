@@ -67,10 +67,11 @@ func OAPIClientFromNewOrgResource(meta interface{}, d *schema.ResourceData) (*go
 
 func OAPIGlobalClient(meta interface{}) (*goapi.GrafanaHTTPAPI, error) {
 	metaClient := meta.(*common.Client)
+	client := meta.(*common.Client).GrafanaOAPI.Clone().WithOrgID(0)
 	if metaClient.GrafanaAPIConfig.APIKey != "" {
-		return nil, fmt.Errorf("global scope resources cannot be managed with an API key. Use basic auth instead")
+		return client, fmt.Errorf("global scope resources cannot be managed with an API key. Use basic auth instead")
 	}
-	return meta.(*common.Client).GrafanaOAPI.Clone().WithOrgID(0), nil
+	return client, nil
 }
 
 func parseOrgID(d *schema.ResourceData) int64 {

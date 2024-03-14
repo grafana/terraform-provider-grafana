@@ -72,7 +72,7 @@ func TestAccUser_basic(t *testing.T) {
 }
 
 func TestAccUser_NeedsBasicAuth(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
 	orgScopedTest(t)
 
 	resource.Test(t, resource.TestCase{
