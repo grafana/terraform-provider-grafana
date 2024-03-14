@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DatasourceRole() *schema.Resource {
+func datasourceRole() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 **Note:** This resource is available only with Grafana Enterprise 8.+.
@@ -18,7 +18,7 @@ func DatasourceRole() *schema.Resource {
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/access_control/)
 `,
 		ReadContext: dataSourceRoleRead,
-		Schema: common.CloneResourceSchemaForDatasource(ResourceRole(), map[string]*schema.Schema{
+		Schema: common.CloneResourceSchemaForDatasource(resourceRole(), map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,

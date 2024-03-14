@@ -19,7 +19,7 @@ const (
 	customFieldsKey   = "custom"
 )
 
-func ResourceSSOSettings() *schema.Resource {
+func resourceSSOSettings() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `

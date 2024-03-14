@@ -14,7 +14,7 @@ import (
 
 const foldersPermissionsType = "folders"
 
-func ResourceFolderPermission() *schema.Resource {
+func resourceFolderPermission() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `

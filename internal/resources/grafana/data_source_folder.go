@@ -11,14 +11,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DatasourceFolder() *schema.Resource {
+func datasourceFolder() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder/)
 `,
 		ReadContext: dataSourceFolderRead,
-		Schema: common.CloneResourceSchemaForDatasource(ResourceFolder(), map[string]*schema.Schema{
+		Schema: common.CloneResourceSchemaForDatasource(resourceFolder(), map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"title": {
 				Type:        schema.TypeString,

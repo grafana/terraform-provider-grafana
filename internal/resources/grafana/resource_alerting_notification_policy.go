@@ -16,7 +16,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
-func ResourceNotificationPolicy() *schema.Resource {
+func resourceNotificationPolicy() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 Sets the global notification policy for Grafana.

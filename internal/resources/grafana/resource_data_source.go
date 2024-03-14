@@ -16,7 +16,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
-func ResourceDataSource() *schema.Resource {
+func resourceDataSource() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `

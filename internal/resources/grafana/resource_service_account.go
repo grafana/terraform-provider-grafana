@@ -18,7 +18,7 @@ import (
 // Service Accounts have issues with concurrent creation, so we need to lock them.
 var serviceAccountCreateMutex sync.Mutex
 
-func ResourceServiceAccount() *schema.Resource {
+func resourceServiceAccount() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `

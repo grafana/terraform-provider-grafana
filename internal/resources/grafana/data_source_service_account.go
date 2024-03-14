@@ -12,14 +12,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DatasourceServiceAccount() *schema.Resource {
+func datasourceServiceAccount() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 		* [Official documentation](https://grafana.com/docs/grafana/latest/administration/service-accounts/)
 		* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/serviceaccount/#service-account-api)
 `,
-		ReadContext: DatasourceServiceAccountRead,
-		Schema: common.CloneResourceSchemaForDatasource(ResourceServiceAccount(), map[string]*schema.Schema{
+		ReadContext: datasourceServiceAccountRead,
+		Schema: common.CloneResourceSchemaForDatasource(resourceServiceAccount(), map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"name": {
 				Type:        schema.TypeString,
@@ -30,7 +30,7 @@ func DatasourceServiceAccount() *schema.Resource {
 	}
 }
 
-func DatasourceServiceAccountRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func datasourceServiceAccountRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 	name := d.Get("name").(string)
 	sa, err := findServiceAccountByName(client, name)

@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourcePlaylist() *schema.Resource {
+func resourcePlaylist() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: CreatePlaylist,
 		ReadContext:   ReadPlaylist,

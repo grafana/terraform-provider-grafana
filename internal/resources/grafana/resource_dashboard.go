@@ -18,7 +18,7 @@ var (
 	StoreDashboardSHA256 bool
 )
 
-func ResourceDashboard() *schema.Resource {
+func resourceDashboard() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `

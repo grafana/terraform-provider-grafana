@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceMuteTiming() *schema.Resource {
+func resourceMuteTiming() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 Manages Grafana Alerting mute timings.

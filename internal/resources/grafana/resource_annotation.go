@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func ResourceAnnotation() *schema.Resource {
+func resourceAnnotation() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `

@@ -34,64 +34,6 @@ func init() {
 // Provider returns a terraform-provider-sdk2 provider.
 // This is the deprecated way of creating a provider, and should only be used for legacy resources.
 func Provider(version string) *schema.Provider {
-	var (
-		// Resources that require the Grafana client to exist.
-		grafanaClientResources = addCreateReadResourcesMetadataValidation(
-			readGrafanaClientValidation,
-			createGrafanaClientValidation,
-			map[string]*schema.Resource{
-				// Grafana
-				"grafana_annotation":                 grafana.ResourceAnnotation(),
-				"grafana_api_key":                    grafana.ResourceAPIKey(),
-				"grafana_contact_point":              grafana.ResourceContactPoint(),
-				"grafana_dashboard":                  grafana.ResourceDashboard(),
-				"grafana_dashboard_public":           grafana.ResourcePublicDashboard(),
-				"grafana_dashboard_permission":       grafana.ResourceDashboardPermission(),
-				"grafana_data_source":                grafana.ResourceDataSource(),
-				"grafana_data_source_permission":     grafana.ResourceDatasourcePermission(),
-				"grafana_folder":                     grafana.ResourceFolder(),
-				"grafana_folder_permission":          grafana.ResourceFolderPermission(),
-				"grafana_library_panel":              grafana.ResourceLibraryPanel(),
-				"grafana_message_template":           grafana.ResourceMessageTemplate(),
-				"grafana_mute_timing":                grafana.ResourceMuteTiming(),
-				"grafana_notification_policy":        grafana.ResourceNotificationPolicy(),
-				"grafana_organization":               grafana.ResourceOrganization(),
-				"grafana_organization_preferences":   grafana.ResourceOrganizationPreferences(),
-				"grafana_playlist":                   grafana.ResourcePlaylist(),
-				"grafana_report":                     grafana.ResourceReport(),
-				"grafana_role":                       grafana.ResourceRole(),
-				"grafana_role_assignment":            grafana.ResourceRoleAssignment(),
-				"grafana_rule_group":                 grafana.ResourceRuleGroup(),
-				"grafana_team":                       grafana.ResourceTeam(),
-				"grafana_team_external_group":        grafana.ResourceTeamExternalGroup(),
-				"grafana_service_account_token":      grafana.ResourceServiceAccountToken(),
-				"grafana_service_account":            grafana.ResourceServiceAccount(),
-				"grafana_service_account_permission": grafana.ResourceServiceAccountPermission(),
-				"grafana_sso_settings":               grafana.ResourceSSOSettings(),
-				"grafana_user":                       grafana.ResourceUser(),
-			})
-
-		// Datasources that require the Grafana client to exist.
-		grafanaClientDatasources = addCreateReadResourcesMetadataValidation(
-			readGrafanaClientValidation,
-			createGrafanaClientValidation,
-			map[string]*schema.Resource{
-				"grafana_dashboard":                grafana.DatasourceDashboard(),
-				"grafana_dashboards":               grafana.DatasourceDashboards(),
-				"grafana_data_source":              grafana.DatasourceDatasource(),
-				"grafana_folder":                   grafana.DatasourceFolder(),
-				"grafana_folders":                  grafana.DatasourceFolders(),
-				"grafana_library_panel":            grafana.DatasourceLibraryPanel(),
-				"grafana_user":                     grafana.DatasourceUser(),
-				"grafana_users":                    grafana.DatasourceUsers(),
-				"grafana_role":                     grafana.DatasourceRole(),
-				"grafana_service_account":          grafana.DatasourceServiceAccount(),
-				"grafana_team":                     grafana.DatasourceTeam(),
-				"grafana_organization":             grafana.DatasourceOrganization(),
-				"grafana_organization_preferences": grafana.DatasourceOrganizationPreferences(),
-			})
-	)
-
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"url": {
@@ -210,7 +152,7 @@ func Provider(version string) *schema.Provider {
 		},
 
 		ResourcesMap: mergeResourceMaps(
-			grafanaClientResources,
+			grafana.ResourcesMap,
 			machinelearning.ResourcesMap,
 			slo.ResourcesMap,
 			syntheticmonitoring.ResourcesMap,
@@ -219,7 +161,7 @@ func Provider(version string) *schema.Provider {
 		),
 
 		DataSourcesMap: mergeResourceMaps(
-			grafanaClientDatasources,
+			grafana.DatasourcesMap,
 			machinelearning.DatasourcesMap,
 			slo.DatasourcesMap,
 			syntheticmonitoring.DatasourcesMap,

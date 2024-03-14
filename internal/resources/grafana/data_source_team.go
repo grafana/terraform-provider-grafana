@@ -9,14 +9,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DatasourceTeam() *schema.Resource {
+func datasourceTeam() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/team-management/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team/)
 `,
 		ReadContext: dataSourceTeamRead,
-		Schema: common.CloneResourceSchemaForDatasource(ResourceTeam(), map[string]*schema.Schema{
+		Schema: common.CloneResourceSchemaForDatasource(resourceTeam(), map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"name": {
 				Type:        schema.TypeString,

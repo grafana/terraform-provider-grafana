@@ -9,14 +9,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DatasourceOrganizationPreferences() *schema.Resource {
+func datasourceOrganizationPreferences() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/organization-management/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/preferences/#get-current-org-prefs)
 `,
 		ReadContext: dataSourceOrganizationPreferencesRead,
-		Schema: common.CloneResourceSchemaForDatasource(ResourceOrganizationPreferences(), map[string]*schema.Schema{
+		Schema: common.CloneResourceSchemaForDatasource(resourceOrganizationPreferences(), map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 		}),
 	}

@@ -44,7 +44,7 @@ var notifiers = []notifier{
 	wecomNotifier{},
 }
 
-func ResourceContactPoint() *schema.Resource {
+func resourceContactPoint() *schema.Resource {
 	resource := &schema.Resource{
 		Description: `
 Manages Grafana Alerting contact points.

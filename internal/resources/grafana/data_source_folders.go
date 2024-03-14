@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DatasourceFolders() *schema.Resource {
+func datasourceFolders() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: readFolders,
 		Importer: &schema.ResourceImporter{

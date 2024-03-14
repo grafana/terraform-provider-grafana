@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceFolder() *schema.Resource {
+func resourceFolder() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `

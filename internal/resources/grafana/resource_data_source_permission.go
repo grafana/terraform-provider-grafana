@@ -16,7 +16,7 @@ import (
 
 const datasourcesPermissionsType = "datasources"
 
-func ResourceDatasourcePermission() *schema.Resource {
+func resourceDatasourcePermission() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `

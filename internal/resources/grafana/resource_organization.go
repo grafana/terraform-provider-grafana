@@ -36,7 +36,7 @@ const (
 	Remove
 )
 
-func ResourceOrganization() *schema.Resource {
+func resourceOrganization() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
