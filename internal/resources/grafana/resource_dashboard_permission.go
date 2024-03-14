@@ -13,7 +13,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
-func ResourceDashboardPermission() *schema.Resource {
+func resourceDashboardPermission() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `

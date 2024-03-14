@@ -12,7 +12,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
-func ResourceLibraryPanel() *schema.Resource {
+func resourceLibraryPanel() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `

@@ -31,7 +31,7 @@ const (
 	RemoveMember
 )
 
-func ResourceTeam() *schema.Resource {
+func resourceTeam() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `

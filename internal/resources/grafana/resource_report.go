@@ -49,7 +49,7 @@ var (
 	reportFormats      = []string{reportFormatPDF, reportFormatCSV, reportFormatImage}
 )
 
-func ResourceReport() *schema.Resource {
+func resourceReport() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 **Note:** This resource is available only with Grafana Enterprise 7.+.

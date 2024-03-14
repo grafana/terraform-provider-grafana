@@ -19,7 +19,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
-func ResourceRuleGroup() *schema.Resource {
+func resourceRuleGroup() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 Manages Grafana Alerting rule groups.

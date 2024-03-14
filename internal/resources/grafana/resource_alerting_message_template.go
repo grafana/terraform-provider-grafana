@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceMessageTemplate() *schema.Resource {
+func resourceMessageTemplate() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 Manages Grafana Alerting message templates.

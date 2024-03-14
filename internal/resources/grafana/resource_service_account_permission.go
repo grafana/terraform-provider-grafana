@@ -15,7 +15,7 @@ import (
 
 const serviceAccountsPermissionsType = "serviceaccounts"
 
-func ResourceServiceAccountPermission() *schema.Resource {
+func resourceServiceAccountPermission() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 Manages the entire set of permissions for a service account. Permissions that aren't specified when applying this resource will be removed.

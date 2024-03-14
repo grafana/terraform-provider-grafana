@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func ResourceAPIKey() *schema.Resource {
+func resourceAPIKey() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 Manages Grafana API Keys.
