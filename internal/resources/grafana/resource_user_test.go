@@ -15,8 +15,8 @@ func TestAccUser_basic(t *testing.T) {
 
 	var user models.UserProfileDTO
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      userCheckExists.destroyed(&user, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             userCheckExists.destroyed(&user, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccUserConfig_basic,

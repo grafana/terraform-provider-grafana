@@ -18,7 +18,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 	var group models.AlertRuleGroup
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
@@ -118,7 +118,7 @@ func TestAccAlertRule_model(t *testing.T) {
 	var group models.AlertRuleGroup
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
@@ -162,7 +162,7 @@ func TestAccAlertRule_compound(t *testing.T) {
 	var group models.AlertRuleGroup
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
@@ -231,8 +231,8 @@ func TestAccAlertRule_inOrg(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
@@ -286,7 +286,7 @@ func TestAccAlertRule_disableProvenance(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			orgCheckExists.destroyed(&org, nil),
 			alertingRuleGroupCheckExists.destroyed(&group, &org),
@@ -347,8 +347,8 @@ func TestAccAlertRule_zeroSeconds(t *testing.T) {
 	var name = acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      alertingRuleGroupCheckExists.destroyed(&group, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAlertRuleZeroSeconds(name),
@@ -371,8 +371,8 @@ func TestAccAlertRule_NotificationSettings(t *testing.T) {
 	var name = acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      alertingRuleGroupCheckExists.destroyed(&group, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAlertRuleWithNotificationSettings(name, []string{"alertname", "grafana_folder", "test"}),

@@ -57,8 +57,8 @@ func TestResourceStack_Basic(t *testing.T) {
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
 		},
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccStackCheckDestroy(&stack),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			// Create a basic stack
 			{
@@ -130,7 +130,7 @@ func TestResourceStack_Basic(t *testing.T) {
 
 func TestResourceStack_Invalid(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: `resource "grafana_cloud_stack" "test" { 

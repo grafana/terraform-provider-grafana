@@ -17,8 +17,8 @@ func TestAccRole_basic(t *testing.T) {
 	var role models.RoleDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      roleCheckExists.destroyed(&role, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             roleCheckExists.destroyed(&role, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: roleConfigBasic,
@@ -63,8 +63,8 @@ func TestAccRoleVersioning(t *testing.T) {
 	name := acctest.RandomWithPrefix("versioning-")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      roleCheckExists.destroyed(&role, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             roleCheckExists.destroyed(&role, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`
@@ -130,8 +130,8 @@ func TestAccRole_inOrg(t *testing.T) {
 	name := acctest.RandomWithPrefix("role-")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: roleInOrg(name),

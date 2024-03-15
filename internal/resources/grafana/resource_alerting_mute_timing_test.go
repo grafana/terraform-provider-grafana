@@ -16,7 +16,7 @@ func TestAccMuteTiming_basic(t *testing.T) {
 	var mt models.MuteTimeInterval
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingMuteTimingCheckExists.destroyed(&mt, nil),
 		Steps: []resource.TestStep{
@@ -78,8 +78,8 @@ func TestAccMuteTiming_AllTime(t *testing.T) {
 	name := "My-Mute-Timing"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      alertingMuteTimingCheckExists.destroyed(&mt, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             alertingMuteTimingCheckExists.destroyed(&mt, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`

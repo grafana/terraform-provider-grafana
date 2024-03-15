@@ -20,8 +20,8 @@ func TestAccOnCallRoute_basic(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccCheckOnCallRouteResourceDestroy,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallRouteResourceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOnCallRouteConfig(riName, rrRegex),

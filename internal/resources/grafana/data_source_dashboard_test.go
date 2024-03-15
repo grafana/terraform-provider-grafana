@@ -42,8 +42,8 @@ func TestAccDatasourceDashboard_basic(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      dashboardCheckExists.destroyed(&dashboard, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             dashboardCheckExists.destroyed(&dashboard, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_dashboard/data-source.tf"),
@@ -58,7 +58,7 @@ func TestAccDatasourceDashboardBadExactlyOneOf(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testutils.TestAccExample(t, "data-sources/grafana_dashboard/bad-ExactlyOneOf.tf"),

@@ -32,8 +32,8 @@ func TestAccDatasourceDatasource_basic(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      datasourceCheckExists.destroyed(&dataSource, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_data_source/data-source.tf"),

@@ -21,7 +21,7 @@ func TestAccResourceSlo(t *testing.T) {
 
 	var slo slo.Slo
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests destroy
 		CheckDestroy: testAccSloCheckDestroy(&slo),
 		Steps: []resource.TestStep{
@@ -230,7 +230,7 @@ func TestAccResourceInvalidSlo(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      sloObjectivesInvalid,

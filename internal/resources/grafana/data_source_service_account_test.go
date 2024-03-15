@@ -18,8 +18,8 @@ func TestAccDataSourceServiceAccount_basic(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      serviceAccountCheckExists.destroyed(&sa, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             serviceAccountCheckExists.destroyed(&sa, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testServiceAccountDatasourceConfig(name),

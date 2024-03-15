@@ -120,7 +120,7 @@ func TestAccExamples(t *testing.T) {
 				t.Run(filename, func(t *testing.T) {
 					testDef.testCheck(t, filename)
 					resource.Test(t, resource.TestCase{
-						ProviderFactories: testutils.ProviderFactories,
+						ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 						Steps: []resource.TestStep{{
 							Config: testutils.TestAccExample(t, filename),
 						}},

@@ -38,7 +38,7 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccCloudAccessPolicyCheckDestroy("us", &policy),
 			testAccCloudAccessPolicyTokenCheckDestroy("us", &policyToken),
@@ -123,7 +123,7 @@ func TestResourceAccessPolicyToken_NoExpiration(t *testing.T) {
 	var policyToken gcom.AuthToken
 
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCloudAccessPolicyTokenConfigBasic("initial-no-expiration", "", []string{"metrics:read"}, ""),

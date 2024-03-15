@@ -19,8 +19,8 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 	rType := "grafana"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccCheckOnCallIntegrationResourceDestroy,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallIntegrationResourceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOnCallIntegrationConfig(rName, rType, ``),

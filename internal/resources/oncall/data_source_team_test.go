@@ -16,7 +16,7 @@ func TestAccDataSourceTeam_Basic(t *testing.T) {
 	teamName := fmt.Sprintf("test-acc-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccDataSourceTeamConfig(teamName),

@@ -18,8 +18,8 @@ func TestAccRoleAssignments(t *testing.T) {
 	var role models.RoleDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      roleAssignmentCheckExists.destroyed(&role, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             roleAssignmentCheckExists.destroyed(&role, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: roleAssignmentConfig(testName),
@@ -51,8 +51,8 @@ func TestAccRoleAssignments_inOrg(t *testing.T) {
 	var role models.RoleDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: roleAssignmentConfigInOrg(testName),

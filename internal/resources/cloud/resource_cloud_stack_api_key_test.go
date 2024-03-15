@@ -26,8 +26,8 @@ func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
 		},
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccStackCheckDestroy(&stack),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGrafanaAuthKeyFromCloud(slug, slug),

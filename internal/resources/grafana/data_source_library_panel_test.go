@@ -32,8 +32,8 @@ func TestAccDatasourceLibraryPanel_basic(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      libraryPanelCheckExists.destroyed(&panel, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             libraryPanelCheckExists.destroyed(&panel, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_library_panel/data-source.tf"),

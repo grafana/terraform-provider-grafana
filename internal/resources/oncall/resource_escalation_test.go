@@ -20,8 +20,8 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 	reDuration := 300
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccCheckOnCallEscalationResourceDestroy,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallEscalationResourceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOnCallEscalationConfig(riName, reType, reDuration),

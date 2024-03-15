@@ -36,8 +36,8 @@ func TestAccCloudApiKey_Basic(t *testing.T) {
 			resourceName := prefix + acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 			resource.ParallelTest(t, resource.TestCase{
-				ProviderFactories: testutils.ProviderFactories,
-				CheckDestroy:      testAccCheckCloudAPIKeyDestroy(resourceName),
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				CheckDestroy:             testAccCheckCloudAPIKeyDestroy(resourceName),
 				Steps: []resource.TestStep{
 					{
 						Config: testAccCloudAPIKeyConfig(resourceName, tt.role),

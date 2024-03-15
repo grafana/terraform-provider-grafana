@@ -59,8 +59,8 @@ func testAccResourceOrganizationPreferences(t *testing.T, withUID bool) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testOrganizationPreferencesConfig(testRandName, withUID, prefs),

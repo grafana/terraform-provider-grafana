@@ -16,7 +16,7 @@ func TestAccDataSourceIPsRead(t *testing.T) {
 	testutils.CheckCloudAPITestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_cloud_ips/data-source.tf"),
