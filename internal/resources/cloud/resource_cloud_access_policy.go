@@ -15,17 +15,43 @@ import (
 
 var (
 	//nolint:staticcheck
-	resourceAccessPolicyID = common.NewResourceIDWithLegacySeparator(
-		"grafana_cloud_access_policy",
-		"/",
+	resourceAccessPolicyID = common.NewResourceIDWithLegacySeparator("/",
 		common.StringIDField("region"),
 		common.StringIDField("policyId"),
 	)
 )
 
-func resourceAccessPolicy() *schema.Resource {
-	return &schema.Resource{
+func resourceAccessPolicy() *common.Resource {
+	cloudAccessPolicyRealmSchema := &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"type": {
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "Whether a policy applies to a Cloud org or a specific stack. Should be one of `org` or `stack`.",
+				ValidateFunc: validation.StringInSlice([]string{"org", "stack"}, false),
+			},
+			"identifier": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The identifier of the org or stack. For orgs, this is the slug, for stacks, this is the stack ID.",
+			},
+			"label_policy": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"selector": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The label selector to match in metrics or logs query. Should be in PromQL or LogQL format.",
+						},
+					},
+				},
+			},
+		},
+	}
 
+	schema := &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#create-an-access-policy)
@@ -103,35 +129,12 @@ Required access policy scopes:
 			},
 		},
 	}
-}
 
-var cloudAccessPolicyRealmSchema = &schema.Resource{
-	Schema: map[string]*schema.Schema{
-		"type": {
-			Type:         schema.TypeString,
-			Required:     true,
-			Description:  "Whether a policy applies to a Cloud org or a specific stack. Should be one of `org` or `stack`.",
-			ValidateFunc: validation.StringInSlice([]string{"org", "stack"}, false),
-		},
-		"identifier": {
-			Type:        schema.TypeString,
-			Required:    true,
-			Description: "The identifier of the org or stack. For orgs, this is the slug, for stacks, this is the stack ID.",
-		},
-		"label_policy": {
-			Type:     schema.TypeSet,
-			Optional: true,
-			Elem: &schema.Resource{
-				Schema: map[string]*schema.Schema{
-					"selector": {
-						Type:        schema.TypeString,
-						Required:    true,
-						Description: "The label selector to match in metrics or logs query. Should be in PromQL or LogQL format.",
-					},
-				},
-			},
-		},
-	},
+	return common.NewResource(
+		"grafana_cloud_access_policy",
+		resourceAccessPolicyID,
+		schema,
+	)
 }
 
 func createCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {

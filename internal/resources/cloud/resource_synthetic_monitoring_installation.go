@@ -8,6 +8,7 @@ import (
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
+	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -20,8 +21,8 @@ var smAPIURLsExceptions = map[string]string{
 	"us-azure":        "https://synthetic-monitoring-api-us-central2.grafana.net",
 }
 
-func resourceSyntheticMonitoringInstallation() *schema.Resource {
-	return &schema.Resource{
+func resourceSyntheticMonitoringInstallation() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 Sets up Synthetic Monitoring on a Grafana cloud stack and generates a token. 
@@ -69,6 +70,12 @@ Required access policy scopes:
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_synthetic_monitoring_installation",
+		nil,
+		schema,
+	)
 }
 
 func resourceInstallationCreate(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {

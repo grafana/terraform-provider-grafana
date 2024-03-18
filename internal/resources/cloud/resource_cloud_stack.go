@@ -26,12 +26,11 @@ const defaultReadinessTimeout = time.Minute * 5
 var (
 	stackLabelRegex = regexp.MustCompile(`^[a-zA-Z0-9/\-.]+$`)
 	stackSlugRegex  = regexp.MustCompile(`^[a-z][a-z0-9]+$`)
-	resourceStackID = common.NewResourceID("grafana_cloud_stack", common.StringIDField("stackSlugOrID"))
+	resourceStackID = common.NewResourceID(common.StringIDField("stackSlugOrID"))
 )
 
-func resourceStack() *schema.Resource {
-	return &schema.Resource{
-
+func resourceStack() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#stacks/)
 
@@ -199,6 +198,12 @@ Required access policy scopes:
 			}),
 		),
 	}
+
+	return common.NewResource(
+		"grafana_cloud_stack",
+		resourceStackID,
+		schema,
+	)
 }
 
 func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {

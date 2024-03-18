@@ -17,8 +17,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func resourceStackAPIKey() *schema.Resource {
-	return &schema.Resource{
+func resourceStackAPIKey() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Manages API keys of a Grafana Cloud stack using the Cloud API
 This can be used to bootstrap a management API key for a new stack
@@ -75,6 +75,12 @@ Required access policy scopes:
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_cloud_stack_api_key",
+		nil,
+		schema,
+	)
 }
 
 func resourceStackAPIKeyCreate(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {

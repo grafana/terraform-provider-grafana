@@ -13,16 +13,14 @@ import (
 
 var (
 	//nolint:staticcheck
-	resourceAccessPolicyTokenID = common.NewResourceIDWithLegacySeparator(
-		"grafana_cloud_access_policy_token",
-		"/",
+	resourceAccessPolicyTokenID = common.NewResourceIDWithLegacySeparator("/",
 		common.StringIDField("region"),
 		common.StringIDField("tokenId"),
 	)
 )
 
-func resourceAccessPolicyToken() *schema.Resource {
-	return &schema.Resource{
+func resourceAccessPolicyToken() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/)
@@ -100,6 +98,12 @@ Required access policy scopes:
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_cloud_access_policy_token",
+		resourceAccessPolicyTokenID,
+		schema,
+	)
 }
 
 func createCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {

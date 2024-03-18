@@ -14,16 +14,14 @@ import (
 var (
 	cloudAPIKeyRoles = []string{"Viewer", "Editor", "Admin", "MetricsPublisher", "PluginPublisher"}
 	//nolint:staticcheck
-	resourceAPIKeyID = common.NewResourceIDWithLegacySeparator(
-		"grafana_cloud_api_key",
-		"-",
+	resourceAPIKeyID = common.NewResourceIDWithLegacySeparator("-",
 		common.StringIDField("orgSlug"),
 		common.StringIDField("apiKeyName"),
 	)
 )
 
-func resourceAPIKey() *schema.Resource {
-	return &schema.Resource{
+func resourceAPIKey() *common.Resource {
+	schema := &schema.Resource{
 		Description: `This resource is deprecated and will be removed in a future release. Please use grafana_cloud_access_policy instead.
 
 Manages a single API key on the Grafana Cloud portal (on the organization level)
@@ -71,6 +69,12 @@ Required access policy scopes:
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_cloud_api_key",
+		resourceAPIKeyID,
+		schema,
+	)
 }
 
 func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, c *gcom.APIClient) diag.Diagnostics {
