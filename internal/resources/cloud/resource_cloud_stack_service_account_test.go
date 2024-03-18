@@ -48,6 +48,11 @@ func TestAccGrafanaServiceAccountFromCloud(t *testing.T) {
 				),
 			},
 			{
+				ImportState:       true,
+				ResourceName:      "grafana_cloud_stack_service_account.management",
+				ImportStateVerify: true,
+			},
+			{
 				Config: testAccStackConfigBasic(slug, slug, "description"),
 				Check:  testAccGrafanaAuthCheckServiceAccounts(&stack, []string{}),
 			},
