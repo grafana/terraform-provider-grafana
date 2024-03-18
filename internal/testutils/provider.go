@@ -12,15 +12,51 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/grafana/terraform-provider-grafana/internal/provider"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 var (
-	// ProviderFactories is a static map containing only the main provider instance
-	// It is configured from the main provider package when the test suite is initialized
-	// but it is used in tests of every package
-	ProviderFactories map[string]func() (*schema.Provider, error)
+	// ProtoV5ProviderFactories is a static map containing the grafana provider instance
+	// It is used to configure the provider in acceptance tests
+	ProtoV5ProviderFactories = map[string]func() (tfprotov5.ProviderServer, error){
+		"grafana": func() (tfprotov5.ProviderServer, error) {
+			// Create a provider server
+			ctx := context.Background()
+			server, err := provider.MakeProviderServer(ctx, "testacc")
+			if err != nil {
+				return nil, err
+			}
+
+			// Get the provider schema and create a provider configuration
+			// The config is empty because we'll use environment variables to configure the provider
+			schemaResp, err := server.GetProviderSchema(ctx, nil)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get provider schema: %v", err)
+			}
+			fields := map[string]tftypes.Value{}
+			for _, v := range schemaResp.Provider.Block.Attributes {
+				fields[v.Name] = tftypes.NewValue(v.Type, nil)
+			}
+			testValue := tftypes.NewValue(schemaResp.Provider.ValueType(), fields)
+			testDynamicValue, err := tfprotov5.NewDynamicValue(schemaResp.Provider.ValueType(), testValue)
+			if err != nil {
+				return nil, err
+			}
+
+			// Configure the provider
+			configureResp, err := server.ConfigureProvider(context.Background(), &tfprotov5.ConfigureProviderRequest{Config: &testDynamicValue})
+			if err != nil || len(configureResp.Diagnostics) > 0 {
+				if err == nil {
+					err = fmt.Errorf("provider configuration failed: %v", configureResp.Diagnostics)
+				}
+				return nil, fmt.Errorf("failed to configure provider: %v", err)
+			}
+			return server, nil
+		},
+	}
 
 	// Provider is the "main" provider instance
 	//
@@ -34,14 +70,6 @@ var (
 
 func init() {
 	Provider = provider.Provider("testacc")
-
-	// Always allocate a new provider instance each invocation, otherwise gRPC
-	// ProviderConfigure() can overwrite configuration during concurrent testing.
-	ProviderFactories = map[string]func() (*schema.Provider, error){
-		"grafana": func() (*schema.Provider, error) {
-			return provider.Provider("testacc"), nil
-		},
-	}
 
 	// If any acceptance tests are enabled, the test provider must be configured
 	if AccTestsEnabled("TF_ACC") {

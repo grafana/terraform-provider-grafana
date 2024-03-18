@@ -27,8 +27,8 @@ func TestAccSyntheticMonitoringInstallation(t *testing.T) {
 			apiKeyName := apiKeyPrefix + acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 			resource.ParallelTest(t, resource.TestCase{
-				ProviderFactories: testutils.ProviderFactories,
-				CheckDestroy:      testAccStackCheckDestroy(&stack),
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				CheckDestroy:             testAccStackCheckDestroy(&stack),
 				Steps: []resource.TestStep{
 					{
 						Config: testAccSyntheticMonitoringInstallation(stackSlug, apiKeyName, region),

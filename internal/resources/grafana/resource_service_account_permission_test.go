@@ -18,8 +18,8 @@ func TestAccServiceAccountPermission_basic(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      serviceAccountPermissionsCheckExists.destroyed(&sa, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             serviceAccountPermissionsCheckExists.destroyed(&sa, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testServiceAccountPermissionsConfig(name),
@@ -41,8 +41,8 @@ func TestAccServiceAccountPermission_inOrg(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testServiceAccountPermissionsConfig_inOrg(name),

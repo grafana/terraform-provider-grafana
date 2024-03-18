@@ -20,8 +20,8 @@ func TestAccTeamExternalGroup_basic(t *testing.T) {
 	var team models.TeamDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      teamCheckExists.destroyed(&team, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			// Add groups and test import
 			{

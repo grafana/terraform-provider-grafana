@@ -16,7 +16,7 @@ func TestAccMessageTemplate_basic(t *testing.T) {
 	var tmpl models.NotificationTemplate
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingMessageTemplateCheckExists.destroyed(&tmpl, nil),
 		Steps: []resource.TestStep{
@@ -86,8 +86,8 @@ func TestAccMessageTemplate_inOrg(t *testing.T) {
 	var org models.OrgDetailsDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccMessageTemplate_inOrg(name),

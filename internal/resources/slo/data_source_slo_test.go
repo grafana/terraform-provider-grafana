@@ -16,8 +16,8 @@ func TestAccDataSourceSlo(t *testing.T) {
 
 	var slo slo.Slo
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccSloCheckDestroy(&slo),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccSloCheckDestroy(&slo),
 		Steps: []resource.TestStep{
 			{
 				// Creates a SLO Resource

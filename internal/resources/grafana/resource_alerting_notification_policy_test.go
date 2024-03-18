@@ -19,7 +19,7 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 
 	// TODO: Make parallizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
 		Steps: []resource.TestStep{
@@ -97,7 +97,7 @@ func TestAccNotificationPolicy_disableProvenance(t *testing.T) {
 
 	// TODO: Make parallizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
 		Steps: []resource.TestStep{
@@ -145,7 +145,7 @@ func TestAccNotificationPolicy_error(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: `resource "grafana_notification_policy" "test" {
@@ -168,8 +168,8 @@ func TestAccNotificationPolicy_inOrg(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccNotificationPolicyInOrg(name, "my-key"),

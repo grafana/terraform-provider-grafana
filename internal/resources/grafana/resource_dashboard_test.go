@@ -37,8 +37,8 @@ func TestAccDashboard_basic(t *testing.T) {
 
 			// TODO: Make parallelizable
 			resource.Test(t, resource.TestCase{
-				ProviderFactories: testutils.ProviderFactories,
-				CheckDestroy:      dashboardCheckExists.destroyed(&dashboard, nil),
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				CheckDestroy:             dashboardCheckExists.destroyed(&dashboard, nil),
 				Steps: []resource.TestStep{
 					{
 						// Test resource creation.
@@ -100,8 +100,8 @@ func TestAccDashboard_uid_unset(t *testing.T) {
 	var dashboard models.DashboardFullWithMeta
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      dashboardCheckExists.destroyed(&dashboard, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             dashboardCheckExists.destroyed(&dashboard, nil),
 		Steps: []resource.TestStep{
 			{
 				// Create dashboard with no uid set.
@@ -144,8 +144,8 @@ func TestAccDashboard_computed_config(t *testing.T) {
 	var dashboard models.DashboardFullWithMeta
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      dashboardCheckExists.destroyed(&dashboard, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             dashboardCheckExists.destroyed(&dashboard, nil),
 		Steps: []resource.TestStep{
 			{
 				// Test resource creation.
@@ -168,7 +168,7 @@ func TestAccDashboard_folder(t *testing.T) {
 	var folder models.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			dashboardCheckExists.destroyed(&dashboard, nil),
 			folderCheckExists.destroyed(&folder, nil),
@@ -210,7 +210,7 @@ func TestAccDashboard_folder_uid(t *testing.T) {
 	var folder models.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			dashboardCheckExists.destroyed(&dashboard, nil),
 			folderCheckExists.destroyed(&folder, nil),
@@ -258,7 +258,7 @@ func TestAccDashboard_inOrg(t *testing.T) {
 	orgName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			dashboardCheckExists.destroyed(&dashboard, &org),
 			folderCheckExists.destroyed(&folder, &org),

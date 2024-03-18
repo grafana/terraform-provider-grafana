@@ -20,7 +20,7 @@ func TestAccResourceProbe(t *testing.T) {
 	randomName := acctest.RandomWithPrefix("My Probe")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_probe/resource.tf", map[string]string{
@@ -66,7 +66,7 @@ func TestAccResourceProbe_recreate(t *testing.T) {
 	})
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -101,7 +101,7 @@ func TestAccResourceProbe_recreateProbeUsedInCheck(t *testing.T) {
 	randomName := acctest.RandomWithPrefix("tf")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testSyntheticMonitoringProbeAndCheck(randomName, "test1"),
@@ -158,7 +158,7 @@ func TestAccResourceProbe_Import(t *testing.T) {
 	randomName := acctest.RandomWithPrefix("My Probe")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_probe/resource.tf", map[string]string{
@@ -246,8 +246,8 @@ func TestAccResourceProbe_InvalidLabels(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		Steps:             steps,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps:                    steps,
 	})
 }
 

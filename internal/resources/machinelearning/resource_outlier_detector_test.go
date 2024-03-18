@@ -21,8 +21,8 @@ func TestAccResourceOutlierDetector(t *testing.T) {
 
 	var outlier mlapi.OutlierDetector
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccMLOutlierCheckDestroy(&outlier),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccMLOutlierCheckDestroy(&outlier),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_outlier_detector/mad.tf", map[string]string{
@@ -185,7 +185,7 @@ func TestAccResourceInvalidMachineLearningOutlierDetector(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      machineLearningOutlierDetectorInvalid,

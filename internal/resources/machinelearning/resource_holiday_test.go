@@ -21,8 +21,8 @@ func TestAccResourceHoliday(t *testing.T) {
 
 	var holiday mlapi.Holiday
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccMLHolidayCheckDestroy(&holiday),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccMLHolidayCheckDestroy(&holiday),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_holiday/ical_holiday.tf", map[string]string{
@@ -115,7 +115,7 @@ func TestAccResourceInvalidMachineLearningHoliday(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      machineLearningHolidayInvalid,

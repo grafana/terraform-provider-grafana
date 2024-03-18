@@ -25,8 +25,8 @@ func TestAccTeam_basic(t *testing.T) {
 	teamNameUpdated := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      teamCheckExists.destroyed(&team, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTeamDefinition(teamName, nil, false, nil),
@@ -66,8 +66,8 @@ func TestAccTeam_preferences(t *testing.T) {
 	teamNameUpdated := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      teamCheckExists.destroyed(&team, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTeamDefinition(teamName, nil, false, nil),
@@ -114,8 +114,8 @@ func TestAccTeam_teamSync(t *testing.T) {
 	teamName := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      teamCheckExists.destroyed(&team, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			// Test without team sync
 			{
@@ -176,8 +176,8 @@ func TestAccTeam_Members(t *testing.T) {
 	teamName := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      teamCheckExists.destroyed(&team, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTeamDefinition(teamName, []string{
@@ -245,8 +245,8 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 	teamName := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      teamCheckExists.destroyed(&team, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			{
 				PreConfig: func() {
@@ -295,8 +295,8 @@ func TestAccResourceTeam_InOrg(t *testing.T) {
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTeamInOrganization(name),
@@ -362,7 +362,7 @@ func TestAccTeam_OrgScopedOnAPIKey(t *testing.T) {
 	os.Setenv("GRAFANA_AUTH", saToken.Payload.Key)
 	defer os.Setenv("GRAFANA_AUTH", prevAuth)
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`resource "grafana_team" "test" {

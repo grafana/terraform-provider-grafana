@@ -20,8 +20,8 @@ func TestAccResourceReport_Multiple_Dashboards(t *testing.T) {
 	var randomUID2 = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      reportCheckExists.destroyed(&report, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             reportCheckExists.destroyed(&report, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_report/multiple-dashboards.tf", map[string]string{
@@ -69,8 +69,8 @@ func TestAccResourceReport_basic(t *testing.T) {
 	var randomUID = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      reportCheckExists.destroyed(&report, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             reportCheckExists.destroyed(&report, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_report/resource.tf", map[string]string{
@@ -169,8 +169,8 @@ func TestAccResourceReport_CreateFromDashboardID(t *testing.T) {
 	var randomUID = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      reportCheckExists.destroyed(&report, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             reportCheckExists.destroyed(&report, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccReportCreateFromID(randomUID),
@@ -192,8 +192,8 @@ func TestAccResourceReport_InOrg(t *testing.T) {
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      reportCheckExists.destroyed(&report, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             reportCheckExists.destroyed(&report, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccReportCreateInOrg(name),

@@ -19,8 +19,8 @@ func TestAccOnCallOnCallShift_basic(t *testing.T) {
 	shiftName := fmt.Sprintf("shift-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccCheckOnCallOnCallShiftResourceDestroy,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallOnCallShiftResourceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOnCallOnCallShiftConfigWeekly(scheduleName, shiftName),

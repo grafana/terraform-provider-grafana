@@ -25,8 +25,8 @@ func TestAccDatasourceFolder_basic(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      folderCheckExists.destroyed(&folder, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             folderCheckExists.destroyed(&folder, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_folder/data-source.tf"),
@@ -44,7 +44,7 @@ func TestAccDatasourceFolder_nested(t *testing.T) {
 	randomName := acctest.RandStringFromCharSet(6, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			folderCheckExists.destroyed(&parent, nil),
 			folderCheckExists.destroyed(&child, nil),

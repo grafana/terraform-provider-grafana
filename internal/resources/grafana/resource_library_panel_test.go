@@ -18,8 +18,8 @@ func TestAccLibraryPanel_basic(t *testing.T) {
 	var panel models.LibraryElementResponse
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      libraryPanelCheckExists.destroyed(&panel, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             libraryPanelCheckExists.destroyed(&panel, nil),
 		Steps: []resource.TestStep{
 			{
 				// Test resource creation.
@@ -66,7 +66,7 @@ func TestAccLibraryPanel_folder(t *testing.T) {
 	var folder models.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			libraryPanelCheckExists.destroyed(&panel, nil),
 			folderCheckExists.destroyed(&folder, nil),
@@ -100,8 +100,8 @@ func TestAccLibraryPanel_dashboard(t *testing.T) {
 	var dashboard models.DashboardFullWithMeta
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      libraryPanelCheckExists.destroyed(&panel, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             libraryPanelCheckExists.destroyed(&panel, nil),
 		Steps: []resource.TestStep{
 			{
 				// Test library panel is connected to dashboard
@@ -124,8 +124,8 @@ func TestAccLibraryPanel_inOrg(t *testing.T) {
 	orgName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      libraryPanelCheckExists.destroyed(&panel, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             libraryPanelCheckExists.destroyed(&panel, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccLibraryPanelInOrganization(orgName),
