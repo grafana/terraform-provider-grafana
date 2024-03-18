@@ -60,6 +60,54 @@ func TestAccGrafanaServiceAccountFromCloud(t *testing.T) {
 	})
 }
 
+// Tests that the ID change from 2.13.0 to latest works
+// Remove on next major release
+func TestAccGrafanaServiceAccountFromCloud_MigrateFrom213(t *testing.T) {
+	testutils.CheckCloudAPITestsEnabled(t)
+
+	var stack gcom.FormattedApiInstance
+	prefix := "tfsa213test"
+	slug := GetRandomStackName(prefix)
+
+	check := resource.ComposeTestCheckFunc(
+		testAccStackCheckExists("grafana_cloud_stack.test", &stack),
+		testAccGrafanaAuthCheckServiceAccounts(&stack, []string{"management-sa"}),
+		resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "name", "management-sa"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "role", "Admin"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "is_disabled", "true"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack_service_account_token.management_token", "name", "management-sa-token"),
+		resource.TestCheckNoResourceAttr("grafana_cloud_stack_service_account_token.management_token", "expiration"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack_service_account_token.management_token", "key"),
+	)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			testAccDeleteExistingStacks(t, prefix)
+		},
+		CheckDestroy: testAccStackCheckDestroy(&stack),
+		Steps: []resource.TestStep{
+			// Apply with 2.13.0 provider
+			{
+				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, true),
+				ExternalProviders: map[string]resource.ExternalProvider{
+					"grafana": {
+						VersionConstraint: "=2.13.0",
+						Source:            "grafana/grafana",
+					},
+				},
+				Check: check,
+			},
+			// Apply with latest provider
+			{
+				Config:                   testAccGrafanaServiceAccountFromCloud(slug, slug, true),
+				Check:                    check,
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			},
+		},
+	})
+
+}
+
 func testAccGrafanaServiceAccountFromCloud(name, slug string, disabled bool) string {
 	return testAccStackConfigBasic(name, slug, "description") + fmt.Sprintf(`
 	resource "grafana_cloud_stack_service_account" "management" {
