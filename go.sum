@@ -102,8 +102,8 @@ github.com/grafana/machine-learning-go-client v0.5.0 h1:Q1K+MPSy8vfMm2jsk3WQ7O77
 github.com/grafana/machine-learning-go-client v0.5.0/go.mod h1:QFfZz8NkqVF8++skjkKQXJEZfpCYd8S0yTWJUpsLLTA=
 github.com/grafana/slo-openapi-client/go v0.0.0-20240112175006-de02e75b9d73 h1:E5vAeB5q1H3BVeNhtd1dI8RubucJdPwpx/ElNtKD3ls=
 github.com/grafana/slo-openapi-client/go v0.0.0-20240112175006-de02e75b9d73/go.mod h1:EvM3pcxqS+avXd0G8VMyo/kITr9QsN1CwZTNgYtQ9lI=
-github.com/grafana/synthetic-monitoring-agent v0.22.0 h1:eslVAqsIYS6lB30Hv4a3q2ttyG24FKi74aBt5rBwRJ4=
-github.com/grafana/synthetic-monitoring-agent v0.22.0/go.mod h1:TiHZavRfF0kqekz5RFpn0XC9KpInKXQ3zDBq1/8pvKk=
+github.com/grafana/synthetic-monitoring-agent v0.23.1 h1:otz9813Oc4s783Km3gVDbcttaFQO0HNU2RmVeS0Rmn8=
+github.com/grafana/synthetic-monitoring-agent v0.23.1/go.mod h1:TiHZavRfF0kqekz5RFpn0XC9KpInKXQ3zDBq1/8pvKk=
 github.com/grafana/synthetic-monitoring-api-go-client v0.8.0 h1:Tm4MtwwYmPNInGfnj66l6j6KOshMkNV4emIVKJdlXMg=
 github.com/grafana/synthetic-monitoring-api-go-client v0.8.0/go.mod h1:TGaywTdL2Z+PJhpWzJEmJFRF5K55vKz2f39mWY/GvV8=
 github.com/hashicorp/cli v1.1.6 h1:CMOV+/LJfL1tXCOKrgAX0uRKnzjj/mpmqNXloRSy2K8=
@@ -149,8 +149,6 @@ github.com/hashicorp/terraform-plugin-docs v0.18.0 h1:2bINhzXc+yDeAcafurshCrIjtd
 github.com/hashicorp/terraform-plugin-docs v0.18.0/go.mod h1:iIUfaJpdUmpi+rI42Kgq+63jAjI8aZVTyxp3Bvk9Hg8=
 github.com/hashicorp/terraform-plugin-framework v1.6.1 h1:hw2XrmUu8d8jVL52ekxim2IqDc+2Kpekn21xZANARLU=
 github.com/hashicorp/terraform-plugin-framework v1.6.1/go.mod h1:aJI+n/hBPhz1J+77GdgNfk5svW12y7fmtxe/5L5IuwI=
-github.com/hashicorp/terraform-plugin-framework-validators v0.12.0 h1:HOjBuMbOEzl7snOdOoUfE2Jgeto6JOjLVQ39Ls2nksc=
-github.com/hashicorp/terraform-plugin-framework-validators v0.12.0/go.mod h1:jfHGE/gzjxYz6XoUwi/aYiiKrJDeutQNUtGQXkaHklg=
 github.com/hashicorp/terraform-plugin-go v0.22.1 h1:iTS7WHNVrn7uhe3cojtvWWn83cm2Z6ryIUDTRO0EV7w=
 github.com/hashicorp/terraform-plugin-go v0.22.1/go.mod h1:qrjnqRghvQ6KnDbB12XeZ4FluclYwptntoWCr9QaXTI=
 github.com/hashicorp/terraform-plugin-log v0.9.0 h1:i7hOA+vdAItN1/7UrfBqBwvYPQ9TFvymaRGZED3FCV0=
