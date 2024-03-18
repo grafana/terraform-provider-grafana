@@ -105,7 +105,6 @@ func TestAccGrafanaServiceAccountFromCloud_MigrateFrom213(t *testing.T) {
 			},
 		},
 	})
-
 }
 
 func testAccGrafanaServiceAccountFromCloud(name, slug string, disabled bool) string {
