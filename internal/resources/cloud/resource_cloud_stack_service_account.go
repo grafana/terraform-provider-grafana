@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
@@ -100,17 +101,30 @@ func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, clou
 }
 
 func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	split, err := resourceStackServiceAccountID.Split(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
+	var stackSlug string
+	var serviceAccountID int64
+	split, splitErr := resourceStackServiceAccountID.Split(d.Id())
+	if splitErr != nil {
+		// ID used to be just the service account ID.
+		// Even though that's an incomplete ID for imports, we need to handle it for backwards compatibility
+		// TODO: Remove on next major version
+		stackSlug = d.Get("stack_slug").(string)
+		var parseErr error
+		if serviceAccountID, parseErr = strconv.ParseInt(d.Id(), 10, 64); parseErr != nil {
+			return diag.Errorf("failed to parse ID (%s) as stackSlug:serviceAccountID: %v and failed to parse as serviceAccountID: %v", d.Id(), splitErr, parseErr)
+		}
+	} else {
+		stackSlug, serviceAccountID = split[0].(string), split[1].(int64)
 	}
-	stackSlug, serviceAccountID := split[0].(string), split[1].(int64)
 
 	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, stackSlug, "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	defer cleanup()
+
+	d.Set("stack_slug", stackSlug)
+	d.SetId(resourceStackServiceAccountID.Make(stackSlug, serviceAccountID))
 
 	return readStackServiceAccountWithClient(client, d, serviceAccountID)
 }
@@ -162,6 +176,8 @@ func updateStackServiceAccount(ctx context.Context, d *schema.ResourceData, clou
 	if _, err := client.ServiceAccounts.UpdateServiceAccount(updateRequest); err != nil {
 		return diag.FromErr(err)
 	}
+	d.Set("stack_slug", stackSlug)
+	d.SetId(resourceStackServiceAccountID.Make(stackSlug, serviceAccountID))
 
 	return readStackServiceAccountWithClient(client, d, serviceAccountID)
 }
