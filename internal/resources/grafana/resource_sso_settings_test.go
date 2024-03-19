@@ -12,8 +12,8 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/models"
 
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 )
 
 func TestSSOSettings_basic(t *testing.T) {
