@@ -5,7 +5,7 @@ import (
 	"flag"
 	"log"
 
-	"github.com/grafana/terraform-provider-grafana/internal/provider"
+	"github.com/grafana/terraform-provider-grafana/pkg/provider"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tf5server"
 )
