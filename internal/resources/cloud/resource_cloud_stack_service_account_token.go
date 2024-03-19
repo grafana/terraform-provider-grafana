@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strconv"
 
@@ -83,11 +84,10 @@ func stackServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData,
 	}
 	defer cleanup()
 
-	split, err := resourceStackServiceAccountID.Split(d.Get("service_account_id").(string))
+	serviceAccountID, err := getStackServiceAccountID(d.Get("service_account_id").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	serviceAccountID := split[1].(int64)
 
 	name := d.Get("name").(string)
 	ttl := d.Get("seconds_to_live").(int)
@@ -123,11 +123,10 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, c
 }
 
 func stackServiceAccountTokenReadWithClient(c *goapi.GrafanaHTTPAPI, d *schema.ResourceData) diag.Diagnostics {
-	split, err := resourceStackServiceAccountID.Split(d.Get("service_account_id").(string))
+	serviceAccountID, err := getStackServiceAccountID(d.Get("service_account_id").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	serviceAccountID := split[1].(int64)
 
 	response, err := c.ServiceAccounts.ListTokens(serviceAccountID)
 	if err != nil {
@@ -170,11 +169,10 @@ func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData,
 	}
 	defer cleanup()
 
-	split, err := resourceStackServiceAccountID.Split(d.Get("service_account_id").(string))
+	serviceAccountID, err := getStackServiceAccountID(d.Get("service_account_id").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	serviceAccountID := split[1].(int64)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 32)
 	if err != nil {
@@ -187,4 +185,19 @@ func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData,
 	}
 
 	return nil
+}
+
+func getStackServiceAccountID(id string) (int64, error) {
+	split, splitErr := resourceStackServiceAccountID.Split(id)
+	if splitErr != nil {
+		// ID used to be just the service account ID.
+		// Even though that's an incomplete ID for imports, we need to handle it for backwards compatibility
+		// TODO: Remove on next major version
+		serviceAccountID, parseErr := strconv.ParseInt(id, 10, 64)
+		if parseErr != nil {
+			return 0, fmt.Errorf("failed to parse ID (%s) as stackSlug:serviceAccountID: %v and failed to parse as serviceAccountID: %v", id, splitErr, parseErr)
+		}
+		return serviceAccountID, nil
+	}
+	return split[1].(int64), nil
 }
