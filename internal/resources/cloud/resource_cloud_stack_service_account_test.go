@@ -74,7 +74,7 @@ func TestAccGrafanaServiceAccountFromCloud_MigrateFrom213(t *testing.T) {
 		testAccGrafanaAuthCheckServiceAccounts(&stack, []string{"management-sa"}),
 		resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "name", "management-sa"),
 		resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "role", "Admin"),
-		resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "is_disabled", "true"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "is_disabled", "false"),
 		resource.TestCheckResourceAttr("grafana_cloud_stack_service_account_token.management_token", "name", "management-sa-token"),
 		resource.TestCheckNoResourceAttr("grafana_cloud_stack_service_account_token.management_token", "expiration"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack_service_account_token.management_token", "key"),
@@ -88,7 +88,7 @@ func TestAccGrafanaServiceAccountFromCloud_MigrateFrom213(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Apply with 2.13.0 provider
 			{
-				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, true),
+				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, false),
 				ExternalProviders: map[string]resource.ExternalProvider{
 					"grafana": {
 						VersionConstraint: "=2.13.0",
@@ -99,7 +99,7 @@ func TestAccGrafanaServiceAccountFromCloud_MigrateFrom213(t *testing.T) {
 			},
 			// Apply with latest provider
 			{
-				Config:                   testAccGrafanaServiceAccountFromCloud(slug, slug, true),
+				Config:                   testAccGrafanaServiceAccountFromCloud(slug, slug, false),
 				Check:                    check,
 				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 			},
@@ -120,6 +120,17 @@ func testAccGrafanaServiceAccountFromCloud(name, slug string, disabled bool) str
 		stack_slug = grafana_cloud_stack.test.slug
 		service_account_id = grafana_cloud_stack_service_account.management.id
 		name       = "management-sa-token"
+	}
+
+	provider "grafana" {
+		alias = "stack"
+		auth = grafana_cloud_stack_service_account_token.management_token.key
+		url  = grafana_cloud_stack.test.url
+	}
+
+	resource "grafana_folder" "test" {
+		provider = grafana.stack
+		title    = "test"
 	}
 	`, disabled)
 }
