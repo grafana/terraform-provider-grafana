@@ -48,6 +48,12 @@ Required access policy scopes:
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					// The service account ID is now possibly a composite ID that includes the stack slug
+					oldID, _ := getStackServiceAccountID(old)
+					newID, _ := getStackServiceAccountID(new)
+					return oldID == newID && oldID != 0 && newID != 0
+				},
 			},
 			"seconds_to_live": {
 				Type:     schema.TypeInt,

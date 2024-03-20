@@ -74,7 +74,7 @@ func TestAccGrafanaServiceAccountFromCloud_MigrateFrom213(t *testing.T) {
 		testAccGrafanaAuthCheckServiceAccounts(&stack, []string{"management-sa"}),
 		resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "name", "management-sa"),
 		resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "role", "Admin"),
-		resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "is_disabled", "true"),
+		resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "is_disabled", "false"),
 		resource.TestCheckResourceAttr("grafana_cloud_stack_service_account_token.management_token", "name", "management-sa-token"),
 		resource.TestCheckNoResourceAttr("grafana_cloud_stack_service_account_token.management_token", "expiration"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack_service_account_token.management_token", "key"),
@@ -88,7 +88,7 @@ func TestAccGrafanaServiceAccountFromCloud_MigrateFrom213(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Apply with 2.13.0 provider
 			{
-				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, true),
+				Config: testAccGrafanaServiceAccountWithStackFolder(slug, slug, true),
 				ExternalProviders: map[string]resource.ExternalProvider{
 					"grafana": {
 						VersionConstraint: "=2.13.0",
@@ -99,8 +99,13 @@ func TestAccGrafanaServiceAccountFromCloud_MigrateFrom213(t *testing.T) {
 			},
 			// Apply with latest provider
 			{
-				Config:                   testAccGrafanaServiceAccountFromCloud(slug, slug, true),
+				Config:                   testAccGrafanaServiceAccountWithStackFolder(slug, slug, true),
 				Check:                    check,
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			},
+			// Destroy the folder
+			{
+				Config:                   testAccGrafanaServiceAccountWithStackFolder(slug, slug, false),
 				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 			},
 		},
@@ -122,6 +127,22 @@ func testAccGrafanaServiceAccountFromCloud(name, slug string, disabled bool) str
 		name       = "management-sa-token"
 	}
 	`, disabled)
+}
+
+func testAccGrafanaServiceAccountWithStackFolder(name, slug string, withFolder bool) string {
+	return testAccGrafanaServiceAccountFromCloud(name, slug, false) + fmt.Sprintf(`
+	provider "grafana" {
+		alias = "stack"
+		auth = grafana_cloud_stack_service_account_token.management_token.key
+		url  = grafana_cloud_stack.test.url
+	}
+
+	resource "grafana_folder" "test" {
+		count = %t ? 1 : 0
+		provider = grafana.stack
+		title    = "test"
+	}
+	`, withFolder)
 }
 
 func testAccGrafanaAuthCheckServiceAccounts(stack *gcom.FormattedApiInstance, expectedSAs []string) resource.TestCheckFunc {
