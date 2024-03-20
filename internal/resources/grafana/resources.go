@@ -27,14 +27,32 @@ func grafanaOrgIDResourceValidation(d *schema.ResourceData, m interface{}) error
 
 func addValidation(resources map[string]*schema.Resource) map[string]*schema.Resource {
 	for _, r := range resources {
-		readFn := r.ReadContext
 		createFn := r.CreateContext
+		readFn := r.ReadContext
+		updateFn := r.UpdateContext
+		deleteFn := r.DeleteContext
 
 		r.ReadContext = func(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 			if err := grafanaClientResourceValidation(d, m); err != nil {
 				return diag.FromErr(err)
 			}
 			return readFn(ctx, d, m)
+		}
+		if updateFn != nil {
+			r.UpdateContext = func(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+				if err := grafanaClientResourceValidation(d, m); err != nil {
+					return diag.FromErr(err)
+				}
+				return updateFn(ctx, d, m)
+			}
+		}
+		if deleteFn != nil {
+			r.DeleteContext = func(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+				if err := grafanaClientResourceValidation(d, m); err != nil {
+					return diag.FromErr(err)
+				}
+				return deleteFn(ctx, d, m)
+			}
 		}
 		if createFn != nil {
 			r.CreateContext = func(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
