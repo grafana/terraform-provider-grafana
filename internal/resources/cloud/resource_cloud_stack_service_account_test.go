@@ -88,7 +88,7 @@ func TestAccGrafanaServiceAccountFromCloud_MigrateFrom213(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Apply with 2.13.0 provider
 			{
-				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, false),
+				Config: testAccGrafanaServiceAccountWithStackFolder(slug, slug, true),
 				ExternalProviders: map[string]resource.ExternalProvider{
 					"grafana": {
 						VersionConstraint: "=2.13.0",
@@ -99,8 +99,13 @@ func TestAccGrafanaServiceAccountFromCloud_MigrateFrom213(t *testing.T) {
 			},
 			// Apply with latest provider
 			{
-				Config:                   testAccGrafanaServiceAccountFromCloud(slug, slug, false),
+				Config:                   testAccGrafanaServiceAccountWithStackFolder(slug, slug, true),
 				Check:                    check,
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			},
+			// Destroy the folder
+			{
+				Config:                   testAccGrafanaServiceAccountWithStackFolder(slug, slug, false),
 				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 			},
 		},
@@ -121,7 +126,11 @@ func testAccGrafanaServiceAccountFromCloud(name, slug string, disabled bool) str
 		service_account_id = grafana_cloud_stack_service_account.management.id
 		name       = "management-sa-token"
 	}
+	`, disabled)
+}
 
+func testAccGrafanaServiceAccountWithStackFolder(name, slug string, withFolder bool) string {
+	return testAccGrafanaServiceAccountFromCloud(name, slug, false) + fmt.Sprintf(`
 	provider "grafana" {
 		alias = "stack"
 		auth = grafana_cloud_stack_service_account_token.management_token.key
@@ -129,10 +138,11 @@ func testAccGrafanaServiceAccountFromCloud(name, slug string, disabled bool) str
 	}
 
 	resource "grafana_folder" "test" {
+		count = %t ? 1 : 0
 		provider = grafana.stack
 		title    = "test"
 	}
-	`, disabled)
+	`, withFolder)
 }
 
 func testAccGrafanaAuthCheckServiceAccounts(stack *gcom.FormattedApiInstance, expectedSAs []string) resource.TestCheckFunc {
