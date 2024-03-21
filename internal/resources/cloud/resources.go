@@ -15,6 +15,7 @@ var Resources = []*common.Resource{
 	resourceAccessPolicy(),
 	resourceAccessPolicyToken(),
 	resourceAPIKey(),
+	resourceOrgMember(),
 	resourcePluginInstallation(),
 	resourceStack(),
 	resourceStackAPIKey(),
