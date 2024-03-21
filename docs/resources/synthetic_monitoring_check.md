@@ -829,5 +829,5 @@ resource "grafana_synthetic_monitoring_check" "multihttp" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_synthetic_monitoring_check.name "{{ checkID }}"
+terraform import grafana_synthetic_monitoring_check.name "{{ id }}"
 ```
