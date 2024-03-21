@@ -13,8 +13,10 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
-func resourceHoliday() *schema.Resource {
-	return &schema.Resource{
+var resourceHolidayID = common.NewResourceID(common.StringIDField("id"))
+
+func resourceHoliday() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 A holiday describes time periods where a time series is expected to behave differently to normal.
@@ -101,6 +103,8 @@ resource "grafana_machine_learning_job" "test_job" {
 			},
 		},
 	}
+
+	return common.NewResource("grafana_machine_learning_holiday", resourceHolidayID, schema)
 }
 
 func resourceHolidayCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

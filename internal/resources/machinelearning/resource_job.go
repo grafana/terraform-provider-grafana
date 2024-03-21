@@ -12,8 +12,10 @@ import (
 	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
-func resourceJob() *schema.Resource {
-	return &schema.Resource{
+var resourceJobID = common.NewResourceID(common.StringIDField("id"))
+
+func resourceJob() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 A job defines the queries and model parameters for a machine learning task.
@@ -102,6 +104,8 @@ A job defines the queries and model parameters for a machine learning task.
 			},
 		},
 	}
+
+	return common.NewResource("grafana_machine_learning_job", resourceJobID, schema)
 }
 
 func resourceJobCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

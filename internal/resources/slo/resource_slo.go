@@ -20,8 +20,10 @@ const (
 	QueryTypeThreshold string = "threshold"
 )
 
-func resourceSlo() *schema.Resource {
-	return &schema.Resource{
+var resourceSloID = common.NewResourceID(common.StringIDField("uuid"))
+
+func resourceSlo() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Resource manages Grafana SLOs. 
 
@@ -219,6 +221,8 @@ Resource manages Grafana SLOs.
 			},
 		},
 	}
+
+	return common.NewResource("grafana_slo", resourceSloID, schema)
 }
 
 var keyvalueSchema = &schema.Resource{

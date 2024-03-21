@@ -20,8 +20,8 @@ func checkClient(f func(ctx context.Context, d *schema.ResourceData, meta interf
 
 var DatasourcesMap = map[string]*schema.Resource{}
 
-var ResourcesMap = map[string]*schema.Resource{
-	"grafana_machine_learning_job":              resourceJob(),
-	"grafana_machine_learning_holiday":          resourceHoliday(),
-	"grafana_machine_learning_outlier_detector": resourceOutlierDetector(),
+var Resources = []*common.Resource{
+	resourceJob(),
+	resourceHoliday(),
+	resourceOutlierDetector(),
 }

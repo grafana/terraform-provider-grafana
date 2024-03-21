@@ -16,6 +16,8 @@ import (
 func Resources() []*common.Resource {
 	var resources []*common.Resource
 	resources = append(resources, cloud.Resources...)
+	resources = append(resources, machinelearning.Resources...)
+	resources = append(resources, slo.Resources...)
 	return resources
 }
 
@@ -29,8 +31,6 @@ func resourceMap() map[string]*schema.Resource {
 	return mergeResourceMaps(
 		result,
 		grafana.ResourcesMap,
-		machinelearning.ResourcesMap,
-		slo.ResourcesMap,
 		syntheticmonitoring.ResourcesMap,
 		oncall.ResourcesMap,
 	)
