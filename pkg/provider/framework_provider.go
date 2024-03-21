@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/grafana/terraform-provider-grafana/internal/resources/cloud"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -16,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-type frameworkProviderConfig struct {
+type FrameworkProviderConfig struct {
 	URL              types.String `tfsdk:"url"`
 	Auth             types.String `tfsdk:"auth"`
 	HTTPHeaders      types.Map    `tfsdk:"http_headers"`
@@ -45,7 +46,7 @@ type frameworkProviderConfig struct {
 	UserAgent types.String `tfsdk:"-"`
 }
 
-func (c *frameworkProviderConfig) SetDefaults() error {
+func (c *FrameworkProviderConfig) SetDefaults() error {
 	var err error
 
 	c.URL = envDefaultFuncString(c.URL, "GRAFANA_URL")
@@ -216,7 +217,7 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 
 // Configure prepares a HashiCups API client for data sources and resources.
 func (p *frameworkProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var cfg frameworkProviderConfig
+	var cfg FrameworkProviderConfig
 	resp.Diagnostics.Append(req.Config.Get(ctx, &cfg)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -240,14 +241,13 @@ func (p *frameworkProvider) Configure(ctx context.Context, req provider.Configur
 
 // DataSources defines the data sources implemented in the provider.
 func (p *frameworkProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	// TODO: Implement same thing as legacy_provider_validation.go when adding datasources
 	return nil
 }
 
 // Resources defines the resources implemented in the provider.
 func (p *frameworkProvider) Resources(_ context.Context) []func() resource.Resource {
-	// TODO: Implement same thing as legacy_provider_validation.go when adding resources
-	return nil
+	resources := cloud.PluginFrameworkResources()
+	return resources
 }
 
 // FrameworkProvider returns a terraform-plugin-framework Provider.

@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -15,6 +16,7 @@ var Resources = []*common.Resource{
 	resourceAccessPolicy(),
 	resourceAccessPolicyToken(),
 	resourceAPIKey(),
+	resourceOrgMember(),
 	resourcePluginInstallation(),
 	resourceStack(),
 	resourceStackAPIKey(),
@@ -26,7 +28,24 @@ var Resources = []*common.Resource{
 func ResourcesMap() map[string]*schema.Resource {
 	m := make(map[string]*schema.Resource)
 	for _, r := range Resources {
-		m[r.Name] = r.Schema
+		name := r.Name
+		schema := r.Schema
+		if schema == nil {
+			continue
+		}
+		m[name] = schema
 	}
 	return m
+}
+
+func PluginFrameworkResources() []func() resource.Resource {
+	var resources []func() resource.Resource
+	for _, r := range Resources {
+		resourceSchema := r.PluginFrameworkSchema
+		if resourceSchema == nil {
+			continue
+		}
+		resources = append(resources, func() resource.Resource { return resourceSchema })
+	}
+	return resources
 }

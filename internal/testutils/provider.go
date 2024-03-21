@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 var (
@@ -58,6 +57,9 @@ var (
 		},
 	}
 
+	// ProtoV5ProviderFactories is a static map containing the grafana provider instance
+	ProtoV5ProviderFactories map[string]func() (tfprotov5.ProviderServer, error)
+
 	// Provider is the "main" provider instance
 	//
 	// This Provider can be used in testing code for API calls without requiring
@@ -71,15 +73,56 @@ var (
 func init() {
 	Provider = provider.Provider("testacc")
 
-	// If any acceptance tests are enabled, the test provider must be configured
-	if AccTestsEnabled("TF_ACC") {
-		// Since we are outside the scope of the Terraform configuration we must
-		// call Configure() to properly initialize the provider configuration.
-		err := Provider.Configure(context.Background(), terraform.NewResourceConfigRaw(nil))
-		if err != nil {
-			panic(fmt.Sprintf("failed to configure provider: %v", err))
-		}
+	// Always allocate a new provider instance each invocation, otherwise gRPC
+	// ProviderConfigure() can overwrite configuration during concurrent testing.
+	ProviderFactories = map[string]func() (*schema.Provider, error){
+		"grafana": func() (*schema.Provider, error) {
+			return provider.Provider("testacc"), nil
+		},
 	}
+
+	ProtoV5ProviderFactories = map[string]func() (tfprotov5.ProviderServer, error){
+		"grafana": func() (tfprotov5.ProviderServer, error) {
+			ctx := context.Background()
+			server, err := provider.MakeProviderServer(ctx, "testacc")
+			if err != nil {
+				return nil, err
+			}
+			schemaResp, err := server.GetProviderSchema(ctx, nil)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get provider schema: %v", err)
+			}
+			fields := map[string]tftypes.Value{}
+			for _, v := range schemaResp.Provider.Block.Attributes {
+				fields[v.Name] = tftypes.NewValue(v.Type, nil)
+			}
+			testValue := tftypes.NewValue(schemaResp.Provider.ValueType(), fields)
+			testDynamicValue, err := tfprotov5.NewDynamicValue(schemaResp.Provider.ValueType(), testValue)
+			if err != nil {
+				return nil, err
+			}
+
+			// Configure the provider
+			configureResp, err := server.ConfigureProvider(context.Background(), &tfprotov5.ConfigureProviderRequest{Config: &testDynamicValue})
+			if err != nil || len(configureResp.Diagnostics) > 0 {
+				if err == nil {
+					err = fmt.Errorf("provider configuration failed: %v", configureResp.Diagnostics)
+				}
+				return nil, fmt.Errorf("failed to configure provider: %v", err)
+			}
+			return server, nil
+		},
+	}
+
+	// // If any acceptance tests are enabled, the test provider must be configured
+	// if AccTestsEnabled("TF_ACC") {
+	// 	// Since we are outside the scope of the Terraform configuration we must
+	// 	// call Configure() to properly initialize the provider configuration.
+	// 	err := Provider.Configure(context.Background(), terraform.NewResourceConfigRaw(nil))
+	// 	if err != nil {
+	// 		panic(fmt.Sprintf("failed to configure provider: %v", err))
+	// 	}
+	// }
 }
 
 // TestAccExample returns an example config from the examples directory.

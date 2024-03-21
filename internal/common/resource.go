@@ -7,15 +7,17 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 var allResources = []*Resource{}
 
 type Resource struct {
-	Name   string
-	IDType *ResourceID
-	Schema *schema.Resource
+	Name                  string
+	IDType                *ResourceID
+	Schema                *schema.Resource
+	PluginFrameworkSchema resource.ResourceWithConfigure
 }
 
 func NewResource(name string, idType *ResourceID, schema *schema.Resource) *Resource {
@@ -23,6 +25,16 @@ func NewResource(name string, idType *ResourceID, schema *schema.Resource) *Reso
 		Name:   name,
 		IDType: idType,
 		Schema: schema,
+	}
+	allResources = append(allResources, r)
+	return r
+}
+
+func NewPluginFrameworkResource(name string, idType *ResourceID, schema resource.ResourceWithConfigure) *Resource {
+	r := &Resource{
+		Name:                  name,
+		IDType:                idType,
+		PluginFrameworkSchema: schema,
 	}
 	allResources = append(allResources, r)
 	return r
