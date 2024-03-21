@@ -151,14 +151,7 @@ func Provider(version string) *schema.Provider {
 			},
 		},
 
-		ResourcesMap: mergeResourceMaps(
-			grafana.ResourcesMap,
-			machinelearning.ResourcesMap,
-			slo.ResourcesMap,
-			syntheticmonitoring.ResourcesMap,
-			oncall.ResourcesMap,
-			cloud.ResourcesMap(),
-		),
+		ResourcesMap: resourceMap(),
 
 		DataSourcesMap: mergeResourceMaps(
 			grafana.DatasourcesMap,
@@ -248,14 +241,4 @@ func int64ValueOrNull(d *schema.ResourceData, key string) types.Int64 {
 		return types.Int64Value(int64(v.(int)))
 	}
 	return types.Int64Null()
-}
-
-func mergeResourceMaps(maps ...map[string]*schema.Resource) map[string]*schema.Resource {
-	result := make(map[string]*schema.Resource)
-	for _, m := range maps {
-		for k, v := range m {
-			result[k] = v
-		}
-	}
-	return result
 }

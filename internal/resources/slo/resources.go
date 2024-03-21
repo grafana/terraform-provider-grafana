@@ -25,6 +25,6 @@ var DatasourcesMap = map[string]*schema.Resource{
 	"grafana_slos": datasourceSlo(),
 }
 
-var ResourcesMap = map[string]*schema.Resource{
-	"grafana_slo": resourceSlo(),
+var Resources = []*common.Resource{
+	resourceSlo(),
 }

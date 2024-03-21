@@ -36,3 +36,11 @@ A job defines the queries and model parameters for a machine learning task.
 ### Read-Only
 
 - `id` (String) The ID of the job.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_machine_learning_job.name "{{ id }}"
+```

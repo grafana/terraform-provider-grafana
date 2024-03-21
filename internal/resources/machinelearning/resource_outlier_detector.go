@@ -12,8 +12,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func resourceOutlierDetector() *schema.Resource {
-	return &schema.Resource{
+var resourceOutlierDetectorID = common.NewResourceID(common.StringIDField("id"))
+
+func resourceOutlierDetector() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 An outlier detector monitors the results of a query and reports when its values are outside normal bands.
@@ -120,6 +122,8 @@ Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/
 			},
 		},
 	}
+
+	return common.NewResource("grafana_machine_learning_outlier_detector", resourceOutlierDetectorID, schema)
 }
 
 func resourceOutlierCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
