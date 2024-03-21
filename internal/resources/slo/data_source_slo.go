@@ -25,7 +25,7 @@ Datasource for retrieving all SLOs.
 				Computed:    true,
 				Description: `Returns a list of all SLOs"`,
 				Elem: &schema.Resource{
-					Schema: common.CloneResourceSchemaForDatasource(resourceSlo(), map[string]*schema.Schema{
+					Schema: common.CloneResourceSchemaForDatasource(resourceSlo().Schema, map[string]*schema.Schema{
 						"uuid": {
 							Type:        schema.TypeString,
 							Description: `A unique, random identifier. This value will also be the name of the resource stored in the API server. This value is read-only.`,

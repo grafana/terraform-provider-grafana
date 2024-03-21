@@ -58,3 +58,11 @@ Optional:
 Required:
 
 - `epsilon` (Number) Specify the epsilon parameter (positive float)
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_machine_learning_outlier_detector.name "{{ id }}"
+```
