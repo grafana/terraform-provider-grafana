@@ -21,7 +21,6 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/machinelearning"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/slo"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/syntheticmonitoring"
 	"github.com/grafana/terraform-provider-grafana/v2/pkg/provider"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
@@ -420,7 +419,7 @@ func genGrafanaResources(ctx context.Context, auth, url, stackName string, genPr
 	if strings.HasPrefix(stackName, "stack-") { // TODO: is cloud. Find a better way to detect this
 		resources = append(resources, slo.Resources...)
 		resources = append(resources, machinelearning.Resources...)
-		resources = append(resources, syntheticmonitoring.Resources...)
+		// resources = append(resources, syntheticmonitoring.Resources...)
 	}
 	if err := generateImportBlocks(ctx, client, &cache, resources, outPath, stackName); err != nil {
 		return err
