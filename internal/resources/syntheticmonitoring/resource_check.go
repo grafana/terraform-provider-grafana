@@ -623,10 +623,12 @@ var (
 			},
 		},
 	}
+
+	resourceCheckID = common.NewResourceID(common.IntIDField("id"))
 )
 
-func resourceCheck() *schema.Resource {
-	return &schema.Resource{
+func resourceCheck() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 Synthetic Monitoring checks are tests that run on selected probes at defined
@@ -741,6 +743,8 @@ multiple checks for a single endpoint to check different capabilities.
 			},
 		},
 	}
+
+	return common.NewResource("grafana_synthetic_monitoring_check", resourceCheckID, schema)
 }
 
 func resourceCheckCreate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
@@ -758,11 +762,11 @@ func resourceCheckCreate(ctx context.Context, d *schema.ResourceData, c *smapi.C
 }
 
 func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	id, err := resourceCheckID.Single(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	chk, err := c.GetCheck(ctx, id)
+	chk, err := c.GetCheck(ctx, id.(int64))
 	if err != nil {
 		if strings.Contains(err.Error(), "404 Not Found") {
 			log.Printf("[WARN] removing check %s from state because it no longer exists", d.Id())
@@ -1071,8 +1075,11 @@ func resourceCheckUpdate(ctx context.Context, d *schema.ResourceData, c *smapi.C
 
 func resourceCheckDelete(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	var diags diag.Diagnostics
-	id, _ := strconv.ParseInt(d.Id(), 10, 64)
-	err := c.DeleteCheck(ctx, id)
+	id, err := resourceCheckID.Single(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = c.DeleteCheck(ctx, id.(int64))
 	if err != nil {
 		return diag.FromErr(err)
 	}

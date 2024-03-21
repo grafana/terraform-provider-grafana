@@ -16,9 +16,9 @@ const (
 )
 
 type ResourceIDField struct {
-	Name string
-	Type ResourceIDFieldType
-	// Optional bool // Unimplemented. Will be used for org ID
+	Name     string
+	Type     ResourceIDFieldType
+	Optional bool
 }
 
 func StringIDField(name string) ResourceIDField {
@@ -35,9 +35,35 @@ func IntIDField(name string) ResourceIDField {
 	}
 }
 
+func OptionalStringIDField(name string) ResourceIDField {
+	return ResourceIDField{
+		Name:     name,
+		Type:     ResourceIDFieldTypeString,
+		Optional: true,
+	}
+}
+
+func OptionalIntIDField(name string) ResourceIDField {
+	return ResourceIDField{
+		Name:     name,
+		Type:     ResourceIDFieldTypeInt,
+		Optional: true,
+	}
+}
+
 type ResourceID struct {
 	separators     []string
 	expectedFields []ResourceIDField
+}
+
+func (id *ResourceID) RequiredFields() []ResourceIDField {
+	requiredFields := []ResourceIDField{}
+	for _, f := range id.expectedFields {
+		if !f.Optional {
+			requiredFields = append(requiredFields, f)
+		}
+	}
+	return requiredFields
 }
 
 func NewResourceID(expectedFields ...ResourceIDField) *ResourceID {
@@ -103,12 +129,34 @@ func (id *ResourceID) Single(resourceID string) (any, error) {
 // Split parses a resource ID into its parts
 // The parts will be cast to the expected types
 func (id *ResourceID) Split(resourceID string) ([]any, error) {
-	for _, sep := range id.separators {
+	requiredFields := id.RequiredFields()
+
+	// Try with optional fields
+	parts, err := split(resourceID, id.expectedFields, id.separators)
+	if err == nil {
+		return parts, nil
+	}
+	if len(requiredFields) == len(id.expectedFields) {
+		return nil, err
+	}
+
+	// Try without optional fields
+	parts, err = split(resourceID, requiredFields, id.separators)
+	if err != nil {
+		return nil, err
+	}
+	return parts, nil
+}
+
+// Split parses a resource ID into its parts
+// The parts will be cast to the expected types
+func split(resourceID string, expectedFields []ResourceIDField, separators []string) ([]any, error) {
+	for _, sep := range separators {
 		parts := strings.Split(resourceID, sep)
-		if len(parts) == len(id.expectedFields) {
+		if len(parts) == len(expectedFields) {
 			partsAsAny := make([]any, len(parts))
 			for i, part := range parts {
-				expectedField := id.expectedFields[i]
+				expectedField := expectedFields[i]
 				switch expectedField.Type {
 				case ResourceIDFieldTypeInt:
 					asInt, err := strconv.ParseInt(part, 10, 64)
@@ -125,8 +173,8 @@ func (id *ResourceID) Split(resourceID string) ([]any, error) {
 		}
 	}
 
-	expectedFieldNames := make([]string, len(id.expectedFields))
-	for i, f := range id.expectedFields {
+	expectedFieldNames := make([]string, len(expectedFields))
+	for i, f := range expectedFields {
 		expectedFieldNames[i] = f.Name
 	}
 	return nil, fmt.Errorf("id %q does not match expected format. Should be in the format: %s", resourceID, strings.Join(expectedFieldNames, defaultSeparator))

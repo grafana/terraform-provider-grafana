@@ -17,8 +17,10 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-func resourceProbe() *schema.Resource {
-	return &schema.Resource{
+var resourceProbeID = common.NewResourceID(common.IntIDField("id"), common.OptionalStringIDField("authToken"))
+
+func resourceProbe() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 Besides the public probes run by Grafana Labs, you can also install your
@@ -102,6 +104,8 @@ Grafana Synthetic Monitoring Agent.
 			},
 		},
 	}
+
+	return common.NewResource("grafana_synthetic_monitoring_probe", resourceProbeID, schema)
 }
 
 func resourceProbeCreate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
@@ -117,11 +121,11 @@ func resourceProbeCreate(ctx context.Context, d *schema.ResourceData, c *smapi.C
 }
 
 func resourceProbeRead(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	id, err := resourceProbeID.Single(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	prb, err := c.GetProbe(ctx, id)
+	prb, err := c.GetProbe(ctx, id.(int64))
 	if err != nil {
 		if strings.Contains(err.Error(), "404 Not Found") {
 			log.Printf("[WARN] removing probe %s from state because it no longer exists", d.Id())

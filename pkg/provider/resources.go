@@ -19,6 +19,7 @@ func Resources() []*common.Resource {
 	resources = append(resources, machinelearning.Resources...)
 	resources = append(resources, oncall.Resources...)
 	resources = append(resources, slo.Resources...)
+	resources = append(resources, syntheticmonitoring.Resources...)
 	return resources
 }
 
@@ -32,7 +33,6 @@ func resourceMap() map[string]*schema.Resource {
 	return mergeResourceMaps(
 		result,
 		grafana.ResourcesMap,
-		syntheticmonitoring.ResourcesMap,
 	)
 }
 

@@ -23,11 +23,20 @@ func NewResource(name string, idType *ResourceID, schema *schema.Resource) *Reso
 }
 
 func (r *Resource) ImportExample() string {
-	id := r.IDType
-	fields := make([]string, len(id.expectedFields))
-	for i := range fields {
-		fields[i] = fmt.Sprintf("{{ %s }}", id.expectedFields[i].Name)
+	exampleFromFields := func(fields []ResourceIDField) string {
+		fieldTemplates := make([]string, len(fields))
+		for i := range fields {
+			fieldTemplates[i] = fmt.Sprintf("{{ %s }}", fields[i].Name)
+		}
+		return fmt.Sprintf(`terraform import %s.name %q
+`, r.Name, strings.Join(fieldTemplates, defaultSeparator))
 	}
-	return fmt.Sprintf(`terraform import %s.name %q
-`, r.Name, strings.Join(fields, defaultSeparator))
+
+	id := r.IDType
+	example := exampleFromFields(id.RequiredFields())
+	if len(id.expectedFields) != len(id.RequiredFields()) {
+		example += exampleFromFields(id.expectedFields)
+	}
+
+	return example
 }
