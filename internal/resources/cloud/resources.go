@@ -22,11 +22,3 @@ var Resources = []*common.Resource{
 	resourceStackServiceAccountToken(),
 	resourceSyntheticMonitoringInstallation(),
 }
-
-func ResourcesMap() map[string]*schema.Resource {
-	m := make(map[string]*schema.Resource)
-	for _, r := range Resources {
-		m[r.Name] = r.Schema
-	}
-	return m
-}
