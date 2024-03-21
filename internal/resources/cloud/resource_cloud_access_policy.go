@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"

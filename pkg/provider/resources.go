@@ -3,13 +3,13 @@
 package provider
 
 import (
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/cloud"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/machinelearning"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/oncall"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/slo"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/syntheticmonitoring"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/cloud"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/machinelearning"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/oncall"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/slo"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/syntheticmonitoring"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 

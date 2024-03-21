@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
 var resourceHolidayID = common.NewResourceID(common.StringIDField("id"))

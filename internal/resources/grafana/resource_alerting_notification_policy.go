@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
 func resourceNotificationPolicy() *schema.Resource {

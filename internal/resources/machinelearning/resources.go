@@ -3,7 +3,7 @@ package machinelearning
 import (
 	"context"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )

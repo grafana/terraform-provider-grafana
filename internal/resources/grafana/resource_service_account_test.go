@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 )
 
 func TestAccServiceAccount_basic(t *testing.T) {
