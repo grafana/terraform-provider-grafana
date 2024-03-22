@@ -31,7 +31,7 @@ Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/
 
 ### Optional
 
-- `datasource_id` (Number) The id of the datasource to query.
+- `datasource_id` (Number, Deprecated) The id of the datasource to query.
 - `datasource_uid` (String) The uid of the datasource to query.
 - `description` (String) A description of the outlier detector.
 - `interval` (Number) The data interval in seconds to monitor. Defaults to `300`.
