@@ -49,8 +49,8 @@ var onCallShiftWeekDayOptionsVerbal = strings.Join(onCallShiftWeekDayOptions, ",
 
 var sourceTerraform = 3
 
-func resourceOnCallShift() *schema.Resource {
-	return &schema.Resource{
+func resourceOnCallShift() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/on_call_shifts/)
 `,
@@ -181,6 +181,12 @@ func resourceOnCallShift() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_oncall_on_call_shift",
+		resourceID,
+		schema,
+	)
 }
 
 func resourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {

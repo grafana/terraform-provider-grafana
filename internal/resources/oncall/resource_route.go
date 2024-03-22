@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -21,8 +22,8 @@ var routeTypeOptions = []string{
 
 var routeTypeOptionsVerbal = strings.Join(routeTypeOptions, ", ")
 
-func resourceRoute() *schema.Resource {
-	return &schema.Resource{
+func resourceRoute() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/routes/)
 `,
@@ -128,6 +129,12 @@ func resourceRoute() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_oncall_route",
+		resourceID,
+		schema,
+	)
 }
 
 func resourceRouteCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
