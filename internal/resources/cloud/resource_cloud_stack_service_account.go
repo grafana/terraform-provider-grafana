@@ -9,8 +9,6 @@ import (
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
-	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
-	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -42,7 +40,6 @@ Required access policy scopes:
 
 		CreateContext: withClient[schema.CreateContextFunc](createStackServiceAccount),
 		ReadContext:   withClient[schema.ReadContextFunc](readStackServiceAccount),
-		UpdateContext: withClient[schema.UpdateContextFunc](updateStackServiceAccount),
 		DeleteContext: withClient[schema.DeleteContextFunc](deleteStackServiceAccount),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -56,21 +53,22 @@ Required access policy scopes:
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
 				Description: "The name of the service account.",
+				ForceNew:    true,
 			},
 			"role": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice([]string{"Viewer", "Editor", "Admin"}, false),
 				Description:  "The basic role of the service account in the organization.",
+				ForceNew:     true, // The grafana API does not support updating the service account
 			},
 			"is_disabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				ForceNew:    true,
 				Description: "The disabled status for the service account.",
+				ForceNew:    true, // The grafana API does not support updating the service account
 			},
 		},
 	}
@@ -84,25 +82,21 @@ Required access policy scopes:
 
 func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
 	stackSlug := d.Get("stack_slug").(string)
-	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, stackSlug, "terraform-temp-")
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	defer cleanup()
-
-	req := service_accounts.NewCreateServiceAccountParams().WithBody(&models.CreateServiceAccountForm{
+	req := gcom.PostInstanceServiceAccountsRequest{
 		Name:       d.Get("name").(string),
 		Role:       d.Get("role").(string),
-		IsDisabled: d.Get("is_disabled").(bool),
-	})
-	resp, err := client.ServiceAccounts.CreateServiceAccount(req)
+		IsDisabled: common.Ref(d.Get("is_disabled").(bool)),
+	}
+	resp, _, err := cloudClient.InstancesAPI.PostInstanceServiceAccounts(ctx, stackSlug).
+		PostInstanceServiceAccountsRequest(req).
+		XRequestId(ClientRequestID()).
+		Execute()
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	sa := resp.Payload
 
-	d.SetId(resourceStackServiceAccountID.Make(stackSlug, sa.ID))
-	return readStackServiceAccountWithClient(client, d, sa.ID)
+	d.SetId(resourceStackServiceAccountID.Make(stackSlug, resp.Id))
+	return readStackServiceAccount(ctx, d, cloudClient)
 }
 
 func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
@@ -122,69 +116,22 @@ func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudC
 		stackSlug, serviceAccountID = split[0].(string), split[1].(int64)
 	}
 
-	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, stackSlug, "terraform-temp-")
+	resp, httpResp, err := cloudClient.InstancesAPI.GetInstanceServiceAccount(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).Execute()
+	if httpResp != nil && httpResp.StatusCode == 404 {
+		d.SetId("")
+		return nil
+	}
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	defer cleanup()
 
 	d.Set("stack_slug", stackSlug)
+	d.Set("name", resp.Name)
+	d.Set("role", resp.Role)
+	d.Set("is_disabled", resp.IsDisabled)
 	d.SetId(resourceStackServiceAccountID.Make(stackSlug, serviceAccountID))
-
-	return readStackServiceAccountWithClient(client, d, serviceAccountID)
-}
-
-func readStackServiceAccountWithClient(client *goapi.GrafanaHTTPAPI, d *schema.ResourceData, serviceAccountID int64) diag.Diagnostics {
-	resp, err := client.ServiceAccounts.RetrieveServiceAccount(serviceAccountID)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	sa := resp.Payload
-
-	err = d.Set("name", sa.Name)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = d.Set("role", sa.Role)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	err = d.Set("is_disabled", sa.IsDisabled)
-	if err != nil {
-		return diag.FromErr(err)
-	}
 
 	return nil
-}
-
-func updateStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	split, err := resourceStackServiceAccountID.Split(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	stackSlug, serviceAccountID := split[0].(string), split[1].(int64)
-
-	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, stackSlug, "terraform-temp-")
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	defer cleanup()
-
-	updateRequest := service_accounts.NewUpdateServiceAccountParams().
-		WithBody(&models.UpdateServiceAccountForm{
-			Name:       d.Get("name").(string),
-			Role:       d.Get("role").(string),
-			IsDisabled: d.Get("is_disabled").(bool),
-		}).
-		WithServiceAccountID(serviceAccountID)
-
-	if _, err := client.ServiceAccounts.UpdateServiceAccount(updateRequest); err != nil {
-		return diag.FromErr(err)
-	}
-	d.Set("stack_slug", stackSlug)
-	d.SetId(resourceStackServiceAccountID.Make(stackSlug, serviceAccountID))
-
-	return readStackServiceAccountWithClient(client, d, serviceAccountID)
 }
 
 func deleteStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
@@ -194,13 +141,9 @@ func deleteStackServiceAccount(ctx context.Context, d *schema.ResourceData, clou
 	}
 	stackSlug, serviceAccountID := split[0].(string), split[1].(int64)
 
-	client, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, stackSlug, "terraform-temp-")
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	defer cleanup()
-
-	_, err = client.ServiceAccounts.DeleteServiceAccount(serviceAccountID)
+	_, err = cloudClient.InstancesAPI.DeleteInstanceServiceAccount(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).
+		XRequestId(ClientRequestID()).
+		Execute()
 	return diag.FromErr(err)
 }
 
