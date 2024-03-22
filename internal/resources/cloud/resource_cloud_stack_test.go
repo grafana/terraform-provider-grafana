@@ -231,8 +231,8 @@ func testAccStackCheckDestroy(a *gcom.FormattedApiInstance) resource.TestCheckFu
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 		stack, _, err := client.InstancesAPI.GetInstance(context.Background(), a.Slug).Execute()
-		if err == nil && stack.Name != "" {
-			return fmt.Errorf("stack `%s` with ID `%d` still exists after destroy", stack.Name, int(stack.Id))
+		if err == nil && stack.Name != "" && stack.Status != "deleting" {
+			return fmt.Errorf("stack `%s` with ID `%d` still exists after destroy. Status: %s", stack.Name, int(stack.Id), stack.Status)
 		}
 
 		return nil
