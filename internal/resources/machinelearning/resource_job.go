@@ -54,6 +54,7 @@ A job defines the queries and model parameters for a machine learning task.
 				Description: "The id of the datasource to query.",
 				Type:        schema.TypeInt,
 				Optional:    true,
+				Deprecated:  "Use datasource_uid instead.",
 			},
 			"datasource_uid": {
 				Description: "The uid of the datasource to query.",

@@ -59,6 +59,7 @@ Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/
 				Type:         schema.TypeInt,
 				Optional:     true,
 				ExactlyOneOf: []string{"datasource_uid"},
+				Deprecated:   "Use datasource_uid instead.",
 			},
 			"datasource_uid": {
 				Description: "The uid of the datasource to query.",
