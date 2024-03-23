@@ -9,10 +9,10 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/access_control"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-func ResourceRole() *schema.Resource {
+func resourceRole() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 **Note:** This resource is available only with Grafana Enterprise 8.+.

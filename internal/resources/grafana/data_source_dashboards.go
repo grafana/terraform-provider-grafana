@@ -6,12 +6,12 @@ import (
 	"fmt"
 
 	"github.com/grafana/grafana-openapi-client-go/client/search"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DatasourceDashboards() *schema.Resource {
+func datasourceDashboards() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 Datasource for retrieving all dashboards. Specify list of folder IDs to search in for dashboards.

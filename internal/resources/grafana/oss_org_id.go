@@ -7,7 +7,7 @@ import (
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 

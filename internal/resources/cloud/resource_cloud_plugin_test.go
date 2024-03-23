@@ -3,11 +3,12 @@ package cloud_test
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -18,12 +19,12 @@ func TestAccResourcePluginInstallation(t *testing.T) {
 	var stack gcom.FormattedApiInstance
 	stackPrefix := "tfplugin"
 	stackSlug := GetRandomStackName(stackPrefix)
-	pluginSlug := "aws-datasource-provisioner-app"
-	pluginVersion := "1.7.0"
+	pluginSlug := "grafana-googlesheets-datasource" // TODO: Add datasource to find a plugin and use that
+	pluginVersion := "1.2.5"
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:          func() { testAccDeleteExistingStacks(t, stackPrefix) },
-		ProviderFactories: testutils.ProviderFactories,
+		PreCheck:                 func() { testAccDeleteExistingStacks(t, stackPrefix) },
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGrafanaCloudPluginInstallation(stackSlug, pluginSlug, pluginVersion),
@@ -32,13 +33,34 @@ func TestAccResourcePluginInstallation(t *testing.T) {
 					testAccCloudPluginInstallationCheckExists(stackSlug, pluginSlug),
 					resource.TestCheckResourceAttrSet("grafana_cloud_plugin_installation.test-installation", "id"),
 					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation", "stack_slug", stackSlug),
-					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation", "slug", "aws-datasource-provisioner-app"),
-					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation", "version", "1.7.0")),
+					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation", "slug", "grafana-googlesheets-datasource"),
+					resource.TestCheckResourceAttr("grafana_cloud_plugin_installation.test-installation", "version", "1.2.5")),
 			},
 			{
 				ResourceName:      "grafana_cloud_plugin_installation.test-installation",
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+			// Import with different ID formats (Legacy and current)
+			{
+				ResourceName:      "grafana_cloud_plugin_installation.test-installation",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId:     fmt.Sprintf("%s_%s", stackSlug, pluginSlug),
+			},
+			{
+				ResourceName:      "grafana_cloud_plugin_installation.test-installation",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId:     fmt.Sprintf("%s:%s", stackSlug, pluginSlug),
+			},
+			// Test import with invalid ID
+			{
+				ResourceName:      "grafana_cloud_plugin_installation.test-installation",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId:     "noseparator",
+				ExpectError:       regexp.MustCompile("Error: id \"noseparator\" does not match expected format. Should be in the format: stackSlug:pluginSlug"),
 			},
 			// Test deletion (stack must keep existing to really test deletion)
 			{
@@ -55,7 +77,7 @@ func TestAccResourcePluginInstallation(t *testing.T) {
 
 func testAccCloudPluginInstallationCheckExists(stackSlug string, pluginSlug string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPIOpenAPI
+		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 		_, _, err := client.InstancesAPI.GetInstancePlugin(context.Background(), stackSlug, pluginSlug).Execute()
 		if err != nil {
 			return fmt.Errorf("error getting installation: %s", err)

@@ -13,10 +13,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	sm "github.com/grafana/synthetic-monitoring-agent/pkg/pb/synthetic_monitoring"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-func ResourceProbe() *schema.Resource {
+func resourceProbe() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
@@ -28,10 +29,10 @@ Grafana Synthetic Monitoring Agent.
 * [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/private-probes/)
 `,
 
-		CreateContext: ResourceProbeCreate,
-		ReadContext:   ResourceProbeRead,
-		UpdateContext: ResourceProbeUpdate,
-		DeleteContext: ResourceProbeDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceProbeCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceProbeRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceProbeUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceProbeDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: ImportProbeStateWithToken,
 		},
@@ -103,8 +104,7 @@ Grafana Synthetic Monitoring Agent.
 	}
 }
 
-func ResourceProbeCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).SMAPI
+func resourceProbeCreate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	p := makeProbe(d)
 	res, token, err := c.AddProbe(ctx, *p)
 	if err != nil {
@@ -113,11 +113,10 @@ func ResourceProbeCreate(ctx context.Context, d *schema.ResourceData, meta inter
 	d.SetId(strconv.FormatInt(res.Id, 10))
 	d.Set("tenant_id", res.TenantId)
 	d.Set("auth_token", base64.StdEncoding.EncodeToString(token))
-	return ResourceProbeRead(ctx, d, meta)
+	return resourceProbeRead(ctx, d, c)
 }
 
-func ResourceProbeRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).SMAPI
+func resourceProbeRead(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -151,26 +150,41 @@ func ResourceProbeRead(ctx context.Context, d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func ResourceProbeUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).SMAPI
+func resourceProbeUpdate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	p := makeProbe(d)
 	_, err := c.UpdateProbe(ctx, *p)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	return ResourceProbeRead(ctx, d, meta)
+	return resourceProbeRead(ctx, d, c)
 }
 
-func ResourceProbeDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).SMAPI
-	var diags diag.Diagnostics
+func resourceProbeDelete(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	id, _ := strconv.ParseInt(d.Id(), 10, 64)
-	err := c.DeleteProbe(ctx, id)
+
+	// Remove the probe from any checks that use it.
+	checks, err := c.ListChecks(ctx)
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	for _, check := range checks {
+		for i, probeID := range check.Probes {
+			if probeID == id {
+				if len(check.Probes) == 1 {
+					return diag.Errorf(`could not delete probe %d. It is the only probe for check %q.
+You must also taint the check, or assign a new probe to it before deleting this probe.`, id, check.Job)
+				}
+				check.Probes = append(check.Probes[:i], check.Probes[i+1:]...)
+				if _, err := c.UpdateCheck(ctx, check); err != nil {
+					return diag.Errorf(`error while deleting probe %d, failed to remove it from check %q: %s.`, id, check.Job, err)
+				}
+				break
+			}
+		}
+	}
+
 	d.SetId("")
-	return diags
+	return diag.FromErr(c.DeleteProbe(ctx, id))
 }
 
 // makeProbe populates an instance of sm.Probe. We need this for create and

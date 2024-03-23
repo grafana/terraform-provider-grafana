@@ -10,9 +10,9 @@ import (
 
 	"github.com/grafana/grafana-openapi-client-go/models"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -26,7 +26,7 @@ func TestAccFolder_basic(t *testing.T) {
 	var folderWithUID models.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			folderCheckExists.destroyed(&folder, nil),
 			folderCheckExists.destroyed(&folderWithUID, nil),
@@ -98,7 +98,7 @@ func TestAccFolder_basic(t *testing.T) {
 }
 
 func TestAccFolder_nested(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Switch to OSS once nested folders are enabled by default
+	testutils.CheckOSSTestsEnabled(t, ">=10.3.0")
 
 	var parentFolder models.Folder
 	var childFolder1 models.Folder
@@ -106,7 +106,7 @@ func TestAccFolder_nested(t *testing.T) {
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			folderCheckExists.destroyed(&parentFolder, nil),
 			folderCheckExists.destroyed(&childFolder1, nil),
@@ -176,7 +176,7 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 	var folder models.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFolderExample_PreventDeletion(name, true), // Create protected folder
@@ -263,8 +263,8 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 
 			// Do not make parallel, fiddling with auth will break other tests that run in parallel
 			resource.Test(t, resource.TestCase{
-				ProviderFactories: testutils.ProviderFactories,
-				CheckDestroy:      folderCheckExists.destroyed(&folder, nil),
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				CheckDestroy:             folderCheckExists.destroyed(&folder, nil),
 				Steps: []resource.TestStep{
 					{
 						Config:      config,

@@ -25,7 +25,7 @@ A job defines the queries and model parameters for a machine learning task.
 ### Optional
 
 - `custom_labels` (Map of String) An object representing the custom labels added on the forecast.
-- `datasource_id` (Number) The id of the datasource to query.
+- `datasource_id` (Number, Deprecated) The id of the datasource to query.
 - `datasource_uid` (String) The uid of the datasource to query.
 - `description` (String) A description of the job.
 - `holidays` (List of String) A list of holiday IDs or names to take into account when training the model.
@@ -36,3 +36,11 @@ A job defines the queries and model parameters for a machine learning task.
 ### Read-Only
 
 - `id` (String) The ID of the job.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_machine_learning_job.name "{{ id }}"
+```

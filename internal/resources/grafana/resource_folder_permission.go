@@ -9,12 +9,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
 const foldersPermissionsType = "folders"
 
-func ResourceFolderPermission() *schema.Resource {
+func resourceFolderPermission() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
@@ -127,6 +127,12 @@ func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta i
 
 func ReadFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID, folderUID := OAPIClientFromExistingOrgResource(meta, d.Id())
+
+	// Check if the folder still exists
+	_, err := client.Folders.GetFolderByUID(folderUID)
+	if err, shouldReturn := common.CheckReadError("folder", d, err); shouldReturn {
+		return err
+	}
 
 	resp, err := client.AccessControl.GetResourcePermissions(folderUID, foldersPermissionsType)
 	if err, shouldReturn := common.CheckReadError("folder permissions", d, err); shouldReturn {

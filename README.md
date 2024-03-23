@@ -39,15 +39,6 @@ provider_installation {
 ```
 2. Run `go build` in this directory to get the binary, Terraform will use the binary you just built (it should print out a warning)
 
-## Testing the `grafana-api-golang-client` Together with the Terraform Provider
-As for testing the client, make a branch and open the provider PR with a `TODO:` to remove the replace operator, because the best way to test the changes you just made in the client is to integrate everything in the provider
-
-1. create a branch `api-client-branchname` with your changes
-2. modify the provider `go.mod`: 
- - replace github.com/grafana/grafana-api-golang-client => github.com/grafana/grafana-api-golang-client <api-client-branchname>
-3. run `go mod tidy` in this directory
-4. pushing allows you to run the provider tests in CI
-
 ### Running Tests
 
 Acceptance tests require a running instance of Grafana. You can either handle

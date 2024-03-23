@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
 var provenanceDisabled = "disabled"
@@ -44,12 +44,12 @@ var notifiers = []notifier{
 	wecomNotifier{},
 }
 
-func ResourceContactPoint() *schema.Resource {
+func resourceContactPoint() *schema.Resource {
 	resource := &schema.Resource{
 		Description: `
 Manages Grafana Alerting contact points.
 
-* [Official documentation](https://grafana.com/docs/grafana/next/alerting/fundamentals/contact-points/)
+* [Official documentation](https://grafana.com/docs/grafana/next/alerting/fundamentals/notifications/contact-points/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#contact-points)
 
 This resource requires Grafana 9.1.0 or later.
@@ -160,14 +160,11 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 
 	ps := unpackContactPoints(data)
 
+	// Update + create notifiers
 	for i := range ps {
 		p := ps[i]
-		if p.deleted {
-			uid := p.tfState["uid"].(string)
-			// If the contact point is not in the proposed state, delete it.
-			if _, err := client.Provisioning.DeleteContactpoints(uid); err != nil {
-				return diag.Errorf("failed to remove contact point notifier with UID %s from contact point %s: %v", uid, data.Id(), err)
-			}
+
+		if p.deleted { // We'll handle deletions later
 			continue
 		}
 
@@ -207,6 +204,19 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 		// Since this is a new resource, the proposed state won't have a UID.
 		// We need the UID so that we can later associate it with the config returned in the api response.
 		ps[i].tfState["uid"] = uid
+	}
+
+	// Delete notifiers
+	for _, p := range ps {
+		if !p.deleted {
+			continue
+		}
+		uid := p.tfState["uid"].(string)
+		// If the contact point is not in the proposed state, delete it.
+		if _, err := client.Provisioning.DeleteContactpoints(uid); err != nil {
+			return diag.Errorf("failed to remove contact point notifier with UID %s from contact point %s: %v", uid, data.Id(), err)
+		}
+		continue
 	}
 
 	data.SetId(MakeOrgResourceID(orgID, data.Get("name").(string)))

@@ -4,17 +4,16 @@ import (
 	"context"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DataSourceEscalationChain() *schema.Resource {
+func dataSourceEscalationChain() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/escalation_chains/)
 `,
-		ReadContext: dataSourceEscalationChainRead,
+		ReadContext: withClient[schema.ReadContextFunc](dataSourceEscalationChainRead),
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -25,8 +24,7 @@ func DataSourceEscalationChain() *schema.Resource {
 	}
 }
 
-func dataSourceEscalationChainRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func dataSourceEscalationChainRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.ListEscalationChainOptions{}
 	nameData := d.Get("name").(string)
 

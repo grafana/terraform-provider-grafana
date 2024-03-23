@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
@@ -17,8 +17,8 @@ func TestAccGrafanaAuthKey_basic(t *testing.T) {
 	testName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      apiKeyCheckExists.destroyed(&apiKey, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             apiKeyCheckExists.destroyed(&apiKey, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGrafanaAuthKeyConfig(testName, "Admin", 0, false),
@@ -55,8 +55,8 @@ func TestAccGrafanaAuthKey_inOrg(t *testing.T) {
 	testName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGrafanaAuthKeyConfig(testName, "Admin", 0, true),

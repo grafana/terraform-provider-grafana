@@ -4,16 +4,16 @@ import (
 	"context"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DatasourceDatasource() *schema.Resource {
+func datasourceDatasource() *schema.Resource {
 	return &schema.Resource{
 		Description: "Get details about a Grafana Datasource querying by either name, uid or ID",
 		ReadContext: datasourceDatasourceRead,
-		Schema: common.CloneResourceSchemaForDatasource(ResourceDataSource(), map[string]*schema.Schema{
+		Schema: common.CloneResourceSchemaForDatasource(resourceDataSource(), map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"id": {
 				Type:         schema.TypeString,

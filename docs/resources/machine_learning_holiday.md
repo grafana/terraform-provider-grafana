@@ -60,3 +60,11 @@ Required:
 Optional:
 
 - `name` (String) The name of the custom period.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_machine_learning_holiday.name "{{ id }}"
+```

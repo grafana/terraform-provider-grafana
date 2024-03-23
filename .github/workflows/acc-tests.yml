@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - master
 
 # These permissions are needed to assume roles from Github's OIDC.
 permissions:
@@ -12,6 +11,18 @@ permissions:
   id-token: write
 
 jobs:
+  # Tests that Terraform can actually install and use the provider
+  # Ex: https://github.com/grafana/terraform-provider-grafana/issues/1372
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: 
+          go-version: '1.21'
+      - uses: hashicorp/setup-terraform@v3
+      - run: make integration-test
+
   cloudinstance:
     concurrency: cloud-instance
     runs-on: ubuntu-latest
@@ -72,9 +83,6 @@ jobs:
         with: 
           go-version: '1.21'
       - uses: hashicorp/setup-terraform@v3
-      - uses: KengoTODA/actions-setup-docker-compose@v1
-        with:
-          version: '2.23.0'
       - name: Get Enterprise License
         uses: grafana/shared-workflows/actions/get-vault-secrets@main
         if: matrix.type == 'enterprise'
@@ -82,7 +90,7 @@ jobs:
           repo_secrets: |
             GF_ENTERPRISE_LICENSE_TEXT=enterprise:license
       - name: Cache Docker image
-        uses: ScribeMD/docker-cache@0.3.7
+        uses: ScribeMD/docker-cache@0.4.0
         with:
           key: docker-${{ runner.os }}-${{ matrix.type == 'enterprise' && 'enterprise' || 'oss' }}-${{ matrix.version }}
       - run: make testacc-${{ matrix.type }}-docker

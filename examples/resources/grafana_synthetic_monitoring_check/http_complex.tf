@@ -77,11 +77,11 @@ EOS
       ]
 
       fail_if_body_matches_regexp = [
-        "*bad stuff*",
+        ".*bad stuff.*",
       ]
 
       fail_if_body_not_matches_regexp = [
-        "*good stuff*",
+        ".*good stuff.*",
       ]
 
       fail_if_header_matches_regexp {

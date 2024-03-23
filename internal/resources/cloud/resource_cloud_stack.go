@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
@@ -23,19 +23,28 @@ import (
 
 const defaultReadinessTimeout = time.Minute * 5
 
-var stackSlugRegex = regexp.MustCompile("^[a-z][a-z0-9]+$")
+var (
+	stackLabelRegex = regexp.MustCompile(`^[a-zA-Z0-9/\-.]+$`)
+	stackSlugRegex  = regexp.MustCompile(`^[a-z][a-z0-9]+$`)
+	resourceStackID = common.NewResourceID(common.StringIDField("stackSlugOrID"))
+)
 
-func ResourceStack() *schema.Resource {
-	return &schema.Resource{
-
+func resourceStack() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#stacks/)
+
+Required access policy scopes:
+
+* stacks:read
+* stacks:write
+* stacks:delete
 `,
 
-		CreateContext: CreateStack,
-		UpdateContext: UpdateStack,
-		DeleteContext: DeleteStack,
-		ReadContext:   ReadStack,
+		CreateContext: withClient[schema.CreateContextFunc](createStack),
+		UpdateContext: withClient[schema.UpdateContextFunc](updateStack),
+		DeleteContext: withClient[schema.DeleteContextFunc](deleteStack),
+		ReadContext:   withClient[schema.ReadContextFunc](readStack),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -49,7 +58,7 @@ func ResourceStack() *schema.Resource {
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Name of stack. Conventionally matches the url of the instance (e.g. “<stack_slug>.grafana.net”).",
+				Description: "Name of stack. Conventionally matches the url of the instance (e.g. `<stack_slug>.grafana.net`).",
 			},
 			"description": {
 				Type:        schema.TypeString,
@@ -59,9 +68,8 @@ func ResourceStack() *schema.Resource {
 			"slug": {
 				Type:     schema.TypeString,
 				Required: true,
-				Description: `
-Subdomain that the Grafana instance will be available at (i.e. setting slug to “<stack_slug>” will make the instance
-available at “https://<stack_slug>.grafana.net".`,
+				Description: "Subdomain that the Grafana instance will be available at. " +
+					"Setting slug to `<stack_slug>` will make the instance available at `https://<stack_slug>.grafana.net`.",
 				ValidateFunc: validation.All(
 					validation.StringMatch(stackSlugRegex, "must be a lowercase alphanumeric string and must start with a letter."),
 					validation.StringLenBetween(1, 29),
@@ -78,9 +86,13 @@ available at “https://<stack_slug>.grafana.net".`,
 			},
 			"url": {
 				Type:        schema.TypeString,
-				Computed:    true,
 				Optional:    true,
 				Description: "Custom URL for the Grafana instance. Must have a CNAME setup to point to `.grafana.net` before creating the stack",
+				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+					return oldValue == newValue ||
+						// No diff if we're using the default URL
+						(oldValue == defaultStackURL(d.Get("slug").(string)) && newValue == "")
+				},
 			},
 			"wait_for_readiness": {
 				Type:        schema.TypeBool,
@@ -101,135 +113,72 @@ available at “https://<stack_slug>.grafana.net".`,
 				},
 				Description: "How long to wait for readiness (if enabled).",
 			},
-			"org_id": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "Organization id to assign to this stack.",
-			},
-			"org_slug": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Organization slug to assign to this stack.",
-			},
-			"org_name": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Organization name to assign to this stack.",
-			},
-			"status": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Status of the stack.",
-			},
-
-			// Hosted Metrics
-			"prometheus_user_id": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "Prometheus user ID. Used for e.g. remote_write.",
-			},
-			"prometheus_url": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Prometheus url for this instance.",
-			},
-			"prometheus_name": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Prometheus name for this instance.",
-			},
-			"prometheus_remote_endpoint": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Use this URL to query hosted metrics data e.g. Prometheus data source in Grafana",
-			},
-			"prometheus_remote_write_endpoint": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Use this URL to send prometheus metrics to Grafana cloud",
-			},
-			"prometheus_status": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Prometheus status for this instance.",
+			"org_id":   common.ComputedIntWithDescription("Organization id to assign to this stack."),
+			"org_slug": common.ComputedStringWithDescription("Organization slug to assign to this stack."),
+			"org_name": common.ComputedStringWithDescription("Organization name to assign to this stack."),
+			"status":   common.ComputedStringWithDescription("Status of the stack."),
+			"labels": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: fmt.Sprintf("A map of labels to assign to the stack. Label keys and values must match the following regexp: %q and stacks cannot have more than 10 labels.", stackLabelRegex.String()),
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				ValidateFunc: func(i interface{}, s string) ([]string, []error) {
+					labels := i.(map[string]interface{})
+					if len(labels) > 10 {
+						return nil, []error{fmt.Errorf("stacks cannot have more than 10 labels")}
+					}
+					for k, v := range labels {
+						if !stackLabelRegex.MatchString(k) {
+							return nil, []error{fmt.Errorf("label key %q does not match %q", k, stackLabelRegex.String())}
+						}
+						if !stackLabelRegex.MatchString(v.(string)) {
+							return nil, []error{fmt.Errorf("label value %q does not match %q", v, stackLabelRegex.String())}
+						}
+					}
+					return nil, nil
+				},
 			},
 
-			// Alerting
-			"alertmanager_user_id": {
-				Type:        schema.TypeInt,
-				Computed:    true,
-				Description: "User ID of the Alertmanager instance configured for this stack.",
-			},
-			"alertmanager_name": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Name of the Alertmanager instance configured for this stack.",
-			},
-			"alertmanager_url": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Base URL of the Alertmanager instance configured for this stack.",
-			},
-			"alertmanager_status": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Status of the Alertmanager instance configured for this stack.",
-			},
+			// Metrics (Mimir/Prometheus)
+			"prometheus_user_id":               common.ComputedIntWithDescription("Prometheus user ID. Used for e.g. remote_write."),
+			"prometheus_url":                   common.ComputedStringWithDescription("Prometheus url for this instance."),
+			"prometheus_name":                  common.ComputedStringWithDescription("Prometheus name for this instance."),
+			"prometheus_remote_endpoint":       common.ComputedStringWithDescription("Use this URL to query hosted metrics data e.g. Prometheus data source in Grafana"),
+			"prometheus_remote_write_endpoint": common.ComputedStringWithDescription("Use this URL to send prometheus metrics to Grafana cloud"),
+			"prometheus_status":                common.ComputedStringWithDescription("Prometheus status for this instance."),
 
-			// Hosted Logs
-			"logs_user_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-			"logs_name": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"logs_url": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"logs_status": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
+			// Alertmanager
+			"alertmanager_user_id": common.ComputedIntWithDescription("User ID of the Alertmanager instance configured for this stack."),
+			"alertmanager_name":    common.ComputedStringWithDescription("Name of the Alertmanager instance configured for this stack."),
+			"alertmanager_url":     common.ComputedStringWithDescription("Base URL of the Alertmanager instance configured for this stack."),
+			"alertmanager_status":  common.ComputedStringWithDescription("Status of the Alertmanager instance configured for this stack."),
 
-			// Traces
-			"traces_user_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-			"traces_name": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"traces_url": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Base URL of the Traces instance configured for this stack. To use this in the Tempo data source in Grafana, append `/tempo` to the URL.",
-			},
-			"traces_status": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
+			// Logs (Loki)
+			"logs_user_id": common.ComputedInt(),
+			"logs_name":    common.ComputedString(),
+			"logs_url":     common.ComputedString(),
+			"logs_status":  common.ComputedString(),
+
+			// Traces (Tempo)
+			"traces_user_id": common.ComputedInt(),
+			"traces_name":    common.ComputedString(),
+			"traces_url":     common.ComputedStringWithDescription("Base URL of the Traces instance configured for this stack. To use this in the Tempo data source in Grafana, append `/tempo` to the URL."),
+			"traces_status":  common.ComputedString(),
+
+			// Profiles (Pyroscope)
+			"profiles_user_id": common.ComputedInt(),
+			"profiles_name":    common.ComputedString(),
+			"profiles_url":     common.ComputedString(),
+			"profiles_status":  common.ComputedString(),
 
 			// Graphite
-			"graphite_user_id": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-			"graphite_name": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"graphite_url": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"graphite_status": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
+			"graphite_user_id": common.ComputedInt(),
+			"graphite_name":    common.ComputedString(),
+			"graphite_url":     common.ComputedString(),
+			"graphite_status":  common.ComputedString(),
+
+			// OTLP
+			"otlp_url": common.ComputedStringWithDescription("Base URL of the OTLP instance configured for this stack. See https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/ for docs on how to use this."),
 		},
 		CustomizeDiff: customdiff.All(
 			customdiff.ComputedIf("url", func(_ context.Context, diff *schema.ResourceDiff, meta interface{}) bool {
@@ -249,17 +198,22 @@ available at “https://<stack_slug>.grafana.net".`,
 			}),
 		),
 	}
+
+	return common.NewResource(
+		"grafana_cloud_stack",
+		resourceStackID,
+		schema,
+	)
 }
 
-func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
-
+func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	stack := gcom.PostInstancesRequest{
 		Name:        d.Get("name").(string),
 		Slug:        common.Ref(d.Get("slug").(string)),
 		Url:         common.Ref(d.Get("url").(string)),
 		Region:      common.Ref(d.Get("region_slug").(string)),
 		Description: common.Ref(d.Get("description").(string)),
+		Labels:      common.Ref(common.UnpackMap[string](d.Get("labels"))),
 	}
 
 	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
@@ -282,7 +236,7 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 				return nil
 			}
 			time.Sleep(10 * time.Second) // Do not retry too fast, default is 500ms
-			return retry.RetryableError(fmt.Errorf("failed to create stack: %v", err))
+			return retry.RetryableError(fmt.Errorf("failed to create stack: %w", err))
 		default:
 			d.SetId(strconv.FormatInt(int64(createdStack.Id), 10))
 		}
@@ -292,53 +246,63 @@ func CreateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) 
 		return apiError(err)
 	}
 
-	if diag := ReadStack(ctx, d, meta); diag != nil {
+	if diag := readStack(ctx, d, client); diag != nil {
 		return diag
 	}
 
 	return waitForStackReadiness(ctx, d)
 }
 
-func UpdateStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
-
-	// The underlying API only allows to update the name, slug, url and description.
-	allowedChanges := []string{"name", "description", "slug", "url"}
-	if d.HasChangesExcept(allowedChanges...) {
-		return diag.Errorf("Error: Only name, slug, url and description can be updated.")
+func updateStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	id, err := resourceStackID.Single(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
-	if d.HasChange("name") || d.HasChange("description") || d.HasChanges("slug") || d.HasChanges("url") {
-		stack := gcom.PostInstanceRequest{
-			Name:        common.Ref(d.Get("name").(string)),
-			Slug:        common.Ref(d.Get("slug").(string)),
-			Description: common.Ref(d.Get("description").(string)),
-			Url:         common.Ref(d.Get("url").(string)),
-		}
-		req := client.InstancesAPI.PostInstance(ctx, d.Id()).PostInstanceRequest(stack).XRequestId(ClientRequestID())
-		_, _, err := req.Execute()
-		if err != nil {
-			return apiError(err)
-		}
+	// Default to the slug if the URL is not set
+	url := d.Get("url").(string)
+	if url == "" {
+		url = defaultStackURL(d.Get("slug").(string))
 	}
 
-	if diag := ReadStack(ctx, d, meta); diag != nil {
+	stack := gcom.PostInstanceRequest{
+		Name:        common.Ref(d.Get("name").(string)),
+		Slug:        common.Ref(d.Get("slug").(string)),
+		Description: common.Ref(d.Get("description").(string)),
+		Url:         &url,
+		Labels:      common.Ref(common.UnpackMap[string](d.Get("labels"))),
+	}
+	req := client.InstancesAPI.PostInstance(ctx, id.(string)).PostInstanceRequest(stack).XRequestId(ClientRequestID())
+	_, _, err = req.Execute()
+	if err != nil {
+		return apiError(err)
+	}
+
+	if diag := readStack(ctx, d, client); diag != nil {
 		return diag
 	}
 
 	return waitForStackReadiness(ctx, d)
 }
 
-func DeleteStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
-	req := client.InstancesAPI.DeleteInstance(ctx, d.Id()).XRequestId(ClientRequestID())
-	_, _, err := req.Execute()
+func deleteStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	id, err := resourceStackID.Single(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	req := client.InstancesAPI.DeleteInstance(ctx, id.(string)).XRequestId(ClientRequestID())
+	_, _, err = req.Execute()
 	return apiError(err)
 }
 
-func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
-	req := client.InstancesAPI.GetInstance(ctx, d.Id())
+func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	id, err := resourceStackID.Single(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	req := client.InstancesAPI.GetInstance(ctx, id.(string))
 	stack, _, err := req.Execute()
 	if err, shouldReturn := common.CheckReadError("stack", d, err); shouldReturn {
 		return err
@@ -350,17 +314,26 @@ func ReadStack(ctx context.Context, d *schema.ResourceData, meta interface{}) di
 		return nil
 	}
 
-	if err := FlattenStack(d, stack); err != nil {
+	connectionsReq := client.InstancesAPI.GetConnections(ctx, id.(string))
+	connections, _, err := connectionsReq.Execute()
+	if err != nil {
+		return apiError(err)
+	}
+
+	if err := flattenStack(d, stack, connections); err != nil {
 		return diag.FromErr(err)
 	}
 	// Always set the wait attribute to true after creation
 	// It no longer matters and this will prevent drift if the stack was imported
-	d.Set("wait_for_readiness", true)
+	// The "if" condition is here to allow using the same Read function for the data source
+	if v, ok := d.GetOk("wait_for_readiness"); ok && !v.(bool) {
+		d.Set("wait_for_readiness", true)
+	}
 
 	return nil
 }
 
-func FlattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance) error {
+func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, connections *gcom.FormattedApiInstanceConnections) error {
 	id := strconv.FormatInt(int64(stack.Id), 10)
 	d.SetId(id)
 	d.Set("name", stack.Name)
@@ -369,6 +342,7 @@ func FlattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance) erro
 	d.Set("status", stack.Status)
 	d.Set("region_slug", stack.RegionSlug)
 	d.Set("description", stack.Description)
+	d.Set("labels", stack.Labels)
 
 	d.Set("org_id", stack.OrgId)
 	d.Set("org_slug", stack.OrgSlug)
@@ -404,10 +378,19 @@ func FlattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance) erro
 	d.Set("traces_url", stack.HtInstanceUrl)
 	d.Set("traces_status", stack.HtInstanceStatus)
 
+	d.Set("profiles_user_id", stack.HpInstanceId)
+	d.Set("profiles_name", stack.HpInstanceName)
+	d.Set("profiles_url", stack.HpInstanceUrl)
+	d.Set("profiles_status", stack.HpInstanceStatus)
+
 	d.Set("graphite_user_id", stack.HmInstanceGraphiteId)
 	d.Set("graphite_name", stack.HmInstanceGraphiteName)
 	d.Set("graphite_url", stack.HmInstanceGraphiteUrl)
 	d.Set("graphite_status", stack.HmInstanceGraphiteStatus)
+
+	if otlpURL := connections.OtlpHttpUrl; otlpURL.IsSet() {
+		d.Set("otlp_url", otlpURL.Get())
+	}
 
 	return nil
 }
@@ -464,4 +447,8 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 	}
 
 	return nil
+}
+
+func defaultStackURL(slug string) string {
+	return fmt.Sprintf("https://%s.grafana.net", slug)
 }

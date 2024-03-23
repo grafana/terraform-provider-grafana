@@ -11,12 +11,12 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/access_control"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
 const datasourcesPermissionsType = "datasources"
 
-func ResourceDatasourcePermission() *schema.Resource {
+func resourceDatasourcePermission() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `

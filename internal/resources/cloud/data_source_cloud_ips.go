@@ -10,10 +10,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DataSourceIPs() *schema.Resource {
+func datasourceIPs() *schema.Resource {
 	return &schema.Resource{
 		Description: "Data source for retrieving sets of cloud IPs. See https://grafana.com/docs/grafana-cloud/reference/allow-list/ for more info",
-		ReadContext: DataSourceIPsRead,
+		ReadContext: datasourceIPsRead,
 		Schema: map[string]*schema.Schema{
 			"hosted_alerts": {
 				Description: "Set of IP addresses that are used for hosted alerts.",
@@ -59,7 +59,7 @@ func DataSourceIPs() *schema.Resource {
 	}
 }
 
-func DataSourceIPsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func datasourceIPsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	d.SetId("cloud_ips")
 	for attr, dataURL := range map[string]string{
 		"hosted_alerts":  "https://grafana.com/api/hosted-alerts/source-ips.txt",

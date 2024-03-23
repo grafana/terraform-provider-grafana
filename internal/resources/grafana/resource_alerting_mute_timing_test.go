@@ -7,7 +7,7 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 )
 
 func TestAccMuteTiming_basic(t *testing.T) {
@@ -16,7 +16,7 @@ func TestAccMuteTiming_basic(t *testing.T) {
 	var mt models.MuteTimeInterval
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingMuteTimingCheckExists.destroyed(&mt, nil),
 		Steps: []resource.TestStep{
@@ -75,11 +75,11 @@ func TestAccMuteTiming_AllTime(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">9.0.0")
 
 	var mt models.MuteTimeInterval
-	name := "My Mute Timing"
+	name := "My-Mute-Timing"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      alertingMuteTimingCheckExists.destroyed(&mt, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             alertingMuteTimingCheckExists.destroyed(&mt, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(`

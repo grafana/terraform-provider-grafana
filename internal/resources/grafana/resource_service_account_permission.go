@@ -7,7 +7,7 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/access_control"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -15,7 +15,7 @@ import (
 
 const serviceAccountsPermissionsType = "serviceaccounts"
 
-func ResourceServiceAccountPermission() *schema.Resource {
+func resourceServiceAccountPermission() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 Manages the entire set of permissions for a service account. Permissions that aren't specified when applying this resource will be removed.

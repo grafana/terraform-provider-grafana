@@ -2,20 +2,33 @@ package cloud
 
 import (
 	"context"
-	"strings"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourcePluginInstallation() *schema.Resource {
-	return &schema.Resource{
+var (
+	//nolint:staticcheck
+	resourcePluginInstallationID = common.NewResourceIDWithLegacySeparator("_",
+		common.StringIDField("stackSlug"),
+		common.StringIDField("pluginSlug"),
+	)
+)
+
+func resourcePluginInstallation() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Manages Grafana Cloud Plugin Installations.
 
 * [Plugin Catalog](https://grafana.com/grafana/plugins/)
+
+Required access policy scopes:
+
+* stack-plugins:read
+* stack-plugins:write
+* stack-plugins:delete
 `,
 		Schema: map[string]*schema.Schema{
 			"stack_slug": {
@@ -37,19 +50,23 @@ Manages Grafana Cloud Plugin Installations.
 				ForceNew:    true,
 			},
 		},
-		CreateContext: ResourcePluginInstallationCreate,
-		ReadContext:   ResourcePluginInstallationRead,
+		CreateContext: withClient[schema.CreateContextFunc](resourcePluginInstallationCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourcePluginInstallationRead),
 		UpdateContext: nil,
-		DeleteContext: ResourcePluginInstallationDelete,
+		DeleteContext: withClient[schema.DeleteContextFunc](resourcePluginInstallationDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 	}
+
+	return common.NewResource(
+		"grafana_cloud_plugin_installation",
+		resourcePluginInstallationID,
+		schema,
+	)
 }
 
-func ResourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
-
+func resourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	stackSlug := d.Get("stack_slug").(string)
 	pluginSlug := d.Get("slug").(string)
 
@@ -64,18 +81,19 @@ func ResourcePluginInstallationCreate(ctx context.Context, d *schema.ResourceDat
 		return apiError(err)
 	}
 
-	d.SetId(stackSlug + "_" + pluginSlug)
+	d.SetId(resourcePluginInstallationID.Make(stackSlug, pluginSlug))
 
 	return nil
 }
 
-func ResourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
+func resourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	split, err := resourcePluginInstallationID.Split(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	stackSlug, pluginSlug := split[0], split[1]
 
-	splitID := strings.SplitN(d.Id(), "_", 2)
-	stackSlug, pluginSlug := splitID[0], splitID[1]
-
-	installation, _, err := client.InstancesAPI.GetInstancePlugin(ctx, stackSlug, pluginSlug).Execute()
+	installation, _, err := client.InstancesAPI.GetInstancePlugin(ctx, stackSlug.(string), pluginSlug.(string)).Execute()
 	if err, shouldReturn := common.CheckReadError("plugin", d, err); shouldReturn {
 		return err
 	}
@@ -83,16 +101,18 @@ func ResourcePluginInstallationRead(ctx context.Context, d *schema.ResourceData,
 	d.Set("stack_slug", installation.InstanceSlug)
 	d.Set("slug", installation.PluginSlug)
 	d.Set("version", installation.Version)
+	d.SetId(resourcePluginInstallationID.Make(stackSlug, pluginSlug))
 
 	return nil
 }
 
-func ResourcePluginInstallationDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPIOpenAPI
+func resourcePluginInstallationDelete(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	split, err := resourcePluginInstallationID.Split(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	stackSlug, pluginSlug := split[0], split[1]
 
-	splitID := strings.SplitN(d.Id(), "_", 2)
-	stackSlug, pluginSlug := splitID[0], splitID[1]
-
-	_, _, err := client.InstancesAPI.DeleteInstancePlugin(ctx, stackSlug, pluginSlug).XRequestId(ClientRequestID()).Execute()
+	_, _, err = client.InstancesAPI.DeleteInstancePlugin(ctx, stackSlug.(string), pluginSlug.(string)).XRequestId(ClientRequestID()).Execute()
 	return apiError(err)
 }

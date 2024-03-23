@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -20,8 +20,8 @@ func TestAccResourceReport_Multiple_Dashboards(t *testing.T) {
 	var randomUID2 = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      reportCheckExists.destroyed(&report, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             reportCheckExists.destroyed(&report, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_report/multiple-dashboards.tf", map[string]string{
@@ -38,9 +38,10 @@ func TestAccResourceReport_Multiple_Dashboards(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_report.test", "recipients.0", "some@email.com"),
 					resource.TestCheckNoResourceAttr("grafana_report.test", "recipients.1"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.frequency", "monthly"),
-					resource.TestCheckResourceAttrSet("grafana_report.test", "schedule.0.start_time"), // Date set to current time
-					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", ""),  // No end time
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.start_time", "2024-02-10T15:00:00-05:00"),
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", "2024-02-15T10:00:00-05:00"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.last_day_of_month", "true"),
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.timezone", "America/New_York"),
 					resource.TestCheckResourceAttr("grafana_report.test", "orientation", "landscape"),
 					resource.TestCheckResourceAttr("grafana_report.test", "layout", "grid"),
 					resource.TestCheckResourceAttr("grafana_report.test", "include_dashboard_link", "true"),
@@ -68,8 +69,8 @@ func TestAccResourceReport_basic(t *testing.T) {
 	var randomUID = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      reportCheckExists.destroyed(&report, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             reportCheckExists.destroyed(&report, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_report/resource.tf", map[string]string{
@@ -87,6 +88,7 @@ func TestAccResourceReport_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.frequency", "hourly"),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "schedule.0.start_time"), // Date set to current time
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", ""),  // No end time
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.timezone", "GMT"),
 					resource.TestCheckResourceAttr("grafana_report.test", "orientation", "landscape"),
 					resource.TestCheckResourceAttr("grafana_report.test", "layout", "grid"),
 					resource.TestCheckResourceAttr("grafana_report.test", "include_dashboard_link", "true"),
@@ -116,6 +118,7 @@ func TestAccResourceReport_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.workdays_only", "true"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.start_time", "2020-01-01T07:00:00Z"), // Date transformed to UTC
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", "2020-01-15T08:30:00Z"),   // Date transformed to UTC
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.timezone", "GMT"),
 					resource.TestCheckResourceAttr("grafana_report.test", "orientation", "portrait"),
 					resource.TestCheckResourceAttr("grafana_report.test", "layout", "simple"),
 					resource.TestCheckResourceAttr("grafana_report.test", "include_dashboard_link", "false"),
@@ -143,6 +146,7 @@ func TestAccResourceReport_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.frequency", "monthly"),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "schedule.0.start_time"), // Date set to current time
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", ""),  // No end time
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.timezone", "GMT"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.last_day_of_month", "true"),
 					resource.TestCheckResourceAttr("grafana_report.test", "orientation", "landscape"),
 					resource.TestCheckResourceAttr("grafana_report.test", "layout", "grid"),
@@ -165,8 +169,8 @@ func TestAccResourceReport_CreateFromDashboardID(t *testing.T) {
 	var randomUID = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      reportCheckExists.destroyed(&report, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             reportCheckExists.destroyed(&report, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccReportCreateFromID(randomUID),
@@ -188,8 +192,8 @@ func TestAccResourceReport_InOrg(t *testing.T) {
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      reportCheckExists.destroyed(&report, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             reportCheckExists.destroyed(&report, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccReportCreateInOrg(name),

@@ -3,27 +3,39 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var cloudAPIKeyRoles = []string{"Viewer", "Editor", "Admin", "MetricsPublisher", "PluginPublisher"}
+var (
+	cloudAPIKeyRoles = []string{"Viewer", "Editor", "Admin", "MetricsPublisher", "PluginPublisher"}
+	//nolint:staticcheck
+	resourceAPIKeyID = common.NewResourceIDWithLegacySeparator("-",
+		common.StringIDField("orgSlug"),
+		common.StringIDField("apiKeyName"),
+	)
+)
 
-func ResourceAPIKey() *schema.Resource {
-	return &schema.Resource{
+func resourceAPIKey() *common.Resource {
+	schema := &schema.Resource{
 		Description: `This resource is deprecated and will be removed in a future release. Please use grafana_cloud_access_policy instead.
 
 Manages a single API key on the Grafana Cloud portal (on the organization level)
 * [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#api-keys)
+
+Required access policy scopes:
+
+* api-keys:read
+* api-keys:write
+* api-keys:delete
 `,
-		CreateContext: ResourceAPIKeyCreate,
-		ReadContext:   ResourceAPIKeyRead,
-		DeleteContext: ResourceAPIKeyDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceAPIKeyCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceAPIKeyRead),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceAPIKeyDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -57,11 +69,15 @@ Manages a single API key on the Grafana Cloud portal (on the organization level)
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_cloud_api_key",
+		resourceAPIKeyID,
+		schema,
+	)
 }
 
-func ResourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).GrafanaCloudAPIOpenAPI
-
+func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, c *gcom.APIClient) diag.Diagnostics {
 	req := gcom.PostApiKeysRequest{
 		Name: d.Get("name").(string),
 		Role: d.Get("role").(string),
@@ -77,18 +93,19 @@ func ResourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	}
 
 	d.Set("key", *resp.Token)
-	d.SetId(org + "-" + resp.Name)
+	d.SetId(resourceAPIKeyID.Make(org, resp.Name))
 
-	return ResourceAPIKeyRead(ctx, d, meta)
+	return resourceAPIKeyRead(ctx, d, c)
 }
 
-func ResourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).GrafanaCloudAPIOpenAPI
+func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, c *gcom.APIClient) diag.Diagnostics {
+	split, err := resourceAPIKeyID.Split(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	org, name := split[0], split[1]
 
-	splitID := strings.SplitN(d.Id(), "-", 2)
-	org, name := splitID[0], splitID[1]
-
-	resp, _, err := c.OrgsAPI.GetApiKey(ctx, name, org).Execute()
+	resp, _, err := c.OrgsAPI.GetApiKey(ctx, name.(string), org.(string)).Execute()
 	if err != nil {
 		return apiError(err)
 	}
@@ -96,14 +113,19 @@ func ResourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta interf
 	d.Set("name", resp.Name)
 	d.Set("role", resp.Role)
 	d.Set("cloud_org_slug", org)
+	d.SetId(resourceAPIKeyID.Make(org, resp.Name))
 
 	return nil
 }
 
-func ResourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).GrafanaCloudAPIOpenAPI
+func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, c *gcom.APIClient) diag.Diagnostics {
+	split, err := resourceAPIKeyID.Split(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	org, name := split[0], split[1]
 
-	_, err := c.OrgsAPI.DelApiKey(ctx, d.Get("name").(string), d.Get("cloud_org_slug").(string)).XRequestId(ClientRequestID()).Execute()
+	_, err = c.OrgsAPI.DelApiKey(ctx, name.(string), org.(string)).XRequestId(ClientRequestID()).Execute()
 	d.SetId("")
 	return apiError(err)
 }

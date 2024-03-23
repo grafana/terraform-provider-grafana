@@ -10,7 +10,7 @@ import (
 
 	"github.com/grafana/grafana-openapi-client-go/client/orgs"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"golang.org/x/text/cases"
@@ -36,7 +36,7 @@ const (
 	Remove
 )
 
-func ResourceOrganization() *schema.Resource {
+func resourceOrganization() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
@@ -337,7 +337,7 @@ func createUser(meta interface{}, user string) (int64, error) {
 		Name:     user,
 		Login:    user,
 		Email:    user,
-		Password: pass,
+		Password: models.Password(pass),
 	}
 	resp, err := client.AdminUsers.AdminCreateUser(&u)
 	if err != nil {

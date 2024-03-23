@@ -6,6 +6,8 @@ description: |-
   This resource is deprecated and will be removed in a future release. Please use grafanacloudaccess_policy instead.
   Manages a single API key on the Grafana Cloud portal (on the organization level)
   * API documentation https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#api-keys
+  Required access policy scopes:
+  api-keys:readapi-keys:writeapi-keys:delete
 ---
 
 # grafana_cloud_api_key (Resource)
@@ -14,6 +16,12 @@ This resource is deprecated and will be removed in a future release. Please use 
 
 Manages a single API key on the Grafana Cloud portal (on the organization level)
 * [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#api-keys)
+
+Required access policy scopes:
+
+* api-keys:read
+* api-keys:write
+* api-keys:delete
 
 ## Example Usage
 
@@ -44,5 +52,5 @@ resource "grafana_cloud_api_key" "test" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_cloud_api_key.resource_name "{{org-name}}-{{api_key_name}}"
+terraform import grafana_cloud_api_key.name "{{ orgSlug }}:{{ apiKeyName }}"
 ```

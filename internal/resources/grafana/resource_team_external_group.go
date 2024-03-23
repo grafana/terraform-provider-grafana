@@ -8,12 +8,12 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	teamsSync "github.com/grafana/grafana-openapi-client-go/client/sync_team_groups"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceTeamExternalGroup() *schema.Resource {
+func resourceTeamExternalGroup() *schema.Resource {
 	return &schema.Resource{
 		Description: "Equivalent to the the `team_sync` attribute of the `grafana_team` resource. Use one or the other to configure a team's external groups syncing config.",
 

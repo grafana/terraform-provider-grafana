@@ -4,11 +4,19 @@ page_title: "grafana_cloud_stack Resource - terraform-provider-grafana"
 subcategory: "Cloud"
 description: |-
   Official documentation https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#stacks/
+  Required access policy scopes:
+  stacks:readstacks:writestacks:delete
 ---
 
 # grafana_cloud_stack (Resource)
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#stacks/)
+
+Required access policy scopes:
+
+* stacks:read
+* stacks:write
+* stacks:delete
 
 ## Example Usage
 
@@ -26,13 +34,13 @@ resource "grafana_cloud_stack" "test" {
 
 ### Required
 
-- `name` (String) Name of stack. Conventionally matches the url of the instance (e.g. “<stack_slug>.grafana.net”).
-- `slug` (String) Subdomain that the Grafana instance will be available at (i.e. setting slug to “<stack_slug>” will make the instance
-available at “https://<stack_slug>.grafana.net".
+- `name` (String) Name of stack. Conventionally matches the url of the instance (e.g. `<stack_slug>.grafana.net`).
+- `slug` (String) Subdomain that the Grafana instance will be available at. Setting slug to `<stack_slug>` will make the instance available at `https://<stack_slug>.grafana.net`.
 
 ### Optional
 
 - `description` (String) Description of stack.
+- `labels` (Map of String) A map of labels to assign to the stack. Label keys and values must match the following regexp: "^[a-zA-Z0-9/\\-.]+$" and stacks cannot have more than 10 labels.
 - `region_slug` (String) Region slug to assign to this stack. Changing region will destroy the existing stack and create a new one in the desired region. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.
 - `url` (String) Custom URL for the Grafana instance. Must have a CNAME setup to point to `.grafana.net` before creating the stack
 - `wait_for_readiness` (Boolean) Whether to wait for readiness of the stack after creating it. The check is a HEAD request to the stack URL (Grafana instance). Defaults to `true`.
@@ -56,6 +64,11 @@ available at “https://<stack_slug>.grafana.net".
 - `org_id` (Number) Organization id to assign to this stack.
 - `org_name` (String) Organization name to assign to this stack.
 - `org_slug` (String) Organization slug to assign to this stack.
+- `otlp_url` (String) Base URL of the OTLP instance configured for this stack. See https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/ for docs on how to use this.
+- `profiles_name` (String)
+- `profiles_status` (String)
+- `profiles_url` (String)
+- `profiles_user_id` (Number)
 - `prometheus_name` (String) Prometheus name for this instance.
 - `prometheus_remote_endpoint` (String) Use this URL to query hosted metrics data e.g. Prometheus data source in Grafana
 - `prometheus_remote_write_endpoint` (String) Use this URL to send prometheus metrics to Grafana cloud
@@ -73,6 +86,5 @@ available at “https://<stack_slug>.grafana.net".
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_cloud_stack.stack_name {{stack_id}} // import by numerical ID
-terraform import grafana_cloud_stack.stack_name {{stack_slug}} // or import by slug
+terraform import grafana_cloud_stack.name "{{ stackSlugOrID }}"
 ```

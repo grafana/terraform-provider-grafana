@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/provider"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/pkg/provider"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -121,7 +121,7 @@ func TestProviderConfigure(t *testing.T) {
 		{
 			name: "grafana cloud config from env",
 			env: map[string]string{
-				"GRAFANA_CLOUD_API_KEY": "testtest",
+				"GRAFANA_CLOUD_ACCESS_POLICY_TOKEN": "testtest",
 			},
 		},
 		{

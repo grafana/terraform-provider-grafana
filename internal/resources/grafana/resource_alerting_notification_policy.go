@@ -13,10 +13,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-func ResourceNotificationPolicy() *schema.Resource {
+func resourceNotificationPolicy() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 Sets the global notification policy for Grafana.

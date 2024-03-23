@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 )
 
 func TestAccContactPoint_basic(t *testing.T) {
@@ -20,7 +20,7 @@ func TestAccContactPoint_basic(t *testing.T) {
 	var points models.ContactPoints
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
@@ -77,7 +77,7 @@ func TestAccContactPoint_compound(t *testing.T) {
 
 	// TODO: Make parallelizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
@@ -158,7 +158,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 	var points models.ContactPoints
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
@@ -348,7 +348,7 @@ func TestAccContactPoint_notifiers10_2(t *testing.T) {
 	var points models.ContactPoints
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
@@ -373,12 +373,12 @@ func TestAccContactPoint_notifiers10_2(t *testing.T) {
 }
 
 func TestAccContactPoint_notifiers10_3(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Switch to `testutils.CheckOSSTestsEnabled(t, ">=10.3.0")` once 10.3 is released.
+	testutils.CheckOSSTestsEnabled(t, ">=10.3.0")
 
 	var points models.ContactPoints
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
@@ -413,8 +413,8 @@ func TestAccContactPoint_sensitiveData(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      alertingContactPointCheckExists.destroyed(&points, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccContactPointWithSensitiveData(name, "https://api.eu.opsgenie.com/v2/alerts", "mykey"),
@@ -460,8 +460,8 @@ func TestAccContactPoint_inOrg(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			// Creation
 			{
@@ -496,7 +496,7 @@ func TestAccContactPoint_empty(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			// Test creation.
 			{
@@ -518,8 +518,8 @@ func TestAccContactPoint_disableProvenance(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      alertingContactPointCheckExists.destroyed(&points, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             alertingContactPointCheckExists.destroyed(&points, nil),
 		Steps: []resource.TestStep{
 			// Create
 			{

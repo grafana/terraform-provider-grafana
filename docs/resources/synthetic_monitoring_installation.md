@@ -8,6 +8,8 @@ description: |-
   This resource cannot be imported but it can be used on an existing Synthetic Monitoring installation without issues.
   Note that this resource must be used on a provider configured with Grafana Cloud credentials.
   Official documentation https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/installation/API documentation https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#apiv1registerinstall
+  Required access policy scopes:
+  stacks:read
 ---
 
 # grafana_synthetic_monitoring_installation (Resource)
@@ -20,6 +22,10 @@ This resource cannot be imported but it can be used on an existing Synthetic Mon
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/installation/)
 * [API documentation](https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#apiv1registerinstall)
+
+Required access policy scopes:
+
+* stacks:read
 
 ## Example Usage
 

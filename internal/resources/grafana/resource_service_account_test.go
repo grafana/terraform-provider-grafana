@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 )
 
 func TestAccServiceAccount_basic(t *testing.T) {
@@ -22,8 +22,8 @@ func TestAccServiceAccount_basic(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      serviceAccountCheckExists.destroyed(&updatedSA, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             serviceAccountCheckExists.destroyed(&updatedSA, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testServiceAccountConfig(name, "Editor"),
@@ -65,8 +65,8 @@ func TestAccServiceAccount_NoneRole(t *testing.T) {
 	var sa models.ServiceAccountDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      serviceAccountCheckExists.destroyed(&sa, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             serviceAccountCheckExists.destroyed(&sa, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testServiceAccountConfig(name, "None"),
@@ -102,8 +102,8 @@ func TestAccServiceAccount_many_longtest(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      resource.ComposeAggregateTestCheckFunc(destroyedChecks...),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             resource.ComposeAggregateTestCheckFunc(destroyedChecks...),
 		Steps: []resource.TestStep{
 			{
 				Config: testManyServiceAccountsConfig(name, 60),
@@ -117,7 +117,7 @@ func TestAccServiceAccount_invalid_role(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				ExpectError: regexp.MustCompile(`.*expected role to be one of \[.+\], got InvalidRole`),

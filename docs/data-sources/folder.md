@@ -29,7 +29,7 @@ data "grafana_folder" "from_title" {
 
 ### Required
 
-- `title` (String) The name of the Grafana folder.
+- `title` (String) The title of the folder.
 
 ### Optional
 
@@ -37,6 +37,7 @@ data "grafana_folder" "from_title" {
 
 ### Read-Only
 
-- `id` (Number) The numerical ID of the Grafana folder.
-- `uid` (String) The uid of the Grafana folder.
+- `id` (String) The ID of this resource.
+- `parent_folder_uid` (String) The uid of the parent folder. If set, the folder will be nested. If not set, the folder will be created in the root folder. Note: This requires the nestedFolders feature flag to be enabled on your Grafana instance.
+- `uid` (String) Unique identifier.
 - `url` (String) The full URL of the folder.
