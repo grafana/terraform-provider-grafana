@@ -9,6 +9,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+// All on-call resources have a single string ID format
+var resourceID = common.NewResourceID(common.StringIDField("id"))
+
 type crudWithClientFunc func(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics
 
 func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.ReadContextFunc | schema.DeleteContextFunc](f crudWithClientFunc) T {
@@ -32,12 +35,12 @@ var DatasourcesMap = map[string]*schema.Resource{
 	"grafana_oncall_team":             dataSourceTeam(),
 }
 
-var ResourcesMap = map[string]*schema.Resource{
-	"grafana_oncall_integration":      resourceIntegration(),
-	"grafana_oncall_route":            resourceRoute(),
-	"grafana_oncall_escalation_chain": resourceEscalationChain(),
-	"grafana_oncall_escalation":       resourceEscalation(),
-	"grafana_oncall_on_call_shift":    resourceOnCallShift(),
-	"grafana_oncall_schedule":         resourceSchedule(),
-	"grafana_oncall_outgoing_webhook": resourceOutgoingWebhook(),
+var Resources = []*common.Resource{
+	resourceIntegration(),
+	resourceRoute(),
+	resourceEscalationChain(),
+	resourceEscalation(),
+	resourceOnCallShift(),
+	resourceSchedule(),
+	resourceOutgoingWebhook(),
 }

@@ -17,8 +17,8 @@ var scheduleTypeOptions = []string{
 	"calendar",
 }
 
-func resourceSchedule() *schema.Resource {
-	return &schema.Resource{
+func resourceSchedule() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/schedules/)
 `,
@@ -99,6 +99,12 @@ func resourceSchedule() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_oncall_schedule",
+		resourceID,
+		schema,
+	)
 }
 
 func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {

@@ -37,8 +37,8 @@ var durationOptions = []int{
 	3600,
 }
 
-func resourceEscalation() *schema.Resource {
-	return &schema.Resource{
+func resourceEscalation() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/oncall/latest/configure/escalation-chains-and-routes/)
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/escalation_policies/)
@@ -197,6 +197,12 @@ func resourceEscalation() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_oncall_escalation",
+		resourceID,
+		schema,
+	)
 }
 
 func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -45,8 +46,8 @@ var integrationTypes = []string{
 
 var integrationTypesVerbal = strings.Join(integrationTypes, ", ")
 
-func resourceIntegration() *schema.Resource {
-	return &schema.Resource{
+func resourceIntegration() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/oncall/latest/integrations/)
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/)
@@ -233,6 +234,12 @@ func resourceIntegration() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_oncall_integration",
+		resourceID,
+		schema,
+	)
 }
 
 func onCallTemplate(description string, hasMessage, hasImage bool) *schema.Schema {

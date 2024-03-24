@@ -83,5 +83,5 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_oncall_escalation.escalation_name {{escalation_id}}
+terraform import grafana_oncall_escalation.name "{{ id }}"
 ```

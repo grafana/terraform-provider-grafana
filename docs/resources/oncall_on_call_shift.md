@@ -122,5 +122,5 @@ output "emea_weekday__rolling_users" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_oncall_on_call_shift.on_call_shift_name {{on_call_shift_id}}
+terraform import grafana_oncall_on_call_shift.name "{{ id }}"
 ```

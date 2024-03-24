@@ -98,5 +98,5 @@ Optional:
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_oncall_route.route_name {{route_id}}
+terraform import grafana_oncall_route.name "{{ id }}"
 ```
