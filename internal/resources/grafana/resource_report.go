@@ -447,6 +447,7 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReportConfig, 
 	report = setDashboards(report, d)
 
 	if v, ok := d.GetOk("formats"); ok && v != nil {
+		report.Formats = []models.Type{}
 		formats := common.SetToStringSlice(v.(*schema.Set))
 		for _, format := range formats {
 			report.Formats = append(report.Formats, models.Type(format))
