@@ -79,6 +79,6 @@ Optional:
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_team.team_name {{team_id}} # To use the default provider org
-terraform import grafana_team.team_name {{org_id}}:{{team_id}} # When "org_id" is set on the resource
+terraform import grafana_team.name "{{ id }}"
+terraform import grafana_team.name "{{ orgID }}:{{ id }}"
 ```

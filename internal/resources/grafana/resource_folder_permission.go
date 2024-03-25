@@ -14,8 +14,8 @@ import (
 
 const foldersPermissionsType = "folders"
 
-func resourceFolderPermission() *schema.Resource {
-	return &schema.Resource{
+func resourceFolderPermission() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 Manages the entire set of permissions for a folder. Permissions that aren't specified when applying this resource will be removed.
@@ -84,6 +84,12 @@ Manages the entire set of permissions for a folder. Permissions that aren't spec
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_folder_permission",
+		orgResourceIDString("folderUID"),
+		schema,
+	)
 }
 
 func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

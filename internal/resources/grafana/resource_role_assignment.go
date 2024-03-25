@@ -10,8 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceRoleAssignment() *schema.Resource {
-	return &schema.Resource{
+func resourceRoleAssignment() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Manages the entire set of assignments for a role. Assignments that aren't specified when applying this resource will be removed.
 **Note:** This resource is available only with Grafana Enterprise 9.2+.
@@ -72,6 +72,12 @@ Manages the entire set of assignments for a role. Assignments that aren't specif
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_role_assignment",
+		orgResourceIDString("roleUID"),
+		schema,
+	)
 }
 
 func ReadRoleAssignments(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

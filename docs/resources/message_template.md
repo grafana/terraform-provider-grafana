@@ -48,5 +48,6 @@ resource "grafana_message_template" "my_template" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_message_template.message_template_name {{message_template_name}}
+terraform import grafana_message_template.name "{{ name }}"
+terraform import grafana_message_template.name "{{ orgID }}:{{ name }}"
 ```

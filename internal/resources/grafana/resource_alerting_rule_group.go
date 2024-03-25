@@ -19,8 +19,14 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-func resourceRuleGroup() *schema.Resource {
-	return &schema.Resource{
+var resourceRuleGroupID = common.NewResourceID(
+	common.OptionalIntIDField("orgID"),
+	common.StringIDField("folderUID"),
+	common.StringIDField("name"),
+)
+
+func resourceRuleGroup() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Manages Grafana Alerting rule groups.
 
@@ -238,6 +244,12 @@ This resource requires Grafana 9.1.0 or later.
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_rule_group",
+		resourceRuleGroupID,
+		schema,
+	)
 }
 
 func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {

@@ -12,8 +12,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func resourceAPIKey() *schema.Resource {
-	return &schema.Resource{
+func resourceAPIKey() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Manages Grafana API Keys.
 
@@ -60,6 +60,12 @@ Manages Grafana API Keys.
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_api_key",
+		nil,
+		schema,
+	)
 }
 
 func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

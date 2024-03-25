@@ -1,1 +1,2 @@
-terraform import grafana_mute_timing.mute_timing_name {{mute_timing_name}}
+terraform import grafana_mute_timing.name "{{ name }}"
+terraform import grafana_mute_timing.name "{{ orgID }}:{{ name }}"

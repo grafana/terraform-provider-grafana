@@ -86,3 +86,12 @@ Optional:
 - `token_url` (String) The token endpoint of your OAuth2 provider. Required for azuread, okta and generic_oauth providers.
 - `use_pkce` (Boolean) If enabled, Grafana will use Proof Key for Code Exchange (PKCE) with the OAuth2 Authorization Code Grant.
 - `use_refresh_token` (Boolean) If enabled, Grafana will fetch a new access token using the refresh token provided by the OAuth2 provider.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_sso_settings.name "{{ provider }}"
+terraform import grafana_sso_settings.name "{{ orgID }}:{{ provider }}"
+```

@@ -18,7 +18,7 @@ func datasourceFolder() *schema.Resource {
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder/)
 `,
 		ReadContext: dataSourceFolderRead,
-		Schema: common.CloneResourceSchemaForDatasource(resourceFolder(), map[string]*schema.Schema{
+		Schema: common.CloneResourceSchemaForDatasource(resourceFolder().Schema, map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"title": {
 				Type:        schema.TypeString,

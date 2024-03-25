@@ -15,8 +15,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceMessageTemplate() *schema.Resource {
-	return &schema.Resource{
+func resourceMessageTemplate() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Manages Grafana Alerting message templates.
 
@@ -59,6 +59,12 @@ This resource requires Grafana 9.1.0 or later.
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_message_template",
+		orgResourceIDString("name"),
+		schema,
+	)
 }
 
 func readMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {

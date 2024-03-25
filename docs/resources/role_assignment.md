@@ -71,3 +71,12 @@ resource "grafana_role_assignment" "test" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_role_assignment.name "{{ roleUID }}"
+terraform import grafana_role_assignment.name "{{ orgID }}:{{ roleUID }}"
+```

@@ -18,7 +18,7 @@ func datasourceRole() *schema.Resource {
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/access_control/)
 `,
 		ReadContext: dataSourceRoleRead,
-		Schema: common.CloneResourceSchemaForDatasource(resourceRole(), map[string]*schema.Schema{
+		Schema: common.CloneResourceSchemaForDatasource(resourceRole().Schema, map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
