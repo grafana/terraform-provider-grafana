@@ -11,6 +11,7 @@
     "resources/dashboard_public": "Grafana OSS",
     "resources/dashboard_permission": "Grafana OSS",
     "resources/data_source": "Grafana OSS",
+    "resources/data_source_config": "Grafana OSS",
     "resources/folder": "Grafana OSS",
     "resources/folder_permission": "Grafana OSS",
     "resources/library_panel": "Grafana OSS",

@@ -2,7 +2,6 @@ package grafana
 
 import (
 	"context"
-	"encoding/json"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -24,6 +23,10 @@ func resourceDataSourceConfig() *schema.Resource {
 
 The required arguments for this resource vary depending on the type of data
 source selected (via the 'type' argument).
+
+Use this resource for configuring multiple Data Souces, when that configuration (` + "`json_data_encoded`" + ` field) requires circular reference like in the example below.
+
+> When using ` + "`grafana_data_source_config`" + ` resource, the corresponding ` + "`grafana_data_source`" + ` resources must contain ` + "`json_data_encoded`" + ` field ignored. Otherwise infinite update loop will occur.
 `,
 
 		CreateContext: UpdateDataSourceConfig,
@@ -120,7 +123,7 @@ func ReadDataSourceConfig(ctx context.Context, d *schema.ResourceData, meta inte
 		return err
 	}
 
-	return readDatasourceConfig(d, resp.GetPayload())
+	return readDatasource(d, resp.GetPayload())
 }
 
 // DeleteDataSource deletes a Grafana datasource
@@ -165,31 +168,4 @@ func updateGrafanaDataSource(
 	_, err = client.Datasources.UpdateDataSourceByUID(dataSourceUID, &body)
 
 	return diag.FromErr(err)
-}
-
-func readDatasourceConfig(d *schema.ResourceData, dataSource *models.DataSource) diag.Diagnostics {
-	d.SetId(MakeOrgResourceID(dataSource.OrgID, dataSource.ID))
-	d.Set("uid", dataSource.UID)
-	d.Set("org_id", strconv.FormatInt(dataSource.OrgID, 10))
-
-	gottenJSONData, gottenHeaders := removeHeadersFromJSONData(dataSource.JSONData.(map[string]interface{}))
-	encodedJSONData, err := json.Marshal(gottenJSONData)
-	if err != nil {
-		return diag.Errorf("Failed to marshal JSON data: %s", err)
-	}
-	d.Set("json_data_encoded", string(encodedJSONData))
-
-	// For headers, we do not know the value (the API does not return secret data)
-	// so we only remove keys from the state that are no longer present in the API.
-	if currentHeadersInterface, ok := d.GetOk("http_headers"); ok {
-		currentHeaders := currentHeadersInterface.(map[string]interface{})
-		for key := range currentHeaders {
-			if _, ok := gottenHeaders[key]; !ok {
-				delete(currentHeaders, key)
-			}
-		}
-		d.Set("http_headers", currentHeaders)
-	}
-
-	return nil
 }
