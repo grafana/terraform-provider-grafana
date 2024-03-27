@@ -41,6 +41,13 @@ This resource requires Grafana 9.1.0 or later.
 				ForceNew:    true,
 				Description: "The name of the mute timing.",
 			},
+			"disable_provenance": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				ForceNew:    true, // TODO: The API doesn't return provenance, so we have to force new for now.
+				Description: "Allow modifying the mute timing from other sources than Terraform or the Grafana API.",
+			},
 
 			"intervals": {
 				// List instead of set is necessary here. We rely on diff-suppression on the `months` field.
@@ -144,6 +151,10 @@ func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 			TimeIntervals: unpackIntervals(intervals),
 		})
 
+	if v, ok := data.GetOk("disable_provenance"); ok && v.(bool) {
+		params.SetXDisableProvenance(&provenanceDisabled)
+	}
+
 	resp, err := client.Provisioning.PostMuteTiming(params)
 	if err != nil {
 		return diag.FromErr(err)
@@ -162,6 +173,10 @@ func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 			Name:          name,
 			TimeIntervals: unpackIntervals(intervals),
 		})
+
+	if v, ok := data.GetOk("disable_provenance"); ok && v.(bool) {
+		params.SetXDisableProvenance(&provenanceDisabled)
+	}
 
 	_, err := client.Provisioning.PutMuteTiming(params)
 	if err != nil {
