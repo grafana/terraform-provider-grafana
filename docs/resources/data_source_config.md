@@ -6,8 +6,8 @@ description: |-
   Official documentation https://grafana.com/docs/grafana/latest/datasources/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/data_source/
   The required arguments for this resource vary depending on the type of data
   source selected (via the 'type' argument).
-  Use this resource for configuring multiple Data Souces, when that configuration (json_data_encoded field) requires circular reference like in the example below.
-  When using grafana_data_source_config resource, the corresponding grafana_data_source resources must contain json_data_encoded field ignored. Otherwise infinite update loop will occur.
+  Use this resource for configuring multiple datasources, when that configuration (json_data_encoded field) requires circular references like in the example below.
+  When using the grafana_data_source_config resource, the corresponding grafana_data_source resources must have the json_data_encoded field ignored. Otherwise, an infinite update loop will occur. See the example below.
 ---
 
 # grafana_data_source_config (Resource)
@@ -18,9 +18,9 @@ description: |-
 The required arguments for this resource vary depending on the type of data
 source selected (via the 'type' argument).
 
-Use this resource for configuring multiple Data Souces, when that configuration (`json_data_encoded` field) requires circular reference like in the example below.
+Use this resource for configuring multiple datasources, when that configuration (`json_data_encoded` field) requires circular references like in the example below.
 
-> When using `grafana_data_source_config` resource, the corresponding `grafana_data_source` resources must contain `json_data_encoded` field ignored. Otherwise infinite update loop will occur.
+> When using the `grafana_data_source_config` resource, the corresponding `grafana_data_source` resources must have the `json_data_encoded` field ignored. Otherwise, an infinite update loop will occur. See the example below.
 
 ## Example Usage
 

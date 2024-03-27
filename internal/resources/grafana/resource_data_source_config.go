@@ -12,32 +12,25 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+
+	_ "embed"
 )
+
+//go:embed resource_data_source_config.md
+var resourceDataSourceConfigDescription string
 
 func resourceDataSourceConfig() *schema.Resource {
 	return &schema.Resource{
-
-		Description: `
-* [Official documentation](https://grafana.com/docs/grafana/latest/datasources/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/data_source/)
-
-The required arguments for this resource vary depending on the type of data
-source selected (via the 'type' argument).
-
-Use this resource for configuring multiple Data Souces, when that configuration (` + "`json_data_encoded`" + ` field) requires circular reference like in the example below.
-
-> When using ` + "`grafana_data_source_config`" + ` resource, the corresponding ` + "`grafana_data_source`" + ` resources must contain ` + "`json_data_encoded`" + ` field ignored. Otherwise infinite update loop will occur.
-`,
+		Description: resourceDataSourceConfigDescription,
 
 		CreateContext: UpdateDataSourceConfig,
 		UpdateContext: UpdateDataSourceConfig,
 		ReadContext:   ReadDataSourceConfig,
 		DeleteContext: DeleteDataSourceConfig,
-		SchemaVersion: 1,
-
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+
 		Schema: map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"uid": {
