@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -111,10 +112,17 @@ source selected (via the 'type' argument).
 				Description: "(Required by some data source types) The username to use to authenticate to the data source.",
 			},
 			"json_data_encoded": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Description:  "Serialized JSON string containing the json data. This attribute can be used to pass configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.",
-				ValidateFunc: validation.StringIsJSON,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Serialized JSON string containing the json data. This attribute can be used to pass configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.",
+				ValidateFunc: func(i interface{}, s string) ([]string, []error) {
+					if strings.Contains(i.(string), "httpHeaderName") {
+						return nil, []error{
+							errors.New("httpHeaderName{num} is a reserved key and cannot be used in JSON data. Use the http_headers attribute instead"),
+						}
+					}
+					return validation.StringIsJSON(i, s)
+				},
 				StateFunc: func(v interface{}) string {
 					json, _ := structure.NormalizeJsonString(v)
 					return json
@@ -127,11 +135,18 @@ source selected (via the 'type' argument).
 				},
 			},
 			"secure_json_data_encoded": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Sensitive:    true,
-				Description:  "Serialized JSON string containing the secure json data. This attribute can be used to pass secure configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.",
-				ValidateFunc: validation.StringIsJSON,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "Serialized JSON string containing the secure json data. This attribute can be used to pass secure configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.",
+				ValidateFunc: func(i interface{}, s string) ([]string, []error) {
+					if strings.Contains(i.(string), "httpHeaderValue") {
+						return nil, []error{
+							errors.New("httpHeaderValue{num} is a reserved key and cannot be used in JSON data. Use the http_headers attribute instead"),
+						}
+					}
+					return validation.StringIsJSON(i, s)
+				},
 				StateFunc: func(v interface{}) string {
 					json, _ := structure.NormalizeJsonString(v)
 					return json

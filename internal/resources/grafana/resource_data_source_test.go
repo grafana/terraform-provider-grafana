@@ -301,6 +301,36 @@ func TestAccDatasource_inOrg(t *testing.T) {
 	})
 }
 
+func TestAccDataSource_ValidateHttpHeaders(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+				resource "grafana_data_source" "influx" {
+					type         = "influxdb"
+					name         = "anything"
+					url          = "http://acc-test.invalid/"
+					json_data_encoded = jsonencode({
+						httpHeaderName1     = "Authorization"
+						defaultBucket       = "telegraf"
+						organization        = "organization"
+						tlsAuth             = false
+						tlsAuthWithCACert   = false
+						version             = "Flux"
+					})
+					secure_json_data_encoded = jsonencode({
+						httpHeaderValue1 = "Token sdkfjsdjflkdsjflksjdklfjslkdfjdksljfldksjsflkj"
+					})
+				}`,
+				ExpectError: regexp.MustCompile(`httpHeaderName{num} is a reserved key and cannot be used in JSON data. Use the http_headers attribute instead`),
+			},
+		},
+	})
+}
+
 func testAccDatasourceInOrganization(orgName string) string {
 	return fmt.Sprintf(`
 resource "grafana_organization" "test" {
