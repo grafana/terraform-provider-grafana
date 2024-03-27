@@ -13,7 +13,7 @@ import (
 )
 
 func TestAccResourceReport_Multiple_Dashboards(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	var report models.Report
 	var randomUID = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
@@ -63,7 +63,7 @@ func TestAccResourceReport_Multiple_Dashboards(t *testing.T) {
 }
 
 func TestAccResourceReport_basic(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	var report models.Report
 	var randomUID = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
@@ -185,7 +185,7 @@ func TestAccResourceReport_CreateFromDashboardID(t *testing.T) {
 }
 
 func TestAccResourceReport_InOrg(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	var report models.Report
 	var org models.OrgDetailsDTO
