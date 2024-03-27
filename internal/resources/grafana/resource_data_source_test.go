@@ -332,7 +332,7 @@ func TestAccDataSource_ValidateHttpHeaders(t *testing.T) {
 }
 
 func TestAccDataSource_SeparateConfig(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t, ">=v9.0.0")
 
 	var dataSource models.DataSource
 
