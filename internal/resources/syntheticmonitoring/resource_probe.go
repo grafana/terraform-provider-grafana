@@ -26,7 +26,7 @@ own private probes. These are only accessible to you and only write data to
 your Grafana Cloud account. Private probes are instances of the open source
 Grafana Synthetic Monitoring Agent.
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/private-probes/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/set-up/set-up-private-probes/)
 `,
 
 		CreateContext: withClient[schema.CreateContextFunc](resourceProbeCreate),

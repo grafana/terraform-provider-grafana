@@ -8,7 +8,7 @@ description: |-
   target for checks can be a domain name, a server, or a website, depending on
   what information you would like to gather about your endpoint. You can define
   multiple checks for a single endpoint to check different capabilities.
-  Official documentation https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/checks/
+  Official documentation https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/create-checks/checks/
 ---
 
 # grafana_synthetic_monitoring_check (Resource)
@@ -19,7 +19,7 @@ target for checks can be a domain name, a server, or a website, depending on
 what information you would like to gather about your endpoint. You can define
 multiple checks for a single endpoint to check different capabilities.
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/checks/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/create-checks/checks/)
 
 ## Example Usage
 
@@ -420,7 +420,7 @@ resource "grafana_synthetic_monitoring_check" "traceroute" {
 
 ### Optional
 
-- `alert_sensitivity` (String) Can be set to `none`, `low`, `medium`, or `high` to correspond to the check [alert levels](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/synthetic-monitoring-alerting/). Defaults to `none`.
+- `alert_sensitivity` (String) Can be set to `none`, `low`, `medium`, or `high` to correspond to the check [alert levels](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/configure-alerts/synthetic-monitoring-alerting/). Defaults to `none`.
 - `basic_metrics_only` (Boolean) Metrics are reduced by default. Set this to `false` if you'd like to publish all metrics. We maintain a [full list of metrics](https://github.com/grafana/synthetic-monitoring-agent/tree/main/internal/scraper/testdata) collected for each. Defaults to `true`.
 - `enabled` (Boolean) Whether to enable the check. Defaults to `true`.
 - `frequency` (Number) How often the check runs in milliseconds (the value is not truly a "frequency" but a "period"). The minimum acceptable value is 1 second (1000 ms), and the maximum is 120 seconds (120000 ms). Defaults to `60000`.
