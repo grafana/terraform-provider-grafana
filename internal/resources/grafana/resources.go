@@ -95,6 +95,7 @@ var ResourcesMap = addValidation(map[string]*schema.Resource{
 	"grafana_dashboard_public":           resourcePublicDashboard(),
 	"grafana_dashboard_permission":       resourceDashboardPermission(),
 	"grafana_data_source":                resourceDataSource(),
+	"grafana_data_source_config":         resourceDataSourceConfig(),
 	"grafana_data_source_permission":     resourceDatasourcePermission(),
 	"grafana_folder":                     resourceFolder(),
 	"grafana_folder_permission":          resourceFolderPermission(),

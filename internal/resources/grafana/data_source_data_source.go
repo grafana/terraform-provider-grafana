@@ -58,5 +58,5 @@ func datasourceDatasourceRead(ctx context.Context, d *schema.ResourceData, meta 
 		return diag.FromErr(err)
 	}
 
-	return readDatasource(d, resp.GetPayload())
+	return datasourceToState(d, resp.GetPayload())
 }
