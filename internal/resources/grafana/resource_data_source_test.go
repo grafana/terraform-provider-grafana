@@ -331,6 +331,91 @@ func TestAccDataSource_ValidateHttpHeaders(t *testing.T) {
 	})
 }
 
+func TestAccDataSource_SeparateConfig(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
+	var dataSource models.DataSource
+
+	dsName := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+				resource "grafana_data_source" "influx" {
+					type         = "influxdb"
+					name         = "%s"
+					url          = "http://acc-test.invalid/"
+
+					lifecycle {
+						ignore_changes = [json_data_encoded, http_headers]
+					}
+				}
+				
+				resource "grafana_data_source_config" "influx" {
+					uid = grafana_data_source.influx.uid
+					http_headers = {
+						Authorization = "Token sdkfjsdjflkdsjflksjdklfjslkdfjdksljfldksjsflkj"
+					}
+					json_data_encoded = jsonencode({
+						defaultBucket       = "telegraf"
+						organization        = "organization"
+						tlsAuth             = false
+						tlsAuthWithCACert   = false
+						version             = "Flux"
+					})
+					secure_json_data_encoded = jsonencode({
+						password = "password"
+					})
+				}`, dsName),
+				Check: resource.ComposeTestCheckFunc(
+					datasourceCheckExists.exists("grafana_data_source.influx", &dataSource),
+					resource.TestMatchResourceAttr("grafana_data_source.influx", "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr("grafana_data_source.influx", "org_id", "1"), // default org
+					resource.TestMatchResourceAttr("grafana_data_source.influx", "uid", common.UIDRegexp),
+					resource.TestCheckResourceAttr("grafana_data_source.influx", "name", dsName),
+					resource.TestCheckResourceAttr("grafana_data_source.influx", "type", "influxdb"),
+					resource.TestCheckResourceAttr("grafana_data_source.influx", "url", "http://acc-test.invalid/"),
+
+					resource.TestCheckResourceAttr("grafana_data_source_config.influx", "json_data_encoded", `{"defaultBucket":"telegraf","organization":"organization","tlsAuth":false,"tlsAuthWithCACert":false,"version":"Flux"}`),
+					resource.TestCheckResourceAttr("grafana_data_source_config.influx", "secure_json_data_encoded", `{"password":"password"}`),
+					resource.TestCheckResourceAttr("grafana_data_source_config.influx", "http_headers.Authorization", "Token sdkfjsdjflkdsjflksjdklfjslkdfjdksljfldksjsflkj"),
+
+					func(s *terraform.State) error {
+						expected := map[string]interface{}{
+							"defaultBucket":     "telegraf",
+							"organization":      "organization",
+							"tlsAuth":           false,
+							"tlsAuthWithCACert": false,
+							"version":           "Flux",
+							"httpHeaderName1":   "Authorization",
+						}
+						jsonData := dataSource.JSONData.(map[string]interface{})
+						if !reflect.DeepEqual(jsonData, expected) {
+							return fmt.Errorf("bad json_data_encoded: %#v. Expected: %+v", dataSource.JSONData, expected)
+						}
+						if v, ok := jsonData["httpHeaderName1"]; !ok && v != "Authorization" {
+							return fmt.Errorf("http header Authorization not found")
+						}
+						if v := dataSource.SecureJSONFields["password"]; !v {
+							return fmt.Errorf("password not set")
+						}
+						return nil
+					},
+				),
+			},
+			{
+				ImportState:             true,
+				ResourceName:            "grafana_data_source_config.influx",
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"secure_json_data_encoded", "http_headers"},
+			},
+		},
+	})
+}
+
 func testAccDatasourceInOrganization(orgName string) string {
 	return fmt.Sprintf(`
 resource "grafana_organization" "test" {

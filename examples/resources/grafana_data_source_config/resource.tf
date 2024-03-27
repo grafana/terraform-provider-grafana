@@ -4,7 +4,7 @@ resource "grafana_data_source" "loki" {
   url  = "http://localhost:3100"
 
   lifecycle {
-    ignore_changes = [json_data_encoded]
+    ignore_changes = [json_data_encoded, http_headers]
   }
 }
 
@@ -14,7 +14,7 @@ resource "grafana_data_source" "tempo" {
   url  = "http://localhost:3200"
 
   lifecycle {
-    ignore_changes = [json_data_encoded]
+    ignore_changes = [json_data_encoded, http_headers]
   }
 }
 
@@ -35,8 +35,6 @@ resource "grafana_data_source_config" "loki" {
 }
 
 resource "grafana_data_source_config" "tempo" {
-  provider = grafana.http
-
   uid = grafana_data_source.tempo.uid
 
   json_data_encoded = jsonencode({

@@ -6,8 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/structure"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -37,128 +35,71 @@ func resourceDataSourceConfig() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Default:     nil,
 				ForceNew:    true,
 				Description: "Unique identifier. If unset, this will be automatically generated.",
 			},
-			"http_headers": {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Sensitive:   true,
-				Description: "Custom HTTP headers",
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
-			"json_data_encoded": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Description:  "Serialized JSON string containing the json data. This attribute can be used to pass configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.",
-				ValidateFunc: validation.StringIsJSON,
-				StateFunc: func(v interface{}) string {
-					json, _ := structure.NormalizeJsonString(v)
-					return json
-				},
-				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
-					if oldValue == "{}" && newValue == "" {
-						return true
-					}
-					return common.SuppressEquivalentJSONDiffs(k, oldValue, newValue, d)
-				},
-			},
-			"secure_json_data_encoded": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Sensitive:    true,
-				Description:  "Serialized JSON string containing the secure json data. This attribute can be used to pass secure configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.",
-				ValidateFunc: validation.StringIsJSON,
-				StateFunc: func(v interface{}) string {
-					json, _ := structure.NormalizeJsonString(v)
-					return json
-				},
-				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
-					if oldValue == "{}" && newValue == "" {
-						return true
-					}
-					return common.SuppressEquivalentJSONDiffs(k, oldValue, newValue, d)
-				},
-			},
+			"http_headers":             datasourceHTTPHeadersAttribute(),
+			"json_data_encoded":        datasourceJSONDataAttribute(),
+			"secure_json_data_encoded": datasourceSecureJSONDataAttribute(),
 		},
 	}
 }
 
-// UpdateDataSource updates a Grafana datasource
 func UpdateDataSourceConfig(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	dataSourceUID, ok := d.Get("uid").(string)
-	if !ok {
-		return diag.Errorf("UID is not a string")
-	}
 	client, _ := OAPIClientFromNewOrgResource(meta, d)
-
-	return updateGrafanaDataSource(d, dataSourceUID, client)
+	if diag := updateGrafanaDataSourceConfig(d, d.Get("uid").(string), client); diag.HasError() {
+		return diag
+	}
+	return ReadDataSourceConfig(ctx, d, meta)
 }
 
-// ReadDataSource reads a Grafana datasource configuration
 func ReadDataSourceConfig(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	var resp interface{ GetPayload() *models.DataSource }
-	var err error
-	// Support both numerical and UID IDs, so that we can import an existing datasource with either.
-	// Following the read, it's normalized to a numerical ID.
-	if _, parseErr := strconv.ParseInt(idStr, 10, 64); parseErr == nil {
-		resp, err = client.Datasources.GetDataSourceByID(idStr)
-	} else {
-		resp, err = client.Datasources.GetDataSourceByUID(idStr)
-	}
-
+	resp, err := client.Datasources.GetDataSourceByUID(idStr)
 	if err, shouldReturn := common.CheckReadError("datasource", d, err); shouldReturn {
 		return err
 	}
-
-	return readDatasource(d, resp.GetPayload())
+	ds := resp.GetPayload()
+	d.Set("uid", ds.UID)
+	d.Set("org_id", strconv.FormatInt(ds.OrgID, 10))
+	return datasourceConfigToState(d, ds)
 }
 
-// DeleteDataSource deletes a Grafana datasource
 func DeleteDataSourceConfig(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _ := OAPIClientFromNewOrgResource(meta, d)
-
+	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 	d.Set("json_data_encoded", "")
-
-	return updateGrafanaDataSource(d, d.Get("uid").(string), client)
+	return updateGrafanaDataSourceConfig(d, idStr, client)
 }
 
-func updateGrafanaDataSource(
-	d *schema.ResourceData,
-	dataSourceUID string,
-	client *goapi.GrafanaHTTPAPI,
-) diag.Diagnostics {
-	// Get the existing datasource
+func updateGrafanaDataSourceConfig(d *schema.ResourceData, dataSourceUID string, client *goapi.GrafanaHTTPAPI) diag.Diagnostics {
 	resp, err := client.Datasources.GetDataSourceByUID(dataSourceUID)
-	fetchedDataSource := resp.GetPayload()
-	d.SetId(MakeOrgResourceID(fetchedDataSource.OrgID, fetchedDataSource.ID))
-
-	parsedUpdatedJSON, err := makeJSONData(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	fetchedDataSource.JSONData = parsedUpdatedJSON
+	ds := resp.GetPayload()
+	d.SetId(MakeOrgResourceID(ds.OrgID, ds.UID))
+
+	jd, sd, err := stateToDatasourceConfig(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	body := models.UpdateDataSourceCommand{
-		Access:          fetchedDataSource.Access,
-		BasicAuth:       fetchedDataSource.BasicAuth,
-		BasicAuthUser:   fetchedDataSource.BasicAuthUser,
-		Database:        fetchedDataSource.Database,
-		IsDefault:       fetchedDataSource.IsDefault,
-		JSONData:        fetchedDataSource.JSONData,
-		Name:            fetchedDataSource.Name,
-		Type:            fetchedDataSource.Type,
-		UID:             fetchedDataSource.UID,
-		URL:             fetchedDataSource.URL,
-		User:            fetchedDataSource.User,
-		WithCredentials: fetchedDataSource.WithCredentials,
+		Access:          ds.Access,
+		BasicAuth:       ds.BasicAuth,
+		BasicAuthUser:   ds.BasicAuthUser,
+		Database:        ds.Database,
+		IsDefault:       ds.IsDefault,
+		Name:            ds.Name,
+		Type:            ds.Type,
+		UID:             ds.UID,
+		URL:             ds.URL,
+		User:            ds.User,
+		WithCredentials: ds.WithCredentials,
+		JSONData:        jd,
+		SecureJSONData:  sd,
 	}
 	_, err = client.Datasources.UpdateDataSourceByUID(dataSourceUID, &body)
-
 	return diag.FromErr(err)
 }
