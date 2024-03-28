@@ -58,7 +58,7 @@ func TestAccRole_basic(t *testing.T) {
 }
 
 func TestAccRole_GlobalRolesNeedBasicAuth(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 	orgScopedTest(t)
 	randomName := acctest.RandString(10)
 
