@@ -10,6 +10,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/oncall"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/slo"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/syntheticmonitoring"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -27,7 +28,11 @@ func Resources() []*common.Resource {
 func resourceMap() map[string]*schema.Resource {
 	result := make(map[string]*schema.Resource)
 	for _, r := range Resources() {
-		result[r.Name] = r.Schema
+		schema := r.Schema
+		if schema == nil {
+			continue
+		}
+		result[r.Name] = schema
 	}
 	return result
 }
@@ -40,4 +45,16 @@ func mergeResourceMaps(maps ...map[string]*schema.Resource) map[string]*schema.R
 		}
 	}
 	return result
+}
+
+func pluginFrameworkResources() []func() resource.Resource {
+	var resources []func() resource.Resource
+	for _, r := range Resources() {
+		resourceSchema := r.PluginFrameworkSchema
+		if resourceSchema == nil {
+			continue
+		}
+		resources = append(resources, func() resource.Resource { return resourceSchema })
+	}
+	return resources
 }
