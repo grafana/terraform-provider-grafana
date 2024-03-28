@@ -2,6 +2,7 @@ package grafana_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -50,6 +51,35 @@ func TestAccRole_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_role.test", "permissions.0.action", "users:create"),
 					resource.TestCheckResourceAttr("grafana_role.test", "permissions.1.scope", "global.users:*"),
 					resource.TestCheckResourceAttr("grafana_role.test", "permissions.1.action", "users:read"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccRole_GlobalRolesNeedBasicAuth(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
+	orgScopedTest(t)
+	randomName := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      roleConfig(randomName, true),
+				ExpectError: regexp.MustCompile("global scope resources cannot be managed with an API key. Use basic auth instead"),
+			},
+			{
+				Config: roleConfig(randomName, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_role.test", "name", randomName),
+					resource.TestCheckResourceAttr("grafana_role.test", "description", "test desc"),
+					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
+					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
+					resource.TestCheckResourceAttr("grafana_role.test", "version", "1"),
+					resource.TestCheckResourceAttr("grafana_role.test", "uid", "testuid"),
+					resource.TestCheckResourceAttr("grafana_role.test", "global", "false"),
+					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
 				),
 			},
 		},
@@ -183,18 +213,22 @@ resource "grafana_role" "test" {
 	return def
 }
 
-const roleConfigBasic = `
-resource "grafana_role" "test" {
-  name  = "terraform-acc-test"
-  description = "test desc"
-  version = 1
-  uid = "testuid"
-  global = true
-  group = "testgroup"
-  display_name = "testdisplay"
-  hidden = true
+var roleConfigBasic = roleConfig("terraform-acc-test", true)
+
+func roleConfig(name string, global bool) string {
+	return fmt.Sprintf(`
+	resource "grafana_role" "test" {
+	  name  = "%s"
+	  description = "test desc"
+	  version = 1
+	  uid = "testuid"
+	  global = %t
+	  group = "testgroup"
+	  display_name = "testdisplay"
+	  hidden = true
+	}
+	`, name, global)
 }
-`
 
 const roleConfigWithPermissions = `
 resource "grafana_role" "test" {

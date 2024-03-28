@@ -116,6 +116,13 @@ func resourceRole() *common.Resource {
 
 func CreateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
+	if d.Get("global").(bool) {
+		var err error
+		if client, err = OAPIGlobalClient(meta); err != nil {
+			return diag.FromErr(err)
+		}
+		orgID = 0
+	}
 
 	var version int
 	if d.Get("auto_increment_version").(bool) {
@@ -165,6 +172,12 @@ func permissions(d *schema.ResourceData) []*models.Permission {
 
 func ReadRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
+	if d.Get("global").(bool) {
+		var err error
+		if client, err = OAPIGlobalClient(meta); err != nil {
+			return diag.FromErr(err)
+		}
+	}
 	return readRoleFromUID(client, uid, d)
 }
 
@@ -225,6 +238,12 @@ func readRoleFromUID(client *goapi.GrafanaHTTPAPI, uid string, d *schema.Resourc
 
 func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
+	if d.Get("global").(bool) {
+		var err error
+		if client, err = OAPIGlobalClient(meta); err != nil {
+			return diag.FromErr(err)
+		}
+	}
 
 	if d.HasChange("version") || d.HasChange("name") || d.HasChange("description") || d.HasChange("permissions") ||
 		d.HasChange("display_name") || d.HasChange("group") || d.HasChange("hidden") {
@@ -253,8 +272,14 @@ func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 
 func DeleteRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
-	g := d.Get("global").(bool)
-	_, err := client.AccessControl.DeleteRole(access_control.NewDeleteRoleParams().WithRoleUID(uid).WithGlobal(&g), nil)
+	global := d.Get("global").(bool)
+	if global {
+		var err error
+		if client, err = OAPIGlobalClient(meta); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	_, err := client.AccessControl.DeleteRole(access_control.NewDeleteRoleParams().WithRoleUID(uid).WithGlobal(&global), nil)
 	diag, _ := common.CheckReadError("role", d, err)
 	return diag
 }

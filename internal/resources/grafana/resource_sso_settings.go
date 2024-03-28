@@ -264,7 +264,7 @@ var oauth2SettingsSchema = &schema.Resource{
 }
 
 func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, _ := OAPIGlobalClient(meta) // TODO: Check error. This resource works with a token. Is it org-scoped?
 
 	provider := d.Id()
 
@@ -328,7 +328,7 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 }
 
 func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, _ := OAPIGlobalClient(meta) // TODO: Check error. This resource works with a token. Is it org-scoped?
 
 	provider := d.Get(providerKey).(string)
 
@@ -369,12 +369,11 @@ func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 }
 
 func DeleteSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, _ := OAPIGlobalClient(meta) // TODO: Check error. This resource works with a token. Is it org-scoped?
 
 	provider := d.Get(providerKey).(string)
 
-	_, err := client.SsoSettings.RemoveProviderSettings(provider)
-	if err != nil {
+	if _, err := client.SsoSettings.RemoveProviderSettings(provider); err != nil {
 		return diag.Errorf("failed to remove the SSO settings for provider %s: %v", provider, err)
 	}
 

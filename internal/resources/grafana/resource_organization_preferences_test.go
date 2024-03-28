@@ -8,7 +8,6 @@ import (
 
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -117,7 +116,7 @@ func testAccResourceOrganizationPreferences(t *testing.T, withUID bool) {
 
 func testAccCheckOrganizationPreferences(org *models.OrgDetailsDTO, expectedPrefs models.Preferences) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := grafana.OAPIGlobalClient(testutils.Provider.Meta()).WithOrgID(org.ID)
+		client := grafanaTestClient().WithOrgID(org.ID)
 		resp, err := client.OrgPreferences.GetOrgPreferences()
 		if err != nil {
 			return fmt.Errorf("error getting organization preferences: %s", err)

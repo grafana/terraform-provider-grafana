@@ -75,7 +75,10 @@ You must use basic auth.
 }
 
 func CreateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	user := models.AdminCreateUserForm{
 		Email:    d.Get("email").(string),
 		Name:     d.Get("name").(string),
@@ -97,7 +100,10 @@ func CreateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func ReadUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -117,7 +123,10 @@ func ReadUser(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 }
 
 func UpdateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -146,7 +155,10 @@ func UpdateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func DeleteUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
