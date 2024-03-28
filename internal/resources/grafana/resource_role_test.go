@@ -63,7 +63,7 @@ func TestAccRole_GlobalRolesNeedBasicAuth(t *testing.T) {
 	randomName := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      roleConfig(randomName, true),
