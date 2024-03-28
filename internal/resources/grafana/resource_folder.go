@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"strconv"
+	"sync"
 
 	"github.com/grafana/grafana-openapi-client-go/client/folders"
 	"github.com/grafana/grafana-openapi-client-go/client/search"
@@ -67,11 +68,16 @@ func resourceFolder() *common.Resource {
 		},
 	}
 
-	return common.NewResource(
+	return common.NewResourceWithLister(
 		"grafana_folder",
 		orgResourceIDString("uid"),
+		listFolders,
 		schema,
 	)
+}
+
+func listFolders(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
+	return listDashboardOrFolder(client, cache, "dash-folder")
 }
 
 func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

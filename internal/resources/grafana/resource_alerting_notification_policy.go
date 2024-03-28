@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/go-openapi/runtime"
@@ -85,9 +86,10 @@ This resource requires Grafana 9.1.0 or later.
 		},
 	}
 
-	return common.NewResource(
+	return common.NewResourceWithLister(
 		"grafana_notification_policy",
 		orgResourceIDString("anyString"),
+		listNotificationPolicies,
 		schema,
 	)
 }
@@ -187,6 +189,20 @@ func policySchema(depth uint) *schema.Resource {
 	}
 
 	return resource
+}
+
+func listNotificationPolicies(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
+	orgIDs, err := waitForOrgIDs(cache)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for _, orgID := range orgIDs {
+		ids = append(ids, MakeOrgResourceID(orgID, PolicySingletonID))
+	}
+
+	return ids, nil
 }
 
 func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {

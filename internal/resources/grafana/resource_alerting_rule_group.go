@@ -3,10 +3,12 @@ package grafana
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -19,7 +21,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-var resourceRuleGroupID = common.NewResourceID(
+var resourceRuleGroupID = common.NewResourceIDWithLegacySeparator(";",
 	common.OptionalIntIDField("orgID"),
 	common.StringIDField("folderUID"),
 	common.StringIDField("name"),
@@ -245,19 +247,56 @@ This resource requires Grafana 9.1.0 or later.
 		},
 	}
 
-	return common.NewResource(
+	return common.NewResourceWithLister(
 		"grafana_rule_group",
 		resourceRuleGroupID,
+		listRuleGroups,
 		schema,
 	)
+}
+
+func listRuleGroups(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
+	orgIDs, err := waitForOrgIDs(cache)
+	if err != nil {
+		return nil, err
+	}
+
+	idMap := map[string]bool{}
+	for _, orgID := range orgIDs {
+		grafanaClient := client.GrafanaOAPI
+		if grafanaClient == nil {
+			return nil, fmt.Errorf("client not configured for Grafana API")
+		}
+		grafanaClient = grafanaClient.Clone().WithOrgID(orgID)
+
+		resp, err := grafanaClient.Provisioning.GetAlertRules()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, rule := range resp.Payload {
+			idMap[MakeOrgResourceID(orgID, resourceRuleGroupID.Make(rule.FolderUID, rule.RuleGroup))] = true
+		}
+	}
+
+	var ids []string
+	for id := range idMap {
+		ids = append(ids, id)
+	}
+
+	return ids, nil
 }
 
 func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	key := UnpackGroupID(idStr)
+	split, err := resourceRuleGroupID.Split(idStr)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	folderUID, name := split[0].(string), split[1].(string)
 
-	resp, err := client.Provisioning.GetAlertRuleGroup(key.Name, key.FolderUID)
+	resp, err := client.Provisioning.GetAlertRuleGroup(name, folderUID)
 	if err, shouldReturn := common.CheckReadError("rule group", data, err); shouldReturn {
 		return err
 	}
@@ -286,7 +325,7 @@ func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta int
 	}
 	data.Set("disable_provenance", disableProvenance)
 	data.Set("rule", rules)
-	data.SetId(MakeOrgResourceID(orgID, packGroupID(key)))
+	data.SetId(MakeOrgResourceID(orgID, resourceRuleGroupID.Make(folderUID, name)))
 
 	return nil
 }
@@ -326,7 +365,7 @@ func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	key := packGroupID(AlertRuleGroupKey{resp.Payload.FolderUID, resp.Payload.Title})
+	key := resourceRuleGroupID.Make(resp.Payload.FolderUID, resp.Payload.Title)
 	data.SetId(MakeOrgResourceID(orgID, key))
 	return readAlertRuleGroup(ctx, data, meta)
 }
@@ -334,9 +373,13 @@ func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta inte
 func deleteAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	key := UnpackGroupID(idStr)
-	// TODO use DeleteAlertRuleGroup method instead (available since Grafana 11)
-	resp, err := client.Provisioning.GetAlertRuleGroup(key.Name, key.FolderUID)
+	split, err := resourceRuleGroupID.Split(idStr)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	folderUID, name := split[0].(string), split[1].(string)
+
+	resp, err := client.Provisioning.GetAlertRuleGroup(name, folderUID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -540,28 +583,6 @@ func unpackMap(raw interface{}) map[string]string {
 		result[k] = v.(string)
 	}
 	return result
-}
-
-type AlertRuleGroupKey struct {
-	FolderUID string
-	Name      string
-}
-
-const groupIDSeparator = ";"
-
-func packGroupID(key AlertRuleGroupKey) string {
-	return key.FolderUID + ";" + key.Name
-}
-
-func UnpackGroupID(tfID string) AlertRuleGroupKey {
-	vals := strings.SplitN(tfID, groupIDSeparator, 2)
-	if len(vals) != 2 {
-		return AlertRuleGroupKey{}
-	}
-	return AlertRuleGroupKey{
-		FolderUID: vals[0],
-		Name:      vals[1],
-	}
 }
 
 func packNotificationSettings(settings *models.AlertRuleNotificationSettings) (interface{}, error) {

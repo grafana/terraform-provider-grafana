@@ -6,10 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
@@ -92,11 +95,59 @@ Manages Grafana dashboards.
 		SchemaVersion: 1, // The state upgrader was removed in v2. To upgrade, users can first upgrade to the last v1 release, apply, then upgrade to v2.
 	}
 
-	return common.NewResource(
+	return common.NewResourceWithLister(
 		"grafana_dashboard",
 		orgResourceIDString("uid"),
+		listDashboards,
 		schema,
 	)
+}
+
+func listDashboards(ctx context.Context, cache *sync.Map, client *common.Client) ([]string, error) {
+	return listDashboardOrFolder(client, cache, "dash-db")
+}
+
+func listDashboardOrFolder(client *common.Client, cache *sync.Map, searchType string) ([]string, error) {
+	orgIDs, err := waitForOrgIDs(cache)
+	if err != nil {
+		return nil, err
+	}
+
+	uids := []string{}
+	for _, orgID := range orgIDs {
+		grafanaClient := client.GrafanaOAPI
+		if grafanaClient == nil {
+			return nil, fmt.Errorf("client not configured for Grafana API")
+		}
+		grafanaClient = grafanaClient.Clone().WithOrgID(orgID)
+
+		resp, err := grafanaClient.Search.Search(search.NewSearchParams().WithType(common.Ref(searchType)))
+		if err != nil {
+			return nil, err
+		}
+
+		for _, item := range resp.Payload {
+			uids = append(uids, MakeOrgResourceID(orgID, item.UID))
+		}
+	}
+
+	return uids, nil
+}
+
+func waitForOrgIDs(cache *sync.Map) ([]int64, error) {
+	startTime := time.Now()
+	waitTime := 2 * time.Minute
+	for {
+		if time.Since(startTime) > waitTime {
+			return nil, fmt.Errorf("timed out after %s waiting for org IDs to be available", waitTime)
+		}
+		orgIDs, ok := cache.Load("orgIDs")
+		if !ok {
+			continue
+		}
+		return orgIDs.([]int64), nil
+	}
+
 }
 
 func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
