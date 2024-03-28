@@ -19,6 +19,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
+//nolint:staticcheck
 var resourceRuleGroupID = common.NewResourceIDWithLegacySeparator(";",
 	common.OptionalIntIDField("orgID"),
 	common.StringIDField("folderUID"),
