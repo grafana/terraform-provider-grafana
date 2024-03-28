@@ -9,7 +9,7 @@ import (
 )
 
 func TestAccDatasourceRole_basic(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	var role models.RoleDTO
 	checks := []resource.TestCheckFunc{

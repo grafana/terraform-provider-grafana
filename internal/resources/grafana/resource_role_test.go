@@ -12,7 +12,7 @@ import (
 )
 
 func TestAccRole_basic(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	var role models.RoleDTO
 
@@ -57,7 +57,7 @@ func TestAccRole_basic(t *testing.T) {
 }
 
 func TestAccRoleVersioning(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	var role models.RoleDTO
 	name := acctest.RandomWithPrefix("versioning-")
@@ -123,7 +123,7 @@ func TestAccRoleVersioning(t *testing.T) {
 }
 
 func TestAccRole_inOrg(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	var role models.RoleDTO
 	var org models.OrgDetailsDTO

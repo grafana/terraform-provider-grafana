@@ -108,7 +108,7 @@ func TestAccTeam_preferences(t *testing.T) {
 }
 
 func TestAccTeam_teamSync(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">= 8.0.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	var team models.TeamDTO
 	teamName := acctest.RandString(5)

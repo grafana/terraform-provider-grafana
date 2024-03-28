@@ -57,6 +57,7 @@ jobs:
         type: ['oss']
         subset: ['basic', 'other', 'long']
         include:
+          # Examples, run only on latest version
           - version: '10.3.1'
             type: 'oss'
             subset: examples
@@ -71,8 +72,14 @@ jobs:
           - version: '10.3.1'
             type: 'subpath'
             subset: 'other'
-          # Enterprise tests, run only on latest version
+          # Enterprise tests
           - version: '10.3.1'
+            type: 'enterprise'
+            subset: 'all'
+          - version: '9.5.15'
+            type: 'enterprise'
+            subset: 'all'
+          - version: '8.5.27'
             type: 'enterprise'
             subset: 'all'
     name: ${{ matrix.version }} - ${{ matrix.type }} - ${{ matrix.subset }}

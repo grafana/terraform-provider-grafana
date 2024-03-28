@@ -12,7 +12,7 @@ import (
 )
 
 func TestAccRoleAssignments(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	testName := acctest.RandString(10)
 	var role models.RoleDTO
@@ -44,7 +44,7 @@ func TestAccRoleAssignments(t *testing.T) {
 }
 
 func TestAccRoleAssignments_inOrg(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	testName := acctest.RandString(10)
 	var org models.OrgDetailsDTO

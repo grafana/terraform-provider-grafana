@@ -38,7 +38,7 @@ func TestAccExamples(t *testing.T) {
 		{
 			category: "Alerting",
 			testCheck: func(t *testing.T, filename string) {
-				testutils.CheckOSSTestsEnabled(t, ">=10.2.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
+				testutils.CheckOSSTestsEnabled(t, ">=10.3.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 			},
 		},
 		{
@@ -47,14 +47,14 @@ func TestAccExamples(t *testing.T) {
 				if strings.Contains(filename, "sso_settings") {
 					testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Run on v10.4.0 once it's released
 				} else {
-					testutils.CheckOSSTestsEnabled(t, ">=10.2.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
+					testutils.CheckOSSTestsEnabled(t, ">=10.3.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 				}
 			},
 		},
 		{
 			category: "Grafana Enterprise",
 			testCheck: func(t *testing.T, filename string) {
-				testutils.CheckEnterpriseTestsEnabled(t)
+				testutils.CheckEnterpriseTestsEnabled(t, ">=10.3.0") // Only run on latest version
 			},
 		},
 
