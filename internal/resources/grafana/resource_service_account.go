@@ -18,8 +18,8 @@ import (
 // Service Accounts have issues with concurrent creation, so we need to lock them.
 var serviceAccountCreateMutex sync.Mutex
 
-func resourceServiceAccount() *schema.Resource {
-	return &schema.Resource{
+func resourceServiceAccount() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 **Note:** This resource is available only with Grafana 9.1+.
@@ -55,6 +55,12 @@ func resourceServiceAccount() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_service_account",
+		orgResourceIDInt("id"),
+		schema,
+	)
 }
 
 func CreateServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

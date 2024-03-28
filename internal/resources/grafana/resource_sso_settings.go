@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
 const (
@@ -19,8 +20,8 @@ const (
 	customFieldsKey   = "custom"
 )
 
-func resourceSSOSettings() *schema.Resource {
-	return &schema.Resource{
+func resourceSSOSettings() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 Manages Grafana SSO Settings for OAuth2. SAML support will be added soon.
@@ -54,6 +55,12 @@ Manages Grafana SSO Settings for OAuth2. SAML support will be added soon.
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_sso_settings",
+		orgResourceIDString("provider"),
+		schema,
+	)
 }
 
 var oauth2SettingsSchema = &schema.Resource{

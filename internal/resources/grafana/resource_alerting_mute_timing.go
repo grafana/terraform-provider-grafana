@@ -13,8 +13,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceMuteTiming() *schema.Resource {
-	return &schema.Resource{
+func resourceMuteTiming() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Manages Grafana Alerting mute timings.
 
@@ -123,6 +123,12 @@ This resource requires Grafana 9.1.0 or later.
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_mute_timing",
+		orgResourceIDString("name"),
+		schema,
+	)
 }
 
 func readMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {

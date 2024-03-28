@@ -10,8 +10,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceUser() *schema.Resource {
-	return &schema.Resource{
+var resourceUserID = common.NewResourceID(common.IntIDField("id"))
+
+func resourceUser() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/user-management/server-user-management/)
@@ -64,6 +66,12 @@ You must use basic auth.
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_user",
+		resourceUserID,
+		schema,
+	)
 }
 
 func CreateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

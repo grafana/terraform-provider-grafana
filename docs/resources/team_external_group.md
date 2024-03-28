@@ -43,5 +43,6 @@ resource "grafana_team_external_group" "test-team-group" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_team_external_group.main {{team_id}}
+terraform import grafana_team_external_group.name "{{ teamID }}"
+terraform import grafana_team_external_group.name "{{ orgID }}:{{ teamID }}"
 ```

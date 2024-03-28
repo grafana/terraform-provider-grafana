@@ -11,6 +11,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+// Helpers for org-scoped resource IDs
+func orgResourceIDString(fieldName string) *common.ResourceID {
+	return common.NewResourceID(common.OptionalIntIDField("orgID"), common.StringIDField(fieldName))
+}
+
+func orgResourceIDInt(fieldName string) *common.ResourceID {
+	return common.NewResourceID(common.OptionalIntIDField("orgID"), common.IntIDField(fieldName))
+}
+
 func orgIDAttribute() *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeString,

@@ -14,8 +14,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceFolder() *schema.Resource {
-	return &schema.Resource{
+func resourceFolder() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/)
@@ -66,6 +66,12 @@ func resourceFolder() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_folder",
+		orgResourceIDString("uid"),
+		schema,
+	)
 }
 
 func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -90,6 +96,7 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 	}
 
 	folder := resp.GetPayload()
+	// TODO: Switch to UID
 	d.SetId(MakeOrgResourceID(orgID, folder.ID))
 
 	return ReadFolder(ctx, d, meta)

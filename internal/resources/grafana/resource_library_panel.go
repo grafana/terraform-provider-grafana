@@ -12,8 +12,8 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-func resourceLibraryPanel() *schema.Resource {
-	return &schema.Resource{
+func resourceLibraryPanel() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 Manages Grafana library panels.
@@ -110,6 +110,12 @@ Manages Grafana library panels.
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_library_panel",
+		orgResourceIDString("uid"),
+		schema,
+	)
 }
 
 func createLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

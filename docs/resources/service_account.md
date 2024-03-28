@@ -40,3 +40,12 @@ resource "grafana_service_account" "admin" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_service_account.name "{{ id }}"
+terraform import grafana_service_account.name "{{ orgID }}:{{ id }}"
+```

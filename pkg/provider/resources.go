@@ -16,6 +16,7 @@ import (
 func Resources() []*common.Resource {
 	var resources []*common.Resource
 	resources = append(resources, cloud.Resources...)
+	resources = append(resources, grafana.Resources...)
 	resources = append(resources, machinelearning.Resources...)
 	resources = append(resources, oncall.Resources...)
 	resources = append(resources, slo.Resources...)
@@ -28,12 +29,7 @@ func resourceMap() map[string]*schema.Resource {
 	for _, r := range Resources() {
 		result[r.Name] = r.Schema
 	}
-
-	// TODO: Migrate to common.Resource instances (in Resources function)
-	return mergeResourceMaps(
-		result,
-		grafana.ResourcesMap,
-	)
+	return result
 }
 
 func mergeResourceMaps(maps ...map[string]*schema.Resource) map[string]*schema.Resource {

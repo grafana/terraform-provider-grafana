@@ -553,5 +553,6 @@ Read-Only:
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_contact_point.contact_point_name {{contact_point_name}}
+terraform import grafana_contact_point.name "{{ name }}"
+terraform import grafana_contact_point.name "{{ orgID }}:{{ name }}"
 ```

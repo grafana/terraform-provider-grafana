@@ -39,3 +39,12 @@ resource "grafana_annotation" "test" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_annotation.name "{{ id }}"
+terraform import grafana_annotation.name "{{ orgID }}:{{ id }}"
+```

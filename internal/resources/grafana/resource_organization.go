@@ -36,8 +36,8 @@ const (
 	Remove
 )
 
-func resourceOrganization() *schema.Resource {
-	return &schema.Resource{
+func resourceOrganization() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/organization-management/)
@@ -142,6 +142,12 @@ set to true. This feature is only available in Grafana 10.2+.
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_organization",
+		common.NewResourceID(common.IntIDField("id")),
+		schema,
+	)
 }
 
 func CreateOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

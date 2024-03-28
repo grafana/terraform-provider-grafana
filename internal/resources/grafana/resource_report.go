@@ -49,8 +49,8 @@ var (
 	reportFormats      = []string{reportFormatPDF, reportFormatCSV, reportFormatImage}
 )
 
-func resourceReport() *schema.Resource {
-	return &schema.Resource{
+func resourceReport() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 **Note:** This resource is available only with Grafana Enterprise 7.+.
 
@@ -284,6 +284,12 @@ func resourceReport() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_report",
+		orgResourceIDInt("id"),
+		schema,
+	)
 }
 
 func CreateReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

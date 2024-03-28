@@ -17,8 +17,8 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-func resourceDataSource() *schema.Resource {
-	return &schema.Resource{
+func resourceDataSource() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/datasources/)
@@ -107,6 +107,12 @@ source selected (via the 'type' argument).
 			"secure_json_data_encoded": datasourceSecureJSONDataAttribute(),
 		},
 	}
+
+	return common.NewResource(
+		"grafana_data_source",
+		orgResourceIDString("uid"),
+		schema,
+	)
 }
 
 func datasourceHTTPHeadersAttribute() *schema.Schema {
@@ -188,6 +194,7 @@ func CreateDataSource(ctx context.Context, d *schema.ResourceData, meta interfac
 		return diag.FromErr(err)
 	}
 
+	// TODO: Switch to UID
 	d.SetId(MakeOrgResourceID(orgID, resp.Payload.Datasource.ID))
 	return ReadDataSource(ctx, d, meta)
 }

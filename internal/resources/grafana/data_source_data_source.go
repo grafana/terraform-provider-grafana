@@ -13,7 +13,7 @@ func datasourceDatasource() *schema.Resource {
 	return &schema.Resource{
 		Description: "Get details about a Grafana Datasource querying by either name, uid or ID",
 		ReadContext: datasourceDatasourceRead,
-		Schema: common.CloneResourceSchemaForDatasource(resourceDataSource(), map[string]*schema.Schema{
+		Schema: common.CloneResourceSchemaForDatasource(resourceDataSource().Schema, map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"id": {
 				Type:         schema.TypeString,

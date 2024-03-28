@@ -12,8 +12,8 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-func resourceRole() *schema.Resource {
-	return &schema.Resource{
+func resourceRole() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 **Note:** This resource is available only with Grafana Enterprise 8.+.
 
@@ -106,6 +106,12 @@ func resourceRole() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewResource(
+		"grafana_role",
+		orgResourceIDString("uid"),
+		schema,
+	)
 }
 
 func CreateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

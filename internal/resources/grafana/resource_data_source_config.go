@@ -17,8 +17,8 @@ import (
 //go:embed resource_data_source_config.md
 var resourceDataSourceConfigDescription string
 
-func resourceDataSourceConfig() *schema.Resource {
-	return &schema.Resource{
+func resourceDataSourceConfig() *common.Resource {
+	schema := &schema.Resource{
 		Description: resourceDataSourceConfigDescription,
 
 		CreateContext: UpdateDataSourceConfig,
@@ -43,6 +43,12 @@ func resourceDataSourceConfig() *schema.Resource {
 			"secure_json_data_encoded": datasourceSecureJSONDataAttribute(),
 		},
 	}
+
+	return common.NewResource(
+		"grafana_data_source_config",
+		orgResourceIDString("uid"),
+		schema,
+	)
 }
 
 func UpdateDataSourceConfig(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
