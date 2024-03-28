@@ -194,6 +194,6 @@ Optional:
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_rule_group.name "{{ folderUID }}:{{ name }}"
-terraform import grafana_rule_group.name "{{ orgID }}:{{ folderUID }}:{{ name }}"
+terraform import grafana_rule_group.name "{{ folderUID }}:{{ title }}"
+terraform import grafana_rule_group.name "{{ orgID }}:{{ folderUID }}:{{ title }}"
 ```
