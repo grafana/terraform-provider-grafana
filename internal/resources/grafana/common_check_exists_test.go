@@ -63,9 +63,9 @@ var (
 		},
 	)
 	alertingRuleGroupCheckExists = newCheckExistsHelper(
-		func(g *models.AlertRuleGroup) string { return g.FolderUID + ";" + g.Title },
+		func(g *models.AlertRuleGroup) string { return g.FolderUID + ":" + g.Title },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.AlertRuleGroup, error) {
-			folder, title, _ := strings.Cut(id, ";")
+			folder, title, _ := strings.Cut(id, ":")
 			resp, err := client.Provisioning.GetAlertRuleGroup(title, folder)
 			return payloadOrError(resp, err)
 		},
