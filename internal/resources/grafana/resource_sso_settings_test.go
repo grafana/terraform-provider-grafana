@@ -91,6 +91,7 @@ func TestSSOSettings_basic_saml(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.private_key_path", "/var/private_key_new"),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.idp_metadata_path", "/var/idp_metadata_new"),
 				),
+				ExpectNonEmptyPlan: true,
 			},
 			{
 				Config: testConfigForSamlProvider("updated"),
@@ -101,6 +102,7 @@ func TestSSOSettings_basic_saml(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.private_key_path", "/var/private_key_updated"),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.idp_metadata_path", "/var/idp_metadata_updated"),
 				),
+				ExpectNonEmptyPlan: true,
 			},
 			{
 				ResourceName:            resourceName,

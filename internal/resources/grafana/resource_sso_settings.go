@@ -24,7 +24,7 @@ func resourceSSOSettings() *schema.Resource {
 	return &schema.Resource{
 
 		Description: `
-Manages Grafana SSO Settings for OAuth2. SAML support will be added soon.
+Manages Grafana SSO Settings for OAuth2 and SAML.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/sso-settings/)
@@ -276,7 +276,6 @@ var samlSettingsSchema = &schema.Resource{
 		"name": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Default:     "SAML",
 			Description: "Name used to refer to the SAML authentication.",
 		},
 		"single_logout": {
@@ -302,6 +301,7 @@ var samlSettingsSchema = &schema.Resource{
 		"certificate": {
 			Type:        schema.TypeString,
 			Optional:    true,
+			Sensitive:   true,
 			Description: "Base64-encoded string for the SP X.509 certificate.",
 		},
 		"certificate_path": {
@@ -312,6 +312,7 @@ var samlSettingsSchema = &schema.Resource{
 		"private_key": {
 			Type:        schema.TypeString,
 			Optional:    true,
+			Sensitive:   true,
 			Description: "Base64-encoded string for the SP private key.",
 		},
 		"private_key_path": {
@@ -594,10 +595,12 @@ func getSettingsFromResourceData(d *schema.ResourceData, settingsKey string) (ma
 
 	// TODO investigate why we need this
 	// sometimes the settings set contains some empty items that we want to ignore
-	// we are only interested in the settings that have the client_id set because the client_id is a required field
+	// we are only interested in the settings that have one of the following:
+	// - the client_id set because the client_id is a required field for OAuth2 providers
+	// - the private_key or private_key_path set because those are required fields for SAML
 	for _, item := range settingsList {
 		settings := item.(map[string]any)
-		if settings["client_id"] != "" {
+		if settings["client_id"] != "" || settings["private_key"] != "" || settings["private_key_path"] != "" {
 			return settings, nil
 		}
 	}
@@ -696,10 +699,10 @@ func toSnake(s string) string {
 }
 
 func isSecret(fieldName string) bool {
-	secretFieldPatterns := []string{"secret", "private", "certificate"}
+	secretFields := []string{"client_secret", "private_key", "certificate"}
 
-	for _, v := range secretFieldPatterns {
-		if strings.Contains(strings.ToLower(fieldName), strings.ToLower(v)) {
+	for _, v := range secretFields {
+		if v == fieldName {
 			return true
 		}
 	}
