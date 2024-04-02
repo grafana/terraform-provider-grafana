@@ -744,7 +744,7 @@ multiple checks for a single endpoint to check different capabilities.
 		},
 	}
 
-	return common.NewResource("grafana_synthetic_monitoring_check", resourceCheckID, schema)
+	return common.NewLegacySDKResource("grafana_synthetic_monitoring_check", resourceCheckID, schema)
 }
 
 func resourceCheckCreate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {

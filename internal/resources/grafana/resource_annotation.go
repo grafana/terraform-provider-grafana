@@ -95,7 +95,7 @@ func resourceAnnotation() *common.Resource {
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_annotation",
 		orgResourceIDInt("id"),
 		schema,

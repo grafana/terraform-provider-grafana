@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/pkg/provider"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
@@ -131,7 +132,11 @@ func TestAccExamples(t *testing.T) {
 	}
 
 	// Sanity check that we have all resources and datasources have been tested
-	for rName := range testutils.Provider.ResourcesMap {
+	resourceNames := map[string]struct{}{}
+	for _, r := range provider.Resources() {
+		resourceNames[r.Name] = struct{}{}
+	}
+	for rName := range resourceNames {
 		if _, ok := testedResources["resources/"+strings.TrimPrefix(rName, "grafana_")]; !ok {
 			t.Errorf("Resource %s was not tested", rName)
 		}
@@ -146,7 +151,7 @@ func TestAccExamples(t *testing.T) {
 	for rName := range testedResources {
 		if strings.HasPrefix(rName, "resources/") {
 			rName = "grafana_" + strings.TrimPrefix(rName, "resources/")
-			if _, ok := testutils.Provider.ResourcesMap[rName]; !ok {
+			if _, ok := resourceNames[rName]; !ok {
 				t.Errorf("Resource %s was tested but is not declared by the provider", rName)
 			}
 		}

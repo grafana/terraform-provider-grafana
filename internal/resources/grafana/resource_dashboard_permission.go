@@ -95,7 +95,7 @@ Manages the entire set of permissions for a dashboard. Permissions that aren't s
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_dashboard_permission",
 		orgResourceIDString("dashboardUID"),
 		schema,

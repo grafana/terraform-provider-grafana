@@ -98,7 +98,7 @@ This resource requires Grafana 9.1.0 or later.
 		}
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_contact_point",
 		orgResourceIDString("name"),
 		resource,

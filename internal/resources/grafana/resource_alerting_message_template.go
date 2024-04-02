@@ -60,7 +60,7 @@ This resource requires Grafana 9.1.0 or later.
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_message_template",
 		orgResourceIDString("name"),
 		schema,

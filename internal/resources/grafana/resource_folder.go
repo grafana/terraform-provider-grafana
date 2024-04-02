@@ -67,7 +67,7 @@ func resourceFolder() *common.Resource {
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_folder",
 		orgResourceIDString("uid"),
 		schema,

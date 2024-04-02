@@ -85,7 +85,7 @@ This resource requires Grafana 9.1.0 or later.
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_notification_policy",
 		orgResourceIDString("anyString"),
 		schema,

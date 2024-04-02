@@ -111,7 +111,7 @@ Manages Grafana library panels.
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_library_panel",
 		orgResourceIDString("uid"),
 		schema,

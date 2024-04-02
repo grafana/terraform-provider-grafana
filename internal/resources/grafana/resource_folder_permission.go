@@ -85,7 +85,7 @@ Manages the entire set of permissions for a folder. Permissions that aren't spec
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_folder_permission",
 		orgResourceIDString("folderUID"),
 		schema,

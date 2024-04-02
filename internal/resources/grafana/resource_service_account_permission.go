@@ -79,7 +79,7 @@ Manages the entire set of permissions for a service account. Permissions that ar
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_service_account_permission",
 		orgResourceIDInt("serviceAccountID"),
 		schema,

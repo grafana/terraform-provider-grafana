@@ -149,7 +149,7 @@ Team Sync can be provisioned using [grafana_team_external_group resource](https:
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_team",
 		orgResourceIDInt("id"),
 		schema,

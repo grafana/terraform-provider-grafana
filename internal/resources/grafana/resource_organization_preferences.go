@@ -72,7 +72,7 @@ func resourceOrganizationPreferences() *common.Resource {
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_organization_preferences",
 		common.NewResourceID(common.IntIDField("orgID")),
 		schema,
