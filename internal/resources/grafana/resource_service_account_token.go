@@ -71,7 +71,7 @@ func resourceServiceAccountToken() *common.Resource {
 
 func serviceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Get("service_account_id").(string))
-	c := m.(*common.Client).GrafanaOAPI.Clone().WithOrgID(orgID)
+	c := m.(*common.Client).GrafanaAPI.Clone().WithOrgID(orgID)
 	serviceAccountID, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -103,7 +103,7 @@ func serviceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m in
 
 func serviceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Get("service_account_id").(string))
-	c := m.(*common.Client).GrafanaOAPI.Clone().WithOrgID(orgID)
+	c := m.(*common.Client).GrafanaAPI.Clone().WithOrgID(orgID)
 	serviceAccountID, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -145,7 +145,7 @@ func serviceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m inte
 
 func serviceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	orgID, serviceAccountIDStr := SplitOrgResourceID(d.Get("service_account_id").(string))
-	c := m.(*common.Client).GrafanaOAPI.Clone().WithOrgID(orgID)
+	c := m.(*common.Client).GrafanaAPI.Clone().WithOrgID(orgID)
 	serviceAccountID, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)

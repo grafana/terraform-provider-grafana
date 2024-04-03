@@ -289,7 +289,7 @@ func testAccFolderIDDidntChange(rn string, oldFolder *models.Folder) resource.Te
 			return fmt.Errorf("folder not found: %s", rn)
 		}
 		orgID, folderUID := grafana.SplitOrgResourceID(newFolderResource.Primary.ID)
-		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(orgID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
 		newFolder, err := grafana.GetFolderByIDorUID(client.Folders, folderUID)
 		if err != nil {
 			return fmt.Errorf("error getting folder: %s", err)
