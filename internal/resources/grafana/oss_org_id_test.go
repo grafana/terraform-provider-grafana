@@ -48,7 +48,7 @@ func checkResourceIsInOrg(resourceName, orgResourceName string) resource.TestChe
 }
 
 func grafanaTestClient() *goapi.GrafanaHTTPAPI {
-	return testutils.Provider.Meta().(*common.Client).GrafanaOAPI.Clone().WithOrgID(0)
+	return testutils.Provider.Meta().(*common.Client).GrafanaAPI.Clone().WithOrgID(0)
 }
 
 // Makes the current test run with a service account token on a secondary org

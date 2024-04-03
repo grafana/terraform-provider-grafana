@@ -19,18 +19,14 @@ import (
 type Client struct {
 	GrafanaAPIURL       string
 	GrafanaAPIURLParsed *url.URL
+	GrafanaAPI          *goapi.GrafanaHTTPAPI
 	GrafanaAPIConfig    *goapi.TransportConfig
-	GrafanaCloudAPI     *gcom.APIClient
 
-	GrafanaOAPI *goapi.GrafanaHTTPAPI
-
-	SMAPI *SMAPI.Client
-
-	MLAPI *mlapi.Client
-
-	OnCallClient *onCallAPI.Client
-
-	SLOClient *slo.APIClient
+	GrafanaCloudAPI *gcom.APIClient
+	SMAPI           *SMAPI.Client
+	MLAPI           *mlapi.Client
+	OnCallClient    *onCallAPI.Client
+	SLOClient       *slo.APIClient
 
 	alertingMutex sync.Mutex
 }

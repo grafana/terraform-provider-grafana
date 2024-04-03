@@ -10,7 +10,7 @@ import (
 )
 
 func grafanaClientResourceValidation(d *schema.ResourceData, m interface{}) error {
-	if m.(*common.Client).GrafanaOAPI == nil {
+	if m.(*common.Client).GrafanaAPI == nil {
 		return fmt.Errorf("the Grafana client is required for this resource. Set the auth and url provider attributes")
 	}
 	return nil
