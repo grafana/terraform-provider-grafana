@@ -2,10 +2,12 @@ package cloud
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -45,4 +47,32 @@ func apiError(err error) diag.Diagnostics {
 			Detail:   detail,
 		},
 	}
+}
+
+type basePluginFrameworkResource struct {
+	client *gcom.APIClient
+}
+
+func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		resp.Diagnostics.AddError(
+			"Unconfigured Cloud API client",
+			"the Cloud API client is required for this resource. Set the cloud_access_policy_token provider attribute",
+		)
+
+		return
+	}
+
+	client, ok := req.ProviderData.(*common.Client)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *common.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return
+	}
+
+	r.client = client.GrafanaCloudAPI
 }
