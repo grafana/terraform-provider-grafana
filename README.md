@@ -25,11 +25,11 @@ Set up your local environment by installing [Go](http://www.golang.org). Also
 
 ## Local Development with Grafana
 If you develop the provider and want to test locally with your grafana provider
-1. create a `.terraformrc` and paste the following
+1. create a `.terraformrc` file in your operating system user directory and paste the following
 ```
 provider_installation {
    dev_overrides {
-      "grafana/grafana" = "/path/to/your/grafana/terraform-provider" # this path is the diretory where the binary is built
+      "grafana/grafana" = "/path/to/your/terraform-provider-grafana" # this path is the directory where the binary is built
   }
   # For all other providers, install them directly from their origin provider
   # registries as normal. If you omit this, Terraform will _only_ use
@@ -37,7 +37,7 @@ provider_installation {
   direct {}
 }
 ```
-2. Run `go build` in this directory to get the binary, Terraform will use the binary you just built (it should print out a warning)
+2. Run `go build` in this directory to get the binary, Terraform will use the binary you just built (it should print out a warning) for every terraform plan/apply. No need to run terraform init.
 
 ### Running Tests
 
