@@ -37,7 +37,7 @@ provider_installation {
   direct {}
 }
 ```
-2. Run `go build` in this directory to get the binary, Terraform will use the binary you just built (it should print out a warning) for every terraform plan/apply. No need to run terraform init.
+2. Run `go build` in this directory to get the binary, Terraform will use the binary you just built for every terraform plan/apply (it should print out a warning). No need to run terraform init.
 
 ### Running Tests
 
