@@ -108,7 +108,7 @@ source selected (via the 'type' argument).
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_data_source",
 		orgResourceIDString("uid"),
 		schema,

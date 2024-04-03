@@ -92,7 +92,7 @@ Manages Grafana dashboards.
 		SchemaVersion: 1, // The state upgrader was removed in v2. To upgrade, users can first upgrade to the last v1 release, apply, then upgrade to v2.
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_dashboard",
 		orgResourceIDString("uid"),
 		schema,

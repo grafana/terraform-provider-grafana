@@ -84,7 +84,7 @@ Manages the entire set of permissions for a datasource. Permissions that aren't 
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_data_source_permission",
 		orgResourceIDInt("datasourceID"),
 		schema,

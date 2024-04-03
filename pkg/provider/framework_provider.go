@@ -240,14 +240,12 @@ func (p *frameworkProvider) Configure(ctx context.Context, req provider.Configur
 
 // DataSources defines the data sources implemented in the provider.
 func (p *frameworkProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	// TODO: Implement same thing as legacy_provider_validation.go when adding datasources
 	return nil
 }
 
 // Resources defines the resources implemented in the provider.
 func (p *frameworkProvider) Resources(_ context.Context) []func() resource.Resource {
-	// TODO: Implement same thing as legacy_provider_validation.go when adding resources
-	return nil
+	return pluginFrameworkResources()
 }
 
 // FrameworkProvider returns a terraform-plugin-framework Provider.

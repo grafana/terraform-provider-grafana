@@ -62,7 +62,7 @@ func resourceServiceAccountToken() *common.Resource {
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_service_account_token",
 		nil,
 		schema,

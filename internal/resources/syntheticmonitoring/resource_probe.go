@@ -105,7 +105,7 @@ Grafana Synthetic Monitoring Agent.
 		},
 	}
 
-	return common.NewResource("grafana_synthetic_monitoring_probe", resourceProbeID, schema)
+	return common.NewLegacySDKResource("grafana_synthetic_monitoring_probe", resourceProbeID, schema)
 }
 
 func resourceProbeCreate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {

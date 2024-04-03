@@ -83,7 +83,7 @@ Manages Grafana public dashboards.
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_dashboard_public",
 		resourcePublicDashboardID,
 		schema,

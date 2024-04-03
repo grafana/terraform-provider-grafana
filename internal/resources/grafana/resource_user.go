@@ -67,7 +67,7 @@ You must use basic auth.
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_user",
 		resourceUserID,
 		schema,

@@ -61,7 +61,7 @@ Manages Grafana API Keys.
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_api_key",
 		nil,
 		schema,

@@ -124,7 +124,7 @@ Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/
 		},
 	}
 
-	return common.NewResource("grafana_machine_learning_outlier_detector", resourceOutlierDetectorID, schema)
+	return common.NewLegacySDKResource("grafana_machine_learning_outlier_detector", resourceOutlierDetectorID, schema)
 }
 
 func resourceOutlierCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

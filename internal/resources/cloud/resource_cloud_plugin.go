@@ -59,7 +59,7 @@ Required access policy scopes:
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_cloud_plugin_installation",
 		resourcePluginInstallationID,
 		schema,

@@ -143,7 +143,7 @@ set to true. This feature is only available in Grafana 10.2+.
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_organization",
 		common.NewResourceID(common.IntIDField("id")),
 		schema,

@@ -49,7 +49,7 @@ func resourceTeamExternalGroup() *common.Resource {
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_team_external_group",
 		orgResourceIDInt("teamID"),
 		schema,

@@ -73,7 +73,7 @@ Manages the entire set of assignments for a role. Assignments that aren't specif
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_role_assignment",
 		orgResourceIDString("roleUID"),
 		schema,
