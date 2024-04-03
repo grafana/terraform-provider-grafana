@@ -6,7 +6,6 @@ import (
 	"log"
 	"path/filepath"
 	"strconv"
-	"sync"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
@@ -103,10 +102,16 @@ func generateCloudResources(ctx context.Context, cfg *config) ([]stack, error) {
 		}
 	}
 
-	cache := sync.Map{}
-	cache.Store("org", cfg.cloudOrg)
+	data := cloud.NewListerData(cfg.cloudOrg)
+	if err := generateImportBlocks(ctx, client, data, cloud.Resources, cfg.outputDir, "cloud"); err != nil {
+		return nil, err
+	}
 
-	if err := generateImportBlocks(ctx, client, &cache, cloud.Resources, cfg.outputDir, "cloud"); err != nil {
+	log.Println("Post-processing for cloud")
+	if err := stripDefaults(filepath.Join(cfg.outputDir, "cloud-resources.tf"), map[string]string{}); err != nil {
+		return nil, err
+	}
+	if err := wrapJSONFieldsInFunction(filepath.Join(cfg.outputDir, "cloud-resources.tf")); err != nil {
 		return nil, err
 	}
 

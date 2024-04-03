@@ -102,6 +102,8 @@ func generate(ctx context.Context, cfg *config) error {
 
 	if cfg.format == outputFormatJSON {
 		return convertToTFJSON(cfg.outputDir)
+	} else if cfg.format == outputFormatCrossplane {
+		return tfToCrossplane(cfg.outputDir)
 	}
 
 	return nil

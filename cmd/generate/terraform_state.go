@@ -18,6 +18,19 @@ func (s state) resources() []resource {
 	return resources
 }
 
+func (s state) getResource(resourceType string, name string) (resource, error) {
+	for _, resource := range s.resources() {
+		if resource.resourceType() == resourceType && resource.name() == name {
+			return resource, nil
+		}
+	}
+	return nil, fmt.Errorf("resource not found")
+}
+
+func (r resource) name() string {
+	return r["name"].(string)
+}
+
 func (r resource) resourceType() string {
 	return r["type"].(string)
 }
