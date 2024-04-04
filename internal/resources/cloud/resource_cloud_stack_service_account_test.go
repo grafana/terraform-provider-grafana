@@ -60,6 +60,52 @@ func TestAccGrafanaServiceAccountFromCloud(t *testing.T) {
 	})
 }
 
+func TestAccGrafanaServiceAccountFromCloudNoneRole(t *testing.T) {
+	testutils.CheckCloudAPITestsEnabled(t)
+
+	var stack gcom.FormattedApiInstance
+	prefix := "tfsatest"
+	slug := GetRandomStackName(prefix)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			testAccDeleteExistingStacks(t, prefix)
+		},
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccStackCheckDestroy(&stack),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
+					testAccGrafanaAuthCheckServiceAccounts(&stack, []string{"management-sa"}),
+					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "name", "management-sa"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "role", "None"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "is_disabled", "true"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account_token.management_token", "name", "management-sa-token"),
+					resource.TestCheckNoResourceAttr("grafana_cloud_stack_service_account_token.management_token", "expiration"),
+					resource.TestCheckResourceAttrSet("grafana_cloud_stack_service_account_token.management_token", "key"),
+				),
+			},
+			{
+				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, false),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "is_disabled", "false"),
+				),
+			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_cloud_stack_service_account.management",
+				ImportStateVerify: true,
+			},
+			{
+				Config: testAccStackConfigBasic(slug, slug, "description"),
+				Check:  testAccGrafanaAuthCheckServiceAccounts(&stack, []string{}),
+			},
+		},
+	})
+}
+
 // Tests that the ID change from 2.13.0 to latest works
 // Remove on next major release
 func TestAccGrafanaServiceAccountFromCloud_MigrateFrom213(t *testing.T) {
