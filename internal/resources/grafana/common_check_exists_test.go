@@ -113,16 +113,16 @@ var (
 		},
 	)
 	datasourceCheckExists = newCheckExistsHelper(
-		func(d *models.DataSource) string { return strconv.FormatInt(d.ID, 10) },
-		func(client *goapi.GrafanaHTTPAPI, id string) (*models.DataSource, error) {
-			resp, err := client.Datasources.GetDataSourceByID(id)
+		func(d *models.DataSource) string { return d.UID },
+		func(client *goapi.GrafanaHTTPAPI, uid string) (*models.DataSource, error) {
+			resp, err := client.Datasources.GetDataSourceByUID(uid)
 			return payloadOrError(resp, err)
 		},
 	)
 	datasourcePermissionsCheckExists = newCheckExistsHelper(
 		datasourceCheckExists.getIDFunc, // We use the DS as the reference
-		func(client *goapi.GrafanaHTTPAPI, id string) (*models.DataSource, error) {
-			ds, err := datasourceCheckExists.getResourceFunc(client, id)
+		func(client *goapi.GrafanaHTTPAPI, uid string) (*models.DataSource, error) {
+			ds, err := datasourceCheckExists.getResourceFunc(client, uid)
 			if err != nil {
 				return nil, err
 			}
