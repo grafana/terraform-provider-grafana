@@ -29,7 +29,7 @@ func TestAccGrafanaServiceAccountFromCloud(t *testing.T) {
 		CheckDestroy:             testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, true),
+				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, true, "Admin"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
 					testAccGrafanaAuthCheckServiceAccounts(&stack, []string{"management-sa"}),
@@ -42,9 +42,10 @@ func TestAccGrafanaServiceAccountFromCloud(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, false),
+				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, false, "Editor"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "is_disabled", "false"),
+					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "role", "Editor"),
 				),
 			},
 			{
@@ -64,7 +65,7 @@ func TestAccGrafanaServiceAccountFromCloudNoneRole(t *testing.T) {
 	testutils.CheckCloudAPITestsEnabled(t)
 
 	var stack gcom.FormattedApiInstance
-	prefix := "tfsatest"
+	prefix := "tfsanone"
 	slug := GetRandomStackName(prefix)
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -75,7 +76,7 @@ func TestAccGrafanaServiceAccountFromCloudNoneRole(t *testing.T) {
 		CheckDestroy:             testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, true),
+				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, true, "None"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccStackCheckExists("grafana_cloud_stack.test", &stack),
 					testAccGrafanaAuthCheckServiceAccounts(&stack, []string{"management-sa"}),
@@ -86,21 +87,6 @@ func TestAccGrafanaServiceAccountFromCloudNoneRole(t *testing.T) {
 					resource.TestCheckNoResourceAttr("grafana_cloud_stack_service_account_token.management_token", "expiration"),
 					resource.TestCheckResourceAttrSet("grafana_cloud_stack_service_account_token.management_token", "key"),
 				),
-			},
-			{
-				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, false),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("grafana_cloud_stack_service_account.management", "is_disabled", "false"),
-				),
-			},
-			{
-				ImportState:       true,
-				ResourceName:      "grafana_cloud_stack_service_account.management",
-				ImportStateVerify: true,
-			},
-			{
-				Config: testAccStackConfigBasic(slug, slug, "description"),
-				Check:  testAccGrafanaAuthCheckServiceAccounts(&stack, []string{}),
 			},
 		},
 	})
@@ -158,12 +144,12 @@ func TestAccGrafanaServiceAccountFromCloud_MigrateFrom213(t *testing.T) {
 	})
 }
 
-func testAccGrafanaServiceAccountFromCloud(name, slug string, disabled bool) string {
+func testAccGrafanaServiceAccountFromCloud(name, slug string, disabled bool, role string) string {
 	return testAccStackConfigBasic(name, slug, "description") + fmt.Sprintf(`
 	resource "grafana_cloud_stack_service_account" "management" {
 		stack_slug = grafana_cloud_stack.test.slug
 		name        = "management-sa"
-		role        = "Admin"
+		role        = "%s"
 		is_disabled = %t
 	}
 
@@ -172,11 +158,11 @@ func testAccGrafanaServiceAccountFromCloud(name, slug string, disabled bool) str
 		service_account_id = grafana_cloud_stack_service_account.management.id
 		name       = "management-sa-token"
 	}
-	`, disabled)
+	`, role, disabled)
 }
 
 func testAccGrafanaServiceAccountWithStackFolder(name, slug string, withFolder bool) string {
-	return testAccGrafanaServiceAccountFromCloud(name, slug, false) + fmt.Sprintf(`
+	return testAccGrafanaServiceAccountFromCloud(name, slug, false, "Admin") + fmt.Sprintf(`
 	provider "grafana" {
 		alias = "stack"
 		auth = grafana_cloud_stack_service_account_token.management_token.key
