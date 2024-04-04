@@ -19,7 +19,7 @@ var escalationOptions = []string{
 	"notify_persons",
 	"notify_person_next_each_time",
 	"notify_on_call_from_schedule",
-	"trigger_action",
+	"trigger_webhook",
 	"notify_user_group",
 	"resolve",
 	"notify_whole_channel",
@@ -149,7 +149,7 @@ func resourceEscalation() *common.Resource {
 					"notify_if_time_from",
 					"notify_if_time_to",
 				},
-				Description: "The ID of an Action for trigger_action type step.",
+				Description: "The ID of an Action for trigger_webhook type step.",
 			},
 			"group_to_notify": {
 				Type:     schema.TypeString,
@@ -268,7 +268,7 @@ func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, clien
 
 	actionToTriggerData, actionToTriggerDataOk := d.GetOk("action_to_trigger")
 	if actionToTriggerDataOk {
-		if typeData == "trigger_action" {
+		if typeData == "trigger_webhook" {
 			createOptions.ActionToTrigger = actionToTriggerData.(string)
 		} else {
 			return diag.Errorf("action to trigger can not be set with type: %s", typeData)
@@ -386,7 +386,7 @@ func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, clien
 
 	actionToTriggerData, actionToTriggerDataOk := d.GetOk("action_to_trigger")
 	if actionToTriggerDataOk {
-		if typeData == "trigger_action" {
+		if typeData == "trigger_webhook" {
 			updateOptions.ActionToTrigger = actionToTriggerData.(string)
 		}
 	}
