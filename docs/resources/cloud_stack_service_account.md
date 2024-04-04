@@ -41,12 +41,12 @@ resource "grafana_cloud_stack_service_account" "cloud_sa" {
 ### Required
 
 - `name` (String) The name of the service account.
+- `role` (String) The basic role of the service account in the organization.
 - `stack_slug` (String)
 
 ### Optional
 
 - `is_disabled` (Boolean) The disabled status for the service account. Defaults to `false`.
-- `role` (String) The basic role of the service account in the organization.
 
 ### Read-Only
 

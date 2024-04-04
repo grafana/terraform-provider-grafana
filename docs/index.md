@@ -47,8 +47,8 @@ resource "grafana_dashboard" "test_folder" {
 ```terraform
 // Step 1: Create a stack
 provider "grafana" {
-  alias         = "cloud"
-  cloud_api_key = "my-token"
+  alias                     = "cloud"
+  cloud_access_policy_token = "my-token"
 }
 
 resource "grafana_cloud_stack" "my_stack" {
@@ -95,7 +95,7 @@ resource "grafana_folder" "my_folder" {
 ### Installing Synthetic Monitoring on a new Grafana Cloud Stack
 
 ```terraform
-variable "cloud_api_key" {
+variable "cloud_access_policy_token" {
   description = "Cloud Access Policy token for Grafana Cloud with the following scopes: accesspolicies:read|write|delete, stacks:read|write|delete"
 }
 variable "stack_slug" {}
@@ -105,8 +105,8 @@ variable "cloud_region" {
 
 // Step 1: Create a stack
 provider "grafana" {
-  alias         = "cloud"
-  cloud_api_key = var.cloud_api_key
+  alias                     = "cloud"
+  cloud_access_policy_token = var.cloud_access_policy_token
 }
 
 resource "grafana_cloud_stack" "sm_stack" {
