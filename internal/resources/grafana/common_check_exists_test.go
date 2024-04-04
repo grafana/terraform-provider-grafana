@@ -144,9 +144,9 @@ var (
 		},
 	)
 	folderCheckExists = newCheckExistsHelper(
-		func(f *models.Folder) string { return strconv.FormatInt(f.ID, 10) },
-		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Folder, error) {
-			resp, err := client.Folders.GetFolderByID(mustParseInt64(id))
+		func(f *models.Folder) string { return f.UID },
+		func(client *goapi.GrafanaHTTPAPI, uid string) (*models.Folder, error) {
+			resp, err := client.Folders.GetFolderByUID(uid)
 			return payloadOrError(resp, err)
 		},
 	)

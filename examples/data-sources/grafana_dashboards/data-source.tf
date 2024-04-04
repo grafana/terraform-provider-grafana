@@ -34,15 +34,15 @@ data "grafana_dashboards" "tags" {
   tags   = jsondecode(grafana_dashboard.data_source_dashboards1.config_json)["tags"]
 }
 
-data "grafana_dashboards" "folder_ids" {
-  org_id     = grafana_organization.test.id
-  folder_ids = [grafana_dashboard.data_source_dashboards1.folder]
+data "grafana_dashboards" "folder_uids" {
+  org_id      = grafana_organization.test.id
+  folder_uids = [grafana_dashboard.data_source_dashboards1.folder]
 }
 
-data "grafana_dashboards" "folder_ids_tags" {
-  org_id     = grafana_organization.test.id
-  folder_ids = [grafana_dashboard.data_source_dashboards1.folder]
-  tags       = jsondecode(grafana_dashboard.data_source_dashboards1.config_json)["tags"]
+data "grafana_dashboards" "folder_uids_tags" {
+  org_id      = grafana_organization.test.id
+  folder_uids = [grafana_dashboard.data_source_dashboards1.folder]
+  tags        = jsondecode(grafana_dashboard.data_source_dashboards1.config_json)["tags"]
 }
 
 // use depends_on to wait for dashboard resource to be created before searching

@@ -26,8 +26,15 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 			"folder_ids": {
 				Type:        schema.TypeList,
 				Optional:    true,
-				Description: "Numerical IDs of Grafana folders containing dashboards. Specify to filter for dashboards by folder (eg. `[0]` for General folder), or leave blank to get all dashboards in all folders.",
+				Description: "Deprecated, use `folder_uids` instead.",
 				Elem:        &schema.Schema{Type: schema.TypeInt},
+				Deprecated:  "Use `folder_uids` instead.",
+			},
+			"folder_uids": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "UIDs of Grafana folders containing dashboards. Specify to filter for dashboards by folder (eg. `[\"General\"]` for General folder), or leave blank to get all dashboards in all folders.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 			"limit": {
 				Type:        schema.TypeInt,
@@ -79,6 +86,11 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 	if list, ok := d.GetOk("folder_ids"); ok {
 		params.FolderIds = common.ListToIntSlice[int64](list.([]interface{}))
 		id.Write([]byte(fmt.Sprintf("%v", params.FolderIds)))
+	}
+
+	if list, ok := d.GetOk("folder_uids"); ok {
+		params.FolderUIDs = common.ListToStringSlice(list.([]interface{}))
+		id.Write([]byte(fmt.Sprintf("%v", params.FolderUIDs)))
 	}
 
 	if list, ok := d.GetOk("tags"); ok {
