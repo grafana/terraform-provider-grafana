@@ -39,13 +39,13 @@ resource "grafana_folder_permission_item" "on_role" {
 
 resource "grafana_folder_permission_item" "on_team" {
   folder_uid = grafana_folder.collection.uid
-  team_id    = grafana_team.team.id
+  team       = grafana_team.team.id
   permission = "View"
 }
 
 resource "grafana_folder_permission_item" "on_user" {
   folder_uid = grafana_folder.collection.uid
-  user_id    = grafana_user.user.id
+  user       = grafana_user.user.id
   permission = "Admin"
 }
 ```
