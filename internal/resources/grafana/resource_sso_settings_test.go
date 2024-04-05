@@ -70,7 +70,7 @@ func TestSSOSettings_basic_saml(t *testing.T) {
 
 	provider := "saml"
 
-	api := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+	api := grafanaTestClient()
 
 	defaultSettings, err := api.SsoSettings.GetProviderSettings(provider)
 	if err != nil {
