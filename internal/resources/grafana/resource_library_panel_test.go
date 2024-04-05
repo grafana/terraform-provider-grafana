@@ -59,7 +59,7 @@ func TestAccLibraryPanel_basic(t *testing.T) {
 }
 
 func TestAccLibraryPanel_folder(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
+	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
 
 	name := acctest.RandString(10)
 	var panel models.LibraryElementResponse
@@ -158,7 +158,7 @@ resource "grafana_folder" "test_folder" {
 
 resource "grafana_library_panel" "test_folder" {
 	name      = "%[1]s"
-	folder_id = grafana_folder.test_folder.id
+	folder_uid = grafana_folder.test_folder.uid
 	model_json = jsonencode({
 		title   = "%[1]s",
 		id      = 12,

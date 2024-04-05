@@ -60,13 +60,13 @@ func TestAccFolder_basic(t *testing.T) {
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"prevent_destroy_if_not_empty"},
 			},
-			// Change the title of a folder. This shouldn't change the ID (the folder doesn't have to be recreated)
+			// Change the title of a folder. This shouldn't recreate the folder
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_folder/resource.tf", map[string]string{
 					"Terraform Test Folder": "Terraform Test Folder Updated",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccFolderIDDidntChange("grafana_folder.test_folder", &folder),
+					testAccFolderWasntRecreated("grafana_folder.test_folder", &folder),
 					resource.TestMatchResourceAttr("grafana_folder.test_folder", "id", defaultOrgIDRegexp),
 					resource.TestMatchResourceAttr("grafana_folder.test_folder", "uid", common.UIDRegexp),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder", "title", "Terraform Test Folder Updated"),
@@ -194,7 +194,6 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 						client := grafanaTestClient()
 						_, err := client.Dashboards.PostDashboard(&models.SaveDashboardCommand{
 							FolderUID: folder.UID,
-							FolderID:  folder.ID,
 							Dashboard: map[string]interface{}{
 								"uid":   name + "-dashboard",
 								"title": name + "-dashboard",
@@ -282,7 +281,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 	}
 }
 
-func testAccFolderIDDidntChange(rn string, oldFolder *models.Folder) resource.TestCheckFunc {
+func testAccFolderWasntRecreated(rn string, oldFolder *models.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		newFolderResource, ok := s.RootModule().Resources[rn]
 		if !ok {
@@ -294,8 +293,8 @@ func testAccFolderIDDidntChange(rn string, oldFolder *models.Folder) resource.Te
 		if err != nil {
 			return fmt.Errorf("error getting folder: %s", err)
 		}
-		if newFolder.ID != oldFolder.ID {
-			return fmt.Errorf("folder id has changed: %d -> %d", oldFolder.ID, newFolder.ID)
+		if newFolder.Created != oldFolder.Created {
+			return fmt.Errorf("folder creation date has changed: %s -> %s", oldFolder.Created, newFolder.Created)
 		}
 		return nil
 	}

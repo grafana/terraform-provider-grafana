@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 
@@ -159,48 +158,6 @@ func TestAccDashboard_computed_config(t *testing.T) {
 	})
 }
 
-func TestAccDashboard_folder(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-
-	uid := acctest.RandString(10)
-
-	var dashboard models.DashboardFullWithMeta
-	var folder models.Folder
-
-	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		CheckDestroy: resource.ComposeTestCheckFunc(
-			dashboardCheckExists.destroyed(&dashboard, nil),
-			folderCheckExists.destroyed(&folder, nil),
-		),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccDashboardFolder(uid, "grafana_folder.test_folder1.id"),
-				Check: resource.ComposeTestCheckFunc(
-					dashboardCheckExists.exists("grafana_dashboard.test_folder", &dashboard),
-					folderCheckExists.exists("grafana_folder.test_folder1", &folder),
-					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
-					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "1:"+uid), // <org id>:<uid>
-					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", uid),
-					resource.TestMatchResourceAttr("grafana_dashboard.test_folder", "folder", common.IDRegexp),
-				),
-			},
-			// Update folder
-			{
-				Config: testAccDashboardFolder(uid, "grafana_folder.test_folder2.id"),
-				Check: resource.ComposeTestCheckFunc(
-					dashboardCheckExists.exists("grafana_dashboard.test_folder", &dashboard),
-					folderCheckExists.exists("grafana_folder.test_folder2", &folder),
-					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
-					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "id", "1:"+uid), // <org id>:<uid>
-					resource.TestCheckResourceAttr("grafana_dashboard.test_folder", "uid", uid),
-					resource.TestMatchResourceAttr("grafana_dashboard.test_folder", "folder", common.IDRegexp),
-				),
-			},
-		},
-	})
-}
-
 func TestAccDashboard_folder_uid(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=8.0.0") // UID in folders were added in v8
 
@@ -289,8 +246,8 @@ func TestAccDashboard_inOrg(t *testing.T) {
 
 func testAccDashboardCheckExistsInFolder(dashboard *models.DashboardFullWithMeta, folder *models.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if dashboard.Meta.FolderID != folder.ID && folder.ID != 0 {
-			return fmt.Errorf("dashboard.Folder(%d) does not match folder.ID(%d)", dashboard.Meta.FolderID, folder.ID)
+		if dashboard.Meta.FolderUID != folder.UID && folder.UID != "" {
+			return fmt.Errorf("dashboard.Folder(%s) does not match folder.ID(%s)", dashboard.Meta.FolderUID, folder.UID)
 		}
 		return nil
 	}
