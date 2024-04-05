@@ -53,7 +53,13 @@ func datasourceDashboard() *schema.Resource {
 			"folder": {
 				Type:        schema.TypeInt,
 				Computed:    true,
-				Description: "The numerical ID of the folder where the Grafana dashboard is found.",
+				Description: "Deprecated. Use `folder_uid` instead",
+				Deprecated:  "Use `folder_uid` instead",
+			},
+			"folder_uid": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The UID of the folder where the Grafana dashboard is found.",
 			},
 			"is_starred": {
 				Type:        schema.TypeBool,
@@ -120,7 +126,9 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta i
 	d.Set("config_json", string(configJSONBytes))
 	d.Set("version", int64(model["version"].(float64)))
 	d.Set("title", model["title"].(string))
+	// nolint:staticcheck
 	d.Set("folder", dashboard.Meta.FolderID)
+	d.Set("folder_uid", dashboard.Meta.FolderUID)
 	d.Set("is_starred", dashboard.Meta.IsStarred)
 	d.Set("slug", dashboard.Meta.Slug)
 	d.Set("url", metaClient.GrafanaSubpath(dashboard.Meta.URL))

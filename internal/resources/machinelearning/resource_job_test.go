@@ -18,7 +18,6 @@ func TestAccResourceJob(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	randomName := acctest.RandomWithPrefix("Test Job")
-	defaultIDRegexp := regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
 
 	var job mlapi.Job
 	resource.ParallelTest(t, resource.TestCase{
@@ -30,28 +29,11 @@ func TestAccResourceJob(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Note for the reader: these tests construct a datasource & a job, where the Job's datasource id is set by terraform.
-				Config: machinelearningDatasource + testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_job/job.tf", map[string]string{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_job/job.tf", map[string]string{
 					"Test Job": randomName,
-					"= 10":     "= split(\":\", grafana_data_source.foo.id)[1]", // as it of form ^(0|1):[a-zA-Z0-9-_]+$, we only use later part
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccMLJobCheckExists("grafana_machine_learning_job.test_job", &job),
-					resource.TestCheckResourceAttrSet("grafana_machine_learning_job.test_job", "id"),
-					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "name", randomName),
-					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "metric", "tf_test_job"),
-					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "datasource_type", "prometheus"),
-					resource.TestMatchResourceAttr("grafana_machine_learning_job.test_job", "datasource_id", defaultIDRegexp),
-					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "query_params.expr", "grafanacloud_grafana_instance_active_user_count"),
-					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "interval", "300"),
-					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "training_window", "7776000"),
-				),
-			},
-			{
-				Config: machinelearningDatasource + testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_job/datasource_uid_job.tf", map[string]string{
-					"Test Job":               randomName,
-					"\"grafanacloud-usage\"": "grafana_data_source.foo.uid",
-				}),
-				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_job.test_job", "id"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "name", randomName),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "metric", "tf_test_job"),
@@ -63,9 +45,8 @@ func TestAccResourceJob(t *testing.T) {
 				),
 			},
 			{
-				Config: machinelearningDatasource + testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_job/tuned_job.tf", map[string]string{
-					"Test Job":               randomName,
-					"\"grafanacloud-usage\"": "grafana_data_source.foo.uid",
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_job/tuned_job.tf", map[string]string{
+					"Test Job": randomName,
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_job.test_job", "id"),
@@ -82,16 +63,15 @@ func TestAccResourceJob(t *testing.T) {
 				),
 			},
 			{
-				Config: machinelearningDatasource + testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_job/holidays_job.tf", map[string]string{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_job/holidays_job.tf", map[string]string{
 					"Test Job": randomName,
-					"= 10":     "= split(\":\", grafana_data_source.foo.id)[1]", // as it of form ^(0|1):[a-zA-Z0-9-_]+$, we want later part
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_job.test_job", "id"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "name", randomName),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "metric", "tf_test_job"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "datasource_type", "prometheus"),
-					resource.TestMatchResourceAttr("grafana_machine_learning_job.test_job", "datasource_id", defaultIDRegexp),
+					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "datasource_uid", "prometheus-ds-test-uid"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "query_params.expr", "grafanacloud_grafana_instance_active_user_count"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "interval", "300"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "training_window", "7776000"),
@@ -153,27 +133,6 @@ func testAccDatasourceCheckDestroy() resource.TestCheckFunc {
 		return nil
 	}
 }
-
-const machinelearningDatasource = `
-resource "grafana_data_source" "foo" {
-	type                = "prometheus"
-	name                = "prometheus-ds-test"
-	uid                 = "prometheus-ds-test-uid"
-	url                 = "https://my-instance.com"
-	basic_auth_enabled  = true
-	basic_auth_username = "username"
-
-	json_data_encoded = jsonencode({
-	  httpMethod        = "POST"
-	  prometheusType    = "Mimir"
-	  prometheusVersion = "2.4.0"
-	})
-
-	secure_json_data_encoded = jsonencode({
-	  basicAuthPassword = "password"
-	})
-}
-`
 
 const machineLearningJobInvalid = `
 resource "grafana_machine_learning_job" "invalid" {
