@@ -18,8 +18,8 @@ var (
 	StoreDashboardSHA256 bool
 )
 
-func resourceDashboard() *schema.Resource {
-	return &schema.Resource{
+func resourceDashboard() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 Manages Grafana dashboards.
@@ -91,6 +91,12 @@ Manages Grafana dashboards.
 		},
 		SchemaVersion: 1, // The state upgrader was removed in v2. To upgrade, users can first upgrade to the last v1 release, apply, then upgrade to v2.
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_dashboard",
+		orgResourceIDString("uid"),
+		schema,
+	)
 }
 
 func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

@@ -12,7 +12,7 @@ import (
 )
 
 func TestAccRoleAssignments(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	testName := acctest.RandString(10)
 	var role models.RoleDTO
@@ -44,7 +44,7 @@ func TestAccRoleAssignments(t *testing.T) {
 }
 
 func TestAccRoleAssignments_inOrg(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	testName := acctest.RandString(10)
 	var org models.OrgDetailsDTO
@@ -148,7 +148,7 @@ resource "grafana_role" "test" {
 	description = "test desc"
 	version = 1
 	uid = "%[1]s"
-	global = true
+	global = false
 	group = "testgroup"
 	display_name = "testdisplay"
 	hidden = true

@@ -12,7 +12,7 @@ func datasourceLibraryPanel() *schema.Resource {
 	return &schema.Resource{
 		Description: "Data source for retrieving a single library panel by name or uid.",
 		ReadContext: dataSourceLibraryPanelRead,
-		Schema: common.CloneResourceSchemaForDatasource(resourceLibraryPanel(), map[string]*schema.Schema{
+		Schema: common.CloneResourceSchemaForDatasource(resourceLibraryPanel().Schema, map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"name": {
 				Type:        schema.TypeString,

@@ -58,8 +58,8 @@ Required access policy scopes:
 			},
 			"role": {
 				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.StringInSlice([]string{"Viewer", "Editor", "Admin"}, false),
+				Required:     true,
+				ValidateFunc: validation.StringInSlice([]string{"Viewer", "Editor", "Admin", "None"}, false),
 				Description:  "The basic role of the service account in the organization.",
 				ForceNew:     true, // The grafana API does not support updating the service account
 			},
@@ -73,7 +73,7 @@ Required access policy scopes:
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_cloud_stack_service_account",
 		resourceStackServiceAccountID,
 		schema,

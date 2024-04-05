@@ -10,30 +10,31 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/oncall"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/slo"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/syntheticmonitoring"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func Resources() []*common.Resource {
 	var resources []*common.Resource
 	resources = append(resources, cloud.Resources...)
+	resources = append(resources, grafana.Resources...)
 	resources = append(resources, machinelearning.Resources...)
 	resources = append(resources, oncall.Resources...)
 	resources = append(resources, slo.Resources...)
+	resources = append(resources, syntheticmonitoring.Resources...)
 	return resources
 }
 
 func resourceMap() map[string]*schema.Resource {
 	result := make(map[string]*schema.Resource)
 	for _, r := range Resources() {
-		result[r.Name] = r.Schema
+		schema := r.Schema
+		if schema == nil {
+			continue
+		}
+		result[r.Name] = schema
 	}
-
-	// TODO: Migrate to common.Resource instances (in Resources function)
-	return mergeResourceMaps(
-		result,
-		grafana.ResourcesMap,
-		syntheticmonitoring.ResourcesMap,
-	)
+	return result
 }
 
 func mergeResourceMaps(maps ...map[string]*schema.Resource) map[string]*schema.Resource {
@@ -44,4 +45,16 @@ func mergeResourceMaps(maps ...map[string]*schema.Resource) map[string]*schema.R
 		}
 	}
 	return result
+}
+
+func pluginFrameworkResources() []func() resource.Resource {
+	var resources []func() resource.Resource
+	for _, r := range Resources() {
+		resourceSchema := r.PluginFrameworkSchema
+		if resourceSchema == nil {
+			continue
+		}
+		resources = append(resources, func() resource.Resource { return resourceSchema })
+	}
+	return resources
 }

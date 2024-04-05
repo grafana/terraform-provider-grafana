@@ -10,8 +10,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceUser() *schema.Resource {
-	return &schema.Resource{
+var resourceUserID = common.NewResourceID(common.IntIDField("id"))
+
+func resourceUser() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/user-management/server-user-management/)
@@ -64,10 +66,19 @@ You must use basic auth.
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_user",
+		resourceUserID,
+		schema,
+	)
 }
 
 func CreateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	user := models.AdminCreateUserForm{
 		Email:    d.Get("email").(string),
 		Name:     d.Get("name").(string),
@@ -89,7 +100,10 @@ func CreateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func ReadUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -109,7 +123,10 @@ func ReadUser(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 }
 
 func UpdateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -138,7 +155,10 @@ func UpdateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func DeleteUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)

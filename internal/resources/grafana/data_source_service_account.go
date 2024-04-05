@@ -19,7 +19,7 @@ func datasourceServiceAccount() *schema.Resource {
 		* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/serviceaccount/#service-account-api)
 `,
 		ReadContext: datasourceServiceAccountRead,
-		Schema: common.CloneResourceSchemaForDatasource(resourceServiceAccount(), map[string]*schema.Schema{
+		Schema: common.CloneResourceSchemaForDatasource(resourceServiceAccount().Schema, map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"name": {
 				Type:        schema.TypeString,

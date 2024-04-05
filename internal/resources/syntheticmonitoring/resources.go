@@ -26,7 +26,7 @@ var DatasourcesMap = map[string]*schema.Resource{
 	"grafana_synthetic_monitoring_probes": dataSourceProbes(),
 }
 
-var ResourcesMap = map[string]*schema.Resource{
-	"grafana_synthetic_monitoring_check": resourceCheck(),
-	"grafana_synthetic_monitoring_probe": resourceProbe(),
+var Resources = []*common.Resource{
+	resourceCheck(),
+	resourceProbe(),
 }

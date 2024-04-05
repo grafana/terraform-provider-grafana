@@ -12,7 +12,6 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/models"
 
-	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 )
 
@@ -21,7 +20,7 @@ func TestSSOSettings_basic_oauth2(t *testing.T) {
 
 	providers := []string{"gitlab", "google", "generic_oauth", "azuread", "okta"}
 
-	api := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+	api := grafanaTestClient()
 
 	for _, provider := range providers {
 		defaultSettings, err := api.SsoSettings.GetProviderSettings(provider)
@@ -119,7 +118,7 @@ func TestSSOSettings_basic_saml(t *testing.T) {
 func TestSSOSettings_customFields(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Run on v10.4.0 once it's released
 
-	api := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+	api := grafanaTestClient()
 
 	provider := "github"
 

@@ -191,7 +191,7 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 					folderCheckExists.exists("grafana_folder.test_folder", &folder),
 					// Create a dashboard in the protected folder
 					func(s *terraform.State) error {
-						client := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+						client := grafanaTestClient()
 						_, err := client.Dashboards.PostDashboard(&models.SaveDashboardCommand{
 							FolderUID: folder.UID,
 							FolderID:  folder.ID,
@@ -243,7 +243,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 			var name = acctest.RandomWithPrefix(tc.role + "-key")
 
 			// Create an API key with the correct role and inject it in envvars. This auth will be used when the test runs
-			client := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+			client := grafanaTestClient()
 			resp, err := client.APIKeys.AddAPIkey(&models.AddAPIKeyCommand{
 				Name: name,
 				Role: tc.role,
@@ -289,7 +289,7 @@ func testAccFolderIDDidntChange(rn string, oldFolder *models.Folder) resource.Te
 			return fmt.Errorf("folder not found: %s", rn)
 		}
 		orgID, folderUID := grafana.SplitOrgResourceID(newFolderResource.Primary.ID)
-		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(orgID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
 		newFolder, err := grafana.GetFolderByIDorUID(client.Folders, folderUID)
 		if err != nil {
 			return fmt.Errorf("error getting folder: %s", err)

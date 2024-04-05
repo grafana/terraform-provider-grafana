@@ -47,8 +47,8 @@ resource "grafana_dashboard" "test_folder" {
 ```terraform
 // Step 1: Create a stack
 provider "grafana" {
-  alias         = "cloud"
-  cloud_api_key = "my-token"
+  alias                     = "cloud"
+  cloud_access_policy_token = "my-token"
 }
 
 resource "grafana_cloud_stack" "my_stack" {
@@ -95,7 +95,7 @@ resource "grafana_folder" "my_folder" {
 ### Installing Synthetic Monitoring on a new Grafana Cloud Stack
 
 ```terraform
-variable "cloud_api_key" {
+variable "cloud_access_policy_token" {
   description = "Cloud Access Policy token for Grafana Cloud with the following scopes: accesspolicies:read|write|delete, stacks:read|write|delete"
 }
 variable "stack_slug" {}
@@ -105,8 +105,8 @@ variable "cloud_region" {
 
 // Step 1: Create a stack
 provider "grafana" {
-  alias         = "cloud"
-  cloud_api_key = var.cloud_api_key
+  alias                     = "cloud"
+  cloud_access_policy_token = var.cloud_access_policy_token
 }
 
 resource "grafana_cloud_stack" "sm_stack" {
@@ -218,7 +218,7 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 - `retry_status_codes` (Set of String) The status codes to retry on for Grafana API and Grafana Cloud API calls. Use `x` as a digit wildcard. Defaults to 429 and 5xx. May alternatively be set via the `GRAFANA_RETRY_STATUS_CODES` environment variable.
 - `retry_wait` (Number) The amount of time in seconds to wait between retries for Grafana API and Grafana Cloud API calls. May alternatively be set via the `GRAFANA_RETRY_WAIT` environment variable.
 - `sm_access_token` (String, Sensitive) A Synthetic Monitoring access token. May alternatively be set via the `GRAFANA_SM_ACCESS_TOKEN` environment variable.
-- `sm_url` (String) Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable. The correct value for each service region is cited in the [Synthetic Monitoring documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/private-probes/#probe-api-server-url). Note the `sm_url` value is optional, but it must correspond with the value specified as the `region_slug` in the `grafana_cloud_stack` resource. Also note that when a Terraform configuration contains multiple provider instances managing SM resources associated with the same Grafana stack, specifying an explicit `sm_url` set to the same value for each provider ensures all providers interact with the same SM API.
+- `sm_url` (String) Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable. The correct value for each service region is cited in the [Synthetic Monitoring documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/set-up/set-up-private-probes/#probe-api-server-url). Note the `sm_url` value is optional, but it must correspond with the value specified as the `region_slug` in the `grafana_cloud_stack` resource. Also note that when a Terraform configuration contains multiple provider instances managing SM resources associated with the same Grafana stack, specifying an explicit `sm_url` set to the same value for each provider ensures all providers interact with the same SM API.
 - `store_dashboard_sha256` (Boolean) Set to true if you want to save only the sha256sum instead of complete dashboard model JSON in the tfstate.
 - `tls_cert` (String) Client TLS certificate (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.
 - `tls_key` (String) Client TLS key (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.

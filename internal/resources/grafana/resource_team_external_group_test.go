@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -14,7 +13,7 @@ import (
 )
 
 func TestAccTeamExternalGroup_basic(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	name := acctest.RandString(10)
 	var team models.TeamDTO
@@ -73,7 +72,7 @@ func TestAccTeamExternalGroup_basic(t *testing.T) {
 
 func testAccTeamExternalGroupCheck(team *models.TeamDTO, expectedGroups []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+		client := grafanaTestClient()
 
 		resp, err := client.SyncTeamGroups.GetTeamGroupsAPI(team.ID)
 		if err != nil {

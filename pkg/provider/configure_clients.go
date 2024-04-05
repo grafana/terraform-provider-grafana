@@ -26,11 +26,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-func createClients(providerConfig frameworkProviderConfig) (*common.Client, error) {
+func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	var err error
 	c := &common.Client{}
 	if !providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull() {
-		if err = createGrafanaOAPIClient(c, providerConfig); err != nil {
+		if err = createGrafanaAPIClient(c, providerConfig); err != nil {
 			return nil, err
 		}
 		if err = createMLClient(c, providerConfig); err != nil {
@@ -63,7 +63,7 @@ func createClients(providerConfig frameworkProviderConfig) (*common.Client, erro
 	return c, nil
 }
 
-func createGrafanaOAPIClient(client *common.Client, providerConfig frameworkProviderConfig) error {
+func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig) error {
 	tlsClientConfig, err := parseTLSconfig(providerConfig)
 	if err != nil {
 		return err
@@ -104,13 +104,13 @@ func createGrafanaOAPIClient(client *common.Client, providerConfig frameworkProv
 	if cfg.HTTPHeaders, err = getHTTPHeadersMap(providerConfig); err != nil {
 		return err
 	}
-	client.GrafanaOAPI = goapi.NewHTTPClientWithConfig(strfmt.Default, &cfg)
+	client.GrafanaAPI = goapi.NewHTTPClientWithConfig(strfmt.Default, &cfg)
 	client.GrafanaAPIConfig = &cfg
 
 	return nil
 }
 
-func createMLClient(client *common.Client, providerConfig frameworkProviderConfig) error {
+func createMLClient(client *common.Client, providerConfig ProviderConfig) error {
 	mlcfg := mlapi.Config{
 		BasicAuth:   client.GrafanaAPIConfig.BasicAuth,
 		BearerToken: client.GrafanaAPIConfig.APIKey,
@@ -127,7 +127,7 @@ func createMLClient(client *common.Client, providerConfig frameworkProviderConfi
 	return err
 }
 
-func createSLOClient(client *common.Client, providerConfig frameworkProviderConfig) error {
+func createSLOClient(client *common.Client, providerConfig ProviderConfig) error {
 	sloConfig := slo.NewConfiguration()
 	sloConfig.Host = client.GrafanaAPIURLParsed.Host
 	sloConfig.Scheme = client.GrafanaAPIURLParsed.Scheme
@@ -137,7 +137,7 @@ func createSLOClient(client *common.Client, providerConfig frameworkProviderConf
 	return nil
 }
 
-func createCloudClient(client *common.Client, providerConfig frameworkProviderConfig) error {
+func createCloudClient(client *common.Client, providerConfig ProviderConfig) error {
 	openAPIConfig := gcom.NewConfiguration()
 	parsedURL, err := url.Parse(providerConfig.CloudAPIURL.ValueString())
 	if err != nil {
@@ -159,13 +159,13 @@ func createCloudClient(client *common.Client, providerConfig frameworkProviderCo
 	return nil
 }
 
-func createOnCallClient(providerConfig frameworkProviderConfig) (*onCallAPI.Client, error) {
+func createOnCallClient(providerConfig ProviderConfig) (*onCallAPI.Client, error) {
 	return onCallAPI.New(providerConfig.OncallURL.ValueString(), providerConfig.OncallAccessToken.ValueString())
 }
 
 // Sets a custom HTTP Header on all requests coming from the Grafana Terraform Provider to Grafana-Terraform-Provider: true
 // in addition to any headers set within the `http_headers` field or the `GRAFANA_HTTP_HEADERS` environment variable
-func getHTTPHeadersMap(providerConfig frameworkProviderConfig) (map[string]string, error) {
+func getHTTPHeadersMap(providerConfig ProviderConfig) (map[string]string, error) {
 	headers := map[string]string{"Grafana-Terraform-Provider": "true"}
 	for k, v := range providerConfig.HTTPHeaders.Elements() {
 		if vString, ok := v.(types.String); ok {
@@ -201,7 +201,7 @@ func createTempFileIfLiteral(value string) (path string, tempFile bool, err erro
 	return value, false, nil
 }
 
-func parseAuth(providerConfig frameworkProviderConfig) (*url.Userinfo, int64, string, error) {
+func parseAuth(providerConfig ProviderConfig) (*url.Userinfo, int64, string, error) {
 	auth := strings.SplitN(providerConfig.Auth.ValueString(), ":", 2)
 	var orgID int64 = 1
 	if !providerConfig.OrgID.IsNull() {
@@ -219,7 +219,7 @@ func parseAuth(providerConfig frameworkProviderConfig) (*url.Userinfo, int64, st
 	return nil, 0, "", nil
 }
 
-func parseTLSconfig(providerConfig frameworkProviderConfig) (*tls.Config, error) {
+func parseTLSconfig(providerConfig ProviderConfig) (*tls.Config, error) {
 	tlsClientConfig := &tls.Config{}
 
 	tlsKeyFile, tempFile, err := createTempFileIfLiteral(providerConfig.TLSKey.ValueString())
@@ -276,7 +276,7 @@ func setToStringArray(set []attr.Value) []string {
 	return result
 }
 
-func getRetryClient(providerConfig frameworkProviderConfig) *http.Client {
+func getRetryClient(providerConfig ProviderConfig) *http.Client {
 	retryClient := retryablehttp.NewClient()
 	retryClient.RetryMax = int(providerConfig.Retries.ValueInt64())
 	if wait := providerConfig.RetryWait.ValueInt64(); wait > 0 {

@@ -130,7 +130,7 @@ func resourceRoute() *common.Resource {
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_oncall_route",
 		resourceID,
 		schema,

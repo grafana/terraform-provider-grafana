@@ -13,8 +13,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourcePublicDashboard() *schema.Resource {
-	return &schema.Resource{
+var resourcePublicDashboardID = common.NewResourceID(
+	common.OptionalIntIDField("orgID"),
+	common.StringIDField("dashboardUID"),
+	common.StringIDField("publicDashboardUID"),
+)
+
+func resourcePublicDashboard() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 Manages Grafana public dashboards.
@@ -76,6 +82,12 @@ Manages Grafana public dashboards.
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_dashboard_public",
+		resourcePublicDashboardID,
+		schema,
+	)
 }
 
 func CreatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -89,7 +101,7 @@ func CreatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta int
 	}
 	pd := resp.Payload
 
-	d.SetId(fmt.Sprintf("%d:%s:%s", orgID, pd.DashboardUID, pd.UID))
+	d.SetId(resourcePublicDashboardID.Make(orgID, pd.DashboardUID, pd.UID))
 	return ReadPublicDashboard(ctx, d, meta)
 }
 func UpdatePublicDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

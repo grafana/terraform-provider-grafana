@@ -1,1 +1,2 @@
-terraform import grafana_library_panel.panel_name {{library_panel_slug}}
+terraform import grafana_library_panel.name "{{ uid }}"
+terraform import grafana_library_panel.name "{{ orgID }}:{{ uid }}"

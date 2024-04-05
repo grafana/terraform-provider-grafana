@@ -11,7 +11,7 @@ import (
 )
 
 func TestAccDatasourcePermission_basic(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	var ds models.DataSource
 	name := acctest.RandString(10)

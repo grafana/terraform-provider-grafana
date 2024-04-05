@@ -11,8 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourcePlaylist() *schema.Resource {
-	return &schema.Resource{
+func resourcePlaylist() *common.Resource {
+	schema := &schema.Resource{
 		CreateContext: CreatePlaylist,
 		ReadContext:   ReadPlaylist,
 		UpdateContext: UpdatePlaylist,
@@ -74,6 +74,12 @@ func resourcePlaylist() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_playlist",
+		orgResourceIDString("uid"),
+		schema,
+	)
 }
 
 func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

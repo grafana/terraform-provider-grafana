@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -149,7 +148,7 @@ func checkDashboardPermissionsEmpty(dashboard *models.DashboardFullWithMeta) res
 }
 
 func checkDashboardPermissions(dashboard *models.DashboardFullWithMeta, expectedPerms []*models.DashboardACLInfoDTO) error {
-	client := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+	client := grafanaTestClient()
 	uid := dashboard.Dashboard.(map[string]interface{})["uid"].(string)
 	resp, err := client.DashboardPermissions.GetDashboardPermissionsListByUID(uid)
 	if err != nil {

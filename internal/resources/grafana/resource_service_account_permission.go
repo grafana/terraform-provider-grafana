@@ -15,8 +15,8 @@ import (
 
 const serviceAccountsPermissionsType = "serviceaccounts"
 
-func resourceServiceAccountPermission() *schema.Resource {
-	return &schema.Resource{
+func resourceServiceAccountPermission() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Manages the entire set of permissions for a service account. Permissions that aren't specified when applying this resource will be removed.
 
@@ -78,6 +78,12 @@ Manages the entire set of permissions for a service account. Permissions that ar
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_service_account_permission",
+		orgResourceIDInt("serviceAccountID"),
+		schema,
+	)
 }
 
 func ReadServiceAccountPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

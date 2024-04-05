@@ -19,8 +19,15 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-func resourceRuleGroup() *schema.Resource {
-	return &schema.Resource{
+//nolint:staticcheck
+var resourceRuleGroupID = common.NewResourceIDWithLegacySeparator(";",
+	common.OptionalIntIDField("orgID"),
+	common.StringIDField("folderUID"),
+	common.StringIDField("title"),
+)
+
+func resourceRuleGroup() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Manages Grafana Alerting rule groups.
 
@@ -238,14 +245,24 @@ This resource requires Grafana 9.1.0 or later.
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_rule_group",
+		resourceRuleGroupID,
+		schema,
+	)
 }
 
 func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, data.Id())
+	client, orgID, idWithoutOrg := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	key := UnpackGroupID(idStr)
+	split, err := resourceRuleGroupID.Split(idWithoutOrg)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	folderUID, title := split[0].(string), split[1].(string)
 
-	resp, err := client.Provisioning.GetAlertRuleGroup(key.Name, key.FolderUID)
+	resp, err := client.Provisioning.GetAlertRuleGroup(title, folderUID)
 	if err, shouldReturn := common.CheckReadError("rule group", data, err); shouldReturn {
 		return err
 	}
@@ -274,7 +291,7 @@ func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta int
 	}
 	data.Set("disable_provenance", disableProvenance)
 	data.Set("rule", rules)
-	data.SetId(MakeOrgResourceID(orgID, packGroupID(key)))
+	data.SetId(resourceRuleGroupID.Make(orgID, folderUID, title))
 
 	return nil
 }
@@ -314,17 +331,20 @@ func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	key := packGroupID(AlertRuleGroupKey{resp.Payload.FolderUID, resp.Payload.Title})
-	data.SetId(MakeOrgResourceID(orgID, key))
+	data.SetId(resourceRuleGroupID.Make(orgID, resp.Payload.FolderUID, resp.Payload.Title))
 	return readAlertRuleGroup(ctx, data, meta)
 }
 
 func deleteAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := OAPIClientFromExistingOrgResource(meta, data.Id())
+	client, _, idWithoutOrg := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	key := UnpackGroupID(idStr)
+	split, err := resourceRuleGroupID.Split(idWithoutOrg)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	folderUID, title := split[0].(string), split[1].(string)
 	// TODO use DeleteAlertRuleGroup method instead (available since Grafana 11)
-	resp, err := client.Provisioning.GetAlertRuleGroup(key.Name, key.FolderUID)
+	resp, err := client.Provisioning.GetAlertRuleGroup(title, folderUID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -528,28 +548,6 @@ func unpackMap(raw interface{}) map[string]string {
 		result[k] = v.(string)
 	}
 	return result
-}
-
-type AlertRuleGroupKey struct {
-	FolderUID string
-	Name      string
-}
-
-const groupIDSeparator = ";"
-
-func packGroupID(key AlertRuleGroupKey) string {
-	return key.FolderUID + ";" + key.Name
-}
-
-func UnpackGroupID(tfID string) AlertRuleGroupKey {
-	vals := strings.SplitN(tfID, groupIDSeparator, 2)
-	if len(vals) != 2 {
-		return AlertRuleGroupKey{}
-	}
-	return AlertRuleGroupKey{
-		FolderUID: vals[0],
-		Name:      vals[1],
-	}
 }
 
 func packNotificationSettings(settings *models.AlertRuleNotificationSettings) (interface{}, error) {

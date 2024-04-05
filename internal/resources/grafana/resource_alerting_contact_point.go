@@ -44,7 +44,7 @@ var notifiers = []notifier{
 	wecomNotifier{},
 }
 
-func resourceContactPoint() *schema.Resource {
+func resourceContactPoint() *common.Resource {
 	resource := &schema.Resource{
 		Description: `
 Manages Grafana Alerting contact points.
@@ -98,7 +98,11 @@ This resource requires Grafana 9.1.0 or later.
 		}
 	}
 
-	return resource
+	return common.NewLegacySDKResource(
+		"grafana_contact_point",
+		orgResourceIDString("name"),
+		resource,
+	)
 }
 
 func readContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {

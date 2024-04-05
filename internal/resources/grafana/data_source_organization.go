@@ -52,7 +52,10 @@ func datasourceOrganization() *schema.Resource {
 }
 
 func dataSourceOrganizationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	name := d.Get("name").(string)
 
 	org, err := client.Orgs.GetOrgByName(name)

@@ -63,9 +63,9 @@ var (
 		},
 	)
 	alertingRuleGroupCheckExists = newCheckExistsHelper(
-		func(g *models.AlertRuleGroup) string { return g.FolderUID + ";" + g.Title },
+		func(g *models.AlertRuleGroup) string { return g.FolderUID + ":" + g.Title },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.AlertRuleGroup, error) {
-			folder, title, _ := strings.Cut(id, ";")
+			folder, title, _ := strings.Cut(id, ":")
 			resp, err := client.Provisioning.GetAlertRuleGroup(title, folder)
 			return payloadOrError(resp, err)
 		},
@@ -289,7 +289,7 @@ func (h *checkExistsHelper[T]) exists(rn string, v *T) resource.TestCheckFunc {
 		orgID, idStr := grafana.SplitOrgResourceID(rs.Primary.ID)
 
 		// If the org ID is set, check that the resource doesn't exist in the default org
-		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(1)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(1)
 		if orgID > 1 {
 			_, err := h.getResourceFunc(client, idStr)
 			if err == nil {
@@ -324,7 +324,7 @@ func (h *checkExistsHelper[T]) destroyed(v *T, org *models.OrgDetailsDTO) resour
 			orgID = org.ID
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(orgID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
 		id := h.getIDFunc(v)
 		_, err := h.getResourceFunc(client, id)
 		if err == nil {

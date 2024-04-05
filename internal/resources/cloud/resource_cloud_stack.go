@@ -199,7 +199,7 @@ Required access policy scopes:
 		),
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		"grafana_cloud_stack",
 		resourceStackID,
 		schema,

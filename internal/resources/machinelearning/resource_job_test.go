@@ -145,7 +145,7 @@ func testAccDatasourceCheckDestroy() resource.TestCheckFunc {
 	// Check the `machinelearningDatasource` has been destroyed
 	return func(s *terraform.State) error {
 		var orgID int64 = 1
-		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(orgID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
 		ds, err := client.Datasources.GetDataSourceByName("prometheus-ds-test")
 		if err == nil {
 			return fmt.Errorf("Datasource `%s` still exists after destroy", ds.Payload.Name)

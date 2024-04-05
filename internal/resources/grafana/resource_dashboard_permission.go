@@ -13,8 +13,8 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-func resourceDashboardPermission() *schema.Resource {
-	return &schema.Resource{
+func resourceDashboardPermission() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 Manages the entire set of permissions for a dashboard. Permissions that aren't specified when applying this resource will be removed.
@@ -94,6 +94,12 @@ Manages the entire set of permissions for a dashboard. Permissions that aren't s
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_dashboard_permission",
+		orgResourceIDString("dashboardUID"),
+		schema,
+	)
 }
 
 func UpdateDashboardPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

@@ -11,6 +11,8 @@ import (
 	_ "time/tzdata"
 
 	"github.com/go-openapi/strfmt"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -49,8 +51,8 @@ var (
 	reportFormats      = []string{reportFormatPDF, reportFormatCSV, reportFormatImage}
 )
 
-func resourceReport() *schema.Resource {
-	return &schema.Resource{
+func resourceReport() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 **Note:** This resource is available only with Grafana Enterprise 7.+.
 
@@ -284,10 +286,28 @@ func resourceReport() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_report",
+		orgResourceIDInt("id"),
+		schema,
+	)
 }
 
 func CreateReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
+
+	_, hasDashboards := d.GetOk("dashboards")
+	dashID := d.Get("dashboard_id").(int)
+	dashUID := d.Get("dashboard_uid").(string)
+	if !hasDashboards && dashID != 0 && dashUID == "" {
+		// Get dashboard by ID
+		dashboard, err := searchDashboardByID(client, dashID)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		d.Set("dashboard_uid", dashboard.UID)
+	}
 
 	report, err := schemaToReport(d)
 	if err != nil {
@@ -447,6 +467,7 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReportConfig, 
 	report = setDashboards(report, d)
 
 	if v, ok := d.GetOk("formats"); ok && v != nil {
+		report.Formats = []models.Type{}
 		formats := common.SetToStringSlice(v.(*schema.Set))
 		for _, format := range formats {
 			report.Formats = append(report.Formats, models.Type(format))
@@ -525,9 +546,6 @@ func setDashboards(report models.CreateOrUpdateReportConfig, d *schema.ResourceD
 		return report
 	}
 
-	id := int64(d.Get("dashboard_id").(int))
-	uid := d.Get("dashboard_uid").(string)
-
 	// Set dashboard time range
 	timeRange := d.Get("time_range").([]interface{})
 	tr := &models.ReportTimeRange{}
@@ -536,20 +554,12 @@ func setDashboards(report models.CreateOrUpdateReportConfig, d *schema.ResourceD
 		tr = &models.ReportTimeRange{From: timeRange["from"].(string), To: timeRange["to"].(string)}
 	}
 
-	if uid == "" {
-		// It triggers the old way to generate reports
-		report.DashboardID = id
-		report.Options.TimeRange = tr
-	} else {
-		report.Dashboards = []*models.ReportDashboard{
-			{
-				Dashboard: &models.ReportDashboardID{
-					UID: uid,
-				},
-				TimeRange: tr,
-			},
-		}
-	}
+	report.Dashboards = []*models.ReportDashboard{{
+		Dashboard: &models.ReportDashboardID{
+			UID: d.Get("dashboard_uid").(string),
+		},
+		TimeRange: tr,
+	}}
 
 	return report
 }
@@ -710,4 +720,26 @@ func checkDateTime(old, new string) (time.Time, time.Time, bool) {
 	}
 
 	return oldParsed, newParsed, false
+}
+
+func searchDashboardByID(client *goapi.GrafanaHTTPAPI, id int) (*models.Hit, error) {
+	var page int64 = 1
+	searchType := "dash-db"
+	for {
+		params := search.NewSearchParams().WithPage(&page).WithType(&searchType)
+		dashboards, err := client.Search.Search(params)
+		if err != nil {
+			return nil, err
+		}
+		for _, dashboard := range dashboards.Payload {
+			if dashboard.ID == int64(id) {
+				return dashboard, nil
+			}
+		}
+		if len(dashboards.Payload) == 0 {
+			break
+		}
+		page++
+	}
+	return nil, fmt.Errorf("dashboard with ID %d not found", id)
 }

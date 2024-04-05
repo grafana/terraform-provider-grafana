@@ -16,7 +16,7 @@ func dataSourceProbe() *schema.Resource {
 	return &schema.Resource{
 		Description: "Data source for retrieving a single probe by name.",
 		ReadContext: withClient[schema.ReadContextFunc](dataSourceProbeRead),
-		Schema: common.CloneResourceSchemaForDatasource(resourceProbe(), map[string]*schema.Schema{
+		Schema: common.CloneResourceSchemaForDatasource(resourceProbe().Schema, map[string]*schema.Schema{
 			"name": {
 				Description: "Name of the probe.",
 				Type:        schema.TypeString,

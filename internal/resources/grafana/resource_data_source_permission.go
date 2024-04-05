@@ -16,8 +16,8 @@ import (
 
 const datasourcesPermissionsType = "datasources"
 
-func resourceDatasourcePermission() *schema.Resource {
-	return &schema.Resource{
+func resourceDatasourcePermission() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 Manages the entire set of permissions for a datasource. Permissions that aren't specified when applying this resource will be removed.
@@ -83,6 +83,12 @@ Manages the entire set of permissions for a datasource. Permissions that aren't 
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_data_source_permission",
+		orgResourceIDInt("datasourceID"),
+		schema,
+	)
 }
 
 func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -93,6 +99,7 @@ func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 		list = v.(*schema.Set).List()
 	}
 
+	// TODO: Switch to UID, but support both until next major release
 	_, datasourceID := SplitOrgResourceID(d.Get("datasource_id").(string))
 	resp, err := client.Datasources.GetDataSourceByID(datasourceID)
 	if err != nil {

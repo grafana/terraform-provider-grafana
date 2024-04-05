@@ -31,8 +31,8 @@ const (
 	RemoveMember
 )
 
-func resourceTeam() *schema.Resource {
-	return &schema.Resource{
+func resourceTeam() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/team-management/)
@@ -148,6 +148,12 @@ Team Sync can be provisioned using [grafana_team_external_group resource](https:
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_team",
+		orgResourceIDInt("id"),
+		schema,
+	)
 }
 
 func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
