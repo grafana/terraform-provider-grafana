@@ -127,3 +127,12 @@ Optional:
 - `role_values_none` (String) List of comma- or space-separated roles which will be mapped into the None role.
 - `signature_algorithm` (String) Signature algorithm used for signing requests to the IdP. Supported values are rsa-sha1, rsa-sha256, rsa-sha512.
 - `single_logout` (Boolean) Whether SAML Single Logout is enabled.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_sso_settings.name "{{ provider }}"
+terraform import grafana_sso_settings.name "{{ orgID }}:{{ provider }}"
+```

@@ -35,9 +35,6 @@ Manages Grafana SSO Settings for OAuth2 and SAML.
 		ReadContext:   ReadSSOSettings,
 		UpdateContext: UpdateSSOSettings,
 		DeleteContext: DeleteSSOSettings,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
 
 		Schema: map[string]*schema.Schema{
 			providerKey: {
