@@ -25,6 +25,7 @@
     "resources/team": "Grafana OSS",
     "resources/user": "Grafana OSS",
     "resources/data_source_permission": "Grafana Enterprise",
+    "resources/data_source_permission_item": "Grafana Enterprise",
     "resources/report": "Grafana Enterprise",
     "resources/role": "Grafana Enterprise",
     "resources/role_assignment": "Grafana Enterprise",
