@@ -194,15 +194,17 @@ func TestSSOSettings_resourceWithInvalidProvider(t *testing.T) {
 func TestSSOSettings_resourceWithNoSettings(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config:      testConfigWithNoSettings,
-				ExpectError: regexp.MustCompile("Insufficient oauth2_settings blocks"),
+	for _, config := range testConfigsWithNoSettings {
+		resource.Test(t, resource.TestCase{
+			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("no settings found"),
+				},
 			},
-		},
-	})
+		})
+	}
 }
 
 func TestSSOSettings_resourceWithEmptySettings(t *testing.T) {
@@ -328,10 +330,6 @@ const testConfigWithEmptySettings = `resource "grafana_sso_settings" "sso_settin
   }
 }`
 
-const testConfigWithNoSettings = `resource "grafana_sso_settings" "sso_settings" {
-  provider_name = "gitlab"
-}`
-
 const testConfigWithManySettings = `resource "grafana_sso_settings" "sso_settings" {
   provider_name = "gitlab"
   oauth2_settings {
@@ -361,6 +359,33 @@ const testConfigWithInvalidCustomField = `resource "grafana_sso_settings" "sso_s
     }
   }
 }`
+
+var testConfigsWithNoSettings = []string{
+	// no oauth2_settings for gitlab
+	`resource "grafana_sso_settings" "sso_settings" {
+  provider_name = "gitlab"
+}`,
+	// saml_settings instead of oauth2_settings for gitlab
+	`resource "grafana_sso_settings" "sso_settings" {
+  provider_name = "gitlab"
+  saml_settings {
+    certificate_path  = "/var/certificate_%[1]s"
+    private_key_path  = "/var/private_key_%[1]s"
+  }
+}`,
+	// no saml_settings for saml
+	`resource "grafana_sso_settings" "sso_settings" {
+  provider_name = "saml"
+}`,
+	// oauth2_settings instead of saml_settings for saml
+	`resource "grafana_sso_settings" "sso_settings" {
+  provider_name = "saml"
+  oauth2_settings {
+    client_id     = "client_id"
+    client_secret = "client_secret"
+  }
+}`,
+}
 
 var testConfigsWithValidationErrors = []string{
 	// no token_url provided for azuread
