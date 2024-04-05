@@ -467,14 +467,16 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 		key := toSnake(k)
 
 		if _, ok := settingsSchema.Schema[key]; ok {
-			if isSecret(key) {
-				// secrets are not exposed by the SSO Settings API, we get them from the terraform state
-				if val, ok := settingsFromTfState[key]; ok {
+			// the API response may return fields that don't exist in the terraform state
+			// we ignore them because they are not managed by terraform
+			if val, ok := getSettingOk(key, settingsFromTfState); ok {
+				if isSecret(key) {
+					// secrets are not exposed by the SSO Settings API, we get them from the terraform state
 					settingsSnake[key] = val
+				} else if !isIgnored(provider, key) {
+					// some fields are returned by the API, but they are read only, so we ignore them
+					settingsSnake[key] = v
 				}
-			} else if !isIgnored(provider, key) {
-				// some fields cannot be updated, but they are returned by the API, so we ignore them
-				settingsSnake[key] = v
 			}
 		} else if isOAuth2Provider(provider) {
 			if _, ok := customFieldsFromTfState[key]; ok {
@@ -487,7 +489,9 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 	}
 
 	var settings []interface{}
-	settings = append(settings, settingsSnake)
+	if len(settingsSnake) > 0 {
+		settings = append(settings, settingsSnake)
+	}
 
 	d.Set(providerKey, payload.Provider)
 	d.Set(settingsKey, settings)
@@ -584,6 +588,20 @@ func getSettingsSchema(provider string) (*schema.Resource, error) {
 	}
 
 	return nil, fmt.Errorf("no settings schema found for provider %s", provider)
+}
+
+// getSettingOk mimics the terraform function schema.ResourceData.GetOk but for the nested fields inside settings
+// it assumes that any empty string value from settings is not part of the tf configuration
+func getSettingOk(key string, settings map[string]any) (any, bool) {
+	val, ok := settings[key]
+	if ok {
+		stringVal, stringOk := val.(string)
+		if stringOk && stringVal == "" {
+			return val, false
+		}
+	}
+
+	return val, ok
 }
 
 func getSettingsFromResourceData(d *schema.ResourceData, settingsKey string) (map[string]any, error) {
@@ -699,10 +717,10 @@ func toSnake(s string) string {
 }
 
 func isSecret(fieldName string) bool {
-	secretFields := []string{"client_secret", "private_key", "certificate"}
+	secretFieldPatterns := []string{"secret", "certificate", "private"}
 
-	for _, v := range secretFields {
-		if v == fieldName {
+	for _, v := range secretFieldPatterns {
+		if strings.Contains(strings.ToLower(fieldName), strings.ToLower(v)) {
 			return true
 		}
 	}

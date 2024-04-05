@@ -45,6 +45,10 @@ func TestSSOSettings_basic_oauth2(t *testing.T) {
 					),
 				},
 				{
+					ResourceName: resourceName,
+					RefreshState: true,
+				},
+				{
 					Config: testConfigForOAuth2Provider(provider, "updated"),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
@@ -54,10 +58,8 @@ func TestSSOSettings_basic_oauth2(t *testing.T) {
 					),
 				},
 				{
-					ResourceName:            resourceName,
-					ImportState:             true,
-					ImportStateVerify:       true,
-					ImportStateVerifyIgnore: []string{"oauth2_settings.0.client_secret", "oauth2_settings.0.custom"},
+					ResourceName: resourceName,
+					RefreshState: true,
 				},
 			},
 		})
@@ -91,7 +93,10 @@ func TestSSOSettings_basic_saml(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.private_key_path", "/var/private_key_new"),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.idp_metadata_path", "/var/idp_metadata_new"),
 				),
-				ExpectNonEmptyPlan: true,
+			},
+			{
+				ResourceName: resourceName,
+				RefreshState: true,
 			},
 			{
 				Config: testConfigForSamlProvider("updated"),
@@ -102,13 +107,10 @@ func TestSSOSettings_basic_saml(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.private_key_path", "/var/private_key_updated"),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.idp_metadata_path", "/var/idp_metadata_updated"),
 				),
-				ExpectNonEmptyPlan: true,
 			},
 			{
-				ResourceName:            resourceName,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{},
+				ResourceName: resourceName,
+				RefreshState: true,
 			},
 		},
 	})
@@ -169,12 +171,6 @@ func TestSSOSettings_customFields(t *testing.T) {
 						return nil
 					},
 				),
-			},
-			{
-				ResourceName:            resourceName,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"oauth2_settings.0.client_secret", "oauth2_settings.0.custom"},
 			},
 		},
 	})
