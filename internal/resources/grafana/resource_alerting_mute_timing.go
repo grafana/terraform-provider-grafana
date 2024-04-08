@@ -8,13 +8,13 @@ import (
 
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceMuteTiming() *schema.Resource {
-	return &schema.Resource{
+func resourceMuteTiming() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Manages Grafana Alerting mute timings.
 
@@ -40,6 +40,13 @@ This resource requires Grafana 9.1.0 or later.
 				Required:    true,
 				ForceNew:    true,
 				Description: "The name of the mute timing.",
+			},
+			"disable_provenance": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				ForceNew:    true, // TODO: The API doesn't return provenance, so we have to force new for now.
+				Description: "Allow modifying the mute timing from other sources than Terraform or the Grafana API.",
 			},
 
 			"intervals": {
@@ -116,6 +123,12 @@ This resource requires Grafana 9.1.0 or later.
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_mute_timing",
+		orgResourceIDString("name"),
+		schema,
+	)
 }
 
 func readMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -144,6 +157,10 @@ func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 			TimeIntervals: unpackIntervals(intervals),
 		})
 
+	if v, ok := data.GetOk("disable_provenance"); ok && v.(bool) {
+		params.SetXDisableProvenance(&provenanceDisabled)
+	}
+
 	resp, err := client.Provisioning.PostMuteTiming(params)
 	if err != nil {
 		return diag.FromErr(err)
@@ -162,6 +179,10 @@ func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 			Name:          name,
 			TimeIntervals: unpackIntervals(intervals),
 		})
+
+	if v, ok := data.GetOk("disable_provenance"); ok && v.(bool) {
+		params.SetXDisableProvenance(&provenanceDisabled)
+	}
 
 	_, err := client.Provisioning.PutMuteTiming(params)
 	if err != nil {
@@ -204,7 +225,7 @@ func suppressMonthDiff(k, oldValue, newValue string, d *schema.ResourceData) boo
 	return oldNormalized == newNormalized
 }
 
-func packIntervals(nts []*models.TimeInterval) []interface{} {
+func packIntervals(nts []*models.TimeIntervalItem) []interface{} {
 	if nts == nil {
 		return nil
 	}
@@ -240,14 +261,14 @@ func packIntervals(nts []*models.TimeInterval) []interface{} {
 	return intervals
 }
 
-func unpackIntervals(raw []interface{}) []*models.TimeInterval {
+func unpackIntervals(raw []interface{}) []*models.TimeIntervalItem {
 	if raw == nil {
 		return nil
 	}
 
-	result := make([]*models.TimeInterval, len(raw))
+	result := make([]*models.TimeIntervalItem, len(raw))
 	for i, r := range raw {
-		interval := models.TimeInterval{}
+		interval := models.TimeIntervalItem{}
 
 		block := map[string]interface{}{}
 		if r != nil {
@@ -256,7 +277,7 @@ func unpackIntervals(raw []interface{}) []*models.TimeInterval {
 
 		if vals, ok := block["times"]; ok && vals != nil {
 			vals := vals.([]interface{})
-			interval.Times = make([]*models.TimeIntervalRange, len(vals))
+			interval.Times = make([]*models.TimeIntervalTimeRange, len(vals))
 			for i := range vals {
 				interval.Times[i] = unpackTimeRange(vals[i])
 			}
@@ -284,16 +305,16 @@ func unpackIntervals(raw []interface{}) []*models.TimeInterval {
 	return result
 }
 
-func packTimeRange(time *models.TimeIntervalRange) interface{} {
+func packTimeRange(time *models.TimeIntervalTimeRange) interface{} {
 	return map[string]string{
 		"start": time.StartTime,
 		"end":   time.EndTime,
 	}
 }
 
-func unpackTimeRange(raw interface{}) *models.TimeIntervalRange {
+func unpackTimeRange(raw interface{}) *models.TimeIntervalTimeRange {
 	vals := raw.(map[string]interface{})
-	return &models.TimeIntervalRange{
+	return &models.TimeIntervalTimeRange{
 		StartTime: vals["start"].(string),
 		EndTime:   vals["end"].(string),
 	}

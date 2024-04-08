@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DatasourceUsers() *schema.Resource {
+func datasourceUsers() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: readUsers,
 		Importer: &schema.ResourceImporter{
@@ -65,7 +65,10 @@ does not currently work with API Tokens. You must use basic auth.
 }
 
 func readUsers(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta) // Users are global/org-agnostic
+	client, err := OAPIGlobalClient(meta) // Users are global/org-agnostic
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	allUsers, err := getAllUsers(client)
 	if err != nil {
 		return diag.FromErr(err)

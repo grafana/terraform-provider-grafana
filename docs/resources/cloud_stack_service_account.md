@@ -7,7 +7,7 @@ description: |-
   This can be used to bootstrap a management service account for a new stack
   Official documentation https://grafana.com/docs/grafana/latest/administration/service-accounts/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/serviceaccount/#service-account-api
   Required access policy scopes:
-  stack-service-accounts:write
+  stacks:readstack-service-accounts:write
 ---
 
 # grafana_cloud_stack_service_account (Resource)
@@ -20,6 +20,7 @@ This can be used to bootstrap a management service account for a new stack
 
 Required access policy scopes:
 
+* stacks:read
 * stack-service-accounts:write
 
 ## Example Usage
@@ -40,13 +41,21 @@ resource "grafana_cloud_stack_service_account" "cloud_sa" {
 ### Required
 
 - `name` (String) The name of the service account.
+- `role` (String) The basic role of the service account in the organization.
 - `stack_slug` (String)
 
 ### Optional
 
 - `is_disabled` (Boolean) The disabled status for the service account. Defaults to `false`.
-- `role` (String) The basic role of the service account in the organization.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_cloud_stack_service_account.name "{{ stackSlug }}:{{ serviceAccountID }}"
+```

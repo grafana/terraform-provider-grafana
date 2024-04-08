@@ -12,8 +12,7 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/models"
 
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 )
 
 func TestSSOSettings_basic(t *testing.T) {
@@ -21,7 +20,7 @@ func TestSSOSettings_basic(t *testing.T) {
 
 	providers := []string{"gitlab", "google", "generic_oauth", "azuread", "okta"}
 
-	api := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+	api := grafanaTestClient()
 
 	for _, provider := range providers {
 		defaultSettings, err := api.SsoSettings.GetProviderSettings(provider)
@@ -32,8 +31,8 @@ func TestSSOSettings_basic(t *testing.T) {
 		resourceName := fmt.Sprintf("grafana_sso_settings.%s_sso_settings", provider)
 
 		resource.Test(t, resource.TestCase{
-			ProviderFactories: testutils.ProviderFactories,
-			CheckDestroy:      checkSsoSettingsReset(api, provider, defaultSettings.Payload),
+			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			CheckDestroy:             checkSsoSettingsReset(api, provider, defaultSettings.Payload),
 			Steps: []resource.TestStep{
 				{
 					Config: testConfigForProvider(provider, "new"),
@@ -67,7 +66,7 @@ func TestSSOSettings_basic(t *testing.T) {
 func TestSSOSettings_customFields(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Run on v10.4.0 once it's released
 
-	api := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+	api := grafanaTestClient()
 
 	provider := "github"
 
@@ -79,8 +78,8 @@ func TestSSOSettings_customFields(t *testing.T) {
 	resourceName := "grafana_sso_settings.sso_settings"
 
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      checkSsoSettingsReset(api, provider, defaultSettings.Payload),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             checkSsoSettingsReset(api, provider, defaultSettings.Payload),
 		Steps: []resource.TestStep{
 			{
 				Config: testConfigWithCustomFields,
@@ -136,7 +135,7 @@ func TestSSOSettings_resourceWithInvalidProvider(t *testing.T) {
 	provider := "invalid_provider"
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testConfigForProvider(provider, "new"),
@@ -150,7 +149,7 @@ func TestSSOSettings_resourceWithNoSettings(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testConfigWithNoSettings,
@@ -164,7 +163,7 @@ func TestSSOSettings_resourceWithEmptySettings(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testConfigWithEmptySettings,
@@ -178,7 +177,7 @@ func TestSSOSettings_resourceWithManySettings(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testConfigWithManySettings,
@@ -192,7 +191,7 @@ func TestSSOSettings_resourceWithInvalidCustomField(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testConfigWithInvalidCustomField,
@@ -207,7 +206,7 @@ func TestSSOSettings_resourceWithValidationErrors(t *testing.T) {
 
 	for _, config := range testConfigsWithValidationErrors {
 		resource.Test(t, resource.TestCase{
-			ProviderFactories: testutils.ProviderFactories,
+			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,

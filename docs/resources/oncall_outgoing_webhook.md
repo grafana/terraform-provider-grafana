@@ -52,5 +52,5 @@ resource "grafana_oncall_outgoing_webhook" "test-acc-outgoing_webhook" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_oncall_outgoing_webhook.outgoing_webhook_name {{outgoing_webhook_id}}
+terraform import grafana_oncall_outgoing_webhook.name "{{ id }}"
 ```

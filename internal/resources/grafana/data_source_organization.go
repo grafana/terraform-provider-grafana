@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DatasourceOrganization() *schema.Resource {
+func datasourceOrganization() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/organization-management/)
@@ -52,7 +52,10 @@ func DatasourceOrganization() *schema.Resource {
 }
 
 func dataSourceOrganizationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	name := d.Get("name").(string)
 
 	org, err := client.Orgs.GetOrgByName(name)

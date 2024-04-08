@@ -2,19 +2,18 @@ package cloud
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strconv"
 
-	goapi "github.com/grafana/grafana-openapi-client-go/client"
-	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
-	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceStackServiceAccountToken() *schema.Resource {
-	return &schema.Resource{
+func resourceStackServiceAccountToken() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Manages service account tokens of a Grafana Cloud stack using the Cloud API
 This can be used to bootstrap a management service account token for a new stack
@@ -27,9 +26,9 @@ Required access policy scopes:
 * stack-service-accounts:write
 `,
 
-		CreateContext: stackServiceAccountTokenCreate,
-		ReadContext:   stackServiceAccountTokenRead,
-		DeleteContext: stackServiceAccountTokenDelete,
+		CreateContext: withClient[schema.CreateContextFunc](stackServiceAccountTokenCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](stackServiceAccountTokenRead),
+		DeleteContext: withClient[schema.DeleteContextFunc](stackServiceAccountTokenDelete),
 
 		Schema: map[string]*schema.Schema{
 			"stack_slug": {
@@ -46,6 +45,12 @@ Required access policy scopes:
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					// The service account ID is now possibly a composite ID that includes the stack slug
+					oldID, _ := getStackServiceAccountID(old)
+					newID, _ := getStackServiceAccountID(new)
+					return oldID == newID && oldID != 0 && newID != 0
+				},
 			},
 			"seconds_to_live": {
 				Type:     schema.TypeInt,
@@ -67,62 +72,52 @@ Required access policy scopes:
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_cloud_stack_service_account_token",
+		nil,
+		schema,
+	)
 }
 
-func stackServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	cloudClient := m.(*common.Client).GrafanaCloudAPI
-	c, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	defer cleanup()
-
-	serviceAccountID, err := strconv.ParseInt(d.Get("service_account_id").(string), 10, 64)
+func stackServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
+	stackSlug := d.Get("stack_slug").(string)
+	serviceAccountID, err := getStackServiceAccountID(d.Get("service_account_id").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	name := d.Get("name").(string)
-	ttl := d.Get("seconds_to_live").(int)
+	req := gcom.PostInstanceServiceAccountTokensRequest{
+		Name:          d.Get("name").(string),
+		SecondsToLive: common.Ref(int32(d.Get("seconds_to_live").(int))),
+	}
 
-	request := service_accounts.NewCreateTokenParams().WithBody(&models.AddServiceAccountTokenCommand{
-		Name:          name,
-		SecondsToLive: int64(ttl),
-	}).WithServiceAccountID(serviceAccountID)
-	response, err := c.ServiceAccounts.CreateToken(request)
+	resp, _, err := cloudClient.InstancesAPI.PostInstanceServiceAccountTokens(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).
+		PostInstanceServiceAccountTokensRequest(req).
+		XRequestId(ClientRequestID()).
+		Execute()
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	t := response.Payload
 
-	d.SetId(strconv.FormatInt(t.ID, 10))
-	err = d.Set("key", t.Key)
+	d.SetId(strconv.FormatInt(*resp.Id, 10))
+	err = d.Set("key", resp.Key)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	// Fill the true resource's state by performing a read
-	return stackServiceAccountTokenReadWithClient(c, d)
+	return stackServiceAccountTokenRead(ctx, d, cloudClient)
 }
 
-func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	cloudClient := m.(*common.Client).GrafanaCloudAPI
-	c, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	defer cleanup()
-
-	return stackServiceAccountTokenReadWithClient(c, d)
-}
-
-func stackServiceAccountTokenReadWithClient(c *goapi.GrafanaHTTPAPI, d *schema.ResourceData) diag.Diagnostics {
-	serviceAccountID, err := strconv.ParseInt(d.Get("service_account_id").(string), 10, 64)
+func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
+	stackSlug := d.Get("stack_slug").(string)
+	serviceAccountID, err := getStackServiceAccountID(d.Get("service_account_id").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	response, err := c.ServiceAccounts.ListTokens(serviceAccountID)
+	response, _, err := cloudClient.InstancesAPI.GetInstanceServiceAccountTokens(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).Execute()
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -131,14 +126,14 @@ func stackServiceAccountTokenReadWithClient(c *goapi.GrafanaHTTPAPI, d *schema.R
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	for _, key := range response.Payload {
-		if id == key.ID {
-			d.SetId(strconv.FormatInt(key.ID, 10))
+	for _, key := range response {
+		if id == *key.Id {
+			d.SetId(strconv.FormatInt(*key.Id, 10))
 			err = d.Set("name", key.Name)
 			if err != nil {
 				return diag.FromErr(err)
 			}
-			if !key.Expiration.IsZero() {
+			if key.Expiration != nil && !key.Expiration.IsZero() {
 				err = d.Set("expiration", key.Expiration.String())
 				if err != nil {
 					return diag.FromErr(err)
@@ -150,34 +145,36 @@ func stackServiceAccountTokenReadWithClient(c *goapi.GrafanaHTTPAPI, d *schema.R
 		}
 	}
 
-	log.Printf("[WARN] removing service account token%d from state because it no longer exists in grafana", id)
+	log.Printf("[WARN] removing service account token %d from state because it no longer exists in grafana", id)
 	d.SetId("")
 
 	return nil
 }
 
-func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	cloudClient := m.(*common.Client).GrafanaCloudAPI
-	c, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	defer cleanup()
-
-	serviceAccountID, err := strconv.ParseInt(d.Get("service_account_id").(string), 10, 64)
+func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
+	stackSlug := d.Get("stack_slug").(string)
+	serviceAccountID, err := getStackServiceAccountID(d.Get("service_account_id").(string))
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	id, err := strconv.ParseInt(d.Id(), 10, 32)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	_, err = cloudClient.InstancesAPI.DeleteInstanceServiceAccountToken(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10), d.Id()).
+		XRequestId(ClientRequestID()).
+		Execute()
+	return diag.FromErr(err)
+}
 
-	_, err = c.ServiceAccounts.DeleteToken(id, serviceAccountID)
-	if err != nil {
-		return diag.FromErr(err)
+func getStackServiceAccountID(id string) (int64, error) {
+	split, splitErr := resourceStackServiceAccountID.Split(id)
+	if splitErr != nil {
+		// ID used to be just the service account ID.
+		// Even though that's an incomplete ID for imports, we need to handle it for backwards compatibility
+		// TODO: Remove on next major version
+		serviceAccountID, parseErr := strconv.ParseInt(id, 10, 64)
+		if parseErr != nil {
+			return 0, fmt.Errorf("failed to parse ID (%s) as stackSlug:serviceAccountID: %v and failed to parse as serviceAccountID: %v", id, splitErr, parseErr)
+		}
+		return serviceAccountID, nil
 	}
-
-	return nil
+	return split[1].(int64), nil
 }

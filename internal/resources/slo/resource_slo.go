@@ -7,7 +7,7 @@ import (
 
 	slo "github.com/grafana/slo-openapi-client/go"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -20,8 +20,10 @@ const (
 	QueryTypeThreshold string = "threshold"
 )
 
-func ResourceSlo() *schema.Resource {
-	return &schema.Resource{
+var resourceSloID = common.NewResourceID(common.StringIDField("uuid"))
+
+func resourceSlo() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Resource manages Grafana SLOs. 
 
@@ -29,10 +31,10 @@ Resource manages Grafana SLOs.
 * [API documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/api/)
 * [Additional Information On Alerting Rule Annotations and Labels](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/#templating/)
 		`,
-		CreateContext: resourceSloCreate,
-		ReadContext:   resourceSloRead,
-		UpdateContext: resourceSloUpdate,
-		DeleteContext: resourceSloDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceSloCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceSloRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceSloUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceSloDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -219,6 +221,8 @@ Resource manages Grafana SLOs.
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource("grafana_slo", resourceSloID, schema)
 }
 
 var keyvalueSchema = &schema.Resource{
@@ -234,7 +238,7 @@ var keyvalueSchema = &schema.Resource{
 	},
 }
 
-func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSloCreate(ctx context.Context, d *schema.ResourceData, client *slo.APIClient) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	sloModel, err := packSloResource(d)
@@ -247,7 +251,6 @@ func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{
 		return diags
 	}
 
-	client := m.(*common.Client).SLOClient
 	req := client.DefaultAPI.V1SloPost(ctx).Slo(sloModel)
 	response, _, err := req.Execute()
 
@@ -256,18 +259,16 @@ func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{
 	}
 
 	d.SetId(response.Uuid)
-	resourceSloRead(ctx, d, m)
 
-	return resourceSloRead(ctx, d, m)
+	return resourceSloRead(ctx, d, client)
 }
 
 // resourceSloRead - sends a GET Request to the single SLO Endpoint
-func resourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSloRead(ctx context.Context, d *schema.ResourceData, client *slo.APIClient) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	sloID := d.Id()
 
-	client := m.(*common.Client).SLOClient
 	req := client.DefaultAPI.V1SloIdGet(ctx, sloID)
 	slo, _, err := req.Execute()
 
@@ -280,7 +281,7 @@ func resourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{})
 	return diags
 }
 
-func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, client *slo.APIClient) diag.Diagnostics {
 	var diags diag.Diagnostics
 	sloID := d.Id()
 
@@ -295,21 +296,18 @@ func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{
 			return diags
 		}
 
-		client := m.(*common.Client).SLOClient
-
 		req := client.DefaultAPI.V1SloIdPut(ctx, sloID).Slo(slo)
 		if _, err := req.Execute(); err != nil {
 			return apiError("Unable to Update SLO - API", err)
 		}
 	}
 
-	return resourceSloRead(ctx, d, m)
+	return resourceSloRead(ctx, d, client)
 }
 
-func resourceSloDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSloDelete(ctx context.Context, d *schema.ResourceData, client *slo.APIClient) diag.Diagnostics {
 	sloID := d.Id()
 
-	client := m.(*common.Client).SLOClient
 	req := client.DefaultAPI.V1SloIdDelete(ctx, sloID)
 	_, err := req.Execute()
 

@@ -57,6 +57,7 @@ jobs:
         type: ['oss']
         subset: ['basic', 'other', 'long']
         include:
+          # Examples, run only on latest version
           - version: '10.3.1'
             type: 'oss'
             subset: examples
@@ -71,8 +72,14 @@ jobs:
           - version: '10.3.1'
             type: 'subpath'
             subset: 'other'
-          # Enterprise tests, run only on latest version
+          # Enterprise tests
           - version: '10.3.1'
+            type: 'enterprise'
+            subset: 'all'
+          - version: '9.5.15'
+            type: 'enterprise'
+            subset: 'all'
+          - version: '8.5.27'
             type: 'enterprise'
             subset: 'all'
     name: ${{ matrix.version }} - ${{ matrix.type }} - ${{ matrix.subset }}
@@ -90,7 +97,7 @@ jobs:
           repo_secrets: |
             GF_ENTERPRISE_LICENSE_TEXT=enterprise:license
       - name: Cache Docker image
-        uses: ScribeMD/docker-cache@0.3.7
+        uses: ScribeMD/docker-cache@0.5.0
         with:
           key: docker-${{ runner.os }}-${{ matrix.type == 'enterprise' && 'enterprise' || 'oss' }}-${{ matrix.version }}
       - run: make testacc-${{ matrix.type }}-docker

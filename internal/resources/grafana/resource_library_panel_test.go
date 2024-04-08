@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -18,8 +18,8 @@ func TestAccLibraryPanel_basic(t *testing.T) {
 	var panel models.LibraryElementResponse
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      libraryPanelCheckExists.destroyed(&panel, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             libraryPanelCheckExists.destroyed(&panel, nil),
 		Steps: []resource.TestStep{
 			{
 				// Test resource creation.
@@ -59,14 +59,14 @@ func TestAccLibraryPanel_basic(t *testing.T) {
 }
 
 func TestAccLibraryPanel_folder(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=8.0.0")
+	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
 
 	name := acctest.RandString(10)
 	var panel models.LibraryElementResponse
 	var folder models.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			libraryPanelCheckExists.destroyed(&panel, nil),
 			folderCheckExists.destroyed(&folder, nil),
@@ -100,8 +100,8 @@ func TestAccLibraryPanel_dashboard(t *testing.T) {
 	var dashboard models.DashboardFullWithMeta
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      libraryPanelCheckExists.destroyed(&panel, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             libraryPanelCheckExists.destroyed(&panel, nil),
 		Steps: []resource.TestStep{
 			{
 				// Test library panel is connected to dashboard
@@ -124,8 +124,8 @@ func TestAccLibraryPanel_inOrg(t *testing.T) {
 	orgName := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      libraryPanelCheckExists.destroyed(&panel, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             libraryPanelCheckExists.destroyed(&panel, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccLibraryPanelInOrganization(orgName),
@@ -158,7 +158,7 @@ resource "grafana_folder" "test_folder" {
 
 resource "grafana_library_panel" "test_folder" {
 	name      = "%[1]s"
-	folder_id = grafana_folder.test_folder.id
+	folder_uid = grafana_folder.test_folder.uid
 	model_json = jsonencode({
 		title   = "%[1]s",
 		id      = 12,

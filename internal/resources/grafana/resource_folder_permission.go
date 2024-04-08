@@ -9,13 +9,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
 const foldersPermissionsType = "folders"
 
-func ResourceFolderPermission() *schema.Resource {
-	return &schema.Resource{
+func resourceFolderPermission() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 Manages the entire set of permissions for a folder. Permissions that aren't specified when applying this resource will be removed.
@@ -84,6 +84,12 @@ Manages the entire set of permissions for a folder. Permissions that aren't spec
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_folder_permission",
+		orgResourceIDString("folderUID"),
+		schema,
+	)
 }
 
 func UpdateFolderPermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

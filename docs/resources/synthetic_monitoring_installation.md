@@ -7,7 +7,7 @@ description: |-
   Once a Grafana Cloud stack is created, a user can either use this resource or go into the UI to install synthetic monitoring.
   This resource cannot be imported but it can be used on an existing Synthetic Monitoring installation without issues.
   Note that this resource must be used on a provider configured with Grafana Cloud credentials.
-  Official documentation https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/installation/API documentation https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#apiv1registerinstall
+  Official documentation https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/set-up/installation/API documentation https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#apiv1registerinstall
   Required access policy scopes:
   stacks:read
 ---
@@ -20,7 +20,7 @@ This resource cannot be imported but it can be used on an existing Synthetic Mon
 
 **Note that this resource must be used on a provider configured with Grafana Cloud credentials.**
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/installation/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/set-up/installation/)
 * [API documentation](https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#apiv1registerinstall)
 
 Required access policy scopes:
@@ -30,7 +30,7 @@ Required access policy scopes:
 ## Example Usage
 
 ```terraform
-variable "cloud_api_key" {
+variable "cloud_access_policy_token" {
   description = "Cloud Access Policy token for Grafana Cloud with the following scopes: accesspolicies:read|write|delete, stacks:read|write|delete"
 }
 variable "stack_slug" {}
@@ -40,8 +40,8 @@ variable "cloud_region" {
 
 // Step 1: Create a stack
 provider "grafana" {
-  alias         = "cloud"
-  cloud_api_key = var.cloud_api_key
+  alias                     = "cloud"
+  cloud_access_policy_token = var.cloud_access_policy_token
 }
 
 resource "grafana_cloud_stack" "sm_stack" {
@@ -104,7 +104,7 @@ data "grafana_synthetic_monitoring_probes" "main" {
 
 ### Optional
 
-- `stack_sm_api_url` (String) The URL of the SM API to install SM on. This depends on the stack region, find the list of API URLs here: https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/private-probes/#probe-api-server-url. A static mapping exists in the provider but it may not contain all the regions. If it does contain the stack's region, this field is computed automatically and readable.
+- `stack_sm_api_url` (String) The URL of the SM API to install SM on. This depends on the stack region, find the list of API URLs here: https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/set-up/set-up-private-probes/#probe-api-server-url. A static mapping exists in the provider but it may not contain all the regions. If it does contain the stack's region, this field is computed automatically and readable.
 
 ### Read-Only
 

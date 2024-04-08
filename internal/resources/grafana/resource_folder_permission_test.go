@@ -6,8 +6,7 @@ import (
 
 	"github.com/grafana/grafana-openapi-client-go/client/folders"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -25,7 +24,7 @@ func TestAccFolderPermission_basic(t *testing.T) {
 	)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFolderPermissionConfig_Basic(randomName),
@@ -46,7 +45,7 @@ func TestAccFolderPermission_basic(t *testing.T) {
 			// Test delete the folder and check that TF sees a difference
 			{
 				PreConfig: func() {
-					client := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+					client := grafanaTestClient()
 					params := folders.NewDeleteFolderParams().WithFolderUID(folder.UID)
 					_, err := client.Folders.DeleteFolder(params)
 					if err != nil {
@@ -133,7 +132,7 @@ func checkFolderPermissionsEmpty(folder *models.Folder) resource.TestCheckFunc {
 }
 
 func checkFolderPermissions(folder *models.Folder, expectedPerms []*models.DashboardACLInfoDTO) error {
-	client := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+	client := grafanaTestClient()
 	resp, err := client.FolderPermissions.GetFolderPermissionList(folder.UID)
 	if err != nil {
 		return fmt.Errorf("error getting folder permissions: %s", err)

@@ -6,13 +6,13 @@ import (
 	"strconv"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourcePlaylist() *schema.Resource {
-	return &schema.Resource{
+func resourcePlaylist() *common.Resource {
+	schema := &schema.Resource{
 		CreateContext: CreatePlaylist,
 		ReadContext:   ReadPlaylist,
 		UpdateContext: UpdatePlaylist,
@@ -74,6 +74,12 @@ func ResourcePlaylist() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_playlist",
+		orgResourceIDString("uid"),
+		schema,
+	)
 }
 
 func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

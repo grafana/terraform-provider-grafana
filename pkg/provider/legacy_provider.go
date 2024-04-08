@@ -10,12 +10,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/grafana/terraform-provider-grafana/internal/resources/cloud"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/machinelearning"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/oncall"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/slo"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/syntheticmonitoring"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/cloud"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/machinelearning"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/oncall"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/slo"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/syntheticmonitoring"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -34,130 +34,6 @@ func init() {
 // Provider returns a terraform-provider-sdk2 provider.
 // This is the deprecated way of creating a provider, and should only be used for legacy resources.
 func Provider(version string) *schema.Provider {
-	var (
-		// Resources that require the Grafana client to exist.
-		grafanaClientResources = addCreateReadResourcesMetadataValidation(
-			readGrafanaClientValidation,
-			createGrafanaClientValidation,
-			map[string]*schema.Resource{
-				// Grafana
-				"grafana_annotation":                 grafana.ResourceAnnotation(),
-				"grafana_api_key":                    grafana.ResourceAPIKey(),
-				"grafana_contact_point":              grafana.ResourceContactPoint(),
-				"grafana_dashboard":                  grafana.ResourceDashboard(),
-				"grafana_dashboard_public":           grafana.ResourcePublicDashboard(),
-				"grafana_dashboard_permission":       grafana.ResourceDashboardPermission(),
-				"grafana_data_source":                grafana.ResourceDataSource(),
-				"grafana_data_source_permission":     grafana.ResourceDatasourcePermission(),
-				"grafana_folder":                     grafana.ResourceFolder(),
-				"grafana_folder_permission":          grafana.ResourceFolderPermission(),
-				"grafana_library_panel":              grafana.ResourceLibraryPanel(),
-				"grafana_message_template":           grafana.ResourceMessageTemplate(),
-				"grafana_mute_timing":                grafana.ResourceMuteTiming(),
-				"grafana_notification_policy":        grafana.ResourceNotificationPolicy(),
-				"grafana_organization":               grafana.ResourceOrganization(),
-				"grafana_organization_preferences":   grafana.ResourceOrganizationPreferences(),
-				"grafana_playlist":                   grafana.ResourcePlaylist(),
-				"grafana_report":                     grafana.ResourceReport(),
-				"grafana_role":                       grafana.ResourceRole(),
-				"grafana_role_assignment":            grafana.ResourceRoleAssignment(),
-				"grafana_rule_group":                 grafana.ResourceRuleGroup(),
-				"grafana_team":                       grafana.ResourceTeam(),
-				"grafana_team_external_group":        grafana.ResourceTeamExternalGroup(),
-				"grafana_service_account_token":      grafana.ResourceServiceAccountToken(),
-				"grafana_service_account":            grafana.ResourceServiceAccount(),
-				"grafana_service_account_permission": grafana.ResourceServiceAccountPermission(),
-				"grafana_sso_settings":               grafana.ResourceSSOSettings(),
-				"grafana_user":                       grafana.ResourceUser(),
-
-				// Machine Learning
-				"grafana_machine_learning_job":              machinelearning.ResourceJob(),
-				"grafana_machine_learning_holiday":          machinelearning.ResourceHoliday(),
-				"grafana_machine_learning_outlier_detector": machinelearning.ResourceOutlierDetector(),
-
-				// SLO
-				"grafana_slo": slo.ResourceSlo(),
-			})
-
-		// Resources that require the Synthetic Monitoring client to exist.
-		smClientResources = addResourcesMetadataValidation(smClientPresent, map[string]*schema.Resource{
-			"grafana_synthetic_monitoring_check": syntheticmonitoring.ResourceCheck(),
-			"grafana_synthetic_monitoring_probe": syntheticmonitoring.ResourceProbe(),
-		})
-
-		// Resources that require the Cloud client to exist.
-		cloudClientResources = addResourcesMetadataValidation(cloudClientPresent, map[string]*schema.Resource{
-			"grafana_cloud_access_policy":               cloud.ResourceAccessPolicy(),
-			"grafana_cloud_access_policy_token":         cloud.ResourceAccessPolicyToken(),
-			"grafana_cloud_api_key":                     cloud.ResourceAPIKey(),
-			"grafana_cloud_plugin_installation":         cloud.ResourcePluginInstallation(),
-			"grafana_cloud_stack":                       cloud.ResourceStack(),
-			"grafana_cloud_stack_api_key":               cloud.ResourceStackAPIKey(),
-			"grafana_cloud_stack_service_account":       cloud.ResourceStackServiceAccount(),
-			"grafana_cloud_stack_service_account_token": cloud.ResourceStackServiceAccountToken(),
-			"grafana_synthetic_monitoring_installation": cloud.ResourceInstallation(),
-		})
-
-		// Resources that require the OnCall client to exist.
-		onCallClientResources = addResourcesMetadataValidation(onCallClientPresent, map[string]*schema.Resource{
-			"grafana_oncall_integration":      oncall.ResourceIntegration(),
-			"grafana_oncall_route":            oncall.ResourceRoute(),
-			"grafana_oncall_escalation_chain": oncall.ResourceEscalationChain(),
-			"grafana_oncall_escalation":       oncall.ResourceEscalation(),
-			"grafana_oncall_on_call_shift":    oncall.ResourceOnCallShift(),
-			"grafana_oncall_schedule":         oncall.ResourceSchedule(),
-			"grafana_oncall_outgoing_webhook": oncall.ResourceOutgoingWebhook(),
-		})
-
-		// Datasources that require the Grafana client to exist.
-		grafanaClientDatasources = addCreateReadResourcesMetadataValidation(
-			readGrafanaClientValidation,
-			createGrafanaClientValidation,
-			map[string]*schema.Resource{
-				"grafana_dashboard":                grafana.DatasourceDashboard(),
-				"grafana_dashboards":               grafana.DatasourceDashboards(),
-				"grafana_data_source":              grafana.DatasourceDatasource(),
-				"grafana_folder":                   grafana.DatasourceFolder(),
-				"grafana_folders":                  grafana.DatasourceFolders(),
-				"grafana_library_panel":            grafana.DatasourceLibraryPanel(),
-				"grafana_user":                     grafana.DatasourceUser(),
-				"grafana_users":                    grafana.DatasourceUsers(),
-				"grafana_role":                     grafana.DatasourceRole(),
-				"grafana_service_account":          grafana.DatasourceServiceAccount(),
-				"grafana_team":                     grafana.DatasourceTeam(),
-				"grafana_organization":             grafana.DatasourceOrganization(),
-				"grafana_organization_preferences": grafana.DatasourceOrganizationPreferences(),
-
-				// SLO
-				"grafana_slos": slo.DatasourceSlo(),
-			})
-
-		// Datasources that require the Synthetic Monitoring client to exist.
-		smClientDatasources = addResourcesMetadataValidation(smClientPresent, map[string]*schema.Resource{
-			"grafana_synthetic_monitoring_probe":  syntheticmonitoring.DataSourceProbe(),
-			"grafana_synthetic_monitoring_probes": syntheticmonitoring.DataSourceProbes(),
-		})
-
-		// Datasources that require the Cloud client to exist.
-		cloudClientDatasources = addResourcesMetadataValidation(cloudClientPresent, map[string]*schema.Resource{
-			"grafana_cloud_ips":          cloud.DataSourceIPs(),
-			"grafana_cloud_organization": cloud.DataSourceOrganization(),
-			"grafana_cloud_stack":        cloud.DataSourceStack(),
-		})
-
-		// Datasources that require the OnCall client to exist.
-		onCallClientDatasources = addResourcesMetadataValidation(onCallClientPresent, map[string]*schema.Resource{
-			"grafana_oncall_user":             oncall.DataSourceUser(),
-			"grafana_oncall_escalation_chain": oncall.DataSourceEscalationChain(),
-			"grafana_oncall_schedule":         oncall.DataSourceSchedule(),
-			"grafana_oncall_slack_channel":    oncall.DataSourceSlackChannel(),
-			"grafana_oncall_action":           oncall.DataSourceAction(), // deprecated
-			"grafana_oncall_outgoing_webhook": oncall.DataSourceOutgoingWebhook(),
-			"grafana_oncall_user_group":       oncall.DataSourceUserGroup(),
-			"grafana_oncall_team":             oncall.DataSourceTeam(),
-		})
-	)
-
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"url": {
@@ -252,7 +128,7 @@ func Provider(version string) *schema.Provider {
 			"sm_url": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Description:  "Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable. The correct value for each service region is cited in the [Synthetic Monitoring documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/private-probes/#probe-api-server-url). Note the `sm_url` value is optional, but it must correspond with the value specified as the `region_slug` in the `grafana_cloud_stack` resource. Also note that when a Terraform configuration contains multiple provider instances managing SM resources associated with the same Grafana stack, specifying an explicit `sm_url` set to the same value for each provider ensures all providers interact with the same SM API.",
+				Description:  "Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable. The correct value for each service region is cited in the [Synthetic Monitoring documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/set-up/set-up-private-probes/#probe-api-server-url). Note the `sm_url` value is optional, but it must correspond with the value specified as the `region_slug` in the `grafana_cloud_stack` resource. Also note that when a Terraform configuration contains multiple provider instances managing SM resources associated with the same Grafana stack, specifying an explicit `sm_url` set to the same value for each provider ensures all providers interact with the same SM API.",
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
 			"store_dashboard_sha256": {
@@ -275,18 +151,15 @@ func Provider(version string) *schema.Provider {
 			},
 		},
 
-		ResourcesMap: mergeResourceMaps(
-			grafanaClientResources,
-			smClientResources,
-			onCallClientResources,
-			cloudClientResources,
-		),
+		ResourcesMap: resourceMap(),
 
 		DataSourcesMap: mergeResourceMaps(
-			grafanaClientDatasources,
-			smClientDatasources,
-			onCallClientDatasources,
-			cloudClientDatasources,
+			grafana.DatasourcesMap,
+			machinelearning.DatasourcesMap,
+			slo.DatasourcesMap,
+			syntheticmonitoring.DatasourcesMap,
+			oncall.DatasourcesMap,
+			cloud.DatasourcesMap,
 		),
 	}
 
@@ -316,7 +189,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			statusCodes = types.SetValueMust(types.StringType, statusCodesValue)
 		}
 
-		cfg := frameworkProviderConfig{
+		cfg := ProviderConfig{
 			Auth:                   stringValueOrNull(d, "auth"),
 			URL:                    stringValueOrNull(d, "url"),
 			OrgID:                  int64ValueOrNull(d, "org_id"),
@@ -344,7 +217,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			return nil, diag.FromErr(err)
 		}
 
-		clients, err := createClients(cfg)
+		clients, err := CreateClients(cfg)
 		return clients, diag.FromErr(err)
 	}
 }
@@ -368,14 +241,4 @@ func int64ValueOrNull(d *schema.ResourceData, key string) types.Int64 {
 		return types.Int64Value(int64(v.(int)))
 	}
 	return types.Int64Null()
-}
-
-func mergeResourceMaps(maps ...map[string]*schema.Resource) map[string]*schema.Resource {
-	result := make(map[string]*schema.Resource)
-	for _, m := range maps {
-		for k, v := range m {
-			result[k] = v
-		}
-	}
-	return result
 }

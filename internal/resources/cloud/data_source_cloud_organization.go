@@ -4,14 +4,14 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DataSourceOrganization() *schema.Resource {
+func datasourceOrganization() *schema.Resource {
 	return &schema.Resource{
-		ReadContext: DataSourceOrganizationRead,
+		ReadContext: withClient[schema.ReadContextFunc](datasourceOrganizationRead),
 		Schema: map[string]*schema.Schema{
 			"id": {
 				Type:     schema.TypeString,
@@ -43,9 +43,7 @@ func DataSourceOrganization() *schema.Resource {
 	}
 }
 
-func DataSourceOrganizationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
-
+func datasourceOrganizationRead(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	id := d.Get("id").(string)
 	if id == "" {
 		id = d.Get("slug").(string)

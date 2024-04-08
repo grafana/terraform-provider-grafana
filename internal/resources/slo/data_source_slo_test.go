@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	slo "github.com/grafana/slo-openapi-client/go"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
@@ -16,8 +16,8 @@ func TestAccDataSourceSlo(t *testing.T) {
 
 	var slo slo.Slo
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccSloCheckDestroy(&slo),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccSloCheckDestroy(&slo),
 		Steps: []resource.TestStep{
 			{
 				// Creates a SLO Resource

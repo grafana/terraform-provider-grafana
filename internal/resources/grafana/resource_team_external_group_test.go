@@ -6,22 +6,21 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccTeamExternalGroup_basic(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	name := acctest.RandString(10)
 	var team models.TeamDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      teamCheckExists.destroyed(&team, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			// Add groups and test import
 			{
@@ -73,7 +72,7 @@ func TestAccTeamExternalGroup_basic(t *testing.T) {
 
 func testAccTeamExternalGroupCheck(team *models.TeamDTO, expectedGroups []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+		client := grafanaTestClient()
 
 		resp, err := client.SyncTeamGroups.GetTeamGroupsAPI(team.ID)
 		if err != nil {

@@ -7,9 +7,18 @@ import (
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+// Helpers for org-scoped resource IDs
+func orgResourceIDString(fieldName string) *common.ResourceID {
+	return common.NewResourceID(common.OptionalIntIDField("orgID"), common.StringIDField(fieldName))
+}
+
+func orgResourceIDInt(fieldName string) *common.ResourceID {
+	return common.NewResourceID(common.OptionalIntIDField("orgID"), common.IntIDField(fieldName))
+}
 
 func orgIDAttribute() *schema.Schema {
 	return &schema.Schema{
@@ -43,7 +52,7 @@ func SplitOrgResourceID(id string) (int64, string) {
 // Those IDs are in the <orgID>:<resourceID> format
 func OAPIClientFromExistingOrgResource(meta interface{}, id string) (*goapi.GrafanaHTTPAPI, int64, string) {
 	orgID, restOfID := SplitOrgResourceID(id)
-	client := meta.(*common.Client).GrafanaOAPI.Clone()
+	client := meta.(*common.Client).GrafanaAPI.Clone()
 	if orgID == 0 {
 		orgID = client.OrgID()
 	} else if orgID > 0 {
@@ -56,7 +65,7 @@ func OAPIClientFromExistingOrgResource(meta interface{}, id string) (*goapi.Graf
 // This client is meant to be used in `Create` functions when the ID hasn't already been baked into the resource ID
 func OAPIClientFromNewOrgResource(meta interface{}, d *schema.ResourceData) (*goapi.GrafanaHTTPAPI, int64) {
 	orgID := parseOrgID(d)
-	client := meta.(*common.Client).GrafanaOAPI.Clone()
+	client := meta.(*common.Client).GrafanaAPI.Clone()
 	if orgID == 0 {
 		orgID = client.OrgID()
 	} else if orgID > 0 {
@@ -65,8 +74,13 @@ func OAPIClientFromNewOrgResource(meta interface{}, d *schema.ResourceData) (*go
 	return client, orgID
 }
 
-func OAPIGlobalClient(meta interface{}) *goapi.GrafanaHTTPAPI {
-	return meta.(*common.Client).GrafanaOAPI.Clone().WithOrgID(0)
+func OAPIGlobalClient(meta interface{}) (*goapi.GrafanaHTTPAPI, error) {
+	metaClient := meta.(*common.Client)
+	client := meta.(*common.Client).GrafanaAPI.Clone().WithOrgID(0)
+	if metaClient.GrafanaAPIConfig.APIKey != "" {
+		return client, fmt.Errorf("global scope resources cannot be managed with an API key. Use basic auth instead")
+	}
+	return client, nil
 }
 
 func parseOrgID(d *schema.ResourceData) int64 {

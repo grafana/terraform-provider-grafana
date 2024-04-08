@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -23,8 +23,8 @@ func TestAccResourcePluginInstallation(t *testing.T) {
 	pluginVersion := "1.2.5"
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:          func() { testAccDeleteExistingStacks(t, stackPrefix) },
-		ProviderFactories: testutils.ProviderFactories,
+		PreCheck:                 func() { testAccDeleteExistingStacks(t, stackPrefix) },
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGrafanaCloudPluginInstallation(stackSlug, pluginSlug, pluginVersion),

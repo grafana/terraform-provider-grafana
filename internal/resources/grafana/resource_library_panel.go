@@ -9,11 +9,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-func ResourceLibraryPanel() *schema.Resource {
-	return &schema.Resource{
+func resourceLibraryPanel() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 Manages Grafana library panels.
@@ -48,11 +48,30 @@ Manages Grafana library panels.
 			"folder_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "ID of the folder where the library panel is stored.",
+				Description: "Deprecated. Use `folder_uid` instead",
+				Deprecated:  "Use `folder_uid` instead",
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if d.Get("folder_uid") != "" && new == "" {
+						return true
+					}
 					_, old = SplitOrgResourceID(old)
 					_, new = SplitOrgResourceID(new)
 					return old == "0" && new == "" || old == "" && new == "0" || old == new
+				},
+				ConflictsWith: []string{"folder_uid"},
+			},
+			"folder_uid": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Description:   "Unique ID (UID) of the folder containing the library panel.",
+				ConflictsWith: []string{"folder_id"},
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if d.Get("folder_id") != "" && new == "" {
+						return true
+					}
+					_, old = SplitOrgResourceID(old)
+					_, new = SplitOrgResourceID(new)
+					return old == new
 				},
 			},
 			"name": {
@@ -87,11 +106,6 @@ Manages Grafana library panels.
 				Computed:    true,
 				Description: "Name of the folder containing the library panel.",
 			},
-			"folder_uid": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Unique ID (UID) of the folder containing the library panel.",
-			},
 			"created": {
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -110,6 +124,12 @@ Manages Grafana library panels.
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_library_panel",
+		orgResourceIDString("uid"),
+		schema,
+	)
 }
 
 func createLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -148,14 +168,15 @@ func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 	d.Set("uid", panel.UID)
 	d.Set("panel_id", panel.ID)
 	d.Set("org_id", strconv.FormatInt(panel.OrgID, 10))
+	// nolint:staticcheck
 	d.Set("folder_id", MakeOrgResourceID(orgID, panel.FolderID))
+	d.Set("folder_uid", panel.Meta.FolderUID)
 	d.Set("description", panel.Description)
 	d.Set("type", panel.Type)
 	d.Set("name", panel.Name)
 	d.Set("model_json", modelJSON)
 	d.Set("version", panel.Version)
 	d.Set("folder_name", panel.Meta.FolderName)
-	d.Set("folder_uid", panel.Meta.FolderUID)
 	d.Set("created", panel.Meta.Created.String())
 	d.Set("updated", panel.Meta.Updated.String())
 
@@ -180,15 +201,22 @@ func updateLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interf
 	modelJSON := d.Get("model_json").(string)
 	panelJSON, _ := unmarshalLibraryPanelModelJSON(modelJSON)
 
-	_, folderIDStr := SplitOrgResourceID(d.Get("folder_id").(string))
-	folderID, _ := strconv.ParseInt(folderIDStr, 10, 64)
 	body := models.PatchLibraryElementCommand{
-		Name:     d.Get("name").(string),
-		FolderID: folderID,
-		Model:    panelJSON,
-		Kind:     1,
-		Version:  int64(d.Get("version").(int)),
+		Name:    d.Get("name").(string),
+		Model:   panelJSON,
+		Kind:    1,
+		Version: int64(d.Get("version").(int)),
 	}
+
+	if folderUID, ok := d.GetOk("folder_uid"); ok {
+		_, body.FolderUID = SplitOrgResourceID(folderUID.(string))
+	} else if folderIDStr, ok := d.GetOk("folder_id"); ok {
+		_, folderIDStr = SplitOrgResourceID(folderIDStr.(string))
+		folderID, _ := strconv.ParseInt(folderIDStr.(string), 10, 64)
+		// nolint:staticcheck
+		body.FolderID = folderID
+	}
+
 	resp, err := client.LibraryElements.UpdateLibraryElement(uid, &body)
 	if err != nil {
 		return diag.FromErr(err)
@@ -209,14 +237,20 @@ func makeLibraryPanel(d *schema.ResourceData) models.CreateLibraryElementCommand
 	modelJSON := d.Get("model_json").(string)
 	panelJSON, _ := unmarshalLibraryPanelModelJSON(modelJSON)
 
-	_, folderIDStr := SplitOrgResourceID(d.Get("folder_id").(string))
-	folderID, _ := strconv.ParseInt(folderIDStr, 10, 64)
 	panel := models.CreateLibraryElementCommand{
-		UID:      d.Get("uid").(string),
-		Name:     d.Get("name").(string),
-		FolderID: folderID,
-		Model:    panelJSON,
-		Kind:     1,
+		UID:   d.Get("uid").(string),
+		Name:  d.Get("name").(string),
+		Model: panelJSON,
+		Kind:  1,
+	}
+
+	if folderUID, ok := d.GetOk("folder_uid"); ok {
+		_, panel.FolderUID = SplitOrgResourceID(folderUID.(string))
+	} else if folderIDStr, ok := d.GetOk("folder_id"); ok {
+		_, folderIDStr = SplitOrgResourceID(folderIDStr.(string))
+		folderID, _ := strconv.ParseInt(folderIDStr.(string), 10, 64)
+		// nolint:staticcheck
+		panel.FolderID = folderID
 	}
 
 	return panel

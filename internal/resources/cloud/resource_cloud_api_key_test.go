@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/cloud"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/cloud"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -36,8 +36,8 @@ func TestAccCloudApiKey_Basic(t *testing.T) {
 			resourceName := prefix + acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 			resource.ParallelTest(t, resource.TestCase{
-				ProviderFactories: testutils.ProviderFactories,
-				CheckDestroy:      testAccCheckCloudAPIKeyDestroy(resourceName),
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				CheckDestroy:             testAccCheckCloudAPIKeyDestroy(resourceName),
 				Steps: []resource.TestStep{
 					{
 						Config: testAccCloudAPIKeyConfig(resourceName, tt.role),

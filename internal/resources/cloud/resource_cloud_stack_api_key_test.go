@@ -8,9 +8,9 @@ import (
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/grafana-openapi-client-go/client/api_keys"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/cloud"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/cloud"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -26,8 +26,8 @@ func TestAccGrafanaAuthKeyFromCloud(t *testing.T) {
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
 		},
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccStackCheckDestroy(&stack),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGrafanaAuthKeyFromCloud(slug, slug),

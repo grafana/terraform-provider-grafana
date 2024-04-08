@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -25,7 +25,7 @@ func TestAccResourceCheck_dns(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/dns_basic.tf", nameReplaceMap),
@@ -83,7 +83,7 @@ func TestAccResourceCheck_http(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf", nameReplaceMap),
@@ -126,8 +126,8 @@ func TestAccResourceCheck_http(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.valid_http_versions.0", "HTTP/1.0"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.valid_http_versions.1", "HTTP/1.1"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.valid_http_versions.2", "HTTP/2.0"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_body_matches_regexp.0", "*bad stuff*"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_body_not_matches_regexp.0", "*good stuff*"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_body_matches_regexp.0", ".*bad stuff.*"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_body_not_matches_regexp.0", ".*good stuff.*"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_header_matches_regexp.0.header", "Content-Type"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_header_matches_regexp.0.regexp", "application/soap*"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_header_matches_regexp.0.allow_missing", "true"),
@@ -149,7 +149,7 @@ func TestAccResourceCheck_ping(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/ping_basic.tf", nameReplaceMap),
@@ -192,7 +192,7 @@ func TestAccResourceCheck_tcp(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/tcp_basic.tf", nameReplaceMap),
@@ -245,7 +245,7 @@ func TestAccResourceCheck_traceroute(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/traceroute_basic.tf", nameReplaceMap),
@@ -292,7 +292,7 @@ func TestAccResourceCheck_multihttp(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/multihttp_basic.tf", nameReplaceMap),
@@ -376,7 +376,7 @@ func TestAccResourceCheck_recreate(t *testing.T) {
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf", nameReplaceMap),
@@ -409,7 +409,7 @@ func TestAccResourceCheck_noSettings(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceCheck_noSettings,
@@ -424,7 +424,7 @@ func TestAccResourceCheck_multiple(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceCheck_multiple,

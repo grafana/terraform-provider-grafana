@@ -12,14 +12,22 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-func ResourceRuleGroup() *schema.Resource {
-	return &schema.Resource{
+//nolint:staticcheck
+var resourceRuleGroupID = common.NewResourceIDWithLegacySeparator(";",
+	common.OptionalIntIDField("orgID"),
+	common.StringIDField("folderUID"),
+	common.StringIDField("title"),
+)
+
+func resourceRuleGroup() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Manages Grafana Alerting rule groups.
 
@@ -95,13 +103,13 @@ This resource requires Grafana 9.1.0 or later.
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "NoData",
-							Description: "Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, and Alerting.",
+							Description: "Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, KeepLast, and Alerting.",
 						},
 						"exec_err_state": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "Alerting",
-							Description: "Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, and Alerting.",
+							Description: "Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, KeepLast, and Alerting.",
 						},
 						"condition": {
 							Type:        schema.TypeString,
@@ -186,19 +194,75 @@ This resource requires Grafana 9.1.0 or later.
 							Default:     false,
 							Description: "Sets whether the alert should be paused or not.",
 						},
+						"notification_settings": {
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Notification settings for the rule. If specified, it overrides the notification policies. Available since Grafana 10.4, requires feature flag 'alertingSimplifiedRouting' enabled.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"contact_point": {
+										Type:        schema.TypeString,
+										Required:    true,
+										Description: "The contact point to route notifications that match this rule to.",
+									},
+									"group_by": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "A list of alert labels to group alerts into notifications by. Use the special label `...` to group alerts by all labels, effectively disabling grouping. If empty, no grouping is used. If specified, requires labels 'alertname' and 'grafana_folder' to be included.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+									"mute_timings": {
+										Type:        schema.TypeList,
+										Optional:    true,
+										Description: "A list of mute timing names to apply to alerts that match this policy.",
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+									"group_wait": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Time to wait to buffer alerts of the same group before sending a notification. Default is 30 seconds.",
+									},
+									"group_interval": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Minimum time interval between two notifications for the same group. Default is 5 minutes.",
+									},
+									"repeat_interval": {
+										Type:        schema.TypeString,
+										Optional:    true,
+										Description: "Minimum time interval for re-sending a notification if an alert is still firing. Default is 4 hours.",
+									},
+								},
+							},
+						},
 					},
 				},
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_rule_group",
+		resourceRuleGroupID,
+		schema,
+	)
 }
 
 func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, orgID, idStr := OAPIClientFromExistingOrgResource(meta, data.Id())
+	client, orgID, idWithoutOrg := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	key := UnpackGroupID(idStr)
+	split, err := resourceRuleGroupID.Split(idWithoutOrg)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	folderUID, title := split[0].(string), split[1].(string)
 
-	resp, err := client.Provisioning.GetAlertRuleGroup(key.Name, key.FolderUID)
+	resp, err := client.Provisioning.GetAlertRuleGroup(title, folderUID)
 	if err, shouldReturn := common.CheckReadError("rule group", data, err); shouldReturn {
 		return err
 	}
@@ -227,7 +291,7 @@ func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta int
 	}
 	data.Set("disable_provenance", disableProvenance)
 	data.Set("rule", rules)
-	data.SetId(MakeOrgResourceID(orgID, packGroupID(key)))
+	data.SetId(resourceRuleGroupID.Make(orgID, folderUID, title))
 
 	return nil
 }
@@ -267,17 +331,20 @@ func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	key := packGroupID(AlertRuleGroupKey{resp.Payload.FolderUID, resp.Payload.Title})
-	data.SetId(MakeOrgResourceID(orgID, key))
+	data.SetId(resourceRuleGroupID.Make(orgID, resp.Payload.FolderUID, resp.Payload.Title))
 	return readAlertRuleGroup(ctx, data, meta)
 }
 
 func deleteAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := OAPIClientFromExistingOrgResource(meta, data.Id())
+	client, _, idWithoutOrg := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	key := UnpackGroupID(idStr)
-
-	resp, err := client.Provisioning.GetAlertRuleGroup(key.Name, key.FolderUID)
+	split, err := resourceRuleGroupID.Split(idWithoutOrg)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	folderUID, title := split[0].(string), split[1].(string)
+	// TODO use DeleteAlertRuleGroup method instead (available since Grafana 11)
+	resp, err := client.Provisioning.GetAlertRuleGroup(title, folderUID)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -323,6 +390,14 @@ func packAlertRule(r *models.ProvisionedAlertRule) (interface{}, error) {
 		"data":           data,
 		"is_paused":      r.IsPaused,
 	}
+
+	ns, err := packNotificationSettings(r.NotificationSettings)
+	if err != nil {
+		return nil, err
+	}
+	if ns != nil {
+		json["notification_settings"] = ns
+	}
 	return json, nil
 }
 
@@ -342,20 +417,26 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		return nil, err
 	}
 
+	ns, err := unpackNotificationSettings(json["notification_settings"])
+	if err != nil {
+		return nil, err
+	}
+
 	rule := models.ProvisionedAlertRule{
-		UID:          json["uid"].(string),
-		Title:        common.Ref(json["name"].(string)),
-		FolderUID:    common.Ref(folderUID),
-		RuleGroup:    common.Ref(groupName),
-		OrgID:        common.Ref(orgID),
-		ExecErrState: common.Ref(json["exec_err_state"].(string)),
-		NoDataState:  common.Ref(json["no_data_state"].(string)),
-		For:          common.Ref(strfmt.Duration(forDuration)),
-		Data:         data,
-		Condition:    common.Ref(json["condition"].(string)),
-		Labels:       unpackMap(json["labels"]),
-		Annotations:  unpackMap(json["annotations"]),
-		IsPaused:     json["is_paused"].(bool),
+		UID:                  json["uid"].(string),
+		Title:                common.Ref(json["name"].(string)),
+		FolderUID:            common.Ref(folderUID),
+		RuleGroup:            common.Ref(groupName),
+		OrgID:                common.Ref(orgID),
+		ExecErrState:         common.Ref(json["exec_err_state"].(string)),
+		NoDataState:          common.Ref(json["no_data_state"].(string)),
+		For:                  common.Ref(strfmt.Duration(forDuration)),
+		Data:                 data,
+		Condition:            common.Ref(json["condition"].(string)),
+		Labels:               unpackMap(json["labels"]),
+		Annotations:          unpackMap(json["annotations"]),
+		IsPaused:             json["is_paused"].(bool),
+		NotificationSettings: ns,
 	}
 
 	return &rule, nil
@@ -469,24 +550,80 @@ func unpackMap(raw interface{}) map[string]string {
 	return result
 }
 
-type AlertRuleGroupKey struct {
-	FolderUID string
-	Name      string
+func packNotificationSettings(settings *models.AlertRuleNotificationSettings) (interface{}, error) {
+	if settings == nil {
+		return nil, nil
+	}
+
+	rec := ""
+	if settings.Receiver != nil {
+		rec = *settings.Receiver
+	}
+
+	result := map[string]interface{}{
+		"contact_point": rec,
+	}
+
+	if len(settings.GroupBy) > 0 {
+		g := make([]interface{}, 0, len(settings.GroupBy))
+		for _, s := range settings.GroupBy {
+			g = append(g, s)
+		}
+		result["group_by"] = g
+	}
+	if len(settings.MuteTimeIntervals) > 0 {
+		g := make([]interface{}, 0, len(settings.MuteTimeIntervals))
+		for _, s := range settings.MuteTimeIntervals {
+			g = append(g, s)
+		}
+		result["mute_timings"] = g
+	}
+	if settings.GroupWait != "" {
+		result["group_wait"] = settings.GroupWait
+	}
+	if settings.GroupInterval != "" {
+		result["group_interval"] = settings.GroupInterval
+	}
+	if settings.RepeatInterval != "" {
+		result["repeat_interval"] = settings.RepeatInterval
+	}
+	return []interface{}{result}, nil
 }
 
-const groupIDSeparator = ";"
-
-func packGroupID(key AlertRuleGroupKey) string {
-	return key.FolderUID + ";" + key.Name
-}
-
-func UnpackGroupID(tfID string) AlertRuleGroupKey {
-	vals := strings.SplitN(tfID, groupIDSeparator, 2)
-	if len(vals) != 2 {
-		return AlertRuleGroupKey{}
+func unpackNotificationSettings(p interface{}) (*models.AlertRuleNotificationSettings, error) {
+	if p == nil {
+		return nil, nil
 	}
-	return AlertRuleGroupKey{
-		FolderUID: vals[0],
-		Name:      vals[1],
+	list := p.([]interface{})
+	if len(list) == 0 {
+		return nil, nil
 	}
+
+	jsonData := list[0].(map[string]interface{})
+
+	receiver := jsonData["contact_point"].(string)
+	result := models.AlertRuleNotificationSettings{
+		Receiver: &receiver,
+	}
+
+	if g, ok := jsonData["group_by"]; ok {
+		groupBy := common.ListToStringSlice(g.([]interface{}))
+		if len(groupBy) > 0 {
+			result.GroupBy = groupBy
+		}
+	}
+
+	if v, ok := jsonData["mute_timings"]; ok && v != nil {
+		result.MuteTimeIntervals = common.ListToStringSlice(v.([]interface{}))
+	}
+	if v, ok := jsonData["group_wait"]; ok && v != nil {
+		result.GroupWait = v.(string)
+	}
+	if v, ok := jsonData["group_interval"]; ok && v != nil {
+		result.GroupInterval = v.(string)
+	}
+	if v, ok := jsonData["repeat_interval"]; ok && v != nil {
+		result.RepeatInterval = v.(string)
+	}
+	return &result, nil
 }

@@ -6,18 +6,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/api_keys"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func ResourceStackAPIKey() *schema.Resource {
-	return &schema.Resource{
+func resourceStackAPIKey() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Manages API keys of a Grafana Cloud stack using the Cloud API
 This can be used to bootstrap a management API key for a new stack
@@ -31,9 +32,9 @@ Required access policy scopes:
 !> Deprecated: please use ` + "`grafana_cloud_stack_service_account`" + ` and ` + "`grafana_cloud_stack_service_account_token`" + ` instead, see https://grafana.com/docs/grafana/next/administration/api-keys/#migrate-api-keys-to-grafana-service-accounts-using-terraform.
 `,
 
-		CreateContext:      resourceStackAPIKeyCreate,
-		ReadContext:        resourceStackAPIKeyRead,
-		DeleteContext:      resourceStackAPIKeyDelete,
+		CreateContext:      withClient[schema.CreateContextFunc](resourceStackAPIKeyCreate),
+		ReadContext:        withClient[schema.ReadContextFunc](resourceStackAPIKeyRead),
+		DeleteContext:      withClient[schema.DeleteContextFunc](resourceStackAPIKeyDelete),
 		DeprecationMessage: "Use `grafana_cloud_stack_service_account` together with `grafana_cloud_stack_service_account_token` resources instead see https://grafana.com/docs/grafana/next/administration/api-keys/#migrate-api-keys-to-grafana-service-accounts-using-terraform",
 
 		Schema: map[string]*schema.Schema{
@@ -74,14 +75,19 @@ Required access policy scopes:
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_cloud_stack_api_key",
+		nil,
+		schema,
+	)
 }
 
-func resourceStackAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceStackAPIKeyCreate(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
 	name := d.Get("name").(string)
 	role := d.Get("role").(string)
 	ttl := d.Get("seconds_to_live").(int)
 
-	cloudClient := m.(*common.Client).GrafanaCloudAPI
 	c, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
@@ -113,8 +119,7 @@ func resourceStackAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m in
 	return resourceStackAPIKeyReadWithClient(c, d)
 }
 
-func resourceStackAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	cloudClient := m.(*common.Client).GrafanaCloudAPI
+func resourceStackAPIKeyRead(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
 	c, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)
@@ -154,13 +159,12 @@ func resourceStackAPIKeyReadWithClient(c *goapi.GrafanaHTTPAPI, d *schema.Resour
 	return nil
 }
 
-func resourceStackAPIKeyDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceStackAPIKeyDelete(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
 	id, err := strconv.ParseInt(d.Id(), 10, 32)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	cloudClient := m.(*common.Client).GrafanaCloudAPI
 	c, cleanup, err := CreateTemporaryStackGrafanaClient(ctx, cloudClient, d.Get("stack_slug").(string), "terraform-temp-")
 	if err != nil {
 		return diag.FromErr(err)

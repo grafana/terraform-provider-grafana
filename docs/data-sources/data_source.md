@@ -50,6 +50,7 @@ data "grafana_data_source" "from_uid" {
 
 ### Optional
 
+- `id` (String, Deprecated) Deprecated: Use `uid` instead of `id`
 - `name` (String)
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `uid` (String)
@@ -60,7 +61,6 @@ data "grafana_data_source" "from_uid" {
 - `basic_auth_enabled` (Boolean) Whether to enable basic auth for the data source.
 - `basic_auth_username` (String) Basic auth username.
 - `database_name` (String) (Required by some data source types) The name of the database to use on the selected data source server.
-- `id` (String) The ID of this resource.
 - `is_default` (Boolean) Whether to set the data source as default. This should only be `true` to a single data source.
 - `json_data_encoded` (String) Serialized JSON string containing the json data. This attribute can be used to pass configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.
 - `type` (String) The data source type. Must be one of the supported data source keywords.

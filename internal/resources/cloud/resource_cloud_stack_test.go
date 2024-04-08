@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/cloud"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/cloud"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -57,8 +57,8 @@ func TestResourceStack_Basic(t *testing.T) {
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
 		},
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccStackCheckDestroy(&stack),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccStackCheckDestroy(&stack),
 		Steps: []resource.TestStep{
 			// Create a basic stack
 			{
@@ -130,7 +130,7 @@ func TestResourceStack_Basic(t *testing.T) {
 
 func TestResourceStack_Invalid(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: `resource "grafana_cloud_stack" "test" { 
@@ -231,8 +231,8 @@ func testAccStackCheckDestroy(a *gcom.FormattedApiInstance) resource.TestCheckFu
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 		stack, _, err := client.InstancesAPI.GetInstance(context.Background(), a.Slug).Execute()
-		if err == nil && stack.Name != "" {
-			return fmt.Errorf("stack `%s` with ID `%d` still exists after destroy", stack.Name, int(stack.Id))
+		if err == nil && stack.Name != "" && stack.Status != "deleting" {
+			return fmt.Errorf("stack `%s` with ID `%d` still exists after destroy. Status: %s", stack.Name, int(stack.Id), stack.Status)
 		}
 
 		return nil

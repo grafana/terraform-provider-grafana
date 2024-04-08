@@ -2,22 +2,23 @@ package grafana_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccDatasourcePermission_basic(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	var ds models.DataSource
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDatasourcePermission(name, "Edit"),
@@ -42,7 +43,7 @@ func TestAccDatasourcePermission_AdminRole(t *testing.T) {
 	name := acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDatasourcePermission(name, "Admin"),
@@ -54,6 +55,38 @@ func TestAccDatasourcePermission_AdminRole(t *testing.T) {
 			},
 			{
 				Config: testutils.WithoutResource(t, testAccDatasourcePermission(name, "Admin"), "grafana_data_source_permission.fooPermissions"),
+				Check:  datasourcePermissionsCheckExists.destroyed(&ds, nil),
+			},
+		},
+	})
+}
+
+// TODO: Remove on next major release
+func TestAccDatasourcePermission_WithID(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
+
+	var ds models.DataSource
+	name := acctest.RandString(10)
+	config := strings.ReplaceAll(testAccDatasourcePermission(name, "Edit"),
+		"datasource_uid = grafana_data_source.foo.uid",
+		"datasource_id = grafana_data_source.foo.id",
+	)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					datasourcePermissionsCheckExists.exists("grafana_data_source_permission.fooPermissions", &ds),
+					resource.TestCheckResourceAttrSet("grafana_data_source_permission.fooPermissions", "datasource_id"),
+					resource.TestCheckNoResourceAttr("grafana_data_source_permission.fooPermissions", "datasource_uid"),
+					resource.TestCheckResourceAttr("grafana_data_source_permission.fooPermissions", "permissions.#", "4"),
+					resource.TestCheckResourceAttr("grafana_data_source_permission.fooPermissions", "permissions.0.permission", "Edit"),
+				),
+			},
+			{
+				Config: testutils.WithoutResource(t, config, "grafana_data_source_permission.fooPermissions"),
 				Check:  datasourcePermissionsCheckExists.destroyed(&ds, nil),
 			},
 		},
@@ -94,7 +127,7 @@ resource "grafana_service_account" "sa" {
 }
 
 resource "grafana_data_source_permission" "fooPermissions" {
-	datasource_id = grafana_data_source.foo.id
+	datasource_uid = grafana_data_source.foo.uid
 	permissions {
 		team_id    = grafana_team.team.id
 		permission = "%[2]s"

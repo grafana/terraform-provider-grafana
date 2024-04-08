@@ -13,11 +13,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-func ResourceNotificationPolicy() *schema.Resource {
-	return &schema.Resource{
+func resourceNotificationPolicy() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Sets the global notification policy for Grafana.
 
@@ -84,6 +84,12 @@ This resource requires Grafana 9.1.0 or later.
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_notification_policy",
+		orgResourceIDString("anyString"),
+		schema,
+	)
 }
 
 // The maximum depth of policy tree that the provider supports, as Terraform does not allow for infinitely recursive schemas.

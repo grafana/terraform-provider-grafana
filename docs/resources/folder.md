@@ -58,6 +58,6 @@ resource "grafana_folder" "test_folder_with_uid" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_folder.by_integer_id {{folder_id}}
-terraform import grafana_folder.by_uid {{folder_uid}}
+terraform import grafana_folder.name "{{ uid }}"
+terraform import grafana_folder.name "{{ orgID }}:{{ uid }}"
 ```

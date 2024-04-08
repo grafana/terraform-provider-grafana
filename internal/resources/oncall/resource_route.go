@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -22,15 +22,15 @@ var routeTypeOptions = []string{
 
 var routeTypeOptionsVerbal = strings.Join(routeTypeOptions, ", ")
 
-func ResourceRoute() *schema.Resource {
-	return &schema.Resource{
+func resourceRoute() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/routes/)
 `,
-		CreateContext: ResourceRouteCreate,
-		ReadContext:   ResourceRouteRead,
-		UpdateContext: ResourceRouteUpdate,
-		DeleteContext: ResourceRouteDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceRouteCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceRouteRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceRouteUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceRouteDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -129,11 +129,15 @@ func ResourceRoute() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_oncall_route",
+		resourceID,
+		schema,
+	)
 }
 
-func ResourceRouteCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceRouteCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	integrationID := d.Get("integration_id").(string)
 	escalationChainID := d.Get("escalation_chain_id").(string)
 	routingType := d.Get("routing_type").(string)
@@ -162,12 +166,10 @@ func ResourceRouteCreate(ctx context.Context, d *schema.ResourceData, m interfac
 
 	d.SetId(route.ID)
 
-	return ResourceRouteRead(ctx, d, m)
+	return resourceRouteRead(ctx, d, client)
 }
 
-func ResourceRouteRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceRouteRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	route, r, err := client.Routes.GetRoute(d.Id(), &onCallAPI.GetRouteOptions{})
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
@@ -201,9 +203,7 @@ func ResourceRouteRead(ctx context.Context, d *schema.ResourceData, m interface{
 	return nil
 }
 
-func ResourceRouteUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceRouteUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	escalationChainID := d.Get("escalation_chain_id").(string)
 	routingType := d.Get("routing_type").(string)
 	routingRegex := d.Get("routing_regex").(string)
@@ -229,12 +229,10 @@ func ResourceRouteUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 	}
 
 	d.SetId(route.ID)
-	return ResourceRouteRead(ctx, d, m)
+	return resourceRouteRead(ctx, d, client)
 }
 
-func ResourceRouteDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceRouteDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	_, err := client.Routes.DeleteRoute(d.Id(), &onCallAPI.DeleteRouteOptions{})
 	if err != nil {
 		return diag.FromErr(err)

@@ -112,3 +112,12 @@ Optional:
 
 - `from` (String) Start of the time range.
 - `to` (String) End of the time range.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_report.name "{{ id }}"
+terraform import grafana_report.name "{{ orgID }}:{{ id }}"
+```

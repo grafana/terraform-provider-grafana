@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
 var provenanceDisabled = "disabled"
@@ -44,12 +44,12 @@ var notifiers = []notifier{
 	wecomNotifier{},
 }
 
-func ResourceContactPoint() *schema.Resource {
+func resourceContactPoint() *common.Resource {
 	resource := &schema.Resource{
 		Description: `
 Manages Grafana Alerting contact points.
 
-* [Official documentation](https://grafana.com/docs/grafana/next/alerting/fundamentals/contact-points/)
+* [Official documentation](https://grafana.com/docs/grafana/next/alerting/fundamentals/notifications/contact-points/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#contact-points)
 
 This resource requires Grafana 9.1.0 or later.
@@ -98,7 +98,11 @@ This resource requires Grafana 9.1.0 or later.
 		}
 	}
 
-	return resource
+	return common.NewLegacySDKResource(
+		"grafana_contact_point",
+		orgResourceIDString("name"),
+		resource,
+	)
 }
 
 func readContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {

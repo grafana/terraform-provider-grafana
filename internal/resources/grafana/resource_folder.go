@@ -9,13 +9,13 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceFolder() *schema.Resource {
-	return &schema.Resource{
+func resourceFolder() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/)
@@ -66,6 +66,12 @@ func ResourceFolder() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_folder",
+		orgResourceIDString("uid"),
+		schema,
+	)
 }
 
 func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -90,7 +96,7 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 	}
 
 	folder := resp.GetPayload()
-	d.SetId(MakeOrgResourceID(orgID, folder.ID))
+	d.SetId(MakeOrgResourceID(orgID, folder.UID))
 
 	return ReadFolder(ctx, d, meta)
 }
@@ -124,7 +130,7 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		return err
 	}
 
-	d.SetId(MakeOrgResourceID(orgID, folder.ID))
+	d.SetId(MakeOrgResourceID(orgID, folder.UID))
 	d.Set("org_id", strconv.FormatInt(orgID, 10))
 	d.Set("title", folder.Title)
 	d.Set("uid", folder.UID)
@@ -135,16 +141,11 @@ func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
-	deleteParams := folders.NewDeleteFolderParams().WithFolderUID(d.Get("uid").(string))
+	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
+	deleteParams := folders.NewDeleteFolderParams().WithFolderUID(uid)
 	if d.Get("prevent_destroy_if_not_empty").(bool) {
-		// Search for dashboards and fail if any are found
-		folderID, err := strconv.ParseInt(idStr, 10, 64)
-		if err != nil {
-			return diag.Errorf("failed to parse folder ID: %s", err)
-		}
 		searchType := "dash-db"
-		searchParams := search.NewSearchParams().WithFolderIds([]int64{folderID}).WithType(&searchType)
+		searchParams := search.NewSearchParams().WithFolderUIDs([]string{uid}).WithType(&searchType)
 		searchResp, err := client.Search.Search(searchParams)
 		if err != nil {
 			return diag.Errorf("failed to search for dashboards in folder: %s", err)
@@ -154,7 +155,7 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 			for _, dashboard := range searchResp.GetPayload() {
 				dashboardNames = append(dashboardNames, dashboard.Title)
 			}
-			return diag.Errorf("folder %s is not empty and prevent_destroy_if_not_empty is set. It contains the following dashboards: %v", d.Get("uid").(string), dashboardNames)
+			return diag.Errorf("folder %s is not empty and prevent_destroy_if_not_empty is set. It contains the following dashboards: %v", uid, dashboardNames)
 		}
 	} else {
 		// If we're not preventing destroys, then we can force delete folders that have alert rules

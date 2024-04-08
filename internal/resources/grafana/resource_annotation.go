@@ -6,14 +6,14 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func ResourceAnnotation() *schema.Resource {
-	return &schema.Resource{
+func resourceAnnotation() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/annotate-visualizations/)
@@ -94,6 +94,12 @@ func ResourceAnnotation() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_annotation",
+		orgResourceIDInt("id"),
+		schema,
+	)
 }
 
 func CreateAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

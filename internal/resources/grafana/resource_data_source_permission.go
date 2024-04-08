@@ -11,13 +11,13 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/access_control"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
 const datasourcesPermissionsType = "datasources"
 
-func ResourceDatasourcePermission() *schema.Resource {
-	return &schema.Resource{
+func resourceDatasourcePermission() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 Manages the entire set of permissions for a datasource. Permissions that aren't specified when applying this resource will be removed.
@@ -32,10 +32,19 @@ Manages the entire set of permissions for a datasource. Permissions that aren't 
 		Schema: map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"datasource_id": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "ID of the datasource to apply permissions to.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				Deprecated:   "Use `datasource_uid` instead",
+				Description:  "Deprecated: Use `datasource_uid` instead.",
+				AtLeastOneOf: []string{"datasource_id", "datasource_uid"},
+			},
+			"datasource_uid": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				Description:  "UID of the datasource to apply permissions to.",
+				AtLeastOneOf: []string{"datasource_id", "datasource_uid"},
 			},
 			"permissions": {
 				Type:     schema.TypeSet,
@@ -83,6 +92,12 @@ Manages the entire set of permissions for a datasource. Permissions that aren't 
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_data_source_permission",
+		orgResourceIDInt("datasourceID"),
+		schema,
+	)
 }
 
 func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -93,12 +108,16 @@ func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 		list = v.(*schema.Set).List()
 	}
 
-	_, datasourceID := SplitOrgResourceID(d.Get("datasource_id").(string))
-	resp, err := client.Datasources.GetDataSourceByID(datasourceID)
+	// TODO: Switch to UID, but support both until next major release
+	id := d.Get("datasource_uid").(string)
+	if id == "" {
+		id = d.Get("datasource_id").(string)
+	}
+	_, id = SplitOrgResourceID(id)
+	datasource, err := getDatasourceByUIDOrID(client, id)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	datasource := resp.Payload
 
 	var configuredPermissions []*models.SetResourcePermissionCommand
 	for _, permission := range list {
@@ -125,7 +144,7 @@ func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 		return diag.FromErr(err)
 	}
 
-	d.SetId(MakeOrgResourceID(orgID, datasourceID))
+	d.SetId(MakeOrgResourceID(orgID, datasource.UID))
 
 	return ReadDatasourcePermissions(ctx, d, meta)
 }
@@ -133,11 +152,10 @@ func UpdateDatasourcePermissions(ctx context.Context, d *schema.ResourceData, me
 func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, id := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	resp, err := client.Datasources.GetDataSourceByID(id)
+	datasource, err := getDatasourceByUIDOrID(client, id)
 	if diag, shouldReturn := common.CheckReadError("data source permissions", d, err); shouldReturn {
 		return diag
 	}
-	datasource := resp.Payload
 
 	listResp, err := client.AccessControl.GetResourcePermissions(datasource.UID, datasourcesPermissionsType)
 	if err, shouldReturn := common.CheckReadError("datasource permissions", d, err); shouldReturn {
@@ -159,6 +177,7 @@ func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta
 		permissionItems = append(permissionItems, permissionItem)
 	}
 
+	d.SetId(MakeOrgResourceID(datasource.OrgID, datasource.UID))
 	d.Set("permissions", permissionItems)
 
 	return nil
@@ -167,11 +186,10 @@ func ReadDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta
 func DeleteDatasourcePermissions(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, id := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	resp, err := client.Datasources.GetDataSourceByID(id)
+	datasource, err := getDatasourceByUIDOrID(client, id)
 	if diags, shouldReturn := common.CheckReadError("data source permissions", d, err); shouldReturn {
 		return diags
 	}
-	datasource := resp.Payload
 
 	err = updateResourcePermissions(client, datasource.UID, datasourcesPermissionsType, []*models.SetResourcePermissionCommand{})
 	diags, _ := common.CheckReadError("datasource permissions", d, err)

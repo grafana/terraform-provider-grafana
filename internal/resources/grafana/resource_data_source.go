@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -12,12 +13,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/structure"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-func ResourceDataSource() *schema.Resource {
-	return &schema.Resource{
+func resourceDataSource() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/datasources/)
@@ -80,15 +82,7 @@ source selected (via the 'type' argument).
 				Default:     "",
 				Description: "(Required by some data source types) The name of the database to use on the selected data source server.",
 			},
-			"http_headers": {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Sensitive:   true,
-				Description: "Custom HTTP headers",
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
+			"http_headers": datasourceHTTPHeadersAttribute(),
 			"is_default": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -110,39 +104,79 @@ source selected (via the 'type' argument).
 				Default:     "",
 				Description: "(Required by some data source types) The username to use to authenticate to the data source.",
 			},
-			"json_data_encoded": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Description:  "Serialized JSON string containing the json data. This attribute can be used to pass configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.",
-				ValidateFunc: validation.StringIsJSON,
-				StateFunc: func(v interface{}) string {
-					json, _ := structure.NormalizeJsonString(v)
-					return json
-				},
-				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
-					if oldValue == "{}" && newValue == "" {
-						return true
-					}
-					return common.SuppressEquivalentJSONDiffs(k, oldValue, newValue, d)
-				},
-			},
-			"secure_json_data_encoded": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Sensitive:    true,
-				Description:  "Serialized JSON string containing the secure json data. This attribute can be used to pass secure configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.",
-				ValidateFunc: validation.StringIsJSON,
-				StateFunc: func(v interface{}) string {
-					json, _ := structure.NormalizeJsonString(v)
-					return json
-				},
-				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
-					if oldValue == "{}" && newValue == "" {
-						return true
-					}
-					return common.SuppressEquivalentJSONDiffs(k, oldValue, newValue, d)
-				},
-			},
+			"json_data_encoded":        datasourceJSONDataAttribute(),
+			"secure_json_data_encoded": datasourceSecureJSONDataAttribute(),
+		},
+	}
+
+	return common.NewLegacySDKResource(
+		"grafana_data_source",
+		orgResourceIDString("uid"),
+		schema,
+	)
+}
+
+func datasourceHTTPHeadersAttribute() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeMap,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "Custom HTTP headers",
+		Elem: &schema.Schema{
+			Type: schema.TypeString,
+		},
+	}
+}
+
+func datasourceJSONDataAttribute() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Serialized JSON string containing the json data. This attribute can be used to pass configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.",
+		ValidateFunc: func(i interface{}, s string) ([]string, []error) {
+			if strings.Contains(i.(string), "httpHeaderName") {
+				return nil, []error{
+					errors.New("httpHeaderName{num} is a reserved key and cannot be used in JSON data. Use the http_headers attribute instead"),
+				}
+			}
+			return validation.StringIsJSON(i, s)
+		},
+		StateFunc: func(v interface{}) string {
+			json, _ := structure.NormalizeJsonString(v)
+			return json
+		},
+		DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+			if oldValue == "{}" && newValue == "" {
+				return true
+			}
+			return common.SuppressEquivalentJSONDiffs(k, oldValue, newValue, d)
+		},
+	}
+}
+
+func datasourceSecureJSONDataAttribute() *schema.Schema {
+	return &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "Serialized JSON string containing the secure json data. This attribute can be used to pass secure configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.",
+		ValidateFunc: func(i interface{}, s string) ([]string, []error) {
+			if strings.Contains(i.(string), "httpHeaderValue") {
+				return nil, []error{
+					errors.New("httpHeaderValue{num} is a reserved key and cannot be used in JSON data. Use the http_headers attribute instead"),
+				}
+			}
+			return validation.StringIsJSON(i, s)
+		},
+		StateFunc: func(v interface{}) string {
+			json, _ := structure.NormalizeJsonString(v)
+			return json
+		},
+		DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+			if oldValue == "{}" && newValue == "" {
+				return true
+			}
+			return common.SuppressEquivalentJSONDiffs(k, oldValue, newValue, d)
 		},
 	}
 }
@@ -151,7 +185,7 @@ source selected (via the 'type' argument).
 func CreateDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
-	dataSource, err := makeDataSource(d)
+	dataSource, err := stateToDatasource(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -161,7 +195,7 @@ func CreateDataSource(ctx context.Context, d *schema.ResourceData, meta interfac
 		return diag.FromErr(err)
 	}
 
-	d.SetId(MakeOrgResourceID(orgID, resp.Payload.Datasource.ID))
+	d.SetId(MakeOrgResourceID(orgID, resp.Payload.Datasource.UID))
 	return ReadDataSource(ctx, d, meta)
 }
 
@@ -169,7 +203,7 @@ func CreateDataSource(ctx context.Context, d *schema.ResourceData, meta interfac
 func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	dataSource, err := makeDataSource(d)
+	dataSource, err := stateToDatasource(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -188,7 +222,7 @@ func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta interfac
 		User:            dataSource.User,
 		WithCredentials: dataSource.WithCredentials,
 	}
-	_, err = client.Datasources.UpdateDataSourceByID(idStr, &body)
+	_, err = client.Datasources.UpdateDataSourceByUID(idStr, &body)
 
 	return diag.FromErr(err)
 }
@@ -197,34 +231,25 @@ func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta interfac
 func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	var resp interface{ GetPayload() *models.DataSource }
-	var err error
-	// Support both numerical and UID IDs, so that we can import an existing datasource with either.
-	// Following the read, it's normalized to a numerical ID.
-	if _, parseErr := strconv.ParseInt(idStr, 10, 64); parseErr == nil {
-		resp, err = client.Datasources.GetDataSourceByID(idStr)
-	} else {
-		resp, err = client.Datasources.GetDataSourceByUID(idStr)
-	}
-
+	ds, err := getDatasourceByUIDOrID(client, idStr)
 	if err, shouldReturn := common.CheckReadError("datasource", d, err); shouldReturn {
 		return err
 	}
 
-	return readDatasource(d, resp.GetPayload())
+	return datasourceToState(d, ds)
 }
 
 // DeleteDataSource deletes a Grafana datasource
 func DeleteDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	_, err := client.Datasources.DeleteDataSourceByID(idStr)
+	_, err := client.Datasources.DeleteDataSourceByUID(idStr)
 	diag, _ := common.CheckReadError("datasource", d, err)
 	return diag
 }
 
-func readDatasource(d *schema.ResourceData, dataSource *models.DataSource) diag.Diagnostics {
-	d.SetId(MakeOrgResourceID(dataSource.OrgID, dataSource.ID))
+func datasourceToState(d *schema.ResourceData, dataSource *models.DataSource) diag.Diagnostics {
+	d.SetId(MakeOrgResourceID(dataSource.OrgID, dataSource.UID))
 	d.Set("access_mode", dataSource.Access)
 	d.Set("database_name", dataSource.Database)
 	d.Set("is_default", dataSource.IsDefault)
@@ -235,6 +260,13 @@ func readDatasource(d *schema.ResourceData, dataSource *models.DataSource) diag.
 	d.Set("uid", dataSource.UID)
 	d.Set("org_id", strconv.FormatInt(dataSource.OrgID, 10))
 
+	d.Set("basic_auth_enabled", dataSource.BasicAuth)
+	d.Set("basic_auth_username", dataSource.BasicAuthUser)
+
+	return datasourceConfigToState(d, dataSource)
+}
+
+func datasourceConfigToState(d *schema.ResourceData, dataSource *models.DataSource) diag.Diagnostics {
 	gottenJSONData, gottenHeaders := removeHeadersFromJSONData(dataSource.JSONData.(map[string]interface{}))
 	encodedJSONData, err := json.Marshal(gottenJSONData)
 	if err != nil {
@@ -253,29 +285,14 @@ func readDatasource(d *schema.ResourceData, dataSource *models.DataSource) diag.
 		}
 		d.Set("http_headers", currentHeaders)
 	}
-
-	d.Set("basic_auth_enabled", dataSource.BasicAuth)
-	d.Set("basic_auth_username", dataSource.BasicAuthUser)
-
 	return nil
 }
 
-func makeDataSource(d *schema.ResourceData) (*models.AddDataSourceCommand, error) {
-	httpHeaders := make(map[string]string)
-	for key, value := range d.Get("http_headers").(map[string]interface{}) {
-		httpHeaders[key] = fmt.Sprintf("%v", value)
-	}
-
-	jd, err := makeJSONData(d)
+func stateToDatasource(d *schema.ResourceData) (*models.AddDataSourceCommand, error) {
+	jd, sd, err := stateToDatasourceConfig(d)
 	if err != nil {
 		return nil, err
 	}
-	sd, err := makeSecureJSONData(d)
-	if err != nil {
-		return nil, err
-	}
-
-	jd, sd = jsonDataWithHeaders(jd, sd, httpHeaders)
 
 	return &models.AddDataSourceCommand{
 		Name:           d.Get("name").(string),
@@ -291,6 +308,26 @@ func makeDataSource(d *schema.ResourceData) (*models.AddDataSourceCommand, error
 		JSONData:       jd,
 		SecureJSONData: sd,
 	}, err
+}
+
+// stateToDatasourceConfig extracts the json data from the config
+func stateToDatasourceConfig(d *schema.ResourceData) (map[string]interface{}, map[string]string, error) {
+	httpHeaders := make(map[string]string)
+	for key, value := range d.Get("http_headers").(map[string]interface{}) {
+		httpHeaders[key] = fmt.Sprintf("%v", value)
+	}
+
+	jd, err := makeJSONData(d)
+	if err != nil {
+		return nil, nil, err
+	}
+	sd, err := makeSecureJSONData(d)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	jd, sd = jsonDataWithHeaders(jd, sd, httpHeaders)
+	return jd, sd, nil
 }
 
 func makeJSONData(d *schema.ResourceData) (map[string]interface{}, error) {
@@ -350,4 +387,24 @@ func removeHeadersFromJSONData(input map[string]interface{}) (map[string]interfa
 	}
 
 	return jsonData, headers
+}
+
+// Support both numerical and UID IDs, so that we can import an existing datasource with either.
+// Following the read, it's normalized to a UID.
+// TODO: Remove on next major version
+func getDatasourceByUIDOrID(client *goapi.GrafanaHTTPAPI, id string) (*models.DataSource, error) {
+	var resp interface{ GetPayload() *models.DataSource }
+	var err error
+
+	if _, parseErr := strconv.ParseInt(id, 10, 64); parseErr == nil {
+		resp, err = client.Datasources.GetDataSourceByID(id)
+	} else {
+		resp, err = client.Datasources.GetDataSourceByUID(id)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.GetPayload(), nil
 }

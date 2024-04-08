@@ -8,7 +8,7 @@ description: |-
   target for checks can be a domain name, a server, or a website, depending on
   what information you would like to gather about your endpoint. You can define
   multiple checks for a single endpoint to check different capabilities.
-  Official documentation https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/checks/
+  Official documentation https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/create-checks/checks/
 ---
 
 # grafana_synthetic_monitoring_check (Resource)
@@ -19,7 +19,7 @@ target for checks can be a domain name, a server, or a website, depending on
 what information you would like to gather about your endpoint. You can define
 multiple checks for a single endpoint to check different capabilities.
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/checks/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/create-checks/checks/)
 
 ## Example Usage
 
@@ -203,11 +203,11 @@ EOS
       ]
 
       fail_if_body_matches_regexp = [
-        "*bad stuff*",
+        ".*bad stuff.*",
       ]
 
       fail_if_body_not_matches_regexp = [
-        "*good stuff*",
+        ".*good stuff.*",
       ]
 
       fail_if_header_matches_regexp {
@@ -420,7 +420,7 @@ resource "grafana_synthetic_monitoring_check" "traceroute" {
 
 ### Optional
 
-- `alert_sensitivity` (String) Can be set to `none`, `low`, `medium`, or `high` to correspond to the check [alert levels](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/synthetic-monitoring-alerting/). Defaults to `none`.
+- `alert_sensitivity` (String) Can be set to `none`, `low`, `medium`, or `high` to correspond to the check [alert levels](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/configure-alerts/synthetic-monitoring-alerting/). Defaults to `none`.
 - `basic_metrics_only` (Boolean) Metrics are reduced by default. Set this to `false` if you'd like to publish all metrics. We maintain a [full list of metrics](https://github.com/grafana/synthetic-monitoring-agent/tree/main/internal/scraper/testdata) collected for each. Defaults to `true`.
 - `enabled` (Boolean) Whether to enable the check. Defaults to `true`.
 - `frequency` (Number) How often the check runs in milliseconds (the value is not truly a "frequency" but a "period"). The minimum acceptable value is 1 second (1000 ms), and the maximum is 120 seconds (120000 ms). Defaults to `60000`.
@@ -708,10 +708,126 @@ Optional:
 - `max_unknown_hops` (Number) Maximum number of hosts to travers that give no response Defaults to `15`.
 - `ptr_lookup` (Boolean) Reverse lookup hostnames from IP addresses Defaults to `true`.
 
+### MultiHTTP Basic
+
+```terraform
+data "grafana_synthetic_monitoring_probes" "main" {}
+
+resource "grafana_synthetic_monitoring_check" "multihttp" {
+  job     = "multihttp basic"
+  target  = "https://www.grafana-dev.com"
+  enabled = false
+  probes = [
+    data.grafana_synthetic_monitoring_probes.main.probes.Amsterdam,
+  ]
+  labels = {
+    foo = "bar"
+  }
+  settings {
+    multihttp {
+      entries {
+        request {
+          method = "GET"
+          url    = "https://www.grafana-dev.com"
+        }
+      }
+    }
+  }
+}
+```
+
+### MultiHTTP Complex
+
+```terraform
+data "grafana_synthetic_monitoring_probes" "main" {}
+
+resource "grafana_synthetic_monitoring_check" "multihttp" {
+  job     = "multihttp complex"
+  target  = "https://www.an-auth-endpoint.com"
+  enabled = false
+  probes = [
+    data.grafana_synthetic_monitoring_probes.main.probes.Amsterdam,
+  ]
+  labels = {
+    foo = "bar"
+  }
+  settings {
+    multihttp {
+      entries {
+        request {
+          method = "POST"
+          url    = "https://www.an-auth-endpoint.com"
+          query_fields {
+            name  = "username"
+            value = "steve"
+          }
+          query_fields {
+            name  = "password"
+            value = "top_secret"
+          }
+          body {
+            content_type = "application/json"
+          }
+        }
+        assertions {
+          type      = "TEXT"
+          subject   = "HTTP_STATUS_CODE"
+          condition = "EQUALS"
+          value     = "200"
+        }
+        variables {
+          type       = "JSON_PATH"
+          name       = "accessToken"
+          expression = "data.accessToken"
+        }
+      }
+      entries {
+        request {
+          method = "GET"
+          url    = "https://www.an-endpoint-that-requires-auth.com"
+          headers {
+            name  = "Authorization"
+            value = "Bearer $${accessToken}"
+          }
+        }
+        assertions {
+          type      = "TEXT"
+          subject   = "RESPONSE_BODY"
+          condition = "CONTAINS"
+          value     = "foobar"
+        }
+        assertions {
+          type      = "TEXT"
+          subject   = "RESPONSE_BODY"
+          condition = "NOT_CONTAINS"
+          value     = "xyyz"
+        }
+        assertions {
+          type       = "JSON_PATH_VALUE"
+          condition  = "EQUALS"
+          expression = "$.slideshow.author"
+          value      = "Yours Truly"
+        }
+        assertions {
+          type       = "JSON_PATH_VALUE"
+          condition  = "STARTS_WITH"
+          expression = "$.slideshow.date"
+          value      = "date of "
+        }
+        assertions {
+          type       = "JSON_PATH_ASSERTION"
+          expression = "$.slideshow.slides"
+        }
+      }
+    }
+  }
+}
+``` 
+
 ## Import
 
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_synthetic_monitoring_check.check {{check-id}}
+terraform import grafana_synthetic_monitoring_check.name "{{ id }}"
 ```

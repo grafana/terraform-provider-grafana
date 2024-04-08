@@ -6,18 +6,52 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var ResourceAccessPolicyID = common.NewTFIDWithLegacySeparator("grafana_cloud_access_policy", "/", "region", "policyId") //nolint:staticcheck
+var (
+	//nolint:staticcheck
+	resourceAccessPolicyID = common.NewResourceIDWithLegacySeparator("/",
+		common.StringIDField("region"),
+		common.StringIDField("policyId"),
+	)
+)
 
-func ResourceAccessPolicy() *schema.Resource {
-	return &schema.Resource{
+func resourceAccessPolicy() *common.Resource {
+	cloudAccessPolicyRealmSchema := &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"type": {
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "Whether a policy applies to a Cloud org or a specific stack. Should be one of `org` or `stack`.",
+				ValidateFunc: validation.StringInSlice([]string{"org", "stack"}, false),
+			},
+			"identifier": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The identifier of the org or stack. For orgs, this is the slug, for stacks, this is the stack ID.",
+			},
+			"label_policy": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"selector": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The label selector to match in metrics or logs query. Should be in PromQL or LogQL format.",
+						},
+					},
+				},
+			},
+		},
+	}
 
+	schema := &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#create-an-access-policy)
@@ -29,10 +63,10 @@ Required access policy scopes:
 * accesspolicies:delete
 `,
 
-		CreateContext: CreateCloudAccessPolicy,
-		UpdateContext: UpdateCloudAccessPolicy,
-		DeleteContext: DeleteCloudAccessPolicy,
-		ReadContext:   ReadCloudAccessPolicy,
+		CreateContext: withClient[schema.CreateContextFunc](createCloudAccessPolicy),
+		UpdateContext: withClient[schema.UpdateContextFunc](updateCloudAccessPolicy),
+		DeleteContext: withClient[schema.DeleteContextFunc](deleteCloudAccessPolicy),
+		ReadContext:   withClient[schema.ReadContextFunc](readCloudAccessPolicy),
 
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -95,39 +129,15 @@ Required access policy scopes:
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_cloud_access_policy",
+		resourceAccessPolicyID,
+		schema,
+	)
 }
 
-var cloudAccessPolicyRealmSchema = &schema.Resource{
-	Schema: map[string]*schema.Schema{
-		"type": {
-			Type:         schema.TypeString,
-			Required:     true,
-			Description:  "Whether a policy applies to a Cloud org or a specific stack. Should be one of `org` or `stack`.",
-			ValidateFunc: validation.StringInSlice([]string{"org", "stack"}, false),
-		},
-		"identifier": {
-			Type:        schema.TypeString,
-			Required:    true,
-			Description: "The identifier of the org or stack. For orgs, this is the slug, for stacks, this is the stack ID.",
-		},
-		"label_policy": {
-			Type:     schema.TypeSet,
-			Optional: true,
-			Elem: &schema.Resource{
-				Schema: map[string]*schema.Schema{
-					"selector": {
-						Type:        schema.TypeString,
-						Required:    true,
-						Description: "The label selector to match in metrics or logs query. Should be in PromQL or LogQL format.",
-					},
-				},
-			},
-		},
-	},
-}
-
-func CreateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
+func createCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	region := d.Get("region").(string)
 
 	displayName := d.Get("display_name").(string)
@@ -147,15 +157,13 @@ func CreateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta i
 		return apiError(err)
 	}
 
-	d.SetId(ResourceAccessPolicyID.Make(region, result.Id))
+	d.SetId(resourceAccessPolicyID.Make(region, result.Id))
 
-	return ReadCloudAccessPolicy(ctx, d, meta)
+	return readCloudAccessPolicy(ctx, d, client)
 }
 
-func UpdateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
-
-	split, err := ResourceAccessPolicyID.Split(d.Id())
+func updateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	split, err := resourceAccessPolicyID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -166,7 +174,7 @@ func UpdateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta i
 		displayName = d.Get("name").(string)
 	}
 
-	req := client.AccesspoliciesAPI.PostAccessPolicy(ctx, id).Region(region).XRequestId(ClientRequestID()).
+	req := client.AccesspoliciesAPI.PostAccessPolicy(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).
 		PostAccessPolicyRequest(gcom.PostAccessPolicyRequest{
 			DisplayName: &displayName,
 			Scopes:      common.ListToStringSlice(d.Get("scopes").(*schema.Set).List()),
@@ -176,19 +184,17 @@ func UpdateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta i
 		return apiError(err)
 	}
 
-	return ReadCloudAccessPolicy(ctx, d, meta)
+	return readCloudAccessPolicy(ctx, d, client)
 }
 
-func ReadCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
-
-	split, err := ResourceAccessPolicyID.Split(d.Id())
+func readCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	split, err := resourceAccessPolicyID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	region, id := split[0], split[1]
 
-	result, _, err := client.AccesspoliciesAPI.GetAccessPolicy(ctx, id).Region(region).Execute()
+	result, _, err := client.AccesspoliciesAPI.GetAccessPolicy(ctx, id.(string)).Region(region.(string)).Execute()
 	if err, shouldReturn := common.CheckReadError("access policy", d, err); shouldReturn {
 		return err
 	}
@@ -203,21 +209,19 @@ func ReadCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta int
 	if updated := result.UpdatedAt; updated != nil {
 		d.Set("updated_at", updated.Format(time.RFC3339))
 	}
-	d.SetId(ResourceAccessPolicyID.Make(region, result.Id))
+	d.SetId(resourceAccessPolicyID.Make(region, result.Id))
 
 	return nil
 }
 
-func DeleteCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
-
-	split, err := ResourceAccessPolicyID.Split(d.Id())
+func deleteCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	split, err := resourceAccessPolicyID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	region, id := split[0], split[1]
 
-	_, _, err = client.AccesspoliciesAPI.DeleteAccessPolicy(ctx, id).Region(region).XRequestId(ClientRequestID()).Execute()
+	_, _, err = client.AccesspoliciesAPI.DeleteAccessPolicy(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
 	return apiError(err)
 }
 

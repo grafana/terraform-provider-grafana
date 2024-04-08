@@ -36,3 +36,11 @@ resource "grafana_organization_preferences" "test" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_organization_preferences.name "{{ orgID }}"
+```

@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-type frameworkProviderConfig struct {
+type ProviderConfig struct {
 	URL              types.String `tfsdk:"url"`
 	Auth             types.String `tfsdk:"auth"`
 	HTTPHeaders      types.Map    `tfsdk:"http_headers"`
@@ -45,7 +45,7 @@ type frameworkProviderConfig struct {
 	UserAgent types.String `tfsdk:"-"`
 }
 
-func (c *frameworkProviderConfig) SetDefaults() error {
+func (c *ProviderConfig) SetDefaults() error {
 	var err error
 
 	c.URL = envDefaultFuncString(c.URL, "GRAFANA_URL")
@@ -198,7 +198,7 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 			},
 			"sm_url": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable. The correct value for each service region is cited in the [Synthetic Monitoring documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/private-probes/#probe-api-server-url). Note the `sm_url` value is optional, but it must correspond with the value specified as the `region_slug` in the `grafana_cloud_stack` resource. Also note that when a Terraform configuration contains multiple provider instances managing SM resources associated with the same Grafana stack, specifying an explicit `sm_url` set to the same value for each provider ensures all providers interact with the same SM API.",
+				MarkdownDescription: "Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable. The correct value for each service region is cited in the [Synthetic Monitoring documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/set-up/set-up-private-probes/#probe-api-server-url). Note the `sm_url` value is optional, but it must correspond with the value specified as the `region_slug` in the `grafana_cloud_stack` resource. Also note that when a Terraform configuration contains multiple provider instances managing SM resources associated with the same Grafana stack, specifying an explicit `sm_url` set to the same value for each provider ensures all providers interact with the same SM API.",
 			},
 
 			"oncall_access_token": schema.StringAttribute{
@@ -216,7 +216,7 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 
 // Configure prepares a HashiCups API client for data sources and resources.
 func (p *frameworkProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var cfg frameworkProviderConfig
+	var cfg ProviderConfig
 	resp.Diagnostics.Append(req.Config.Get(ctx, &cfg)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -228,7 +228,7 @@ func (p *frameworkProvider) Configure(ctx context.Context, req provider.Configur
 	}
 	cfg.UserAgent = types.StringValue(fmt.Sprintf("Terraform/%s (+https://www.terraform.io) terraform-provider-grafana/%s", req.TerraformVersion, p.version))
 
-	clients, err := createClients(cfg)
+	clients, err := CreateClients(cfg)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to create clients", err.Error())
 		return
@@ -240,14 +240,12 @@ func (p *frameworkProvider) Configure(ctx context.Context, req provider.Configur
 
 // DataSources defines the data sources implemented in the provider.
 func (p *frameworkProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	// TODO: Implement same thing as legacy_provider_validation.go when adding datasources
 	return nil
 }
 
 // Resources defines the resources implemented in the provider.
 func (p *frameworkProvider) Resources(_ context.Context) []func() resource.Resource {
-	// TODO: Implement same thing as legacy_provider_validation.go when adding resources
-	return nil
+	return pluginFrameworkResources()
 }
 
 // FrameworkProvider returns a terraform-plugin-framework Provider.

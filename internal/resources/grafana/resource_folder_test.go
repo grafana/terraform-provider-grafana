@@ -10,9 +10,9 @@ import (
 
 	"github.com/grafana/grafana-openapi-client-go/models"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -26,7 +26,7 @@ func TestAccFolder_basic(t *testing.T) {
 	var folderWithUID models.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			folderCheckExists.destroyed(&folder, nil),
 			folderCheckExists.destroyed(&folderWithUID, nil),
@@ -60,13 +60,13 @@ func TestAccFolder_basic(t *testing.T) {
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"prevent_destroy_if_not_empty"},
 			},
-			// Change the title of a folder. This shouldn't change the ID (the folder doesn't have to be recreated)
+			// Change the title of a folder. This shouldn't recreate the folder
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_folder/resource.tf", map[string]string{
 					"Terraform Test Folder": "Terraform Test Folder Updated",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccFolderIDDidntChange("grafana_folder.test_folder", &folder),
+					testAccFolderWasntRecreated("grafana_folder.test_folder", &folder),
 					resource.TestMatchResourceAttr("grafana_folder.test_folder", "id", defaultOrgIDRegexp),
 					resource.TestMatchResourceAttr("grafana_folder.test_folder", "uid", common.UIDRegexp),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder", "title", "Terraform Test Folder Updated"),
@@ -98,7 +98,7 @@ func TestAccFolder_basic(t *testing.T) {
 }
 
 func TestAccFolder_nested(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Switch to OSS once nested folders are enabled by default
+	testutils.CheckOSSTestsEnabled(t, ">=10.3.0")
 
 	var parentFolder models.Folder
 	var childFolder1 models.Folder
@@ -106,7 +106,7 @@ func TestAccFolder_nested(t *testing.T) {
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			folderCheckExists.destroyed(&parentFolder, nil),
 			folderCheckExists.destroyed(&childFolder1, nil),
@@ -176,7 +176,7 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 	var folder models.Folder
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFolderExample_PreventDeletion(name, true), // Create protected folder
@@ -191,10 +191,9 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 					folderCheckExists.exists("grafana_folder.test_folder", &folder),
 					// Create a dashboard in the protected folder
 					func(s *terraform.State) error {
-						client := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+						client := grafanaTestClient()
 						_, err := client.Dashboards.PostDashboard(&models.SaveDashboardCommand{
 							FolderUID: folder.UID,
-							FolderID:  folder.ID,
 							Dashboard: map[string]interface{}{
 								"uid":   name + "-dashboard",
 								"title": name + "-dashboard",
@@ -243,7 +242,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 			var name = acctest.RandomWithPrefix(tc.role + "-key")
 
 			// Create an API key with the correct role and inject it in envvars. This auth will be used when the test runs
-			client := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+			client := grafanaTestClient()
 			resp, err := client.APIKeys.AddAPIkey(&models.AddAPIKeyCommand{
 				Name: name,
 				Role: tc.role,
@@ -263,8 +262,8 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 
 			// Do not make parallel, fiddling with auth will break other tests that run in parallel
 			resource.Test(t, resource.TestCase{
-				ProviderFactories: testutils.ProviderFactories,
-				CheckDestroy:      folderCheckExists.destroyed(&folder, nil),
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				CheckDestroy:             folderCheckExists.destroyed(&folder, nil),
 				Steps: []resource.TestStep{
 					{
 						Config:      config,
@@ -282,20 +281,20 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 	}
 }
 
-func testAccFolderIDDidntChange(rn string, oldFolder *models.Folder) resource.TestCheckFunc {
+func testAccFolderWasntRecreated(rn string, oldFolder *models.Folder) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		newFolderResource, ok := s.RootModule().Resources[rn]
 		if !ok {
 			return fmt.Errorf("folder not found: %s", rn)
 		}
 		orgID, folderUID := grafana.SplitOrgResourceID(newFolderResource.Primary.ID)
-		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(orgID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
 		newFolder, err := grafana.GetFolderByIDorUID(client.Folders, folderUID)
 		if err != nil {
 			return fmt.Errorf("error getting folder: %s", err)
 		}
-		if newFolder.ID != oldFolder.ID {
-			return fmt.Errorf("folder id has changed: %d -> %d", oldFolder.ID, newFolder.ID)
+		if newFolder.Created != oldFolder.Created {
+			return fmt.Errorf("folder creation date has changed: %s -> %s", oldFolder.Created, newFolder.Created)
 		}
 		return nil
 	}

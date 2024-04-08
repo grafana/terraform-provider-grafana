@@ -10,7 +10,7 @@ import (
 
 	"github.com/grafana/grafana-openapi-client-go/client/orgs"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"golang.org/x/text/cases"
@@ -36,8 +36,8 @@ const (
 	Remove
 )
 
-func ResourceOrganization() *schema.Resource {
-	return &schema.Resource{
+func resourceOrganization() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/organization-management/)
@@ -142,10 +142,19 @@ set to true. This feature is only available in Grafana 10.2+.
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_organization",
+		common.NewResourceID(common.IntIDField("id")),
+		schema,
+	)
 }
 
 func CreateOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	name := d.Get("name").(string)
 
 	resp, err := client.Orgs.CreateOrg(&models.CreateOrgCommand{Name: name})
@@ -164,7 +173,10 @@ func CreateOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func ReadOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
 
 	resp, err := client.Orgs.GetOrgByID(orgID)
@@ -182,7 +194,10 @@ func ReadOrganization(ctx context.Context, d *schema.ResourceData, meta interfac
 }
 
 func UpdateOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	if d.HasChange("name") {
 		name := d.Get("name").(string)
@@ -198,15 +213,21 @@ func UpdateOrganization(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func DeleteOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
-	_, err := client.Orgs.DeleteOrgByID(orgID)
+	_, err = client.Orgs.DeleteOrgByID(orgID)
 	diag, _ := common.CheckReadError("organization", d, err)
 	return diag
 }
 
 func ReadUsers(d *schema.ResourceData, meta interface{}) error {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return err
+	}
 	orgID, _ := strconv.ParseInt(d.Id(), 10, 64)
 	resp, err := client.Orgs.GetOrgUsers(orgID)
 	if err != nil {
@@ -292,7 +313,10 @@ func changes(stateUsers, configUsers map[string]OrgUser) []UserChange {
 }
 
 func addIdsToChanges(d *schema.ResourceData, meta interface{}, changes []UserChange) ([]UserChange, error) {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return nil, err
+	}
 	gUserMap := make(map[string]int64)
 	gUsers, err := getAllUsers(client)
 	if err != nil {
@@ -325,11 +349,13 @@ func addIdsToChanges(d *schema.ResourceData, meta interface{}, changes []UserCha
 }
 
 func createUser(meta interface{}, user string) (int64, error) {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return 0, err
+	}
 	n := 64
 	bytes := make([]byte, n)
-	_, err := rand.Read(bytes)
-	if err != nil {
+	if _, err := rand.Read(bytes); err != nil {
 		return 0, err
 	}
 	pass := string(bytes[:n])
@@ -337,7 +363,7 @@ func createUser(meta interface{}, user string) (int64, error) {
 		Name:     user,
 		Login:    user,
 		Email:    user,
-		Password: pass,
+		Password: models.Password(pass),
 	}
 	resp, err := client.AdminUsers.AdminCreateUser(&u)
 	if err != nil {
@@ -347,8 +373,10 @@ func createUser(meta interface{}, user string) (int64, error) {
 }
 
 func applyChanges(meta interface{}, orgID int64, changes []UserChange) error {
-	var err error
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return err
+	}
 	for _, change := range changes {
 		u := change.User
 		switch change.Type {

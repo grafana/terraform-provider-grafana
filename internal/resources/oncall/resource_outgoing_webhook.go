@@ -6,20 +6,20 @@ import (
 	"net/http"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceOutgoingWebhook() *schema.Resource {
-	return &schema.Resource{
+func resourceOutgoingWebhook() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/outgoing_webhooks/)
 `,
-		CreateContext: ResourceOutgoingWebhookCreate,
-		ReadContext:   ResourceOutgoingWebhookRead,
-		UpdateContext: ResourceOutgoingWebhookUpdate,
-		DeleteContext: ResourceOutgoingWebhookDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceOutgoingWebhookCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceOutgoingWebhookRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceOutgoingWebhookUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceOutgoingWebhookDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -102,11 +102,15 @@ func ResourceOutgoingWebhook() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_oncall_outgoing_webhook",
+		resourceID,
+		schema,
+	)
 }
 
-func ResourceOutgoingWebhookCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceOutgoingWebhookCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	name := d.Get("name").(string)
 	teamID := d.Get("team_id").(string)
 	url := d.Get("url").(string)
@@ -182,12 +186,10 @@ func ResourceOutgoingWebhookCreate(ctx context.Context, d *schema.ResourceData, 
 
 	d.SetId(outgoingWebhook.ID)
 
-	return ResourceOutgoingWebhookRead(ctx, d, m)
+	return resourceOutgoingWebhookRead(ctx, d, client)
 }
 
-func ResourceOutgoingWebhookRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceOutgoingWebhookRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	outgoingWebhook, r, err := client.Webhooks.GetWebhook(d.Id(), &onCallAPI.GetWebhookOptions{})
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
@@ -214,9 +216,7 @@ func ResourceOutgoingWebhookRead(ctx context.Context, d *schema.ResourceData, m 
 	return nil
 }
 
-func ResourceOutgoingWebhookUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceOutgoingWebhookUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	name := d.Get("name").(string)
 	teamID := d.Get("team_id").(string)
 	url := d.Get("url").(string)
@@ -291,12 +291,10 @@ func ResourceOutgoingWebhookUpdate(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	d.SetId(outgoingWebhook.ID)
-	return ResourceOutgoingWebhookRead(ctx, d, m)
+	return resourceOutgoingWebhookRead(ctx, d, client)
 }
 
-func ResourceOutgoingWebhookDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceOutgoingWebhookDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	_, err := client.Webhooks.DeleteWebhook(d.Id(), &onCallAPI.DeleteWebhookOptions{})
 	if err != nil {
 		return diag.FromErr(err)

@@ -191,5 +191,5 @@ Optional:
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_oncall_integration.integration_name {{integration_id}}
+terraform import grafana_oncall_integration.name "{{ id }}"
 ```

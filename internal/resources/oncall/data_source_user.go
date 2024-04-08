@@ -4,17 +4,16 @@ import (
 	"context"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DataSourceUser() *schema.Resource {
+func dataSourceUser() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/users/)
 `,
-		ReadContext: DataSourceUserRead,
+		ReadContext: withClient[schema.ReadContextFunc](dataSourceUserRead),
 		Schema: map[string]*schema.Schema{
 			"username": {
 				Type:        schema.TypeString,
@@ -35,8 +34,7 @@ func DataSourceUser() *schema.Resource {
 	}
 }
 
-func DataSourceUserRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.ListUserOptions{}
 	usernameData := d.Get("username").(string)
 

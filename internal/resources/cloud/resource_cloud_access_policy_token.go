@@ -5,16 +5,22 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var ResourceAccessPolicyTokenID = common.NewTFIDWithLegacySeparator("grafana_cloud_access_policy_token", "/", "region", "tokenId") //nolint:staticcheck
+var (
+	//nolint:staticcheck
+	resourceAccessPolicyTokenID = common.NewResourceIDWithLegacySeparator("/",
+		common.StringIDField("region"),
+		common.StringIDField("tokenId"),
+	)
+)
 
-func ResourceAccessPolicyToken() *schema.Resource {
-	return &schema.Resource{
+func resourceAccessPolicyToken() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/)
@@ -27,10 +33,10 @@ Required access policy scopes:
 * accesspolicies:delete
 `,
 
-		CreateContext: CreateCloudAccessPolicyToken,
-		UpdateContext: UpdateCloudAccessPolicyToken,
-		DeleteContext: DeleteCloudAccessPolicyToken,
-		ReadContext:   ReadCloudAccessPolicyToken,
+		CreateContext: withClient[schema.CreateContextFunc](createCloudAccessPolicyToken),
+		UpdateContext: withClient[schema.UpdateContextFunc](updateCloudAccessPolicyToken),
+		DeleteContext: withClient[schema.DeleteContextFunc](deleteCloudAccessPolicyToken),
+		ReadContext:   withClient[schema.ReadContextFunc](readCloudAccessPolicyToken),
 
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -92,10 +98,15 @@ Required access policy scopes:
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_cloud_access_policy_token",
+		resourceAccessPolicyTokenID,
+		schema,
+	)
 }
 
-func CreateCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
+func createCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	region := d.Get("region").(string)
 
 	tokenInput := gcom.PostTokensRequest{
@@ -118,16 +129,14 @@ func CreateCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, m
 		return apiError(err)
 	}
 
-	d.SetId(ResourceAccessPolicyTokenID.Make(region, result.Id))
+	d.SetId(resourceAccessPolicyTokenID.Make(region, result.Id))
 	d.Set("token", result.Token)
 
-	return ReadCloudAccessPolicyToken(ctx, d, meta)
+	return readCloudAccessPolicyToken(ctx, d, client)
 }
 
-func UpdateCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
-
-	split, err := ResourceAccessPolicyTokenID.Split(d.Id())
+func updateCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	split, err := resourceAccessPolicyTokenID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -138,26 +147,24 @@ func UpdateCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, m
 		displayName = d.Get("name").(string)
 	}
 
-	req := client.TokensAPI.PostToken(ctx, id).Region(region).XRequestId(ClientRequestID()).PostTokenRequest(gcom.PostTokenRequest{
+	req := client.TokensAPI.PostToken(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).PostTokenRequest(gcom.PostTokenRequest{
 		DisplayName: &displayName,
 	})
 	if _, _, err := req.Execute(); err != nil {
 		return apiError(err)
 	}
 
-	return ReadCloudAccessPolicyToken(ctx, d, meta)
+	return readCloudAccessPolicyToken(ctx, d, client)
 }
 
-func ReadCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
-
-	split, err := ResourceAccessPolicyTokenID.Split(d.Id())
+func readCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	split, err := resourceAccessPolicyTokenID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	region, id := split[0], split[1]
 
-	result, _, err := client.TokensAPI.GetToken(ctx, id).Region(region).Execute()
+	result, _, err := client.TokensAPI.GetToken(ctx, id.(string)).Region(region.(string)).Execute()
 	if err, shouldReturn := common.CheckReadError("policy token", d, err); shouldReturn {
 		return err
 	}
@@ -173,20 +180,18 @@ func ReadCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, met
 	if result.UpdatedAt != nil {
 		d.Set("updated_at", result.UpdatedAt.Format(time.RFC3339))
 	}
-	d.SetId(ResourceAccessPolicyTokenID.Make(region, result.Id))
+	d.SetId(resourceAccessPolicyTokenID.Make(region, result.Id))
 
 	return nil
 }
 
-func DeleteCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
-
-	split, err := ResourceAccessPolicyTokenID.Split(d.Id())
+func deleteCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	split, err := resourceAccessPolicyTokenID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	region, id := split[0], split[1]
 
-	_, _, err = client.TokensAPI.DeleteToken(ctx, id).Region(region).XRequestId(ClientRequestID()).Execute()
+	_, _, err = client.TokensAPI.DeleteToken(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
 	return apiError(err)
 }
