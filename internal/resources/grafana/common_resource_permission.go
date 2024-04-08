@@ -177,7 +177,7 @@ func (r *resourcePermissionBase) writeItem(itemID string, data *resourcePermissi
 				WithBody(&models.SetPermissionCommand{
 					Permission: data.Permission.ValueString(),
 				}).
-				WithResource(foldersPermissionsType).
+				WithResource(r.resourceType).
 				WithResourceID(itemID),
 		)
 		data.ID = types.StringValue(
@@ -195,7 +195,7 @@ func (r *resourcePermissionBase) writeItem(itemID string, data *resourcePermissi
 				WithBody(&models.SetPermissionCommand{
 					Permission: data.Permission.ValueString(),
 				}).
-				WithResource(foldersPermissionsType).
+				WithResource(r.resourceType).
 				WithResourceID(itemID),
 		)
 		data.ID = types.StringValue(
@@ -208,7 +208,7 @@ func (r *resourcePermissionBase) writeItem(itemID string, data *resourcePermissi
 				WithBody(&models.SetPermissionCommand{
 					Permission: data.Permission.ValueString(),
 				}).
-				WithResource(foldersPermissionsType).
+				WithResource(r.resourceType).
 				WithResourceID(itemID),
 		)
 		data.ID = types.StringValue(
