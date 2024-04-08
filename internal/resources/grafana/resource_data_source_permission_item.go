@@ -30,8 +30,35 @@ func makeResourceDatasourcePermissionItem() *common.Resource {
 }
 
 type resourceDatasourcePermissionItemModel struct {
-	resourceFolderPermissionItemModel
+	ID            types.String `tfsdk:"id"`
+	OrgID         types.String `tfsdk:"org_id"`
+	Role          types.String `tfsdk:"role"`
+	Team          types.String `tfsdk:"team"`
+	User          types.String `tfsdk:"user"`
+	Permission    types.String `tfsdk:"permission"`
 	DatasourceUID types.String `tfsdk:"datasource_uid"`
+}
+
+// Framework doesn't support embedding a base struct: https://github.com/hashicorp/terraform-plugin-framework/issues/242
+func (m *resourceDatasourcePermissionItemModel) ToBase() *resourcePermissionItemBaseModel {
+	return &resourcePermissionItemBaseModel{
+		ID:         m.ID,
+		OrgID:      m.OrgID,
+		Role:       m.Role,
+		Team:       m.Team,
+		User:       m.User,
+		Permission: m.Permission,
+	}
+}
+
+func (m *resourceDatasourcePermissionItemModel) SetFromBase(base *resourcePermissionItemBaseModel) {
+	m.DatasourceUID = base.ResourceID
+	m.ID = base.ID
+	m.OrgID = base.OrgID
+	m.Role = base.Role
+	m.Team = base.Team
+	m.User = base.User
+	m.Permission = base.Permission
 }
 
 type resourceDatasourcePermissionItem struct{ resourcePermissionBase }
@@ -56,15 +83,18 @@ func (r *resourceDatasourcePermissionItem) Schema(ctx context.Context, req resou
 }
 
 func (r *resourceDatasourcePermissionItem) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	data, diags := r.readItem(req.ID, r.datasourceQuery)
+	readData, diags := r.readItem(req.ID, r.datasourceQuery)
 	if diags != nil {
 		resp.Diagnostics = diags
 		return
 	}
-	if data == nil {
+	if readData == nil {
 		resp.Diagnostics.AddError("Resource not found", "Resource not found")
 		return
 	}
+	var data resourceDatasourcePermissionItemModel
+	data.SetFromBase(readData)
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
 
@@ -75,10 +105,12 @@ func (r *resourceDatasourcePermissionItem) Create(ctx context.Context, req resou
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if diags := r.writeItem(data.DatasourceUID.ValueString(), &data.resourcePermissionItemBaseModel); diags != nil {
+	base := data.ToBase()
+	if diags := r.writeItem(data.DatasourceUID.ValueString(), base); diags != nil {
 		resp.Diagnostics = diags
 		return
 	}
+	data.SetFromBase(base)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
@@ -98,9 +130,10 @@ func (r *resourceDatasourcePermissionItem) Read(ctx context.Context, req resourc
 		resp.State.RemoveResource(ctx)
 		return
 	}
+	data.SetFromBase(readData)
 
 	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
 
 func (r *resourceDatasourcePermissionItem) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -110,10 +143,12 @@ func (r *resourceDatasourcePermissionItem) Update(ctx context.Context, req resou
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if diags := r.writeItem(data.DatasourceUID.ValueString(), &data.resourcePermissionItemBaseModel); diags != nil {
+	base := data.ToBase()
+	if diags := r.writeItem(data.DatasourceUID.ValueString(), base); diags != nil {
 		resp.Diagnostics = diags
 		return
 	}
+	data.SetFromBase(base)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
@@ -124,7 +159,7 @@ func (r *resourceDatasourcePermissionItem) Delete(ctx context.Context, req resou
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 	data.Permission = types.StringValue("")
 
-	if diags := r.writeItem(data.DatasourceUID.ValueString(), &data.resourcePermissionItemBaseModel); diags != nil {
+	if diags := r.writeItem(data.DatasourceUID.ValueString(), data.ToBase()); diags != nil {
 		resp.Diagnostics = diags
 	}
 }

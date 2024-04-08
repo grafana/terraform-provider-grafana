@@ -33,6 +33,10 @@ type resourcePermissionItemBaseModel struct {
 	Team       types.String `tfsdk:"team"`
 	User       types.String `tfsdk:"user"`
 	Permission types.String `tfsdk:"permission"`
+
+	// Framework doesn't support embedding a base struct: https://github.com/hashicorp/terraform-plugin-framework/issues/242
+	// So this is a generic ID to be written to FolderUID/DatasourceUID/etc
+	ResourceID types.String `tfsdk:"-"`
 }
 
 type resourcePermissionBase struct {
@@ -86,7 +90,7 @@ func (r *resourcePermissionBase) addInSchemaAttributes(attributes map[string]sch
 		Required:    true,
 		Description: "the permission to be assigned",
 		Validators: []validator.String{
-			stringvalidator.OneOf("View", "Edit", "Admin"),
+			stringvalidator.OneOf("Query", "View", "Edit", "Admin"),
 		},
 	}
 	return attributes
@@ -120,6 +124,7 @@ func (r *resourcePermissionBase) readItem(id string, checkExistsFunc func(client
 
 	for _, permission := range permissionsResp.Payload {
 		data := &resourcePermissionItemBaseModel{
+			ResourceID: types.StringValue(itemID),
 			ID:         types.StringValue(id),
 			OrgID:      types.StringValue(strconv.FormatInt(orgID, 10)),
 			Permission: types.StringValue(permission.Permission),
@@ -156,6 +161,7 @@ func (r *resourcePermissionBase) readItem(id string, checkExistsFunc func(client
 func (r *resourcePermissionBase) writeItem(itemID string, data *resourcePermissionItemBaseModel) diag.Diagnostics {
 	client, orgID := r.clientFromNewOrgResource(data.OrgID.ValueString())
 	data.OrgID = types.StringValue(strconv.FormatInt(orgID, 10))
+	data.ResourceID = types.StringValue(itemID)
 
 	var err error
 	switch {
