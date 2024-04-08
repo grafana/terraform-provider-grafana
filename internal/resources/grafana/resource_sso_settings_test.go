@@ -324,7 +324,16 @@ var testConfigsWithValidationErrors = []string{
 		client_id = "client_id"
 	  	auth_url  = "https://login.microsoftonline.com/12345/oauth2/v2.0/authorize"
 	  	token_url = "https://login.microsoftonline.com/12345/oauth2/v2.0/token"
-		api_url = ""
+		api_url   = "https://login.microsoftonline.com/12345/oauth2/v2.0/user"
+	}
+	}`,
+	// token_url is not a valid url for azuread
+	`resource "grafana_sso_settings" "azure_sso_settings" {
+	provider_name = "azuread"
+	oauth2_settings {
+		client_id = "client_id"
+	  	auth_url  = "https://login.microsoftonline.com/12345/oauth2/v2.0/authorize"
+	  	token_url = "this-is-an-invalid-url"
 	}
 	}`,
 	// invalid auth_url provided for okta
