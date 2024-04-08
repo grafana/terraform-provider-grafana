@@ -407,24 +407,24 @@ var validationsByProvider = map[string][]validateFunc{
 		validateNotEmpty("auth_url"),
 		validateNotEmpty("token_url"),
 		validateEmpty("api_url"),
-		validateUrl("auth_url"),
-		validateUrl("token_url"),
+		validateURL("auth_url"),
+		validateURL("token_url"),
 	},
 	"generic_oauth": {
 		validateNotEmpty("auth_url"),
 		validateNotEmpty("token_url"),
 		validateNotEmpty("api_url"),
-		validateUrl("auth_url"),
-		validateUrl("token_url"),
-		validateUrl("api_url"),
+		validateURL("auth_url"),
+		validateURL("token_url"),
+		validateURL("api_url"),
 	},
 	"okta": {
 		validateNotEmpty("auth_url"),
 		validateNotEmpty("token_url"),
 		validateNotEmpty("api_url"),
-		validateUrl("auth_url"),
-		validateUrl("token_url"),
-		validateUrl("api_url"),
+		validateURL("auth_url"),
+		validateURL("token_url"),
+		validateURL("api_url"),
 	},
 	"github": {
 		validateEmpty("auth_url"),
@@ -581,7 +581,7 @@ func validateEmpty(key string) validateFunc {
 	}
 }
 
-func validateUrl(key string) validateFunc {
+func validateURL(key string) validateFunc {
 	return func(settingsMap map[string]any, provider string) error {
 		if !isValidURL(settingsMap[key].(string)) {
 			return fmt.Errorf("%s must be a valid http/https URL for the provider %s", key, provider)
