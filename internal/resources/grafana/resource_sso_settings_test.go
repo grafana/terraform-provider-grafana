@@ -236,10 +236,13 @@ func checkSsoSettingsReset(api *client.GrafanaHTTPAPI, provider string, defaultS
 func testConfigForProvider(provider string, prefix string) string {
 	urls := ""
 	switch provider {
-	case "azuread", "generic_oauth", "okta":
+	case "generic_oauth", "okta":
 		urls = `auth_url = "https://myidp.com/oauth/authorize"
     token_url = "https://myidp.com/oauth/token"
 	api_url = "https://myidp.com/oauth/userinfo"`
+	case "azuread":
+		urls = `auth_url = "https://myidp.com/oauth/authorize"
+    token_url = "https://myidp.com/oauth/token"`
 	}
 
 	return fmt.Sprintf(`resource "grafana_sso_settings" "%[2]s_sso_settings" {
