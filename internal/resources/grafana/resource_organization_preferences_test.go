@@ -24,6 +24,45 @@ func TestAccResourceOrganizationPreferences_WithDashboardUID(t *testing.T) {
 	testAccResourceOrganizationPreferences(t, true)
 }
 
+// Tests that the org preferences can be managed with a service account (managing org prefs for its own org)
+func TestAccResourceOrganizationPreferences_OrgScoped(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
+	orgID := orgScopedTest(t)
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+				resource "grafana_dashboard" "test" {
+					config_json = jsonencode({
+					  title = "test-org-prefs"
+					  uid   = "test-org-prefs"
+					})
+				}
+				
+				resource "grafana_organization_preferences" "test" {
+				  theme      = "dark"
+				  timezone   = "browser"
+				  week_start = "saturday"
+				  home_dashboard_uid = grafana_dashboard.test.uid
+				}`,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOrganizationPreferences(&models.OrgDetailsDTO{ID: orgID}, models.Preferences{
+						Theme:     "dark",
+						Timezone:  "browser",
+						WeekStart: "saturday",
+					}),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "theme", "dark"),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "timezone", "browser"),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "week_start", "saturday"),
+					resource.TestCheckResourceAttr("grafana_organization_preferences.test", "home_dashboard_uid", "test-org-prefs"),
+				),
+			},
+		},
+	})
+}
+
 func testAccResourceOrganizationPreferences(t *testing.T, withUID bool) {
 	t.Helper()
 

@@ -99,13 +99,8 @@ func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 }
 
 func ReadOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, err := OAPIGlobalClient(meta)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	if id, _ := strconv.ParseInt(d.Id(), 10, 64); id > 0 {
-		client = client.WithOrgID(id)
-	}
+	id := d.Id() + ":" // Ensure the ID is in the <orgID>:<resourceID> format. A bit hacky but won't survive the migration to plugin framework
+	client, _, _ := OAPIClientFromExistingOrgResource(meta, id)
 
 	resp, err := client.OrgPreferences.GetOrgPreferences()
 	if err, shouldReturn := common.CheckReadError("organization preferences", d, err); shouldReturn {
@@ -128,13 +123,8 @@ func UpdateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 }
 
 func DeleteOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, err := OAPIGlobalClient(meta)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	if id, _ := strconv.ParseInt(d.Id(), 10, 64); id > 0 {
-		client = client.WithOrgID(id)
-	}
+	id := d.Id() + ":" // Ensure the ID is in the <orgID>:<resourceID> format. A bit hacky but won't survive the migration to plugin framework
+	client, _, _ := OAPIClientFromExistingOrgResource(meta, id)
 
 	if _, err := client.OrgPreferences.UpdateOrgPreferences(&models.UpdatePrefsCmd{}); err != nil {
 		return diag.FromErr(err)
