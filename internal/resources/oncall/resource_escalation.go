@@ -25,6 +25,7 @@ var escalationOptions = []string{
 	"notify_whole_channel",
 	"notify_if_time_from_to",
 	"repeat_escalation",
+	"notify_team_members",
 }
 
 var escalationOptionsVerbal = strings.Join(escalationOptions, ", ")
@@ -72,7 +73,7 @@ func resourceEscalation() *common.Resource {
 			"important": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Will activate \"important\" personal notification rules. Actual for steps: notify_persons, notify_on_call_from_schedule and notify_user_group",
+				Description: "Will activate \"important\" personal notification rules. Actual for steps: notify_persons, notify_on_call_from_schedule and notify_user_group,notify_team_members",
 			},
 			"duration": {
 				Type:     schema.TypeInt,
@@ -81,6 +82,7 @@ func resourceEscalation() *common.Resource {
 					"notify_on_call_from_schedule",
 					"persons_to_notify",
 					"persons_to_notify_next_each_time",
+					"notify_to_team_members",
 					"action_to_trigger",
 					"group_to_notify",
 					"notify_if_time_from",
@@ -96,6 +98,7 @@ func resourceEscalation() *common.Resource {
 					"duration",
 					"persons_to_notify",
 					"persons_to_notify_next_each_time",
+					"notify_to_team_members",
 					"action_to_trigger",
 					"group_to_notify",
 					"notify_if_time_from",
@@ -113,6 +116,7 @@ func resourceEscalation() *common.Resource {
 					"duration",
 					"notify_on_call_from_schedule",
 					"persons_to_notify_next_each_time",
+					"notify_to_team_members",
 					"action_to_trigger",
 					"group_to_notify",
 					"notify_if_time_from",
@@ -130,12 +134,28 @@ func resourceEscalation() *common.Resource {
 					"duration",
 					"notify_on_call_from_schedule",
 					"persons_to_notify",
+					"notify_to_team_members",
 					"action_to_trigger",
 					"group_to_notify",
 					"notify_if_time_from",
 					"notify_if_time_to",
 				},
 				Description: "The list of ID's of users for notify_person_next_each_time type step.",
+			},
+			"notify_to_team_members": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ConflictsWith: []string{
+					"duration",
+					"notify_on_call_from_schedule",
+					"persons_to_notify",
+					"persons_to_notify_next_each_time",
+					"action_to_trigger",
+					"group_to_notify",
+					"notify_if_time_from",
+					"notify_if_time_to",
+				},
+				Description: "The ID of a Team for a notify_team_members type step.",
 			},
 			"action_to_trigger": {
 				Type:     schema.TypeString,
@@ -173,6 +193,7 @@ func resourceEscalation() *common.Resource {
 					"notify_on_call_from_schedule",
 					"persons_to_notify",
 					"persons_to_notify_next_each_time",
+					"notify_to_team_members",
 					"action_to_trigger",
 				},
 				RequiredWith: []string{
@@ -188,6 +209,7 @@ func resourceEscalation() *common.Resource {
 					"notify_on_call_from_schedule",
 					"persons_to_notify",
 					"persons_to_notify_next_each_time",
+					"notify_to_team_members",
 					"action_to_trigger",
 				},
 				RequiredWith: []string{
@@ -235,6 +257,15 @@ func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, clien
 			createOptions.PersonsToNotify = &personsToNotifyDataSlice
 		} else {
 			return diag.Errorf("persons_to_notify can not be set with type: %s", typeData)
+		}
+	}
+
+	teamToNotifyData, teamToNotifyDataOk := d.GetOk("notify_to_team_members")
+	if teamToNotifyDataOk {
+		if typeData == "notify_team_members" {
+			createOptions.TeamToNotify = teamToNotifyData.(string)
+		} else {
+			return diag.Errorf("notify_to_team_members can not be set with type: %s", typeData)
 		}
 	}
 
@@ -327,6 +358,7 @@ func resourceEscalationRead(ctx context.Context, d *schema.ResourceData, client 
 	d.Set("notify_on_call_from_schedule", escalation.NotifyOnCallFromSchedule)
 	d.Set("persons_to_notify", escalation.PersonsToNotify)
 	d.Set("persons_to_notify_next_each_time", escalation.PersonsToNotifyEachTime)
+	d.Set("notify_to_team_members", escalation.TeamToNotify)
 	d.Set("group_to_notify", escalation.GroupToNotify)
 	d.Set("action_to_trigger", escalation.ActionToTrigger)
 	d.Set("important", escalation.Important)
@@ -359,6 +391,13 @@ func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, clien
 		if typeData == "notify_persons" {
 			personsToNotifyDataSlice := common.SetToStringSlice(personsToNotifyData.(*schema.Set))
 			updateOptions.PersonsToNotify = &personsToNotifyDataSlice
+		}
+	}
+
+	teamToNotifyData, teamToNotifyDataOk := d.GetOk("notify_to_team_members")
+	if teamToNotifyDataOk {
+		if typeData == "notify_team_members" {
+			updateOptions.TeamToNotify = teamToNotifyData.(string)
 		}
 	}
 

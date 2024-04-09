@@ -8,7 +8,8 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/go-openapi/runtime v0.28.0
 	github.com/go-openapi/strfmt v0.23.0
-	github.com/grafana/amixr-api-go-client v0.0.11
+	// TODO: Update when this is merged: https://github.com/grafana/amixr-api-go-client/pull/17
+	github.com/grafana/amixr-api-go-client v0.0.12-0.20240409175519-553b047b4078
 	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240322153219-42c6a1d2bcab
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20240325012504-4958bdd139e7
 	github.com/grafana/machine-learning-go-client v0.5.0
