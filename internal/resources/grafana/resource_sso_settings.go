@@ -268,10 +268,14 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 
 	provider := d.Id()
 
-	// only one of oauth2, saml, ldap settings can be provided in a resource
-	// currently we implemented only the oauth2 settings
-	settingsKey := oauth2SettingsKey
-	settingsSchema := oauth2SettingsSchema
+	settingsKey, err := getSettingsKey(provider)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	settingsSchema, err := getSettingsSchema(provider)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	resp, err := client.SsoSettings.GetProviderSettings(provider)
 	if err != nil {
@@ -293,28 +297,37 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 
 	settingsSnake := make(map[string]any)
 
-	if _, ok := settingsSnake[customFieldsKey]; !ok {
-		settingsSnake[customFieldsKey] = make(map[string]any)
+	if isOAuth2Provider(provider) {
+		if _, ok := settingsSnake[customFieldsKey]; !ok {
+			settingsSnake[customFieldsKey] = make(map[string]any)
+		}
 	}
 
 	for k, v := range payload.Settings.(map[string]any) {
 		key := toSnake(k)
 
 		if _, ok := settingsSchema.Schema[key]; ok {
-			if isSecret(key) {
-				// secrets are not exposed by the SSO Settings API, we get them from the terraform state
-				if val, ok := settingsFromTfState[key]; ok {
+			val, ok := getSettingOk(key, settingsFromTfState)
+
+			// If the terraform state is empty we return all settings from the API, this is useful when
+			// importing existing sso settings into terraform. Otherwise, the API response may return fields
+			// that don't exist in the terraform state. We ignore them because they are not managed by terraform.
+			if ok || len(settingsFromTfState) == 0 {
+				if isSecret(key) {
+					// secrets are not exposed by the SSO Settings API, we get them from the terraform state
 					settingsSnake[key] = val
+				} else if !isIgnored(provider, key) {
+					// some fields are returned by the API, but they are read only, so we ignore them
+					settingsSnake[key] = v
 				}
-			} else if !isIgnored(provider, key) {
-				// some fields cannot be updated, but they are returned by the API, so we ignore them
-				settingsSnake[key] = v
 			}
-		} else if _, ok := customFieldsFromTfState[key]; ok {
-			settingsSnake[customFieldsKey].(map[string]any)[key] = v
-		} else if _, ok := customFieldsFromTfState[k]; ok {
-			// for covering the case when a custom field name is in camelCase
-			settingsSnake[customFieldsKey].(map[string]any)[k] = v
+		} else if isOAuth2Provider(provider) {
+			if _, ok := customFieldsFromTfState[key]; ok {
+				settingsSnake[customFieldsKey].(map[string]any)[key] = v
+			} else if _, ok := customFieldsFromTfState[k]; ok {
+				// for covering the case when a custom field name is in camelCase
+				settingsSnake[customFieldsKey].(map[string]any)[k] = v
+			}
 		}
 	}
 
@@ -332,25 +345,28 @@ func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 
 	provider := d.Get(providerKey).(string)
 
-	// only one of oauth2, saml, ldap settings can be provided in a resource
-	// currently we implemented only the oauth2 settings
-	settingsKey := oauth2SettingsKey
+	settingsKey, err := getSettingsKey(provider)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	settings, err := getSettingsFromResourceData(d, settingsKey)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	diags := validateCustomFields(settings)
-	if diags != nil {
-		return diags
-	}
+	if isOAuth2Provider(provider) {
+		diags := validateOAuth2CustomFields(settings)
+		if diags != nil {
+			return diags
+		}
 
-	settings = mergeCustomFields(settings)
+		settings = mergeCustomFields(settings)
 
-	err = validateOAuth2Settings(provider, settings)
-	if err != nil {
-		return diag.FromErr(err)
+		err = validateOAuth2Settings(provider, settings)
+		if err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	ssoSettings := models.UpdateProviderSettingsParamsBody{
@@ -378,6 +394,44 @@ func DeleteSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 	}
 
 	return nil
+}
+
+func isOAuth2Provider(provider string) bool {
+	switch provider {
+	case "github", "gitlab", "google", "azuread", "okta", "generic_oauth":
+		return true
+	}
+	return false
+}
+
+func getSettingsKey(provider string) (string, error) {
+	if isOAuth2Provider(provider) {
+		return oauth2SettingsKey, nil
+	}
+
+	return "", fmt.Errorf("no settings key found for provider %s", provider)
+}
+
+func getSettingsSchema(provider string) (*schema.Resource, error) {
+	if isOAuth2Provider(provider) {
+		return oauth2SettingsSchema, nil
+	}
+
+	return nil, fmt.Errorf("no settings schema found for provider %s", provider)
+}
+
+// getSettingOk mimics the terraform function schema.ResourceData.GetOk but for the nested fields inside settings
+// it assumes that any empty string value from settings is not part of the tf configuration
+func getSettingOk(key string, settings map[string]any) (any, bool) {
+	val, ok := settings[key]
+	if ok {
+		stringVal, stringOk := val.(string)
+		if stringOk && stringVal == "" {
+			return val, false
+		}
+	}
+
+	return val, ok
 }
 
 func getSettingsFromResourceData(d *schema.ResourceData, settingsKey string) (map[string]any, error) {
@@ -516,7 +570,7 @@ func isSecret(fieldName string) bool {
 	return false
 }
 
-func validateCustomFields(settings map[string]any) diag.Diagnostics {
+func validateOAuth2CustomFields(settings map[string]any) diag.Diagnostics {
 	for key := range settings[customFieldsKey].(map[string]any) {
 		if _, ok := oauth2SettingsSchema.Schema[key]; ok {
 			return diag.Errorf("Invalid custom field %s, the field is already defined in the settings schema", key)
