@@ -17,6 +17,7 @@ import (
 const (
 	providerKey       = "provider_name"
 	oauth2SettingsKey = "oauth2_settings"
+	samlSettingsKey   = "saml_settings"
 	customFieldsKey   = "custom"
 )
 
@@ -24,7 +25,7 @@ func resourceSSOSettings() *common.Resource {
 	schema := &schema.Resource{
 
 		Description: `
-Manages Grafana SSO Settings for OAuth2. SAML support will be added soon.
+Manages Grafana SSO Settings for OAuth2 and SAML.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/sso-settings/)
@@ -42,16 +43,24 @@ Manages Grafana SSO Settings for OAuth2. SAML support will be added soon.
 			providerKey: {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  "The name of the SSO provider. Supported values: github, gitlab, google, azuread, okta, generic_oauth.",
-				ValidateFunc: validation.StringInSlice([]string{"github", "gitlab", "google", "azuread", "okta", "generic_oauth"}, false),
+				Description:  "The name of the SSO provider. Supported values: github, gitlab, google, azuread, okta, generic_oauth, saml.",
+				ValidateFunc: validation.StringInSlice([]string{"github", "gitlab", "google", "azuread", "okta", "generic_oauth", "saml"}, false),
 			},
 			oauth2SettingsKey: {
 				Type:        schema.TypeSet,
-				Required:    true,
+				Optional:    true,
 				MaxItems:    1,
-				MinItems:    1,
-				Description: "The SSO settings set.",
+				MinItems:    0,
+				Description: "The OAuth2 settings set. Required for github, gitlab, google, azuread, okta, generic_oauth providers.",
 				Elem:        oauth2SettingsSchema,
+			},
+			samlSettingsKey: {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				MaxItems:    1,
+				MinItems:    0,
+				Description: "The SAML settings set. Required for the saml provider.",
+				Elem:        samlSettingsSchema,
 			},
 		},
 	}
@@ -263,6 +272,164 @@ var oauth2SettingsSchema = &schema.Resource{
 	},
 }
 
+var samlSettingsSchema = &schema.Resource{
+	Schema: map[string]*schema.Schema{
+		"enabled": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Default:     true,
+			Description: "Define whether this configuration is enabled for SAML.",
+		},
+		"name": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Name used to refer to the SAML authentication.",
+		},
+		"single_logout": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "Whether SAML Single Logout is enabled.",
+		},
+		"allow_sign_up": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "Whether to allow new Grafana user creation through SAML login. If set to false, then only existing Grafana users can log in with SAML.",
+		},
+		"auto_login": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "Whether SAML auto login is enabled.",
+		},
+		"allow_idp_initiated": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "Whether SAML IdP-initiated login is allowed.",
+		},
+		"certificate": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Sensitive:   true,
+			Description: "Base64-encoded string for the SP X.509 certificate.",
+		},
+		"certificate_path": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Path for the SP X.509 certificate.",
+		},
+		"private_key": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Sensitive:   true,
+			Description: "Base64-encoded string for the SP private key.",
+		},
+		"private_key_path": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Path for the SP private key.",
+		},
+		"signature_algorithm": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Signature algorithm used for signing requests to the IdP. Supported values are rsa-sha1, rsa-sha256, rsa-sha512.",
+		},
+		"idp_metadata": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Base64-encoded string for the IdP SAML metadata XML.",
+		},
+		"idp_metadata_path": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Path for the IdP SAML metadata XML.",
+		},
+		"idp_metadata_url": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "URL for the IdP SAML metadata XML.",
+		},
+		"max_issue_delay": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Duration, since the IdP issued a response and the SP is allowed to process it. For example: 90s, 1h.",
+		},
+		"metadata_valid_duration": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Duration, for how long the SP metadata is valid. For example: 48h, 5d.",
+		},
+		"relay_state": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Relay state for IdP-initiated login. Should match relay state configured in IdP.",
+		},
+		"assertion_attribute_name": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Friendly name or name of the attribute within the SAML assertion to use as the user name. Alternatively, this can be a template with variables that match the names of attributes within the SAML assertion.",
+		},
+		"assertion_attribute_login": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Friendly name or name of the attribute within the SAML assertion to use as the user login handle.",
+		},
+		"assertion_attribute_email": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Friendly name or name of the attribute within the SAML assertion to use as the user email.",
+		},
+		"assertion_attribute_groups": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Friendly name or name of the attribute within the SAML assertion to use as the user groups.",
+		},
+		"assertion_attribute_role": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Friendly name or name of the attribute within the SAML assertion to use as the user roles.",
+		},
+		"assertion_attribute_org": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "Friendly name or name of the attribute within the SAML assertion to use as the user organization.",
+		},
+		"allowed_organizations": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "List of comma- or space-separated organizations. User should be a member of at least one organization to log in.",
+		},
+		"org_mapping": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "List of comma- or space-separated Organization:OrgId:Role mappings. Organization can be * meaning “All users”. Role is optional and can have the following values: Viewer, Editor or Admin.",
+		},
+		"role_values_none": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "List of comma- or space-separated roles which will be mapped into the None role.",
+		},
+		"role_values_editor": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "List of comma- or space-separated roles which will be mapped into the Editor role.",
+		},
+		"role_values_admin": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "List of comma- or space-separated roles which will be mapped into the Admin role.",
+		},
+		"role_values_grafana_admin": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "List of comma- or space-separated roles which will be mapped into the Grafana Admin (Super Admin) role.",
+		},
+		"name_id_format": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "The Name ID Format to request within the SAML assertion. Defaults to urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+		},
+	},
+}
+
 func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _ := OAPIGlobalClient(meta) // TODO: Check error. This resource works with a token. Is it org-scoped?
 
@@ -404,9 +571,16 @@ func isOAuth2Provider(provider string) bool {
 	return false
 }
 
+func isSamlProvider(provider string) bool {
+	return provider == "saml"
+}
+
 func getSettingsKey(provider string) (string, error) {
 	if isOAuth2Provider(provider) {
 		return oauth2SettingsKey, nil
+	}
+	if isSamlProvider(provider) {
+		return samlSettingsKey, nil
 	}
 
 	return "", fmt.Errorf("no settings key found for provider %s", provider)
@@ -415,6 +589,9 @@ func getSettingsKey(provider string) (string, error) {
 func getSettingsSchema(provider string) (*schema.Resource, error) {
 	if isOAuth2Provider(provider) {
 		return oauth2SettingsSchema, nil
+	}
+	if isSamlProvider(provider) {
+		return samlSettingsSchema, nil
 	}
 
 	return nil, fmt.Errorf("no settings schema found for provider %s", provider)
@@ -443,10 +620,12 @@ func getSettingsFromResourceData(d *schema.ResourceData, settingsKey string) (ma
 
 	// TODO investigate why we need this
 	// sometimes the settings set contains some empty items that we want to ignore
-	// we are only interested in the settings that have the client_id set because the client_id is a required field
+	// we are only interested in the settings that have one of the following:
+	// - the client_id set because the client_id is a required field for OAuth2 providers
+	// - the private_key or private_key_path set because those are required fields for SAML
 	for _, item := range settingsList {
 		settings := item.(map[string]any)
-		if settings["client_id"] != "" {
+		if settings["client_id"] != "" || settings["private_key"] != "" || settings["private_key_path"] != "" {
 			return settings, nil
 		}
 	}
@@ -545,7 +724,7 @@ func toSnake(s string) string {
 }
 
 func isSecret(fieldName string) bool {
-	secretFieldPatterns := []string{"secret"}
+	secretFieldPatterns := []string{"secret", "certificate", "private"}
 
 	for _, v := range secretFieldPatterns {
 		if strings.Contains(strings.ToLower(fieldName), strings.ToLower(v)) {
