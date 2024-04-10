@@ -56,6 +56,10 @@ type ResourceID struct {
 	expectedFields []ResourceIDField
 }
 
+func (id *ResourceID) Fields() []ResourceIDField {
+	return id.expectedFields
+}
+
 func (id *ResourceID) RequiredFields() []ResourceIDField {
 	requiredFields := []ResourceIDField{}
 	for _, f := range id.expectedFields {
