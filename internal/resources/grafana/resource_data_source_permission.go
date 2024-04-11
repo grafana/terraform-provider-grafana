@@ -14,8 +14,6 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-const datasourcesPermissionsType = "datasources"
-
 func resourceDatasourcePermission() *common.Resource {
 	schema := &schema.Resource{
 

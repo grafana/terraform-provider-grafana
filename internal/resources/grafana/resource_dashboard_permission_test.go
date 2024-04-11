@@ -33,7 +33,7 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
 
 					resource.TestCheckResourceAttr("grafana_dashboard_permission.testPermission", "permissions.#", "5"),
-					checkDashboardPermissionsSet(&dashboard, &team, &user, &sa),
+					checkDashboardPermissionsSet(&dashboard, &team, &user, &sa, false),
 				),
 			},
 			{
@@ -47,7 +47,7 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					dashboardCheckExists.exists("grafana_dashboard.testDashboard", &dashboard),
 					resource.TestCheckResourceAttr("grafana_dashboard_permission.testPermission", "permissions.#", "0"),
-					checkDashboardPermissionsEmpty(&dashboard),
+					checkDashboardPermissionsEmpty(&dashboard, false),
 				),
 			},
 			// Reapply permissions
@@ -60,7 +60,7 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
 
 					resource.TestCheckResourceAttr("grafana_dashboard_permission.testPermission", "permissions.#", "5"),
-					checkDashboardPermissionsSet(&dashboard, &team, &user, &sa),
+					checkDashboardPermissionsSet(&dashboard, &team, &user, &sa, false),
 				),
 			},
 			// Test remove permissions by removing the resource
@@ -68,7 +68,7 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 				Config: testutils.WithoutResource(t, testAccDashboardPermissionConfig(true, true), "grafana_dashboard_permission.testPermission"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					dashboardCheckExists.exists("grafana_dashboard.testDashboard", &dashboard),
-					checkDashboardPermissionsEmpty(&dashboard),
+					checkDashboardPermissionsEmpty(&dashboard, false),
 				),
 			},
 		},
@@ -100,7 +100,7 @@ func TestAccDashboardPermission_fromDashboardID(t *testing.T) {
 					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
 
 					resource.TestCheckResourceAttr("grafana_dashboard_permission.testPermission", "permissions.#", "5"),
-					checkDashboardPermissionsSet(&dashboard, &team, &user, &sa),
+					checkDashboardPermissionsSet(&dashboard, &team, &user, &sa, false),
 				),
 			},
 			{
@@ -112,7 +112,7 @@ func TestAccDashboardPermission_fromDashboardID(t *testing.T) {
 	})
 }
 
-func checkDashboardPermissionsSet(dashboard *models.DashboardFullWithMeta, team *models.TeamDTO, user *models.UserProfileDTO, sa *models.ServiceAccountDTO) resource.TestCheckFunc {
+func checkDashboardPermissionsSet(dashboard *models.DashboardFullWithMeta, team *models.TeamDTO, user *models.UserProfileDTO, sa *models.ServiceAccountDTO, expectAdminPerm bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		expectedPerms := []*models.DashboardACLInfoDTO{
 			{
@@ -137,17 +137,24 @@ func checkDashboardPermissionsSet(dashboard *models.DashboardFullWithMeta, team 
 			},
 		}
 
-		return checkDashboardPermissions(dashboard, expectedPerms)
+		return checkDashboardPermissions(dashboard, expectedPerms, expectAdminPerm)
 	}
 }
 
-func checkDashboardPermissionsEmpty(dashboard *models.DashboardFullWithMeta) resource.TestCheckFunc {
+func checkDashboardPermissionsEmpty(dashboard *models.DashboardFullWithMeta, expectAdminPerm bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		return checkDashboardPermissions(dashboard, []*models.DashboardACLInfoDTO{})
+		return checkDashboardPermissions(dashboard, []*models.DashboardACLInfoDTO{}, expectAdminPerm)
 	}
 }
 
-func checkDashboardPermissions(dashboard *models.DashboardFullWithMeta, expectedPerms []*models.DashboardACLInfoDTO) error {
+func checkDashboardPermissions(dashboard *models.DashboardFullWithMeta, expectedPerms []*models.DashboardACLInfoDTO, expectAdminPerm bool) error {
+	if expectAdminPerm {
+		expectedPerms = append(expectedPerms, &models.DashboardACLInfoDTO{
+			UserID:         1,
+			PermissionName: "Admin",
+		})
+	}
+
 	client := grafanaTestClient()
 	uid := dashboard.Dashboard.(map[string]interface{})["uid"].(string)
 	resp, err := client.DashboardPermissions.GetDashboardPermissionsListByUID(uid)
