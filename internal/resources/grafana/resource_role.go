@@ -117,11 +117,8 @@ func resourceRole() *common.Resource {
 func CreateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 	if d.Get("global").(bool) {
-		var err error
-		if client, err = OAPIGlobalClient(meta); err != nil {
-			return diag.FromErr(err)
-		}
 		orgID = 0
+		client = client.WithOrgID(orgID)
 	}
 
 	var version int
@@ -173,10 +170,8 @@ func permissions(d *schema.ResourceData) []*models.Permission {
 func ReadRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 	if d.Get("global").(bool) {
-		var err error
-		if client, err = OAPIGlobalClient(meta); err != nil {
-			return diag.FromErr(err)
-		}
+		var orgID int64 = 0
+		client = client.WithOrgID(orgID)
 	}
 	return readRoleFromUID(client, uid, d)
 }
@@ -239,10 +234,8 @@ func readRoleFromUID(client *goapi.GrafanaHTTPAPI, uid string, d *schema.Resourc
 func UpdateRole(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 	if d.Get("global").(bool) {
-		var err error
-		if client, err = OAPIGlobalClient(meta); err != nil {
-			return diag.FromErr(err)
-		}
+		var orgID int64 = 0
+		client = client.WithOrgID(orgID)
 	}
 
 	if d.HasChange("version") || d.HasChange("name") || d.HasChange("description") || d.HasChange("permissions") ||
@@ -274,10 +267,8 @@ func DeleteRole(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 	global := d.Get("global").(bool)
 	if global {
-		var err error
-		if client, err = OAPIGlobalClient(meta); err != nil {
-			return diag.FromErr(err)
-		}
+		var orgID int64 = 0
+		client = client.WithOrgID(orgID)
 	}
 	_, err := client.AccessControl.DeleteRole(access_control.NewDeleteRoleParams().WithRoleUID(uid).WithGlobal(&global), nil)
 	diag, _ := common.CheckReadError("role", d, err)

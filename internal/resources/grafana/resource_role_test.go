@@ -2,7 +2,7 @@ package grafana_test
 
 import (
 	"fmt"
-	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -30,7 +30,7 @@ func TestAccRole_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
 					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
 					resource.TestCheckResourceAttr("grafana_role.test", "version", "1"),
-					resource.TestCheckResourceAttr("grafana_role.test", "uid", "testuid"),
+					resource.TestCheckResourceAttr("grafana_role.test", "uid", "terraform-acc-test"),
 					resource.TestCheckResourceAttr("grafana_role.test", "global", "true"),
 					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
 				),
@@ -44,7 +44,7 @@ func TestAccRole_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
 					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
 					resource.TestCheckResourceAttr("grafana_role.test", "version", "2"),
-					resource.TestCheckResourceAttr("grafana_role.test", "uid", "testuid"),
+					resource.TestCheckResourceAttr("grafana_role.test", "uid", "terraform-acc-test"),
 					resource.TestCheckResourceAttr("grafana_role.test", "global", "true"),
 					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
 					resource.TestCheckResourceAttr("grafana_role.test", "permissions.#", "2"),
@@ -57,7 +57,7 @@ func TestAccRole_basic(t *testing.T) {
 	})
 }
 
-func TestAccRole_GlobalRolesNeedBasicAuth(t *testing.T) {
+func TestAccRole_NonGlobalRolesCanBeManagedWithSA(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 	orgScopedTest(t)
 	randomName := acctest.RandString(10)
@@ -66,10 +66,6 @@ func TestAccRole_GlobalRolesNeedBasicAuth(t *testing.T) {
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      roleConfig(randomName, true),
-				ExpectError: regexp.MustCompile("global scope resources cannot be managed with an API key. Use basic auth instead"),
-			},
-			{
 				Config: roleConfig(randomName, false),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_role.test", "name", randomName),
@@ -77,8 +73,46 @@ func TestAccRole_GlobalRolesNeedBasicAuth(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
 					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
 					resource.TestCheckResourceAttr("grafana_role.test", "version", "1"),
-					resource.TestCheckResourceAttr("grafana_role.test", "uid", "testuid"),
+					resource.TestCheckResourceAttr("grafana_role.test", "uid", randomName),
 					resource.TestCheckResourceAttr("grafana_role.test", "global", "false"),
+					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccRole_GlobalCanBeManagedInGrafanaCloud(t *testing.T) {
+	t.Skip("Broken for now. Fix incoming.")
+	testutils.CheckCloudInstanceTestsEnabled(t)
+	randomName := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: roleConfig(randomName, true),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_role.test", "name", randomName),
+					resource.TestCheckResourceAttr("grafana_role.test", "description", "test desc"),
+					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
+					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
+					resource.TestCheckResourceAttr("grafana_role.test", "version", "1"),
+					resource.TestCheckResourceAttr("grafana_role.test", "uid", randomName),
+					resource.TestCheckResourceAttr("grafana_role.test", "global", "true"),
+					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
+				),
+			},
+			{
+				Config: strings.ReplaceAll(roleConfig(randomName, true), "test desc", "updated desc"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_role.test", "name", randomName),
+					resource.TestCheckResourceAttr("grafana_role.test", "description", "updated desc"),
+					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
+					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
+					resource.TestCheckResourceAttr("grafana_role.test", "version", "1"),
+					resource.TestCheckResourceAttr("grafana_role.test", "uid", randomName),
+					resource.TestCheckResourceAttr("grafana_role.test", "global", "true"),
 					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
 				),
 			},
@@ -218,11 +252,11 @@ var roleConfigBasic = roleConfig("terraform-acc-test", true)
 func roleConfig(name string, global bool) string {
 	return fmt.Sprintf(`
 	resource "grafana_role" "test" {
-	  name  = "%s"
+	  name  = "%[1]s"
 	  description = "test desc"
 	  version = 1
-	  uid = "testuid"
-	  global = %t
+	  uid = "%[1]s"
+	  global = %[2]t
 	  group = "testgroup"
 	  display_name = "testdisplay"
 	  hidden = true
@@ -235,7 +269,7 @@ resource "grafana_role" "test" {
   name  = "terraform-acc-test"
   description = "test desc"
   version = 2
-  uid = "testuid"
+  uid = "terraform-acc-test"
   global = true
   group = "testgroup"
   display_name = "testdisplay"
