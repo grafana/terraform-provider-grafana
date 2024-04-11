@@ -137,10 +137,16 @@ func checkFolderPermissions(folder *models.Folder, expectedPerms []*models.Dashb
 	if err != nil {
 		return fmt.Errorf("error getting folder permissions: %s", err)
 	}
-	gotPerms := resp.Payload
+	var gotPerms []models.DashboardACLInfoDTO
+	for _, perm := range resp.Payload {
+		if perm.UserID == 1 { // Ignore the admin user (that created the folder)
+			continue
+		}
+		gotPerms = append(gotPerms, *perm)
+	}
 
 	if len(gotPerms) != len(expectedPerms) {
-		return fmt.Errorf("got %d perms, expected %d", len(gotPerms), len(expectedPerms))
+		return fmt.Errorf("got %d perms, expected %d. Got %+v", len(gotPerms), len(expectedPerms), gotPerms)
 	}
 
 	for _, expectedPerm := range expectedPerms {
