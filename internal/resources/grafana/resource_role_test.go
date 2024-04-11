@@ -83,7 +83,6 @@ func TestAccRole_NonGlobalRolesCanBeManagedWithSA(t *testing.T) {
 }
 
 func TestAccRole_GlobalCanBeManagedInGrafanaCloud(t *testing.T) {
-	t.Skip("Broken for now. Fix incoming.")
 	testutils.CheckCloudInstanceTestsEnabled(t)
 	randomName := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
