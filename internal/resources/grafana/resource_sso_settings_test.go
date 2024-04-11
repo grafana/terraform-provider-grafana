@@ -286,10 +286,13 @@ func checkSsoSettingsReset(api *client.GrafanaHTTPAPI, provider string, defaultS
 func testConfigForOAuth2Provider(provider string, prefix string) string {
 	urls := ""
 	switch provider {
-	case "azuread", "generic_oauth", "okta":
+	case "generic_oauth", "okta":
 		urls = `auth_url = "https://myidp.com/oauth/authorize"
     token_url = "https://myidp.com/oauth/token"
 	api_url = "https://myidp.com/oauth/userinfo"`
+	case "azuread":
+		urls = `auth_url = "https://myidp.com/oauth/authorize"
+    token_url = "https://myidp.com/oauth/token"`
 	}
 
 	return fmt.Sprintf(`resource "grafana_sso_settings" "%[2]s_sso_settings" {
@@ -392,12 +395,31 @@ var testConfigsWithNoSettings = []string{
 var testConfigsWithValidationErrors = []string{
 	// no token_url provided for azuread
 	`resource "grafana_sso_settings" "azure_sso_settings" {
-  provider_name = "azuread"
-  oauth2_settings {
-    client_id = "client_id"
-    auth_url  = "https://login.microsoftonline.com/12345/oauth2/v2.0/authorize"
-  }
-}`,
+	  provider_name = "azuread"
+	  oauth2_settings {
+	    client_id = "client_id"
+	    auth_url  = "https://login.microsoftonline.com/12345/oauth2/v2.0/authorize"
+	  }
+	}`,
+	// api_url is not empty for azuread
+	`resource "grafana_sso_settings" "azure_sso_settings" {
+	provider_name = "azuread"
+	oauth2_settings {
+		client_id = "client_id"
+	  	auth_url  = "https://login.microsoftonline.com/12345/oauth2/v2.0/authorize"
+	  	token_url = "https://login.microsoftonline.com/12345/oauth2/v2.0/token"
+		api_url   = "https://login.microsoftonline.com/12345/oauth2/v2.0/user"
+	}
+	}`,
+	// token_url is not a valid url for azuread
+	`resource "grafana_sso_settings" "azure_sso_settings" {
+	provider_name = "azuread"
+	oauth2_settings {
+		client_id = "client_id"
+	  	auth_url  = "https://login.microsoftonline.com/12345/oauth2/v2.0/authorize"
+	  	token_url = "this-is-an-invalid-url"
+	}
+	}`,
 	// invalid auth_url provided for okta
 	`resource "grafana_sso_settings" "okta_sso_settings" {
   provider_name = "okta"

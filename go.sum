@@ -92,8 +92,8 @@ github.com/google/go-querystring v1.0.0/go.mod h1:odCYkC5MyYFN7vkCjXpyrEuKhc/BUO
 github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
-github.com/grafana/amixr-api-go-client v0.0.11 h1:jlE+5t0tRuCtjbpM81j70Dr2J4eCySuWyNGdfLMGdhE=
-github.com/grafana/amixr-api-go-client v0.0.11/go.mod h1:N6x26XUrM5zGtK5zL5vNJnAn2JFMxLFPPLTw/6pDkFE=
+github.com/grafana/amixr-api-go-client v0.0.12-0.20240410110211-c9f68db085c4 h1:e7cZfDiNodjQn63be9m8zfnvMEQAMqHVFswjcbdlspk=
+github.com/grafana/amixr-api-go-client v0.0.12-0.20240410110211-c9f68db085c4/go.mod h1:N6x26XUrM5zGtK5zL5vNJnAn2JFMxLFPPLTw/6pDkFE=
 github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240322153219-42c6a1d2bcab h1:/5R8NO996/keDkZqKXEkU3/QgFs1wzChKYkakjsBpRk=
 github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240322153219-42c6a1d2bcab/go.mod h1:6sYY1qgwYfSDNQhKQA0tar8Oc38cIGfyqwejhxoOsPs=
 github.com/grafana/grafana-openapi-client-go v0.0.0-20240325012504-4958bdd139e7 h1:gn7iZ9YacDvM04w4QzIGvnO4mQ9lhbmtBcWXWjEtR/o=

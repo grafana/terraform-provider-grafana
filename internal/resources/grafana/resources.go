@@ -26,6 +26,9 @@ func grafanaOrgIDResourceValidation(d *schema.ResourceData, m interface{}) error
 }
 
 func addValidationToSchema(r *schema.Resource) {
+	if r == nil {
+		return
+	}
 	createFn := r.CreateContext
 	readFn := r.ReadContext
 	updateFn := r.UpdateContext
@@ -98,6 +101,9 @@ var DatasourcesMap = addValidationToMap(map[string]*schema.Resource{
 })
 
 var Resources = addValidationToList([]*common.Resource{
+	makeResourceFolderPermissionItem(),
+	makeResourceDatasourcePermissionItem(),
+	makeResourceServiceAccountPermissionItem(),
 	resourceAnnotation(),
 	resourceAPIKey(),
 	resourceContactPoint(),
