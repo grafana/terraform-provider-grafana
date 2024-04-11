@@ -458,42 +458,42 @@ type validateFunc func(settingsMap map[string]any, provider string) error
 
 var validationsByProvider = map[string][]validateFunc{
 	"azuread": {
-		validateNotEmpty("auth_url"),
-		validateNotEmpty("token_url"),
-		validateEmpty("api_url"),
-		validateURL("auth_url"),
-		validateURL("token_url"),
+		ssoValidateNotEmpty("auth_url"),
+		ssoValidateNotEmpty("token_url"),
+		ssoValidateEmpty("api_url"),
+		ssoValidateURL("auth_url"),
+		ssoValidateURL("token_url"),
 	},
 	"generic_oauth": {
-		validateNotEmpty("auth_url"),
-		validateNotEmpty("token_url"),
-		validateNotEmpty("api_url"),
-		validateURL("auth_url"),
-		validateURL("token_url"),
-		validateURL("api_url"),
+		ssoValidateNotEmpty("auth_url"),
+		ssoValidateNotEmpty("token_url"),
+		ssoValidateNotEmpty("api_url"),
+		ssoValidateURL("auth_url"),
+		ssoValidateURL("token_url"),
+		ssoValidateURL("api_url"),
 	},
 	"okta": {
-		validateNotEmpty("auth_url"),
-		validateNotEmpty("token_url"),
-		validateNotEmpty("api_url"),
-		validateURL("auth_url"),
-		validateURL("token_url"),
-		validateURL("api_url"),
+		ssoValidateNotEmpty("auth_url"),
+		ssoValidateNotEmpty("token_url"),
+		ssoValidateNotEmpty("api_url"),
+		ssoValidateURL("auth_url"),
+		ssoValidateURL("token_url"),
+		ssoValidateURL("api_url"),
 	},
 	"github": {
-		validateEmpty("auth_url"),
-		validateEmpty("token_url"),
-		validateEmpty("api_url"),
+		ssoValidateEmpty("auth_url"),
+		ssoValidateEmpty("token_url"),
+		ssoValidateEmpty("api_url"),
 	},
 	"gitlab": {
-		validateEmpty("auth_url"),
-		validateEmpty("token_url"),
-		validateEmpty("api_url"),
+		ssoValidateEmpty("auth_url"),
+		ssoValidateEmpty("token_url"),
+		ssoValidateEmpty("api_url"),
 	},
 	"google": {
-		validateEmpty("auth_url"),
-		validateEmpty("token_url"),
-		validateEmpty("api_url"),
+		ssoValidateEmpty("auth_url"),
+		ssoValidateEmpty("token_url"),
+		ssoValidateEmpty("api_url"),
 	},
 }
 
@@ -615,7 +615,7 @@ func isValidURL(actual string) bool {
 	return strings.HasPrefix(parsed.Scheme, "http") && parsed.Host != ""
 }
 
-func validateNotEmpty(key string) validateFunc {
+func ssoValidateNotEmpty(key string) validateFunc {
 	return func(settingsMap map[string]any, provider string) error {
 		if settingsMap[key] == "" {
 			return fmt.Errorf("%s must be set for the provider %s", key, provider)
@@ -625,7 +625,7 @@ func validateNotEmpty(key string) validateFunc {
 	}
 }
 
-func validateEmpty(key string) validateFunc {
+func ssoValidateEmpty(key string) validateFunc {
 	return func(settingsMap map[string]any, provider string) error {
 		if settingsMap[key].(string) != "" {
 			return fmt.Errorf("%s must be empty for the provider %s", key, provider)
@@ -635,7 +635,7 @@ func validateEmpty(key string) validateFunc {
 	}
 }
 
-func validateURL(key string) validateFunc {
+func ssoValidateURL(key string) validateFunc {
 	return func(settingsMap map[string]any, provider string) error {
 		if !isValidURL(settingsMap[key].(string)) {
 			return fmt.Errorf("%s must be a valid http/https URL for the provider %s", key, provider)
