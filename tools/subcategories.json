@@ -22,6 +22,7 @@
     "resources/service_account": "Grafana OSS",
     "resources/service_account_token": "Grafana OSS",
     "resources/service_account_permission": "Grafana OSS",
+    "resources/service_account_permission_item": "Grafana OSS",
     "resources/team": "Grafana OSS",
     "resources/user": "Grafana OSS",
     "resources/data_source_permission": "Grafana Enterprise",
