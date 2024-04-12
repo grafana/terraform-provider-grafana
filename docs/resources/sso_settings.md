@@ -3,13 +3,13 @@
 page_title: "grafana_sso_settings Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Manages Grafana SSO Settings for OAuth2. SAML support will be added soon.
+  Manages Grafana SSO Settings for OAuth2 and SAML.
   Official documentation https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/sso-settings/
 ---
 
 # grafana_sso_settings (Resource)
 
-Manages Grafana SSO Settings for OAuth2. SAML support will be added soon.
+Manages Grafana SSO Settings for OAuth2 and SAML.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/sso-settings/)
@@ -33,8 +33,12 @@ resource "grafana_sso_settings" "github_sso_settings" {
 
 ### Required
 
-- `oauth2_settings` (Block Set, Min: 1, Max: 1) The SSO settings set. (see [below for nested schema](#nestedblock--oauth2_settings))
-- `provider_name` (String) The name of the SSO provider. Supported values: github, gitlab, google, azuread, okta, generic_oauth.
+- `provider_name` (String) The name of the SSO provider. Supported values: github, gitlab, google, azuread, okta, generic_oauth, saml.
+
+### Optional
+
+- `oauth2_settings` (Block Set, Max: 1) The OAuth2 settings set. Required for github, gitlab, google, azuread, okta, generic_oauth providers. (see [below for nested schema](#nestedblock--oauth2_settings))
+- `saml_settings` (Block Set, Max: 1) The SAML settings set. Required for the saml provider. (see [below for nested schema](#nestedblock--saml_settings))
 
 ### Read-Only
 
@@ -86,6 +90,43 @@ Optional:
 - `token_url` (String) The token endpoint of your OAuth2 provider. Required for azuread, okta and generic_oauth providers.
 - `use_pkce` (Boolean) If enabled, Grafana will use Proof Key for Code Exchange (PKCE) with the OAuth2 Authorization Code Grant.
 - `use_refresh_token` (Boolean) If enabled, Grafana will fetch a new access token using the refresh token provided by the OAuth2 provider.
+
+
+<a id="nestedblock--saml_settings"></a>
+### Nested Schema for `saml_settings`
+
+Optional:
+
+- `allow_idp_initiated` (Boolean) Whether SAML IdP-initiated login is allowed.
+- `allow_sign_up` (Boolean) Whether to allow new Grafana user creation through SAML login. If set to false, then only existing Grafana users can log in with SAML.
+- `allowed_organizations` (String) List of comma- or space-separated organizations. User should be a member of at least one organization to log in.
+- `assertion_attribute_email` (String) Friendly name or name of the attribute within the SAML assertion to use as the user email.
+- `assertion_attribute_groups` (String) Friendly name or name of the attribute within the SAML assertion to use as the user groups.
+- `assertion_attribute_login` (String) Friendly name or name of the attribute within the SAML assertion to use as the user login handle.
+- `assertion_attribute_name` (String) Friendly name or name of the attribute within the SAML assertion to use as the user name. Alternatively, this can be a template with variables that match the names of attributes within the SAML assertion.
+- `assertion_attribute_org` (String) Friendly name or name of the attribute within the SAML assertion to use as the user organization.
+- `assertion_attribute_role` (String) Friendly name or name of the attribute within the SAML assertion to use as the user roles.
+- `auto_login` (Boolean) Whether SAML auto login is enabled.
+- `certificate` (String, Sensitive) Base64-encoded string for the SP X.509 certificate.
+- `certificate_path` (String) Path for the SP X.509 certificate.
+- `enabled` (Boolean) Define whether this configuration is enabled for SAML. Defaults to `true`.
+- `idp_metadata` (String) Base64-encoded string for the IdP SAML metadata XML.
+- `idp_metadata_path` (String) Path for the IdP SAML metadata XML.
+- `idp_metadata_url` (String) URL for the IdP SAML metadata XML.
+- `max_issue_delay` (String) Duration, since the IdP issued a response and the SP is allowed to process it. For example: 90s, 1h.
+- `metadata_valid_duration` (String) Duration, for how long the SP metadata is valid. For example: 48h, 5d.
+- `name` (String) Name used to refer to the SAML authentication.
+- `name_id_format` (String) The Name ID Format to request within the SAML assertion. Defaults to urn:oasis:names:tc:SAML:2.0:nameid-format:transient
+- `org_mapping` (String) List of comma- or space-separated Organization:OrgId:Role mappings. Organization can be * meaning “All users”. Role is optional and can have the following values: Viewer, Editor or Admin.
+- `private_key` (String, Sensitive) Base64-encoded string for the SP private key.
+- `private_key_path` (String) Path for the SP private key.
+- `relay_state` (String) Relay state for IdP-initiated login. Should match relay state configured in IdP.
+- `role_values_admin` (String) List of comma- or space-separated roles which will be mapped into the Admin role.
+- `role_values_editor` (String) List of comma- or space-separated roles which will be mapped into the Editor role.
+- `role_values_grafana_admin` (String) List of comma- or space-separated roles which will be mapped into the Grafana Admin (Super Admin) role.
+- `role_values_none` (String) List of comma- or space-separated roles which will be mapped into the None role.
+- `signature_algorithm` (String) Signature algorithm used for signing requests to the IdP. Supported values are rsa-sha1, rsa-sha256, rsa-sha512.
+- `single_logout` (Boolean) Whether SAML Single Logout is enabled.
 
 ## Import
 

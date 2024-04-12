@@ -15,7 +15,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 )
 
-func TestSSOSettings_basic(t *testing.T) {
+func TestSSOSettings_basic_oauth2(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Run on v10.4.0 once it's released
 
 	providers := []string{"gitlab", "google", "generic_oauth", "azuread", "okta"}
@@ -35,7 +35,7 @@ func TestSSOSettings_basic(t *testing.T) {
 			CheckDestroy:             checkSsoSettingsReset(api, provider, defaultSettings.Payload),
 			Steps: []resource.TestStep{
 				{
-					Config: testConfigForProvider(provider, "new"),
+					Config: testConfigForOAuth2Provider(provider, "new"),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
 						resource.TestCheckResourceAttr(resourceName, "oauth2_settings.#", "1"),
@@ -44,7 +44,7 @@ func TestSSOSettings_basic(t *testing.T) {
 					),
 				},
 				{
-					Config: testConfigForProvider(provider, "updated"),
+					Config: testConfigForOAuth2Provider(provider, "updated"),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
 						resource.TestCheckResourceAttr(resourceName, "oauth2_settings.#", "1"),
@@ -61,6 +61,54 @@ func TestSSOSettings_basic(t *testing.T) {
 			},
 		})
 	}
+}
+
+func TestSSOSettings_basic_saml(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t, ">=11.1")
+
+	provider := "saml"
+
+	api := grafanaTestClient()
+
+	defaultSettings, err := api.SsoSettings.GetProviderSettings(provider)
+	if err != nil {
+		t.Fatalf("failed to fetch the default settings for provider %s: %v", provider, err)
+	}
+
+	resourceName := "grafana_sso_settings.saml_sso_settings"
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             checkSsoSettingsReset(api, provider, defaultSettings.Payload),
+		Steps: []resource.TestStep{
+			{
+				Config: testConfigForSamlProvider("new"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.certificate_path", "/var/certificate_new"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.private_key_path", "/var/private_key_new"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.idp_metadata_path", "/var/idp_metadata_new"),
+				),
+			},
+			{
+				Config: testConfigForSamlProvider("updated"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.certificate_path", "/var/certificate_updated"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.private_key_path", "/var/private_key_updated"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.idp_metadata_path", "/var/idp_metadata_updated"),
+				),
+			},
+			{
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"saml_settings.0.private_key_path", "saml_settings.0.certificate_path"},
+			},
+		},
+	})
 }
 
 func TestSSOSettings_customFields(t *testing.T) {
@@ -138,7 +186,7 @@ func TestSSOSettings_resourceWithInvalidProvider(t *testing.T) {
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testConfigForProvider(provider, "new"),
+				Config:      testConfigForOAuth2Provider(provider, "new"),
 				ExpectError: regexp.MustCompile("expected provider_name to be one of"),
 			},
 		},
@@ -148,15 +196,17 @@ func TestSSOSettings_resourceWithInvalidProvider(t *testing.T) {
 func TestSSOSettings_resourceWithNoSettings(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config:      testConfigWithNoSettings,
-				ExpectError: regexp.MustCompile("Insufficient oauth2_settings blocks"),
+	for _, config := range testConfigsWithNoSettings {
+		resource.Test(t, resource.TestCase{
+			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			Steps: []resource.TestStep{
+				{
+					Config:      config,
+					ExpectError: regexp.MustCompile("no settings found"),
+				},
 			},
-		},
-	})
+		})
+	}
 }
 
 func TestSSOSettings_resourceWithEmptySettings(t *testing.T) {
@@ -233,7 +283,7 @@ func checkSsoSettingsReset(api *client.GrafanaHTTPAPI, provider string, defaultS
 	}
 }
 
-func testConfigForProvider(provider string, prefix string) string {
+func testConfigForOAuth2Provider(provider string, prefix string) string {
 	urls := ""
 	switch provider {
 	case "generic_oauth", "okta":
@@ -255,6 +305,17 @@ func testConfigForProvider(provider string, prefix string) string {
 }`, prefix, provider, urls)
 }
 
+func testConfigForSamlProvider(prefix string) string {
+	return fmt.Sprintf(`resource "grafana_sso_settings" "saml_sso_settings" {
+  provider_name = "saml"
+  saml_settings {
+    certificate_path  = "/var/certificate_%[1]s"
+    private_key_path  = "/var/private_key_%[1]s"
+	idp_metadata_path = "/var/idp_metadata_%[1]s"
+  }
+}`, prefix)
+}
+
 const testConfigWithCustomFields = `resource "grafana_sso_settings" "sso_settings" {
   provider_name = "github"
   oauth2_settings {
@@ -272,10 +333,6 @@ const testConfigWithEmptySettings = `resource "grafana_sso_settings" "sso_settin
   provider_name = "okta"
   oauth2_settings {
   }
-}`
-
-const testConfigWithNoSettings = `resource "grafana_sso_settings" "sso_settings" {
-  provider_name = "gitlab"
 }`
 
 const testConfigWithManySettings = `resource "grafana_sso_settings" "sso_settings" {
@@ -307,6 +364,33 @@ const testConfigWithInvalidCustomField = `resource "grafana_sso_settings" "sso_s
     }
   }
 }`
+
+var testConfigsWithNoSettings = []string{
+	// no oauth2_settings for gitlab
+	`resource "grafana_sso_settings" "sso_settings" {
+  provider_name = "gitlab"
+}`,
+	// saml_settings instead of oauth2_settings for gitlab
+	`resource "grafana_sso_settings" "sso_settings" {
+  provider_name = "gitlab"
+  saml_settings {
+    certificate_path  = "/var/certificate_%[1]s"
+    private_key_path  = "/var/private_key_%[1]s"
+  }
+}`,
+	// no saml_settings for saml
+	`resource "grafana_sso_settings" "sso_settings" {
+  provider_name = "saml"
+}`,
+	// oauth2_settings instead of saml_settings for saml
+	`resource "grafana_sso_settings" "sso_settings" {
+  provider_name = "saml"
+  oauth2_settings {
+    client_id     = "client_id"
+    client_secret = "client_secret"
+  }
+}`,
+}
 
 var testConfigsWithValidationErrors = []string{
 	// no token_url provided for azuread
