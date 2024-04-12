@@ -83,15 +83,16 @@ func TestAccRole_NonGlobalRolesCanBeManagedWithSA(t *testing.T) {
 }
 
 func TestAccRole_GlobalCanBeManagedInGrafanaCloud(t *testing.T) {
-	t.Skip("Broken for now. Fix incoming.")
 	testutils.CheckCloudInstanceTestsEnabled(t)
 	randomName := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+	config := roleConfig(randomName, true)
+	config = strings.ReplaceAll(config, "version = 1", "auto_increment_version = true")
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: roleConfig(randomName, true),
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_role.test", "name", randomName),
 					resource.TestCheckResourceAttr("grafana_role.test", "description", "test desc"),
@@ -104,13 +105,13 @@ func TestAccRole_GlobalCanBeManagedInGrafanaCloud(t *testing.T) {
 				),
 			},
 			{
-				Config: strings.ReplaceAll(roleConfig(randomName, true), "test desc", "updated desc"),
+				Config: strings.ReplaceAll(config, "test desc", "updated desc"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_role.test", "name", randomName),
 					resource.TestCheckResourceAttr("grafana_role.test", "description", "updated desc"),
 					resource.TestCheckResourceAttr("grafana_role.test", "display_name", "testdisplay"),
 					resource.TestCheckResourceAttr("grafana_role.test", "group", "testgroup"),
-					resource.TestCheckResourceAttr("grafana_role.test", "version", "1"),
+					resource.TestCheckResourceAttr("grafana_role.test", "version", "2"),
 					resource.TestCheckResourceAttr("grafana_role.test", "uid", randomName),
 					resource.TestCheckResourceAttr("grafana_role.test", "global", "true"),
 					resource.TestCheckResourceAttr("grafana_role.test", "hidden", "true"),
