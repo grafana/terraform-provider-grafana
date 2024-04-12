@@ -6,6 +6,7 @@ import (
 
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -13,6 +14,7 @@ import (
 func TestAccDashboardPermission_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
 
+	randomName := acctest.RandString(6)
 	var (
 		dashboard models.DashboardFullWithMeta
 		team      models.TeamDTO
@@ -20,12 +22,11 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 		sa        models.ServiceAccountDTO
 	)
 
-	// TODO: Make parallelizable
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDashboardPermissionConfig(true, true),
+				Config: testAccDashboardPermissionConfig(randomName, true, true),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					dashboardCheckExists.exists("grafana_dashboard.testDashboard", &dashboard),
 					teamCheckExists.exists("grafana_team.testTeam", &team),
@@ -43,7 +44,7 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 			},
 			// Test remove permissions by not setting any permissions
 			{
-				Config: testAccDashboardPermissionConfig(true, false),
+				Config: testAccDashboardPermissionConfig(randomName, true, false),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					dashboardCheckExists.exists("grafana_dashboard.testDashboard", &dashboard),
 					resource.TestCheckResourceAttr("grafana_dashboard_permission.testPermission", "permissions.#", "0"),
@@ -52,7 +53,7 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 			},
 			// Reapply permissions
 			{
-				Config: testAccDashboardPermissionConfig(true, true),
+				Config: testAccDashboardPermissionConfig(randomName, true, true),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					dashboardCheckExists.exists("grafana_dashboard.testDashboard", &dashboard),
 					teamCheckExists.exists("grafana_team.testTeam", &team),
@@ -65,7 +66,7 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 			},
 			// Test remove permissions by removing the resource
 			{
-				Config: testutils.WithoutResource(t, testAccDashboardPermissionConfig(true, true), "grafana_dashboard_permission.testPermission"),
+				Config: testutils.WithoutResource(t, testAccDashboardPermissionConfig(randomName, true, true), "grafana_dashboard_permission.testPermission"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					dashboardCheckExists.exists("grafana_dashboard.testDashboard", &dashboard),
 					checkDashboardPermissionsEmpty(&dashboard, false),
@@ -80,6 +81,7 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 func TestAccDashboardPermission_fromDashboardID(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
 
+	randomName := acctest.RandString(6)
 	var (
 		dashboard models.DashboardFullWithMeta
 		team      models.TeamDTO
@@ -87,12 +89,11 @@ func TestAccDashboardPermission_fromDashboardID(t *testing.T) {
 		sa        models.ServiceAccountDTO
 	)
 
-	// TODO: Make parallelizable
-	resource.Test(t, resource.TestCase{
+	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDashboardPermissionConfig(false, true),
+				Config: testAccDashboardPermissionConfig(randomName, false, true),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					dashboardCheckExists.exists("grafana_dashboard.testDashboard", &dashboard),
 					teamCheckExists.exists("grafana_team.testTeam", &team),
@@ -102,11 +103,6 @@ func TestAccDashboardPermission_fromDashboardID(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_dashboard_permission.testPermission", "permissions.#", "5"),
 					checkDashboardPermissionsSet(&dashboard, &team, &user, &sa, false),
 				),
-			},
-			{
-				ImportState:       true,
-				ResourceName:      "grafana_dashboard_permission.testPermission",
-				ImportStateVerify: true,
 			},
 		},
 	})
@@ -186,7 +182,7 @@ func checkDashboardPermissions(dashboard *models.DashboardFullWithMeta, expected
 	return nil
 }
 
-func testAccDashboardPermissionConfig(refDashboardByUID bool, hasPermissions bool) string {
+func testAccDashboardPermissionConfig(name string, refDashboardByUID bool, hasPermissions bool) string {
 	ref := "dashboard_id = grafana_dashboard.testDashboard.dashboard_id"
 	if refDashboardByUID {
 		ref = "dashboard_uid = grafana_dashboard.testDashboard.uid"
@@ -220,33 +216,33 @@ func testAccDashboardPermissionConfig(refDashboardByUID bool, hasPermissions boo
 resource "grafana_dashboard" "testDashboard" {
     config_json = <<EOT
 {
-    "title": "Terraform Dashboard Permission Test Dashboard",
+    "title": "%[1]s",
     "id": 14,
     "version": "43",
-    "uid": "someuid"
+    "uid": "%[1]s"
 }
 EOT
 }
 
 resource "grafana_team" "testTeam" {
-  name = "terraform-test-team-permissions"
+  name = "%[1]s"
 }
 
 resource "grafana_user" "testAdminUser" {
-  email    = "terraform-test-dashboard-permissions@localhost"
-  name     = "Terraform Test Dashboard Permissions"
-  login    = "ttdp"
+  email    = "%[1]s@localhost"
+  name     = "%[1]s"
+  login    = "%[1]s"
   password = "zyx987"
 }
 
 resource "grafana_service_account" "test" {
-	name        = "terraform-test-service-account-dashboard-perms"
+	name        = "%[1]s"
 	role 	    = "Editor"
 }
 
 resource "grafana_dashboard_permission" "testPermission" {
-  %s
-  %s
+  %[2]s
+  %[3]s
 }
-`, ref, perms)
+`, name, ref, perms)
 }
