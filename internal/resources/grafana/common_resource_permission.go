@@ -24,6 +24,11 @@ const (
 	permissionTargetRole = "role"
 	permissionTargetTeam = "team"
 	permissionTargetUser = "user"
+
+	dashboardsPermissionsType      = "dashboards"
+	datasourcesPermissionsType     = "datasources"
+	foldersPermissionsType         = "folders"
+	serviceAccountsPermissionsType = "serviceaccounts"
 )
 
 type resourcePermissionItemBaseModel struct {

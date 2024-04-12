@@ -12,8 +12,6 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-const foldersPermissionsType = "folders"
-
 func resourceFolderPermission() *common.Resource {
 	schema := &schema.Resource{
 

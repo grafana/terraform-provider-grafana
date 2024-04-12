@@ -13,8 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-const serviceAccountsPermissionsType = "serviceaccounts"
-
 func resourceServiceAccountPermission() *common.Resource {
 	schema := &schema.Resource{
 		Description: `

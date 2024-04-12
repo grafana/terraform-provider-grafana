@@ -102,6 +102,7 @@ var DatasourcesMap = addValidationToMap(map[string]*schema.Resource{
 
 var Resources = addValidationToList([]*common.Resource{
 	makeResourceFolderPermissionItem(),
+	makeResourceDashboardPermissionItem(),
 	makeResourceDatasourcePermissionItem(),
 	makeResourceServiceAccountPermissionItem(),
 	resourceAnnotation(),

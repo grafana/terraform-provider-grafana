@@ -10,6 +10,7 @@
     "resources/dashboard": "Grafana OSS",
     "resources/dashboard_public": "Grafana OSS",
     "resources/dashboard_permission": "Grafana OSS",
+    "resources/dashboard_permission_item": "Grafana OSS",
     "resources/data_source": "Grafana OSS",
     "resources/data_source_config": "Grafana OSS",
     "resources/folder": "Grafana OSS",
