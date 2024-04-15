@@ -104,8 +104,13 @@ func TestAccExampleWithReplace(t *testing.T, path string, replaceMap map[string]
 
 	example := TestAccExample(t, path)
 	for k, v := range replaceMap {
+		beforeReplace := example
 		example = strings.ReplaceAll(example, k, v)
+		if example == beforeReplace {
+			t.Fatalf("%q not found to replace in example %s", k, path)
+		}
 	}
+
 	return example
 }
 
