@@ -103,6 +103,11 @@ func (r *orgMemberResource) ImportState(ctx context.Context, req resource.Import
 }
 
 func (r *orgMemberResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	if r.client == nil {
+		resp.Diagnostics.AddError("client not configured", "client not configured")
+		return
+	}
+
 	// Read Terraform plan data into the model
 	var data resourceOrgMemberModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -159,6 +164,11 @@ func (r *orgMemberResource) Read(ctx context.Context, req resource.ReadRequest, 
 }
 
 func (r *orgMemberResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	if r.client == nil {
+		resp.Diagnostics.AddError("client not configured", "client not configured")
+		return
+	}
+
 	// Read Terraform plan data into the model
 	var data resourceOrgMemberModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -194,6 +204,11 @@ func (r *orgMemberResource) Update(ctx context.Context, req resource.UpdateReque
 }
 
 func (r *orgMemberResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	if r.client == nil {
+		resp.Diagnostics.AddError("client not configured", "client not configured")
+		return
+	}
+
 	// Read Terraform prior state data into the model
 	var data resourceOrgMemberModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -212,6 +227,10 @@ func (r *orgMemberResource) Delete(ctx context.Context, req resource.DeleteReque
 }
 
 func (r *orgMemberResource) readFromID(ctx context.Context, id string) (*resourceOrgMemberModel, diag.Diagnostics) {
+	if r.client == nil {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("client not configured", "client not configured")}
+	}
+
 	split, err := resourceOrgMemberID.Split(id)
 	if err != nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Unable to split ID", err.Error())}

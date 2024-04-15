@@ -21,12 +21,8 @@ type basePluginFrameworkResource struct {
 }
 
 func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		resp.Diagnostics.AddError(
-			"Unconfigured Grafana API client",
-			"the Grafana API client is required for this resource. Set the auth and url provider attributes",
-		)
-
+	// Configure is called multiple times (sometimes when ProviderData is not yet available), we only want to configure once
+	if req.ProviderData == nil || r.client != nil {
 		return
 	}
 
@@ -48,6 +44,10 @@ func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resourc
 // clientFromExistingOrgResource creates a client from the ID of an org-scoped resource
 // Those IDs are in the <orgID>:<resourceID> format
 func (r *basePluginFrameworkResource) clientFromExistingOrgResource(idFormat *common.ResourceID, id string) (*goapi.GrafanaHTTPAPI, int64, []any, error) {
+	if r.client == nil {
+		return nil, 0, nil, fmt.Errorf("client not configured")
+	}
+
 	client := r.client.Clone()
 	split, err := idFormat.Split(id)
 	if err != nil {
@@ -66,7 +66,11 @@ func (r *basePluginFrameworkResource) clientFromExistingOrgResource(idFormat *co
 
 // clientFromNewOrgResource creates an OpenAPI client from the `org_id` attribute of a resource
 // This client is meant to be used in `Create` functions when the ID hasn't already been baked into the resource ID
-func (r *basePluginFrameworkResource) clientFromNewOrgResource(orgIDStr string) (*goapi.GrafanaHTTPAPI, int64) {
+func (r *basePluginFrameworkResource) clientFromNewOrgResource(orgIDStr string) (*goapi.GrafanaHTTPAPI, int64, error) {
+	if r.client == nil {
+		return nil, 0, fmt.Errorf("client not configured")
+	}
+
 	client := r.client.Clone()
 	orgID, _ := strconv.ParseInt(orgIDStr, 10, 64)
 	if orgID == 0 {
@@ -74,11 +78,15 @@ func (r *basePluginFrameworkResource) clientFromNewOrgResource(orgIDStr string) 
 	} else if orgID > 0 {
 		client = client.WithOrgID(orgID)
 	}
-	return client, orgID
+	return client, orgID, nil
 }
 
 // To be used in non-org-scoped resources
 // func (r *basePluginFrameworkResource) globalClient() (*goapi.GrafanaHTTPAPI, error) {
+// if r.client == nil {
+// 	return nil, 0, nil, fmt.Errorf("client not configured")
+// }
+
 // 	client := r.client.Clone().WithOrgID(0)
 // 	if r.config.APIKey != "" {
 // 		return client, fmt.Errorf("global scope resources cannot be managed with an API key. Use basic auth instead")

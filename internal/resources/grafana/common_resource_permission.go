@@ -164,12 +164,15 @@ func (r *resourcePermissionBase) readItem(id string, checkExistsFunc func(client
 }
 
 func (r *resourcePermissionBase) writeItem(itemID string, data *resourcePermissionItemBaseModel) diag.Diagnostics {
-	client, orgID := r.clientFromNewOrgResource(data.OrgID.ValueString())
+	client, orgID, err := r.clientFromNewOrgResource(data.OrgID.ValueString())
+	if err != nil {
+		return diag.Diagnostics{diag.NewErrorDiagnostic("Failed to get client", err.Error())}
+	}
+
 	data.OrgID = types.StringValue(strconv.FormatInt(orgID, 10))
 	_, itemID = SplitOrgResourceID(itemID)
 	data.ResourceID = types.StringValue(itemID)
 
-	var err error
 	switch {
 	case !data.User.IsNull():
 		_, userIDStr := SplitOrgResourceID(data.User.ValueString())

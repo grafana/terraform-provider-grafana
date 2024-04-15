@@ -54,12 +54,8 @@ type basePluginFrameworkResource struct {
 }
 
 func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		resp.Diagnostics.AddError(
-			"Unconfigured Cloud API client",
-			"the Cloud API client is required for this resource. Set the cloud_access_policy_token provider attribute",
-		)
-
+	// Configure is called multiple times (sometimes when ProviderData is not yet available), we only want to configure once
+	if req.ProviderData == nil || r.client != nil {
 		return
 	}
 
