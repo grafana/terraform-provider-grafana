@@ -109,7 +109,7 @@ func policySchema(depth uint) *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"contact_point": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				Description: "The contact point to route notifications that match this rule to.",
 			},
 			"group_by": {

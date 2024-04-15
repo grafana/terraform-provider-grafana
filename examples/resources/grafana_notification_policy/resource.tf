@@ -40,7 +40,7 @@ resource "grafana_notification_policy" "my_notification_policy" {
       match = "=~"
       value = "host.*|host-b.*"
     }
-    contact_point = grafana_contact_point.a_contact_point.name
+    contact_point = grafana_contact_point.a_contact_point.name // This can be omitted to inherit from the parent
     continue      = true
     mute_timings  = [grafana_mute_timing.a_mute_timing.name]
 
@@ -54,7 +54,7 @@ resource "grafana_notification_policy" "my_notification_policy" {
         match = "="
         value = "subvalue"
       }
-      contact_point = grafana_contact_point.a_contact_point.name
+      contact_point = grafana_contact_point.a_contact_point.name // This can also be omitted to inherit from the parent's parent
       group_by      = ["..."]
     }
   }
