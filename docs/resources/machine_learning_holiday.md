@@ -5,7 +5,7 @@ subcategory: "Machine Learning"
 description: |-
   A holiday describes time periods where a time series is expected to behave differently to normal.
   To use a holiday in a job, use its id in the holidays attribute of a grafana_machine_learning_job:
-  terraform
+  
   resource "grafana_machine_learning_job" "test_job" {
     ...
     holidays = [

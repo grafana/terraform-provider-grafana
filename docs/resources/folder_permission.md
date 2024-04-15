@@ -4,8 +4,7 @@ page_title: "grafana_folder_permission Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
   Manages the entire set of permissions for a folder. Permissions that aren't specified when applying this resource will be removed.
-  * Official documentation https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/
-  * HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/folder_permissions/
+  Official documentation https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/folder_permissions/
 ---
 
 # grafana_folder_permission (Resource)

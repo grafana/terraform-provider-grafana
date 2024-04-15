@@ -3,7 +3,7 @@
 page_title: "grafana_data_source_permission_item Resource - terraform-provider-grafana"
 subcategory: "Grafana Enterprise"
 description: |-
-  Manages a single permission item for a datasource. Conflicts with the "grafanadatasource_permission" resource which manages the entire set of permissions for a datasource.
+  Manages a single permission item for a datasource. Conflicts with the "grafana_data_source_permission" resource which manages the entire set of permissions for a datasource.
 ---
 
 # grafana_data_source_permission_item (Resource)

@@ -8,7 +8,7 @@ description: |-
   HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/auth/
   Required access policy scopes:
   stack-api-keys:write
-  !> Deprecated: please use grafana_cloud_stack_service_account and grafana_cloud_stack_service_account_token instead, see https://grafana.com/docs/grafana/next/administration/api-keys/#migrate-api-keys-to-grafana-service-accounts-using-terraform.
+  !> Deprecated: please use grafana_cloud_stack_service_account and grafana_cloud_stack_service_account_token instead, see .
 ---
 
 # grafana_cloud_stack_api_key (Resource)
