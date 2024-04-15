@@ -2,9 +2,12 @@ package oncall
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -30,23 +33,32 @@ func dataSourceTeam() *schema.Resource {
 }
 
 func dataSourceTeamRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
-	options := &onCallAPI.ListTeamOptions{}
-	nameData := d.Get("name").(string)
+	var team *onCallAPI.Team
 
-	options.Name = nameData
+	// Retry because the team might not be immediately available
+	err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
+		options := &onCallAPI.ListTeamOptions{}
+		nameData := d.Get("name").(string)
 
-	teamsResponse, _, err := client.Teams.ListTeams(options)
+		options.Name = nameData
+
+		teamsResponse, _, err := client.Teams.ListTeams(options)
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+
+		if len(teamsResponse.Teams) == 0 {
+			return retry.RetryableError(fmt.Errorf("couldn't find a team matching: %s", options.Name))
+		} else if len(teamsResponse.Teams) != 1 {
+			return retry.NonRetryableError(fmt.Errorf("more than one team found matching: %s", options.Name))
+		}
+
+		team = teamsResponse.Teams[0]
+		return nil
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	if len(teamsResponse.Teams) == 0 {
-		return diag.Errorf("couldn't find a team matching: %s", options.Name)
-	} else if len(teamsResponse.Teams) != 1 {
-		return diag.Errorf("more than one team found matching: %s", options.Name)
-	}
-
-	team := teamsResponse.Teams[0]
 
 	d.Set("name", team.Name)
 	d.Set("email", team.Email)
