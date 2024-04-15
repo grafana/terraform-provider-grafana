@@ -31,6 +31,7 @@
     "resources/report": "Grafana Enterprise",
     "resources/role": "Grafana Enterprise",
     "resources/role_assignment": "Grafana Enterprise",
+    "resources/role_assignment_item": "Grafana Enterprise",
     "resources/team_external_group": "Grafana Enterprise",
     "resources/cloud_access_policy": "Cloud",
     "resources/cloud_access_policy_token": "Cloud",
