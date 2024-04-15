@@ -19,16 +19,14 @@ func TestAccResourceCheck_dns(t *testing.T) {
 	// Inject random job names to avoid conflicts with other tests
 	jobName := acctest.RandomWithPrefix("dns")
 	jobNameUpdated := acctest.RandomWithPrefix("dns")
-	nameReplaceMap := map[string]string{
-		`"DNS Defaults"`: strconv.Quote(jobName),
-		`"DNS Updated"`:  strconv.Quote(jobNameUpdated),
-	}
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/dns_basic.tf", nameReplaceMap),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/dns_basic.tf", map[string]string{
+					`"DNS Defaults"`: strconv.Quote(jobName),
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.dns", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.dns", "tenant_id"),
@@ -45,7 +43,9 @@ func TestAccResourceCheck_dns(t *testing.T) {
 				),
 			},
 			{
-				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/dns_complex.tf", nameReplaceMap),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/dns_complex.tf", map[string]string{
+					`"DNS Updated"`: strconv.Quote(jobNameUpdated),
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.dns", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.dns", "tenant_id"),
@@ -143,16 +143,14 @@ func TestAccResourceCheck_ping(t *testing.T) {
 	// Inject random job names to avoid conflicts with other tests
 	jobName := acctest.RandomWithPrefix("ping")
 	jobNameUpdated := acctest.RandomWithPrefix("ping")
-	nameReplaceMap := map[string]string{
-		`"Ping Defaults"`: strconv.Quote(jobName),
-		`"Ping Updated"`:  strconv.Quote(jobNameUpdated),
-	}
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/ping_basic.tf", nameReplaceMap),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/ping_basic.tf", map[string]string{
+					`"Ping Defaults"`: strconv.Quote(jobName),
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.ping", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.ping", "tenant_id"),
@@ -164,7 +162,9 @@ func TestAccResourceCheck_ping(t *testing.T) {
 				),
 			},
 			{
-				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/ping_complex.tf", nameReplaceMap),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/ping_complex.tf", map[string]string{
+					`"Ping Updated"`: strconv.Quote(jobNameUpdated),
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.ping", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.ping", "tenant_id"),
@@ -239,16 +239,14 @@ func TestAccResourceCheck_traceroute(t *testing.T) {
 	// Inject random job names to avoid conflicts with other tests
 	jobName := acctest.RandomWithPrefix("traceroute")
 	jobNameUpdated := acctest.RandomWithPrefix("traceroute")
-	nameReplaceMap := map[string]string{
-		`"Traceroute defaults"`: strconv.Quote(jobName),
-		`"Traceroute complex"`:  strconv.Quote(jobNameUpdated),
-	}
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/traceroute_basic.tf", nameReplaceMap),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/traceroute_basic.tf", map[string]string{
+					`"Traceroute defaults"`: strconv.Quote(jobName),
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.traceroute", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.traceroute", "tenant_id"),
@@ -262,7 +260,9 @@ func TestAccResourceCheck_traceroute(t *testing.T) {
 				),
 			},
 			{
-				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/traceroute_complex.tf", nameReplaceMap),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/traceroute_complex.tf", map[string]string{
+					`"Traceroute complex"`: strconv.Quote(jobNameUpdated),
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.traceroute", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.traceroute", "tenant_id"),
@@ -286,16 +286,14 @@ func TestAccResourceCheck_multihttp(t *testing.T) {
 	// Inject random job names to avoid conflicts with other tests
 	jobName := acctest.RandomWithPrefix("multihttp")
 	jobNameUpdated := acctest.RandomWithPrefix("multihttp")
-	nameReplaceMap := map[string]string{
-		`"multihttp basic"`:   strconv.Quote(jobName),
-		`"multihttp complex"`: strconv.Quote(jobNameUpdated),
-	}
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/multihttp_basic.tf", nameReplaceMap),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/multihttp_basic.tf", map[string]string{
+					`"multihttp basic"`: strconv.Quote(jobName),
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.multihttp", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.multihttp", "tenant_id"),
@@ -309,7 +307,9 @@ func TestAccResourceCheck_multihttp(t *testing.T) {
 				),
 			},
 			{
-				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/multihttp_complex.tf", nameReplaceMap),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/multihttp_complex.tf", map[string]string{
+					`"multihttp complex"`: strconv.Quote(jobNameUpdated),
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.multihttp", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.multihttp", "tenant_id"),
