@@ -3,7 +3,7 @@
 page_title: "grafana_dashboard_permission_item Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Manages a single permission item for a dashboard. Conflicts with the "grafanadashboardpermission" resource which manages the entire set of permissions for a dashboard.
+  Manages a single permission item for a dashboard. Conflicts with the "grafana_dashboard_permission" resource which manages the entire set of permissions for a dashboard.
 ---
 
 # grafana_dashboard_permission_item (Resource)

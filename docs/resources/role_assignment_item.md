@@ -3,7 +3,7 @@
 page_title: "grafana_role_assignment_item Resource - terraform-provider-grafana"
 subcategory: "Grafana Enterprise"
 description: |-
-  Manages a single assignment for a role. Conflicts with the "grafanaroleassignment" resource which manages the entire set of assignments for a role.
+  Manages a single assignment for a role. Conflicts with the "grafana_role_assignment" resource which manages the entire set of assignments for a role.
 ---
 
 # grafana_role_assignment_item (Resource)

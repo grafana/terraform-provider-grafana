@@ -4,7 +4,7 @@ page_title: "grafana_oncall_action Data Source - terraform-provider-grafana"
 subcategory: "OnCall"
 description: |-
   Note: This data source is going to be deprecated, please use outgoing webhook data source instead.
-  * HTTP API https://grafana.com/docs/oncall/latest/oncall-api-reference/outgoing_webhooks/
+  HTTP API https://grafana.com/docs/oncall/latest/oncall-api-reference/outgoing_webhooks/
   !> Deprecated: Use the grafana_oncall_outgoing_webhook data source instead.
 ---
 

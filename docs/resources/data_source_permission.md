@@ -4,7 +4,7 @@ page_title: "grafana_data_source_permission Resource - terraform-provider-grafan
 subcategory: "Grafana Enterprise"
 description: |-
   Manages the entire set of permissions for a datasource. Permissions that aren't specified when applying this resource will be removed.
-  * HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/datasource_permissions/
+  HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/datasource_permissions/
 ---
 
 # grafana_data_source_permission (Resource)

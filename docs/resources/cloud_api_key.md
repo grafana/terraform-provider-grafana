@@ -3,9 +3,9 @@
 page_title: "grafana_cloud_api_key Resource - terraform-provider-grafana"
 subcategory: "Cloud"
 description: |-
-  This resource is deprecated and will be removed in a future release. Please use grafanacloudaccess_policy instead.
+  This resource is deprecated and will be removed in a future release. Please use grafana_cloud_access_policy instead.
   Manages a single API key on the Grafana Cloud portal (on the organization level)
-  * API documentation https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#api-keys
+  API documentation https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#api-keys
   Required access policy scopes:
   api-keys:readapi-keys:writeapi-keys:delete
 ---

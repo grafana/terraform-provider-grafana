@@ -4,8 +4,7 @@ page_title: "grafana_dashboard_permission Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
   Manages the entire set of permissions for a dashboard. Permissions that aren't specified when applying this resource will be removed.
-  * Official documentation https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/
-  * HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/dashboard_permissions/
+  Official documentation https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/dashboard_permissions/
 ---
 
 # grafana_dashboard_permission (Resource)

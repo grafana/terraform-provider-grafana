@@ -3,8 +3,8 @@
 page_title: "grafana_service_account_permission_item Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Manages a single permission item for a service account. Conflicts with the "grafanaserviceaccount_permission" resource which manages the entire set of permissions for a service account.
-  * Official documentation https://grafana.com/docs/grafana/latest/administration/service-accounts/#manage-users-and-teams-permissions-for-a-service-account-in-grafana
+  Manages a single permission item for a service account. Conflicts with the "grafana_service_account_permission" resource which manages the entire set of permissions for a service account.
+  Official documentation https://grafana.com/docs/grafana/latest/administration/service-accounts/#manage-users-and-teams-permissions-for-a-service-account-in-grafana
 ---
 
 # grafana_service_account_permission_item (Resource)
