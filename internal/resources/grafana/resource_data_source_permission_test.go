@@ -80,7 +80,6 @@ func TestAccDatasourcePermission_WithID(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					datasourcePermissionsCheckExists.exists("grafana_data_source_permission.fooPermissions", &ds),
 					resource.TestCheckResourceAttrSet("grafana_data_source_permission.fooPermissions", "datasource_id"),
-					resource.TestCheckNoResourceAttr("grafana_data_source_permission.fooPermissions", "datasource_uid"),
 					resource.TestCheckResourceAttr("grafana_data_source_permission.fooPermissions", "permissions.#", "4"),
 					resource.TestCheckResourceAttr("grafana_data_source_permission.fooPermissions", "permissions.0.permission", "Edit"),
 				),

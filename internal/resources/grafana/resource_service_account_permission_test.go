@@ -25,9 +25,13 @@ func TestAccServiceAccountPermission_basic(t *testing.T) {
 				Config: testServiceAccountPermissionsConfig(name),
 				Check: resource.ComposeTestCheckFunc(
 					serviceAccountPermissionsCheckExists.exists("grafana_service_account_permission.test_permissions", &sa),
-					resource.TestMatchResourceAttr("grafana_service_account_permission.test_permissions", "service_account_id", defaultOrgIDRegexp),
 					resource.TestCheckResourceAttr("grafana_service_account_permission.test_permissions", "permissions.#", "3"),
 				),
+			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_service_account_permission.test_permissions",
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -49,11 +53,15 @@ func TestAccServiceAccountPermission_inOrg(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					checkResourceIsInOrg("grafana_service_account_permission.test", "grafana_organization.test"),
 					serviceAccountPermissionsCheckExists.exists("grafana_service_account_permission.test", &sa),
-					resource.TestMatchResourceAttr("grafana_service_account_permission.test", "service_account_id", nonDefaultOrgIDRegexp),
 					resource.TestCheckResourceAttr("grafana_service_account_permission.test", "permissions.#", "1"),
 					resource.TestMatchResourceAttr("grafana_service_account_permission.test", "permissions.0.team_id", nonDefaultOrgIDRegexp),
 					resource.TestCheckResourceAttr("grafana_service_account_permission.test", "permissions.0.permission", "Edit"),
 				),
+			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_service_account_permission.test",
+				ImportStateVerify: true,
 			},
 			// Test destroy
 			{
@@ -111,13 +119,13 @@ func testServiceAccountPermissionsConfig_inOrg(name string) string {
 
 	resource "grafana_team" "test" {
 		org_id  = grafana_organization.test.id
-		name    = "test"
+		name    = "%[1]s"
 		members = []
 	}
 	
 	resource "grafana_service_account" "test" {
 		org_id = grafana_organization.test.id
-		name   = "test"
+		name   = "%[1]s"
 		role   = "Viewer"
 	}
 	
