@@ -132,7 +132,11 @@ func (r *resourceRoleAssignmentItem) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
-	client, orgID := r.clientFromNewOrgResource(data.OrgID.ValueString())
+	client, orgID, err := r.clientFromNewOrgResource(data.OrgID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get client", err.Error())
+		return
+	}
 
 	// Get existing role assignments
 	resourceRoleAssignmentMutex.Lock()
