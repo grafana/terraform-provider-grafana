@@ -17,7 +17,6 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 
 	var policy models.Route
 
-	// TODO: Make parallizable
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests deletion.
@@ -90,12 +89,45 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 	})
 }
 
+func TestAccNotificationPolicy_inheritContactPoint(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t) // Replace this when v11 is released
+
+	var policy models.Route
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
+		Steps: []resource.TestStep{
+			// Test creation.
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_notification_policy/resource.tf", map[string]string{
+					"contact_point = grafana_contact_point.a_contact_point.name // This can be omitted to inherit from the parent":               "",
+					"contact_point = grafana_contact_point.a_contact_point.name // This can also be omitted to inherit from the parent's parent": "",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.my_notification_policy", &policy),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "contact_point", "A Contact Point"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.contact_point", ""),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.policy.0.contact_point", ""),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.1.contact_point", "A Contact Point"),
+				),
+			},
+			// Test import.
+			{
+				ResourceName:      "grafana_notification_policy.my_notification_policy",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccNotificationPolicy_disableProvenance(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	var policy models.Route
 
-	// TODO: Make parallizable
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests deletion.
