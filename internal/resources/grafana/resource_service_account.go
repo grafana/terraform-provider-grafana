@@ -43,7 +43,7 @@ func resourceServiceAccount() *common.Resource {
 			},
 			"role": {
 				Type:         schema.TypeString,
-				Optional:     true,
+				Required:     true,
 				ValidateFunc: validation.StringInSlice([]string{"Viewer", "Editor", "Admin", "None"}, false),
 				Description:  "The basic role of the service account in the organization.",
 			},

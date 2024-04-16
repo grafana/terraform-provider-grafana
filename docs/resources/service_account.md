@@ -30,12 +30,12 @@ resource "grafana_service_account" "admin" {
 ### Required
 
 - `name` (String) The name of the service account.
+- `role` (String) The basic role of the service account in the organization.
 
 ### Optional
 
 - `is_disabled` (Boolean) The disabled status for the service account. Defaults to `false`.
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
-- `role` (String) The basic role of the service account in the organization.
 
 ### Read-Only
 
