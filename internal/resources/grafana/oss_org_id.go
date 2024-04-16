@@ -41,7 +41,10 @@ func MakeOrgResourceID(orgID int64, resourceID interface{}) string {
 func SplitOrgResourceID(id string) (int64, string) {
 	if strings.ContainsRune(id, ':') {
 		parts := strings.SplitN(id, ":", 2)
-		orgID, _ := strconv.ParseInt(parts[0], 10, 64)
+		orgID, err := strconv.ParseInt(parts[0], 10, 64)
+		if err != nil {
+			return 0, id
+		}
 		return orgID, parts[1]
 	}
 
