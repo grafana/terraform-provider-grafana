@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"errors"
+	"sort"
 	"strconv"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -41,12 +42,6 @@ func resourcePlaylist() *common.Resource {
 			"item": {
 				Type:     schema.TypeSet,
 				Required: true,
-				// The order of the items is important and defined through the order field
-				// We want to compare items with the same order value
-				Set: func(i interface{}) int {
-					m := i.(map[string]interface{})
-					return m["order"].(int)
-				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
@@ -175,6 +170,9 @@ func expandPlaylistItems(items []interface{}) []*models.PlaylistItem {
 		}
 		playlistItems = append(playlistItems, p)
 	}
+	sort.Slice(playlistItems, func(i, j int) bool {
+		return playlistItems[i].Order < playlistItems[j].Order
+	})
 	return playlistItems
 }
 
