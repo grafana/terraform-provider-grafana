@@ -5,6 +5,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type outputFormat string
@@ -18,9 +23,10 @@ const (
 var outputFormats = []outputFormat{outputFormatJSON, outputFormatHCL, outputFormatCrossplane}
 
 type config struct {
-	outputDir string
-	clobber   bool
-	format    outputFormat
+	outputDir       string
+	clobber         bool
+	format          outputFormat
+	providerVersion string
 
 	grafanaURL  string
 	grafanaAuth string
@@ -46,9 +52,26 @@ func generate(ctx context.Context, cfg *config) error {
 		return fmt.Errorf("failed to create output directory %s: %s", cfg.outputDir, err)
 	}
 
-	if cfg.cloudAccessPolicyToken != "" {
-		return generateCloudResources(cfg.cloudAccessPolicyToken, cfg.cloudOrg)
+	// Generate provider installation block
+	providerBlock := hclwrite.NewBlock("terraform", nil)
+	requiredProvidersBlock := hclwrite.NewBlock("required_providers", nil)
+	requiredProvidersBlock.Body().SetAttributeValue("grafana", cty.ObjectVal(map[string]cty.Value{
+		"source":  cty.StringVal("grafana/grafana"),
+		"version": cty.StringVal(strings.TrimPrefix(cfg.providerVersion, "v")),
+	}))
+	providerBlock.Body().AppendBlock(requiredProvidersBlock)
+	if err := writeBlocks(filepath.Join(cfg.outputDir, "provider.tf"), providerBlock); err != nil {
+		log.Fatal(err)
 	}
 
-	return generateGrafanaResources(cfg.grafanaURL, cfg.grafanaAuth)
+	// Terraform init to download the provider
+	if err := runTerraform(cfg.outputDir, "init"); err != nil {
+		return fmt.Errorf("failed to run terraform init: %w", err)
+	}
+
+	if cfg.cloudAccessPolicyToken != "" {
+		return generateCloudResources(ctx, cfg.cloudAccessPolicyToken, cfg.cloudOrg)
+	}
+
+	return generateGrafanaResources(ctx, cfg.grafanaURL, cfg.grafanaAuth)
 }
