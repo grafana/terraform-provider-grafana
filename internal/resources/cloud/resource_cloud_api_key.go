@@ -74,7 +74,23 @@ Required access policy scopes:
 		"grafana_cloud_api_key",
 		resourceAPIKeyID,
 		schema,
-	)
+	).WithLister(cloudListerFunction(listAPIKeys))
+}
+
+func listAPIKeys(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]string, error) {
+	org := data.OrgSlug()
+	req := client.OrgsAPI.GetApiKeys(ctx, org)
+	resp, _, err := req.Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	var keys []string
+	for _, key := range resp.Items {
+		keys = append(keys, resourceAPIKeyID.Make(key.OrgSlug, key.Name))
+	}
+
+	return keys, nil
 }
 
 func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, c *gcom.APIClient) diag.Diagnostics {

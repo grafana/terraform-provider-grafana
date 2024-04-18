@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -134,7 +135,36 @@ Required access policy scopes:
 		"grafana_cloud_access_policy",
 		resourceAccessPolicyID,
 		schema,
-	)
+	).WithLister(cloudListerFunction(listAccessPolicies))
+}
+
+func listAccessPolicies(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]string, error) {
+	regionsReq := client.StackRegionsAPI.GetStackRegions(ctx)
+	regionsResp, _, err := regionsReq.Execute()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list regions: %w", err)
+	}
+
+	orgID, err := data.OrgID(ctx, client)
+	if err != nil {
+		return nil, err
+	}
+
+	var policies []string
+	for _, region := range regionsResp.Items {
+		regionSlug := region.FormattedApiStackRegionAnyOf.Slug
+		req := client.AccesspoliciesAPI.GetAccessPolicies(ctx).Region(regionSlug).OrgId(orgID)
+		resp, _, err := req.Execute()
+		if err != nil {
+			return nil, fmt.Errorf("failed to list access policies in region %s: %w", regionSlug, err)
+		}
+
+		for _, policy := range resp.Items {
+			policies = append(policies, resourceAccessPolicyID.Make(regionSlug, policy.Id))
+		}
+	}
+
+	return policies, nil
 }
 
 func createCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
