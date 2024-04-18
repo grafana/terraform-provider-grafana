@@ -7,7 +7,7 @@ description: |-
   Once a Grafana Cloud stack is created, a user can either use this resource or go into the UI to install synthetic monitoring.
   This resource cannot be imported but it can be used on an existing Synthetic Monitoring installation without issues.
   Note that this resource must be used on a provider configured with Grafana Cloud credentials.
-  Official documentation https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/set-up/installation/API documentation https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#apiv1registerinstall
+  Official documentation https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/set-up/API documentation https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#apiv1registerinstall
   Required access policy scopes:
   stacks:read
 ---
@@ -20,7 +20,7 @@ This resource cannot be imported but it can be used on an existing Synthetic Mon
 
 **Note that this resource must be used on a provider configured with Grafana Cloud credentials.**
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/set-up/installation/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/set-up/)
 * [API documentation](https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#apiv1registerinstall)
 
 Required access policy scopes:
