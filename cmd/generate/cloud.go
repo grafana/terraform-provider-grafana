@@ -1,6 +1,8 @@
 package main
 
-func generateCloudResources(accessPolicyToken, org string) error {
+import "context"
+
+func generateCloudResources(ctx context.Context, accessPolicyToken, org string) error {
 	// TODO: Implement
 	return nil
 }

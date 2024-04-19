@@ -7,6 +7,8 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+var version = "" // set by ldflags
+
 func run() error {
 	app := &cli.App{
 		Name:      "terraform-provider-grafana-generate",
@@ -33,6 +35,12 @@ func run() error {
 					"Supported formats are: %v", outputFormats),
 				Value:   string(outputFormatHCL),
 				EnvVars: []string{"TFGEN_OUTPUT_FORMAT"},
+			},
+			&cli.StringFlag{
+				Name:    "terraform-provider-version",
+				Usage:   "Version of the Grafana provider to generate resources for. Defaults to the release version (same as the generator version).",
+				EnvVars: []string{"TFGEN_TERRAFORM_PROVIDER_VERSION"},
+				Value:   version,
 			},
 
 			// Grafana OSS flags
@@ -96,12 +104,17 @@ func parseFlags(ctx *cli.Context) (*config, error) {
 		outputDir:                      ctx.String("output-dir"),
 		clobber:                        ctx.Bool("clobber"),
 		format:                         outputFormat(ctx.String("output-format")),
+		providerVersion:                ctx.String("terraform-provider-version"),
 		grafanaURL:                     ctx.String("grafana-url"),
 		grafanaAuth:                    ctx.String("grafana-auth"),
 		cloudAccessPolicyToken:         ctx.String("cloud-access-policy-token"),
 		cloudOrg:                       ctx.String("cloud-org"),
 		cloudCreateStackServiceAccount: ctx.Bool("cloud-create-stack-service-account"),
 		cloudStackServiceAccountName:   ctx.String("cloud-stack-service-account-name"),
+	}
+
+	if config.providerVersion == "" {
+		return nil, fmt.Errorf("terraform-provider-version must be set")
 	}
 
 	// Validate flags
