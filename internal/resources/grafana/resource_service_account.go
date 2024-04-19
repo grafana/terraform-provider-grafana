@@ -132,15 +132,10 @@ func UpdateServiceAccount(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	updateRequest := models.UpdateServiceAccountForm{}
-	if d.HasChange("name") {
-		updateRequest.Name = d.Get("name").(string)
-	}
-	if d.HasChange("role") {
-		updateRequest.Role = d.Get("role").(string)
-	}
-	if d.HasChange("is_disabled") {
-		updateRequest.IsDisabled = d.Get("is_disabled").(bool)
+	updateRequest := models.UpdateServiceAccountForm{
+		Name:       d.Get("name").(string),
+		Role:       d.Get("role").(string),
+		IsDisabled: d.Get("is_disabled").(bool),
 	}
 
 	params := service_accounts.NewUpdateServiceAccountParams().
