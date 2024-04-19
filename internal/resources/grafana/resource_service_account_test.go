@@ -26,7 +26,7 @@ func TestAccServiceAccount_basic(t *testing.T) {
 		CheckDestroy:             serviceAccountCheckExists.destroyed(&updatedSA, nil),
 		Steps: []resource.TestStep{
 			{
-				Config: testServiceAccountConfig(name, "Editor"),
+				Config: testServiceAccountConfig(name, "Editor", false),
 				Check: resource.ComposeTestCheckFunc(
 					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name),
@@ -38,7 +38,7 @@ func TestAccServiceAccount_basic(t *testing.T) {
 			},
 			// Change the name. Check that the ID stays the same.
 			{
-				Config: testServiceAccountConfig(name+"-updated", "Editor"),
+				Config: testServiceAccountConfig(name+"-updated", "Editor", false),
 				Check: resource.ComposeTestCheckFunc(
 					serviceAccountCheckExists.exists("grafana_service_account.test", &updatedSA),
 					func(s *terraform.State) error {
@@ -53,6 +53,12 @@ func TestAccServiceAccount_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_service_account.test", "is_disabled", "false"),
 					resource.TestMatchResourceAttr("grafana_service_account.test", "id", defaultOrgIDRegexp),
 				),
+			},
+			// Import test
+			{
+				ResourceName:      "grafana_service_account.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -69,7 +75,7 @@ func TestAccServiceAccount_NoneRole(t *testing.T) {
 		CheckDestroy:             serviceAccountCheckExists.destroyed(&sa, nil),
 		Steps: []resource.TestStep{
 			{
-				Config: testServiceAccountConfig(name, "None"),
+				Config: testServiceAccountConfig(name, "None", false),
 				Check: resource.ComposeTestCheckFunc(
 					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name),
@@ -78,6 +84,24 @@ func TestAccServiceAccount_NoneRole(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_service_account.test", "is_disabled", "false"),
 					resource.TestMatchResourceAttr("grafana_service_account.test", "id", defaultOrgIDRegexp),
 				),
+			},
+			// Disable the SA
+			{
+				Config: testServiceAccountConfig(name, "None", true),
+				Check: resource.ComposeTestCheckFunc(
+					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
+					resource.TestCheckResourceAttr("grafana_service_account.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_service_account.test", "org_id", "1"),
+					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "None"),
+					resource.TestCheckResourceAttr("grafana_service_account.test", "is_disabled", "true"),
+					resource.TestMatchResourceAttr("grafana_service_account.test", "id", defaultOrgIDRegexp),
+				),
+			},
+			// Import test
+			{
+				ResourceName:      "grafana_service_account.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -121,7 +145,7 @@ func TestAccServiceAccount_invalid_role(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				ExpectError: regexp.MustCompile(`.*expected role to be one of \[.+\], got InvalidRole`),
-				Config:      testServiceAccountConfig("any", "InvalidRole"),
+				Config:      testServiceAccountConfig("any", "InvalidRole", false),
 			},
 		},
 	})
@@ -143,11 +167,11 @@ func testManyServiceAccountsConfig(prefix string, count int) string {
 	return config
 }
 
-func testServiceAccountConfig(name, role string) string {
+func testServiceAccountConfig(name, role string, disabled bool) string {
 	return fmt.Sprintf(`
 resource "grafana_service_account" "test" {
 	name        = "%[1]s"
 	role        = "%[2]s"
-	is_disabled = false
-}`, name, role)
+	is_disabled = %[3]t
+}`, name, role, disabled)
 }
