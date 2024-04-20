@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
@@ -96,7 +98,34 @@ Manages Grafana dashboards.
 		"grafana_dashboard",
 		orgResourceIDString("uid"),
 		schema,
-	)
+	).WithLister(listerFunction(listDashboards))
+}
+
+func listDashboards(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
+	return listDashboardOrFolder(client, data, "dash-db")
+}
+
+func listDashboardOrFolder(client *goapi.GrafanaHTTPAPI, data *ListerData, searchType string) ([]string, error) {
+	orgIDs, err := data.OrgIDs(client)
+	if err != nil {
+		return nil, err
+	}
+
+	uids := []string{}
+	for _, orgID := range orgIDs {
+		client = client.Clone().WithOrgID(orgID)
+
+		resp, err := client.Search.Search(search.NewSearchParams().WithType(common.Ref(searchType)))
+		if err != nil {
+			return nil, err
+		}
+
+		for _, item := range resp.Payload {
+			uids = append(uids, MakeOrgResourceID(orgID, item.UID))
+		}
+	}
+
+	return uids, nil
 }
 
 func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

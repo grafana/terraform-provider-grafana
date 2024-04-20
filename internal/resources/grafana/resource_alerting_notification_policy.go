@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/runtime"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -89,7 +90,7 @@ This resource requires Grafana 9.1.0 or later.
 		"grafana_notification_policy",
 		orgResourceIDString("anyString"),
 		schema,
-	)
+	).WithLister(listerFunction(listNotificationPolicies))
 }
 
 // The maximum depth of policy tree that the provider supports, as Terraform does not allow for infinitely recursive schemas.
@@ -187,6 +188,20 @@ func policySchema(depth uint) *schema.Resource {
 	}
 
 	return resource
+}
+
+func listNotificationPolicies(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
+	orgIDs, err := data.OrgIDs(client)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for _, orgID := range orgIDs {
+		ids = append(ids, MakeOrgResourceID(orgID, PolicySingletonID))
+	}
+
+	return ids, nil
 }
 
 func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {

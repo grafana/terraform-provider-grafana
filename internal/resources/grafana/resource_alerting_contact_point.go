@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/runtime"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -18,31 +19,32 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-var provenanceDisabled = "disabled"
-
-var notifiers = []notifier{
-	alertmanagerNotifier{},
-	dingDingNotifier{},
-	discordNotifier{},
-	emailNotifier{},
-	googleChatNotifier{},
-	kafkaNotifier{},
-	lineNotifier{},
-	oncallNotifier{},
-	opsGenieNotifier{},
-	pagerDutyNotifier{},
-	pushoverNotifier{},
-	sensugoNotifier{},
-	slackNotifier{},
-	snsNotifier{},
-	teamsNotifier{},
-	telegramNotifier{},
-	threemaNotifier{},
-	victorOpsNotifier{},
-	webexNotifier{},
-	webhookNotifier{},
-	wecomNotifier{},
-}
+var (
+	provenanceDisabled = "disabled"
+	notifiers          = []notifier{
+		alertmanagerNotifier{},
+		dingDingNotifier{},
+		discordNotifier{},
+		emailNotifier{},
+		googleChatNotifier{},
+		kafkaNotifier{},
+		lineNotifier{},
+		oncallNotifier{},
+		opsGenieNotifier{},
+		pagerDutyNotifier{},
+		pushoverNotifier{},
+		sensugoNotifier{},
+		slackNotifier{},
+		snsNotifier{},
+		teamsNotifier{},
+		telegramNotifier{},
+		threemaNotifier{},
+		victorOpsNotifier{},
+		webexNotifier{},
+		webhookNotifier{},
+		wecomNotifier{},
+	}
+)
 
 func resourceContactPoint() *common.Resource {
 	resource := &schema.Resource{
@@ -102,7 +104,35 @@ This resource requires Grafana 9.1.0 or later.
 		"grafana_contact_point",
 		orgResourceIDString("name"),
 		resource,
-	)
+	).WithLister(listerFunction(listContactPoints))
+}
+
+func listContactPoints(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
+	orgIDs, err := data.OrgIDs(client)
+	if err != nil {
+		return nil, err
+	}
+
+	idMap := map[string]bool{}
+	for _, orgID := range orgIDs {
+		client = client.Clone().WithOrgID(orgID)
+
+		resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
+		if err != nil {
+			return nil, err
+		}
+
+		for _, contactPoint := range resp.Payload {
+			idMap[MakeOrgResourceID(orgID, contactPoint.Name)] = true
+		}
+	}
+
+	var ids []string
+	for id := range idMap {
+		ids = append(ids, id)
+	}
+
+	return ids, nil
 }
 
 func readContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {

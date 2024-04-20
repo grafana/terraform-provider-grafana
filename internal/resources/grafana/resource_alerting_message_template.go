@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/runtime"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
@@ -64,7 +65,30 @@ This resource requires Grafana 9.1.0 or later.
 		"grafana_message_template",
 		orgResourceIDString("name"),
 		schema,
-	)
+	).WithLister(listerFunction(listMessageTemplate))
+}
+
+func listMessageTemplate(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
+	orgIDs, err := data.OrgIDs(client)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for _, orgID := range orgIDs {
+		client = client.Clone().WithOrgID(orgID)
+
+		resp, err := client.Provisioning.GetTemplates()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, template := range resp.Payload {
+			ids = append(ids, MakeOrgResourceID(orgID, template.Name))
+		}
+	}
+
+	return ids, nil
 }
 
 func readMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
