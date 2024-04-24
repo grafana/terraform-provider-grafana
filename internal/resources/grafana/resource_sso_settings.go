@@ -25,7 +25,7 @@ func resourceSSOSettings() *common.Resource {
 	schema := &schema.Resource{
 
 		Description: `
-Manages Grafana SSO Settings for OAuth2 and SAML.
+Manages Grafana SSO Settings for OAuth2 and SAML. Support for SAML is currently in preview, it will be available in Grafana Enterprise starting with v11.1.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/sso-settings/)
