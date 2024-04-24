@@ -429,6 +429,11 @@ var samlSettingsSchema = &schema.Resource{
 			Optional:    true,
 			Description: "The Name ID Format to request within the SAML assertion. Defaults to urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
 		},
+		"skip_org_role_sync": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "Prevent synchronizing users’ organization roles from your IdP.",
+		},
 	},
 }
 
