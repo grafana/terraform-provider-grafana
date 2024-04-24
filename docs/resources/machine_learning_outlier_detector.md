@@ -5,7 +5,7 @@ subcategory: "Machine Learning"
 description: |-
   An outlier detector monitors the results of a query and reports when its values are outside normal bands.
   The normal band is configured by choice of algorithm, its sensitivity and other configuration.
-  Visit  for more details.
+  Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/ for more details.
 ---
 
 # grafana_machine_learning_outlier_detector (Resource)
