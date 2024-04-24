@@ -3,7 +3,7 @@
 page_title: "grafana_cloud_ips Data Source - terraform-provider-grafana"
 subcategory: "Cloud"
 description: |-
-  Data source for retrieving sets of cloud IPs. See  for more info
+  Data source for retrieving sets of cloud IPs. See https://grafana.com/docs/grafana-cloud/reference/allow-list/ for more info
 ---
 
 # grafana_cloud_ips (Data Source)

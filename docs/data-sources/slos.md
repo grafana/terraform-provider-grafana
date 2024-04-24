@@ -89,7 +89,7 @@ Read-Only:
 - `uuid` (String)
 
 <a id="nestedobjatt--slos--alerting"></a>
-### Nested Schema for ``
+### Nested Schema for `slos.alerting`
 
 Read-Only:
 
@@ -99,7 +99,7 @@ Read-Only:
 - `slowburn` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--slowburn))
 
 <a id="nestedobjatt--slos--alerting--annotation"></a>
-### Nested Schema for ``
+### Nested Schema for `slos.alerting.annotation`
 
 Read-Only:
 
@@ -108,7 +108,7 @@ Read-Only:
 
 
 <a id="nestedobjatt--slos--alerting--fastburn"></a>
-### Nested Schema for ``
+### Nested Schema for `slos.alerting.fastburn`
 
 Read-Only:
 
@@ -116,7 +116,7 @@ Read-Only:
 - `label` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--fastburn--label))
 
 <a id="nestedobjatt--slos--alerting--fastburn--annotation"></a>
-### Nested Schema for ``
+### Nested Schema for `slos.alerting.fastburn.annotation`
 
 Read-Only:
 
@@ -125,7 +125,7 @@ Read-Only:
 
 
 <a id="nestedobjatt--slos--alerting--fastburn--label"></a>
-### Nested Schema for ``
+### Nested Schema for `slos.alerting.fastburn.label`
 
 Read-Only:
 
@@ -135,7 +135,7 @@ Read-Only:
 
 
 <a id="nestedobjatt--slos--alerting--label"></a>
-### Nested Schema for ``
+### Nested Schema for `slos.alerting.label`
 
 Read-Only:
 
@@ -144,7 +144,7 @@ Read-Only:
 
 
 <a id="nestedobjatt--slos--alerting--slowburn"></a>
-### Nested Schema for ``
+### Nested Schema for `slos.alerting.slowburn`
 
 Read-Only:
 
@@ -152,7 +152,7 @@ Read-Only:
 - `label` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--slowburn--label))
 
 <a id="nestedobjatt--slos--alerting--slowburn--annotation"></a>
-### Nested Schema for ``
+### Nested Schema for `slos.alerting.slowburn.annotation`
 
 Read-Only:
 
@@ -161,7 +161,7 @@ Read-Only:
 
 
 <a id="nestedobjatt--slos--alerting--slowburn--label"></a>
-### Nested Schema for ``
+### Nested Schema for `slos.alerting.slowburn.label`
 
 Read-Only:
 
@@ -172,7 +172,7 @@ Read-Only:
 
 
 <a id="nestedobjatt--slos--destination_datasource"></a>
-### Nested Schema for ``
+### Nested Schema for `slos.destination_datasource`
 
 Read-Only:
 
@@ -180,7 +180,7 @@ Read-Only:
 
 
 <a id="nestedobjatt--slos--label"></a>
-### Nested Schema for ``
+### Nested Schema for `slos.label`
 
 Read-Only:
 
@@ -189,7 +189,7 @@ Read-Only:
 
 
 <a id="nestedobjatt--slos--objectives"></a>
-### Nested Schema for ``
+### Nested Schema for `slos.objectives`
 
 Read-Only:
 
@@ -198,7 +198,7 @@ Read-Only:
 
 
 <a id="nestedobjatt--slos--query"></a>
-### Nested Schema for ``
+### Nested Schema for `slos.query`
 
 Read-Only:
 
@@ -207,7 +207,7 @@ Read-Only:
 - `type` (String)
 
 <a id="nestedobjatt--slos--query--freeform"></a>
-### Nested Schema for ``
+### Nested Schema for `slos.query.freeform`
 
 Read-Only:
 
@@ -215,7 +215,7 @@ Read-Only:
 
 
 <a id="nestedobjatt--slos--query--ratio"></a>
-### Nested Schema for ``
+### Nested Schema for `slos.query.ratio`
 
 Read-Only:
 

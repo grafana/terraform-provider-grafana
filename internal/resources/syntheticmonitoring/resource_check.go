@@ -637,7 +637,7 @@ target for checks can be a domain name, a server, or a website, depending on
 what information you would like to gather about your endpoint. You can define
 multiple checks for a single endpoint to check different capabilities.
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/create-checks/checks/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/checks/)
 `,
 
 		CreateContext: withClient[schema.CreateContextFunc](resourceCheckCreate),
@@ -703,7 +703,7 @@ multiple checks for a single endpoint to check different capabilities.
 				Default:     true,
 			},
 			"alert_sensitivity": {
-				Description: "Can be set to `none`, `low`, `medium`, or `high` to correspond to the check [alert levels](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/configure-alerts/synthetic-monitoring-alerting/).",
+				Description: "Can be set to `none`, `low`, `medium`, or `high` to correspond to the check [alert levels](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/configure-alerts/synthetic-monitoring-alerting/).",
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "none",
