@@ -172,5 +172,5 @@ func DeleteUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func caseInsensitiveDiff(k, oldValue, newValue string, d *schema.ResourceData) bool {
-	return strings.ToLower(oldValue) == strings.ToLower(newValue)
+	return strings.EqualFold(oldValue, newValue)
 }
