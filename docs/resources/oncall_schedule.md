@@ -50,7 +50,7 @@ resource "grafana_oncall_schedule" "example_schedule" {
 ### Required
 
 - `name` (String) The schedule's name.
-- `type` (String) The schedule's type.
+- `type` (String) The schedule's type. Valid values for this are "ical" and "calendar".
 
 ### Optional
 
