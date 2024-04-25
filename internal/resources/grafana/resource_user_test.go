@@ -40,6 +40,18 @@ func TestAccUser_basic(t *testing.T) {
 				),
 			},
 			{
+				Config: testAccUserConfig_mixedCase,
+				Check: resource.ComposeTestCheckFunc(
+					userCheckExists.exists("grafana_user.test", &user),
+					resource.TestCheckResourceAttr(
+						"grafana_user.test", "email", "terraform-test@localhost",
+					),
+					resource.TestCheckResourceAttr(
+						"grafana_user.test", "login", "tt",
+					),
+				),
+			},
+			{
 				Config: testAccUserConfig_update,
 				Check: resource.ComposeTestCheckFunc(
 					userCheckExists.exists("grafana_user.test", &user),
@@ -75,6 +87,16 @@ resource "grafana_user" "test" {
   email    = "terraform-test@localhost"
   name     = "Terraform Test"
   login    = "tt"
+  password = "abc123"
+  is_admin = false
+}
+`
+
+const testAccUserConfig_mixedCase = `
+resource "grafana_user" "test" {
+  email    = "tErrAForm-TEST@localhost"
+  name     = "Terraform Test"
+  login    = "tT"
   password = "abc123"
   is_admin = false
 }
