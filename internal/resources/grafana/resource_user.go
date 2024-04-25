@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"strconv"
+	"strings"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
@@ -38,9 +39,10 @@ You must use basic auth.
 				Description: "The numerical ID of the Grafana user.",
 			},
 			"email": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The email address of the Grafana user.",
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "The email address of the Grafana user.",
+				DiffSuppressFunc: caseInsensitiveDiff,
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -48,9 +50,10 @@ You must use basic auth.
 				Description: "The display name for the Grafana user.",
 			},
 			"login": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The username for the Grafana user.",
+				Type:             schema.TypeString,
+				Optional:         true,
+				Description:      "The username for the Grafana user.",
+				DiffSuppressFunc: caseInsensitiveDiff,
 			},
 			"password": {
 				Type:        schema.TypeString,
@@ -166,4 +169,8 @@ func DeleteUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	_, err = client.AdminUsers.AdminDeleteUser(id)
 	diag, _ := common.CheckReadError("user", d, err)
 	return diag
+}
+
+func caseInsensitiveDiff(k, oldValue, newValue string, d *schema.ResourceData) bool {
+	return strings.EqualFold(oldValue, newValue)
 }
