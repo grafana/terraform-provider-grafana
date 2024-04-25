@@ -7,7 +7,7 @@ description: |-
   own private probes. These are only accessible to you and only write data to
   your Grafana Cloud account. Private probes are instances of the open source
   Grafana Synthetic Monitoring Agent.
-  Official documentation https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/private-probes/
+  Official documentation https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/set-up/set-up-private-probes/
 ---
 
 # grafana_synthetic_monitoring_probe (Resource)
@@ -17,7 +17,7 @@ own private probes. These are only accessible to you and only write data to
 your Grafana Cloud account. Private probes are instances of the open source
 Grafana Synthetic Monitoring Agent.
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/private-probes/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/set-up/set-up-private-probes/)
 
 ## Example Usage
 
@@ -59,6 +59,6 @@ resource "grafana_synthetic_monitoring_probe" "main" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_synthetic_monitoring_probe.probe {{probe-id}}
-terraform import grafana_synthetic_monitoring_probe.probe {{probe-id}}:{{auth_token}}
+terraform import grafana_synthetic_monitoring_probe.name "{{ id }}"
+terraform import grafana_synthetic_monitoring_probe.name "{{ id }}:{{ authToken }}"
 ```

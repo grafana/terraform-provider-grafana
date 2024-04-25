@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -19,13 +19,38 @@ func TestAccOnCallOnCallShift_basic(t *testing.T) {
 	shiftName := fmt.Sprintf("shift-%s", acctest.RandString(8))
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccCheckOnCallOnCallShiftResourceDestroy,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallOnCallShiftResourceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccOnCallOnCallShiftConfig(scheduleName, shiftName),
+				Config: testAccOnCallOnCallShiftConfigWeekly(scheduleName, shiftName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOnCallOnCallShiftResourceExists("grafana_oncall_on_call_shift.test-acc-on_call_shift"),
+					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "name", shiftName),
+					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "type", "recurrent_event"),
+					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "start", "2020-09-04T16:00:00"),
+					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "duration", "3600"),
+					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "level", "1"),
+					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "frequency", "weekly"),
+					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "week_start", "SU"),
+					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "interval", "2"),
+					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "by_day.#", "2"),
+					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "by_day.0", "FR"),
+					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "by_day.1", "MO"),
+				),
+			},
+			{
+				Config: testAccOnCallOnCallShiftConfigHourly(scheduleName, shiftName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallOnCallShiftResourceExists("grafana_oncall_on_call_shift.test-acc-on_call_shift"),
+					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "frequency", "hourly"),
+				),
+			},
+			{
+				Config: testAccOnCallOnCallShiftConfigSingle(scheduleName, shiftName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallOnCallShiftResourceExists("grafana_oncall_on_call_shift.test-acc-on_call_shift"),
+					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "name", shiftName),
 				),
 			},
 		},
@@ -46,7 +71,7 @@ func testAccCheckOnCallOnCallShiftResourceDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccOnCallOnCallShiftConfig(scheduleName string, shiftName string) string {
+func testAccOnCallOnCallShiftConfigWeekly(scheduleName, shiftName string) string {
 	return fmt.Sprintf(`
 resource "grafana_oncall_schedule" "test-acc-schedule" {
 	type = "calendar"
@@ -64,6 +89,43 @@ resource "grafana_oncall_on_call_shift" "test-acc-on_call_shift" {
 	week_start = "SU"
 	interval = 2
 	by_day = ["MO", "FR"]
+}
+`, scheduleName, shiftName)
+}
+
+func testAccOnCallOnCallShiftConfigHourly(scheduleName, shiftName string) string {
+	return fmt.Sprintf(`
+resource "grafana_oncall_schedule" "test-acc-schedule" {
+	type = "calendar"
+	name = "%s"
+	time_zone = "UTC"
+}
+
+resource "grafana_oncall_on_call_shift" "test-acc-on_call_shift" {
+	name = "%s"
+	type = "recurrent_event"
+	start = "2020-09-04T16:00:00"
+	duration = 60
+	level = 1
+	frequency = "hourly"
+	interval = 2
+}
+`, scheduleName, shiftName)
+}
+
+func testAccOnCallOnCallShiftConfigSingle(scheduleName, shiftName string) string {
+	return fmt.Sprintf(`
+resource "grafana_oncall_schedule" "test-acc-schedule" {
+	type = "calendar"
+	name = "%s"
+	time_zone = "UTC"
+}
+
+resource "grafana_oncall_on_call_shift" "test-acc-on_call_shift" {
+	name = "%s"
+	type = "single_event"
+	start = "2020-09-04T16:00:00"
+	duration = 60
 }
 `, scheduleName, shiftName)
 }

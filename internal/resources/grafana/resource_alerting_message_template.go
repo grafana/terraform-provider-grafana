@@ -9,14 +9,14 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceMessageTemplate() *schema.Resource {
-	return &schema.Resource{
+func resourceMessageTemplate() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Manages Grafana Alerting message templates.
 
@@ -59,6 +59,12 @@ This resource requires Grafana 9.1.0 or later.
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_message_template",
+		orgResourceIDString("name"),
+		schema,
+	)
 }
 
 func readMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -92,8 +98,7 @@ func putMessageTemplate(ctx context.Context, data *schema.ResourceData, meta int
 				Template: content,
 			})
 		if v, ok := data.GetOk("disable_provenance"); ok && v.(bool) {
-			disabled := "disabled"
-			params.SetXDisableProvenance(&disabled)
+			params.SetXDisableProvenance(&provenanceDisabled)
 		}
 		if _, err := client.Provisioning.PutTemplate(params); err != nil {
 			if orgID > 1 && err.(*runtime.APIError).IsCode(500) {

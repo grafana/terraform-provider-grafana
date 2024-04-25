@@ -2,13 +2,14 @@ package grafana_test
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
@@ -21,8 +22,8 @@ func TestAccTeam_basic(t *testing.T) {
 	teamNameUpdated := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      teamCheckExists.destroyed(&team, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTeamDefinition(teamName, nil, false, nil),
@@ -62,8 +63,8 @@ func TestAccTeam_preferences(t *testing.T) {
 	teamNameUpdated := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      teamCheckExists.destroyed(&team, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTeamDefinition(teamName, nil, false, nil),
@@ -104,14 +105,14 @@ func TestAccTeam_preferences(t *testing.T) {
 }
 
 func TestAccTeam_teamSync(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">= 8.0.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	var team models.TeamDTO
 	teamName := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      teamCheckExists.destroyed(&team, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			// Test without team sync
 			{
@@ -172,8 +173,8 @@ func TestAccTeam_Members(t *testing.T) {
 	teamName := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      teamCheckExists.destroyed(&team, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTeamDefinition(teamName, []string{
@@ -234,15 +235,15 @@ func TestAccTeam_Members(t *testing.T) {
 // Test that deleted users can still be removed as members of a team
 func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
-	client := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+	client := grafanaTestClient()
 
 	var team models.TeamDTO
 	var userID int64 = -1
 	teamName := acctest.RandString(5)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      teamCheckExists.destroyed(&team, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			{
 				PreConfig: func() {
@@ -291,8 +292,8 @@ func TestAccResourceTeam_InOrg(t *testing.T) {
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTeamInOrganization(name),
@@ -311,6 +312,35 @@ func TestAccResourceTeam_InOrg(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.destroyed(&team, &org),
 					orgCheckExists.exists("grafana_organization.test", &org),
+				),
+			},
+		},
+	})
+}
+
+// This tests that API keys/service account tokens cannot be used at the same time as org_id
+// because API keys are already org-scoped.
+func TestAccTeam_OrgScopedOnAPIKey(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+	orgID := orgScopedTest(t)
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`resource "grafana_team" "test" {
+					org_id = %d
+					name = "test"
+				}`, orgID),
+				ExpectError: regexp.MustCompile("org_id is only supported with basic auth. API keys are already org-scoped"),
+			},
+			{
+				Config: `resource "grafana_team" "test" {
+					name = "test"
+				}`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_team.test", "name", "test"),
+					resource.TestCheckResourceAttr("grafana_team.test", "org_id", strconv.FormatInt(orgID, 10)),
 				),
 			},
 		},

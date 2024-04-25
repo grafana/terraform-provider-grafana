@@ -5,6 +5,13 @@ on:
       tests:
         description: 'Tests to run (regex passed to -run)'
         default: '.*'
+  workflow_call:
+    inputs:
+      tests:
+        type: string
+        description: 'Tests to run (regex passed to -run)'
+        default: '.*'
+    
 
 # These permissions are needed to assume roles from Github's OIDC.
 permissions:
@@ -25,7 +32,7 @@ jobs:
         uses: grafana/shared-workflows/actions/get-vault-secrets@main
         with:
           repo_secrets: |
-            GRAFANA_CLOUD_API_KEY=cloud-tests:api-key
+            GRAFANA_CLOUD_ACCESS_POLICY_TOKEN=cloud-tests:api-key
             GRAFANA_CLOUD_ORG=cloud-tests:org
       - run: make testacc-cloud-api
         env:

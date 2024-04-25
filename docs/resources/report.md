@@ -20,8 +20,8 @@ description: |-
 resource "grafana_dashboard" "test" {
   config_json = <<EOD
 {
-  "title": "Dashboard for report",
-  "uid": "report"
+  "uid": "report-dashboard",
+  "title": "report-dashboard"
 }
 EOD
   message     = "inital commit."
@@ -76,9 +76,10 @@ Optional:
 
 - `custom_interval` (String) Custom interval of the report.
 **Note:** This field is only available when frequency is set to `custom`.
-- `end_time` (String) End time of the report. If empty, the report will be sent indefinitely (according to frequency). Note that times will be saved as UTC in Grafana.
+- `end_time` (String) End time of the report. If empty, the report will be sent indefinitely (according to frequency). Note that times will be saved as UTC in Grafana. Use 2006-01-02T15:04:05 format if you want to set a custom timezone
 - `last_day_of_month` (Boolean) Send the report on the last day of the month Defaults to `false`.
-- `start_time` (String) Start time of the report. If empty, the start date will be set to the creation time. Note that times will be saved as UTC in Grafana.
+- `start_time` (String) Start time of the report. If empty, the start date will be set to the creation time. Note that times will be saved as UTC in Grafana. Use 2006-01-02T15:04:05 format if you want to set a custom timezone
+- `timezone` (String) Set the report time zone. Defaults to `GMT`.
 - `workdays_only` (Boolean) Whether to send the report only on work days. Defaults to `false`.
 
 
@@ -91,6 +92,7 @@ Required:
 
 Optional:
 
+- `report_variables` (Map of String) Add report variables to the dashboard. Values should be separated by commas.
 - `time_range` (Block List, Max: 1) Time range of the report. (see [below for nested schema](#nestedblock--dashboards--time_range))
 
 <a id="nestedblock--dashboards--time_range"></a>
@@ -110,3 +112,12 @@ Optional:
 
 - `from` (String) Start of the time range.
 - `to` (String) End of the time range.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import grafana_report.name "{{ id }}"
+terraform import grafana_report.name "{{ orgID }}:{{ id }}"
+```

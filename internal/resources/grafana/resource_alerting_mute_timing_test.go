@@ -1,12 +1,13 @@
 package grafana_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 )
 
 func TestAccMuteTiming_basic(t *testing.T) {
@@ -15,7 +16,7 @@ func TestAccMuteTiming_basic(t *testing.T) {
 	var mt models.MuteTimeInterval
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingMuteTimingCheckExists.destroyed(&mt, nil),
 		Steps: []resource.TestStep{
@@ -40,9 +41,15 @@ func TestAccMuteTiming_basic(t *testing.T) {
 			},
 			// Test import.
 			{
-				ResourceName:      "grafana_mute_timing.my_mute_timing",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "grafana_mute_timing.my_mute_timing",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"disable_provenance"},
+			},
+			// Test plan (should be empty)
+			{
+				Config:   testutils.TestAccExample(t, "resources/grafana_mute_timing/resource.tf"),
+				PlanOnly: true,
 			},
 			// Test update content.
 			{
@@ -64,6 +71,37 @@ func TestAccMuteTiming_basic(t *testing.T) {
 					alertingMuteTimingCheckExists.exists("grafana_mute_timing.my_mute_timing", &mt),
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "name", "A Different Mute Timing"),
 					alertingMuteTimingCheckExists.destroyed(&models.MuteTimeInterval{Name: "My Mute Timing"}, nil),
+				),
+			},
+		},
+	})
+}
+
+func TestAccMuteTiming_AllTime(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">9.0.0")
+
+	var mt models.MuteTimeInterval
+	name := "My-Mute-Timing"
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             alertingMuteTimingCheckExists.destroyed(&mt, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource "grafana_mute_timing" "my_mute_timing" {
+	  name = "%s"
+	  intervals {}
+}`, name),
+				Check: resource.ComposeTestCheckFunc(
+					alertingMuteTimingCheckExists.exists("grafana_mute_timing.my_mute_timing", &mt),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "name", name),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.times.#", "0"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.weekdays.#", "0"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.days_of_month.#", "0"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.months.#", "0"),
+					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.years.#", "0"),
+					resource.TestCheckNoResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.location"),
 				),
 			},
 		},

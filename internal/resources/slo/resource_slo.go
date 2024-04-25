@@ -5,16 +5,25 @@ import (
 	"fmt"
 	"regexp"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
+	slo "github.com/grafana/slo-openapi-client/go"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func ResourceSlo() *schema.Resource {
-	return &schema.Resource{
+const (
+	QueryTypeFreeform  string = "freeform"
+	QueryTypeHistogram string = "histogram"
+	QueryTypeRatio     string = "ratio"
+	QueryTypeThreshold string = "threshold"
+)
+
+var resourceSloID = common.NewResourceID(common.StringIDField("uuid"))
+
+func resourceSlo() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Resource manages Grafana SLOs. 
 
@@ -22,34 +31,34 @@ Resource manages Grafana SLOs.
 * [API documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/api/)
 * [Additional Information On Alerting Rule Annotations and Labels](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/#templating/)
 		`,
-		CreateContext: resourceSloCreate,
-		ReadContext:   resourceSloRead,
-		UpdateContext: resourceSloUpdate,
-		DeleteContext: resourceSloDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceSloCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceSloRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceSloUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceSloDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  `Name should be a short description of your indicator. Consider names like "API Availability"`,
 				ValidateFunc: validation.StringLenBetween(0, 128),
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:         schema.TypeString,
 				Required:     true,
 				Description:  `Description is a free-text field that can provide more context to an SLO.`,
 				ValidateFunc: validation.StringLenBetween(0, 1024),
 			},
-			"destination_datasource": &schema.Schema{
+			"destination_datasource": {
 				Type:        schema.TypeList,
 				MaxItems:    1,
 				Optional:    true,
 				Description: `Destination Datasource sets the datasource defined for an SLO`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"uid": &schema.Schema{
+						"uid": {
 							Type:        schema.TypeString,
 							Description: `UID for the Mimir Datasource`,
 							Optional:    true,
@@ -57,25 +66,25 @@ Resource manages Grafana SLOs.
 					},
 				},
 			},
-			"query": &schema.Schema{
+			"query": {
 				Type:        schema.TypeList,
 				Required:    true,
 				Description: `Query describes the indicator that will be measured against the objective. Freeform Query types are currently supported.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": &schema.Schema{
+						"type": {
 							Type:         schema.TypeString,
 							Description:  `Query type must be one of: "freeform", "query", "ratio", or "threshold"`,
 							ValidateFunc: validation.StringInSlice([]string{"freeform", "query", "ratio", "threshold"}, false),
 							Required:     true,
 						},
-						"freeform": &schema.Schema{
+						"freeform": {
 							Type:     schema.TypeList,
 							MaxItems: 1,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"query": &schema.Schema{
+									"query": {
 										Type:        schema.TypeString,
 										Required:    true,
 										Description: "Freeform Query Field",
@@ -83,23 +92,23 @@ Resource manages Grafana SLOs.
 								},
 							},
 						},
-						"ratio": &schema.Schema{
+						"ratio": {
 							Type:     schema.TypeList,
 							MaxItems: 1,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"success_metric": &schema.Schema{
+									"success_metric": {
 										Type:        schema.TypeString,
 										Description: `Counter metric for success events (numerator)`,
 										Required:    true,
 									},
-									"total_metric": &schema.Schema{
+									"total_metric": {
 										Type:        schema.TypeString,
 										Description: `Metric for total events (denominator)`,
 										Required:    true,
 									},
-									"group_by_labels": &schema.Schema{
+									"group_by_labels": {
 										Type:        schema.TypeList,
 										Description: `Defines Group By Labels used for per-label alerting. These appear as variables on SLO dashboards to enable filtering and aggregation. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$"`,
 										Optional:    true,
@@ -113,25 +122,25 @@ Resource manages Grafana SLOs.
 					},
 				},
 			},
-			"label": &schema.Schema{
+			"label": {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Description: `Additional labels that will be attached to all metrics generated from the query. These labels are useful for grouping SLOs in dashboard views that you create by hand. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$"`,
 				Elem:        keyvalueSchema,
 			},
-			"objectives": &schema.Schema{
+			"objectives": {
 				Type:        schema.TypeList,
 				Required:    true,
 				Description: `Over each rolling time window, the remaining error budget will be calculated, and separate alerts can be generated for each time window based on the SLO burn rate or remaining error budget.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"value": &schema.Schema{
+						"value": {
 							Type:         schema.TypeFloat,
 							Required:     true,
 							ValidateFunc: validation.FloatBetween(0, 1),
 							Description:  `Value between 0 and 1. If the value of the query is above the objective, the SLO is met.`,
 						},
-						"window": &schema.Schema{
+						"window": {
 							Type:         schema.TypeString,
 							Required:     true,
 							Description:  `A Prometheus-parsable time duration string like 24h, 60m. This is the time window the objective is measured over.`,
@@ -140,7 +149,7 @@ Resource manages Grafana SLOs.
 					},
 				},
 			},
-			"alerting": &schema.Schema{
+			"alerting": {
 				Type:     schema.TypeList,
 				MaxItems: 1,
 				Optional: true,
@@ -151,32 +160,32 @@ Resource manages Grafana SLOs.
 				error budget is below a certain threshold. Annotations and Labels support templating.`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"label": &schema.Schema{
+						"label": {
 							Type:        schema.TypeList,
 							Optional:    true,
 							Description: `Labels will be attached to all alerts generated by any of these rules.`,
 							Elem:        keyvalueSchema,
 						},
-						"annotation": &schema.Schema{
+						"annotation": {
 							Type:        schema.TypeList,
 							Optional:    true,
 							Description: `Annotations will be attached to all alerts generated by any of these rules.`,
 							Elem:        keyvalueSchema,
 						},
-						"fastburn": &schema.Schema{
+						"fastburn": {
 							Type:        schema.TypeList,
 							Optional:    true,
 							MaxItems:    1,
 							Description: "Alerting Rules generated for Fast Burn alerts",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"label": &schema.Schema{
+									"label": {
 										Type:        schema.TypeList,
 										Optional:    true,
 										Description: "Labels to attach only to Fast Burn alerts.",
 										Elem:        keyvalueSchema,
 									},
-									"annotation": &schema.Schema{
+									"annotation": {
 										Type:        schema.TypeList,
 										Optional:    true,
 										Description: "Annotations to attach only to Fast Burn alerts.",
@@ -185,20 +194,20 @@ Resource manages Grafana SLOs.
 								},
 							},
 						},
-						"slowburn": &schema.Schema{
+						"slowburn": {
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Optional:    true,
 							Description: "Alerting Rules generated for Slow Burn alerts",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"label": &schema.Schema{
+									"label": {
 										Type:        schema.TypeList,
 										Optional:    true,
 										Description: "Labels to attach only to Slow Burn alerts.",
 										Elem:        keyvalueSchema,
 									},
-									"annotation": &schema.Schema{
+									"annotation": {
 										Type:        schema.TypeList,
 										Optional:    true,
 										Description: "Annotations to attach only to Slow Burn alerts.",
@@ -212,25 +221,27 @@ Resource manages Grafana SLOs.
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource("grafana_slo", resourceSloID, schema)
 }
 
 var keyvalueSchema = &schema.Resource{
 	Schema: map[string]*schema.Schema{
-		"key": &schema.Schema{
+		"key": {
 			Type:     schema.TypeString,
 			Required: true,
 		},
-		"value": &schema.Schema{
+		"value": {
 			Type:     schema.TypeString,
 			Required: true,
 		},
 	},
 }
 
-func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSloCreate(ctx context.Context, d *schema.ResourceData, client *slo.APIClient) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	slo, err := packSloResource(d)
+	sloModel, err := packSloResource(d)
 	if err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
@@ -240,48 +251,37 @@ func resourceSloCreate(ctx context.Context, d *schema.ResourceData, m interface{
 		return diags
 	}
 
-	client := m.(*common.Client).DeprecatedGrafanaAPI
-	response, err := client.CreateSlo(slo)
+	req := client.DefaultAPI.V1SloPost(ctx).Slo(sloModel)
+	response, _, err := req.Execute()
 
 	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Unable to create SLO - API",
-			Detail:   fmt.Sprintf("API Error Message:%s", err.Error()),
-		})
-		return diags
+		return apiError("Unable to create SLO - API", err)
 	}
 
-	d.SetId(response.UUID)
-	resourceSloRead(ctx, d, m)
+	d.SetId(response.Uuid)
 
-	return resourceSloRead(ctx, d, m)
+	return resourceSloRead(ctx, d, client)
 }
 
 // resourceSloRead - sends a GET Request to the single SLO Endpoint
-func resourceSloRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSloRead(ctx context.Context, d *schema.ResourceData, client *slo.APIClient) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	sloID := d.Id()
 
-	client := m.(*common.Client).DeprecatedGrafanaAPI
-	slo, err := client.GetSlo(sloID)
+	req := client.DefaultAPI.V1SloIdGet(ctx, sloID)
+	slo, _, err := req.Execute()
 
 	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  fmt.Sprintf("Unable to Fetch Slo with ID: %s", sloID),
-			Detail:   fmt.Sprintf("API Error Message:%s", err.Error()),
-		})
-		return diags
+		return apiError("Unable to read SLO - API", err)
 	}
 
-	setTerraformState(d, slo)
+	setTerraformState(d, *slo)
 
 	return diags
 }
 
-func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, client *slo.APIClient) diag.Diagnostics {
 	var diags diag.Diagnostics
 	sloID := d.Id()
 
@@ -296,37 +296,31 @@ func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, m interface{
 			return diags
 		}
 
-		client := m.(*common.Client).DeprecatedGrafanaAPI
-
-		err = client.UpdateSlo(sloID, slo)
-		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  fmt.Sprintf("Unable to Update Slo with ID: %s", sloID),
-				Detail:   fmt.Sprintf("API Error Message:%s", err.Error()),
-			})
-			return diags
+		req := client.DefaultAPI.V1SloIdPut(ctx, sloID).Slo(slo)
+		if _, err := req.Execute(); err != nil {
+			return apiError("Unable to Update SLO - API", err)
 		}
 	}
 
-	return resourceSloRead(ctx, d, m)
+	return resourceSloRead(ctx, d, client)
 }
 
-func resourceSloDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceSloDelete(ctx context.Context, d *schema.ResourceData, client *slo.APIClient) diag.Diagnostics {
 	sloID := d.Id()
 
-	client := m.(*common.Client).DeprecatedGrafanaAPI
+	req := client.DefaultAPI.V1SloIdDelete(ctx, sloID)
+	_, err := req.Execute()
 
-	return diag.FromErr(client.DeleteSlo(sloID))
+	return apiError("Unable to Delete SLO - API", err)
 }
 
 // Fetches all the Properties defined on the Terraform SLO State Object and converts it
 // to a Slo so that it can be converted to JSON and sent to the API
-func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
+func packSloResource(d *schema.ResourceData) (slo.Slo, error) {
 	var (
-		tfalerting              gapi.Alerting
-		tflabels                []gapi.Label
-		tfdestinationdatasource gapi.DestinationDatasource
+		tfalerting              slo.Alerting
+		tflabels                []slo.Label
+		tfdestinationdatasource slo.DestinationDatasource
 	)
 
 	tfname := d.Get("name").(string)
@@ -334,7 +328,7 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 	query := d.Get("query").([]interface{})[0].(map[string]interface{})
 	tfquery, err := packQuery(query)
 	if err != nil {
-		return gapi.Slo{}, err
+		return slo.Slo{}, err
 	}
 
 	objectives := d.Get("objectives").([]interface{})
@@ -345,8 +339,8 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 		tflabels = packLabels(labels)
 	}
 
-	slo := gapi.Slo{
-		UUID:                  d.Id(),
+	slo := slo.Slo{
+		Uuid:                  d.Id(),
 		Name:                  tfname,
 		Description:           tfdescription,
 		Objectives:            tfobjective,
@@ -384,25 +378,25 @@ func packSloResource(d *schema.ResourceData) (gapi.Slo, error) {
 	return slo, nil
 }
 
-func packDestinationDatasource(destinationdatasource map[string]interface{}) (gapi.DestinationDatasource, error) {
-	packedDestinationDatasource := gapi.DestinationDatasource{}
+func packDestinationDatasource(destinationdatasource map[string]interface{}) (slo.DestinationDatasource, error) {
+	packedDestinationDatasource := slo.DestinationDatasource{}
 
 	if destinationdatasource["uid"].(string) != "" {
 		datasourceUID := destinationdatasource["uid"].(string)
-		packedDestinationDatasource.UID = datasourceUID
+		packedDestinationDatasource.Uid = common.Ref(datasourceUID)
 	}
 
 	return packedDestinationDatasource, nil
 }
 
-func packQuery(query map[string]interface{}) (gapi.Query, error) {
+func packQuery(query map[string]interface{}) (slo.Query, error) {
 	if query["type"] == "freeform" {
 		freeformquery := query["freeform"].([]interface{})[0].(map[string]interface{})
 		querystring := freeformquery["query"].(string)
 
-		sloQuery := gapi.Query{
-			Freeform: &gapi.FreeformQuery{Query: querystring},
-			Type:     gapi.QueryTypeFreeform,
+		sloQuery := slo.Query{
+			Freeform: &slo.FreeformQuery{Query: querystring},
+			Type:     QueryTypeFreeform,
 		}
 
 		return sloQuery, nil
@@ -424,33 +418,31 @@ func packQuery(query map[string]interface{}) (gapi.Query, error) {
 			labels = append(labels, groupByLabels[ind].(string))
 		}
 
-		sloQuery := gapi.Query{
-			Ratio: &gapi.RatioQuery{
-				SuccessMetric: gapi.MetricDef{
+		sloQuery := slo.Query{
+			Ratio: &slo.RatioQuery{
+				SuccessMetric: slo.MetricDef{
 					PrometheusMetric: successMetric,
-					Type:             "",
 				},
-				TotalMetric: gapi.MetricDef{
+				TotalMetric: slo.MetricDef{
 					PrometheusMetric: totalMetric,
-					Type:             "",
 				},
 				GroupByLabels: labels,
 			},
-			Type: gapi.QueryTypeRatio,
+			Type: QueryTypeRatio,
 		}
 
 		return sloQuery, nil
 	}
 
-	return gapi.Query{}, fmt.Errorf("%s query type not implemented", query["type"])
+	return slo.Query{}, fmt.Errorf("%s query type not implemented", query["type"])
 }
 
-func packObjectives(tfobjectives []interface{}) []gapi.Objective {
-	objectives := []gapi.Objective{}
+func packObjectives(tfobjectives []interface{}) []slo.Objective {
+	objectives := []slo.Objective{}
 
 	for ind := range tfobjectives {
 		tfobjective := tfobjectives[ind].(map[string]interface{})
-		objective := gapi.Objective{
+		objective := slo.Objective{
 			Value:  tfobjective["value"].(float64),
 			Window: tfobjective["window"].(string),
 		}
@@ -460,12 +452,12 @@ func packObjectives(tfobjectives []interface{}) []gapi.Objective {
 	return objectives
 }
 
-func packLabels(tfLabels []interface{}) []gapi.Label {
-	labelSlice := []gapi.Label{}
+func packLabels(tfLabels []interface{}) []slo.Label {
+	labelSlice := []slo.Label{}
 
 	for ind := range tfLabels {
 		currLabel := tfLabels[ind].(map[string]interface{})
-		curr := gapi.Label{
+		curr := slo.Label{
 			Key:   currLabel["key"].(string),
 			Value: currLabel["value"].(string),
 		}
@@ -476,11 +468,11 @@ func packLabels(tfLabels []interface{}) []gapi.Label {
 	return labelSlice
 }
 
-func packAlerting(tfAlerting map[string]interface{}) gapi.Alerting {
-	var tfAnnots []gapi.Label
-	var tfLabels []gapi.Label
-	var tfFastBurn gapi.AlertingMetadata
-	var tfSlowBurn gapi.AlertingMetadata
+func packAlerting(tfAlerting map[string]interface{}) slo.Alerting {
+	var tfAnnots []slo.Label
+	var tfLabels []slo.Label
+	var tfFastBurn slo.AlertingMetadata
+	var tfSlowBurn slo.AlertingMetadata
 
 	annots, ok := tfAlerting["annotation"].([]interface{})
 	if ok {
@@ -502,7 +494,7 @@ func packAlerting(tfAlerting map[string]interface{}) gapi.Alerting {
 		tfSlowBurn = packAlertMetadata(slowBurn)
 	}
 
-	alerting := gapi.Alerting{
+	alerting := slo.Alerting{
 		Annotations: tfAnnots,
 		Labels:      tfLabels,
 		FastBurn:    &tfFastBurn,
@@ -512,9 +504,9 @@ func packAlerting(tfAlerting map[string]interface{}) gapi.Alerting {
 	return alerting
 }
 
-func packAlertMetadata(metadata []interface{}) gapi.AlertingMetadata {
-	var tflabels []gapi.Label
-	var tfannots []gapi.Label
+func packAlertMetadata(metadata []interface{}) slo.AlertingMetadata {
+	var tflabels []slo.Label
+	var tfannots []slo.Label
 
 	if len(metadata) > 0 {
 		meta, ok := metadata[0].(map[string]interface{})
@@ -531,7 +523,7 @@ func packAlertMetadata(metadata []interface{}) gapi.AlertingMetadata {
 		}
 	}
 
-	apiMetadata := gapi.AlertingMetadata{
+	apiMetadata := slo.AlertingMetadata{
 		Labels:      tflabels,
 		Annotations: tfannots,
 	}
@@ -539,7 +531,7 @@ func packAlertMetadata(metadata []interface{}) gapi.AlertingMetadata {
 	return apiMetadata
 }
 
-func setTerraformState(d *schema.ResourceData, slo gapi.Slo) {
+func setTerraformState(d *schema.ResourceData, slo slo.Slo) {
 	d.Set("name", slo.Name)
 	d.Set("description", slo.Description)
 
@@ -556,4 +548,21 @@ func setTerraformState(d *schema.ResourceData, slo gapi.Slo) {
 
 	retAlerting := unpackAlerting(slo.Alerting)
 	d.Set("alerting", retAlerting)
+}
+
+func apiError(action string, err error) diag.Diagnostics {
+	if err == nil {
+		return nil
+	}
+	detail := err.Error()
+	if err, ok := err.(*slo.GenericOpenAPIError); ok {
+		detail += "\n" + string(err.Body())
+	}
+	return diag.Diagnostics{
+		diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  action,
+			Detail:   detail,
+		},
+	}
 }

@@ -4,7 +4,7 @@ page_title: "grafana_service_account Data Source - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
   * [Official documentation](https://grafana.com/docs/grafana/latest/administration/service-accounts/)
-      * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/serviceaccount/#service-account-api)
+  	* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/serviceaccount/#service-account-api)
 ---
 
 # grafana_service_account (Data Source)

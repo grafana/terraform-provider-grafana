@@ -9,20 +9,22 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-func ResourceJob() *schema.Resource {
-	return &schema.Resource{
+var resourceJobID = common.NewResourceID(common.StringIDField("id"))
+
+func resourceJob() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 A job defines the queries and model parameters for a machine learning task.
 `,
 
-		CreateContext: ResourceJobCreate,
-		ReadContext:   ResourceJobRead,
-		UpdateContext: ResourceJobUpdate,
-		DeleteContext: ResourceJobDelete,
+		CreateContext: checkClient(resourceJobCreate),
+		ReadContext:   checkClient(resourceJobRead),
+		UpdateContext: checkClient(resourceJobUpdate),
+		DeleteContext: checkClient(resourceJobDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -52,6 +54,7 @@ A job defines the queries and model parameters for a machine learning task.
 				Description: "The id of the datasource to query.",
 				Type:        schema.TypeInt,
 				Optional:    true,
+				Deprecated:  "Use datasource_uid instead.",
 			},
 			"datasource_uid": {
 				Description: "The uid of the datasource to query.",
@@ -102,9 +105,11 @@ A job defines the queries and model parameters for a machine learning task.
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource("grafana_machine_learning_job", resourceJobID, schema)
 }
 
-func ResourceJobCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceJobCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	job, err := makeMLJob(d, meta)
 	if err != nil {
@@ -115,10 +120,10 @@ func ResourceJobCreate(ctx context.Context, d *schema.ResourceData, meta interfa
 		return diag.FromErr(err)
 	}
 	d.SetId(job.ID)
-	return ResourceJobRead(ctx, d, meta)
+	return resourceJobRead(ctx, d, meta)
 }
 
-func ResourceJobRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceJobRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	job, err := c.Job(ctx, d.Id())
 	if err, shouldReturn := common.CheckReadError("job", d, err); shouldReturn {
@@ -149,7 +154,7 @@ func ResourceJobRead(ctx context.Context, d *schema.ResourceData, meta interface
 	return nil
 }
 
-func ResourceJobUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceJobUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	job, err := makeMLJob(d, meta)
 	if err != nil {
@@ -159,10 +164,10 @@ func ResourceJobUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	return ResourceJobRead(ctx, d, meta)
+	return resourceJobRead(ctx, d, meta)
 }
 
-func ResourceJobDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceJobDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	err := c.DeleteJob(ctx, d.Id())
 	if err != nil {

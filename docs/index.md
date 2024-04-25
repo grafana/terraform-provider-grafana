@@ -47,8 +47,8 @@ resource "grafana_dashboard" "test_folder" {
 ```terraform
 // Step 1: Create a stack
 provider "grafana" {
-  alias         = "cloud"
-  cloud_api_key = "my-token"
+  alias                     = "cloud"
+  cloud_access_policy_token = "my-token"
 }
 
 resource "grafana_cloud_stack" "my_stack" {
@@ -95,7 +95,7 @@ resource "grafana_folder" "my_folder" {
 ### Installing Synthetic Monitoring on a new Grafana Cloud Stack
 
 ```terraform
-variable "cloud_api_key" {
+variable "cloud_access_policy_token" {
   description = "Cloud Access Policy token for Grafana Cloud with the following scopes: accesspolicies:read|write|delete, stacks:read|write|delete"
 }
 variable "stack_slug" {}
@@ -105,8 +105,8 @@ variable "cloud_region" {
 
 // Step 1: Create a stack
 provider "grafana" {
-  alias         = "cloud"
-  cloud_api_key = var.cloud_api_key
+  alias                     = "cloud"
+  cloud_access_policy_token = var.cloud_access_policy_token
 }
 
 resource "grafana_cloud_stack" "sm_stack" {
@@ -120,11 +120,10 @@ resource "grafana_cloud_stack" "sm_stack" {
 // Step 2: Install Synthetic Monitoring on the stack
 resource "grafana_cloud_access_policy" "sm_metrics_publish" {
   provider = grafana.cloud
-  region   = var.cloud_region
-  name     = "metric-publisher-for-sm"
 
+  region = var.cloud_region
+  name   = "metric-publisher-for-sm"
   scopes = ["metrics:write", "stacks:read"]
-
   realm {
     type       = "stack"
     identifier = grafana_cloud_stack.sm_stack.id
@@ -132,14 +131,16 @@ resource "grafana_cloud_access_policy" "sm_metrics_publish" {
 }
 
 resource "grafana_cloud_access_policy_token" "sm_metrics_publish" {
-  provider         = grafana.cloud
+  provider = grafana.cloud
+
   region           = var.cloud_region
   access_policy_id = grafana_cloud_access_policy.sm_metrics_publish.policy_id
   name             = "metric-publisher-for-sm"
 }
 
 resource "grafana_synthetic_monitoring_installation" "sm_stack" {
-  provider              = grafana.cloud
+  provider = grafana.cloud
+
   stack_id              = grafana_cloud_stack.sm_stack.id
   metrics_publisher_key = grafana_cloud_access_policy_token.sm_metrics_publish.token
 }
@@ -155,23 +156,6 @@ provider "grafana" {
 data "grafana_synthetic_monitoring_probes" "main" {
   provider   = grafana.sm
   depends_on = [grafana_synthetic_monitoring_installation.sm_stack]
-}
-
-resource "grafana_synthetic_monitoring_check" "ping" {
-  provider = grafana.sm
-
-  job     = "Ping Default"
-  target  = "grafana.com"
-  enabled = false
-  probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
-  ]
-  labels = {
-    foo = "bar"
-  }
-  settings {
-    ping {}
-  }
 }
 ```
 
@@ -222,7 +206,8 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 
 - `auth` (String, Sensitive) API token, basic auth in the `username:password` format or `anonymous` (string literal). May alternatively be set via the `GRAFANA_AUTH` environment variable.
 - `ca_cert` (String) Certificate CA bundle (file path or literal value) to use to verify the Grafana server's certificate. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.
-- `cloud_api_key` (String, Sensitive) Access Policy Token (or API key) for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_API_KEY` environment variable.
+- `cloud_access_policy_token` (String, Sensitive) Access Policy Token for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_ACCESS_POLICY_TOKEN` environment variable.
+- `cloud_api_key` (String, Sensitive, Deprecated) Deprecated: Use `cloud_access_policy_token` instead.
 - `cloud_api_url` (String) Grafana Cloud's API URL. May alternatively be set via the `GRAFANA_CLOUD_API_URL` environment variable.
 - `http_headers` (Map of String, Sensitive) Optional. HTTP headers mapping keys to values used for accessing the Grafana and Grafana Cloud APIs. May alternatively be set via the `GRAFANA_HTTP_HEADERS` environment variable in JSON format.
 - `insecure_skip_verify` (Boolean) Skip TLS certificate verification. May alternatively be set via the `GRAFANA_INSECURE_SKIP_VERIFY` environment variable.
@@ -233,7 +218,7 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 - `retry_status_codes` (Set of String) The status codes to retry on for Grafana API and Grafana Cloud API calls. Use `x` as a digit wildcard. Defaults to 429 and 5xx. May alternatively be set via the `GRAFANA_RETRY_STATUS_CODES` environment variable.
 - `retry_wait` (Number) The amount of time in seconds to wait between retries for Grafana API and Grafana Cloud API calls. May alternatively be set via the `GRAFANA_RETRY_WAIT` environment variable.
 - `sm_access_token` (String, Sensitive) A Synthetic Monitoring access token. May alternatively be set via the `GRAFANA_SM_ACCESS_TOKEN` environment variable.
-- `sm_url` (String) Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable. The correct value for each service region is cited in the [Synthetic Monitoring documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/private-probes/#probe-api-server-url). Note the `sm_url` value is optional, but it must correspond with the value specified as the `region_slug` in the `grafana_cloud_stack` resource. Also note that when a Terraform configuration contains multiple provider instances managing SM resources associated with the same Grafana stack, specifying an explicit `sm_url` set to the same value for each provider ensures all providers interact with the same SM API.
+- `sm_url` (String) Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable. The correct value for each service region is cited in the [Synthetic Monitoring documentation](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/set-up/set-up-private-probes/#probe-api-server-url). Note the `sm_url` value is optional, but it must correspond with the value specified as the `region_slug` in the `grafana_cloud_stack` resource. Also note that when a Terraform configuration contains multiple provider instances managing SM resources associated with the same Grafana stack, specifying an explicit `sm_url` set to the same value for each provider ensures all providers interact with the same SM API.
 - `store_dashboard_sha256` (Boolean) Set to true if you want to save only the sha256sum instead of complete dashboard model JSON in the tfstate.
 - `tls_cert` (String) Client TLS certificate (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.
 - `tls_key` (String) Client TLS key (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.
@@ -246,57 +231,16 @@ One, or many, of the following authentication settings must be set. Each authent
 ### `auth`
 
 This can be a Grafana API key, basic auth `username:password`, or a
-[Grafana API key](https://grafana.com/docs/grafana/latest/developers/http_api/create-api-tokens-for-org/).
+[Grafana Service Account token](https://grafana.com/docs/grafana/latest/developers/http_api/create-api-tokens-for-org/).
 
-### `cloud_api_key`
+### `cloud_access_policy_token`
 
-An API key created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/create-api-key/).
+An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/create-api-key/).
 
 ### `sm_access_token`
 
-[Synthetic Monitoring](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/)
-endpoints require a dedicated access token. You may obtain an access token with its
-[Registration API](https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#registration-api).
-
-```console
-curl \
-  -X POST \
-  -H 'Content-type: application/json; charset=utf-8' \
-  -H "Authorization: Bearer $GRAFANA_CLOUD_API_KEY" \
-  -d '{"stackId": <stack-id>, "metricsInstanceId": <metrics-instance-id>, "logsInstanceId": <logs-instance-id>}' \
-  "$SM_API_URL/api/v1/register/install"
-```
-
-`GRAFANA_CLOUD_API_KEY` is an API key created on the
-[Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/create-api-key/).
-It must have the `MetricsPublisher` role.
-
-`SM_API_URL` is the URL of the Synthetic Monitoring API.
-Based on the region of your Grafana Cloud stack, you need to use a different API URL.
-
-Please [see API docs](https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#api-url) to find `SM_API_URL` for your region.
-
-`stackId`, `metricsInstanceId`, and `logsInstanceId` may also be obtained on
-the portal. First, you need to create a Stack by clicking "Add Stack". When it's
-created you will be taken to its landing page on the portal. Get your `stackId`
-from the URL in your browser:
-
-```
-https://grafana.com/orgs/<org-slug>/stacks/<stack-id>
-```
-
-Next, go to "Details" for Prometheus. Again, get `metricsInstanceId` from your URL:
-
-```
-https://grafana.com/orgs/<org-slug>/hosted-metrics/<metrics-instance-id>
-```
-
-Finally, go back to your stack page, and go to "Details" for Loki to get
-`logsInstanceId`.
-
-```
-https://grafana.com/orgs/<org-slug>/hosted-logs/<logs-instance-id>
-```
+[Grafana Synthetic Monitoring](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/) uses distinct tokens for API access. 
+You can use the `grafana_synthetic_monitoring_installation` resource as shown above or you can request a new Synthetic Monitoring API key in Synthetics -> Config page.
 
 ### `oncall_access_token`
 

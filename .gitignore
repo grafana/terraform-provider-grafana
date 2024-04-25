@@ -6,7 +6,6 @@ terraform.tfplan
 terraform.tfstate
 bin/
 modules-dev/
-/pkg/
 website/.vagrant
 website/.bundle
 website/build
@@ -28,6 +27,9 @@ website/vendor
 
 testdata/*.crt
 testdata/*.key
+testdata/integration/*
+!testdata/integration/main.tf
+!testdata/integration/test.sh
 
 # Test exclusions
 !command/test-fixtures/**/*.tfstate

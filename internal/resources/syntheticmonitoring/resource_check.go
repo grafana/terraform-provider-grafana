@@ -13,7 +13,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	sm "github.com/grafana/synthetic-monitoring-agent/pkg/pb/synthetic_monitoring"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+)
+
+const (
+	checkDefaultTimeout          = 3000
+	checkMultiHTTPDefaultTimeout = 5000
 )
 
 var (
@@ -617,10 +623,12 @@ var (
 			},
 		},
 	}
+
+	resourceCheckID = common.NewResourceID(common.IntIDField("id"))
 )
 
-func ResourceCheck() *schema.Resource {
-	return &schema.Resource{
+func resourceCheck() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 Synthetic Monitoring checks are tests that run on selected probes at defined
@@ -629,17 +637,17 @@ target for checks can be a domain name, a server, or a website, depending on
 what information you would like to gather about your endpoint. You can define
 multiple checks for a single endpoint to check different capabilities.
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/checks/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/checks/)
 `,
 
-		CreateContext: ResourceCheckCreate,
-		ReadContext:   ResourceCheckRead,
-		UpdateContext: ResourceCheckUpdate,
-		DeleteContext: ResourceCheckDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceCheckCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceCheckRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceCheckUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceCheckDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		CustomizeDiff: ResourceCheckCustomizeDiff,
+		CustomizeDiff: resourceCheckCustomizeDiff,
 
 		Schema: map[string]*schema.Schema{
 			"id": {
@@ -675,7 +683,18 @@ multiple checks for a single endpoint to check different capabilities.
 					"The minimum acceptable value is 1 second (1000 ms), and the maximum 10 seconds (10000 ms).",
 				Type:     schema.TypeInt,
 				Optional: true,
-				Default:  3000,
+				Default:  checkDefaultTimeout,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					// Suppress diff if it's a multihttp check with a timeout of 5000 (default timeout for those)
+					// and it's being changed to 3000 (default timeout set here).
+					if d.Get("settings.0.multihttp.0") != nil &&
+						old == strconv.Itoa(checkMultiHTTPDefaultTimeout) &&
+						new == strconv.Itoa(checkDefaultTimeout) {
+						return true
+					}
+
+					return old == new
+				},
 			},
 			"enabled": {
 				Description: "Whether to enable the check.",
@@ -684,7 +703,7 @@ multiple checks for a single endpoint to check different capabilities.
 				Default:     true,
 			},
 			"alert_sensitivity": {
-				Description: "Can be set to `none`, `low`, `medium`, or `high` to correspond to the check [alert levels](https://grafana.com/docs/grafana-cloud/monitor-public-endpoints/synthetic-monitoring-alerting/).",
+				Description: "Can be set to `none`, `low`, `medium`, or `high` to correspond to the check [alert levels](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/configure-alerts/synthetic-monitoring-alerting/).",
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "none",
@@ -724,10 +743,11 @@ multiple checks for a single endpoint to check different capabilities.
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource("grafana_synthetic_monitoring_check", resourceCheckID, schema)
 }
 
-func ResourceCheckCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).SMAPI
+func resourceCheckCreate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	chk, err := makeCheck(d)
 	if err != nil {
 		return diag.FromErr(err)
@@ -738,16 +758,15 @@ func ResourceCheckCreate(ctx context.Context, d *schema.ResourceData, meta inter
 	}
 	d.SetId(strconv.FormatInt(res.Id, 10))
 	d.Set("tenant_id", res.TenantId)
-	return ResourceCheckRead(ctx, d, meta)
+	return resourceCheckRead(ctx, d, c)
 }
 
-func ResourceCheckRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).SMAPI
-	id, err := strconv.ParseInt(d.Id(), 10, 64)
+func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
+	id, err := resourceCheckID.Single(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	chk, err := c.GetCheck(ctx, id)
+	chk, err := c.GetCheck(ctx, id.(int64))
 	if err != nil {
 		if strings.Contains(err.Error(), "404 Not Found") {
 			log.Printf("[WARN] removing check %s from state because it no longer exists", d.Id())
@@ -1042,8 +1061,7 @@ func ResourceCheckRead(ctx context.Context, d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func ResourceCheckUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).SMAPI
+func resourceCheckUpdate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	chk, err := makeCheck(d)
 	if err != nil {
 		return diag.FromErr(err)
@@ -1052,14 +1070,16 @@ func ResourceCheckUpdate(ctx context.Context, d *schema.ResourceData, meta inter
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	return ResourceCheckRead(ctx, d, meta)
+	return resourceCheckRead(ctx, d, c)
 }
 
-func ResourceCheckDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).SMAPI
+func resourceCheckDelete(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	var diags diag.Diagnostics
-	id, _ := strconv.ParseInt(d.Id(), 10, 64)
-	err := c.DeleteCheck(ctx, id)
+	id, err := resourceCheckID.Single(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = c.DeleteCheck(ctx, id.(int64))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -1093,13 +1113,18 @@ func makeCheck(d *schema.ResourceData) (*sm.Check, error) {
 		return nil, fmt.Errorf("invalid settings: %w", err)
 	}
 
+	timeout := int64(d.Get("timeout").(int))
+	if timeout == checkDefaultTimeout && settings.Multihttp != nil {
+		timeout = checkMultiHTTPDefaultTimeout
+	}
+
 	return &sm.Check{
 		Id:               id,
 		TenantId:         int64(d.Get("tenant_id").(int)),
 		Job:              d.Get("job").(string),
 		Target:           d.Get("target").(string),
 		Frequency:        int64(d.Get("frequency").(int)),
-		Timeout:          int64(d.Get("timeout").(int)),
+		Timeout:          timeout,
 		Enabled:          d.Get("enabled").(bool),
 		AlertSensitivity: d.Get("alert_sensitivity").(string),
 		BasicMetricsOnly: d.Get("basic_metrics_only").(bool),
@@ -1456,7 +1481,7 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 // Ideally, we'd use `ExactlyOneOf` here but it doesn't support TypeSet.
 // Also, TypeSet doesn't support ValidateFunc.
 // To maintain backwards compatibility, we do a custom validation in the CustomizeDiff function.
-func ResourceCheckCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, meta interface{}) error {
+func resourceCheckCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, meta interface{}) error {
 	settingsList := diff.Get("settings").(*schema.Set).List()
 	if len(settingsList) == 0 {
 		return fmt.Errorf("at least one check setting must be defined")

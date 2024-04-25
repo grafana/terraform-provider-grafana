@@ -4,11 +4,13 @@ import (
 	"context"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -16,8 +18,8 @@ import (
 // Service Accounts have issues with concurrent creation, so we need to lock them.
 var serviceAccountCreateMutex sync.Mutex
 
-func ResourceServiceAccount() *schema.Resource {
-	return &schema.Resource{
+func resourceServiceAccount() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 **Note:** This resource is available only with Grafana 9.1+.
@@ -41,7 +43,7 @@ func ResourceServiceAccount() *schema.Resource {
 			},
 			"role": {
 				Type:         schema.TypeString,
-				Optional:     true,
+				Required:     true,
 				ValidateFunc: validation.StringInSlice([]string{"Viewer", "Editor", "Admin", "None"}, false),
 				Description:  "The basic role of the service account in the organization.",
 			},
@@ -53,6 +55,12 @@ func ResourceServiceAccount() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_service_account",
+		orgResourceIDInt("id"),
+		schema,
+	)
 }
 
 func CreateServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -60,18 +68,38 @@ func CreateServiceAccount(ctx context.Context, d *schema.ResourceData, meta inte
 	defer serviceAccountCreateMutex.Unlock()
 
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
+	client = client.WithRetries(0, 0) // Disable retries to have our own retry logic
 	req := models.CreateServiceAccountForm{
 		Name:       d.Get("name").(string),
 		Role:       d.Get("role").(string),
 		IsDisabled: d.Get("is_disabled").(bool),
 	}
 
-	params := service_accounts.NewCreateServiceAccountParams().WithBody(&req)
-	resp, err := client.ServiceAccounts.CreateServiceAccount(params)
+	var sa *models.ServiceAccountDTO
+	err := retry.RetryContext(ctx, 10*time.Second, func() *retry.RetryError {
+		params := service_accounts.NewCreateServiceAccountParams().WithBody(&req)
+		resp, err := client.ServiceAccounts.CreateServiceAccount(params)
+		if err == nil {
+			sa = resp.Payload
+			return nil
+		}
+
+		if err, ok := err.(*service_accounts.CreateServiceAccountInternalServerError); ok {
+			// Sometimes on 500s, the service account is created but the response is not returned.
+			// If we just retry, it will conflict because the SA was actually created.
+			foundSa, readErr := findServiceAccountByName(client, req.Name)
+			if readErr != nil {
+				return retry.RetryableError(err)
+			}
+			sa = foundSa
+			return nil
+		}
+		return retry.NonRetryableError(err)
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(MakeOrgResourceID(orgID, resp.Payload.ID))
+	d.SetId(MakeOrgResourceID(orgID, sa.ID))
 
 	return ReadServiceAccount(ctx, d, meta)
 }
@@ -104,15 +132,10 @@ func UpdateServiceAccount(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	updateRequest := models.UpdateServiceAccountForm{}
-	if d.HasChange("name") {
-		updateRequest.Name = d.Get("name").(string)
-	}
-	if d.HasChange("role") {
-		updateRequest.Role = d.Get("role").(string)
-	}
-	if d.HasChange("is_disabled") {
-		updateRequest.IsDisabled = d.Get("is_disabled").(bool)
+	updateRequest := models.UpdateServiceAccountForm{
+		Name:       d.Get("name").(string),
+		Role:       d.Get("role").(string),
+		IsDisabled: d.Get("is_disabled").(bool),
 	}
 
 	params := service_accounts.NewUpdateServiceAccountParams().

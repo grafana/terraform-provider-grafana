@@ -100,6 +100,6 @@ resource "grafana_dashboard_public" "my_public_dashboard2" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_dashboard_public.dashboard_name {{dashboard_uid}}:{{public_dashboard_uid}} # To use the default provider org
-terraform import grafana_dashboard_public.dashboard_name {org_id}}:{{dashboard_uid}}:{{public_dashboard_uid}} # When "org_id" is set on the resource
+terraform import grafana_dashboard_public.name "{{ dashboardUID }}:{{ publicDashboardUID }}"
+terraform import grafana_dashboard_public.name "{{ orgID }}:{{ dashboardUID }}:{{ publicDashboardUID }}"
 ```

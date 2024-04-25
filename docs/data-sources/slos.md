@@ -116,7 +116,7 @@ Read-Only:
 - `label` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--fastburn--label))
 
 <a id="nestedobjatt--slos--alerting--fastburn--annotation"></a>
-### Nested Schema for `slos.alerting.fastburn.label`
+### Nested Schema for `slos.alerting.fastburn.annotation`
 
 Read-Only:
 
@@ -152,7 +152,7 @@ Read-Only:
 - `label` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--slowburn--label))
 
 <a id="nestedobjatt--slos--alerting--slowburn--annotation"></a>
-### Nested Schema for `slos.alerting.slowburn.label`
+### Nested Schema for `slos.alerting.slowburn.annotation`
 
 Read-Only:
 

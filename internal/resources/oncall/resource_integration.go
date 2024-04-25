@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -46,17 +46,17 @@ var integrationTypes = []string{
 
 var integrationTypesVerbal = strings.Join(integrationTypes, ", ")
 
-func ResourceIntegration() *schema.Resource {
-	return &schema.Resource{
+func resourceIntegration() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/oncall/latest/integrations/)
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/)
 `,
 
-		CreateContext: ResourceIntegrationCreate,
-		ReadContext:   ResourceIntegrationRead,
-		UpdateContext: ResourceIntegrationUpdate,
-		DeleteContext: ResourceIntegrationDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceIntegrationCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceIntegrationRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceIntegrationUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceIntegrationDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -234,6 +234,12 @@ func ResourceIntegration() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_oncall_integration",
+		resourceID,
+		schema,
+	)
 }
 
 func onCallTemplate(description string, hasMessage, hasImage bool) *schema.Schema {
@@ -274,9 +280,7 @@ func onCallTemplate(description string, hasMessage, hasImage bool) *schema.Schem
 	return &templateSchema
 }
 
-func ResourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	teamIDData := d.Get("team_id").(string)
 	nameData := d.Get("name").(string)
 	typeData := d.Get("type").(string)
@@ -298,12 +302,10 @@ func ResourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, m in
 
 	d.SetId(integration.ID)
 
-	return ResourceIntegrationRead(ctx, d, m)
+	return resourceIntegrationRead(ctx, d, client)
 }
 
-func ResourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
 	templateData := d.Get("templates").([]interface{})
@@ -323,11 +325,10 @@ func ResourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, m in
 
 	d.SetId(integration.ID)
 
-	return ResourceIntegrationRead(ctx, d, m)
+	return resourceIntegrationRead(ctx, d, client)
 }
 
-func ResourceIntegrationRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func resourceIntegrationRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.GetIntegrationOptions{}
 	integration, r, err := client.Integrations.GetIntegration(d.Id(), options)
 	if err != nil {
@@ -349,8 +350,7 @@ func ResourceIntegrationRead(ctx context.Context, d *schema.ResourceData, m inte
 	return nil
 }
 
-func ResourceIntegrationDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func resourceIntegrationDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.DeleteIntegrationOptions{}
 	_, err := client.Integrations.DeleteIntegration(d.Id(), options)
 	if err != nil {

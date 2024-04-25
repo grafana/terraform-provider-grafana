@@ -2,30 +2,71 @@ package cloud
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func ResourceAccessPolicy() *schema.Resource {
-	return &schema.Resource{
+var (
+	//nolint:staticcheck
+	resourceAccessPolicyID = common.NewResourceIDWithLegacySeparator("/",
+		common.StringIDField("region"),
+		common.StringIDField("policyId"),
+	)
+)
 
+func resourceAccessPolicy() *common.Resource {
+	cloudAccessPolicyRealmSchema := &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"type": {
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "Whether a policy applies to a Cloud org or a specific stack. Should be one of `org` or `stack`.",
+				ValidateFunc: validation.StringInSlice([]string{"org", "stack"}, false),
+			},
+			"identifier": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The identifier of the org or stack. For orgs, this is the slug, for stacks, this is the stack ID.",
+			},
+			"label_policy": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"selector": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The label selector to match in metrics or logs query. Should be in PromQL or LogQL format.",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	schema := &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#create-an-access-policy)
+
+Required access policy scopes:
+
+* accesspolicies:read
+* accesspolicies:write
+* accesspolicies:delete
 `,
 
-		CreateContext: CreateCloudAccessPolicy,
-		UpdateContext: UpdateCloudAccessPolicy,
-		DeleteContext: DeleteCloudAccessPolicy,
-		ReadContext:   ReadCloudAccessPolicy,
+		CreateContext: withClient[schema.CreateContextFunc](createCloudAccessPolicy),
+		UpdateContext: withClient[schema.UpdateContextFunc](updateCloudAccessPolicy),
+		DeleteContext: withClient[schema.DeleteContextFunc](deleteCloudAccessPolicy),
+		ReadContext:   withClient[schema.ReadContextFunc](readCloudAccessPolicy),
 
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -88,39 +129,15 @@ func ResourceAccessPolicy() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_cloud_access_policy",
+		resourceAccessPolicyID,
+		schema,
+	)
 }
 
-var cloudAccessPolicyRealmSchema = &schema.Resource{
-	Schema: map[string]*schema.Schema{
-		"type": {
-			Type:         schema.TypeString,
-			Required:     true,
-			Description:  "Whether a policy applies to a Cloud org or a specific stack. Should be one of `org` or `stack`.",
-			ValidateFunc: validation.StringInSlice([]string{"org", "stack"}, false),
-		},
-		"identifier": {
-			Type:        schema.TypeString,
-			Required:    true,
-			Description: "The identifier of the org or stack. For orgs, this is the slug, for stacks, this is the stack ID.",
-		},
-		"label_policy": {
-			Type:     schema.TypeSet,
-			Optional: true,
-			Elem: &schema.Resource{
-				Schema: map[string]*schema.Schema{
-					"selector": {
-						Type:        schema.TypeString,
-						Required:    true,
-						Description: "The label selector to match in metrics or logs query. Should be in PromQL or LogQL format.",
-					},
-				},
-			},
-		},
-	},
-}
-
-func CreateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
+func createCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
 	region := d.Get("region").(string)
 
 	displayName := d.Get("display_name").(string)
@@ -128,67 +145,84 @@ func CreateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta i
 		displayName = d.Get("name").(string)
 	}
 
-	result, err := client.CreateCloudAccessPolicy(region, gapi.CreateCloudAccessPolicyInput{
-		Name:        d.Get("name").(string),
-		DisplayName: displayName,
-		Scopes:      common.ListToStringSlice(d.Get("scopes").(*schema.Set).List()),
-		Realms:      expandCloudAccessPolicyRealm(d.Get("realm").(*schema.Set).List()),
-	})
+	req := client.AccesspoliciesAPI.PostAccessPolicies(ctx).Region(region).XRequestId(ClientRequestID()).
+		PostAccessPoliciesRequest(gcom.PostAccessPoliciesRequest{
+			Name:        d.Get("name").(string),
+			DisplayName: &displayName,
+			Scopes:      common.ListToStringSlice(d.Get("scopes").(*schema.Set).List()),
+			Realms:      expandCloudAccessPolicyRealm(d.Get("realm").(*schema.Set).List()),
+		})
+	result, _, err := req.Execute()
+	if err != nil {
+		return apiError(err)
+	}
+
+	d.SetId(resourceAccessPolicyID.Make(region, result.Id))
+
+	return readCloudAccessPolicy(ctx, d, client)
+}
+
+func updateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	split, err := resourceAccessPolicyID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	d.SetId(fmt.Sprintf("%s/%s", region, result.ID))
-
-	return ReadCloudAccessPolicy(ctx, d, meta)
-}
-
-func UpdateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
-	region, id, _ := strings.Cut(d.Id(), "/")
+	region, id := split[0], split[1]
 
 	displayName := d.Get("display_name").(string)
 	if displayName == "" {
 		displayName = d.Get("name").(string)
 	}
 
-	_, err := client.UpdateCloudAccessPolicy(region, id, gapi.UpdateCloudAccessPolicyInput{
-		DisplayName: displayName,
-		Scopes:      common.ListToStringSlice(d.Get("scopes").(*schema.Set).List()),
-		Realms:      expandCloudAccessPolicyRealm(d.Get("realm").(*schema.Set).List()),
-	})
+	req := client.AccesspoliciesAPI.PostAccessPolicy(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).
+		PostAccessPolicyRequest(gcom.PostAccessPolicyRequest{
+			DisplayName: &displayName,
+			Scopes:      common.ListToStringSlice(d.Get("scopes").(*schema.Set).List()),
+			Realms:      expandCloudAccessPolicyRealm(d.Get("realm").(*schema.Set).List()),
+		})
+	if _, _, err = req.Execute(); err != nil {
+		return apiError(err)
+	}
+
+	return readCloudAccessPolicy(ctx, d, client)
+}
+
+func readCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	split, err := resourceAccessPolicyID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	region, id := split[0], split[1]
 
-	return ReadCloudAccessPolicy(ctx, d, meta)
-}
-
-func ReadCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
-
-	region, id, _ := strings.Cut(d.Id(), "/")
-	result, err := client.CloudAccessPolicyByID(region, id)
+	result, _, err := client.AccesspoliciesAPI.GetAccessPolicy(ctx, id.(string)).Region(region.(string)).Execute()
 	if err, shouldReturn := common.CheckReadError("access policy", d, err); shouldReturn {
 		return err
 	}
 
 	d.Set("region", region)
-	d.Set("policy_id", result.ID)
+	d.Set("policy_id", result.Id)
 	d.Set("name", result.Name)
 	d.Set("display_name", result.DisplayName)
 	d.Set("scopes", result.Scopes)
 	d.Set("realm", flattenCloudAccessPolicyRealm(result.Realms))
 	d.Set("created_at", result.CreatedAt.Format(time.RFC3339))
-	d.Set("updated_at", result.UpdatedAt.Format(time.RFC3339))
+	if updated := result.UpdatedAt; updated != nil {
+		d.Set("updated_at", updated.Format(time.RFC3339))
+	}
+	d.SetId(resourceAccessPolicyID.Make(region, result.Id))
 
 	return nil
 }
 
-func DeleteCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*common.Client).GrafanaCloudAPI
-	region, id, _ := strings.Cut(d.Id(), "/")
-	return diag.FromErr(client.DeleteCloudAccessPolicy(region, id))
+func deleteCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
+	split, err := resourceAccessPolicyID.Split(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	region, id := split[0], split[1]
+
+	_, _, err = client.AccesspoliciesAPI.DeleteAccessPolicy(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).Execute()
+	return apiError(err)
 }
 
 func validateCloudAccessPolicyScope(v interface{}, path cty.Path) diag.Diagnostics {
@@ -199,7 +233,7 @@ func validateCloudAccessPolicyScope(v interface{}, path cty.Path) diag.Diagnosti
 	return nil
 }
 
-func flattenCloudAccessPolicyRealm(realm []gapi.CloudAccessPolicyRealm) []interface{} {
+func flattenCloudAccessPolicyRealm(realm []gcom.AuthAccessPolicyRealmsInner) []interface{} {
 	var result []interface{}
 
 	for _, r := range realm {
@@ -219,20 +253,20 @@ func flattenCloudAccessPolicyRealm(realm []gapi.CloudAccessPolicyRealm) []interf
 	return result
 }
 
-func expandCloudAccessPolicyRealm(realm []interface{}) []gapi.CloudAccessPolicyRealm {
-	var result []gapi.CloudAccessPolicyRealm
+func expandCloudAccessPolicyRealm(realm []interface{}) []gcom.PostAccessPoliciesRequestRealmsInner {
+	var result []gcom.PostAccessPoliciesRequestRealmsInner
 
 	for _, r := range realm {
 		r := r.(map[string]interface{})
-		labelPolicy := []gapi.CloudAccessPolicyLabelPolicy{}
+		labelPolicy := []gcom.PostAccessPoliciesRequestRealmsInnerLabelPoliciesInner{}
 		for _, lp := range r["label_policy"].(*schema.Set).List() {
 			lp := lp.(map[string]interface{})
-			labelPolicy = append(labelPolicy, gapi.CloudAccessPolicyLabelPolicy{
+			labelPolicy = append(labelPolicy, gcom.PostAccessPoliciesRequestRealmsInnerLabelPoliciesInner{
 				Selector: lp["selector"].(string),
 			})
 		}
 
-		result = append(result, gapi.CloudAccessPolicyRealm{
+		result = append(result, gcom.PostAccessPoliciesRequestRealmsInner{
 			Type:          r["type"].(string),
 			Identifier:    r["identifier"].(string),
 			LabelPolicies: labelPolicy,

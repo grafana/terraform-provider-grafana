@@ -6,23 +6,28 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceReport_Multiple_Dashboards(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	var report models.Report
+	var randomUID = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+	var randomUID2 = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      reportCheckExists.destroyed(&report, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             reportCheckExists.destroyed(&report, nil),
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_report/multiple-dashboards.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_report/multiple-dashboards.tf", map[string]string{
+					`"report-dashboard"`:   fmt.Sprintf(`"%s"`, randomUID),
+					`"report-dashboard-2"`: fmt.Sprintf(`"%s"`, randomUID2),
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					reportCheckExists.exists("grafana_report.test", &report),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "id"),
@@ -33,21 +38,24 @@ func TestAccResourceReport_Multiple_Dashboards(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_report.test", "recipients.0", "some@email.com"),
 					resource.TestCheckNoResourceAttr("grafana_report.test", "recipients.1"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.frequency", "monthly"),
-					resource.TestCheckResourceAttrSet("grafana_report.test", "schedule.0.start_time"), // Date set to current time
-					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", ""),  // No end time
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.start_time", "2024-02-10T15:00:00-05:00"),
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", "2024-02-15T10:00:00-05:00"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.last_day_of_month", "true"),
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.timezone", "America/New_York"),
 					resource.TestCheckResourceAttr("grafana_report.test", "orientation", "landscape"),
 					resource.TestCheckResourceAttr("grafana_report.test", "layout", "grid"),
 					resource.TestCheckResourceAttr("grafana_report.test", "include_dashboard_link", "true"),
 					resource.TestCheckResourceAttr("grafana_report.test", "include_table_csv", "false"),
 					resource.TestCheckNoResourceAttr("grafana_report.test", "time_range.0.from"),
 					resource.TestCheckNoResourceAttr("grafana_report.test", "time_range.0.to"),
-					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.uid", "report"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.uid", randomUID),
 					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.time_range.0.from", "now-1h"),
 					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.time_range.0.to", "now"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.report_variables.query0", "a,b"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.0.report_variables.query1", "c,d"),
 					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.1.time_range.0.from", ""),
 					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.1.time_range.0.to", ""),
-					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.1.uid", "report2"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.1.uid", randomUID2),
 				),
 			},
 		},
@@ -55,28 +63,32 @@ func TestAccResourceReport_Multiple_Dashboards(t *testing.T) {
 }
 
 func TestAccResourceReport_basic(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	var report models.Report
+	var randomUID = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      reportCheckExists.destroyed(&report, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             reportCheckExists.destroyed(&report, nil),
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_report/resource.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_report/resource.tf", map[string]string{
+					`"report-dashboard"`: fmt.Sprintf(`"%s"`, randomUID),
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					reportCheckExists.exists("grafana_report.test", &report),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "id"),
 					resource.TestCheckResourceAttr("grafana_report.test", "org_id", "1"),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "dashboard_id"),
 					resource.TestCheckResourceAttr("grafana_report.test", "name", "my report"),
-					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", "report"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", randomUID),
 					resource.TestCheckResourceAttr("grafana_report.test", "recipients.0", "some@email.com"),
 					resource.TestCheckNoResourceAttr("grafana_report.test", "recipients.1"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.frequency", "hourly"),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "schedule.0.start_time"), // Date set to current time
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", ""),  // No end time
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.timezone", "GMT"),
 					resource.TestCheckResourceAttr("grafana_report.test", "orientation", "landscape"),
 					resource.TestCheckResourceAttr("grafana_report.test", "layout", "grid"),
 					resource.TestCheckResourceAttr("grafana_report.test", "include_dashboard_link", "true"),
@@ -86,7 +98,9 @@ func TestAccResourceReport_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_report/all-options.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_report/all-options.tf", map[string]string{
+					`"report-dashboard"`: fmt.Sprintf(`"%s"`, randomUID),
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					func(s *terraform.State) error {
 						// Check that the ID and dashboard ID are the same as the first run
@@ -96,7 +110,7 @@ func TestAccResourceReport_basic(t *testing.T) {
 							resource.TestCheckResourceAttr("grafana_report.test", "dashboard_id", strconv.FormatInt(report.Dashboards[0].Dashboard.ID, 10)),
 						)(s)
 					},
-					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", "report"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", randomUID),
 					resource.TestCheckResourceAttr("grafana_report.test", "name", "my report updated"),
 					resource.TestCheckResourceAttr("grafana_report.test", "recipients.0", "some@email.com"),
 					resource.TestCheckResourceAttr("grafana_report.test", "recipients.1", "some2@email.com"),
@@ -104,6 +118,7 @@ func TestAccResourceReport_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.workdays_only", "true"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.start_time", "2020-01-01T07:00:00Z"), // Date transformed to UTC
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", "2020-01-15T08:30:00Z"),   // Date transformed to UTC
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.timezone", "GMT"),
 					resource.TestCheckResourceAttr("grafana_report.test", "orientation", "portrait"),
 					resource.TestCheckResourceAttr("grafana_report.test", "layout", "simple"),
 					resource.TestCheckResourceAttr("grafana_report.test", "include_dashboard_link", "false"),
@@ -117,18 +132,21 @@ func TestAccResourceReport_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_report/monthly.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_report/monthly.tf", map[string]string{
+					`"report-dashboard"`: fmt.Sprintf(`"%s"`, randomUID),
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					reportCheckExists.exists("grafana_report.test", &report),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "id"),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "dashboard_id"),
-					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", "report"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", randomUID),
 					resource.TestCheckResourceAttr("grafana_report.test", "name", "my report"),
 					resource.TestCheckResourceAttr("grafana_report.test", "recipients.0", "some@email.com"),
 					resource.TestCheckNoResourceAttr("grafana_report.test", "recipients.1"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.frequency", "monthly"),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "schedule.0.start_time"), // Date set to current time
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.end_time", ""),  // No end time
+					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.timezone", "GMT"),
 					resource.TestCheckResourceAttr("grafana_report.test", "schedule.0.last_day_of_month", "true"),
 					resource.TestCheckResourceAttr("grafana_report.test", "orientation", "landscape"),
 					resource.TestCheckResourceAttr("grafana_report.test", "layout", "grid"),
@@ -145,20 +163,21 @@ func TestAccResourceReport_basic(t *testing.T) {
 // Testing the deprecated case of using a dashboard ID instead of a dashboard UID
 // TODO: Remove in next major version
 func TestAccResourceReport_CreateFromDashboardID(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	var report models.Report
+	var randomUID = acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      reportCheckExists.destroyed(&report, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             reportCheckExists.destroyed(&report, nil),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccReportCreateFromID,
+				Config: testAccReportCreateFromID(randomUID),
 				Check: resource.ComposeTestCheckFunc(
 					reportCheckExists.exists("grafana_report.test", &report),
 					resource.TestCheckResourceAttrSet("grafana_report.test", "dashboard_id"),
-					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", "report-from-uid"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", randomUID),
 				),
 			},
 		},
@@ -166,21 +185,21 @@ func TestAccResourceReport_CreateFromDashboardID(t *testing.T) {
 }
 
 func TestAccResourceReport_InOrg(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	var report models.Report
 	var org models.OrgDetailsDTO
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      reportCheckExists.destroyed(&report, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             reportCheckExists.destroyed(&report, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccReportCreateInOrg(name),
 				Check: resource.ComposeTestCheckFunc(
 					reportCheckExists.exists("grafana_report.test", &report),
-					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", "report-in-org"),
+					resource.TestCheckResourceAttr("grafana_report.test", "dashboard_uid", name),
 
 					// Check that the dashboard is in the correct organization
 					resource.TestMatchResourceAttr("grafana_report.test", "id", nonDefaultOrgIDRegexp),
@@ -192,12 +211,12 @@ func TestAccResourceReport_InOrg(t *testing.T) {
 	})
 }
 
-const testAccReportCreateFromID = `
-resource "grafana_dashboard" "test" {
+func testAccReportCreateFromID(uid string) string {
+	return fmt.Sprintf(`resource "grafana_dashboard" "test" {
 	config_json = <<EOD
   {
-	"title": "Dashboard for report from UID",
-	"uid": "report-from-uid"
+	"title": "%[1]s",
+	"uid": "%[1]s"
   }
   EOD
 	message     = "initial commit."
@@ -211,7 +230,8 @@ resource "grafana_dashboard" "test" {
 	  frequency = "hourly"
 	}
   }
-  `
+  `, uid)
+}
 
 func testAccReportCreateInOrg(name string) string {
 	return fmt.Sprintf(`
@@ -223,8 +243,8 @@ resource "grafana_dashboard" "test" {
 	org_id      = grafana_organization.test.id
 	config_json = <<EOD
 {
-	"title": "Dashboard for report in org",
-	"uid": "report-in-org"
+	"title": "%[1]s",
+	"uid": "%[1]s"
 }
 EOD
 	message     = "initial commit."

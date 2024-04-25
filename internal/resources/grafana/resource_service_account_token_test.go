@@ -5,8 +5,7 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -19,8 +18,8 @@ func TestAccServiceAccountToken_basic(t *testing.T) {
 	var sa models.ServiceAccountDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      serviceAccountCheckExists.destroyed(&sa, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             serviceAccountCheckExists.destroyed(&sa, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccServiceAccountTokenConfig(name, "Editor", 0, false),
@@ -64,8 +63,8 @@ func TestAccServiceAccountToken_inOrg(t *testing.T) {
 	var sa models.ServiceAccountDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccServiceAccountTokenConfig(name, "Editor", 0, true),
@@ -113,7 +112,7 @@ func TestAccServiceAccountToken_inOrg(t *testing.T) {
 
 func checkServiceAccountTokens(sa *models.ServiceAccountDTO, expectNames []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := grafana.OAPIGlobalClient(testutils.Provider.Meta()).WithOrgID(sa.OrgID)
+		client := grafanaTestClient().WithOrgID(sa.OrgID)
 		resp, err := client.ServiceAccounts.ListTokens(sa.ID)
 		if err != nil {
 			return err

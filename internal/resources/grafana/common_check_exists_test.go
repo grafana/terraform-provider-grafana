@@ -10,9 +10,9 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/api_keys"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -63,9 +63,9 @@ var (
 		},
 	)
 	alertingRuleGroupCheckExists = newCheckExistsHelper(
-		func(g *models.AlertRuleGroup) string { return g.FolderUID + ";" + g.Title },
+		func(g *models.AlertRuleGroup) string { return g.FolderUID + ":" + g.Title },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.AlertRuleGroup, error) {
-			folder, title, _ := strings.Cut(id, ";")
+			folder, title, _ := strings.Cut(id, ":")
 			resp, err := client.Provisioning.GetAlertRuleGroup(title, folder)
 			return payloadOrError(resp, err)
 		},
@@ -113,16 +113,16 @@ var (
 		},
 	)
 	datasourceCheckExists = newCheckExistsHelper(
-		func(d *models.DataSource) string { return strconv.FormatInt(d.ID, 10) },
-		func(client *goapi.GrafanaHTTPAPI, id string) (*models.DataSource, error) {
-			resp, err := client.Datasources.GetDataSourceByID(id)
+		func(d *models.DataSource) string { return d.UID },
+		func(client *goapi.GrafanaHTTPAPI, uid string) (*models.DataSource, error) {
+			resp, err := client.Datasources.GetDataSourceByUID(uid)
 			return payloadOrError(resp, err)
 		},
 	)
 	datasourcePermissionsCheckExists = newCheckExistsHelper(
 		datasourceCheckExists.getIDFunc, // We use the DS as the reference
-		func(client *goapi.GrafanaHTTPAPI, id string) (*models.DataSource, error) {
-			ds, err := datasourceCheckExists.getResourceFunc(client, id)
+		func(client *goapi.GrafanaHTTPAPI, uid string) (*models.DataSource, error) {
+			ds, err := datasourceCheckExists.getResourceFunc(client, uid)
 			if err != nil {
 				return nil, err
 			}
@@ -144,9 +144,9 @@ var (
 		},
 	)
 	folderCheckExists = newCheckExistsHelper(
-		func(f *models.Folder) string { return strconv.FormatInt(f.ID, 10) },
-		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Folder, error) {
-			resp, err := client.Folders.GetFolderByID(mustParseInt64(id))
+		func(f *models.Folder) string { return f.UID },
+		func(client *goapi.GrafanaHTTPAPI, uid string) (*models.Folder, error) {
+			resp, err := client.Folders.GetFolderByUID(uid)
 			return payloadOrError(resp, err)
 		},
 	)
@@ -161,6 +161,9 @@ var (
 		func(o *models.OrgDetailsDTO) string { return strconv.FormatInt(o.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.OrgDetailsDTO, error) {
 			resp, err := client.Orgs.GetOrgByID(mustParseInt64(id))
+			if err, ok := err.(runtime.ClientResponseStatus); ok && err.IsCode(403) {
+				return nil, &runtime.APIError{Code: 404, Response: "forbidden. The org either does not exist or the user does not have access to it"}
+			}
 			return payloadOrError(resp, err)
 		},
 	)
@@ -286,7 +289,7 @@ func (h *checkExistsHelper[T]) exists(rn string, v *T) resource.TestCheckFunc {
 		orgID, idStr := grafana.SplitOrgResourceID(rs.Primary.ID)
 
 		// If the org ID is set, check that the resource doesn't exist in the default org
-		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(1)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(1)
 		if orgID > 1 {
 			_, err := h.getResourceFunc(client, idStr)
 			if err == nil {
@@ -321,7 +324,7 @@ func (h *checkExistsHelper[T]) destroyed(v *T, org *models.OrgDetailsDTO) resour
 			orgID = org.ID
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaOAPI.WithOrgID(orgID)
+		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
 		id := h.getIDFunc(v)
 		_, err := h.getResourceFunc(client, id)
 		if err == nil {

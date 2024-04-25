@@ -8,15 +8,18 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	_ "time/tzdata"
 
 	"github.com/go-openapi/strfmt"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
 const (
@@ -37,6 +40,8 @@ const (
 	reportFormatPDF   = "pdf"
 	reportFormatCSV   = "csv"
 	reportFormatImage = "image"
+
+	timeDateShortFormat = "2006-01-02T15:04:05"
 )
 
 var (
@@ -46,8 +51,8 @@ var (
 	reportFormats      = []string{reportFormatPDF, reportFormatCSV, reportFormatImage}
 )
 
-func ResourceReport() *schema.Resource {
-	return &schema.Resource{
+func resourceReport() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 **Note:** This resource is available only with Grafana Enterprise 7.+.
 
@@ -183,32 +188,18 @@ func ResourceReport() *schema.Resource {
 							ValidateFunc: validation.StringInSlice(reportFrequencies, false),
 						},
 						"start_time": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							Description:  "Start time of the report. If empty, the start date will be set to the creation time. Note that times will be saved as UTC in Grafana.",
-							ValidateFunc: validation.IsRFC3339Time,
-							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-								oldParsed, _ := time.Parse(time.RFC3339, old)
-								newParsed, _ := time.Parse(time.RFC3339, new)
-
-								// If empty, the start date will be set to the current time (at the time of creation)
-								if new == "" && oldParsed.Before(time.Now()) {
-									return true
-								}
-
-								return oldParsed.Equal(newParsed)
-							},
+							Type:             schema.TypeString,
+							Optional:         true,
+							Description:      fmt.Sprintf("Start time of the report. If empty, the start date will be set to the creation time. Note that times will be saved as UTC in Grafana. Use %s format if you want to set a custom timezone", timeDateShortFormat),
+							ValidateDiagFunc: validateDate,
+							DiffSuppressFunc: checkStartTimeDiff,
 						},
 						"end_time": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							Description:  "End time of the report. If empty, the report will be sent indefinitely (according to frequency). Note that times will be saved as UTC in Grafana.",
-							ValidateFunc: validation.IsRFC3339Time,
-							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-								oldParsed, _ := time.Parse(time.RFC3339, old)
-								newParsed, _ := time.Parse(time.RFC3339, new)
-								return oldParsed.Equal(newParsed)
-							},
+							Type:             schema.TypeString,
+							Optional:         true,
+							Description:      fmt.Sprintf("End time of the report. If empty, the report will be sent indefinitely (according to frequency). Note that times will be saved as UTC in Grafana. Use %s format if you want to set a custom timezone", timeDateShortFormat),
+							ValidateDiagFunc: validateDate,
+							DiffSuppressFunc: checkEndTimeDiff,
 						},
 						"workdays_only": {
 							Type:        schema.TypeBool,
@@ -234,6 +225,13 @@ func ResourceReport() *schema.Resource {
 							Optional:    true,
 							Description: "Send the report on the last day of the month",
 							Default:     false,
+						},
+						"timezone": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							Description:      "Set the report time zone.",
+							Default:          "GMT",
+							ValidateDiagFunc: validateTimezone,
 						},
 					},
 				},
@@ -273,6 +271,13 @@ func ResourceReport() *schema.Resource {
 								return oldValue == "1" && newValue == "0"
 							},
 						},
+						"report_variables": {
+							Type:             schema.TypeMap,
+							Description:      "Add report variables to the dashboard. Values should be separated by commas.",
+							Optional:         true,
+							Elem:             schema.TypeString,
+							ValidateDiagFunc: validateReportVariables,
+						},
 					},
 				},
 				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
@@ -281,10 +286,28 @@ func ResourceReport() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_report",
+		orgResourceIDInt("id"),
+		schema,
+	)
 }
 
 func CreateReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
+
+	_, hasDashboards := d.GetOk("dashboards")
+	dashID := d.Get("dashboard_id").(int)
+	dashUID := d.Get("dashboard_uid").(string)
+	if !hasDashboards && dashID != 0 && dashUID == "" {
+		// Get dashboard by ID
+		dashboard, err := searchDashboardByID(client, dashID)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		d.Set("dashboard_uid", dashboard.UID)
+	}
 
 	report, err := schemaToReport(d)
 	if err != nil {
@@ -351,6 +374,7 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	schedule := map[string]interface{}{
 		"frequency":     r.Payload.Schedule.Frequency,
 		"workdays_only": r.Payload.Schedule.WorkdaysOnly,
+		"timezone":      r.Payload.Schedule.TimeZone,
 	}
 	if r.Payload.Schedule.IntervalAmount != 0 && r.Payload.Schedule.IntervalFrequency != "" {
 		schedule["custom_interval"] = fmt.Sprintf("%d %s", r.Payload.Schedule.IntervalAmount, r.Payload.Schedule.IntervalFrequency)
@@ -379,6 +403,7 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 					"from": dashboard.TimeRange.From,
 				},
 			},
+			"report_variables": parseReportVariablesResponse(dashboard.ReportVariables),
 		}
 	}
 
@@ -420,6 +445,7 @@ func DeleteReport(ctx context.Context, d *schema.ResourceData, meta interface{})
 
 func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReportConfig, error) {
 	frequency := d.Get("schedule.0.frequency").(string)
+	timezone := d.Get("schedule.0.timezone").(string)
 	report := models.CreateOrUpdateReportConfig{
 		Name:               d.Get("name").(string),
 		Recipients:         strings.Join(common.ListToStringSlice(d.Get("recipients").([]interface{})), ","),
@@ -433,7 +459,7 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReportConfig, 
 		},
 		Schedule: &models.ReportSchedule{
 			Frequency: frequency,
-			TimeZone:  "GMT",
+			TimeZone:  timezone,
 		},
 		Formats: []models.Type{reportFormatPDF},
 	}
@@ -441,35 +467,37 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReportConfig, 
 	report = setDashboards(report, d)
 
 	if v, ok := d.GetOk("formats"); ok && v != nil {
+		report.Formats = []models.Type{}
 		formats := common.SetToStringSlice(v.(*schema.Set))
 		for _, format := range formats {
 			report.Formats = append(report.Formats, models.Type(format))
 		}
 	}
 
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
+		return models.CreateOrUpdateReportConfig{}, err
+	}
+
 	// Set schedule start time
 	if frequency != reportFrequencyNever {
 		if startTimeStr := d.Get("schedule.0.start_time").(string); startTimeStr != "" {
-			startDate, err := time.Parse(time.RFC3339, startTimeStr)
+			date, err := formatDate(startTimeStr, location)
 			if err != nil {
 				return models.CreateOrUpdateReportConfig{}, err
 			}
-
-			date := strfmt.DateTime(startDate.UTC())
-			report.Schedule.StartDate = &date
+			report.Schedule.StartDate = date
 		}
 	}
 
 	// Set schedule end time
 	if frequency != reportFrequencyOnce && frequency != reportFrequencyNever {
 		if endTimeStr := d.Get("schedule.0.end_time").(string); endTimeStr != "" {
-			endDate, err := time.Parse(time.RFC3339, endTimeStr)
+			date, err := formatDate(endTimeStr, location)
 			if err != nil {
 				return models.CreateOrUpdateReportConfig{}, err
 			}
-
-			date := strfmt.DateTime(endDate.UTC())
-			report.Schedule.EndDate = &date
+			report.Schedule.EndDate = date
 		}
 	}
 
@@ -511,14 +539,12 @@ func setDashboards(report models.CreateOrUpdateReportConfig, d *schema.ResourceD
 				Dashboard: &models.ReportDashboardID{
 					UID: dash["uid"].(string),
 				},
-				TimeRange: tr,
+				TimeRange:       tr,
+				ReportVariables: parseReportVariablesRequest(dash["report_variables"]),
 			})
 		}
 		return report
 	}
-
-	id := int64(d.Get("dashboard_id").(int))
-	uid := d.Get("dashboard_uid").(string)
 
 	// Set dashboard time range
 	timeRange := d.Get("time_range").([]interface{})
@@ -528,20 +554,12 @@ func setDashboards(report models.CreateOrUpdateReportConfig, d *schema.ResourceD
 		tr = &models.ReportTimeRange{From: timeRange["from"].(string), To: timeRange["to"].(string)}
 	}
 
-	if uid == "" {
-		// It triggers the old way to generate reports
-		report.DashboardID = id
-		report.Options.TimeRange = tr
-	} else {
-		report.Dashboards = []*models.ReportDashboard{
-			{
-				Dashboard: &models.ReportDashboardID{
-					UID: uid,
-				},
-				TimeRange: tr,
-			},
-		}
-	}
+	report.Dashboards = []*models.ReportDashboard{{
+		Dashboard: &models.ReportDashboardID{
+			UID: d.Get("dashboard_uid").(string),
+		},
+		TimeRange: tr,
+	}}
 
 	return report
 }
@@ -570,4 +588,158 @@ func parseCustomReportInterval(i interface{}) (int, string, error) {
 	}
 
 	return number, unit, nil
+}
+
+func validateTimezone(i interface{}, path cty.Path) diag.Diagnostics {
+	timezone := i.(string)
+	_, err := time.LoadLocation(timezone)
+	return diag.FromErr(err)
+}
+
+func validateReportVariables(i interface{}, path cty.Path) diag.Diagnostics {
+	m, ok := i.(map[string]interface{})
+	if !ok {
+		return diag.FromErr(errors.New("report_variables schema should be a map of strings separated by commas"))
+	}
+
+	for _, v := range m {
+		if _, ok := v.(string); !ok {
+			return diag.FromErr(fmt.Errorf("value %#v isn't a string", v))
+		}
+	}
+
+	return nil
+}
+
+func parseReportVariablesRequest(reportVariables interface{}) map[string][]string {
+	if reportVariables == nil {
+		return nil
+	}
+	rvMap := reportVariables.(map[string]interface{})
+	newMap := make(map[string][]string, len(rvMap))
+	for k, rv := range rvMap {
+		newMap[k] = strings.Split(rv.(string), ",")
+	}
+
+	return newMap
+}
+
+func parseReportVariablesResponse(reportVariables interface{}) map[string]interface{} {
+	if reportVariables == nil {
+		return nil
+	}
+	rvMap := reportVariables.(map[string]interface{})
+	newMap := make(map[string]interface{}, len(rvMap))
+	for k, rv := range rvMap {
+		rvType := rv.([]interface{})
+		values := make([]string, len(rvType))
+		for i, v := range rvType {
+			values[i] = v.(string)
+		}
+		newMap[k] = strings.Join(values, ",")
+	}
+
+	return newMap
+}
+
+func validateDate(i interface{}, _ cty.Path) diag.Diagnostics {
+	v, ok := i.(string)
+	if !ok {
+		return diag.FromErr(fmt.Errorf("time should be a string"))
+	}
+
+	_, timezoneFormat := time.Parse(time.RFC3339, v)
+	_, noTimezoneFormat := time.Parse(timeDateShortFormat, v)
+
+	if timezoneFormat != nil && noTimezoneFormat != nil {
+		return diag.FromErr(fmt.Errorf("time format should be %s or %s", time.RFC3339, timeDateShortFormat))
+	}
+
+	return nil
+}
+
+func formatDate(date string, timezone *time.Location) (*strfmt.DateTime, error) {
+	parsedDate, err := time.Parse(timeDateShortFormat, date)
+	if err != nil {
+		return checkTimezoneFormatDate(date, timezone)
+	}
+
+	dateTime := strfmt.DateTime(parsedDate.In(timezone))
+	return &dateTime, nil
+}
+
+func checkTimezoneFormatDate(date string, timezone *time.Location) (*strfmt.DateTime, error) {
+	parsedDate, err := time.Parse(time.RFC3339, date)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fail if timezone isn't GMT. GMT is skipped to avoid to break old implementations.
+	if timezone.String() != "GMT" {
+		return nil, fmt.Errorf("date formatted with timezone isn't compatible: %s. Please, remove timezone from the date if you want to set a timezone", date)
+	}
+
+	dateTime := strfmt.DateTime(parsedDate.UTC())
+	return &dateTime, nil
+}
+
+func checkStartTimeDiff(_, old, new string, _ *schema.ResourceData) bool {
+	oldParsed, newParsed, shouldSkip := checkDateTime(old, new)
+	if shouldSkip {
+		return true
+	}
+
+	// If empty, the start date will be set to the current time (at the time of creation)
+	if new == "" && oldParsed.Before(time.Now()) {
+		return true
+	}
+
+	return oldParsed.Equal(newParsed)
+}
+
+func checkEndTimeDiff(_, old, new string, _ *schema.ResourceData) bool {
+	oldParsed, newParsed, shouldSkip := checkDateTime(old, new)
+	if shouldSkip {
+		return true
+	}
+
+	return oldParsed.Equal(newParsed)
+}
+
+func checkDateTime(old, new string) (time.Time, time.Time, bool) {
+	oldParsed, oldErr := time.Parse(time.RFC3339, old)
+	newParsed, newErr := time.Parse(time.RFC3339, new)
+
+	if oldErr != nil && newErr != nil {
+		oldParsed, _ = time.Parse(timeDateShortFormat, old)
+		newParsed, _ = time.Parse(timeDateShortFormat, new)
+	} else if newErr != nil {
+		if _, err := time.Parse(timeDateShortFormat, new); err == nil {
+			return time.Time{}, time.Time{}, true
+		}
+	}
+
+	return oldParsed, newParsed, false
+}
+
+func searchDashboardByID(client *goapi.GrafanaHTTPAPI, id int) (*models.Hit, error) {
+	var page int64 = 1
+	searchType := "dash-db"
+	for {
+		params := search.NewSearchParams().WithPage(&page).WithType(&searchType)
+		dashboards, err := client.Search.Search(params)
+		if err != nil {
+			return nil, err
+		}
+		for _, dashboard := range dashboards.Payload {
+			if dashboard.ID == int64(id) {
+				return dashboard, nil
+			}
+		}
+		if len(dashboards.Payload) == 0 {
+			break
+		}
+		page++
+	}
+	return nil, fmt.Errorf("dashboard with ID %d not found", id)
 }

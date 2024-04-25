@@ -1,4 +1,4 @@
-GRAFANA_VERSION ?= 10.1.5
+GRAFANA_VERSION ?= 10.3.1
 DOCKER_COMPOSE_ARGS ?= --force-recreate --detach --remove-orphans --wait
 
 testacc:
@@ -50,6 +50,9 @@ testacc-subpath-docker:
 	docker compose --profile proxy up $(DOCKER_COMPOSE_ARGS) && \
 	make testacc-oss && \
 	docker compose --profile proxy down
+
+integration-test:
+	DOCKER_COMPOSE_ARGS="$(DOCKER_COMPOSE_ARGS)" GRAFANA_VERSION=$(GRAFANA_VERSION) ./testdata/integration/test.sh
 
 release:
 	@test $${RELEASE_VERSION?Please set environment variable RELEASE_VERSION}

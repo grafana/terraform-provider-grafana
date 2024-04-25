@@ -8,18 +8,18 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 )
 
 func TestAccRoleAssignments(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	testName := acctest.RandString(10)
 	var role models.RoleDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      roleAssignmentCheckExists.destroyed(&role, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             roleAssignmentCheckExists.destroyed(&role, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: roleAssignmentConfig(testName),
@@ -44,15 +44,15 @@ func TestAccRoleAssignments(t *testing.T) {
 }
 
 func TestAccRoleAssignments_inOrg(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
 
 	testName := acctest.RandString(10)
 	var org models.OrgDetailsDTO
 	var role models.RoleDTO
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      orgCheckExists.destroyed(&org, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: roleAssignmentConfigInOrg(testName),
@@ -148,7 +148,7 @@ resource "grafana_role" "test" {
 	description = "test desc"
 	version = 1
 	uid = "%[1]s"
-	global = true
+	global = false
 	group = "testgroup"
 	display_name = "testdisplay"
 	hidden = true

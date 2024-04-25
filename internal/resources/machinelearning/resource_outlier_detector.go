@@ -6,14 +6,16 @@ import (
 	"strings"
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func ResourceOutlierDetector() *schema.Resource {
-	return &schema.Resource{
+var resourceOutlierDetectorID = common.NewResourceID(common.StringIDField("id"))
+
+func resourceOutlierDetector() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 An outlier detector monitors the results of a query and reports when its values are outside normal bands.
@@ -23,10 +25,10 @@ The normal band is configured by choice of algorithm, its sensitivity and other 
 Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/ for more details.
 `,
 
-		CreateContext: ResourceOutlierCreate,
-		ReadContext:   ResourceOutlierRead,
-		UpdateContext: ResourceOutlierUpdate,
-		DeleteContext: ResourceOutlierDelete,
+		CreateContext: checkClient(resourceOutlierCreate),
+		ReadContext:   checkClient(resourceOutlierRead),
+		UpdateContext: checkClient(resourceOutlierUpdate),
+		DeleteContext: checkClient(resourceOutlierDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -57,6 +59,7 @@ Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/
 				Type:         schema.TypeInt,
 				Optional:     true,
 				ExactlyOneOf: []string{"datasource_uid"},
+				Deprecated:   "Use datasource_uid instead.",
 			},
 			"datasource_uid": {
 				Description: "The uid of the datasource to query.",
@@ -120,9 +123,11 @@ Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource("grafana_machine_learning_outlier_detector", resourceOutlierDetectorID, schema)
 }
 
-func ResourceOutlierCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceOutlierCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	outlier, err := makeMLOutlier(d, meta)
 	if err != nil {
@@ -133,10 +138,10 @@ func ResourceOutlierCreate(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 	d.SetId(outlier.ID)
-	return ResourceOutlierRead(ctx, d, meta)
+	return resourceOutlierRead(ctx, d, meta)
 }
 
-func ResourceOutlierRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceOutlierRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	outlier, err := c.OutlierDetector(ctx, d.Id())
 	if err, shouldReturn := common.CheckReadError("outlier detector", d, err); shouldReturn {
@@ -164,7 +169,7 @@ func ResourceOutlierRead(ctx context.Context, d *schema.ResourceData, meta inter
 	return nil
 }
 
-func ResourceOutlierUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceOutlierUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	outlier, err := makeMLOutlier(d, meta)
 	if err != nil {
@@ -174,10 +179,10 @@ func ResourceOutlierUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	return ResourceOutlierRead(ctx, d, meta)
+	return resourceOutlierRead(ctx, d, meta)
 }
 
-func ResourceOutlierDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceOutlierDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	err := c.DeleteOutlierDetector(ctx, d.Id())
 	if err != nil {

@@ -7,10 +7,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
 )
 
-func DataSourceAction() *schema.Resource {
+func dataSourceAction() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 **Note:** This data source is going to be deprecated, please use outgoing webhook data source instead.
@@ -18,7 +17,7 @@ func DataSourceAction() *schema.Resource {
 
 !> Deprecated: Use the ` + "`grafana_oncall_outgoing_webhook`" + ` data source instead.
 `,
-		ReadContext:        DataSourceActionRead,
+		ReadContext:        withClient[schema.ReadContextFunc](dataSourceActionRead),
 		DeprecationMessage: "This data source is going to be deprecated, please use outgoing webhook data source instead.",
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -30,8 +29,7 @@ func DataSourceAction() *schema.Resource {
 	}
 }
 
-func DataSourceActionRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func dataSourceActionRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.ListCustomActionOptions{}
 	nameData := d.Get("name").(string)
 

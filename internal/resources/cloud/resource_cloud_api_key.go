@@ -3,28 +3,43 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"strings"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var cloudAPIKeyRoles = []string{"Viewer", "Editor", "Admin", "MetricsPublisher", "PluginPublisher"}
+var (
+	cloudAPIKeyRoles = []string{"Viewer", "Editor", "Admin", "MetricsPublisher", "PluginPublisher"}
+	//nolint:staticcheck
+	resourceAPIKeyID = common.NewResourceIDWithLegacySeparator("-",
+		common.StringIDField("orgSlug"),
+		common.StringIDField("apiKeyName"),
+	)
+)
 
-func ResourceAPIKey() *schema.Resource {
-	return &schema.Resource{
-		Description: `Manages a single API key on the Grafana Cloud portal (on the organization level)
+func resourceAPIKey() *common.Resource {
+	schema := &schema.Resource{
+		Description: `This resource is deprecated and will be removed in a future release. Please use grafana_cloud_access_policy instead.
+
+Manages a single API key on the Grafana Cloud portal (on the organization level)
 * [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#api-keys)
+
+Required access policy scopes:
+
+* api-keys:read
+* api-keys:write
+* api-keys:delete
 `,
-		CreateContext: ResourceAPIKeyCreate,
-		ReadContext:   ResourceAPIKeyRead,
-		DeleteContext: ResourceAPIKeyDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceAPIKeyCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceAPIKeyRead),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceAPIKeyDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
+		DeprecationMessage: "This resource is deprecated and will be removed in a future release. Please use `grafana_cloud_access_policy` instead.",
 
 		Schema: map[string]*schema.Schema{
 			"cloud_org_slug": {
@@ -54,58 +69,63 @@ func ResourceAPIKey() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_cloud_api_key",
+		resourceAPIKeyID,
+		schema,
+	)
 }
 
-func ResourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).GrafanaCloudAPI
-
-	req := &gapi.CreateCloudAPIKeyInput{
+func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, c *gcom.APIClient) diag.Diagnostics {
+	req := gcom.PostApiKeysRequest{
 		Name: d.Get("name").(string),
 		Role: d.Get("role").(string),
 	}
 	org := d.Get("cloud_org_slug").(string)
 
-	resp, err := c.CreateCloudAPIKey(org, req)
+	resp, _, err := c.OrgsAPI.PostApiKeys(ctx, org).
+		PostApiKeysRequest(req).
+		XRequestId(ClientRequestID()).
+		Execute()
 	if err != nil {
-		return diag.FromErr(err)
+		return apiError(err)
 	}
 
-	d.Set("key", resp.Token)
-	d.SetId(org + "-" + resp.Name)
+	d.Set("key", *resp.Token)
+	d.SetId(resourceAPIKeyID.Make(org, resp.Name))
 
-	return ResourceAPIKeyRead(ctx, d, meta)
+	return resourceAPIKeyRead(ctx, d, c)
 }
 
-func ResourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).GrafanaCloudAPI
-
-	splitID := strings.SplitN(d.Id(), "-", 2)
-	org, name := splitID[0], splitID[1]
-
-	resp, err := c.ListCloudAPIKeys(org)
+func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, c *gcom.APIClient) diag.Diagnostics {
+	split, err := resourceAPIKeyID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	org, name := split[0], split[1]
 
-	for _, apiKey := range resp.Items {
-		if apiKey.Name == name {
-			d.Set("name", apiKey.Name)
-			d.Set("role", apiKey.Role)
-			break
-		}
+	resp, _, err := c.OrgsAPI.GetApiKey(ctx, name.(string), org.(string)).Execute()
+	if err != nil {
+		return apiError(err)
 	}
+
+	d.Set("name", resp.Name)
+	d.Set("role", resp.Role)
 	d.Set("cloud_org_slug", org)
+	d.SetId(resourceAPIKeyID.Make(org, resp.Name))
 
 	return nil
 }
 
-func ResourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).GrafanaCloudAPI
-
-	if err := c.DeleteCloudAPIKey(d.Get("cloud_org_slug").(string), d.Get("name").(string)); err != nil {
+func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, c *gcom.APIClient) diag.Diagnostics {
+	split, err := resourceAPIKeyID.Split(d.Id())
+	if err != nil {
 		return diag.FromErr(err)
 	}
+	org, name := split[0], split[1]
 
+	_, err = c.OrgsAPI.DelApiKey(ctx, name.(string), org.(string)).XRequestId(ClientRequestID()).Execute()
 	d.SetId("")
-	return nil
+	return apiError(err)
 }

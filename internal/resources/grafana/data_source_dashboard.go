@@ -5,13 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/search"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func DatasourceDashboard() *schema.Resource {
+func datasourceDashboard() *schema.Resource {
 	return &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
@@ -53,7 +55,13 @@ func DatasourceDashboard() *schema.Resource {
 			"folder": {
 				Type:        schema.TypeInt,
 				Computed:    true,
-				Description: "The numerical ID of the folder where the Grafana dashboard is found.",
+				Description: "Deprecated. Use `folder_uid` instead",
+				Deprecated:  "Use `folder_uid` instead",
+			},
+			"folder_uid": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The UID of the folder where the Grafana dashboard is found.",
 			},
 			"is_starred": {
 				Type:        schema.TypeBool,
@@ -85,22 +93,11 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta i
 		if id < 1 {
 			return diag.FromErr(fmt.Errorf("must specify either `dashboard_id` or `uid`"))
 		}
-
-		searchType := "dash-db"
-		params := search.NewSearchParams().WithType(&searchType).WithDashboardIds([]int64{int64(id)})
-		resp, err := client.Search.Search(params)
+		dashboard, err := getDashboardByID(client, int64(id))
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		for _, d := range resp.GetPayload() {
-			if d.ID == int64(id) {
-				uid = d.UID
-				break
-			}
-		}
-		if uid == "" {
-			return diag.FromErr(fmt.Errorf("no dashboard with id %d", id))
-		}
+		uid = dashboard.UID
 	}
 
 	resp, err := client.Dashboards.GetDashboardByUID(uid)
@@ -120,10 +117,27 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta i
 	d.Set("config_json", string(configJSONBytes))
 	d.Set("version", int64(model["version"].(float64)))
 	d.Set("title", model["title"].(string))
+	// nolint:staticcheck
 	d.Set("folder", dashboard.Meta.FolderID)
+	d.Set("folder_uid", dashboard.Meta.FolderUID)
 	d.Set("is_starred", dashboard.Meta.IsStarred)
 	d.Set("slug", dashboard.Meta.Slug)
 	d.Set("url", metaClient.GrafanaSubpath(dashboard.Meta.URL))
 
 	return nil
+}
+
+func getDashboardByID(client *goapi.GrafanaHTTPAPI, id int64) (*models.Hit, error) {
+	searchType := "dash-db"
+	params := search.NewSearchParams().WithType(&searchType).WithDashboardIds([]int64{id})
+	resp, err := client.Search.Search(params)
+	if err != nil {
+		return nil, err
+	}
+	for _, d := range resp.GetPayload() {
+		if d.ID == id {
+			return d, nil
+		}
+	}
+	return nil, fmt.Errorf("no dashboard with id %d", id)
 }

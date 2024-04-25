@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -21,8 +21,8 @@ func TestAccPlaylist_basic(t *testing.T) {
 	var playlist models.Playlist
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      playlistCheckExists.destroyed(&playlist, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             playlistCheckExists.destroyed(&playlist, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPlaylistConfigBasic(rName, "5m"),
@@ -58,8 +58,8 @@ func TestAccPlaylist_update(t *testing.T) {
 	var playlist models.Playlist
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      playlistCheckExists.destroyed(&playlist, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             playlistCheckExists.destroyed(&playlist, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPlaylistConfigBasic(rName, "5m"),
@@ -76,17 +76,44 @@ func TestAccPlaylist_update(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccPlaylistConfigUpdate(updatedName),
+				Config: testAccPlaylistConfigUpdate(updatedName, "3"),
 				Check: resource.ComposeTestCheckFunc(
 					playlistCheckExists.exists(paylistResource, &playlist),
 					resource.TestMatchResourceAttr(paylistResource, "id", defaultOrgIDRegexp),
 					resource.TestCheckResourceAttr(paylistResource, "name", updatedName),
-					resource.TestCheckResourceAttr(paylistResource, "item.#", "1"),
+					resource.TestCheckResourceAttr(paylistResource, "item.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "1",
 						"title": "Terraform Dashboard By ID",
 						"type":  "dashboard_by_id",
 						"value": "3",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
+						"order": "2",
+						"title": "other",
+						"type":  "dashboard_by_id",
+						"value": "1",
+					}),
+				),
+			},
+			{
+				Config: testAccPlaylistConfigUpdate(updatedName, "4"),
+				Check: resource.ComposeTestCheckFunc(
+					playlistCheckExists.exists(paylistResource, &playlist),
+					resource.TestMatchResourceAttr(paylistResource, "id", defaultOrgIDRegexp),
+					resource.TestCheckResourceAttr(paylistResource, "name", updatedName),
+					resource.TestCheckResourceAttr(paylistResource, "item.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
+						"order": "1",
+						"title": "Terraform Dashboard By ID",
+						"type":  "dashboard_by_id",
+						"value": "4",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
+						"order": "2",
+						"title": "other",
+						"type":  "dashboard_by_id",
+						"value": "1",
 					}),
 				),
 			},
@@ -106,8 +133,8 @@ func TestAccPlaylist_disappears(t *testing.T) {
 	var playlist models.Playlist
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      playlistCheckExists.destroyed(&playlist, nil),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             playlistCheckExists.destroyed(&playlist, nil),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPlaylistConfigBasic(rName, "5m"),
@@ -129,8 +156,8 @@ func TestAccPlaylist_inOrg(t *testing.T) {
 	var playlist models.Playlist
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      playlistCheckExists.destroyed(&playlist, &org),
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             playlistCheckExists.destroyed(&playlist, &org),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPlaylistConfigInOrg(rName, "5m"),
@@ -224,18 +251,25 @@ resource "grafana_playlist" "test" {
 `, name, interval)
 }
 
-func testAccPlaylistConfigUpdate(name string) string {
+func testAccPlaylistConfigUpdate(name, value string) string {
 	return fmt.Sprintf(`
 resource "grafana_playlist" "test" {
 	name     = %[1]q
 	interval = "5m"
+
+	item {
+		order = 2
+		title = "other"
+		type = "dashboard_by_id"
+		value = "1"
+	}
 	
 	item {
 		order = 1
 		title = "Terraform Dashboard By ID"
 		type = "dashboard_by_id"
-		value = "3"
+		value = "%[2]s"
 	}
 }
-`, name)
+`, name, value)
 }

@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -20,8 +20,8 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 	reDuration := 300
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
-		CheckDestroy:      testAccCheckOnCallEscalationResourceDestroy,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallEscalationResourceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccOnCallEscalationConfig(riName, reType, reDuration),
@@ -33,6 +33,11 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 					testAccCheckOnCallEscalationResourceExists("grafana_oncall_escalation.test-acc-escalation-repeat"),
 					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-repeat", "type", "repeat_escalation"),
 					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-repeat", "position", "1"),
+
+					testAccCheckOnCallEscalationResourceExists("grafana_oncall_escalation.test-acc-escalation-policy-team"),
+					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-team", "type", "notify_team_members"),
+					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-team", "position", "2"),
+					resource.TestCheckResourceAttrSet("grafana_oncall_escalation.test-acc-escalation-policy-team", "notify_to_team_members"),
 				),
 			},
 		},
@@ -66,6 +71,10 @@ resource "grafana_oncall_escalation_chain" "test-acc-escalation-chain"{
 	name = "acc-test"
 }
 
+resource "grafana_team" "test-acc-team" {
+	name = "acc-escalation-test"
+}
+
 resource "grafana_oncall_escalation" "test-acc-escalation" {
 	escalation_chain_id = grafana_oncall_escalation_chain.test-acc-escalation-chain.id
 	type = "%s"
@@ -77,6 +86,18 @@ resource "grafana_oncall_escalation" "test-acc-escalation-repeat" {
 	escalation_chain_id = grafana_oncall_escalation_chain.test-acc-escalation-chain.id
 	type = "repeat_escalation"
 	position = 1
+}
+
+data "grafana_oncall_team" "test-acc-team" {
+	name = grafana_team.test-acc-team.name
+}
+
+
+resource "grafana_oncall_escalation" "test-acc-escalation-policy-team" {
+	escalation_chain_id = grafana_oncall_escalation_chain.test-acc-escalation-chain.id
+	type = "notify_team_members"
+	notify_to_team_members = data.grafana_oncall_team.test-acc-team.id
+	position = 2
 }
 `, riName, reType, reDuration)
 }

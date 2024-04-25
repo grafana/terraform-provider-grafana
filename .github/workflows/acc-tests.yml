@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - master
 
 # These permissions are needed to assume roles from Github's OIDC.
 permissions:
@@ -12,6 +11,18 @@ permissions:
   id-token: write
 
 jobs:
+  # Tests that Terraform can actually install and use the provider
+  # Ex: https://github.com/grafana/terraform-provider-grafana/issues/1372
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: 
+          go-version: '1.21'
+      - uses: hashicorp/setup-terraform@v3
+      - run: make integration-test
+
   cloudinstance:
     concurrency: cloud-instance
     runs-on: ubuntu-latest
@@ -28,6 +39,7 @@ jobs:
             GRAFANA_AUTH=cloud-instance-tests:auth
             GRAFANA_ONCALL_ACCESS_TOKEN=cloud-instance-tests:oncall-token
             GRAFANA_SM_ACCESS_TOKEN=cloud-instance-tests:sm-token
+            GRAFANA_SM_URL=cloud-instance-tests:sm-url
             GRAFANA_URL=cloud-instance-tests:url
       - uses: iFaxity/wait-on-action@v1.1.0
         with:
@@ -41,26 +53,33 @@ jobs:
       fail-fast: false # Let all versions run, even if one fails
       matrix:
         # OSS tests, run on all versions
-        version: ['10.2.0', '10.1.5', '9.5.13', '8.5.27']
+        version: ['10.3.1', '10.2.3', '9.5.15', '8.5.27']
         type: ['oss']
         subset: ['basic', 'other', 'long']
         include:
-          - version: '10.2.0'
+          # Examples, run only on latest version
+          - version: '10.3.1'
             type: 'oss'
             subset: examples
           # TLS proxy tests, run only on latest version
-          - version: '10.2.0'
+          - version: '10.3.1'
             type: 'tls'
             subset: 'basic'
           # Sub-path tests. Runs tests on localhost:3000/grafana/
-          - version: '10.2.0'
+          - version: '10.3.1'
             type: 'subpath'
             subset: 'basic'
-          - version: '10.2.0'
+          - version: '10.3.1'
             type: 'subpath'
             subset: 'other'
-          # Enterprise tests, run only on latest version
-          - version: '10.2.0'
+          # Enterprise tests
+          - version: '10.3.1'
+            type: 'enterprise'
+            subset: 'all'
+          - version: '9.5.15'
+            type: 'enterprise'
+            subset: 'all'
+          - version: '8.5.27'
             type: 'enterprise'
             subset: 'all'
     name: ${{ matrix.version }} - ${{ matrix.type }} - ${{ matrix.subset }}
@@ -71,9 +90,6 @@ jobs:
         with: 
           go-version: '1.21'
       - uses: hashicorp/setup-terraform@v3
-      - uses: KengoTODA/actions-setup-docker-compose@v1
-        with:
-          version: '2.23.0'
       - name: Get Enterprise License
         uses: grafana/shared-workflows/actions/get-vault-secrets@main
         if: matrix.type == 'enterprise'
@@ -81,7 +97,7 @@ jobs:
           repo_secrets: |
             GF_ENTERPRISE_LICENSE_TEXT=enterprise:license
       - name: Cache Docker image
-        uses: ScribeMD/docker-cache@0.3.7
+        uses: ScribeMD/docker-cache@0.5.0
         with:
           key: docker-${{ runner.os }}-${{ matrix.type == 'enterprise' && 'enterprise' || 'oss' }}-${{ matrix.version }}
       - run: make testacc-${{ matrix.type }}-docker

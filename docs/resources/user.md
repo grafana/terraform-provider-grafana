@@ -54,5 +54,5 @@ resource "grafana_user" "staff" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_user.user_name {{user_id}}
+terraform import grafana_user.name "{{ id }}"
 ```

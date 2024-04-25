@@ -84,5 +84,5 @@ Grafana unless 'create_users' is set to true.
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_organization.org_name {{org_id}}
+terraform import grafana_organization.name "{{ id }}"
 ```

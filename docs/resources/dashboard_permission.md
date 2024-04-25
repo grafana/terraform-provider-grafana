@@ -4,8 +4,7 @@ page_title: "grafana_dashboard_permission Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
   Manages the entire set of permissions for a dashboard. Permissions that aren't specified when applying this resource will be removed.
-  * Official documentation https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/
-  * HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/dashboard_permissions/
+  Official documentation https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/dashboard_permissions/
 ---
 
 # grafana_dashboard_permission (Resource)
@@ -74,7 +73,7 @@ Required:
 
 Optional:
 
-- `role` (String) Manage permissions for `Viewer` or `Editor` roles.
+- `role` (String) Name of the basic role to manage permissions for. Options: `Viewer`, `Editor` or `Admin`.
 - `team_id` (String) ID of the team to manage permissions for. Defaults to `0`.
 - `user_id` (String) ID of the user or service account to manage permissions for. Defaults to `0`.
 
@@ -83,5 +82,6 @@ Optional:
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_dashboard_permission.dashboard_name {{dashboard_uid}}
+terraform import grafana_dashboard_permission.name "{{ dashboardUID }}"
+terraform import grafana_dashboard_permission.name "{{ orgID }}:{{ dashboardUID }}"
 ```

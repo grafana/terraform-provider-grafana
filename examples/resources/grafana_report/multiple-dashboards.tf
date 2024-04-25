@@ -1,8 +1,8 @@
 resource "grafana_dashboard" "test" {
   config_json = <<EOD
 {
-  "title": "Dashboard for report",
-  "uid": "report"
+  "uid": "report-dashboard",
+  "title": "report-dashboard"
 }
 EOD
   message     = "inital commit."
@@ -11,8 +11,8 @@ EOD
 resource "grafana_dashboard" "test2" {
   config_json = <<EOD
 {
-  "title": "Another dashboard for report",
-  "uid": "report2"
+  "uid": "report-dashboard-2",
+  "title": "report-dashboard-2"
 }
 EOD
   message     = "inital commit."
@@ -24,6 +24,9 @@ resource "grafana_report" "test" {
   schedule {
     frequency         = "monthly"
     last_day_of_month = true
+    start_time        = "2024-02-10T20:00:00"
+    end_time          = "2024-02-15T15:00:00"
+    timezone          = "America/New_York"
   }
 
   dashboards {
@@ -31,6 +34,10 @@ resource "grafana_report" "test" {
     time_range {
       from = "now-1h"
       to   = "now"
+    }
+    report_variables = {
+      query0 = "a,b"
+      query1 = "c,d"
     }
   }
 

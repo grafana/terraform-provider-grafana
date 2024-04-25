@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -27,6 +27,7 @@ var onCallShiftTypeOptions = []string{
 var onCallShiftTypeOptionsVerbal = strings.Join(onCallShiftTypeOptions, ", ")
 
 var onCallShiftFrequencyOptions = []string{
+	"hourly",
 	"daily",
 	"weekly",
 	"monthly",
@@ -48,15 +49,15 @@ var onCallShiftWeekDayOptionsVerbal = strings.Join(onCallShiftWeekDayOptions, ",
 
 var sourceTerraform = 3
 
-func ResourceOnCallShift() *schema.Resource {
-	return &schema.Resource{
+func resourceOnCallShift() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/on_call_shifts/)
 `,
-		CreateContext: ResourceOnCallShiftCreate,
-		ReadContext:   ResourceOnCallShiftRead,
-		UpdateContext: ResourceOnCallShiftUpdate,
-		DeleteContext: ResourceOnCallShiftDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceOnCallShiftCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceOnCallShiftRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceOnCallShiftUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceOnCallShiftDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -101,6 +102,9 @@ func ResourceOnCallShift() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice(onCallShiftFrequencyOptions, false),
 				Description:  fmt.Sprintf("The frequency of the event. Can be %s", onCallShiftFrequencyOptionsVerbal),
+				RequiredWith: []string{
+					"interval",
+				},
 			},
 			"users": {
 				Type: schema.TypeSet,
@@ -126,6 +130,9 @@ func ResourceOnCallShift() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.IntAtLeast(1),
 				Description:  "The positive integer representing at which intervals the recurrence rule repeats.",
+				RequiredWith: []string{
+					"frequency",
+				},
 			},
 			"week_start": {
 				Type:         schema.TypeString,
@@ -174,11 +181,15 @@ func ResourceOnCallShift() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_oncall_on_call_shift",
+		resourceID,
+		schema,
+	)
 }
 
-func ResourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	teamIDData := d.Get("team_id").(string)
 	typeData := d.Get("type").(string)
 	nameData := d.Get("name").(string)
@@ -296,12 +307,10 @@ func ResourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, m in
 
 	d.SetId(onCallShift.ID)
 
-	return ResourceOnCallShiftRead(ctx, d, m)
+	return resourceOnCallShiftRead(ctx, d, client)
 }
 
-func ResourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	typeData := d.Get("type").(string)
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
@@ -419,11 +428,10 @@ func ResourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, m in
 
 	d.SetId(onCallShift.ID)
 
-	return ResourceOnCallShiftRead(ctx, d, m)
+	return resourceOnCallShiftRead(ctx, d, client)
 }
 
-func ResourceOnCallShiftRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func resourceOnCallShiftRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.GetOnCallShiftOptions{}
 	onCallShift, r, err := client.OnCallShifts.GetOnCallShift(d.Id(), options)
 	if err != nil {
@@ -455,8 +463,7 @@ func ResourceOnCallShiftRead(ctx context.Context, d *schema.ResourceData, m inte
 	return nil
 }
 
-func ResourceOnCallShiftDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
+func resourceOnCallShiftDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.DeleteOnCallShiftOptions{}
 	_, err := client.OnCallShifts.DeleteOnCallShift(d.Id(), options)
 	if err != nil {

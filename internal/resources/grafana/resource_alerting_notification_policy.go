@@ -2,18 +2,22 @@ package grafana
 
 import (
 	"context"
+	"strconv"
+	"time"
 
+	"github.com/go-openapi/runtime"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
-func ResourceNotificationPolicy() *schema.Resource {
-	return &schema.Resource{
+func resourceNotificationPolicy() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Sets the global notification policy for Grafana.
 
@@ -35,6 +39,7 @@ This resource requires Grafana 9.1.0 or later.
 
 		SchemaVersion: 0,
 		Schema: map[string]*schema.Schema{
+			"org_id": orgIDAttribute(),
 			"disable_provenance": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -79,6 +84,12 @@ This resource requires Grafana 9.1.0 or later.
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_notification_policy",
+		orgResourceIDString("anyString"),
+		schema,
+	)
 }
 
 // The maximum depth of policy tree that the provider supports, as Terraform does not allow for infinitely recursive schemas.
@@ -98,7 +109,7 @@ func policySchema(depth uint) *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"contact_point": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				Description: "The contact point to route notifications that match this rule to.",
 			},
 			"group_by": {
@@ -179,7 +190,7 @@ func policySchema(depth uint) *schema.Resource {
 }
 
 func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta) // TODO: Support org-scoped policies
+	client, orgID, _ := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	resp, err := client.Provisioning.GetPolicyTree()
 	if err != nil {
@@ -187,34 +198,47 @@ func readNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta
 	}
 
 	packNotifPolicy(resp.Payload, data)
-	data.SetId(PolicySingletonID)
+	data.SetId(MakeOrgResourceID(orgID, PolicySingletonID))
+	data.Set("org_id", strconv.FormatInt(orgID, 10))
 	return nil
 }
 
 func putNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta) // TODO: Support org-scoped policies
+	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
 	npt, err := unpackNotifPolicy(data)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	params := provisioning.NewPutPolicyTreeParams().WithBody(npt)
+	putParams := provisioning.NewPutPolicyTreeParams().WithBody(npt)
 	if data.Get("disable_provenance").(bool) {
-		disabled := "disabled"
-		params.SetXDisableProvenance(&disabled)
+		putParams.SetXDisableProvenance(&provenanceDisabled)
 	}
 
-	if _, err := client.Provisioning.PutPolicyTree(params); err != nil {
+	err = retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		_, err := client.Provisioning.PutPolicyTree(putParams)
+		if orgID > 1 && err != nil {
+			if apiError, ok := err.(*runtime.APIError); ok && (apiError.IsCode(500) || apiError.IsCode(404)) {
+				return retry.RetryableError(err)
+			}
+		}
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+		return nil
+	})
+
+	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	data.SetId(PolicySingletonID)
+	data.SetId(MakeOrgResourceID(orgID, PolicySingletonID))
 	return readNotificationPolicy(ctx, data, meta)
 }
 
 func deleteNotificationPolicy(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta) // TODO: Support org-scoped policies
+	client, _, _ := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	if _, err := client.Provisioning.ResetPolicyTree(); err != nil {
 		return diag.FromErr(err)

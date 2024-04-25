@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/grafana/grafana-openapi-client-go/client/folders"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -15,17 +16,18 @@ func TestAccFolderPermission_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.0.0") // Folder permissions only work for service accounts in Grafana 9+, so we're just not testing versions before 9.
 
 	var (
-		folder models.Folder
-		team   models.TeamDTO
-		user   models.UserProfileDTO
-		sa     models.ServiceAccountDTO
+		folder     models.Folder
+		team       models.TeamDTO
+		user       models.UserProfileDTO
+		sa         models.ServiceAccountDTO
+		randomName = acctest.RandString(6)
 	)
 
 	resource.ParallelTest(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccFolderPermissionConfig_Basic,
+				Config: testAccFolderPermissionConfig_Basic(randomName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					folderCheckExists.exists("grafana_folder.testFolder", &folder),
 					teamCheckExists.exists("grafana_team.testTeam", &team),
@@ -40,9 +42,30 @@ func TestAccFolderPermission_basic(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
+			// Test delete the folder and check that TF sees a difference
+			{
+				PreConfig: func() {
+					client := grafanaTestClient()
+					params := folders.NewDeleteFolderParams().WithFolderUID(folder.UID)
+					_, err := client.Folders.DeleteFolder(params)
+					if err != nil {
+						t.Fatalf("error deleting folder: %s", err)
+					}
+				},
+				RefreshState:       true,
+				ExpectNonEmptyPlan: true,
+			},
+			// Write back the folder to check that TF can reconcile
+			{
+				Config: testAccFolderPermissionConfig_Basic(randomName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					folderCheckExists.exists("grafana_folder.testFolder", &folder),
+					resource.TestCheckResourceAttr("grafana_folder_permission.testPermission", "permissions.#", "5"),
+				),
+			},
 			// Test remove permissions by not setting any permissions
 			{
-				Config: testAccFolderPermissionConfig_NoPermissions,
+				Config: testAccFolderPermissionConfig_NoPermissions(randomName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					folderCheckExists.exists("grafana_folder.testFolder", &folder),
 					resource.TestCheckResourceAttr("grafana_folder_permission.testPermission", "permissions.#", "0"),
@@ -51,7 +74,7 @@ func TestAccFolderPermission_basic(t *testing.T) {
 			},
 			// Reapply permissions
 			{
-				Config: testAccFolderPermissionConfig_Basic,
+				Config: testAccFolderPermissionConfig_Basic(randomName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					folderCheckExists.exists("grafana_folder.testFolder", &folder),
 					teamCheckExists.exists("grafana_team.testTeam", &team),
@@ -63,7 +86,7 @@ func TestAccFolderPermission_basic(t *testing.T) {
 			},
 			// Test remove permissions by removing the resource
 			{
-				Config: testutils.WithoutResource(t, testAccFolderPermissionConfig_Basic, "grafana_folder_permission.testPermission"),
+				Config: testutils.WithoutResource(t, testAccFolderPermissionConfig_Basic(randomName), "grafana_folder_permission.testPermission"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					folderCheckExists.exists("grafana_folder.testFolder", &folder),
 					checkFolderPermissionsEmpty(&folder),
@@ -109,15 +132,21 @@ func checkFolderPermissionsEmpty(folder *models.Folder) resource.TestCheckFunc {
 }
 
 func checkFolderPermissions(folder *models.Folder, expectedPerms []*models.DashboardACLInfoDTO) error {
-	client := grafana.OAPIGlobalClient(testutils.Provider.Meta())
+	client := grafanaTestClient()
 	resp, err := client.FolderPermissions.GetFolderPermissionList(folder.UID)
 	if err != nil {
 		return fmt.Errorf("error getting folder permissions: %s", err)
 	}
-	gotPerms := resp.Payload
+	var gotPerms []models.DashboardACLInfoDTO
+	for _, perm := range resp.Payload {
+		if perm.UserID == 1 { // Ignore the admin user (that created the folder)
+			continue
+		}
+		gotPerms = append(gotPerms, *perm)
+	}
 
 	if len(gotPerms) != len(expectedPerms) {
-		return fmt.Errorf("got %d perms, expected %d", len(gotPerms), len(expectedPerms))
+		return fmt.Errorf("got %d perms, expected %d. Got %+v", len(gotPerms), len(expectedPerms), gotPerms)
 	}
 
 	for _, expectedPerm := range expectedPerms {
@@ -139,30 +168,33 @@ func checkFolderPermissions(folder *models.Folder, expectedPerms []*models.Dashb
 	return nil
 }
 
-const testAccFolderPermissionConfig_Common = `
+func testAccFolderPermissionConfig_Common(name string) string {
+	return fmt.Sprintf(`
 resource "grafana_folder" "testFolder" {
-	title = "terraform-test-folder-permissions"
+	title = "%[1]s"
   }
   
   resource "grafana_team" "testTeam" {
-	name = "terraform-test-team-permissions"
+	name = "%[1]s"
   }
   
   resource "grafana_user" "testAdminUser" {
-	email    = "terraform-test-permissions@localhost"
-	name     = "Terraform Test Permissions"
-	login    = "ttp"
+	email    = "%[1]s@localhost"
+	name     = "%[1]s"
+	login    = "%[1]s"
 	password = "zyx987"
   }
   
   resource "grafana_service_account" "test" {
-	  name        = "terraform-test-service-account-folder-perms"
+	  name        = "%[1]s"
 	  role        = "Editor"
 	  is_disabled = false
   }
-`
+`, name)
+}
 
-const testAccFolderPermissionConfig_Basic = testAccFolderPermissionConfig_Common + `
+func testAccFolderPermissionConfig_Basic(name string) string {
+	return testAccFolderPermissionConfig_Common(name) + `
 resource "grafana_folder_permission" "testPermission" {
   folder_uid = grafana_folder.testFolder.uid
   permissions {
@@ -187,9 +219,12 @@ resource "grafana_folder_permission" "testPermission" {
   }
 }
 `
-
-const testAccFolderPermissionConfig_NoPermissions = testAccFolderPermissionConfig_Common + `
-resource "grafana_folder_permission" "testPermission" {
-  folder_uid = grafana_folder.testFolder.uid
 }
-`
+
+func testAccFolderPermissionConfig_NoPermissions(name string) string {
+	return testAccFolderPermissionConfig_Common(name) + `
+	resource "grafana_folder_permission" "testPermission" {
+	  folder_uid = grafana_folder.testFolder.uid
+	}
+	`
+}

@@ -2,12 +2,14 @@ package grafana_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 )
 
 func TestAccNotificationPolicy_basic(t *testing.T) {
@@ -15,9 +17,8 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 
 	var policy models.Route
 
-	// TODO: Make parallizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
 		Steps: []resource.TestStep{
@@ -88,14 +89,47 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 	})
 }
 
+func TestAccNotificationPolicy_inheritContactPoint(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t) // Replace this when v11 is released
+
+	var policy models.Route
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
+		Steps: []resource.TestStep{
+			// Test creation.
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_notification_policy/resource.tf", map[string]string{
+					"contact_point = grafana_contact_point.a_contact_point.name // This can be omitted to inherit from the parent":               "",
+					"contact_point = grafana_contact_point.a_contact_point.name // This can also be omitted to inherit from the parent's parent": "",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.my_notification_policy", &policy),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "contact_point", "A Contact Point"),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.contact_point", ""),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.0.policy.0.contact_point", ""),
+					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.1.contact_point", "A Contact Point"),
+				),
+			},
+			// Test import.
+			{
+				ResourceName:      "grafana_notification_policy.my_notification_policy",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccNotificationPolicy_disableProvenance(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	var policy models.Route
 
-	// TODO: Make parallizable
 	resource.Test(t, resource.TestCase{
-		ProviderFactories: testutils.ProviderFactories,
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests deletion.
 		CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
 		Steps: []resource.TestStep{
@@ -137,6 +171,100 @@ func TestAccNotificationPolicy_disableProvenance(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccNotificationPolicy_error(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `resource "grafana_notification_policy" "test" {
+					group_by      = ["..."]
+					contact_point = "invalid"
+				  }`,
+				// This tests that the API error message is propagated to the user.
+				ExpectError: regexp.MustCompile("400.+invalid object specification: receiver 'invalid' does not exist"),
+			},
+		},
+	})
+}
+
+func TestAccNotificationPolicy_inOrg(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	var policy models.Route
+	var org models.OrgDetailsDTO
+
+	name := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             orgCheckExists.destroyed(&org, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccNotificationPolicyInOrg(name, "my-key"),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+					checkResourceIsInOrg("grafana_notification_policy.test", "grafana_organization.test"),
+				),
+			},
+			// Change contact point config
+			{
+				Config: testAccNotificationPolicyInOrg(name, "my-key2"),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+					checkResourceIsInOrg("grafana_notification_policy.test", "grafana_organization.test"),
+				),
+			},
+			{
+				Config: testutils.WithoutResource(t, testAccNotificationPolicyInOrg(name, "my-key2"), "grafana_notification_policy.test"),
+				Check: resource.ComposeTestCheckFunc(
+					orgCheckExists.exists("grafana_organization.test", &org),
+					alertingNotificationPolicyCheckExists.destroyed(&policy, &org),
+				),
+			},
+		},
+	})
+}
+
+func testAccNotificationPolicyInOrg(name, key string) string {
+	return fmt.Sprintf(`
+	resource "grafana_organization" "test" {
+		name = "%[1]s"
+	}
+
+	resource "grafana_contact_point" "a_contact_point" {
+		org_id = grafana_organization.test.id
+		name = "A Contact Point"
+		pagerduty {
+			integration_key = "%[2]s"
+			details = {
+				"key" = "%[2]s"
+			}
+		}
+	}
+
+	resource "grafana_notification_policy" "test" {
+		org_id = grafana_organization.test.id
+		group_by      = ["hello"]
+		contact_point = grafana_contact_point.a_contact_point.name
+
+		policy {
+			group_by = ["hello"]
+			matcher {
+				label = "Name"
+				match = "=~"
+				value = "host.*|host-b.*"
+			}
+			contact_point = grafana_contact_point.a_contact_point.name
+		}
+
+	}
+	`, name, key)
 }
 
 func testAccNotificationPolicyDisableProvenance(disableProvenance bool) string {

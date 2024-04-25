@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 )
 
 type alertmanagerNotifier struct{}
@@ -1545,6 +1545,118 @@ func (s slackNotifier) unpack(raw interface{}, name string) *models.EmbeddedCont
 	unpackNotifierStringField(&json, &settings, "mention_channel", "mentionChannel")
 	unpackNotifierStringField(&json, &settings, "mention_users", "mentionUsers")
 	unpackNotifierStringField(&json, &settings, "mention_groups", "mentionGroups")
+
+	return &models.EmbeddedContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  common.Ref(s.meta().typeStr),
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}
+
+type snsNotifier struct{}
+
+var _ notifier = (*snsNotifier)(nil)
+
+func (s snsNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:        "sns",
+		typeStr:      "sns",
+		desc:         "A contact point that sends notifications to Amazon SNS. Requires Amazon Managed Grafana.",
+		secureFields: []string{"access_key", "secret_key"},
+	}
+}
+
+func (s snsNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["topic"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Description: "The Amazon SNS topic to send notifications to.",
+		Required:    true,
+	}
+	r.Schema["auth_provider"] = &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		Description:  "The authentication provider to use. Valid values are `default`, `arn` and `keys`. Default is `default`.",
+		Default:      "default",
+		ValidateFunc: validation.StringInSlice([]string{"default", "arn", "keys"}, false),
+	}
+	r.Schema["access_key"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "AWS access key ID used to authenticate with Amazon SNS.",
+	}
+	r.Schema["secret_key"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "AWS secret access key used to authenticate with Amazon SNS.",
+	}
+	r.Schema["assume_role_arn"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The Amazon Resource Name (ARN) of the role to assume to send notifications to Amazon SNS.",
+	}
+	r.Schema["message_format"] = &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		Description:  "The format of the message to send. Valid values are `text`, `body` and `json`. Default is `text`.",
+		ValidateFunc: validation.StringInSlice([]string{"text", "body", "json"}, false),
+		Default:      "text",
+	}
+	r.Schema["body"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Optional: true,
+	}
+	r.Schema["subject"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Optional: true,
+	}
+	r.Schema["external_id"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The external ID to use when assuming the role.",
+	}
+
+	return r
+}
+
+func (s snsNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
+
+	packNotifierStringField(&settings, &notifier, "topic", "topic")
+	packNotifierStringField(&settings, &notifier, "authProvider", "auth_provider")
+	packNotifierStringField(&settings, &notifier, "accessKey", "access_key")
+	packNotifierStringField(&settings, &notifier, "secretKey", "secret_key")
+	packNotifierStringField(&settings, &notifier, "assumeRoleARN", "assume_role_arn")
+	packNotifierStringField(&settings, &notifier, "messageFormat", "message_format")
+	packNotifierStringField(&settings, &notifier, "body", "body")
+	packNotifierStringField(&settings, &notifier, "subject", "subject")
+	packNotifierStringField(&settings, &notifier, "externalId", "external_id")
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, s, p.UID), s.meta().secureFields)
+
+	notifier["settings"] = packSettings(p)
+
+	return notifier, nil
+}
+
+func (s snsNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	unpackNotifierStringField(&json, &settings, "topic", "topic")
+	unpackNotifierStringField(&json, &settings, "auth_provider", "authProvider")
+	unpackNotifierStringField(&json, &settings, "access_key", "accessKey")
+	unpackNotifierStringField(&json, &settings, "secret_key", "secretKey")
+	unpackNotifierStringField(&json, &settings, "assume_role_arn", "assumeRoleARN")
+	unpackNotifierStringField(&json, &settings, "message_format", "messageFormat")
+	unpackNotifierStringField(&json, &settings, "body", "body")
+	unpackNotifierStringField(&json, &settings, "subject", "subject")
+	unpackNotifierStringField(&json, &settings, "external_id", "externalId")
 
 	return &models.EmbeddedContactPoint{
 		UID:                   uid,

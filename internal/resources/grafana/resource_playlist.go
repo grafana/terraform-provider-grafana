@@ -3,16 +3,17 @@ package grafana
 import (
 	"context"
 	"errors"
+	"sort"
 	"strconv"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourcePlaylist() *schema.Resource {
-	return &schema.Resource{
+func resourcePlaylist() *common.Resource {
+	schema := &schema.Resource{
 		CreateContext: CreatePlaylist,
 		ReadContext:   ReadPlaylist,
 		UpdateContext: UpdatePlaylist,
@@ -41,12 +42,6 @@ func ResourcePlaylist() *schema.Resource {
 			"item": {
 				Type:     schema.TypeSet,
 				Required: true,
-				// The order of the items is important and defined through the order field
-				// We want to compare items with the same order value
-				Set: func(i interface{}) int {
-					m := i.(map[string]interface{})
-					return m["order"].(int)
-				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
@@ -74,6 +69,12 @@ func ResourcePlaylist() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_playlist",
+		orgResourceIDString("uid"),
+		schema,
+	)
 }
 
 func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -169,6 +170,9 @@ func expandPlaylistItems(items []interface{}) []*models.PlaylistItem {
 		}
 		playlistItems = append(playlistItems, p)
 	}
+	sort.Slice(playlistItems, func(i, j int) bool {
+		return playlistItems[i].Order < playlistItems[j].Order
+	})
 	return playlistItems
 }
 

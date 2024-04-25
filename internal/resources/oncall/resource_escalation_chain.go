@@ -6,20 +6,20 @@ import (
 	"net/http"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceEscalationChain() *schema.Resource {
-	return &schema.Resource{
+func resourceEscalationChain() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/escalation_chains/)
 `,
-		CreateContext: ResourceEscalationChainCreate,
-		ReadContext:   ResourceEscalationChainRead,
-		UpdateContext: ResourceEscalationChainUpdate,
-		DeleteContext: ResourceEscalationChainDelete,
+		CreateContext: withClient[schema.CreateContextFunc](resourceEscalationChainCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceEscalationChainRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceEscalationChainUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceEscalationChainDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -37,11 +37,15 @@ func ResourceEscalationChain() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_oncall_escalation_chain",
+		resourceID,
+		schema,
+	)
 }
 
-func ResourceEscalationChainCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceEscalationChainCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
 
@@ -57,12 +61,10 @@ func ResourceEscalationChainCreate(ctx context.Context, d *schema.ResourceData, 
 
 	d.SetId(escalationChain.ID)
 
-	return ResourceEscalationChainRead(ctx, d, m)
+	return resourceEscalationChainRead(ctx, d, client)
 }
 
-func ResourceEscalationChainRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceEscalationChainRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	escalationChain, r, err := client.EscalationChains.GetEscalationChain(d.Id(), &onCallAPI.GetEscalationChainOptions{})
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
@@ -79,9 +81,7 @@ func ResourceEscalationChainRead(ctx context.Context, d *schema.ResourceData, m 
 	return nil
 }
 
-func ResourceEscalationChainUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceEscalationChainUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	nameData := d.Get("name").(string)
 	teamIDData := d.Get("team_id").(string)
 
@@ -96,12 +96,10 @@ func ResourceEscalationChainUpdate(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	d.SetId(escalationChain.ID)
-	return ResourceEscalationChainRead(ctx, d, m)
+	return resourceEscalationChainRead(ctx, d, client)
 }
 
-func ResourceEscalationChainDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	client := m.(*common.Client).OnCallClient
-
+func resourceEscalationChainDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	_, err := client.EscalationChains.DeleteEscalationChain(d.Id(), &onCallAPI.DeleteEscalationChainOptions{})
 	if err != nil {
 		return diag.FromErr(err)

@@ -46,7 +46,8 @@ resource "grafana_mute_timing" "my_mute_timing" {
 
 ### Optional
 
-- `intervals` (Block List) The time intervals at which to mute notifications. (see [below for nested schema](#nestedblock--intervals))
+- `disable_provenance` (Boolean) Allow modifying the mute timing from other sources than Terraform or the Grafana API. Defaults to `false`.
+- `intervals` (Block List) The time intervals at which to mute notifications. Use an empty block to mute all the time. (see [below for nested schema](#nestedblock--intervals))
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 
 ### Read-Only
@@ -78,5 +79,6 @@ Required:
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_mute_timing.mute_timing_name {{mute_timing_name}}
+terraform import grafana_mute_timing.name "{{ name }}"
+terraform import grafana_mute_timing.name "{{ orgID }}:{{ name }}"
 ```

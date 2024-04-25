@@ -5,14 +5,14 @@ import (
 	"strconv"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func ResourceOrganizationPreferences() *schema.Resource {
-	return &schema.Resource{
+func resourceOrganizationPreferences() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/organization-management/)
@@ -71,6 +71,12 @@ func ResourceOrganizationPreferences() *schema.Resource {
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_organization_preferences",
+		common.NewResourceID(common.IntIDField("orgID")),
+		schema,
+	)
 }
 
 func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -93,10 +99,8 @@ func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 }
 
 func ReadOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
-	if id, _ := strconv.ParseInt(d.Id(), 10, 64); id > 0 {
-		client = client.WithOrgID(id)
-	}
+	id := d.Id() + ":" // Ensure the ID is in the <orgID>:<resourceID> format. A bit hacky but won't survive the migration to plugin framework
+	client, _, _ := OAPIClientFromExistingOrgResource(meta, id)
 
 	resp, err := client.OrgPreferences.GetOrgPreferences()
 	if err, shouldReturn := common.CheckReadError("organization preferences", d, err); shouldReturn {
@@ -119,10 +123,8 @@ func UpdateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 }
 
 func DeleteOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
-	if id, _ := strconv.ParseInt(d.Id(), 10, 64); id > 0 {
-		client = client.WithOrgID(id)
-	}
+	id := d.Id() + ":" // Ensure the ID is in the <orgID>:<resourceID> format. A bit hacky but won't survive the migration to plugin framework
+	client, _, _ := OAPIClientFromExistingOrgResource(meta, id)
 
 	if _, err := client.OrgPreferences.UpdateOrgPreferences(&models.UpdatePrefsCmd{}); err != nil {
 		return diag.FromErr(err)

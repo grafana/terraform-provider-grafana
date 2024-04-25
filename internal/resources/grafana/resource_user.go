@@ -6,13 +6,15 @@ import (
 	"strings"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceUser() *schema.Resource {
-	return &schema.Resource{
+var resourceUserID = common.NewResourceID(common.IntIDField("id"))
+
+func resourceUser() *common.Resource {
+	schema := &schema.Resource{
 
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/user-management/server-user-management/)
@@ -67,15 +69,24 @@ You must use basic auth.
 			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		"grafana_user",
+		resourceUserID,
+		schema,
+	)
 }
 
 func CreateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	user := models.AdminCreateUserForm{
 		Email:    d.Get("email").(string),
 		Name:     d.Get("name").(string),
 		Login:    d.Get("login").(string),
-		Password: d.Get("password").(string),
+		Password: models.Password(d.Get("password").(string)),
 	}
 	resp, err := client.AdminUsers.AdminCreateUser(&user)
 	if err != nil {
@@ -92,7 +103,10 @@ func CreateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func ReadUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -112,7 +126,10 @@ func ReadUser(ctx context.Context, d *schema.ResourceData, meta interface{}) dia
 }
 
 func UpdateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -126,7 +143,7 @@ func UpdateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		return diag.FromErr(err)
 	}
 	if d.HasChange("password") {
-		f := models.AdminUpdateUserPasswordForm{Password: d.Get("password").(string)}
+		f := models.AdminUpdateUserPasswordForm{Password: models.Password(d.Get("password").(string))}
 		if _, err = client.AdminUsers.AdminUpdateUserPassword(id, &f); err != nil {
 			return diag.FromErr(err)
 		}
@@ -141,7 +158,10 @@ func UpdateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 }
 
 func DeleteUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := OAPIGlobalClient(meta)
+	client, err := OAPIGlobalClient(meta)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
