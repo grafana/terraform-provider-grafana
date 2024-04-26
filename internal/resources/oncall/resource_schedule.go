@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
@@ -47,7 +48,7 @@ func resourceSchedule() *common.Resource {
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validation.StringInSlice(scheduleTypeOptions, false),
-				Description:  "The schedule's type.",
+				Description:  "The schedule's type. Valid values are `" + strings.Join(scheduleTypeOptions, "`, `") + "`.",
 			},
 			"time_zone": {
 				Type:        schema.TypeString,
