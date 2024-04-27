@@ -15,8 +15,7 @@ import (
 )
 
 var (
-	//nolint:staticcheck
-	resourceAccessPolicyID = common.NewResourceIDWithLegacySeparator("/",
+	resourceAccessPolicyID = common.NewResourceID(
 		common.StringIDField("region"),
 		common.StringIDField("policyId"),
 	)
