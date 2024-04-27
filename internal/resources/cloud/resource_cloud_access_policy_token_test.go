@@ -11,6 +11,7 @@ import (
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -45,7 +46,7 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 		),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCloudAccessPolicyTokenConfigBasic("initial", "", initialScopes, expiresAt),
+				Config: testAccCloudAccessPolicyTokenConfigBasic("initial", "", "us", initialScopes, expiresAt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.test", &policy),
 					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_token.test", &policyToken),
@@ -68,7 +69,7 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCloudAccessPolicyTokenConfigBasic("initial", "updated", updatedScopes, expiresAt),
+				Config: testAccCloudAccessPolicyTokenConfigBasic("initial", "updated", "us", updatedScopes, expiresAt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.test", &policy),
 					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_token.test", &policyToken),
@@ -87,7 +88,7 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 			},
 			// Recreate
 			{
-				Config: testAccCloudAccessPolicyTokenConfigBasic("updated", "updated", updatedScopes, expiresAt),
+				Config: testAccCloudAccessPolicyTokenConfigBasic("updated", "updated", "us", updatedScopes, expiresAt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.test", &policy),
 					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_token.test", &policyToken),
@@ -126,7 +127,7 @@ func TestResourceAccessPolicyToken_NoExpiration(t *testing.T) {
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCloudAccessPolicyTokenConfigBasic("initial-no-expiration", "", []string{"metrics:read"}, ""),
+				Config: testAccCloudAccessPolicyTokenConfigBasic("initial-no-expiration", "", "us", []string{"metrics:read"}, ""),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.test", &policy),
 					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_token.test", &policyToken),
@@ -223,7 +224,24 @@ func testAccCloudAccessPolicyTokenCheckDestroy(region string, a *gcom.AuthToken)
 	}
 }
 
-func testAccCloudAccessPolicyTokenConfigBasic(name, displayName string, scopes []string, expiresAt string) string {
+func testAccDeleteExistingAccessPolicies(t *testing.T, prefix string) {
+	client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+	resp, _, err := client.AccesspoliciesAPI.GetAccessPolicies(context.Background()).Execute()
+	if err != nil {
+		t.Error(err)
+	}
+
+	for _, ap := range resp.Items {
+		if strings.HasPrefix(ap.Name, prefix) {
+			_, _, err := client.AccesspoliciesAPI.DeleteAccessPolicy(context.Background(), *ap.Id).XRequestId(cloud.ClientRequestID()).Execute()
+			if err != nil {
+				t.Error(err)
+			}
+		}
+	}
+}
+
+func testAccCloudAccessPolicyTokenConfigBasic(name, displayName, region string, scopes []string, expiresAt string) string {
 	if displayName != "" {
 		displayName = fmt.Sprintf("display_name = \"%s\"", displayName)
 	}
@@ -238,7 +256,7 @@ func testAccCloudAccessPolicyTokenConfigBasic(name, displayName string, scopes [
 	}
 
 	resource "grafana_cloud_access_policy" "test" {
-		region       = "us"
+		region       = "%[6]s"
 		name         = "%[1]s"
 		%[2]s
 
@@ -255,11 +273,11 @@ func testAccCloudAccessPolicyTokenConfigBasic(name, displayName string, scopes [
 	}
 
 	resource "grafana_cloud_access_policy_token" "test" {
-		region           = "us"
+		region           = "%[6]s"
 		access_policy_id = grafana_cloud_access_policy.test.policy_id
 		name             = "token-%[1]s"
 		%[2]s
 		%[5]s
 	}
-	`, name, displayName, strings.Join(scopes, `","`), os.Getenv("GRAFANA_CLOUD_ORG"), expiresAt)
+	`, name, displayName, strings.Join(scopes, `","`), os.Getenv("GRAFANA_CLOUD_ORG"), expiresAt, region)
 }
