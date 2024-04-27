@@ -17,7 +17,7 @@ func TestTFJSON(t *testing.T) {
 	testFileContent, err := os.ReadFile("testdata/testblocks.hcl")
 	require.NoError(t, err)
 
-	require.NoError(t, os.WriteFile(testFile, testFileContent, 0777))
+	require.NoError(t, os.WriteFile(testFile, testFileContent, 0600))
 	require.NoError(t, convertToTFJSON(tempDir))
 
 	gotDir, err := os.ReadDir(tempDir)
