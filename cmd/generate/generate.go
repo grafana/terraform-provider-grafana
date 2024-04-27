@@ -70,8 +70,18 @@ func generate(ctx context.Context, cfg *config) error {
 	}
 
 	if cfg.cloudAccessPolicyToken != "" {
-		return generateCloudResources(ctx, cfg.cloudAccessPolicyToken, cfg.cloudOrg)
+		if err := generateCloudResources(ctx, cfg.cloudAccessPolicyToken, cfg.cloudOrg); err != nil {
+			return err
+		}
+	} else {
+		if err := generateGrafanaResources(ctx, cfg.grafanaURL, cfg.grafanaAuth); err != nil {
+			return err
+		}
 	}
 
-	return generateGrafanaResources(ctx, cfg.grafanaURL, cfg.grafanaAuth)
+	if cfg.format == outputFormatJSON {
+		return convertToTFJSON(cfg.outputDir)
+	}
+
+	return nil
 }

@@ -1,0 +1,33 @@
+{
+  "provider": {
+    "grafana": [
+      {
+        "auth": "admin:admin",
+        "http_headers": {
+          "header1": "val2"
+        },
+        "url": "hello.com"
+      }
+    ]
+  },
+  "resource": {
+    "grafana_cloud_stack": {
+      "my-stack": [
+        {
+          "other": [
+            "123",
+            "456"
+          ],
+          "region": "${data.region.slug}",
+          "slug": "hello",
+          "sub_block": [
+            {},
+            {
+              "attr": "val"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

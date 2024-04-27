@@ -1,10 +1,15 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"os"
 	"os/exec"
+	"path/filepath"
 
+	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/tmccombs/hcl2json/convert"
 )
 
 func runTerraform(dir string, command ...string) error {
@@ -32,4 +37,39 @@ func writeBlocks(filepath string, blocks ...*hclwrite.Block) error {
 		return err
 	}
 	return hclFile.Close()
+}
+
+func convertToTFJSON(dir string) error {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+	for _, dirEntry := range entries {
+		filePath := filepath.Join(dir, dirEntry.Name())
+
+		hclFile, diags := hclparse.NewParser().ParseHCLFile(filePath)
+		if diags.HasErrors() {
+			return errors.Join(diags.Errs()...)
+		}
+		if err := os.Remove(filePath); err != nil {
+			return err
+		}
+		jsonFilePath := filePath + ".json"
+		jsonFile, err := os.Create(jsonFilePath)
+		if err != nil {
+			return err
+		}
+		converted, err := convert.ConvertFile(hclFile, convert.Options{})
+		if err != nil {
+			return err
+		}
+
+		enc := json.NewEncoder(jsonFile)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(converted); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
