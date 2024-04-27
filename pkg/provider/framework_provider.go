@@ -23,7 +23,6 @@ type ProviderConfig struct {
 	Retries          types.Int64  `tfsdk:"retries"`
 	RetryStatusCodes types.Set    `tfsdk:"retry_status_codes"`
 	RetryWait        types.Int64  `tfsdk:"retry_wait"`
-	OrgID            types.Int64  `tfsdk:"org_id"`
 
 	TLSKey             types.String `tfsdk:"tls_key"`
 	TLSCert            types.String `tfsdk:"tls_cert"`
@@ -63,9 +62,6 @@ func (c *ProviderConfig) SetDefaults() error {
 	c.SMURL = envDefaultFuncString(c.SMURL, "GRAFANA_SM_URL", "https://synthetic-monitoring-api.grafana.net")
 	c.OncallAccessToken = envDefaultFuncString(c.OncallAccessToken, "GRAFANA_ONCALL_ACCESS_TOKEN")
 	c.OncallURL = envDefaultFuncString(c.OncallURL, "GRAFANA_ONCALL_URL", "https://oncall-prod-us-central-0.grafana.net/oncall")
-	if c.OrgID, err = envDefaultFuncInt64(c.OrgID, "GRAFANA_ORG_ID"); err != nil {
-		return fmt.Errorf("failed to parse GRAFANA_ORG_ID: %w", err)
-	}
 	if c.StoreDashboardSha256, err = envDefaultFuncBool(c.StoreDashboardSha256, "GRAFANA_STORE_DASHBOARD_SHA256", false); err != nil {
 		return fmt.Errorf("failed to parse GRAFANA_STORE_DASHBOARD_SHA256: %w", err)
 	}
@@ -148,11 +144,6 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 			"retry_wait": schema.Int64Attribute{
 				Optional:            true,
 				MarkdownDescription: "The amount of time in seconds to wait between retries for Grafana API and Grafana Cloud API calls. May alternatively be set via the `GRAFANA_RETRY_WAIT` environment variable.",
-			},
-			"org_id": schema.Int64Attribute{
-				Optional:            true,
-				DeprecationMessage:  "Use the `org_id` attributes on resources instead.",
-				MarkdownDescription: "Deprecated: Use the `org_id` attributes on resources instead.",
 			},
 			"tls_key": schema.StringAttribute{
 				Optional:            true,
