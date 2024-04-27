@@ -42,5 +42,4 @@ func TestBlocks(t *testing.T) {
 	expectedContent, err := os.ReadFile("testdata/testblocks.hcl")
 	require.NoError(t, err)
 	assert.Equal(t, string(expectedContent), string(gotContent))
-
 }
