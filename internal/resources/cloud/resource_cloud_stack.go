@@ -203,7 +203,20 @@ Required access policy scopes:
 		"grafana_cloud_stack",
 		resourceStackID,
 		schema,
-	)
+	).WithLister(cloudListerFunction(listStacks))
+}
+
+func listStacks(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]string, error) {
+	stacks, err := data.Stacks(ctx, client)
+	if err != nil {
+		return nil, err
+	}
+
+	var stackSlugs []string
+	for _, stack := range stacks {
+		stackSlugs = append(stackSlugs, stack.Slug)
+	}
+	return stackSlugs, nil
 }
 
 func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
