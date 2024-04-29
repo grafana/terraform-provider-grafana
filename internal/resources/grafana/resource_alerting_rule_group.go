@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -250,7 +251,35 @@ This resource requires Grafana 9.1.0 or later.
 		"grafana_rule_group",
 		resourceRuleGroupID,
 		schema,
-	)
+	).WithLister(listerFunction(listRuleGroups))
+}
+
+func listRuleGroups(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
+	orgIDs, err := data.OrgIDs(client)
+	if err != nil {
+		return nil, err
+	}
+
+	idMap := map[string]bool{}
+	for _, orgID := range orgIDs {
+		client = client.Clone().WithOrgID(orgID)
+
+		resp, err := client.Provisioning.GetAlertRules()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, rule := range resp.Payload {
+			idMap[MakeOrgResourceID(orgID, resourceRuleGroupID.Make(rule.FolderUID, rule.RuleGroup))] = true
+		}
+	}
+
+	var ids []string
+	for id := range idMap {
+		ids = append(ids, id)
+	}
+
+	return ids, nil
 }
 
 func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {

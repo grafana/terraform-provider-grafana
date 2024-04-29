@@ -113,7 +113,7 @@ source selected (via the 'type' argument).
 		"grafana_data_source",
 		orgResourceIDString("uid"),
 		schema,
-	)
+	).WithLister(listerFunction(listDatasources))
 }
 
 func datasourceHTTPHeadersAttribute() *schema.Schema {
@@ -179,6 +179,28 @@ func datasourceSecureJSONDataAttribute() *schema.Schema {
 			return common.SuppressEquivalentJSONDiffs(k, oldValue, newValue, d)
 		},
 	}
+}
+
+func listDatasources(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
+	orgIDs, err := data.OrgIDs(client)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for _, orgID := range orgIDs {
+		client = client.Clone().WithOrgID(orgID)
+		resp, err := client.Datasources.GetDataSources()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, ds := range resp.Payload {
+			ids = append(ids, MakeOrgResourceID(orgID, ds.UID))
+		}
+	}
+
+	return ids, nil
 }
 
 // CreateDataSource creates a Grafana datasource

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/orgs"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
@@ -147,7 +148,20 @@ set to true. This feature is only available in Grafana 10.2+.
 		"grafana_organization",
 		common.NewResourceID(common.IntIDField("id")),
 		schema,
-	)
+	).WithLister(listerFunction(listOrganizations))
+}
+
+func listOrganizations(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
+	orgIDs, err := data.OrgIDs(client)
+	if err != nil {
+		return nil, err
+	}
+
+	var orgIDsString []string
+	for _, id := range orgIDs {
+		orgIDsString = append(orgIDsString, strconv.FormatInt(id, 10))
+	}
+	return orgIDsString, nil
 }
 
 func CreateOrganization(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

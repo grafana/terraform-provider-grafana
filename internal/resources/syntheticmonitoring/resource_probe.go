@@ -105,7 +105,32 @@ Grafana Synthetic Monitoring Agent.
 		},
 	}
 
-	return common.NewLegacySDKResource("grafana_synthetic_monitoring_probe", resourceProbeID, schema)
+	return common.NewLegacySDKResource(
+		"grafana_synthetic_monitoring_probe",
+		resourceProbeID,
+		schema,
+	).WithLister(listProbes)
+}
+
+func listProbes(ctx context.Context, client *common.Client, data any) ([]string, error) {
+	smClient := client.SMAPI
+	if smClient == nil {
+		return nil, fmt.Errorf("client not configured for SM API")
+	}
+
+	probeList, err := smClient.ListProbes(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for _, probe := range probeList {
+		if probe.Public {
+			continue
+		}
+		ids = append(ids, strconv.FormatInt(probe.Id, 10))
+	}
+	return ids, nil
 }
 
 func resourceProbeCreate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {

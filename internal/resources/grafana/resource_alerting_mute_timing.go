@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
@@ -128,7 +129,30 @@ This resource requires Grafana 9.1.0 or later.
 		"grafana_mute_timing",
 		orgResourceIDString("name"),
 		schema,
-	)
+	).WithLister(listerFunction(listMuteTimings))
+}
+
+func listMuteTimings(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
+	orgIDs, err := data.OrgIDs(client)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for _, orgID := range orgIDs {
+		client = client.Clone().WithOrgID(orgID)
+
+		resp, err := client.Provisioning.GetMuteTimings()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, muteTiming := range resp.Payload {
+			ids = append(ids, MakeOrgResourceID(orgID, muteTiming.Name))
+		}
+	}
+
+	return ids, nil
 }
 
 func readMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
