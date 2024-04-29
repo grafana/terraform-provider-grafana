@@ -41,7 +41,7 @@ jobs:
             GRAFANA_SM_ACCESS_TOKEN=cloud-instance-tests:sm-token
             GRAFANA_SM_URL=cloud-instance-tests:sm-url
             GRAFANA_URL=cloud-instance-tests:url
-      - uses: iFaxity/wait-on-action@v1.1.0
+      - uses: iFaxity/wait-on-action@v1.2.0
         with:
           resource: ${{ env.GRAFANA_URL }}
           interval: 2000 # 2s
