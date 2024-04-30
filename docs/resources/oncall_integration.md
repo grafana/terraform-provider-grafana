@@ -75,7 +75,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) The ID of this resource.
+- `id` (String)
 
 <a id="nestedblock--default_route--msteams"></a>
 ### Nested Schema for `default_route.msteams`
