@@ -25,14 +25,14 @@ func NewListerData(singleOrg bool) *ListerData {
 
 func (ld *ListerData) OrgIDs(client *goapi.GrafanaHTTPAPI) ([]int64, error) {
 	if ld.singleOrg {
-		return nil, nil
+		return []int64{0}, nil
 	}
 
 	var err error
 	ld.orgsInit.Do(func() {
 		client = client.Clone().WithOrgID(0)
 
-		var page int64 = 1
+		var page int64 = 0
 		for {
 			var resp *orgs.SearchOrgsOK
 			if resp, err = client.Orgs.SearchOrgs(orgs.NewSearchOrgsParams().WithPage(&page)); err != nil {

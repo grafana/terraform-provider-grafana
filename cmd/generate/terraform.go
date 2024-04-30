@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/tmccombs/hcl2json/convert"
@@ -72,4 +73,12 @@ func convertToTFJSON(dir string) error {
 	}
 
 	return nil
+}
+
+func traversal(root string, attrs ...string) hcl.Traversal {
+	tr := hcl.Traversal{hcl.TraverseRoot{Name: root}}
+	for _, attr := range attrs {
+		tr = append(tr, hcl.TraverseAttr{Name: attr})
+	}
+	return tr
 }
