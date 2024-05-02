@@ -66,34 +66,6 @@ func TestAccAlertRule_basic(t *testing.T) {
 					return fmt.Sprintf("%s:%s", rs.Primary.Attributes["folder_uid"], rs.Primary.Attributes["name"]), nil
 				},
 			},
-			// Support import with a weird hybrid separated ID.
-			// When org ID was first supported, and the ID had the old ; separator, this was valid
-			// TODO: Remove this on next major release.
-			{
-				ResourceName:      "grafana_rule_group.my_alert_rule",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					rs := s.RootModule().Resources["grafana_rule_group.my_alert_rule"]
-					if rs == nil {
-						return "", fmt.Errorf("resource not found")
-					}
-					return fmt.Sprintf("1:%s;%s", rs.Primary.Attributes["folder_uid"], rs.Primary.Attributes["name"]), nil
-				},
-			},
-			// Test import with legacy ID (split by ;). TODO: Remove this on next major release.
-			{
-				ResourceName:      "grafana_rule_group.my_alert_rule",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					rs := s.RootModule().Resources["grafana_rule_group.my_alert_rule"]
-					if rs == nil {
-						return "", fmt.Errorf("resource not found")
-					}
-					return fmt.Sprintf("%s;%s", rs.Primary.Attributes["folder_uid"], rs.Primary.Attributes["name"]), nil
-				},
-			},
 			// Test update content.
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_rule_group/resource.tf", map[string]string{
