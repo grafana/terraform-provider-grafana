@@ -29,22 +29,12 @@ Manages the entire set of permissions for a dashboard. Permissions that aren't s
 		},
 
 		Schema: map[string]*schema.Schema{
-			"dashboard_id": {
-				Type:         schema.TypeInt,
-				ForceNew:     true,
-				Computed:     true,
-				Optional:     true,
-				ExactlyOneOf: []string{"dashboard_id", "dashboard_uid"},
-				Deprecated:   "use `dashboard_uid` instead",
-				Description:  "ID of the dashboard to apply permissions to. Deprecated: use `dashboard_uid` instead.",
-			},
 			"dashboard_uid": {
-				Type:         schema.TypeString,
-				ForceNew:     true,
-				Computed:     true,
-				Optional:     true,
-				ExactlyOneOf: []string{"dashboard_id", "dashboard_uid"},
-				Description:  "UID of the dashboard to apply permissions to.",
+				Type:        schema.TypeString,
+				ForceNew:    true,
+				Computed:    true,
+				Optional:    true,
+				Description: "UID of the dashboard to apply permissions to.",
 			},
 		},
 	}
@@ -64,19 +54,10 @@ func resourceDashboardPermissionGet(d *schema.ResourceData, meta interface{}) (s
 		client, _, uid = OAPIClientFromExistingOrgResource(meta, d.Id())
 	}
 
-	if uid != "" {
-		_, err := client.Dashboards.GetDashboardByUID(uid)
-		if err != nil {
-			return "", err
-		}
-		d.Set("dashboard_uid", uid)
-		return uid, nil
-	}
-	id := int64(d.Get("dashboard_id").(int))
-	dashboard, err := getDashboardByID(client, id)
+	_, err := client.Dashboards.GetDashboardByUID(uid)
 	if err != nil {
 		return "", err
 	}
-	d.Set("dashboard_uid", dashboard.UID)
-	return dashboard.UID, nil
+	d.Set("dashboard_uid", uid)
+	return uid, nil
 }

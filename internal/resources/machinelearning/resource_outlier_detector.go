@@ -54,17 +54,10 @@ Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
-			"datasource_id": {
-				Description:  "The id of the datasource to query.",
-				Type:         schema.TypeInt,
-				Optional:     true,
-				ExactlyOneOf: []string{"datasource_uid"},
-				Deprecated:   "Use datasource_uid instead.",
-			},
 			"datasource_uid": {
 				Description: "The uid of the datasource to query.",
 				Type:        schema.TypeString,
-				Optional:    true,
+				Required:    true,
 			},
 			"datasource_type": {
 				Description:  "The type of datasource being queried. Currently allowed values are prometheus, graphite, loki, postgres, and datadog.",
@@ -151,16 +144,7 @@ func resourceOutlierRead(ctx context.Context, d *schema.ResourceData, meta inter
 	d.Set("name", outlier.Name)
 	d.Set("metric", outlier.Metric)
 	d.Set("description", outlier.Description)
-	if outlier.DatasourceID != 0 {
-		d.Set("datasource_id", outlier.DatasourceID)
-	} else {
-		d.Set("datasource_id", nil)
-	}
-	if outlier.DatasourceUID != "" {
-		d.Set("datasource_uid", outlier.DatasourceUID)
-	} else {
-		d.Set("datasource_uid", nil)
-	}
+	d.Set("datasource_uid", outlier.DatasourceUID)
 	d.Set("datasource_type", outlier.DatasourceType)
 	d.Set("query_params", outlier.QueryParams)
 	d.Set("interval", outlier.Interval)
@@ -237,7 +221,6 @@ func makeMLOutlier(d *schema.ResourceData, meta interface{}) (mlapi.OutlierDetec
 		Metric:         d.Get("metric").(string),
 		Description:    d.Get("description").(string),
 		GrafanaURL:     meta.(*common.Client).GrafanaAPIURL,
-		DatasourceID:   uint(d.Get("datasource_id").(int)),
 		DatasourceUID:  d.Get("datasource_uid").(string),
 		DatasourceType: d.Get("datasource_type").(string),
 		QueryParams:    d.Get("query_params").(map[string]interface{}),

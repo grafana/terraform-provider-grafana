@@ -2,7 +2,6 @@ package grafana_test
 
 import (
 	"os"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -18,15 +17,6 @@ func TestAccDatasourceDashboard_basic(t *testing.T) {
 	var dashboard models.DashboardFullWithMeta
 	checks := []resource.TestCheckFunc{
 		dashboardCheckExists.exists("grafana_dashboard.test", &dashboard),
-		resource.TestCheckResourceAttr(
-			"data.grafana_dashboard.from_id", "title", "Production Overview",
-		),
-		resource.TestMatchResourceAttr(
-			"data.grafana_dashboard.from_id", "dashboard_id", common.IDRegexp,
-		),
-		resource.TestMatchResourceAttr(
-			"data.grafana_dashboard.from_id", "uid", common.UIDRegexp,
-		),
 		resource.TestCheckResourceAttr(
 			"data.grafana_dashboard.from_uid", "title", "Production Overview",
 		),
@@ -48,21 +38,6 @@ func TestAccDatasourceDashboard_basic(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_dashboard/data-source.tf"),
 				Check:  resource.ComposeTestCheckFunc(checks...),
-			},
-		},
-	})
-}
-
-func TestAccDatasourceDashboardBadExactlyOneOf(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
-
-	// TODO: Make parallelizable
-	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config:      testutils.TestAccExample(t, "data-sources/grafana_dashboard/bad-ExactlyOneOf.tf"),
-				ExpectError: regexp.MustCompile(".*only one of.*can be specified.*"),
 			},
 		},
 	})

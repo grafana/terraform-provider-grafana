@@ -26,7 +26,7 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDashboardPermissionConfig(randomName, true, true),
+				Config: testAccDashboardPermissionConfig(randomName, true),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					dashboardCheckExists.exists("grafana_dashboard.testDashboard", &dashboard),
 					teamCheckExists.exists("grafana_team.testTeam", &team),
@@ -44,7 +44,7 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 			},
 			// Test remove permissions by not setting any permissions
 			{
-				Config: testAccDashboardPermissionConfig(randomName, true, false),
+				Config: testAccDashboardPermissionConfig(randomName, false),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					dashboardCheckExists.exists("grafana_dashboard.testDashboard", &dashboard),
 					resource.TestCheckResourceAttr("grafana_dashboard_permission.testPermission", "permissions.#", "0"),
@@ -53,7 +53,7 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 			},
 			// Reapply permissions
 			{
-				Config: testAccDashboardPermissionConfig(randomName, true, true),
+				Config: testAccDashboardPermissionConfig(randomName, true),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					dashboardCheckExists.exists("grafana_dashboard.testDashboard", &dashboard),
 					teamCheckExists.exists("grafana_team.testTeam", &team),
@@ -66,42 +66,10 @@ func TestAccDashboardPermission_basic(t *testing.T) {
 			},
 			// Test remove permissions by removing the resource
 			{
-				Config: testutils.WithoutResource(t, testAccDashboardPermissionConfig(randomName, true, true), "grafana_dashboard_permission.testPermission"),
+				Config: testutils.WithoutResource(t, testAccDashboardPermissionConfig(randomName, true), "grafana_dashboard_permission.testPermission"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					dashboardCheckExists.exists("grafana_dashboard.testDashboard", &dashboard),
 					checkDashboardPermissionsEmpty(&dashboard, false),
-				),
-			},
-		},
-	})
-}
-
-// Testing the deprecated case of using a dashboard ID instead of a dashboard UID
-// TODO: Remove in next major version
-func TestAccDashboardPermission_fromDashboardID(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
-
-	randomName := acctest.RandString(6)
-	var (
-		dashboard models.DashboardFullWithMeta
-		team      models.TeamDTO
-		user      models.UserProfileDTO
-		sa        models.ServiceAccountDTO
-	)
-
-	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccDashboardPermissionConfig(randomName, false, true),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					dashboardCheckExists.exists("grafana_dashboard.testDashboard", &dashboard),
-					teamCheckExists.exists("grafana_team.testTeam", &team),
-					userCheckExists.exists("grafana_user.testAdminUser", &user),
-					serviceAccountCheckExists.exists("grafana_service_account.test", &sa),
-
-					resource.TestCheckResourceAttr("grafana_dashboard_permission.testPermission", "permissions.#", "5"),
-					checkDashboardPermissionsSet(&dashboard, &team, &user, &sa, false),
 				),
 			},
 		},
@@ -182,12 +150,7 @@ func checkDashboardPermissions(dashboard *models.DashboardFullWithMeta, expected
 	return nil
 }
 
-func testAccDashboardPermissionConfig(name string, refDashboardByUID bool, hasPermissions bool) string {
-	ref := "dashboard_id = grafana_dashboard.testDashboard.dashboard_id"
-	if refDashboardByUID {
-		ref = "dashboard_uid = grafana_dashboard.testDashboard.uid"
-	}
-
+func testAccDashboardPermissionConfig(name string, hasPermissions bool) string {
 	perms := ""
 	if hasPermissions {
 		perms = `permissions {
@@ -241,8 +204,8 @@ resource "grafana_service_account" "test" {
 }
 
 resource "grafana_dashboard_permission" "testPermission" {
+  dashboard_uid = grafana_dashboard.testDashboard.uid
   %[2]s
-  %[3]s
 }
-`, name, ref, perms)
+`, name, perms)
 }

@@ -91,33 +91,6 @@ func TestAccAnnotation_inOrg(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				// Test resource creation with declared dashboard_id.
-				Config: testAnnotationConfigInOrgWithDashboardID(orgName, testAccAnnotationInitialText),
-				Check: resource.ComposeTestCheckFunc(
-					annotationsCheckExists.exists("grafana_annotation.test_with_dashboard_id", &annotation),
-					resource.TestCheckResourceAttr("grafana_annotation.test_with_dashboard_id", "text", testAccAnnotationInitialText),
-				),
-			},
-			{
-				// Updates text in resource with declared dashboard_id.
-				Config: testAnnotationConfigInOrgWithDashboardID(orgName, testAccAnnotationUpdatedText),
-				Check: resource.ComposeTestCheckFunc(
-					annotationsCheckExists.exists("grafana_annotation.test_with_dashboard_id", &annotation),
-					resource.TestCheckResourceAttr("grafana_annotation.test_with_dashboard_id", "text", testAccAnnotationUpdatedText),
-
-					// Check that the annotation is in the correct organization
-					resource.TestMatchResourceAttr("grafana_annotation.test_with_dashboard_id", "id", nonDefaultOrgIDRegexp),
-					orgCheckExists.exists("grafana_organization.test", &org),
-					checkResourceIsInOrg("grafana_annotation.test_with_dashboard_id", "grafana_organization.test"),
-				),
-			},
-			{
-				// Importing matches the state of the previous step.
-				ResourceName:      "grafana_annotation.test_with_dashboard_id",
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-			{
 				// Test resource creation with declared panel_id.
 				Config: testAnnotationConfigInOrgWithPanelID(orgName, testAccAnnotationInitialText),
 				Check: resource.ComposeTestCheckFunc(
@@ -207,29 +180,6 @@ resource "grafana_organization" "test" {
 resource "grafana_annotation" "test" {
     org_id = grafana_organization.test.id
     text = "%s"
-}
-`, orgName, text)
-}
-
-func testAnnotationConfigInOrgWithDashboardID(orgName, text string) string {
-	return fmt.Sprintf(`
-resource "grafana_organization" "test" {
-	  name = "%[1]s"
-}
-
-resource "grafana_dashboard" "test_with_dashboard_id" {
-    org_id = grafana_organization.test.id
-    config_json = <<EOD
-{
-  "title": "%[2]s"
-}
-EOD
-}
-
-resource "grafana_annotation" "test_with_dashboard_id" {
-    org_id = grafana_organization.test.id
-    text         = "%[2]s"
-    dashboard_id = grafana_dashboard.test_with_dashboard_id.dashboard_id
 }
 `, orgName, text)
 }

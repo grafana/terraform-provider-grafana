@@ -55,7 +55,6 @@ resource "grafana_dashboard_permission" "collectionPermission" {
 
 ### Optional
 
-- `dashboard_id` (Number, Deprecated) ID of the dashboard to apply permissions to. Deprecated: use `dashboard_uid` instead.
 - `dashboard_uid` (String) UID of the dashboard to apply permissions to.
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `permissions` (Block Set) The permission items to add/update. Items that are omitted from the list will be removed. (see [below for nested schema](#nestedblock--permissions))

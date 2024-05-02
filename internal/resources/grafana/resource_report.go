@@ -11,8 +11,6 @@ import (
 	_ "time/tzdata"
 
 	"github.com/go-openapi/strfmt"
-	goapi "github.com/grafana/grafana-openapi-client-go/client"
-	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -78,22 +76,6 @@ func resourceReport() *common.Resource {
 				Required:    true,
 				Description: "Name of the report.",
 			},
-			"dashboard_id": {
-				Type:         schema.TypeInt,
-				ExactlyOneOf: []string{"dashboard_id", "dashboard_uid", "dashboards"},
-				Computed:     true,
-				Optional:     true,
-				Deprecated:   "Use dashboards instead",
-				Description:  "Dashboard to be sent in the report. This field is deprecated, use `dashboard_uid` instead.",
-			},
-			"dashboard_uid": {
-				Type:         schema.TypeString,
-				ExactlyOneOf: []string{"dashboard_id", "dashboard_uid", "dashboards"},
-				Computed:     true,
-				Optional:     true,
-				Deprecated:   "Use dashboards instead",
-				Description:  "Dashboard to be sent in the report.",
-			},
 			"recipients": {
 				Type:        schema.TypeList,
 				Required:    true,
@@ -148,29 +130,6 @@ func resourceReport() *common.Resource {
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
 					ValidateFunc: validation.StringInSlice(reportFormats, false),
-				},
-			},
-			"time_range": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				Description: "Time range of the report.",
-				MaxItems:    1,
-				Deprecated:  "Use time_range in dashboards instead. This field is completely ignored when dashboards is set.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"from": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							Description:  "Start of the time range.",
-							RequiredWith: []string{"time_range.0.to"},
-						},
-						"to": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							Description:  "End of the time range.",
-							RequiredWith: []string{"time_range.0.from"},
-						},
-					},
 				},
 			},
 			"schedule": {
@@ -280,9 +239,6 @@ func resourceReport() *common.Resource {
 						},
 					},
 				},
-				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
-					return d.Get("dashboard_id").(int) != 0 && d.Get("dashboard_uid").(string) != ""
-				},
 			},
 		},
 	}
@@ -296,18 +252,6 @@ func resourceReport() *common.Resource {
 
 func CreateReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
-
-	_, hasDashboards := d.GetOk("dashboards")
-	dashID := d.Get("dashboard_id").(int)
-	dashUID := d.Get("dashboard_uid").(string)
-	if !hasDashboards && dashID != 0 && dashUID == "" {
-		// Get dashboard by ID
-		dashboard, err := searchDashboardByID(client, dashID)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		d.Set("dashboard_uid", dashboard.UID)
-	}
 
 	report, err := schemaToReport(d)
 	if err != nil {
@@ -334,22 +278,6 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 	r, err := client.Reports.GetReport(id)
 	if err, shouldReturn := common.CheckReadError("report", d, err); shouldReturn {
 		return err
-	}
-
-	dashboards := make([]interface{}, len(r.Payload.Dashboards))
-	if d.Get("dashboard_id").(int) != 0 || d.Get("dashboard_uid").(string) != "" {
-		d.Set("dashboard_id", r.Payload.Dashboards[0].Dashboard.ID)
-		d.Set("dashboard_uid", r.Payload.Dashboards[0].Dashboard.UID)
-
-		timeRange := r.Payload.Dashboards[0].TimeRange
-		if timeRange.From != "" {
-			d.Set("time_range", []interface{}{
-				map[string]interface{}{
-					"from": timeRange.From,
-					"to":   timeRange.To,
-				},
-			})
-		}
 	}
 
 	d.SetId(MakeOrgResourceID(r.Payload.OrgID, id))
@@ -394,6 +322,7 @@ func ReadReport(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 
 	d.Set("schedule", []interface{}{schedule})
 
+	dashboards := make([]interface{}, len(r.Payload.Dashboards))
 	for i, dashboard := range r.Payload.Dashboards {
 		dashboards[i] = map[string]interface{}{
 			"uid": dashboard.Dashboard.UID,
@@ -525,42 +454,23 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReportConfig, 
 
 func setDashboards(report models.CreateOrUpdateReportConfig, d *schema.ResourceData) models.CreateOrUpdateReportConfig {
 	dashboards := d.Get("dashboards").([]interface{})
-	if len(dashboards) > 0 {
-		for _, dashboard := range dashboards {
-			dash := dashboard.(map[string]interface{})
-			timeRange := dash["time_range"].([]interface{})
-			tr := &models.ReportTimeRange{}
-			if len(timeRange) > 0 {
-				timeRange := timeRange[0].(map[string]interface{})
-				tr = &models.ReportTimeRange{From: timeRange["from"].(string), To: timeRange["to"].(string)}
-			}
-
-			report.Dashboards = append(report.Dashboards, &models.ReportDashboard{
-				Dashboard: &models.ReportDashboardID{
-					UID: dash["uid"].(string),
-				},
-				TimeRange:       tr,
-				ReportVariables: parseReportVariablesRequest(dash["report_variables"]),
-			})
+	for _, dashboard := range dashboards {
+		dash := dashboard.(map[string]interface{})
+		timeRange := dash["time_range"].([]interface{})
+		tr := &models.ReportTimeRange{}
+		if len(timeRange) > 0 {
+			timeRange := timeRange[0].(map[string]interface{})
+			tr = &models.ReportTimeRange{From: timeRange["from"].(string), To: timeRange["to"].(string)}
 		}
-		return report
+
+		report.Dashboards = append(report.Dashboards, &models.ReportDashboard{
+			Dashboard: &models.ReportDashboardID{
+				UID: dash["uid"].(string),
+			},
+			TimeRange:       tr,
+			ReportVariables: parseReportVariablesRequest(dash["report_variables"]),
+		})
 	}
-
-	// Set dashboard time range
-	timeRange := d.Get("time_range").([]interface{})
-	tr := &models.ReportTimeRange{}
-	if len(timeRange) > 0 {
-		timeRange := timeRange[0].(map[string]interface{})
-		tr = &models.ReportTimeRange{From: timeRange["from"].(string), To: timeRange["to"].(string)}
-	}
-
-	report.Dashboards = []*models.ReportDashboard{{
-		Dashboard: &models.ReportDashboardID{
-			UID: d.Get("dashboard_uid").(string),
-		},
-		TimeRange: tr,
-	}}
-
 	return report
 }
 
@@ -720,26 +630,4 @@ func checkDateTime(old, new string) (time.Time, time.Time, bool) {
 	}
 
 	return oldParsed, newParsed, false
-}
-
-func searchDashboardByID(client *goapi.GrafanaHTTPAPI, id int) (*models.Hit, error) {
-	var page int64 = 1
-	searchType := "dash-db"
-	for {
-		params := search.NewSearchParams().WithPage(&page).WithType(&searchType)
-		dashboards, err := client.Search.Search(params)
-		if err != nil {
-			return nil, err
-		}
-		for _, dashboard := range dashboards.Payload {
-			if dashboard.ID == int64(id) {
-				return dashboard, nil
-			}
-		}
-		if len(dashboards.Payload) == 0 {
-			break
-		}
-		page++
-	}
-	return nil, fmt.Errorf("dashboard with ID %d not found", id)
 }

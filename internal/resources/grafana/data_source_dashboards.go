@@ -23,13 +23,6 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 		ReadContext: dataSourceReadDashboards,
 		Schema: map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
-			"folder_ids": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				Description: "Deprecated, use `folder_uids` instead.",
-				Elem:        &schema.Schema{Type: schema.TypeInt},
-				Deprecated:  "Use `folder_uids` instead.",
-			},
 			"folder_uids": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -82,12 +75,7 @@ func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta 
 	id := sha256.New()
 	id.Write([]byte(fmt.Sprintf("%d", limit)))
 
-	// add tags and folder IDs from attributes to dashboard search parameters
-	if list, ok := d.GetOk("folder_ids"); ok {
-		params.FolderIds = common.ListToIntSlice[int64](list.([]interface{}))
-		id.Write([]byte(fmt.Sprintf("%v", params.FolderIds)))
-	}
-
+	// add tags and folder UIDs from attributes to dashboard search parameters
 	if list, ok := d.GetOk("folder_uids"); ok {
 		params.FolderUIDs = common.ListToStringSlice(list.([]interface{}))
 		id.Write([]byte(fmt.Sprintf("%v", params.FolderUIDs)))

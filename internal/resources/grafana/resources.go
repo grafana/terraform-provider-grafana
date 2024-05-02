@@ -107,7 +107,6 @@ var Resources = addValidationToList([]*common.Resource{
 	makeResourceRoleAssignmentItem(),
 	makeResourceServiceAccountPermissionItem(),
 	resourceAnnotation(),
-	resourceAPIKey(),
 	resourceContactPoint(),
 	resourceDashboard(),
 	resourcePublicDashboard(),

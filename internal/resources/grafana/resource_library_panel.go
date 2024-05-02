@@ -45,30 +45,11 @@ Manages Grafana library panels.
 				Computed:    true,
 				Description: "The numeric ID of the library panel computed by Grafana.",
 			},
-			"folder_id": {
+			"folder_uid": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Deprecated. Use `folder_uid` instead",
-				Deprecated:  "Use `folder_uid` instead",
+				Description: "Unique ID (UID) of the folder containing the library panel.",
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					if d.Get("folder_uid") != "" && new == "" {
-						return true
-					}
-					_, old = SplitOrgResourceID(old)
-					_, new = SplitOrgResourceID(new)
-					return old == "0" && new == "" || old == "" && new == "0" || old == new
-				},
-				ConflictsWith: []string{"folder_uid"},
-			},
-			"folder_uid": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Description:   "Unique ID (UID) of the folder containing the library panel.",
-				ConflictsWith: []string{"folder_id"},
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					if d.Get("folder_id") != "" && new == "" {
-						return true
-					}
 					_, old = SplitOrgResourceID(old)
 					_, new = SplitOrgResourceID(new)
 					return old == new
@@ -169,8 +150,6 @@ func readLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interfac
 	d.Set("uid", panel.UID)
 	d.Set("panel_id", panel.ID)
 	d.Set("org_id", strconv.FormatInt(panel.OrgID, 10))
-	// nolint:staticcheck
-	d.Set("folder_id", MakeOrgResourceID(orgID, panel.FolderID))
 	d.Set("folder_uid", panel.Meta.FolderUID)
 	d.Set("description", panel.Description)
 	d.Set("type", panel.Type)
@@ -208,15 +187,7 @@ func updateLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interf
 		Kind:    1,
 		Version: int64(d.Get("version").(int)),
 	}
-
-	if folderUID, ok := d.GetOk("folder_uid"); ok {
-		_, body.FolderUID = SplitOrgResourceID(folderUID.(string))
-	} else if folderIDStr, ok := d.GetOk("folder_id"); ok {
-		_, folderIDStr = SplitOrgResourceID(folderIDStr.(string))
-		folderID, _ := strconv.ParseInt(folderIDStr.(string), 10, 64)
-		// nolint:staticcheck
-		body.FolderID = folderID
-	}
+	_, body.FolderUID = SplitOrgResourceID(d.Get("folder_uid").(string))
 
 	resp, err := client.LibraryElements.UpdateLibraryElement(uid, &body)
 	if err != nil {
@@ -244,15 +215,7 @@ func makeLibraryPanel(d *schema.ResourceData) models.CreateLibraryElementCommand
 		Model: panelJSON,
 		Kind:  1,
 	}
-
-	if folderUID, ok := d.GetOk("folder_uid"); ok {
-		_, panel.FolderUID = SplitOrgResourceID(folderUID.(string))
-	} else if folderIDStr, ok := d.GetOk("folder_id"); ok {
-		_, folderIDStr = SplitOrgResourceID(folderIDStr.(string))
-		folderID, _ := strconv.ParseInt(folderIDStr.(string), 10, 64)
-		// nolint:staticcheck
-		panel.FolderID = folderID
-	}
+	_, panel.FolderUID = SplitOrgResourceID(d.Get("folder_uid").(string))
 
 	return panel
 }

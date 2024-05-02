@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-openapi/runtime"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
-	"github.com/grafana/grafana-openapi-client-go/client/api_keys"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
@@ -68,21 +67,6 @@ var (
 			folder, title, _ := strings.Cut(id, ":")
 			resp, err := client.Provisioning.GetAlertRuleGroup(title, folder)
 			return payloadOrError(resp, err)
-		},
-	)
-	apiKeyCheckExists = newCheckExistsHelper(
-		func(k *models.APIKeyDTO) string { return strconv.FormatInt(k.ID, 10) },
-		func(client *goapi.GrafanaHTTPAPI, id string) (*models.APIKeyDTO, error) {
-			resp, err := client.APIKeys.GetAPIkeys(api_keys.NewGetAPIkeysParams())
-			if err != nil {
-				return nil, err
-			}
-			for _, k := range resp.Payload {
-				if strconv.FormatInt(k.ID, 10) == id {
-					return k, nil
-				}
-			}
-			return nil, &runtime.APIError{Code: 404}
 		},
 	)
 	annotationsCheckExists = newCheckExistsHelper(

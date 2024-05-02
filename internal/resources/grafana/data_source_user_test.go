@@ -16,7 +16,7 @@ func TestAccDatasourceUser_basic(t *testing.T) {
 	checks := []resource.TestCheckFunc{
 		userCheckExists.exists("grafana_user.test", &user),
 	}
-	for _, rName := range []string{"from_email", "from_login", "from_id"} {
+	for _, rName := range []string{"from_email", "from_login"} {
 		checks = append(checks,
 			resource.TestMatchResourceAttr(
 				"data.grafana_user."+rName, "user_id", common.IDRegexp,

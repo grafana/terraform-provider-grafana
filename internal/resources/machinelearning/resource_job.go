@@ -2,7 +2,6 @@ package machinelearning
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -50,16 +49,10 @@ A job defines the queries and model parameters for a machine learning task.
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
-			"datasource_id": {
-				Description: "The id of the datasource to query.",
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Deprecated:  "Use datasource_uid instead.",
-			},
 			"datasource_uid": {
 				Description: "The uid of the datasource to query.",
 				Type:        schema.TypeString,
-				Optional:    true,
+				Required:    true,
 			},
 			"datasource_type": {
 				Description: "The type of datasource being queried. Currently allowed values are prometheus, graphite, loki, postgres, and datadog.",
@@ -133,11 +126,6 @@ func resourceJobRead(ctx context.Context, d *schema.ResourceData, meta interface
 	d.Set("name", job.Name)
 	d.Set("metric", job.Metric)
 	d.Set("description", job.Description)
-	if job.DatasourceID != 0 {
-		d.Set("datasource_id", job.DatasourceID)
-	} else {
-		d.Set("datasource_id", nil)
-	}
 	if job.DatasourceUID != "" {
 		d.Set("datasource_uid", job.DatasourceUID)
 	} else {
@@ -178,19 +166,13 @@ func resourceJobDelete(ctx context.Context, d *schema.ResourceData, meta interfa
 }
 
 func makeMLJob(d *schema.ResourceData, meta interface{}) (mlapi.Job, error) {
-	datasourceID := uint(d.Get("datasource_id").(int))
-	datasourceUID := d.Get("datasource_uid").(string)
-	if datasourceID == 0 && datasourceUID == "" {
-		return mlapi.Job{}, fmt.Errorf("either datasource_id or datasource_uid must be set")
-	}
 	return mlapi.Job{
 		ID:                d.Id(),
 		Name:              d.Get("name").(string),
 		Metric:            d.Get("metric").(string),
 		Description:       d.Get("description").(string),
 		GrafanaURL:        meta.(*common.Client).GrafanaAPIURL,
-		DatasourceID:      datasourceID,
-		DatasourceUID:     datasourceUID,
+		DatasourceUID:     d.Get("datasource_uid").(string),
 		DatasourceType:    d.Get("datasource_type").(string),
 		QueryParams:       d.Get("query_params").(map[string]interface{}),
 		Interval:          uint(d.Get("interval").(int)),
