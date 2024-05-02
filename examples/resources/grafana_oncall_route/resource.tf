@@ -2,6 +2,10 @@ data "grafana_oncall_slack_channel" "example_slack_channel" {
   name = "example_slack_channel"
 }
 
+data "grafana_oncall_integration" "example_integration_data_source" {
+  id = "CABCDEFGHI321"
+}
+
 resource "grafana_oncall_escalation_chain" "default" {
   name = "default"
 }
@@ -9,6 +13,8 @@ resource "grafana_oncall_escalation_chain" "default" {
 resource "grafana_oncall_integration" "example_integration" {
   name = "Grafana Integration"
   type = "grafana"
+  default_route {
+  }
 }
 
 resource "grafana_oncall_route" "example_route" {
@@ -28,4 +34,11 @@ resource "grafana_oncall_route" "example_route" {
     id      = "ONCALLMSTEAMSID"
     enabled = false
   }
+}
+
+resource "grafana_oncall_route" "example_route_using_integration_ds" {
+  integration_id      = grafana_oncall_integration.example_integration_data_source.id
+  escalation_chain_id = grafana_oncall_escalation_chain.default.id
+  routing_regex       = "ap-east-1"
+  position            = 0
 }
