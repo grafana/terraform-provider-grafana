@@ -284,6 +284,33 @@ func TestAccDataSource_changeUID(t *testing.T) {
 	})
 }
 
+func TestAccDataSource_numericalUID(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
+	var dataSource models.DataSource
+	uid := acctest.RandInt()
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             datasourceCheckExists.destroyed(&dataSource, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+	resource "grafana_data_source" "test" {
+		name = "numerical-%[1]d"
+		type = "prometheus"
+		url  = "http://localhost:9090"
+		uid  = "%[1]d"
+	}`, uid),
+				Check: resource.ComposeTestCheckFunc(
+					datasourceCheckExists.exists("grafana_data_source.test", &dataSource),
+					resource.TestCheckResourceAttr("grafana_data_source.test", "uid", strconv.Itoa(uid)),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDatasource_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
