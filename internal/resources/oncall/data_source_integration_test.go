@@ -18,7 +18,7 @@ func TestAccDataSourceIntegration_Basic(t *testing.T) {
 	integrationID := "test_integration"
 	randomName := fmt.Sprintf("test-name-%s", acctest.RandString(10))
 
-	integrationPath := fmt.Sprintf("grafana_oncall_integration.%s", integrationID))
+	integrationPath := fmt.Sprintf("grafana_oncall_integration.%s", integrationID)
 	dataSourcePath := "data.grafana_oncall_integration.test_integration_ds"
 
 	resource.ParallelTest(t, resource.TestCase{
