@@ -33,6 +33,7 @@ var DatasourcesMap = map[string]*schema.Resource{
 	"grafana_oncall_outgoing_webhook": dataSourceOutgoingWebhook(),
 	"grafana_oncall_user_group":       dataSourceUserGroup(),
 	"grafana_oncall_team":             dataSourceTeam(),
+	"grafana_oncall_integration":      dataSourceIntegration(),
 }
 
 var Resources = []*common.Resource{

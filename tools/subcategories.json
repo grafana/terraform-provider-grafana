@@ -75,6 +75,7 @@
     "data-sources/users": "Grafana OSS",
     "data-sources/oncall_action": "OnCall",
     "data-sources/oncall_escalation_chain": "OnCall",
+    "data-sources/oncall_integration": "OnCall",
     "data-sources/oncall_outgoing_webhook": "OnCall",
     "data-sources/oncall_schedule": "OnCall",
     "data-sources/oncall_slack_channel": "OnCall",
