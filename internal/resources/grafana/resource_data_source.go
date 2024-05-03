@@ -417,13 +417,11 @@ func removeHeadersFromJSONData(input map[string]interface{}) (map[string]interfa
 func getDatasourceByUIDOrID(client *goapi.GrafanaHTTPAPI, id string) (*models.DataSource, error) {
 	var resp interface{ GetPayload() *models.DataSource }
 	var err error
-
-	if _, parseErr := strconv.ParseInt(id, 10, 64); parseErr == nil {
-		resp, err = client.Datasources.GetDataSourceByID(id)
-	} else {
-		resp, err = client.Datasources.GetDataSourceByUID(id)
+	if resp, err = client.Datasources.GetDataSourceByUID(id); err != nil {
+		if _, parseErr := strconv.ParseInt(id, 10, 64); parseErr == nil {
+			resp, err = client.Datasources.GetDataSourceByID(id)
+		}
 	}
-
 	if err != nil {
 		return nil, err
 	}
