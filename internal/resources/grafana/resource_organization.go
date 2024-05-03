@@ -157,6 +157,10 @@ func listOrganizations(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *
 		return nil, err
 	}
 
+	if data.singleOrg {
+		return nil, nil
+	}
+
 	var orgIDsString []string
 	for _, id := range orgIDs {
 		orgIDsString = append(orgIDsString, strconv.FormatInt(id, 10))

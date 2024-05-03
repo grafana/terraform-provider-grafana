@@ -13,8 +13,8 @@ func TestTFJSON(t *testing.T) {
 	t.Parallel()
 
 	tempDir := t.TempDir()
-	testFile := filepath.Join(tempDir, "testblocks.hcl")
-	testFileContent, err := os.ReadFile("testdata/testblocks.hcl")
+	testFile := filepath.Join(tempDir, "testblocks.tf")
+	testFileContent, err := os.ReadFile("testdata/testblocks.tf")
 	require.NoError(t, err)
 
 	require.NoError(t, os.WriteFile(testFile, testFileContent, 0600))
@@ -27,7 +27,7 @@ func TestTFJSON(t *testing.T) {
 	gotContent, err := os.ReadFile(testFile + ".json")
 	require.NoError(t, err)
 
-	expectedContent, err := os.ReadFile("testdata/testblocks.hcl.json")
+	expectedContent, err := os.ReadFile("testdata/testblocks.tf.json")
 	require.NoError(t, err)
 
 	assert.Equal(t, string(expectedContent), string(gotContent))

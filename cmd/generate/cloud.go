@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"path/filepath"
 	"strconv"
-	"sync"
+	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
@@ -55,58 +56,25 @@ func generateCloudResources(ctx context.Context, cfg *config) ([]stack, error) {
 
 	// Cleanup SAs
 	managementServiceAccountName := cfg.cloudStackServiceAccountName
-	smAccessPolicy := func(stack gcom.FormattedApiInstance) string {
-		return stack.Slug + "-sm-metrics-publish"
-	}
+
 	if cfg.cloudCreateStackServiceAccount {
 		for _, stack := range stacks.Items {
-			tempClient, cleanup, err := cloud.CreateTemporaryStackGrafanaClient(ctx, cloudClient, stack.Slug, "temp-sa-")
-			if err != nil {
-				return nil, fmt.Errorf("failed to create temporary client for stack %q: %w", stack.Slug, err)
-			}
-
-			serviceAccountsResp, err := tempClient.ServiceAccounts.SearchOrgServiceAccountsWithPaging(service_accounts.NewSearchOrgServiceAccountsWithPagingParams())
-			if err != nil {
-				return nil, fmt.Errorf("failed to search service accounts for stack %q: %w", stack.Slug, err)
-			}
-			for _, sa := range serviceAccountsResp.Payload.ServiceAccounts {
-				if sa.Name == managementServiceAccountName {
-					log.Printf("found existing management service account (%s) in stack %q\n", managementServiceAccountName, stack.Slug)
-					// Delete the SA to recreate it via TF
-					_, err := tempClient.ServiceAccounts.DeleteServiceAccount(sa.ID)
-					if err != nil {
-						return nil, fmt.Errorf("failed to delete existing management service account (%s) in stack %q: %w", managementServiceAccountName, stack.Slug, err)
-					}
-					break
-				}
-			}
-
-			if err := cleanup(); err != nil {
-				return nil, fmt.Errorf("failed to cleanup temporary client for stack %q: %w", stack.Slug, err)
-			}
-
-			// Delete existing SM installation
-			resp, _, err := cloudClient.AccesspoliciesAPI.GetAccessPolicies(ctx).OrgId(int32(stack.OrgId)).Region(stack.RegionSlug).Execute()
-			if err != nil {
+			if err := createManagementStackServiceAccount(ctx, cloudClient, stack, managementServiceAccountName); err != nil {
 				return nil, err
-			}
-			for _, policy := range resp.Items {
-				if policy.Name == smAccessPolicy(stack) {
-					log.Printf("found existing SM installation (%s) in stack %q\n", smAccessPolicy(stack), stack.Slug)
-					_, _, err := cloudClient.AccesspoliciesAPI.DeleteAccessPolicy(ctx, *policy.Id).XRequestId("tf-gen").OrgId(int32(stack.OrgId)).Region(stack.RegionSlug).Execute()
-					if err != nil {
-						return nil, fmt.Errorf("failed to delete existing SM installation (%s) in stack %q: %w", smAccessPolicy(stack), stack.Slug, err)
-					}
-					break
-				}
 			}
 		}
 	}
 
-	cache := sync.Map{}
-	cache.Store("org", cfg.cloudOrg)
+	data := cloud.NewListerData(cfg.cloudOrg)
+	if err := generateImportBlocks(ctx, client, data, cloud.Resources, cfg.outputDir, "cloud"); err != nil {
+		return nil, err
+	}
 
-	if err := generateImportBlocks(ctx, client, &cache, cloud.Resources, cfg.outputDir, "cloud"); err != nil {
+	log.Println("Post-processing for cloud")
+	if err := stripDefaults(filepath.Join(cfg.outputDir, "cloud-resources.tf"), map[string]string{}); err != nil {
+		return nil, err
+	}
+	if err := wrapJSONFieldsInFunction(filepath.Join(cfg.outputDir, "cloud-resources.tf")); err != nil {
 		return nil, err
 	}
 
@@ -142,7 +110,7 @@ func generateCloudResources(ctx context.Context, cfg *config) ([]stack, error) {
 		smInstallationMetricsPublishBlock := hclwrite.NewBlock("resource", []string{"grafana_cloud_access_policy", policyResourceName})
 		smInstallationMetricsPublishBlock.Body().SetAttributeTraversal("provider", traversal("grafana", "cloud"))
 		smInstallationMetricsPublishBlock.Body().SetAttributeValue("region", cty.StringVal(stack.RegionSlug))
-		smInstallationMetricsPublishBlock.Body().SetAttributeValue("name", cty.StringVal(smAccessPolicy(stack)))
+		smInstallationMetricsPublishBlock.Body().SetAttributeValue("name", cty.StringVal(smAccessPolicyName(stack)))
 		smInstallationMetricsPublishBlock.Body().SetAttributeValue("scopes", cty.ListVal([]cty.Value{cty.StringVal("metrics:write"), cty.StringVal("stacks:read")}))
 		smInstallationMetricsPublishRealmBlock := hclwrite.NewBlock("realm", nil)
 		smInstallationMetricsPublishRealmBlock.Body().SetAttributeValue("type", cty.StringVal("stack"))
@@ -153,7 +121,7 @@ func generateCloudResources(ctx context.Context, cfg *config) ([]stack, error) {
 		smInstallationTokenBlock.Body().SetAttributeTraversal("provider", traversal("grafana", "cloud"))
 		smInstallationTokenBlock.Body().SetAttributeValue("region", cty.StringVal(stack.RegionSlug))
 		smInstallationTokenBlock.Body().SetAttributeTraversal("access_policy_id", traversal("grafana_cloud_access_policy", policyResourceName, "policy_id"))
-		smInstallationTokenBlock.Body().SetAttributeValue("name", cty.StringVal(smAccessPolicy(stack)))
+		smInstallationTokenBlock.Body().SetAttributeValue("name", cty.StringVal(smAccessPolicyName(stack)))
 
 		smInstallationBlock := hclwrite.NewBlock("resource", []string{"grafana_synthetic_monitoring_installation", stack.Slug})
 		smInstallationBlock.Body().SetAttributeTraversal("provider", traversal("grafana", "cloud"))
@@ -172,7 +140,7 @@ func generateCloudResources(ctx context.Context, cfg *config) ([]stack, error) {
 		}
 
 		// Apply then go into the state and find the management key
-		err := runTerraform("apply", "-auto-approve",
+		err := runTerraform(cfg.outputDir, "apply", "-auto-approve",
 			"-target=grafana_cloud_stack_service_account."+stack.Slug,
 			"-target=grafana_cloud_stack_service_account_token."+stack.Slug,
 			"-target=grafana_cloud_access_policy."+policyResourceName,
@@ -217,4 +185,77 @@ func generateCloudResources(ctx context.Context, cfg *config) ([]stack, error) {
 	}
 
 	return managedStacks, nil
+}
+
+func createManagementStackServiceAccount(ctx context.Context, cloudClient *gcom.APIClient, stack gcom.FormattedApiInstance, saName string) error {
+	log.Printf("Waiting until %s is ready...\n", stack.Slug)
+	if err := waitForSuccessfulGET(stack.Url, 2*time.Minute); err != nil {
+		return err
+	}
+
+	tempClient, cleanup, err := cloud.CreateTemporaryStackGrafanaClient(ctx, cloudClient, stack.Slug, "temp-sa-")
+	if err != nil {
+		return fmt.Errorf("failed to create temporary client for stack %q: %w", stack.Slug, err)
+	}
+
+	serviceAccountsResp, err := tempClient.ServiceAccounts.SearchOrgServiceAccountsWithPaging(service_accounts.NewSearchOrgServiceAccountsWithPagingParams())
+	if err != nil {
+		return fmt.Errorf("failed to search service accounts for stack %q: %w", stack.Slug, err)
+	}
+	for _, sa := range serviceAccountsResp.Payload.ServiceAccounts {
+		if sa.Name == saName {
+			log.Printf("found existing management service account (%s) in stack %q\n", saName, stack.Slug)
+			// Delete the SA to recreate it via TF
+			_, err := tempClient.ServiceAccounts.DeleteServiceAccount(sa.ID)
+			if err != nil {
+				return fmt.Errorf("failed to delete existing management service account (%s) in stack %q: %w", saName, stack.Slug, err)
+			}
+			break
+		}
+	}
+
+	if err := cleanup(); err != nil {
+		return fmt.Errorf("failed to cleanup temporary client for stack %q: %w", stack.Slug, err)
+	}
+
+	// Delete existing SM installation
+	resp, _, err := cloudClient.AccesspoliciesAPI.GetAccessPolicies(ctx).OrgId(int32(stack.OrgId)).Region(stack.RegionSlug).Execute()
+	if err != nil {
+		return err
+	}
+	for _, policy := range resp.Items {
+		if policy.Name == smAccessPolicyName(stack) {
+			log.Printf("found existing SM installation (%s) in stack %q\n", smAccessPolicyName(stack), stack.Slug)
+			_, _, err := cloudClient.AccesspoliciesAPI.DeleteAccessPolicy(ctx, *policy.Id).XRequestId("tf-gen").OrgId(int32(stack.OrgId)).Region(stack.RegionSlug).Execute()
+			if err != nil {
+				return fmt.Errorf("failed to delete existing SM installation (%s) in stack %q: %w", smAccessPolicyName(stack), stack.Slug, err)
+			}
+			break
+		}
+	}
+
+	return nil
+}
+
+func waitForSuccessfulGET(url string, timeout time.Duration) error {
+	start := time.Now()
+	for {
+		if time.Since(start) > timeout {
+			return fmt.Errorf("timed out waiting for %s to be ready", url)
+		}
+
+		// HTTP GET request to the stack URL
+		// If it returns 200, break
+		resp, err := http.Get(url) // nolint:gosec
+		if err == nil && resp.StatusCode == http.StatusOK {
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
+
+	return nil
+}
+
+func smAccessPolicyName(stack gcom.FormattedApiInstance) string {
+	return stack.Slug + "-sm-metrics-publish"
 }
