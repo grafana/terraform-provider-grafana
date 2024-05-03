@@ -77,8 +77,15 @@ func generate(ctx context.Context, cfg *config) error {
 	}
 
 	if cfg.cloudAccessPolicyToken != "" {
-		if err := generateCloudResources(ctx, cfg.cloudAccessPolicyToken, cfg.cloudOrg); err != nil {
+		stacks, err := generateCloudResources(ctx, cfg)
+		if err != nil {
 			return err
+		}
+
+		for _, stack := range stacks {
+			if err := generateGrafanaResources(ctx, stack.managementKey, stack.url, stack.slug, false, cfg.outputDir, stack.smURL, stack.smToken); err != nil {
+				return err
+			}
 		}
 	}
 

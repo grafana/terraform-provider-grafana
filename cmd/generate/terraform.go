@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,12 +14,17 @@ import (
 	"github.com/tmccombs/hcl2json/convert"
 )
 
-func runTerraform(dir string, command ...string) error {
+func runTerraformWithOutput(dir string, command ...string) ([]byte, error) {
 	cmd := exec.Command("terraform", command...)
 	cmd.Dir = dir
-	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	return cmd.Output()
+}
+
+func runTerraform(dir string, command ...string) error {
+	out, err := runTerraformWithOutput(dir, command...)
+	fmt.Println(out)
+	return err
 }
 
 func writeBlocks(filepath string, blocks ...*hclwrite.Block) error {
