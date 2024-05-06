@@ -26,7 +26,7 @@ require (
 	github.com/hashicorp/terraform-plugin-mux v0.15.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.33.0
 	github.com/stretchr/testify v1.9.0
-	github.com/tmccombs/hcl2json v0.6.2
+	github.com/tmccombs/hcl2json v0.6.3
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/zclconf/go-cty v1.14.4
 	golang.org/x/text v0.14.0
