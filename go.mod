@@ -29,7 +29,7 @@ require (
 	github.com/tmccombs/hcl2json v0.6.2
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/zclconf/go-cty v1.14.4
-	golang.org/x/text v0.14.0
+	golang.org/x/text v0.15.0
 )
 
 require (
