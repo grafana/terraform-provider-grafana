@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
@@ -23,7 +24,7 @@ func runTerraformWithOutput(dir string, command ...string) ([]byte, error) {
 
 func runTerraform(dir string, command ...string) error {
 	out, err := runTerraformWithOutput(dir, command...)
-	fmt.Println(out)
+	fmt.Println(string(out))
 	return err
 }
 
@@ -52,6 +53,13 @@ func convertToTFJSON(dir string) error {
 		return err
 	}
 	for _, dirEntry := range entries {
+		if dirEntry.IsDir() {
+			continue
+		}
+		if filepath.Ext(dirEntry.Name()) != ".tf" {
+			continue
+		}
+
 		filePath := filepath.Join(dir, dirEntry.Name())
 
 		hclFile, diags := hclparse.NewParser().ParseHCLFile(filePath)
@@ -71,6 +79,8 @@ func convertToTFJSON(dir string) error {
 			return err
 		}
 
+		converted = fixJSON(converted)
+
 		enc := json.NewEncoder(jsonFile)
 		enc.SetIndent("", "  ")
 		if err := enc.Encode(converted); err != nil {
@@ -79,6 +89,28 @@ func convertToTFJSON(dir string) error {
 	}
 
 	return nil
+}
+
+// Walk the JSON objects and turn back "provider": ${grafana...} into "provider": "grafana..."
+func fixJSON(obj map[string]interface{}) map[string]interface{} {
+	for key, val := range obj {
+		if key == "provider" || key == "to" {
+			if s, ok := val.(string); ok {
+				obj[key] = strings.TrimSuffix(strings.TrimPrefix(s, "${"), "}")
+			}
+		}
+		if asMap, ok := val.(map[string]interface{}); ok {
+			obj[key] = fixJSON(asMap)
+		}
+		if asArray, ok := val.([]interface{}); ok {
+			for idx, arrayVal := range asArray {
+				if m, ok := arrayVal.(map[string]interface{}); ok {
+					asArray[idx] = fixJSON(m)
+				}
+			}
+		}
+	}
+	return obj
 }
 
 func traversal(root string, attrs ...string) hcl.Traversal {

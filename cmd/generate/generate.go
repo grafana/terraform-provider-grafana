@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/url"
@@ -83,7 +84,7 @@ func generate(ctx context.Context, cfg *config) error {
 		}
 
 		for _, stack := range stacks {
-			if err := generateGrafanaResources(ctx, stack.managementKey, stack.url, stack.slug, false, cfg.outputDir, stack.smURL, stack.smToken); err != nil {
+			if err := generateGrafanaResources(ctx, stack.managementKey, stack.url, "stack-"+stack.slug, false, cfg.outputDir, stack.smURL, stack.smToken); err != nil {
 				return err
 			}
 		}
@@ -102,6 +103,9 @@ func generate(ctx context.Context, cfg *config) error {
 
 	if cfg.format == outputFormatJSON {
 		return convertToTFJSON(cfg.outputDir)
+	}
+	if cfg.format == outputFormatCrossplane {
+		return errors.New("crossplane output format is not yet supported")
 	}
 
 	return nil

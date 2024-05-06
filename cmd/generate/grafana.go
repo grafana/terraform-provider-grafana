@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"path/filepath"
 	"strings"
 
@@ -56,6 +57,19 @@ func generateGrafanaResources(ctx context.Context, auth, url, stackName string, 
 		resources = append(resources, syntheticmonitoring.Resources...)
 	}
 	if err := generateImportBlocks(ctx, client, listerData, resources, outPath, stackName); err != nil {
+		return err
+	}
+
+	log.Printf("Post-processing for %s\n", stackName)
+	if err := stripDefaults(filepath.Join(outPath, stackName+"-resources.tf"), map[string]string{
+		"org_id": " \"1\"",
+	}); err != nil {
+		return err
+	}
+	if err := abstractDashboards(filepath.Join(outPath, stackName+"-resources.tf")); err != nil {
+		return err
+	}
+	if err := wrapJSONFieldsInFunction(filepath.Join(outPath, stackName+"-resources.tf")); err != nil {
 		return err
 	}
 

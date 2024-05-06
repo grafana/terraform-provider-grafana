@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/go-openapi/runtime"
-	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -104,36 +103,38 @@ This resource requires Grafana 9.1.0 or later.
 		"grafana_contact_point",
 		orgResourceIDString("name"),
 		resource,
-	).WithLister(listerFunction(listContactPoints))
+	)
 }
 
-func listContactPoints(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
-	orgIDs, err := data.OrgIDs(client)
-	if err != nil {
-		return nil, err
-	}
+// TODO: Fix lister
+// .WithLister(listerFunction(listContactPoints))
+// func listContactPoints(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
+// 	orgIDs, err := data.OrgIDs(client)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	idMap := map[string]bool{}
-	for _, orgID := range orgIDs {
-		client = client.Clone().WithOrgID(orgID)
+// 	idMap := map[string]bool{}
+// 	for _, orgID := range orgIDs {
+// 		client = client.Clone().WithOrgID(orgID)
 
-		resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
-		if err != nil {
-			return nil, err
-		}
+// 		resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		for _, contactPoint := range resp.Payload {
-			idMap[MakeOrgResourceID(orgID, contactPoint.Name)] = true
-		}
-	}
+// 		for _, contactPoint := range resp.Payload {
+// 			idMap[MakeOrgResourceID(orgID, contactPoint.Name)] = true
+// 		}
+// 	}
 
-	var ids []string
-	for id := range idMap {
-		ids = append(ids, id)
-	}
+// 	var ids []string
+// 	for id := range idMap {
+// 		ids = append(ids, id)
+// 	}
 
-	return ids, nil
-}
+// 	return ids, nil
+// }
 
 func readContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID, name := OAPIClientFromExistingOrgResource(meta, data.Id())
