@@ -1,8 +1,8 @@
 module github.com/grafana/terraform-provider-grafana/v2
 
-go 1.21
+go 1.22
 
-toolchain go1.21.1
+toolchain go1.22.2
 
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
@@ -13,7 +13,7 @@ require (
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20240430202104-3ad0f7e4ee52
 	github.com/grafana/machine-learning-go-client v0.5.0
 	github.com/grafana/slo-openapi-client/go v0.0.0-20240112175006-de02e75b9d73
-	github.com/grafana/synthetic-monitoring-agent v0.23.4
+	github.com/grafana/synthetic-monitoring-agent v0.24.1
 	github.com/grafana/synthetic-monitoring-api-go-client v0.8.0
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/go-retryablehttp v0.7.5
