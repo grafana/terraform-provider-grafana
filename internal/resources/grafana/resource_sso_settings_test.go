@@ -301,7 +301,7 @@ const testConfigForSamlProvider = `resource "grafana_sso_settings" "saml_sso_set
   saml_settings {
     certificate_path = "devenv/docker/blocks/auth/saml-enterprise/cert.crt"
     private_key_path = "devenv/docker/blocks/auth/saml-enterprise/key.pem"
-	idp_metadata_url = "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"
+    idp_metadata_url = "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"
   }
 }`
 
