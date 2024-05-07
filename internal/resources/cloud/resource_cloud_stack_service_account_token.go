@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
@@ -81,6 +82,10 @@ Required access policy scopes:
 }
 
 func stackServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
+	if err := waitForStackReadinessFromSlug(ctx, 1*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
+		return err
+	}
+
 	stackSlug := d.Get("stack_slug").(string)
 	serviceAccountID, err := getStackServiceAccountID(d.Get("service_account_id").(string))
 	if err != nil {
@@ -115,6 +120,10 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, c
 	serviceAccountID, err := getStackServiceAccountID(d.Get("service_account_id").(string))
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if err := waitForStackReadinessFromSlug(ctx, 1*time.Minute, stackSlug, cloudClient); err != nil {
+		return err
 	}
 
 	response, _, err := cloudClient.InstancesAPI.GetInstanceServiceAccountTokens(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).Execute()
@@ -152,6 +161,10 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, c
 }
 
 func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
+	if err := waitForStackReadinessFromSlug(ctx, 1*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
+		return err
+	}
+
 	stackSlug := d.Get("stack_slug").(string)
 	serviceAccountID, err := getStackServiceAccountID(d.Get("service_account_id").(string))
 	if err != nil {

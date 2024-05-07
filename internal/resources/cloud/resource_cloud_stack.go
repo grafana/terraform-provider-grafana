@@ -263,7 +263,14 @@ func createStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		return diag
 	}
 
-	return waitForStackReadiness(ctx, d)
+	if d.Get("wait_for_readiness").(bool) {
+		timeout := defaultReadinessTimeout
+		if timeoutVal := d.Get("wait_for_readiness_timeout").(string); timeoutVal != "" {
+			timeout, _ = time.ParseDuration(timeoutVal)
+		}
+		return waitForStackReadiness(ctx, timeout, d.Get("url").(string))
+	}
+	return nil
 }
 
 func updateStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
@@ -295,7 +302,14 @@ func updateStack(ctx context.Context, d *schema.ResourceData, client *gcom.APICl
 		return diag
 	}
 
-	return waitForStackReadiness(ctx, d)
+	if d.Get("wait_for_readiness").(bool) {
+		timeout := defaultReadinessTimeout
+		if timeoutVal := d.Get("wait_for_readiness_timeout").(string); timeoutVal != "" {
+			timeout, _ = time.ParseDuration(timeoutVal)
+		}
+		return waitForStackReadiness(ctx, timeout, d.Get("url").(string))
+	}
+	return nil
 }
 
 func deleteStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {
@@ -422,17 +436,13 @@ func appendPath(baseURL, path string) (string, error) {
 }
 
 // waitForStackReadiness retries until the stack is ready, verified by querying the Grafana URL
-func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Diagnostics {
-	if wait := d.Get("wait_for_readiness").(bool); !wait {
-		return nil
-	}
-
-	timeout := defaultReadinessTimeout
-	if timeoutVal := d.Get("wait_for_readiness_timeout").(string); timeoutVal != "" {
-		timeout, _ = time.ParseDuration(timeoutVal)
+func waitForStackReadiness(ctx context.Context, timeout time.Duration, stackURL string) diag.Diagnostics {
+	healthURL, joinErr := url.JoinPath(stackURL, "api", "health")
+	if joinErr != nil {
+		return diag.FromErr(joinErr)
 	}
 	err := retry.RetryContext(ctx, timeout, func() *retry.RetryError {
-		req, err := http.NewRequestWithContext(ctx, http.MethodHead, d.Get("url").(string), nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL, nil)
 		if err != nil {
 			return retry.NonRetryableError(err)
 		}
@@ -456,10 +466,19 @@ func waitForStackReadiness(ctx context.Context, d *schema.ResourceData) diag.Dia
 		return nil
 	})
 	if err != nil {
-		return diag.Errorf("error waiting for stack to be ready: %v", err)
+		return diag.Errorf("error waiting for stack (URL: %s) to be ready: %v", healthURL, err)
 	}
 
 	return nil
+}
+
+func waitForStackReadinessFromSlug(ctx context.Context, timeout time.Duration, slug string, client *gcom.APIClient) diag.Diagnostics {
+	stack, _, err := client.InstancesAPI.GetInstance(ctx, slug).Execute()
+	if err != nil {
+		return apiError(err)
+	}
+
+	return waitForStackReadiness(ctx, timeout, stack.Url)
 }
 
 func defaultStackURL(slug string) string {
