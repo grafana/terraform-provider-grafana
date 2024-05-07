@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/grafana/grafana-openapi-client-go/client/api_keys"
-	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -69,23 +68,7 @@ Manages Grafana API Keys.
 }
 
 func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	c, orgID := OAPIClientFromNewOrgResource(m, d)
-
-	request := models.AddAPIKeyCommand{
-		Name:          d.Get("name").(string),
-		Role:          d.Get("role").(string),
-		SecondsToLive: int64(d.Get("seconds_to_live").(int)),
-	}
-	response, err := c.APIKeys.AddAPIkey(&request)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId(MakeOrgResourceID(orgID, response.Payload.ID))
-	d.Set("key", response.Payload.Key)
-
-	// Fill the true resource's state after a create by performing a read
-	return resourceAPIKeyRead(ctx, d, m)
+	return diag.Errorf("API key creation is deprecated. Please use `grafana_service_account` together with `grafana_service_account_token`")
 }
 
 func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
