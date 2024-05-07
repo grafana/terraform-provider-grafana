@@ -81,6 +81,10 @@ Required access policy scopes:
 }
 
 func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
+	if err := waitForStackReadinessFromSlug(ctx, 1*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
+		return err
+	}
+
 	stackSlug := d.Get("stack_slug").(string)
 	req := gcom.PostInstanceServiceAccountsRequest{
 		Name:       d.Get("name").(string),
@@ -116,6 +120,10 @@ func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudC
 		stackSlug, serviceAccountID = split[0].(string), split[1].(int64)
 	}
 
+	if err := waitForStackReadinessFromSlug(ctx, 1*time.Minute, stackSlug, cloudClient); err != nil {
+		return err
+	}
+
 	resp, httpResp, err := cloudClient.InstancesAPI.GetInstanceServiceAccount(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).Execute()
 	if httpResp != nil && httpResp.StatusCode == 404 {
 		d.SetId("")
@@ -135,6 +143,10 @@ func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudC
 }
 
 func deleteStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
+	if err := waitForStackReadinessFromSlug(ctx, 1*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
+		return err
+	}
+
 	split, err := resourceStackServiceAccountID.Split(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
