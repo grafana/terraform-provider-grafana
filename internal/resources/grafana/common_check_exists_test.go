@@ -69,13 +69,6 @@ var (
 			return payloadOrError(resp, err)
 		},
 	)
-	serviceAccountExists = newCheckExistsHelper(
-		func(t *models.ServiceAccountDTO) string { return strconv.FormatInt(t.ID, 10) },
-		func(client *goapi.GrafanaHTTPAPI, id string) (*models.ServiceAccountDTO, error) {
-			resp, err := client.ServiceAccounts.RetrieveServiceAccount(mustParseInt64(id))
-			return payloadOrError(resp, err)
-		},
-	)
 	annotationsCheckExists = newCheckExistsHelper(
 		func(a *models.Annotation) string { return strconv.FormatInt(a.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Annotation, error) {
