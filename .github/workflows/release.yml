@@ -18,8 +18,14 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-    - run: echo "${{ secrets.GPG_PRIVATE_KEY }}" > private.key
-    - run: echo "${{ secrets.PASSPHRASE }}" > passphrase.txt
+    - run: |
+        cat << EOF > ./private.key
+        {{ secrets.GPG_PRIVATE_KEY }}
+        EOF
+    - run: |
+        cat << EOF > ./passphrase.txt
+        {{ secrets.PASSPHRASE }}
+        EOF
     - uses: hkusu/s3-upload-action@v2
       with:
         aws-access-key-id: ${{ secrets.IAM_ACCESS_KEY }}
