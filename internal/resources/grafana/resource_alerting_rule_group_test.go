@@ -3,6 +3,7 @@ package grafana_test
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -315,6 +316,97 @@ func TestAccAlertRule_inOrg(t *testing.T) {
 					orgCheckExists.exists("grafana_organization.test", &org),
 					alertingRuleGroupCheckExists.destroyed(&group, &org),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAlertRule_nameConflict(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	name := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource "grafana_organization" "test" {
+	name = "%[1]s"
+}
+
+resource "grafana_folder" "first" {
+	org_id = grafana_organization.test.id
+	title = "%[1]s-first"
+}
+
+resource "grafana_rule_group" "first" {
+	org_id = grafana_organization.test.id
+	name             = "%[1]s"
+	folder_uid       = grafana_folder.first.uid
+	interval_seconds = 60
+	rule {
+		name           = "My Alert Rule first"
+		for            = "2m"
+		condition      = "B"
+		no_data_state  = "NoData"
+		exec_err_state = "Alerting"
+		is_paused = false
+		data {
+			ref_id     = "A"
+			query_type = ""
+			relative_time_range {
+				from = 600
+				to   = 0
+			}
+			datasource_uid = "PD8C576611E62080A"
+			model = jsonencode({
+				hide          = false
+				intervalMs    = 1000
+				maxDataPoints = 43200
+				refId         = "A"
+			})
+		}
+	}
+}
+
+resource "grafana_folder" "second" {
+	depends_on = [grafana_rule_group.first]
+	org_id = grafana_organization.test.id
+	title = "%[1]s-second"
+}
+
+resource "grafana_rule_group" "second" {
+	org_id = grafana_organization.test.id
+	name             = "%[1]s"
+	folder_uid       = grafana_folder.second.uid
+	interval_seconds = 60
+	rule {
+		name           = "My Alert Rule second"
+		for            = "2m"
+		condition      = "B"
+		no_data_state  = "NoData"
+		exec_err_state = "Alerting"
+		is_paused = false
+		data {
+			ref_id     = "A"
+			query_type = ""
+			relative_time_range {
+				from = 600
+				to   = 0
+			}
+			datasource_uid = "PD8C576611E62080A"
+			model = jsonencode({
+				hide          = false
+				intervalMs    = 1000
+				maxDataPoints = 43200
+				refId         = "A"
+			})
+		}
+	}
+}
+				`, name),
+				ExpectError: regexp.MustCompile(`rule group with name "` + name + `" already exists`),
 			},
 		},
 	})

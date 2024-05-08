@@ -328,6 +328,23 @@ func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta int
 func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
+	if data.IsNewResource() {
+		// Check if a rule group with the same name already exists. The API either:
+		// - returns a 500 error if it exists in a different folder, which is not very helpful.
+		// - overwrites the existing rule group if it exists in the same folder, which is not expected of a TF provider.
+		resp, err := client.Provisioning.GetAlertRules()
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		for _, rule := range resp.Payload {
+			name := data.Get("name").(string)
+			if *rule.RuleGroup == name {
+				return diag.Errorf("rule group with name %q already exists", name)
+			}
+		}
+	}
+
 	group := data.Get("name").(string)
 	folder := data.Get("folder_uid").(string)
 	interval := data.Get("interval_seconds").(int)
