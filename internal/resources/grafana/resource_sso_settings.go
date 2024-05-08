@@ -136,7 +136,7 @@ var oauth2SettingsSchema = &schema.Resource{
 		"api_url": {
 			Type:        schema.TypeString,
 			Optional:    true,
-			Description: "The user information endpoint of your OAuth2 provider. Required for azuread, okta and generic_oauth providers.",
+			Description: "The user information endpoint of your OAuth2 provider. Required for okta and generic_oauth providers.",
 		},
 		"role_attribute_path": {
 			Type:        schema.TypeString,
