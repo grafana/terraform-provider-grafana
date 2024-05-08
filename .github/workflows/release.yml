@@ -20,11 +20,11 @@ jobs:
       uses: actions/checkout@v4
     - run: |
         cat << EOF > ./private.key
-        {{ secrets.GPG_PRIVATE_KEY }}
+        ${{ secrets.GPG_PRIVATE_KEY }}
         EOF
     - run: |
         cat << EOF > ./passphrase.txt
-        {{ secrets.PASSPHRASE }}
+        ${{ secrets.PASSPHRASE }}
         EOF
     - uses: hkusu/s3-upload-action@v2
       with:
