@@ -31,7 +31,7 @@ func datasourceRole() *schema.Resource {
 
 func dataSourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
-	resp, err := client.AccessControl.ListRoles(access_control.NewListRolesParams(), nil)
+	resp, err := client.AccessControl.ListRoles(access_control.NewListRolesParams().WithIncludeHidden(common.Ref(true)), nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
