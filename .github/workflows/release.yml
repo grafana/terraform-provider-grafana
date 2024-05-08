@@ -30,4 +30,4 @@ jobs:
       env:
         GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         PASSPHRASE: ${{ secrets.PASSPHRASE }}
-    - run: gpg --export ${{ steps.import_gpg.outputs.fingerprint }}
+    - run: gpg --armor --export ${{ steps.import_gpg.outputs.fingerprint }}
