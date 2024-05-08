@@ -82,23 +82,13 @@ func TestSSOSettings_basic_saml(t *testing.T) {
 		CheckDestroy:             checkSsoSettingsReset(api, provider, defaultSettings.Payload),
 		Steps: []resource.TestStep{
 			{
-				Config: testConfigForSamlProvider("new"),
+				Config: testConfigForSamlProvider,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.certificate_path", "/var/certificate_new"),
-					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.private_key_path", "/var/private_key_new"),
-					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.idp_metadata_path", "/var/idp_metadata_new"),
-				),
-			},
-			{
-				Config: testConfigForSamlProvider("updated"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
-					resource.TestCheckResourceAttr(resourceName, "saml_settings.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.certificate_path", "/var/certificate_updated"),
-					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.private_key_path", "/var/private_key_updated"),
-					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.idp_metadata_path", "/var/idp_metadata_updated"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.certificate_path", "devenv/docker/blocks/auth/saml-enterprise/cert.crt"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.private_key_path", "devenv/docker/blocks/auth/saml-enterprise/key.pem"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.idp_metadata_url", "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"),
 				),
 			},
 			{
@@ -305,16 +295,15 @@ func testConfigForOAuth2Provider(provider string, prefix string) string {
 }`, prefix, provider, urls)
 }
 
-func testConfigForSamlProvider(prefix string) string {
-	return fmt.Sprintf(`resource "grafana_sso_settings" "saml_sso_settings" {
+// the SAML configuration needs a valid certificate, private_key and idp_metadata to be accepted by Grafana API
+const testConfigForSamlProvider = `resource "grafana_sso_settings" "saml_sso_settings" {
   provider_name = "saml"
   saml_settings {
-    certificate_path  = "/var/certificate_%[1]s"
-    private_key_path  = "/var/private_key_%[1]s"
-	idp_metadata_path = "/var/idp_metadata_%[1]s"
+    certificate_path = "devenv/docker/blocks/auth/saml-enterprise/cert.crt"
+    private_key_path = "devenv/docker/blocks/auth/saml-enterprise/key.pem"
+    idp_metadata_url = "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"
   }
-}`, prefix)
-}
+}`
 
 const testConfigWithCustomFields = `resource "grafana_sso_settings" "sso_settings" {
   provider_name = "github"
@@ -452,6 +441,22 @@ var testConfigsWithValidationErrors = []string{
   oauth2_settings {
     client_id = "client_id"
     api_url  = "https://login.microsoftonline.com/12345/oauth2/v2.0/userinfo"
+  }
+}`,
+	// certificate and certificate_path are both configured for saml
+	`resource "grafana_sso_settings" "saml_sso_settings" {
+  provider_name = "saml"
+  saml_settings {
+    certificate = "this-is-a-valid-certificate"
+    certificate_path = "/valid/certificate/path"
+  }
+}`,
+	// missing idp_metadata for saml
+	`resource "grafana_sso_settings" "saml_sso_settings" {
+  provider_name = "saml"
+  saml_settings {
+    certificate = "this-is-a-valid-certificate"
+    private_key = "this-is-a-valid-private-key"
   }
 }`,
 }

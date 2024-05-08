@@ -536,11 +536,11 @@ func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 		}
 
 		settings = mergeCustomFields(settings)
+	}
 
-		err = validateOAuth2Settings(provider, settings)
-		if err != nil {
-			return diag.FromErr(err)
-		}
+	err = validateSSOSettings(provider, settings)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	ssoSettings := models.UpdateProviderSettingsParamsBody{
@@ -681,9 +681,15 @@ var validationsByProvider = map[string][]validateFunc{
 		ssoValidateEmpty("token_url"),
 		ssoValidateEmpty("api_url"),
 	},
+	"saml": {
+		ssoValidateOnlyOneOf("certificate", "certificate_path"),
+		ssoValidateOnlyOneOf("private_key", "private_key_path"),
+		ssoValidateOnlyOneOf("idp_metadata", "idp_metadata_path", "idp_metadata_url"),
+		ssoValidateURL("idp_metadata_url"),
+	},
 }
 
-func validateOAuth2Settings(provider string, settings map[string]any) error {
+func validateSSOSettings(provider string, settings map[string]any) error {
 	validators := validationsByProvider[provider]
 	for _, validateF := range validators {
 		err := validateF(settings, provider)
@@ -823,9 +829,27 @@ func ssoValidateEmpty(key string) validateFunc {
 
 func ssoValidateURL(key string) validateFunc {
 	return func(settingsMap map[string]any, provider string) error {
-		if !isValidURL(settingsMap[key].(string)) {
+		if settingsMap[key].(string) != "" && !isValidURL(settingsMap[key].(string)) {
 			return fmt.Errorf("%s must be a valid http/https URL for the provider %s", key, provider)
 		}
+		return nil
+	}
+}
+
+func ssoValidateOnlyOneOf(keys ...string) validateFunc {
+	return func(settingsMap map[string]any, provider string) error {
+		configuredKeys := 0
+
+		for _, key := range keys {
+			if settingsMap[key].(string) != "" {
+				configuredKeys++
+			}
+		}
+
+		if configuredKeys != 1 {
+			return fmt.Errorf("exactly one of %v must be configured for provider %s", keys, provider)
+		}
+
 		return nil
 	}
 }
