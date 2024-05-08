@@ -73,6 +73,7 @@ Manages Grafana library panels.
 					_, new = SplitOrgResourceID(new)
 					return old == new
 				},
+				ValidateFunc: folderUIDValidation,
 			},
 			"name": {
 				Type:        schema.TypeString,

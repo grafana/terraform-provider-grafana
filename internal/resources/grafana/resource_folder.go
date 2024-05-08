@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"encoding/json"
+	"regexp"
 	"strconv"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
@@ -13,7 +14,10 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
+
+var folderUIDValidation = validation.StringMatch(regexp.MustCompile(`^[a-zA-Z0-9\-\_]+$`), "folder UIDs can only be alphanumeric, dashes, or underscores")
 
 func resourceFolder() *common.Resource {
 	schema := &schema.Resource{
@@ -34,11 +38,12 @@ func resourceFolder() *common.Resource {
 		Schema: map[string]*schema.Schema{
 			"org_id": orgIDAttribute(),
 			"uid": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Optional:    true,
-				ForceNew:    true,
-				Description: "Unique identifier.",
+				Type:         schema.TypeString,
+				Computed:     true,
+				Optional:     true,
+				ForceNew:     true,
+				Description:  "Unique identifier.",
+				ValidateFunc: folderUIDValidation,
 			},
 			"title": {
 				Type:        schema.TypeString,
