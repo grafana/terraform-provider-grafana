@@ -55,10 +55,11 @@ This resource requires Grafana 9.1.0 or later.
 				Description: "The name of the rule group.",
 			},
 			"folder_uid": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The UID of the folder that the group belongs to.",
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				Description:  "The UID of the folder that the group belongs to.",
+				ValidateFunc: folderUIDValidation,
 			},
 			"interval_seconds": {
 				Type:        schema.TypeInt,

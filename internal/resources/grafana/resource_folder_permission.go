@@ -30,10 +30,11 @@ Manages the entire set of permissions for a folder. Permissions that aren't spec
 
 		Schema: map[string]*schema.Schema{
 			"folder_uid": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The UID of the folder.",
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				Description:  "The UID of the folder.",
+				ValidateFunc: folderUIDValidation,
 			},
 		},
 	}
