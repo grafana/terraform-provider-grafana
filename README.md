@@ -1,10 +1,12 @@
 <a href="https://terraform.io">
-  <img src="https://cdn.rawgit.com/hashicorp/terraform-website/master/content/source/assets/images/logo-hashicorp.svg" title="Terraform" align="right" height="50" />
+  <img src="https://www.datocms-assets.com/2885/1629941242-logo-terraform-main.svg" title="Terraform" align="right" height="40px" />
 </a>
 
 # Terraform Provider for Grafana
 
-[![Build Status](https://drone.grafana.net/api/badges/grafana/terraform-provider-grafana/status.svg)](https://drone.grafana.net/grafana/terraform-provider-grafana)
+[![Acceptance Tests](https://github.com/grafana/terraform-provider-grafana/actions/workflows/acc-tests.yml/badge.svg)](https://github.com/grafana/terraform-provider-grafana/actions/workflows/acc-tests.yml)
+[![Unit Tests](https://github.com/grafana/terraform-provider-grafana/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/grafana/terraform-provider-grafana/actions/workflows/unit-tests.yml)
+[![Cloud Acceptance Tests](https://github.com/grafana/terraform-provider-grafana/actions/workflows/cloud-acc-tests.yml/badge.svg)](https://github.com/grafana/terraform-provider-grafana/actions/workflows/cloud-acc-tests.yml)
 
 - Grafana website: <https://grafana.com>
 - Grafana Cloud website: <https://grafana.com/products/cloud/>
