@@ -51,6 +51,12 @@ Resource manages Grafana SLOs.
 				Description:  `Description is a free-text field that can provide more context to an SLO.`,
 				ValidateFunc: validation.StringLenBetween(0, 1024),
 			},
+			"folder": {
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  `Folder`,
+				ValidateFunc: validation.StringLenBetween(0, 1024),
+			},
 			"destination_datasource": {
 				Type:        schema.TypeList,
 				MaxItems:    1,
@@ -363,7 +369,7 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 		tflabels = packLabels(labels)
 	}
 
-	slo := slo.SloV00Slo{
+	req := slo.SloV00Slo{
 		Uuid:                  d.Id(),
 		Name:                  tfname,
 		Description:           tfdescription,
@@ -372,6 +378,12 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 		Alerting:              nil,
 		Labels:                tflabels,
 		DestinationDatasource: nil,
+	}
+
+	if folder, ok := d.Get("folder").(string); ok {
+		req.Folder = &slo.SloV00Folder{
+			Uid: &folder,
+		}
 	}
 
 	// Check the Optional Alerting Field
@@ -384,7 +396,7 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 			}
 		}
 
-		slo.Alerting = &tfalerting
+		req.Alerting = &tfalerting
 	}
 
 	// Check the Optional Destination Datasource Field
@@ -396,10 +408,10 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 			tfdestinationdatasource, _ = packDestinationDatasource(destinationdatasource)
 		}
 
-		slo.DestinationDatasource = &tfdestinationdatasource
+		req.DestinationDatasource = &tfdestinationdatasource
 	}
 
-	return slo, nil
+	return req, nil
 }
 
 func packDestinationDatasource(destinationdatasource map[string]interface{}) (slo.SloV00DestinationDatasource, error) {
