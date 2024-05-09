@@ -27,7 +27,7 @@ builds:
     - goos: darwin
       goarch: '386'
   binary: '{{ .ProjectName }}_v{{ .Version }}'
-- id: terraform-provider-grafana-gen
+- id: terraform-provider-grafana-generate
   env:
     - CGO_ENABLED=0
   mod_timestamp: '{{ .CommitTimestamp }}'
@@ -50,11 +50,11 @@ archives:
   name_template: 'terraform-provider-grafana_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
   builds:
     - terraform-provider-grafana
-- id: terraform-provider-grafana-gen
+- id: terraform-provider-grafana-generate
   format: binary
-  name_template: 'terraform-provider-grafana-gen_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+  name_template: 'terraform-provider-grafana-generate_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
   builds:
-    - terraform-provider-grafana-gen
+    - terraform-provider-grafana-generate
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
