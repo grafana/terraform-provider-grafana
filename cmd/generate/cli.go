@@ -3,13 +3,18 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
+	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
 var version = "" // set by ldflags
 
 func run() error {
+	msg := "WARNING: This tool is highly experimental and comes with no support or guarantees."
+	lines := strings.Repeat("-", len(msg))
+	color.New(color.FgRed, color.Bold).Fprintf(os.Stderr, "%[2]s\n%[1]s\n%[2]s\n", msg, lines)
 	app := &cli.App{
 		Name:      "terraform-provider-grafana-generate",
 		Usage:     "Generate `terraform-provider-grafana` resources from your Grafana instance or Grafana Cloud account.",
