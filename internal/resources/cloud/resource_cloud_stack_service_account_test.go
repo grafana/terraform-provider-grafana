@@ -68,7 +68,7 @@ func TestAccGrafanaServiceAccountFromCloud_AssignRoleOrPermissions(t *testing.T)
 	prefix := "tfsatest"
 	slug := GetRandomStackName(prefix)
 
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccDeleteExistingStacks(t, prefix)
 		},
