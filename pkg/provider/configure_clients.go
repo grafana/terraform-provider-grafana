@@ -204,16 +204,10 @@ func createTempFileIfLiteral(value string) (path string, tempFile bool, err erro
 func parseAuth(providerConfig ProviderConfig) (*url.Userinfo, int64, string, error) {
 	auth := strings.SplitN(providerConfig.Auth.ValueString(), ":", 2)
 	var orgID int64 = 1
-	if !providerConfig.OrgID.IsNull() {
-		orgID = providerConfig.OrgID.ValueInt64()
-	}
 
 	if len(auth) == 2 {
 		return url.UserPassword(auth[0], auth[1]), orgID, "", nil
 	} else if auth[0] != "anonymous" {
-		if orgID > 1 {
-			return nil, 0, "", fmt.Errorf("org_id is only supported with basic auth. API keys are already org-scoped")
-		}
 		return nil, 0, auth[0], nil
 	}
 	return nil, 0, "", nil
