@@ -46,7 +46,7 @@ func TestAccExamples(t *testing.T) {
 			category: "Grafana OSS",
 			testCheck: func(t *testing.T, filename string) {
 				if strings.Contains(filename, "sso_settings") {
-					testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Run on v10.4.0 once it's released
+					t.Skip() // TODO: Run on v10.4.0 once it's released
 				} else {
 					testutils.CheckOSSTestsEnabled(t, ">=10.3.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 				}
