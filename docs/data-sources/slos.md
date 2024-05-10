@@ -82,6 +82,7 @@ Read-Only:
 - `alerting` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting))
 - `description` (String)
 - `destination_datasource` (List of Object) (see [below for nested schema](#nestedobjatt--slos--destination_datasource))
+- `folder_uid` (String)
 - `label` (List of Object) (see [below for nested schema](#nestedobjatt--slos--label))
 - `name` (String)
 - `objectives` (List of Object) (see [below for nested schema](#nestedobjatt--slos--objectives))

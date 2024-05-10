@@ -143,6 +143,7 @@ resource "grafana_slo" "test" {
 				long-term error budget burn rate is high, or when the remaining
 				error budget is below a certain threshold. Annotations and Labels support templating. (see [below for nested schema](#nestedblock--alerting))
 - `destination_datasource` (Block List, Max: 1) Destination Datasource sets the datasource defined for an SLO (see [below for nested schema](#nestedblock--destination_datasource))
+- `folder_uid` (String) UID for the SLO folder
 - `label` (Block List) Additional labels that will be attached to all metrics generated from the query. These labels are useful for grouping SLOs in dashboard views that you create by hand. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$" (see [below for nested schema](#nestedblock--label))
 
 ### Read-Only

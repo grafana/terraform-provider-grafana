@@ -407,10 +407,10 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 
 	// Check the Optional Folder UID Field
 	if rawfolderuid, ok := d.GetOk("folder_uid"); ok {
-		folderUidData, ok := rawfolderuid.(string)
+		folderUIDData, ok := rawfolderuid.(string)
 
 		if ok {
-			tffolder = packFolder(folderUidData)
+			tffolder = packFolder(folderUIDData)
 		}
 
 		req.Folder = &tffolder
