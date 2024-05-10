@@ -63,7 +63,7 @@ Manages the entire set of assignments for a role. Assignments that aren't specif
 				Description: "IDs of service accounts that the role should be assigned to.",
 				// Ignore the org ID of the team when hashing. It works with or without it.
 				Set: func(i interface{}) int {
-					_, saID := SplitOrgResourceID(i.(string))
+					_, saID := SplitServiceAccountID(i.(string))
 					return schema.HashString(saID)
 				},
 				Elem: &schema.Schema{
@@ -152,7 +152,7 @@ func collectRoleAssignents(r interface{}, orgScoped bool) []int64 {
 	for _, rID := range r.(*schema.Set).List() {
 		var id int64
 		if orgScoped {
-			_, idStr := SplitOrgResourceID(rID.(string))
+			_, idStr := SplitServiceAccountID(rID.(string))
 			id, _ = strconv.ParseInt(idStr, 10, 64)
 		} else {
 			if idInt, ok := rID.(int); ok {

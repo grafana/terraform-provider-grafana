@@ -170,7 +170,11 @@ func (r *resourcePermissionBase) writeItem(itemID string, data *resourcePermissi
 	}
 
 	data.OrgID = types.StringValue(strconv.FormatInt(orgID, 10))
-	_, itemID = SplitOrgResourceID(itemID)
+	if r.resourceType == serviceAccountsPermissionsType {
+		_, itemID = SplitServiceAccountID(itemID)
+	} else {
+		_, itemID = SplitOrgResourceID(itemID)
+	}
 	data.ResourceID = types.StringValue(itemID)
 
 	switch {

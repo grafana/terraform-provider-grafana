@@ -51,6 +51,21 @@ func SplitOrgResourceID(id string) (int64, string) {
 	return 0, id
 }
 
+// SplitServiceAccountID is like SplitOrgResourceID but for service accounts
+// Service accounts can also come from Grafana Cloud where the format is <stackSlug>:<serviceAccountID>
+func SplitServiceAccountID(id string) (int64, string) {
+	if strings.ContainsRune(id, ':') {
+		parts := strings.SplitN(id, ":", 2)
+		orgID, err := strconv.ParseInt(parts[0], 10, 64)
+		if err != nil {
+			return 1, parts[1]
+		}
+		return orgID, parts[1]
+	}
+
+	return 0, id
+}
+
 // OAPIClientFromExistingOrgResource creates a client from the ID of an org-scoped resource
 // Those IDs are in the <orgID>:<resourceID> format
 func OAPIClientFromExistingOrgResource(meta interface{}, id string) (*goapi.GrafanaHTTPAPI, int64, string) {

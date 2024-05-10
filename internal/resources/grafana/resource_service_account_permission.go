@@ -36,8 +36,8 @@ Manages the entire set of permissions for a service account. Permissions that ar
 				ForceNew:    true,
 				Description: "The id of the service account.",
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					_, old = SplitOrgResourceID(old)
-					_, new = SplitOrgResourceID(new)
+					_, old = SplitServiceAccountID(old)
+					_, new = SplitServiceAccountID(new)
 					return old == new
 				},
 			},
@@ -54,7 +54,7 @@ Manages the entire set of permissions for a service account. Permissions that ar
 
 func resourceServiceAccountPermissionGet(d *schema.ResourceData, meta interface{}) (string, error) {
 	client, _ := OAPIClientFromNewOrgResource(meta, d)
-	_, id := SplitOrgResourceID(d.Get("service_account_id").(string))
+	_, id := SplitServiceAccountID(d.Get("service_account_id").(string))
 	if d.Id() != "" {
 		client, _, id = OAPIClientFromExistingOrgResource(meta, d.Id())
 	}

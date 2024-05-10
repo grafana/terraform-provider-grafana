@@ -61,6 +61,97 @@ func TestAccGrafanaServiceAccountFromCloud(t *testing.T) {
 	})
 }
 
+func TestAccGrafanaServiceAccountFromCloud_AssignRoleOrPermissions(t *testing.T) {
+	testutils.CheckCloudAPITestsEnabled(t)
+
+	var stack gcom.FormattedApiInstance
+	prefix := "tfsatest"
+	slug := GetRandomStackName(prefix)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck: func() {
+			testAccDeleteExistingStacks(t, prefix)
+		},
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccStackCheckDestroy(&stack),
+		Steps: []resource.TestStep{
+			// SA permission item
+			{
+				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, false, "Admin") + `
+				provider "grafana" {
+					alias = "stack"
+					auth = grafana_cloud_stack_service_account_token.management_token.key
+					url  = grafana_cloud_stack.test.url
+				}
+
+				resource "grafana_team" "test" {
+					provider = grafana.stack
+					name = "test"
+				}
+			
+				resource "grafana_service_account_permission_item" "test" {
+					provider = grafana.stack
+					service_account_id = grafana_cloud_stack_service_account.management.id
+					permission = "Admin"
+					team = grafana_team.test.id
+				}
+				`,
+			},
+			// Role assignment
+			{
+				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, false, "Admin") + `
+				provider "grafana" {
+					alias = "stack"
+					auth = grafana_cloud_stack_service_account_token.management_token.key
+					url  = grafana_cloud_stack.test.url
+				}
+			
+				resource "grafana_role" "test" {
+					provider = grafana.stack
+					name  = "test"
+					description = "test desc"
+					version = 1
+					uid = "test"
+					group = "testgroup"
+					display_name = "testdisplay"
+				}
+			
+				resource "grafana_role_assignment" "test" {
+					provider = grafana.stack
+					role_uid = grafana_role.test.uid
+					service_accounts = [grafana_cloud_stack_service_account.management.id]
+				}
+				`,
+			},
+			// SA permission
+			{
+				Config: testAccGrafanaServiceAccountFromCloud(slug, slug, false, "Admin") + `
+				provider "grafana" {
+					alias = "stack"
+					auth = grafana_cloud_stack_service_account_token.management_token.key
+					url  = grafana_cloud_stack.test.url
+				}
+
+				resource "grafana_team" "test" {
+					provider = grafana.stack
+					name = "test"
+				}
+			
+				resource "grafana_service_account_permission" "test" {
+					provider = grafana.stack
+					service_account_id = grafana_cloud_stack_service_account.management.id
+			
+					permissions {
+						team_id = grafana_team.test.id
+						permission = "Admin"
+					}
+				}
+				`,
+			},
+		},
+	})
+}
+
 func TestAccGrafanaServiceAccountFromCloudNoneRole(t *testing.T) {
 	testutils.CheckCloudAPITestsEnabled(t)
 
