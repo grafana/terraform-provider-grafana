@@ -9,7 +9,6 @@ import (
 
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -89,36 +88,6 @@ func TestAccDataSource_Loki(t *testing.T) {
 			{
 				Config: config,
 				Check:  checks,
-			},
-			// Test import using ID (TODO: Remove on next major version)
-			{
-				ResourceName:      "grafana_data_source.loki",
-				ImportState:       true,
-				ImportStateVerify: true,
-				// Ignore sensitive attributes, we mostly only care about "json_data_encoded"
-				ImportStateVerifyIgnore: []string{"secure_json_data_encoded", "http_headers."},
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					rs, ok := s.RootModule().Resources["grafana_data_source.loki"]
-					if !ok {
-						return "", fmt.Errorf("resource not found: %s", "grafana_data_source.loki")
-					}
-
-					if rs.Primary.ID == "" {
-						return "", fmt.Errorf("resource id not set")
-					}
-					uid := rs.Primary.Attributes["uid"]
-
-					// get the datasource by uid
-					client, err := grafana.OAPIGlobalClient(testutils.Provider.Meta())
-					if err != nil {
-						return "", err
-					}
-					resp, err := client.Datasources.GetDataSourceByUID(uid)
-					if err != nil {
-						return "", err
-					}
-					return strconv.FormatInt(resp.Payload.ID, 10), nil
-				},
 			},
 			// Test import using UID
 			{

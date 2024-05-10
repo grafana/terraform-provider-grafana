@@ -160,18 +160,7 @@ func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}
 	d.Set("dashboard_id", int64(model["id"].(float64)))
 	d.Set("version", int64(model["version"].(float64)))
 	d.Set("url", metaClient.GrafanaSubpath(dashboard.Meta.URL))
-
-	// If the folder was originally set to a numeric ID, we read the folder ID
-	// Othwerwise, we read the folder UID
-	_, folderID := SplitOrgResourceID(d.Get("folder").(string))
-	// nolint:staticcheck
-	if common.IDRegexp.MatchString(folderID) && dashboard.Meta.FolderID > 0 {
-		// TODO: Remove on next major release
-		// nolint:staticcheck
-		d.Set("folder", strconv.FormatInt(dashboard.Meta.FolderID, 10))
-	} else {
-		d.Set("folder", dashboard.Meta.FolderUID)
-	}
+	d.Set("folder", dashboard.Meta.FolderUID)
 
 	configJSONBytes, err := json.Marshal(dashboard.Dashboard)
 	if err != nil {
@@ -230,18 +219,11 @@ func DeleteDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 }
 
 func makeDashboard(d *schema.ResourceData) (models.SaveDashboardCommand, error) {
+	_, folderID := SplitOrgResourceID(d.Get("folder").(string))
 	dashboard := models.SaveDashboardCommand{
 		Overwrite: d.Get("overwrite").(bool),
 		Message:   d.Get("message").(string),
-	}
-
-	_, folderID := SplitOrgResourceID(d.Get("folder").(string))
-	if folderInt, err := strconv.ParseInt(folderID, 10, 64); err == nil {
-		// TODO: Remove on next major release
-		// nolint:staticcheck
-		dashboard.FolderID = folderInt
-	} else {
-		dashboard.FolderUID = folderID
+		FolderUID: folderID,
 	}
 
 	configJSON := d.Get("config_json").(string)

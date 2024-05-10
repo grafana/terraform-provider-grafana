@@ -51,10 +51,11 @@ func resourceDatasourcePermissionGet(d *schema.ResourceData, meta interface{}) (
 	if d.Id() != "" {
 		client, _, id = OAPIClientFromExistingOrgResource(meta, d.Id())
 	}
-	datasource, err := getDatasourceByUIDOrID(client, id)
+	resp, err := client.Datasources.GetDataSourceByUID(id)
 	if err != nil {
 		return "", err
 	}
+	datasource := resp.Payload
 	d.Set("datasource_uid", datasource.UID)
 	return datasource.UID, nil
 }

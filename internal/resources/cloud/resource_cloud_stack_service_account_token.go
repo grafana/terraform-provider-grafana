@@ -180,9 +180,6 @@ func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData,
 func getStackServiceAccountID(id string) (int64, error) {
 	split, splitErr := resourceStackServiceAccountID.Split(id)
 	if splitErr != nil {
-		// ID used to be just the service account ID.
-		// Even though that's an incomplete ID for imports, we need to handle it for backwards compatibility
-		// TODO: Remove on next major version
 		serviceAccountID, parseErr := strconv.ParseInt(id, 10, 64)
 		if parseErr != nil {
 			return 0, fmt.Errorf("failed to parse ID (%s) as stackSlug:serviceAccountID: %v and failed to parse as serviceAccountID: %v", id, splitErr, parseErr)
