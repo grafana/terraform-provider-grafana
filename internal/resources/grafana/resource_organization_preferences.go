@@ -35,26 +35,10 @@ func resourceOrganizationPreferences() *common.Resource {
 				Description:  "The Organization theme. Available values are `light`, `dark`, `system`, or an empty string for the default.",
 				ValidateFunc: validation.StringInSlice([]string{"light", "dark", "system", ""}, false),
 			},
-			"home_dashboard_id": {
-				Type:          schema.TypeInt,
-				Optional:      true,
-				Description:   "The Organization home dashboard ID. Deprecated: Use `home_dashboard_uid` instead.",
-				ConflictsWith: []string{"home_dashboard_uid"},
-				Deprecated:    "Use `home_dashboard_uid` instead.",
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					_, uidSet := d.GetOk("home_dashboard_uid")
-					return uidSet
-				},
-			},
 			"home_dashboard_uid": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Description:   "The Organization home dashboard UID. This is only available in Grafana 9.0+.",
-				ConflictsWith: []string{"home_dashboard_id"},
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					_, idSet := d.GetOk("home_dashboard_id")
-					return idSet
-				},
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Organization home dashboard UID. This is only available in Grafana 9.0+.",
 			},
 			"timezone": {
 				Type:         schema.TypeString,
@@ -84,7 +68,6 @@ func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, 
 
 	_, err := client.OrgPreferences.UpdateOrgPreferences(&models.UpdatePrefsCmd{
 		Theme:            d.Get("theme").(string),
-		HomeDashboardID:  int64(d.Get("home_dashboard_id").(int)),
 		HomeDashboardUID: d.Get("home_dashboard_uid").(string),
 		Timezone:         d.Get("timezone").(string),
 		WeekStart:        d.Get("week_start").(string),
@@ -110,7 +93,6 @@ func ReadOrganizationPreferences(ctx context.Context, d *schema.ResourceData, me
 
 	d.Set("org_id", d.Id())
 	d.Set("theme", prefs.Theme)
-	d.Set("home_dashboard_id", int(prefs.HomeDashboardID))
 	d.Set("home_dashboard_uid", prefs.HomeDashboardUID)
 	d.Set("timezone", prefs.Timezone)
 	d.Set("week_start", prefs.WeekStart)

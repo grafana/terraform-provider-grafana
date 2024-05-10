@@ -18,6 +18,7 @@ A job defines the queries and model parameters for a machine learning task.
 ### Required
 
 - `datasource_type` (String) The type of datasource being queried. Currently allowed values are prometheus, graphite, loki, postgres, and datadog.
+- `datasource_uid` (String) The uid of the datasource to query.
 - `metric` (String) The metric used to query the job results.
 - `name` (String) The name of the job.
 - `query_params` (Map of String) An object representing the query params to query Grafana with.
@@ -25,8 +26,6 @@ A job defines the queries and model parameters for a machine learning task.
 ### Optional
 
 - `custom_labels` (Map of String) An object representing the custom labels added on the forecast.
-- `datasource_id` (Number, Deprecated) The id of the datasource to query.
-- `datasource_uid` (String) The uid of the datasource to query.
 - `description` (String) A description of the job.
 - `holidays` (List of String) A list of holiday IDs or names to take into account when training the model.
 - `hyper_params` (Map of String) The hyperparameters used to fine tune the algorithm. See https://grafana.com/docs/grafana-cloud/machine-learning/models/ for the full list of available hyperparameters. Defaults to `map[]`.

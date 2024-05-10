@@ -28,22 +28,11 @@ Manages the entire set of permissions for a datasource. Permissions that aren't 
 		},
 
 		Schema: map[string]*schema.Schema{
-			"datasource_id": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				Computed:     true,
-				Deprecated:   "Use `datasource_uid` instead",
-				Description:  "Deprecated: Use `datasource_uid` instead.",
-				AtLeastOneOf: []string{"datasource_id", "datasource_uid"},
-			},
 			"datasource_uid": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				Computed:     true,
-				Description:  "UID of the datasource to apply permissions to.",
-				AtLeastOneOf: []string{"datasource_id", "datasource_uid"},
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "UID of the datasource to apply permissions to.",
 			},
 		},
 	}
@@ -62,13 +51,11 @@ func resourceDatasourcePermissionGet(d *schema.ResourceData, meta interface{}) (
 	if d.Id() != "" {
 		client, _, id = OAPIClientFromExistingOrgResource(meta, d.Id())
 	}
-	if id == "" {
-		_, id = SplitOrgResourceID(d.Get("datasource_id").(string))
-	}
-	datasource, err := getDatasourceByUIDOrID(client, id)
+	resp, err := client.Datasources.GetDataSourceByUID(id)
 	if err != nil {
 		return "", err
 	}
+	datasource := resp.Payload
 	d.Set("datasource_uid", datasource.UID)
 	return datasource.UID, nil
 }

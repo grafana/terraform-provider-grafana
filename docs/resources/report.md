@@ -28,9 +28,11 @@ EOD
 }
 
 resource "grafana_report" "test" {
-  name          = "my report"
-  dashboard_uid = grafana_dashboard.test.uid
-  recipients    = ["some@email.com"]
+  name       = "my report"
+  recipients = ["some@email.com"]
+  dashboards {
+    uid = grafana_dashboard.test.uid
+  }
   schedule {
     frequency = "hourly"
   }
@@ -48,8 +50,6 @@ resource "grafana_report" "test" {
 
 ### Optional
 
-- `dashboard_id` (Number, Deprecated) Dashboard to be sent in the report. This field is deprecated, use `dashboard_uid` instead.
-- `dashboard_uid` (String, Deprecated) Dashboard to be sent in the report.
 - `dashboards` (Block List) List of dashboards to render into the report (see [below for nested schema](#nestedblock--dashboards))
 - `formats` (Set of String) Specifies what kind of attachment to generate for the report. Allowed values: `pdf`, `csv`, `image`.
 - `include_dashboard_link` (Boolean) Whether to include a link to the dashboard in the report. Defaults to `true`.
@@ -59,7 +59,6 @@ resource "grafana_report" "test" {
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `orientation` (String) Orientation of the report. Allowed values: `landscape`, `portrait`. Defaults to `landscape`.
 - `reply_to` (String) Reply-to email address of the report.
-- `time_range` (Block List, Max: 1, Deprecated) Time range of the report. (see [below for nested schema](#nestedblock--time_range))
 
 ### Read-Only
 
@@ -97,16 +96,6 @@ Optional:
 
 <a id="nestedblock--dashboards--time_range"></a>
 ### Nested Schema for `dashboards.time_range`
-
-Optional:
-
-- `from` (String) Start of the time range.
-- `to` (String) End of the time range.
-
-
-
-<a id="nestedblock--time_range"></a>
-### Nested Schema for `time_range`
 
 Optional:
 

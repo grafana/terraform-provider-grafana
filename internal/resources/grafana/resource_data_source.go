@@ -253,12 +253,12 @@ func UpdateDataSource(ctx context.Context, d *schema.ResourceData, meta interfac
 func ReadDataSource(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
 
-	ds, err := getDatasourceByUIDOrID(client, idStr)
+	resp, err := client.Datasources.GetDataSourceByUID(idStr)
 	if err, shouldReturn := common.CheckReadError("datasource", d, err); shouldReturn {
 		return err
 	}
 
-	return datasourceToState(d, ds)
+	return datasourceToState(d, resp.Payload)
 }
 
 // DeleteDataSource deletes a Grafana datasource
@@ -409,22 +409,4 @@ func removeHeadersFromJSONData(input map[string]interface{}) (map[string]interfa
 	}
 
 	return jsonData, headers
-}
-
-// Support both numerical and UID IDs, so that we can import an existing datasource with either.
-// Following the read, it's normalized to a UID.
-// TODO: Remove on next major version
-func getDatasourceByUIDOrID(client *goapi.GrafanaHTTPAPI, id string) (*models.DataSource, error) {
-	var resp interface{ GetPayload() *models.DataSource }
-	var err error
-	if resp, err = client.Datasources.GetDataSourceByUID(id); err != nil {
-		if _, parseErr := strconv.ParseInt(id, 10, 64); parseErr == nil {
-			resp, err = client.Datasources.GetDataSourceByID(id)
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	return resp.GetPayload(), nil
 }

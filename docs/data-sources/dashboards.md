@@ -98,7 +98,6 @@ data "grafana_dashboards" "wrong_org" {
 
 ### Optional
 
-- `folder_ids` (List of Number, Deprecated) Deprecated, use `folder_uids` instead.
 - `folder_uids` (List of String) UIDs of Grafana folders containing dashboards. Specify to filter for dashboards by folder (eg. `["General"]` for General folder), or leave blank to get all dashboards in all folders.
 - `limit` (Number) Maximum number of dashboard search results to return. Defaults to `5000`.
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.

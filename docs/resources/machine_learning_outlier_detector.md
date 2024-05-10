@@ -25,14 +25,13 @@ Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/
 
 - `algorithm` (Block Set, Min: 1, Max: 1) The algorithm to use and its configuration. See https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/ for details. (see [below for nested schema](#nestedblock--algorithm))
 - `datasource_type` (String) The type of datasource being queried. Currently allowed values are prometheus, graphite, loki, postgres, and datadog.
+- `datasource_uid` (String) The uid of the datasource to query.
 - `metric` (String) The metric used to query the outlier detector results.
 - `name` (String) The name of the outlier detector.
 - `query_params` (Map of String) An object representing the query params to query Grafana with.
 
 ### Optional
 
-- `datasource_id` (Number, Deprecated) The id of the datasource to query.
-- `datasource_uid` (String) The uid of the datasource to query.
 - `description` (String) A description of the outlier detector.
 - `interval` (Number) The data interval in seconds to monitor. Defaults to `300`.
 

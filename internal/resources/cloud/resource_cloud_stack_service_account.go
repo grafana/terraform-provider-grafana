@@ -108,9 +108,6 @@ func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudC
 	var serviceAccountID int64
 	split, splitErr := resourceStackServiceAccountID.Split(d.Id())
 	if splitErr != nil {
-		// ID used to be just the service account ID.
-		// Even though that's an incomplete ID for imports, we need to handle it for backwards compatibility
-		// TODO: Remove on next major version
 		stackSlug = d.Get("stack_slug").(string)
 		var parseErr error
 		if serviceAccountID, parseErr = strconv.ParseInt(d.Id(), 10, 64); parseErr != nil {

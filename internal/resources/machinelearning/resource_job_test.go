@@ -139,18 +139,7 @@ resource "grafana_machine_learning_job" "invalid" {
   name            = "Test Job"
   metric          = "tf_test_job"
   datasource_type = "fake"
-  datasource_id   = 10
-  query_params = {
-    expr = "grafanacloud_grafana_instance_active_user_count"
-  }
-}
-`
-
-const machineLearningJobMissingDatasourceIDOrUID = `
-resource "grafana_machine_learning_job" "invalid" {
-  name            = "Test Job"
-  metric          = "tf_test_job"
-  datasource_type = "prometheus"
+  datasource_uid   = "bla"
   query_params = {
     expr = "grafanacloud_grafana_instance_active_user_count"
   }
@@ -166,10 +155,6 @@ func TestAccResourceInvalidMachineLearningJob(t *testing.T) {
 			{
 				Config:      machineLearningJobInvalid,
 				ExpectError: regexp.MustCompile(".*datasourceType.*"),
-			},
-			{
-				Config:      machineLearningJobMissingDatasourceIDOrUID,
-				ExpectError: regexp.MustCompile(".*datasource_id or datasource_uid.*"),
 			},
 		},
 	})

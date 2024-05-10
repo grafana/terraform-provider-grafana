@@ -29,7 +29,6 @@ var DatasourcesMap = map[string]*schema.Resource{
 	"grafana_oncall_escalation_chain": dataSourceEscalationChain(),
 	"grafana_oncall_schedule":         dataSourceSchedule(),
 	"grafana_oncall_slack_channel":    dataSourceSlackChannel(),
-	"grafana_oncall_action":           dataSourceAction(), // deprecated
 	"grafana_oncall_outgoing_webhook": dataSourceOutgoingWebhook(),
 	"grafana_oncall_user_group":       dataSourceUserGroup(),
 	"grafana_oncall_team":             dataSourceTeam(),
