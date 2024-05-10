@@ -51,11 +51,10 @@ Resource manages Grafana SLOs.
 				Description:  `Description is a free-text field that can provide more context to an SLO.`,
 				ValidateFunc: validation.StringLenBetween(0, 1024),
 			},
-			"folder": {
-				Type:         schema.TypeString,
-				Required:     true,
-				Description:  `Folder`,
-				ValidateFunc: validation.StringLenBetween(0, 1024),
+			"folder_uid": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: `UID for the SLO folder`,
 			},
 			"destination_datasource": {
 				Type:        schema.TypeList,
@@ -315,8 +314,8 @@ func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, client *slo.
 	var diags diag.Diagnostics
 	sloID := d.Id()
 
-	if d.HasChange("name") || d.HasChange("description") || d.HasChange("query") || d.HasChange("label") || d.HasChange("objectives") || d.HasChange("alerting") || d.HasChange("destination_datasource") {
-		slo, err := packSloResource(d)
+	if d.HasChange("name") || d.HasChange("description") || d.HasChange("query") || d.HasChange("label") || d.HasChange("objectives") || d.HasChange("alerting") || d.HasChange("destination_datasource") || d.HasChange("folder_uid") {
+		sloV00Slo, err := packSloResource(d)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -326,7 +325,7 @@ func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, client *slo.
 			return diags
 		}
 
-		req := client.DefaultAPI.V1SloIdPut(ctx, sloID).SloV00Slo(slo)
+		req := client.DefaultAPI.V1SloIdPut(ctx, sloID).SloV00Slo(sloV00Slo)
 		if _, err := req.Execute(); err != nil {
 			return apiError("Unable to Update SLO - API", err)
 		}
@@ -351,6 +350,7 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 		tfalerting              slo.SloV00Alerting
 		tflabels                []slo.SloV00Label
 		tfdestinationdatasource slo.SloV00DestinationDatasource
+		tffolder                slo.SloV00Folder
 	)
 
 	tfname := d.Get("name").(string)
@@ -380,12 +380,6 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 		DestinationDatasource: nil,
 	}
 
-	if folder, ok := d.Get("folder").(string); ok {
-		req.Folder = &slo.SloV00Folder{
-			Uid: &folder,
-		}
-	}
-
 	// Check the Optional Alerting Field
 	if alerting, ok := d.GetOk("alerting"); ok {
 		alertData, ok := alerting.([]interface{})
@@ -411,6 +405,17 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 		req.DestinationDatasource = &tfdestinationdatasource
 	}
 
+	// Check the Optional Folder UID Field
+	if rawfolderuid, ok := d.GetOk("folder_uid"); ok {
+		folderUidData, ok := rawfolderuid.(string)
+
+		if ok {
+			tffolder = packFolder(folderUidData)
+		}
+
+		req.Folder = &tffolder
+	}
+
 	return req, nil
 }
 
@@ -423,6 +428,12 @@ func packDestinationDatasource(destinationdatasource map[string]interface{}) (sl
 	}
 
 	return packedDestinationDatasource, nil
+}
+
+func packFolder(folderuid string) slo.SloV00Folder {
+	return slo.SloV00Folder{
+		Uid: &folderuid,
+	}
 }
 
 func packQuery(query map[string]interface{}) (slo.SloV00Query, error) {
