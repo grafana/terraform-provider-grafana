@@ -14,7 +14,6 @@ var DatasourcesMap = map[string]*schema.Resource{
 var Resources = []*common.Resource{
 	resourceAccessPolicy(),
 	resourceAccessPolicyToken(),
-	resourceAPIKey(),
 	resourceOrgMember(),
 	resourcePluginInstallation(),
 	resourceStack(),

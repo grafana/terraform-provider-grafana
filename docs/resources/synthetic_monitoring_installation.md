@@ -58,7 +58,7 @@ resource "grafana_cloud_access_policy" "sm_metrics_publish" {
 
   region = var.cloud_region
   name   = "metric-publisher-for-sm"
-  scopes = ["metrics:write", "stacks:read"]
+  scopes = ["metrics:write", "stacks:read", "logs:write", "traces:write"]
   realm {
     type       = "stack"
     identifier = grafana_cloud_stack.sm_stack.id

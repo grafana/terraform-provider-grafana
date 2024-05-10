@@ -93,18 +93,10 @@ func Provider(version string) *schema.Provider {
 			},
 
 			"cloud_access_policy_token": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Sensitive:     true,
-				ConflictsWith: []string{"cloud_api_key"},
-				Description:   "Access Policy Token for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_ACCESS_POLICY_TOKEN` environment variable.",
-			},
-			"cloud_api_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Sensitive:   true,
-				Deprecated:  "Use `cloud_access_policy_token` instead.",
-				Description: "Deprecated: Use `cloud_access_policy_token` instead.",
+				Description: "Access Policy Token for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_ACCESS_POLICY_TOKEN` environment variable.",
 			},
 			"cloud_api_url": {
 				Type:         schema.TypeString,
@@ -202,9 +194,6 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			RetryStatusCodes:       statusCodes,
 			RetryWait:              types.Int64Value(int64(d.Get("retry_wait").(int))),
 			UserAgent:              types.StringValue(p.UserAgent("terraform-provider-grafana", version)),
-		}
-		if cfg.CloudAccessPolicyToken.IsNull() {
-			cfg.CloudAccessPolicyToken = stringValueOrNull(d, "cloud_api_key") // TODO: Remove once `cloud_api_key` is removed
 		}
 		if err := cfg.SetDefaults(); err != nil {
 			return nil, diag.FromErr(err)

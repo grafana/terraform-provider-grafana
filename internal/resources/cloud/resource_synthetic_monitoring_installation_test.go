@@ -22,16 +22,16 @@ func TestAccSyntheticMonitoringInstallation(t *testing.T) {
 			testAccDeleteExistingStacks(t, stackPrefix)
 			stackSlug := GetRandomStackName(stackPrefix)
 
-			apiKeyPrefix := "testsminstall-"
-			testAccDeleteExistingCloudAPIKeys(t, apiKeyPrefix)
-			apiKeyName := apiKeyPrefix + acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+			accessPolicyPrefix := "testsminstall-"
+			testAccDeleteExistingAccessPolicies(t, accessPolicyPrefix)
+			accessPolicyName := accessPolicyPrefix + acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 			resource.ParallelTest(t, resource.TestCase{
 				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 				CheckDestroy:             testAccStackCheckDestroy(&stack),
 				Steps: []resource.TestStep{
 					{
-						Config: testAccSyntheticMonitoringInstallation(stackSlug, apiKeyName, region),
+						Config: testAccSyntheticMonitoringInstallation(stackSlug, accessPolicyName, region),
 						Check: resource.ComposeTestCheckFunc(
 							testAccStackCheckExists("grafana_cloud_stack.test", &stack),
 							resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_installation.test", "sm_access_token"),
@@ -40,7 +40,7 @@ func TestAccSyntheticMonitoringInstallation(t *testing.T) {
 					},
 					// Test deletion
 					{
-						Config: testAccSyntheticMonitoringInstallation_Base(stackSlug, apiKeyName, region),
+						Config: testAccSyntheticMonitoringInstallation_Base(stackSlug, accessPolicyName, region),
 					},
 				},
 			})
@@ -48,9 +48,9 @@ func TestAccSyntheticMonitoringInstallation(t *testing.T) {
 	}
 }
 
-func testAccSyntheticMonitoringInstallation_Base(stackSlug, apiKeyName, region string) string {
+func testAccSyntheticMonitoringInstallation_Base(stackSlug, accessPolicyName, region string) string {
 	return testAccStackConfigBasicWithCustomResourceName(stackSlug, stackSlug, region, "test", "description") +
-		testAccCloudAPIKeyConfig(apiKeyName, "MetricsPublisher")
+		testAccCloudAccessPolicyTokenConfigBasic(accessPolicyName, accessPolicyName, region, []string{"metrics:write", "stacks:read", "logs:write", "traces:write"}, "")
 }
 
 func testAccSyntheticMonitoringInstallation(stackSlug, apiKeyName, region string) string {
@@ -58,7 +58,7 @@ func testAccSyntheticMonitoringInstallation(stackSlug, apiKeyName, region string
 		`
 	resource "grafana_synthetic_monitoring_installation" "test" {
 		stack_id              = grafana_cloud_stack.test.id
-		metrics_publisher_key = grafana_cloud_api_key.test.key
+		metrics_publisher_key = grafana_cloud_access_policy_token.test.token
 	}
 	`
 }
