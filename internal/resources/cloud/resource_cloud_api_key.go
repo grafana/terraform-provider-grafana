@@ -13,8 +13,7 @@ import (
 
 var (
 	cloudAPIKeyRoles = []string{"Viewer", "Editor", "Admin", "MetricsPublisher", "PluginPublisher"}
-	//nolint:staticcheck
-	resourceAPIKeyID = common.NewResourceIDWithLegacySeparator("-",
+	resourceAPIKeyID = common.NewResourceID(
 		common.StringIDField("orgSlug"),
 		common.StringIDField("apiKeyName"),
 	)

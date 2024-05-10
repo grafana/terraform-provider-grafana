@@ -97,15 +97,6 @@ func TestAccContactPoint_compound(t *testing.T) {
 				ImportStateId:     "Compound Contact Point",
 				ImportStateVerify: true,
 			},
-			// Test import by UID
-			{
-				ResourceName:      "grafana_contact_point.compound_contact_point",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					return strings.Join([]string{points[0].UID, points[1].UID}, ";"), nil
-				},
-			},
 			// Test update.
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_contact_point/_acc_compound_receiver.tf", map[string]string{

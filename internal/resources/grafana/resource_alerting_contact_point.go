@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/go-openapi/runtime"
@@ -146,37 +145,6 @@ func readContactPoint(ctx context.Context, data *schema.ResourceData, meta inter
 		return diag.FromErr(err)
 	}
 	points := resp.Payload
-	if len(points) == 0 && !strings.Contains(name, ":") {
-		// If the contact point was not found by name, try to fetch it by UID.
-		// This is a deprecated ID format (uid;uid2;uid3)
-		// TODO: Remove on the next major version
-		uidsMap := map[string]bool{}
-		for _, uid := range strings.Split(data.Id(), ";") {
-			uidsMap[uid] = false
-		}
-		resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		for i, p := range resp.Payload {
-			if _, ok := uidsMap[p.UID]; !ok {
-				continue
-			}
-			uidsMap[p.UID] = true
-			points = append(points, p)
-			if i > 0 && p.Name != points[0].Name {
-				return diag.FromErr(fmt.Errorf("contact point with UID %s has a different name (%s) than the contact point with UID %s (%s)", p.UID, p.Name, points[0].UID, points[0].Name))
-			}
-		}
-
-		for uid, found := range uidsMap {
-			if !found {
-				// Since this is an import, all UIDs should exist
-				return diag.FromErr(fmt.Errorf("contact point with UID %s was not found", uid))
-			}
-		}
-	}
-
 	if len(points) == 0 {
 		return common.WarnMissing("contact point", data)
 	}

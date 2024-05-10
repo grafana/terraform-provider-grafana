@@ -52,7 +52,6 @@ func OptionalIntIDField(name string) ResourceIDField {
 }
 
 type ResourceID struct {
-	separators     []string
 	expectedFields []ResourceIDField
 }
 
@@ -71,22 +70,9 @@ func (id *ResourceID) RequiredFields() []ResourceIDField {
 }
 
 func NewResourceID(expectedFields ...ResourceIDField) *ResourceID {
-	return newResourceIDWithSeparators([]string{defaultSeparator}, expectedFields...)
-}
-
-// Deprecated: Use NewResourceID instead
-// We should standardize on a single separator, so that function should only be used for old resources
-// On major versions, switch to NewResourceID and remove uses of this function
-func NewResourceIDWithLegacySeparator(legacySeparator string, expectedFields ...ResourceIDField) *ResourceID {
-	return newResourceIDWithSeparators([]string{defaultSeparator, legacySeparator}, expectedFields...)
-}
-
-func newResourceIDWithSeparators(separators []string, expectedFields ...ResourceIDField) *ResourceID {
-	tfID := &ResourceID{
-		separators:     separators,
+	return &ResourceID{
 		expectedFields: expectedFields,
 	}
-	return tfID
 }
 
 // Make creates a resource ID from the given parts
@@ -136,7 +122,7 @@ func (id *ResourceID) Split(resourceID string) ([]any, error) {
 	requiredFields := id.RequiredFields()
 
 	// Try with optional fields
-	parts, err := split(resourceID, id.expectedFields, id.separators)
+	parts, err := split(resourceID, id.expectedFields)
 	if err == nil {
 		return parts, nil
 	}
@@ -145,7 +131,7 @@ func (id *ResourceID) Split(resourceID string) ([]any, error) {
 	}
 
 	// Try without optional fields
-	parts, err = split(resourceID, requiredFields, id.separators)
+	parts, err = split(resourceID, requiredFields)
 	if err != nil {
 		return nil, err
 	}
@@ -154,27 +140,25 @@ func (id *ResourceID) Split(resourceID string) ([]any, error) {
 
 // Split parses a resource ID into its parts
 // The parts will be cast to the expected types
-func split(resourceID string, expectedFields []ResourceIDField, separators []string) ([]any, error) {
-	for _, sep := range separators {
-		parts := strings.Split(resourceID, sep)
-		if len(parts) == len(expectedFields) {
-			partsAsAny := make([]any, len(parts))
-			for i, part := range parts {
-				expectedField := expectedFields[i]
-				switch expectedField.Type {
-				case ResourceIDFieldTypeInt:
-					asInt, err := strconv.ParseInt(part, 10, 64)
-					if err != nil {
-						return nil, fmt.Errorf("expected int for field %q, got %q", expectedField.Name, part)
-					}
-					partsAsAny[i] = asInt
-				case ResourceIDFieldTypeString:
-					partsAsAny[i] = part
+func split(resourceID string, expectedFields []ResourceIDField) ([]any, error) {
+	parts := strings.Split(resourceID, defaultSeparator)
+	if len(parts) == len(expectedFields) {
+		partsAsAny := make([]any, len(parts))
+		for i, part := range parts {
+			expectedField := expectedFields[i]
+			switch expectedField.Type {
+			case ResourceIDFieldTypeInt:
+				asInt, err := strconv.ParseInt(part, 10, 64)
+				if err != nil {
+					return nil, fmt.Errorf("expected int for field %q, got %q", expectedField.Name, part)
 				}
+				partsAsAny[i] = asInt
+			case ResourceIDFieldTypeString:
+				partsAsAny[i] = part
 			}
-
-			return partsAsAny, nil
 		}
+
+		return partsAsAny, nil
 	}
 
 	expectedFieldNames := make([]string, len(expectedFields))

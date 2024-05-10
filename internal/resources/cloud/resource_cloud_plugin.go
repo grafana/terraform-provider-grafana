@@ -10,8 +10,7 @@ import (
 )
 
 var (
-	//nolint:staticcheck
-	resourcePluginInstallationID = common.NewResourceIDWithLegacySeparator("_",
+	resourcePluginInstallationID = common.NewResourceID(
 		common.StringIDField("stackSlug"),
 		common.StringIDField("pluginSlug"),
 	)

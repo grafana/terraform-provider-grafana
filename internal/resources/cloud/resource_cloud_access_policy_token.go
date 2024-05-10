@@ -12,8 +12,7 @@ import (
 )
 
 var (
-	//nolint:staticcheck
-	resourceAccessPolicyTokenID = common.NewResourceIDWithLegacySeparator("/",
+	resourceAccessPolicyTokenID = common.NewResourceID(
 		common.StringIDField("region"),
 		common.StringIDField("tokenId"),
 	)
