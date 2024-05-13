@@ -36,7 +36,7 @@ GLOBAL OPTIONS:
 
 ## Maturity
 
-> _The code in this repository should be considered experimental. Documentation is only
+> _The code in this folder should be considered experimental. Documentation is only
 available alongside the code. It comes with no support, but we are keen to receive
 feedback on the product and suggestions on how to improve it, though we cannot commit
 to resolution of any particular issue. No SLAs are available. It is not meant to be used
