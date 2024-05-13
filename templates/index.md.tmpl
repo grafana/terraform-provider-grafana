@@ -10,6 +10,8 @@ description: |-
 The Grafana provider provides configuration management resources for
 [Grafana](https://grafana.com/).
 
+The changelog for this provider can be found here: <https://github.com/grafana/terraform-provider-grafana/releases>.
+
 ## Example Usage
 
 ### Creating a Grafana provider
