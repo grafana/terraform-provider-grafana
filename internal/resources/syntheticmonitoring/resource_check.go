@@ -676,7 +676,7 @@ multiple checks for a single endpoint to check different capabilities.
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Default:      60000,
-				ValidateFunc: validation.IntBetween(10000, 3600000),
+				ValidateFunc: validation.IntBetween(1000, 3600000),
 			},
 			"timeout": {
 				Description: "Specifies the maximum running time for the check in milliseconds. " +
