@@ -672,7 +672,7 @@ multiple checks for a single endpoint to check different capabilities.
 			},
 			"frequency": {
 				Description: "How often the check runs in milliseconds (the value is not truly a \"frequency\" but a \"period\"). " +
-					"The minimum acceptable value is 10 second (10000 ms), and the maximum is 1 hour (3600000 ms).",
+					"The minimum acceptable value is 1 second (1000 ms), and the maximum is 1 hour (3600000 ms).",
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Default:      60000,
