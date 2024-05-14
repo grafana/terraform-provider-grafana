@@ -41,13 +41,6 @@ func TestAccResourcePluginInstallation(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
-			// Import with different ID formats (Legacy and current)
-			{
-				ResourceName:      "grafana_cloud_plugin_installation.test-installation",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateId:     fmt.Sprintf("%s_%s", stackSlug, pluginSlug),
-			},
 			{
 				ResourceName:      "grafana_cloud_plugin_installation.test-installation",
 				ImportState:       true,

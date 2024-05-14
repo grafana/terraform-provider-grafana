@@ -81,7 +81,7 @@ Required access policy scopes:
 }
 
 func createStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	if err := waitForStackReadinessFromSlug(ctx, 1*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
+	if err := waitForStackReadinessFromSlug(ctx, 5*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
 		return err
 	}
 
@@ -117,7 +117,7 @@ func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudC
 		stackSlug, serviceAccountID = split[0].(string), split[1].(int64)
 	}
 
-	if err := waitForStackReadinessFromSlug(ctx, 1*time.Minute, stackSlug, cloudClient); err != nil {
+	if err := waitForStackReadinessFromSlug(ctx, 5*time.Minute, stackSlug, cloudClient); err != nil {
 		return err
 	}
 
@@ -140,7 +140,7 @@ func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudC
 }
 
 func deleteStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {
-	if err := waitForStackReadinessFromSlug(ctx, 1*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
+	if err := waitForStackReadinessFromSlug(ctx, 5*time.Minute, d.Get("stack_slug").(string), cloudClient); err != nil {
 		return err
 	}
 
