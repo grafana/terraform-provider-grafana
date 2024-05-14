@@ -224,16 +224,16 @@ func testAccCloudAccessPolicyTokenCheckDestroy(region string, a *gcom.AuthToken)
 	}
 }
 
-func testAccDeleteExistingAccessPolicies(t *testing.T, prefix string) {
+func testAccDeleteExistingAccessPolicies(t *testing.T, region, prefix string) {
 	client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
-	resp, _, err := client.AccesspoliciesAPI.GetAccessPolicies(context.Background()).Execute()
+	resp, _, err := client.AccesspoliciesAPI.GetAccessPolicies(context.Background()).Region(region).Execute()
 	if err != nil {
 		t.Error(err)
 	}
 
 	for _, ap := range resp.Items {
 		if strings.HasPrefix(ap.Name, prefix) {
-			_, _, err := client.AccesspoliciesAPI.DeleteAccessPolicy(context.Background(), *ap.Id).XRequestId(cloud.ClientRequestID()).Execute()
+			_, _, err := client.AccesspoliciesAPI.DeleteAccessPolicy(context.Background(), *ap.Id).XRequestId(cloud.ClientRequestID()).Region(region).Execute()
 			if err != nil {
 				t.Error(err)
 			}

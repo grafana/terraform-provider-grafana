@@ -23,7 +23,7 @@ func TestAccSyntheticMonitoringInstallation(t *testing.T) {
 			stackSlug := GetRandomStackName(stackPrefix)
 
 			accessPolicyPrefix := "testsminstall-"
-			testAccDeleteExistingAccessPolicies(t, accessPolicyPrefix)
+			testAccDeleteExistingAccessPolicies(t, region, accessPolicyPrefix)
 			accessPolicyName := accessPolicyPrefix + acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 			resource.ParallelTest(t, resource.TestCase{
