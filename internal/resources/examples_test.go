@@ -39,23 +39,23 @@ func TestAccExamples(t *testing.T) {
 		{
 			category: "Alerting",
 			testCheck: func(t *testing.T, filename string) {
-				testutils.CheckOSSTestsEnabled(t, ">=10.3.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
+				testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 			},
 		},
 		{
 			category: "Grafana OSS",
 			testCheck: func(t *testing.T, filename string) {
 				if strings.Contains(filename, "sso_settings") {
-					t.Skip() // TODO: Run on v10.4.0 once it's released
+					t.Skip() // TODO: Fix the tests to run on local instances
 				} else {
-					testutils.CheckOSSTestsEnabled(t, ">=10.3.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
+					testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 				}
 			},
 		},
 		{
 			category: "Grafana Enterprise",
 			testCheck: func(t *testing.T, filename string) {
-				testutils.CheckEnterpriseTestsEnabled(t, ">=10.3.0") // Only run on latest version
+				testutils.CheckEnterpriseTestsEnabled(t, ">=11.0.0") // Only run on latest version
 			},
 		},
 
