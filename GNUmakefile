@@ -1,4 +1,4 @@
-GRAFANA_VERSION ?= 10.3.1
+GRAFANA_VERSION ?= 11.0.0
 DOCKER_COMPOSE_ARGS ?= --force-recreate --detach --remove-orphans --wait
 
 testacc:

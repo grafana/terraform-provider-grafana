@@ -16,7 +16,7 @@ import (
 )
 
 func TestSSOSettings_basic_oauth2(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Run on v10.4.0 once it's released
+	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Fix the tests to run on local instances
 
 	providers := []string{"gitlab", "google", "generic_oauth", "azuread", "okta"}
 
@@ -102,7 +102,7 @@ func TestSSOSettings_basic_saml(t *testing.T) {
 }
 
 func TestSSOSettings_customFields(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Run on v10.4.0 once it's released
+	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Fix the tests to run on local instances
 
 	api := grafanaTestClient()
 

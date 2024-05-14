@@ -2,11 +2,13 @@ package grafana_test
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
 	"github.com/go-openapi/runtime"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/annotations"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
@@ -24,6 +26,9 @@ var (
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.ContactPoints, error) {
 			params := provisioning.NewGetContactpointsParams().WithName(&id)
 			resp, err := client.Provisioning.GetContactpoints(params)
+			if castErr, ok := err.(*runtime.APIError); strings.HasPrefix(os.Getenv("GRAFANA_VERSION"), "10.4") && ok && castErr.Code == 500 {
+				return nil, &runtime.APIError{Code: 404} // There's a bug in 10.4 where the API returns a 500 if no contact points are found
+			}
 			if err != nil {
 				return nil, err
 			}
@@ -72,8 +77,16 @@ var (
 	annotationsCheckExists = newCheckExistsHelper(
 		func(a *models.Annotation) string { return strconv.FormatInt(a.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Annotation, error) {
-			resp, err := client.Annotations.GetAnnotationByID(id)
-			return payloadOrError(resp, err)
+			resp, err := client.Annotations.GetAnnotations(annotations.NewGetAnnotationsParams())
+			if err != nil {
+				return nil, err
+			}
+			for _, a := range resp.Payload {
+				if strconv.FormatInt(a.ID, 10) == id {
+					return a, nil
+				}
+			}
+			return nil, &runtime.APIError{Code: 404, Response: "annotation not found"}
 		},
 	)
 	dashboardCheckExists = newCheckExistsHelper(
