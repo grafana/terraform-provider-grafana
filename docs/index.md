@@ -19,7 +19,7 @@ The changelog for this provider can be found here: <https://github.com/grafana/t
 ```terraform
 provider "grafana" {
   url  = "http://grafana.example.com/"
-  auth = var.grafana_auth
+  cloud_access_policy_token = var.grafana_auth
 }
 
 // Optional (On-premise, not supported in Grafana Cloud): Create an organization
@@ -84,7 +84,7 @@ provider "grafana" {
   alias = "my_stack"
 
   url  = grafana_cloud_stack.my_stack.url
-  auth = grafana_cloud_stack_service_account_token.cloud_sa.key
+  cloud_access_policy_token = grafana_cloud_stack_service_account_token.cloud_sa.key
 }
 
 resource "grafana_folder" "my_folder" {
