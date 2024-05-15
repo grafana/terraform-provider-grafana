@@ -27,6 +27,7 @@ data "grafana_synthetic_monitoring_probe" "atlanta" {
 
 ### Read-Only
 
+- `disable_scripted_checks` (Boolean) Disables scripted checks for this probe.
 - `id` (String) The ID of the probe.
 - `labels` (Map of String) Custom labels to be included with collected metrics and logs.
 - `latitude` (Number) Latitude coordinates.
