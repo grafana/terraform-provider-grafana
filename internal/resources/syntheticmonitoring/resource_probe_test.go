@@ -35,6 +35,7 @@ func TestAccResourceProbe(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "region", "APAC"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "public", "false"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "labels.type", "mountain"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "disable_scripted_checks", "false"),
 				),
 			},
 			{
@@ -50,6 +51,7 @@ func TestAccResourceProbe(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "region", "AMER"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "public", "false"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "labels.type", "volcano"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "disable_scripted_checks", "true"),
 				),
 			},
 		},

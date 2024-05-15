@@ -102,6 +102,12 @@ Grafana Synthetic Monitoring Agent.
 				Optional:    true,
 				Default:     false,
 			},
+			"disable_scripted_checks": {
+				Description: "Disables scripted checks for this probe.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+			},
 		},
 	}
 
@@ -176,6 +182,12 @@ func resourceProbeRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 		d.Set("labels", labels)
 	}
 
+	if prb.Capabilities != nil {
+		d.Set("disable_scripted_checks", prb.Capabilities.DisableScriptedChecks)
+	} else {
+		d.Set("disable_scripted_checks", false)
+	}
+
 	return nil
 }
 
@@ -241,6 +253,9 @@ func makeProbe(d *schema.ResourceData) *sm.Probe {
 		Region:    d.Get("region").(string),
 		Labels:    labels,
 		Public:    d.Get("public").(bool),
+		Capabilities: &sm.Probe_Capabilities{
+			DisableScriptedChecks: d.Get("disable_scripted_checks").(bool),
+		},
 	}
 }
 
