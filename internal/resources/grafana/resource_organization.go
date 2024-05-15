@@ -163,6 +163,9 @@ func listOrganizations(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *
 
 	var orgIDsString []string
 	for _, id := range orgIDs {
+		if id == 1 {
+			continue // Skip the default org, it can't be managed
+		}
 		orgIDsString = append(orgIDsString, strconv.FormatInt(id, 10))
 	}
 	return orgIDsString, nil

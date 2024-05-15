@@ -37,6 +37,7 @@ testdata/integration/*
 !command/test-fixtures/**/.terraform/
 
 terraform-provider-grafana
+terraform-provider-grafana-generate
 
 .vscode
 vendor/
