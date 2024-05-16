@@ -1,4 +1,4 @@
-package main
+package generate
 
 import (
 	"context"
@@ -18,47 +18,23 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-type outputFormat string
-
-const (
-	outputFormatJSON       outputFormat = "json"
-	outputFormatHCL        outputFormat = "hcl"
-	outputFormatCrossplane outputFormat = "crossplane"
-)
-
 var (
-	outputFormats         = []outputFormat{outputFormatJSON, outputFormatHCL, outputFormatCrossplane}
 	allowedTerraformChars = regexp.MustCompile(`[^a-zA-Z0-9_-]`)
 )
 
-type config struct {
-	outputDir       string
-	clobber         bool
-	format          outputFormat
-	providerVersion string
-
-	grafanaURL  string
-	grafanaAuth string
-
-	cloudAccessPolicyToken         string
-	cloudOrg                       string
-	cloudCreateStackServiceAccount bool
-	cloudStackServiceAccountName   string
-}
-
-func generate(ctx context.Context, cfg *config) error {
-	if _, err := os.Stat(cfg.outputDir); err == nil && cfg.clobber {
-		log.Printf("Deleting all files in %s", cfg.outputDir)
-		if err := os.RemoveAll(cfg.outputDir); err != nil {
-			return fmt.Errorf("failed to delete %s: %s", cfg.outputDir, err)
+func Generate(ctx context.Context, cfg *Config) error {
+	if _, err := os.Stat(cfg.OutputDir); err == nil && cfg.Clobber {
+		log.Printf("Deleting all files in %s", cfg.OutputDir)
+		if err := os.RemoveAll(cfg.OutputDir); err != nil {
+			return fmt.Errorf("failed to delete %s: %s", cfg.OutputDir, err)
 		}
-	} else if err == nil && !cfg.clobber {
-		return fmt.Errorf("output dir %q already exists. Use --clobber to delete it", cfg.outputDir)
+	} else if err == nil && !cfg.Clobber {
+		return fmt.Errorf("output dir %q already exists. Use --clobber to delete it", cfg.OutputDir)
 	}
 
-	log.Printf("Generating resources to %s", cfg.outputDir)
-	if err := os.MkdirAll(cfg.outputDir, 0755); err != nil {
-		return fmt.Errorf("failed to create output directory %s: %s", cfg.outputDir, err)
+	log.Printf("Generating resources to %s", cfg.OutputDir)
+	if err := os.MkdirAll(cfg.OutputDir, 0755); err != nil {
+		return fmt.Errorf("failed to create output directory %s: %s", cfg.OutputDir, err)
 	}
 
 	// Generate provider installation block
@@ -66,33 +42,33 @@ func generate(ctx context.Context, cfg *config) error {
 	requiredProvidersBlock := hclwrite.NewBlock("required_providers", nil)
 	requiredProvidersBlock.Body().SetAttributeValue("grafana", cty.ObjectVal(map[string]cty.Value{
 		"source":  cty.StringVal("grafana/grafana"),
-		"version": cty.StringVal(strings.TrimPrefix(cfg.providerVersion, "v")),
+		"version": cty.StringVal(strings.TrimPrefix(cfg.ProviderVersion, "v")),
 	}))
 	providerBlock.Body().AppendBlock(requiredProvidersBlock)
-	if err := writeBlocks(filepath.Join(cfg.outputDir, "provider.tf"), providerBlock); err != nil {
+	if err := writeBlocks(filepath.Join(cfg.OutputDir, "provider.tf"), providerBlock); err != nil {
 		log.Fatal(err)
 	}
 
 	// Terraform init to download the provider
-	if err := runTerraform(cfg.outputDir, "init"); err != nil {
+	if err := runTerraform(cfg.OutputDir, "init"); err != nil {
 		return fmt.Errorf("failed to run terraform init: %w", err)
 	}
 
-	if cfg.cloudAccessPolicyToken != "" {
+	if cfg.Cloud != nil {
 		stacks, err := generateCloudResources(ctx, cfg)
 		if err != nil {
 			return err
 		}
 
 		for _, stack := range stacks {
-			if err := generateGrafanaResources(ctx, stack.managementKey, stack.url, "stack-"+stack.slug, false, cfg.outputDir, stack.smURL, stack.smToken); err != nil {
+			if err := generateGrafanaResources(ctx, stack.managementKey, stack.url, "stack-"+stack.slug, false, cfg.OutputDir, stack.smURL, stack.smToken); err != nil {
 				return err
 			}
 		}
 	}
 
-	if cfg.grafanaAuth != "" {
-		grafanaURLParsed, err := url.Parse(cfg.grafanaURL)
+	if cfg.Grafana != nil {
+		grafanaURLParsed, err := url.Parse(cfg.Grafana.URL)
 		if err != nil {
 			return err
 		}
@@ -101,15 +77,15 @@ func generate(ctx context.Context, cfg *config) error {
 		if net.ParseIP(stackName) != nil {
 			stackName = "ip_" + strings.ReplaceAll(stackName, ".", "_")
 		}
-		if err := generateGrafanaResources(ctx, cfg.grafanaAuth, cfg.grafanaURL, stackName, true, cfg.outputDir, "", ""); err != nil {
+		if err := generateGrafanaResources(ctx, cfg.Grafana.Auth, cfg.Grafana.URL, stackName, true, cfg.OutputDir, "", ""); err != nil {
 			return err
 		}
 	}
 
-	if cfg.format == outputFormatJSON {
-		return convertToTFJSON(cfg.outputDir)
+	if cfg.Format == OutputFormatJSON {
+		return convertToTFJSON(cfg.OutputDir)
 	}
-	if cfg.format == outputFormatCrossplane {
+	if cfg.Format == OutputFormatCrossplane {
 		return errors.New("crossplane output format is not yet supported")
 	}
 
