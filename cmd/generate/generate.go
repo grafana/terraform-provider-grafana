@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -96,7 +97,11 @@ func generate(ctx context.Context, cfg *config) error {
 			return err
 		}
 
-		if err := generateGrafanaResources(ctx, cfg.grafanaAuth, cfg.grafanaURL, grafanaURLParsed.Hostname(), true, cfg.outputDir, "", ""); err != nil {
+		stackName := grafanaURLParsed.Hostname()
+		if net.ParseIP(stackName) != nil {
+			stackName = "ip_" + strings.ReplaceAll(stackName, ".", "_")
+		}
+		if err := generateGrafanaResources(ctx, cfg.grafanaAuth, cfg.grafanaURL, stackName, true, cfg.outputDir, "", ""); err != nil {
 			return err
 		}
 	}
