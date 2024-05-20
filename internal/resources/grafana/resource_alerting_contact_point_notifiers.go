@@ -1009,6 +1009,11 @@ func (n pagerDutyNotifier) schema() *schema.Resource {
 			Type: schema.TypeString,
 		},
 	}
+	r.Schema["url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The URL to send API requests to",
+	}
 	return r
 }
 
