@@ -66,7 +66,7 @@ func resourceEscalation() *common.Resource {
 			},
 			"type": {
 				Type:         schema.TypeString,
-				Optional:     true,
+				Required:     true,
 				ValidateFunc: validation.StringInSlice(escalationOptions, false),
 				Description:  fmt.Sprintf("The type of escalation policy. Can be %s", escalationOptionsVerbal),
 			},
