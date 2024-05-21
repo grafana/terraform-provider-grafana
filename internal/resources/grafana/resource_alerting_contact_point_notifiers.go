@@ -1060,6 +1060,10 @@ func (n pagerDutyNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Res
 		notifier["details"] = unpackMap(v)
 		delete(settings, "details")
 	}
+	if v, ok := settings["url"]; ok && v != nil {
+		notifier["url"] = v.(string)
+		delete(settings, "url")
+	}
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, n, p.UID), n.meta().secureFields)
 
@@ -1098,6 +1102,9 @@ func (n pagerDutyNotifier) unpack(raw interface{}, name string) *models.Embedded
 	}
 	if v, ok := json["details"]; ok && v != nil {
 		settings["details"] = unpackMap(v)
+	}
+	if v, ok := json["url"]; ok && v != nil {
+		settings["url"] = v.(string)
 	}
 	return &models.EmbeddedContactPoint{
 		UID:                   uid,
