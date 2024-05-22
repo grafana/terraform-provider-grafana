@@ -1,6 +1,11 @@
-resource "grafana_slo" "update" {
+resource "grafana_folder" "folder" {
+  title = "Terraform Testing"
+}
+
+resource "grafana_slo" "test" {
   name        = "Updated - Terraform Testing"
   description = "Updated - Terraform Description"
+  folder_uid  = grafana_folder.folder.uid
   query {
     freeform {
       query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
