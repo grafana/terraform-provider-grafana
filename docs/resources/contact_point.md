@@ -295,6 +295,7 @@ Optional:
 - `severity` (String) The PagerDuty event severity level. Default is `critical`.
 - `source` (String) The unique location of the affected system.
 - `summary` (String) The templated summary message of the event.
+- `url` (String) The URL to send API requests to
 
 Read-Only:
 

@@ -78,6 +78,7 @@ resource "grafana_contact_point" "receiver_types" {
       "one"   = "two"
       "three" = "four"
     }
+    url = "http://pagerduty-url"
   }
 
   pushover {
