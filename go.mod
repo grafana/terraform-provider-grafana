@@ -13,7 +13,7 @@ require (
 	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240322153219-42c6a1d2bcab
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20240430202104-3ad0f7e4ee52
 	github.com/grafana/machine-learning-go-client v0.5.0
-	github.com/grafana/slo-openapi-client/go v0.0.0-20240112175006-de02e75b9d73
+	github.com/grafana/slo-openapi-client/go v0.0.0-20240507015908-bf9e85638f2f
 	github.com/grafana/synthetic-monitoring-agent v0.24.1
 	github.com/grafana/synthetic-monitoring-api-go-client v0.8.0
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320

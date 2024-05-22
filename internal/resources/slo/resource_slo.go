@@ -275,7 +275,7 @@ func resourceSloCreate(ctx context.Context, d *schema.ResourceData, client *slo.
 		return diags
 	}
 
-	req := client.DefaultAPI.V1SloPost(ctx).Slo(sloModel)
+	req := client.DefaultAPI.V1SloPost(ctx).SloV00Slo(sloModel)
 	response, _, err := req.Execute()
 
 	if err != nil {
@@ -320,7 +320,7 @@ func resourceSloUpdate(ctx context.Context, d *schema.ResourceData, client *slo.
 			return diags
 		}
 
-		req := client.DefaultAPI.V1SloIdPut(ctx, sloID).Slo(slo)
+		req := client.DefaultAPI.V1SloIdPut(ctx, sloID).SloV00Slo(slo)
 		if _, err := req.Execute(); err != nil {
 			return apiError("Unable to Update SLO - API", err)
 		}
@@ -340,11 +340,11 @@ func resourceSloDelete(ctx context.Context, d *schema.ResourceData, client *slo.
 
 // Fetches all the Properties defined on the Terraform SLO State Object and converts it
 // to a Slo so that it can be converted to JSON and sent to the API
-func packSloResource(d *schema.ResourceData) (slo.Slo, error) {
+func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 	var (
-		tfalerting              slo.Alerting
-		tflabels                []slo.Label
-		tfdestinationdatasource slo.DestinationDatasource
+		tfalerting              slo.SloV00Alerting
+		tflabels                []slo.SloV00Label
+		tfdestinationdatasource slo.SloV00DestinationDatasource
 	)
 
 	tfname := d.Get("name").(string)
@@ -352,7 +352,7 @@ func packSloResource(d *schema.ResourceData) (slo.Slo, error) {
 	query := d.Get("query").([]interface{})[0].(map[string]interface{})
 	tfquery, err := packQuery(query)
 	if err != nil {
-		return slo.Slo{}, err
+		return slo.SloV00Slo{}, err
 	}
 
 	objectives := d.Get("objectives").([]interface{})
@@ -363,7 +363,7 @@ func packSloResource(d *schema.ResourceData) (slo.Slo, error) {
 		tflabels = packLabels(labels)
 	}
 
-	slo := slo.Slo{
+	slo := slo.SloV00Slo{
 		Uuid:                  d.Id(),
 		Name:                  tfname,
 		Description:           tfdescription,
@@ -402,8 +402,8 @@ func packSloResource(d *schema.ResourceData) (slo.Slo, error) {
 	return slo, nil
 }
 
-func packDestinationDatasource(destinationdatasource map[string]interface{}) (slo.DestinationDatasource, error) {
-	packedDestinationDatasource := slo.DestinationDatasource{}
+func packDestinationDatasource(destinationdatasource map[string]interface{}) (slo.SloV00DestinationDatasource, error) {
+	packedDestinationDatasource := slo.SloV00DestinationDatasource{}
 
 	if destinationdatasource["uid"].(string) != "" {
 		datasourceUID := destinationdatasource["uid"].(string)
@@ -413,13 +413,13 @@ func packDestinationDatasource(destinationdatasource map[string]interface{}) (sl
 	return packedDestinationDatasource, nil
 }
 
-func packQuery(query map[string]interface{}) (slo.Query, error) {
+func packQuery(query map[string]interface{}) (slo.SloV00Query, error) {
 	if query["type"] == "freeform" {
 		freeformquery := query["freeform"].([]interface{})[0].(map[string]interface{})
 		querystring := freeformquery["query"].(string)
 
-		sloQuery := slo.Query{
-			Freeform: &slo.FreeformQuery{Query: querystring},
+		sloQuery := slo.SloV00Query{
+			Freeform: &slo.SloV00FreeformQuery{Query: querystring},
 			Type:     QueryTypeFreeform,
 		}
 
@@ -442,12 +442,12 @@ func packQuery(query map[string]interface{}) (slo.Query, error) {
 			labels = append(labels, groupByLabels[ind].(string))
 		}
 
-		sloQuery := slo.Query{
-			Ratio: &slo.RatioQuery{
-				SuccessMetric: slo.MetricDef{
+		sloQuery := slo.SloV00Query{
+			Ratio: &slo.SloV00RatioQuery{
+				SuccessMetric: slo.SloV00MetricDef{
 					PrometheusMetric: successMetric,
 				},
-				TotalMetric: slo.MetricDef{
+				TotalMetric: slo.SloV00MetricDef{
 					PrometheusMetric: totalMetric,
 				},
 				GroupByLabels: labels,
@@ -458,15 +458,15 @@ func packQuery(query map[string]interface{}) (slo.Query, error) {
 		return sloQuery, nil
 	}
 
-	return slo.Query{}, fmt.Errorf("%s query type not implemented", query["type"])
+	return slo.SloV00Query{}, fmt.Errorf("%s query type not implemented", query["type"])
 }
 
-func packObjectives(tfobjectives []interface{}) []slo.Objective {
-	objectives := []slo.Objective{}
+func packObjectives(tfobjectives []interface{}) []slo.SloV00Objective {
+	objectives := []slo.SloV00Objective{}
 
 	for ind := range tfobjectives {
 		tfobjective := tfobjectives[ind].(map[string]interface{})
-		objective := slo.Objective{
+		objective := slo.SloV00Objective{
 			Value:  tfobjective["value"].(float64),
 			Window: tfobjective["window"].(string),
 		}
@@ -476,12 +476,12 @@ func packObjectives(tfobjectives []interface{}) []slo.Objective {
 	return objectives
 }
 
-func packLabels(tfLabels []interface{}) []slo.Label {
-	labelSlice := []slo.Label{}
+func packLabels(tfLabels []interface{}) []slo.SloV00Label {
+	labelSlice := []slo.SloV00Label{}
 
 	for ind := range tfLabels {
 		currLabel := tfLabels[ind].(map[string]interface{})
-		curr := slo.Label{
+		curr := slo.SloV00Label{
 			Key:   currLabel["key"].(string),
 			Value: currLabel["value"].(string),
 		}
@@ -492,11 +492,11 @@ func packLabels(tfLabels []interface{}) []slo.Label {
 	return labelSlice
 }
 
-func packAlerting(tfAlerting map[string]interface{}) slo.Alerting {
-	var tfAnnots []slo.Label
-	var tfLabels []slo.Label
-	var tfFastBurn slo.AlertingMetadata
-	var tfSlowBurn slo.AlertingMetadata
+func packAlerting(tfAlerting map[string]interface{}) slo.SloV00Alerting {
+	var tfAnnots []slo.SloV00Label
+	var tfLabels []slo.SloV00Label
+	var tfFastBurn slo.SloV00AlertingMetadata
+	var tfSlowBurn slo.SloV00AlertingMetadata
 
 	annots, ok := tfAlerting["annotation"].([]interface{})
 	if ok {
@@ -518,7 +518,7 @@ func packAlerting(tfAlerting map[string]interface{}) slo.Alerting {
 		tfSlowBurn = packAlertMetadata(slowBurn)
 	}
 
-	alerting := slo.Alerting{
+	alerting := slo.SloV00Alerting{
 		Annotations: tfAnnots,
 		Labels:      tfLabels,
 		FastBurn:    &tfFastBurn,
@@ -528,9 +528,9 @@ func packAlerting(tfAlerting map[string]interface{}) slo.Alerting {
 	return alerting
 }
 
-func packAlertMetadata(metadata []interface{}) slo.AlertingMetadata {
-	var tflabels []slo.Label
-	var tfannots []slo.Label
+func packAlertMetadata(metadata []interface{}) slo.SloV00AlertingMetadata {
+	var tflabels []slo.SloV00Label
+	var tfannots []slo.SloV00Label
 
 	if len(metadata) > 0 {
 		meta, ok := metadata[0].(map[string]interface{})
@@ -547,7 +547,7 @@ func packAlertMetadata(metadata []interface{}) slo.AlertingMetadata {
 		}
 	}
 
-	apiMetadata := slo.AlertingMetadata{
+	apiMetadata := slo.SloV00AlertingMetadata{
 		Labels:      tflabels,
 		Annotations: tfannots,
 	}
@@ -555,7 +555,7 @@ func packAlertMetadata(metadata []interface{}) slo.AlertingMetadata {
 	return apiMetadata
 }
 
-func setTerraformState(d *schema.ResourceData, slo slo.Slo) {
+func setTerraformState(d *schema.ResourceData, slo slo.SloV00Slo) {
 	d.Set("name", slo.Name)
 	d.Set("description", slo.Description)
 

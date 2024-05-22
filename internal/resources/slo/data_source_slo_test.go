@@ -14,7 +14,7 @@ func TestAccDataSourceSlo(t *testing.T) {
 
 	randomName := acctest.RandomWithPrefix("SLO Terraform Testing")
 
-	var slo slo.Slo
+	var slo slo.SloV00Slo
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             testAccSloCheckDestroy(&slo),
