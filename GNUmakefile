@@ -1,5 +1,5 @@
 GRAFANA_VERSION ?= 11.0.0
-DOCKER_COMPOSE_ARGS ?= --force-recreate --detach --remove-orphans --wait
+DOCKER_COMPOSE_ARGS ?= --force-recreate --detach --remove-orphans --wait --renew-anon-volumes
 
 testacc:
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m

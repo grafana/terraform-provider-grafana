@@ -45,6 +45,7 @@ available at “https://<stack_slug>.grafana.net".
 - `graphite_url` (String)
 - `graphite_user_id` (Number)
 - `id` (String) The stack id assigned to this stack by Grafana.
+- `influx_url` (String) Base URL of the InfluxDB instance configured for this stack. See https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-influxdb/push-from-telegraf/ for docs on how to use this.
 - `labels` (Map of String) A map of labels to assign to the stack. Label keys and values must match the following regexp: "^[a-zA-Z0-9/\\-.]+$" and stacks cannot have more than 10 labels.
 - `logs_name` (String)
 - `logs_status` (String)
