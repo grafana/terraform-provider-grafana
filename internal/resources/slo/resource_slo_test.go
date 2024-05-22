@@ -19,7 +19,7 @@ func TestAccResourceSlo(t *testing.T) {
 
 	randomName := acctest.RandomWithPrefix("SLO Terraform Testing")
 
-	var slo slo.Slo
+	var slo slo.SloV00Slo
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests destroy
@@ -96,7 +96,7 @@ func TestAccResourceSlo(t *testing.T) {
 	})
 }
 
-func testAccSloCheckExists(rn string, slo *slo.Slo) resource.TestCheckFunc {
+func testAccSloCheckExists(rn string, slo *slo.SloV00Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
 		if !ok {
@@ -121,7 +121,7 @@ func testAccSloCheckExists(rn string, slo *slo.Slo) resource.TestCheckFunc {
 	}
 }
 
-func testAlertingExists(expectation bool, rn string, slo *slo.Slo) resource.TestCheckFunc {
+func testAlertingExists(expectation bool, rn string, slo *slo.SloV00Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs := s.RootModule().Resources[rn]
 		client := testutils.Provider.Meta().(*common.Client).SLOClient
@@ -145,7 +145,7 @@ func testAlertingExists(expectation bool, rn string, slo *slo.Slo) resource.Test
 	}
 }
 
-func testAccSloCheckDestroy(slo *slo.Slo) resource.TestCheckFunc {
+func testAccSloCheckDestroy(slo *slo.SloV00Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).SLOClient
 		req := client.DefaultAPI.V1SloIdGet(context.Background(), slo.Uuid)
