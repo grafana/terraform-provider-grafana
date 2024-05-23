@@ -177,8 +177,9 @@ Required access policy scopes:
 			"graphite_url":     common.ComputedString(),
 			"graphite_status":  common.ComputedString(),
 
-			// OTLP
-			"otlp_url": common.ComputedStringWithDescription("Base URL of the OTLP instance configured for this stack. See https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/ for docs on how to use this."),
+			// Connections
+			"influx_url": common.ComputedStringWithDescription("Base URL of the InfluxDB instance configured for this stack. See https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-influxdb/push-from-telegraf/ for docs on how to use this."),
+			"otlp_url":   common.ComputedStringWithDescription("Base URL of the OTLP instance configured for this stack. See https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/ for docs on how to use this."),
 		},
 		CustomizeDiff: customdiff.All(
 			customdiff.ComputedIf("url", func(_ context.Context, diff *schema.ResourceDiff, meta interface{}) bool {
@@ -417,6 +418,10 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 
 	if otlpURL := connections.OtlpHttpUrl; otlpURL.IsSet() {
 		d.Set("otlp_url", otlpURL.Get())
+	}
+
+	if influxURL := connections.InfluxUrl; influxURL.IsSet() {
+		d.Set("influx_url", influxURL.Get())
 	}
 
 	return nil
