@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 
@@ -160,12 +161,20 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 	wg.Wait()
 	close(results)
 
-	// Collect results
-	allBlocks := []*hclwrite.Block{}
+	resultsSlice := []result{}
 	for r := range results {
 		if r.err != nil {
 			return fmt.Errorf("failed to generate %s resources: %w", r.resource.Name, r.err)
 		}
+		resultsSlice = append(resultsSlice, r)
+	}
+	sort.Slice(resultsSlice, func(i, j int) bool {
+		return resultsSlice[i].resource.Name < resultsSlice[j].resource.Name
+	})
+
+	// Collect results
+	allBlocks := []*hclwrite.Block{}
+	for _, r := range resultsSlice {
 		allBlocks = append(allBlocks, r.blocks...)
 	}
 
@@ -174,5 +183,9 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 	}
 
 	generatedFilename := fmt.Sprintf("%s-resources.tf", provider)
-	return runTerraform(outPath, "plan", "-generate-config-out="+generatedFilename)
+	if err := runTerraform(outPath, "plan", "-generate-config-out="+generatedFilename); err != nil {
+		return fmt.Errorf("failed to generate resources: %w", err)
+	}
+
+	return sortResourcesFile(filepath.Join(outPath, generatedFilename))
 }
