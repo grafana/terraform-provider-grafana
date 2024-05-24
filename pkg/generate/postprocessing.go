@@ -127,30 +127,37 @@ func abstractDashboards(fpath string) error {
 }
 
 func attributeToMap(attr *hclwrite.Attribute) (map[string]interface{}, error) {
-	s := string(attr.Expr().BuildTokens(nil).Bytes())
-	s = strings.TrimPrefix(s, " ")
+	var err error
+
+	// Convert jsonencode to raw json
+	s := strings.TrimPrefix(string(attr.Expr().BuildTokens(nil).Bytes()), " ")
+
+	if strings.HasPrefix(s, "jsonencode(") {
+		return nil, nil // Figure out how to handle those
+	}
+
 	if !strings.HasPrefix(s, "\"") {
 		// if expr is not a string, assume it's already converted, return (idempotency
 		return nil, nil
 	}
-	s, err := strconv.Unquote(s)
+	s, err = strconv.Unquote(s)
 	if err != nil {
 		return nil, err
 	}
 	s = strings.ReplaceAll(s, "$${", "${") // These are escaped interpolations
 
-	var jsonMap map[string]interface{}
-	err = json.Unmarshal([]byte(s), &jsonMap)
+	var dashboardMap map[string]interface{}
+	err = json.Unmarshal([]byte(s), &dashboardMap)
 	if err != nil {
 		return nil, err
 	}
 
-	return jsonMap, nil
+	return dashboardMap, nil
 }
 
 func attributeToJSON(attr *hclwrite.Attribute) ([]byte, error) {
 	jsonMap, err := attributeToMap(attr)
-	if err != nil {
+	if err != nil || jsonMap == nil {
 		return nil, err
 	}
 
