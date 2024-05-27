@@ -1,4 +1,4 @@
-package main
+package generate
 
 import (
 	"context"
@@ -26,18 +26,18 @@ type stack struct {
 	smToken       string
 }
 
-func generateCloudResources(ctx context.Context, cfg *config) ([]stack, error) {
+func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
 	// Gen provider
 	providerBlock := hclwrite.NewBlock("provider", []string{"grafana"})
 	providerBlock.Body().SetAttributeValue("alias", cty.StringVal("cloud"))
-	providerBlock.Body().SetAttributeValue("cloud_access_policy_token", cty.StringVal(cfg.cloudAccessPolicyToken))
-	if err := writeBlocks(filepath.Join(cfg.outputDir, "cloud-provider.tf"), providerBlock); err != nil {
+	providerBlock.Body().SetAttributeValue("cloud_access_policy_token", cty.StringVal(cfg.Cloud.AccessPolicyToken))
+	if err := writeBlocks(filepath.Join(cfg.OutputDir, "cloud-provider.tf"), providerBlock); err != nil {
 		return nil, err
 	}
 
 	// Generate imports
 	config := provider.ProviderConfig{
-		CloudAccessPolicyToken: types.StringValue(cfg.cloudAccessPolicyToken),
+		CloudAccessPolicyToken: types.StringValue(cfg.Cloud.AccessPolicyToken),
 	}
 	if err := config.SetDefaults(); err != nil {
 		return nil, err
@@ -55,9 +55,9 @@ func generateCloudResources(ctx context.Context, cfg *config) ([]stack, error) {
 	}
 
 	// Cleanup SAs
-	managementServiceAccountName := cfg.cloudStackServiceAccountName
+	managementServiceAccountName := cfg.Cloud.StackServiceAccountName
 
-	if cfg.cloudCreateStackServiceAccount {
+	if cfg.Cloud.CreateStackServiceAccount {
 		for _, stack := range stacks.Items {
 			if err := createManagementStackServiceAccount(ctx, cloudClient, stack, managementServiceAccountName); err != nil {
 				return nil, err
@@ -65,20 +65,20 @@ func generateCloudResources(ctx context.Context, cfg *config) ([]stack, error) {
 		}
 	}
 
-	data := cloud.NewListerData(cfg.cloudOrg)
-	if err := generateImportBlocks(ctx, client, data, cloud.Resources, cfg.outputDir, "cloud"); err != nil {
+	data := cloud.NewListerData(cfg.Cloud.Org)
+	if err := generateImportBlocks(ctx, client, data, cloud.Resources, cfg.OutputDir, "cloud"); err != nil {
 		return nil, err
 	}
 
 	log.Println("Post-processing for cloud")
-	if err := stripDefaults(filepath.Join(cfg.outputDir, "cloud-resources.tf"), map[string]string{}); err != nil {
+	if err := stripDefaults(filepath.Join(cfg.OutputDir, "cloud-resources.tf"), map[string]string{}); err != nil {
 		return nil, err
 	}
-	if err := wrapJSONFieldsInFunction(filepath.Join(cfg.outputDir, "cloud-resources.tf")); err != nil {
+	if err := wrapJSONFieldsInFunction(filepath.Join(cfg.OutputDir, "cloud-resources.tf")); err != nil {
 		return nil, err
 	}
 
-	if !cfg.cloudCreateStackServiceAccount {
+	if !cfg.Cloud.CreateStackServiceAccount {
 		return nil, nil
 	}
 
@@ -135,12 +135,12 @@ func generateCloudResources(ctx context.Context, cfg *config) ([]stack, error) {
 		providerBlock.Body().SetAttributeTraversal("sm_access_token", traversal("grafana_synthetic_monitoring_installation", stack.Slug, "sm_access_token"))
 		providerBlock.Body().SetAttributeTraversal("sm_url", traversal("grafana_synthetic_monitoring_installation", stack.Slug, "stack_sm_api_url"))
 
-		if err := writeBlocks(filepath.Join(cfg.outputDir, fmt.Sprintf("stack-%s-provider.tf", stack.Slug)), saBlock, saTokenBlock, smInstallationMetricsPublishBlock, smInstallationTokenBlock, smInstallationBlock, providerBlock); err != nil {
+		if err := writeBlocks(filepath.Join(cfg.OutputDir, fmt.Sprintf("stack-%s-provider.tf", stack.Slug)), saBlock, saTokenBlock, smInstallationMetricsPublishBlock, smInstallationTokenBlock, smInstallationBlock, providerBlock); err != nil {
 			return nil, fmt.Errorf("failed to write management service account blocks for stack %q: %w", stack.Slug, err)
 		}
 
 		// Apply then go into the state and find the management key
-		err := runTerraform(cfg.outputDir, "apply", "-auto-approve",
+		err := runTerraform(cfg.OutputDir, "apply", "-auto-approve",
 			"-target=grafana_cloud_stack_service_account."+stack.Slug,
 			"-target=grafana_cloud_stack_service_account_token."+stack.Slug,
 			"-target=grafana_cloud_access_policy."+policyResourceName,
@@ -153,7 +153,7 @@ func generateCloudResources(ctx context.Context, cfg *config) ([]stack, error) {
 	}
 
 	managedStacks := []stack{}
-	state, err := getState(cfg.outputDir)
+	state, err := getState(cfg.OutputDir)
 	if err != nil {
 		return nil, err
 	}
