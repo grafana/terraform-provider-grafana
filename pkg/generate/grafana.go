@@ -61,9 +61,14 @@ func generateGrafanaResources(ctx context.Context, auth, url, stackName string, 
 	}
 
 	log.Printf("Post-processing for %s\n", stackName)
-	if err := stripDefaults(filepath.Join(outPath, stackName+"-resources.tf"), map[string]string{
-		"org_id": " \"1\"",
-	}); err != nil {
+	stripDefaultsExtraFields := map[string]any{}
+	if singleOrg {
+		stripDefaultsExtraFields["org_id"] = true // Always remove org_id if single org
+	} else {
+		stripDefaultsExtraFields["org_id"] = `"1"` // Remove org_id if it's the default
+	}
+
+	if err := stripDefaults(filepath.Join(outPath, stackName+"-resources.tf"), stripDefaultsExtraFields); err != nil {
 		return err
 	}
 	if err := abstractDashboards(filepath.Join(outPath, stackName+"-resources.tf")); err != nil {

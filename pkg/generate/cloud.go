@@ -71,7 +71,7 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
 	}
 
 	log.Println("Post-processing for cloud")
-	if err := stripDefaults(filepath.Join(cfg.OutputDir, "cloud-resources.tf"), map[string]string{}); err != nil {
+	if err := stripDefaults(filepath.Join(cfg.OutputDir, "cloud-resources.tf"), nil); err != nil {
 		return nil, err
 	}
 	if err := wrapJSONFieldsInFunction(filepath.Join(cfg.OutputDir, "cloud-resources.tf")); err != nil {
