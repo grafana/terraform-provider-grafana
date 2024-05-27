@@ -16,7 +16,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func stripDefaults(fpath string, extraFieldsToRemove map[string]string) error {
+func stripDefaults(fpath string, extraFieldsToRemove map[string]any) error {
 	file, err := readHCLFile(fpath)
 	if err != nil {
 		return err
@@ -183,7 +183,7 @@ func readHCLFile(fpath string) (*hclwrite.File, error) {
 	return file, nil
 }
 
-func stripDefaultsFromBlock(block *hclwrite.Block, extraFieldsToRemove map[string]string) bool {
+func stripDefaultsFromBlock(block *hclwrite.Block, extraFieldsToRemove map[string]any) bool {
 	hasChanges := false
 	for _, innblock := range block.Body().Blocks() {
 		if s := stripDefaultsFromBlock(innblock, extraFieldsToRemove); s {
@@ -211,10 +211,24 @@ func stripDefaultsFromBlock(block *hclwrite.Block, extraFieldsToRemove map[strin
 				hasChanges = true
 			}
 		}
-		for key, value := range extraFieldsToRemove {
-			if name == key && string(attribute.Expr().BuildTokens(nil).Bytes()) == value {
-				if rm := block.Body().RemoveAttribute(name); rm != nil {
-					hasChanges = true
+		for key, valueToRemove := range extraFieldsToRemove {
+			if name == key {
+				toRemove := false
+				fieldValue := strings.TrimSpace(string(attribute.Expr().BuildTokens(nil).Bytes()))
+				fieldValue, err := extractJSONEncode(fieldValue)
+				if err != nil {
+					continue
+				}
+
+				if v, ok := valueToRemove.(bool); ok && v {
+					toRemove = true
+				} else if v, ok := valueToRemove.(string); ok && v == fieldValue {
+					toRemove = true
+				}
+				if toRemove {
+					if rm := block.Body().RemoveAttribute(name); rm != nil {
+						hasChanges = true
+					}
 				}
 			}
 		}
@@ -267,4 +281,15 @@ func HCL2ValueFromConfigValue(v interface{}) cty.Value {
 		// the above, so if we get here something has gone very wrong.
 		panic(fmt.Errorf("can't convert %#v to cty.Value", v))
 	}
+}
+
+func extractJSONEncode(value string) (string, error) {
+	if !strings.HasPrefix(value, "jsonencode(") {
+		return "", nil
+	}
+	value = strings.TrimPrefix(value, "jsonencode(")
+	value = strings.TrimSuffix(value, ")")
+
+	b, err := json.MarshalIndent(value, "", "  ")
+	return string(b), err
 }
