@@ -7,7 +7,7 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
-	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 )
 
 func TestAccMuteTiming_basic(t *testing.T) {

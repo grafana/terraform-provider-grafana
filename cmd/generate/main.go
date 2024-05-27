@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/grafana/terraform-provider-grafana/v2/pkg/generate"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate"
 
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
