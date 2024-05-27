@@ -85,6 +85,11 @@ func generateGrafanaResources(ctx context.Context, cfg *Config, stack stack, gen
 	if err := wrapJSONFieldsInFunction(generatedFilename("resources.tf")); err != nil {
 		return err
 	}
+	if err := replaceReferences(generatedFilename("resources.tf"), []string{
+		"*.org_id=grafana_organization.id",
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }

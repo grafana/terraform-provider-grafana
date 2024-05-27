@@ -4,7 +4,7 @@
       "_1_my-dashboard-uid": [
         {
           "config_json": "${jsonencode({\n    title = \"My Dashboard\"\n    uid   = \"my-dashboard-uid\"\n  })}",
-          "folder": "my-folder-uid"
+          "folder": "${grafana_folder._1_my-folder-uid.uid}"
         }
       ]
     },

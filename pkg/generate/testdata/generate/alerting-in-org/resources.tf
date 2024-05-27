@@ -65,7 +65,7 @@ resource "grafana_organization_preferences" "_2" {
 # __generated__ by Terraform from "2:alert-rule-folder:My Rule Group"
 resource "grafana_rule_group" "_2_alert-rule-folder_My_Rule_Group" {
   disable_provenance = false
-  folder_uid         = "alert-rule-folder"
+  folder_uid         = grafana_folder._2_alert-rule-folder.uid
   interval_seconds   = 240
   name               = "My Rule Group"
   org_id             = jsonencode(2)

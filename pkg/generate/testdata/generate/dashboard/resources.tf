@@ -7,7 +7,7 @@ resource "grafana_dashboard" "_1_my-dashboard-uid" {
     title = "My Dashboard"
     uid   = "my-dashboard-uid"
   })
-  folder = "my-folder-uid"
+  folder = grafana_folder._1_my-folder-uid.uid
 }
 
 # __generated__ by Terraform from "1:my-folder-uid"

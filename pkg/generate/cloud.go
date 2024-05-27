@@ -79,6 +79,9 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
 	if err := wrapJSONFieldsInFunction(filepath.Join(cfg.OutputDir, "cloud-resources.tf")); err != nil {
 		return nil, err
 	}
+	if err := replaceReferences(filepath.Join(cfg.OutputDir, "cloud-resources.tf"), nil); err != nil {
+		return nil, err
+	}
 
 	if !cfg.Cloud.CreateStackServiceAccount {
 		return nil, nil
