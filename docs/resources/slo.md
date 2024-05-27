@@ -20,6 +20,12 @@ Resource manages Grafana SLOs.
 ### Basic
 
 ```terraform
+resource "grafana_data_source" "prometheus" {
+  name = "Terraform Testing"
+  type = "prometheus"
+  url  = "http://localhost:9090"
+}
+
 resource "grafana_slo" "test" {
   name        = "Terraform Testing"
   description = "Terraform Description"
@@ -34,7 +40,7 @@ resource "grafana_slo" "test" {
     window = "30d"
   }
   destination_datasource {
-    uid = "grafanacloud-prom"
+    uid = grafana_data_source.prometheus.uid
   }
   label {
     key   = "slo"
@@ -69,6 +75,12 @@ resource "grafana_slo" "test" {
 ### Advanced
 
 ```terraform
+resource "grafana_data_source" "prometheus" {
+  name = "Terraform Testing"
+  type = "prometheus"
+  url  = "http://localhost:9090"
+}
+
 resource "grafana_slo" "test" {
   name        = "Complex Resource - Terraform Ratio Query Example"
   description = "Complex Resource - Terraform Ratio Query Description"
@@ -85,7 +97,7 @@ resource "grafana_slo" "test" {
     window = "30d"
   }
   destination_datasource {
-    uid = "grafanacloud-prom"
+    uid = grafana_data_source.prometheus.uid
   }
   label {
     key   = "slo"

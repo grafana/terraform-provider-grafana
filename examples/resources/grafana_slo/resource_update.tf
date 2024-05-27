@@ -2,6 +2,13 @@ resource "grafana_folder" "folder" {
   title = "Terraform Testing"
 }
 
+resource "grafana_data_source" "prometheus" {
+  name = "Terraform Testing"
+  type = "prometheus"
+  url  = "http://localhost:9090"
+}
+
+
 resource "grafana_slo" "test" {
   name        = "Updated - Terraform Testing"
   description = "Updated - Terraform Description"
@@ -17,7 +24,7 @@ resource "grafana_slo" "test" {
     window = "7d"
   }
   destination_datasource {
-    uid = "grafanacloud-prom"
+    uid = grafana_data_source.prometheus.uid
   }
   label {
     key   = "slo"

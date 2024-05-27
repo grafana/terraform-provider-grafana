@@ -1,3 +1,9 @@
+resource "grafana_data_source" "prometheus" {
+  name = "Terraform Testing"
+  type = "prometheus"
+  url  = "http://localhost:9090"
+}
+
 resource "grafana_slo" "ratio" {
   name        = "Terraform Testing - Ratio Query"
   description = "Terraform Description - Ratio Query"
@@ -14,7 +20,7 @@ resource "grafana_slo" "ratio" {
     window = "30d"
   }
   destination_datasource {
-    uid = "grafanacloud-prom"
+    uid = grafana_data_source.prometheus.uid
   }
   label {
     key   = "slo"
