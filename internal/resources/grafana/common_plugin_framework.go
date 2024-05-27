@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	frameworkSchema "github.com/hashicorp/terraform-plugin-framework/resource/schema"

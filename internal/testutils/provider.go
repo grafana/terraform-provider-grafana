@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/grafana/terraform-provider-grafana/v2/pkg/provider"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
