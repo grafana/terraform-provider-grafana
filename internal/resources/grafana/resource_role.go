@@ -108,6 +108,7 @@ func resourceRole() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaEnterprise,
 		"grafana_role",
 		orgResourceIDString("uid"),
 		schema,

@@ -112,6 +112,7 @@ Grafana Synthetic Monitoring Agent.
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategorySyntheticMonitoring,
 		"grafana_synthetic_monitoring_probe",
 		resourceProbeID,
 		schema,

@@ -129,6 +129,7 @@ This resource requires Grafana 9.1.0 or later.
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryAlerting,
 		"grafana_mute_timing",
 		orgResourceIDString("name"),
 		schema,

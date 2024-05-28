@@ -30,7 +30,7 @@ func dataSourceProbes() *common.DataSource {
 			},
 		},
 	}
-	return common.NewLegacySDKDataSource("grafana_synthetic_monitoring_probes", schema)
+	return common.NewLegacySDKDataSource(common.CategorySyntheticMonitoring, "grafana_synthetic_monitoring_probes", schema)
 }
 
 func dataSourceProbesRead(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {

@@ -41,6 +41,7 @@ Manages the entire set of permissions for a folder. Permissions that aren't spec
 	crudHelper.addCommonSchemaAttributes(schema.Schema)
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_folder_permission",
 		orgResourceIDString("folderUID"),
 		schema,

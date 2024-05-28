@@ -39,6 +39,7 @@ Manages the entire set of permissions for a datasource. Permissions that aren't 
 	crudHelper.addCommonSchemaAttributes(schema.Schema)
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaEnterprise,
 		"grafana_data_source_permission",
 		orgResourceIDInt("datasourceID"),
 		schema,

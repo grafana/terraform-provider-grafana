@@ -27,7 +27,7 @@ func datasourceRole() *common.DataSource {
 			"auto_increment_version": nil,
 		}),
 	}
-	return common.NewLegacySDKDataSource("grafana_role", schema)
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaEnterprise, "grafana_role", schema)
 }
 
 func dataSourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

@@ -95,6 +95,7 @@ Manages Grafana dashboards.
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_dashboard",
 		orgResourceIDString("uid"),
 		schema,

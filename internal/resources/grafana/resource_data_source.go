@@ -110,6 +110,7 @@ source selected (via the 'type' argument).
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_data_source",
 		orgResourceIDString("uid"),
 		schema,

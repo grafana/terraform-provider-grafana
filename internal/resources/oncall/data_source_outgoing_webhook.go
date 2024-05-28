@@ -24,7 +24,7 @@ func dataSourceOutgoingWebhook() *common.DataSource {
 			},
 		},
 	}
-	return common.NewLegacySDKDataSource("grafana_oncall_outgoing_webhook", schema)
+	return common.NewLegacySDKDataSource(common.CategoryOnCall, "grafana_oncall_outgoing_webhook", schema)
 }
 
 func dataSourceOutgoingWebhookRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {

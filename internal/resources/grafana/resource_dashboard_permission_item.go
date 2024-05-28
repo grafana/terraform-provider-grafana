@@ -26,7 +26,12 @@ func makeResourceDashboardPermissionItem() *common.Resource {
 			resourceType: dashboardsPermissionsType,
 		},
 	}
-	return common.NewResource(resourceDashboardPermissionItemName, resourceDashboardPermissionItemID, resourceStruct)
+	return common.NewResource(
+		common.CategoryGrafanaOSS,
+		resourceDashboardPermissionItemName,
+		resourceDashboardPermissionItemID,
+		resourceStruct,
+	)
 }
 
 type resourceDashboardPermissionItemModel struct {

@@ -63,7 +63,7 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 			},
 		},
 	}
-	return common.NewLegacySDKDataSource("grafana_dashboards", schema)
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_dashboards", schema)
 }
 
 func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

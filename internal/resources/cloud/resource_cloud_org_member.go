@@ -26,7 +26,12 @@ var (
 )
 
 func resourceOrgMember() *common.Resource {
-	return common.NewResource(resourceOrgMemberName, resourceOrgMemberID, &orgMemberResource{})
+	return common.NewResource(
+		common.CategoryCloud,
+		resourceOrgMemberName,
+		resourceOrgMemberID,
+		&orgMemberResource{},
+	)
 }
 
 type resourceOrgMemberModel struct {

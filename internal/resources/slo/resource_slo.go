@@ -227,7 +227,12 @@ Resource manages Grafana SLOs.
 		},
 	}
 
-	return common.NewLegacySDKResource("grafana_slo", resourceSloID, schema).WithLister(listSlos)
+	return common.NewLegacySDKResource(
+		common.CategorySLO,
+		"grafana_slo",
+		resourceSloID,
+		schema,
+	).WithLister(listSlos)
 }
 
 var keyvalueSchema = &schema.Resource{

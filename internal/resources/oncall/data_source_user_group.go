@@ -26,7 +26,7 @@ func dataSourceUserGroup() *common.DataSource {
 			},
 		},
 	}
-	return common.NewLegacySDKDataSource("grafana_oncall_user_group", schema)
+	return common.NewLegacySDKDataSource(common.CategoryOnCall, "grafana_oncall_user_group", schema)
 }
 
 func dataSourceUserGroupRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {

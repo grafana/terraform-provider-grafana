@@ -71,6 +71,7 @@ You must use basic auth.
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_user",
 		resourceUserID,
 		schema,

@@ -46,6 +46,7 @@ Manages the entire set of permissions for a service account. Permissions that ar
 	crudHelper.addCommonSchemaAttributes(schema.Schema)
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_service_account_permission",
 		orgResourceIDInt("serviceAccountID"),
 		schema,

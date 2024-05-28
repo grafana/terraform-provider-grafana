@@ -63,6 +63,7 @@ func resourceServiceAccountToken() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_service_account_token",
 		nil,
 		schema,

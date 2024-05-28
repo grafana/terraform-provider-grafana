@@ -20,7 +20,7 @@ func datasourceOrganizationPreferences() *common.DataSource {
 			"org_id": orgIDAttribute(),
 		}),
 	}
-	return common.NewLegacySDKDataSource("grafana_organization_preferences", schema)
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_organization_preferences", schema)
 }
 
 func dataSourceOrganizationPreferencesRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

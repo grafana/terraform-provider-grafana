@@ -32,7 +32,7 @@ func datasourceTeam() *common.DataSource {
 			"ignore_externally_synced_members": nil,
 		}),
 	}
-	return common.NewLegacySDKDataSource("grafana_team", schema)
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_team", schema)
 }
 
 func dataSourceTeamRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

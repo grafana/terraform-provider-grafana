@@ -11,7 +11,8 @@ import (
 )
 
 //go:generate go run ./tools/genimports examples
-//go:generate ./tools/generate-docs.sh
+//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+//go:generate go run ./tools/setcategories docs
 
 var (
 	// these will be set by the goreleaser configuration

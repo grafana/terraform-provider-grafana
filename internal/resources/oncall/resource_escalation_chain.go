@@ -39,6 +39,7 @@ func resourceEscalationChain() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryOnCall,
 		"grafana_oncall_escalation_chain",
 		resourceID,
 		schema,

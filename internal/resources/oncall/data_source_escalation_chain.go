@@ -23,7 +23,7 @@ func dataSourceEscalationChain() *common.DataSource {
 			},
 		},
 	}
-	return common.NewLegacySDKDataSource("grafana_oncall_escalation_chain", schema)
+	return common.NewLegacySDKDataSource(common.CategoryOnCall, "grafana_oncall_escalation_chain", schema)
 }
 
 func dataSourceEscalationChainRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {

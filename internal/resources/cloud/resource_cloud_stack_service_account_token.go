@@ -75,6 +75,7 @@ Required access policy scopes:
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryCloud,
 		"grafana_cloud_stack_service_account_token",
 		nil,
 		schema,
