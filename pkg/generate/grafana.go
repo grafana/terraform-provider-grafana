@@ -2,7 +2,6 @@ package generate
 
 import (
 	"context"
-	"log"
 	"path/filepath"
 	"strings"
 
@@ -17,12 +16,22 @@ import (
 )
 
 func generateGrafanaResources(ctx context.Context, auth, url, stackName string, genProvider bool, outPath, smURL, smToken string) error {
+	generatedFilename := func(suffix string) string {
+		if stackName == "" {
+			return filepath.Join(outPath, suffix)
+		}
+
+		return filepath.Join(outPath, stackName+"-"+suffix)
+	}
+
 	if genProvider {
 		providerBlock := hclwrite.NewBlock("provider", []string{"grafana"})
-		providerBlock.Body().SetAttributeValue("alias", cty.StringVal(stackName))
 		providerBlock.Body().SetAttributeValue("url", cty.StringVal(url))
 		providerBlock.Body().SetAttributeValue("auth", cty.StringVal(auth))
-		if err := writeBlocks(filepath.Join(outPath, stackName+"-provider.tf"), providerBlock); err != nil {
+		if stackName != "" {
+			providerBlock.Body().SetAttributeValue("alias", cty.StringVal(stackName))
+		}
+		if err := writeBlocks(generatedFilename("provider.tf"), providerBlock); err != nil {
 			return err
 		}
 	}
@@ -60,7 +69,6 @@ func generateGrafanaResources(ctx context.Context, auth, url, stackName string, 
 		return err
 	}
 
-	log.Printf("Post-processing for %s\n", stackName)
 	stripDefaultsExtraFields := map[string]any{}
 	if singleOrg {
 		stripDefaultsExtraFields["org_id"] = true // Always remove org_id if single org
@@ -68,13 +76,13 @@ func generateGrafanaResources(ctx context.Context, auth, url, stackName string, 
 		stripDefaultsExtraFields["org_id"] = `"1"` // Remove org_id if it's the default
 	}
 
-	if err := stripDefaults(filepath.Join(outPath, stackName+"-resources.tf"), stripDefaultsExtraFields); err != nil {
+	if err := stripDefaults(generatedFilename("resources.tf"), stripDefaultsExtraFields); err != nil {
 		return err
 	}
-	if err := abstractDashboards(filepath.Join(outPath, stackName+"-resources.tf")); err != nil {
+	if err := abstractDashboards(generatedFilename("resources.tf")); err != nil {
 		return err
 	}
-	if err := wrapJSONFieldsInFunction(filepath.Join(outPath, stackName+"-resources.tf")); err != nil {
+	if err := wrapJSONFieldsInFunction(generatedFilename("resources.tf")); err != nil {
 		return err
 	}
 

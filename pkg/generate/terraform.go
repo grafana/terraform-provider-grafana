@@ -30,8 +30,16 @@ func runTerraform(dir string, command ...string) error {
 
 func writeBlocks(filepath string, blocks ...*hclwrite.Block) error {
 	contents := hclwrite.NewFile()
-	for i, b := range blocks {
-		if i > 0 {
+	if fileBytes, err := os.ReadFile(filepath); err == nil {
+		var diags hcl.Diagnostics
+		contents, diags = hclwrite.ParseConfig(fileBytes, filepath, hcl.InitialPos)
+		if diags.HasErrors() {
+			return errors.Join(diags.Errs()...)
+		}
+	}
+
+	for _, b := range blocks {
+		if len(contents.Body().Blocks()) > 0 {
 			contents.Body().AppendNewline()
 		}
 		contents.Body().AppendBlock(b)
