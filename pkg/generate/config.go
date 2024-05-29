@@ -1,5 +1,7 @@
 package generate
 
+import "github.com/hashicorp/terraform-exec/tfexec"
+
 type OutputFormat string
 
 const (
@@ -35,4 +37,5 @@ type Config struct {
 	ProviderVersion string
 	Grafana         *GrafanaConfig
 	Cloud           *CloudConfig
+	Terraform       *tfexec.Terraform
 }

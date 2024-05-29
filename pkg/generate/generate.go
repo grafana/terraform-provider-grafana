@@ -14,6 +14,7 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -48,10 +49,12 @@ func Generate(ctx context.Context, cfg *Config) error {
 		log.Fatal(err)
 	}
 
+	tf, err := setupTerraform(cfg)
 	// Terraform init to download the provider
-	if err := runTerraform(cfg.OutputDir, "init"); err != nil {
+	if err != nil {
 		return fmt.Errorf("failed to run terraform init: %w", err)
 	}
+	cfg.Terraform = tf
 
 	if cfg.Cloud != nil {
 		stacks, err := generateCloudResources(ctx, cfg)
@@ -60,14 +63,21 @@ func Generate(ctx context.Context, cfg *Config) error {
 		}
 
 		for _, stack := range stacks {
-			if err := generateGrafanaResources(ctx, stack.managementKey, stack.url, "stack-"+stack.slug, false, cfg.OutputDir, stack.smURL, stack.smToken, cfg.IncludeResources); err != nil {
+			stack.name = "stack-" + stack.slug
+			if err := generateGrafanaResources(ctx, cfg, stack, false); err != nil {
 				return err
 			}
 		}
 	}
 
 	if cfg.Grafana != nil {
-		if err := generateGrafanaResources(ctx, cfg.Grafana.Auth, cfg.Grafana.URL, "", true, cfg.OutputDir, "", "", cfg.IncludeResources); err != nil {
+		stack := stack{
+			managementKey: cfg.Grafana.Auth,
+			url:           cfg.Grafana.URL,
+			smToken:       "",
+			smURL:         "",
+		}
+		if err := generateGrafanaResources(ctx, cfg, stack, true); err != nil {
 			return err
 		}
 	}
@@ -82,16 +92,16 @@ func Generate(ctx context.Context, cfg *Config) error {
 	return nil
 }
 
-func generateImportBlocks(ctx context.Context, client *common.Client, listerData any, resources []*common.Resource, outPath, provider string, includedResources []string) error {
+func generateImportBlocks(ctx context.Context, client *common.Client, listerData any, resources []*common.Resource, cfg *Config, provider string) error {
 	generatedFilename := func(suffix string) string {
 		if provider == "" {
-			return filepath.Join(outPath, suffix)
+			return filepath.Join(cfg.OutputDir, suffix)
 		}
 
-		return filepath.Join(outPath, provider+"-"+suffix)
+		return filepath.Join(cfg.OutputDir, provider+"-"+suffix)
 	}
 
-	resources, err := filterResources(resources, includedResources)
+	resources, err := filterResources(resources, cfg.IncludeResources)
 	if err != nil {
 		return err
 	}
@@ -141,7 +151,7 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 					cleanedID = strings.ReplaceAll(provider, "-", "_") + "_" + cleanedID
 				}
 
-				matched, err := filterResourceByName(resource.Name, cleanedID, includedResources)
+				matched, err := filterResourceByName(resource.Name, cleanedID, cfg.IncludeResources)
 				if err != nil {
 					wg.Done()
 					results <- result{
@@ -198,7 +208,8 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 		return err
 	}
 
-	if err := runTerraform(outPath, "plan", "-generate-config-out="+generatedFilename("resources.tf")); err != nil {
+	_, err = cfg.Terraform.Plan(ctx, tfexec.GenerateConfigOut(generatedFilename("resources.tf")))
+	if err != nil {
 		return fmt.Errorf("failed to generate resources: %w", err)
 	}
 

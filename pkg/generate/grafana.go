@@ -15,41 +15,40 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// TODO: Refactor this sig
-func generateGrafanaResources(ctx context.Context, auth, url, stackName string, genProvider bool, outPath, smURL, smToken string, includedResources []string) error {
+func generateGrafanaResources(ctx context.Context, cfg *Config, stack stack, genProvider bool) error {
 	generatedFilename := func(suffix string) string {
-		if stackName == "" {
-			return filepath.Join(outPath, suffix)
+		if stack.name == "" {
+			return filepath.Join(cfg.OutputDir, suffix)
 		}
 
-		return filepath.Join(outPath, stackName+"-"+suffix)
+		return filepath.Join(cfg.OutputDir, stack.name+"-"+suffix)
 	}
 
 	if genProvider {
 		providerBlock := hclwrite.NewBlock("provider", []string{"grafana"})
-		providerBlock.Body().SetAttributeValue("url", cty.StringVal(url))
-		providerBlock.Body().SetAttributeValue("auth", cty.StringVal(auth))
-		if stackName != "" {
-			providerBlock.Body().SetAttributeValue("alias", cty.StringVal(stackName))
+		providerBlock.Body().SetAttributeValue("url", cty.StringVal(stack.url))
+		providerBlock.Body().SetAttributeValue("auth", cty.StringVal(stack.managementKey))
+		if stack.name != "" {
+			providerBlock.Body().SetAttributeValue("alias", cty.StringVal(stack.name))
 		}
 		if err := writeBlocks(generatedFilename("provider.tf"), providerBlock); err != nil {
 			return err
 		}
 	}
 
-	singleOrg := !strings.Contains(auth, ":")
+	singleOrg := !strings.Contains(stack.managementKey, ":")
 	listerData := grafana.NewListerData(singleOrg)
 
 	// Generate resources
 	config := provider.ProviderConfig{
-		URL:  types.StringValue(url),
-		Auth: types.StringValue(auth),
+		URL:  types.StringValue(stack.url),
+		Auth: types.StringValue(stack.managementKey),
 	}
-	if smToken != "" {
-		config.SMAccessToken = types.StringValue(smToken)
+	if stack.smToken != "" {
+		config.SMAccessToken = types.StringValue(stack.smToken)
 	}
-	if smURL != "" {
-		config.SMURL = types.StringValue(smURL)
+	if stack.smURL != "" {
+		config.SMURL = types.StringValue(stack.smURL)
 	}
 	if err := config.SetDefaults(); err != nil {
 		return err
@@ -61,12 +60,12 @@ func generateGrafanaResources(ctx context.Context, auth, url, stackName string, 
 	}
 
 	resources := grafana.Resources
-	if strings.HasPrefix(stackName, "stack-") { // TODO: is cloud. Find a better way to detect this
+	if strings.HasPrefix(stack.name, "stack-") { // TODO: is cloud. Find a better way to detect this
 		resources = append(resources, slo.Resources...)
 		resources = append(resources, machinelearning.Resources...)
 		resources = append(resources, syntheticmonitoring.Resources...)
 	}
-	if err := generateImportBlocks(ctx, client, listerData, resources, outPath, stackName, includedResources); err != nil {
+	if err := generateImportBlocks(ctx, client, listerData, resources, cfg, stack.name); err != nil {
 		return err
 	}
 
