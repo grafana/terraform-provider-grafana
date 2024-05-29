@@ -12,3 +12,8 @@ import {
   to = grafana_notification_policy._1_policy
   id = "1:policy"
 }
+
+import {
+  to = grafana_organization_preferences._1
+  id = "1"
+}

@@ -11,6 +11,7 @@ import (
 	_ "time/tzdata"
 
 	"github.com/go-openapi/strfmt"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -247,7 +248,33 @@ func resourceReport() *common.Resource {
 		"grafana_report",
 		orgResourceIDInt("id"),
 		schema,
-	)
+	).WithLister(listerFunction(listReports))
+}
+
+func listReports(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
+	orgIDs, err := data.OrgIDs(client)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for _, orgID := range orgIDs {
+		client = client.Clone().WithOrgID(orgID)
+
+		resp, err := client.Reports.GetReports()
+		if common.IsNotFoundError(err) {
+			return nil, nil // Reports are not available in the current Grafana version (Probably OSS)
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		for _, report := range resp.Payload {
+			ids = append(ids, MakeOrgResourceID(orgID, report.ID))
+		}
+	}
+
+	return ids, nil
 }
 
 func CreateReport(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
