@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/annotations"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
@@ -82,7 +83,30 @@ func resourceAnnotation() *common.Resource {
 		"grafana_annotation",
 		orgResourceIDInt("id"),
 		schema,
-	)
+	).WithLister(listerFunction(listAnnotations))
+}
+
+func listAnnotations(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
+	orgIDs, err := data.OrgIDs(client)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for _, orgID := range orgIDs {
+		client = client.Clone().WithOrgID(orgID)
+
+		resp, err := client.Annotations.GetAnnotations(annotations.NewGetAnnotationsParams())
+		if err != nil {
+			return nil, err
+		}
+
+		for _, annotation := range resp.Payload {
+			ids = append(ids, MakeOrgResourceID(orgID, annotation.ID))
+		}
+	}
+
+	return ids, nil
 }
 
 func CreateAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

@@ -22,3 +22,7 @@ resource "grafana_notification_policy" "_1_policy" {
   disable_provenance = true
   group_by           = ["grafana_folder", "alertname"]
 }
+
+# __generated__ by Terraform from "1"
+resource "grafana_organization_preferences" "_1" {
+}
