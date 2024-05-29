@@ -57,6 +57,17 @@ func run() error {
 				EnvVars: []string{"TFGEN_TERRAFORM_PROVIDER_VERSION"},
 				Value:   version,
 			},
+			&cli.StringSliceFlag{
+				Name: "include-resources",
+				Usage: `List of resources to include in the "resourceType.resourceName" format. If not set, all resources will be included
+This supports a glob format. Examples:
+  * Generate all dashboards and folders: --resource-names 'grafana_dashboard.*' --resource-names 'grafana_folder.*'
+  * Generate all resources with "hello" in their ID (this is usually the resource UIDs): --resource-names '*.*hello*'
+  * Generate all resources (same as default behaviour): --resource-names '*.*'
+`,
+				EnvVars:  []string{"TFGEN_INCLUDE_RESOURCES"},
+				Required: false,
+			},
 
 			// Grafana OSS flags
 			&cli.StringFlag{
@@ -130,6 +141,7 @@ func parseFlags(ctx *cli.Context) (*generate.Config, error) {
 			CreateStackServiceAccount: ctx.Bool("cloud-create-stack-service-account"),
 			StackServiceAccountName:   ctx.String("cloud-stack-service-account-name"),
 		},
+		IncludeResources: ctx.StringSlice("include-resources"),
 	}
 
 	if config.ProviderVersion == "" {

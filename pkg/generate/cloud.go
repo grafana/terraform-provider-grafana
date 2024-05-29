@@ -66,7 +66,7 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
 	}
 
 	data := cloud.NewListerData(cfg.Cloud.Org)
-	if err := generateImportBlocks(ctx, client, data, cloud.Resources, cfg.OutputDir, "cloud"); err != nil {
+	if err := generateImportBlocks(ctx, client, data, cloud.Resources, cfg.OutputDir, "cloud", cfg.IncludeResources); err != nil {
 		return nil, err
 	}
 

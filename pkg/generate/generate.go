@@ -28,7 +28,7 @@ func Generate(ctx context.Context, cfg *Config) error {
 			return fmt.Errorf("failed to delete %s: %s", cfg.OutputDir, err)
 		}
 	} else if err == nil && !cfg.Clobber {
-		return fmt.Errorf("output dir %q already exists. Use --clobber to delete it", cfg.OutputDir)
+		return fmt.Errorf("output dir %q already exists. Use the clobber option to delete it", cfg.OutputDir)
 	}
 
 	log.Printf("Generating resources to %s", cfg.OutputDir)
@@ -60,14 +60,14 @@ func Generate(ctx context.Context, cfg *Config) error {
 		}
 
 		for _, stack := range stacks {
-			if err := generateGrafanaResources(ctx, stack.managementKey, stack.url, "stack-"+stack.slug, false, cfg.OutputDir, stack.smURL, stack.smToken); err != nil {
+			if err := generateGrafanaResources(ctx, stack.managementKey, stack.url, "stack-"+stack.slug, false, cfg.OutputDir, stack.smURL, stack.smToken, cfg.IncludeResources); err != nil {
 				return err
 			}
 		}
 	}
 
 	if cfg.Grafana != nil {
-		if err := generateGrafanaResources(ctx, cfg.Grafana.Auth, cfg.Grafana.URL, "", true, cfg.OutputDir, "", ""); err != nil {
+		if err := generateGrafanaResources(ctx, cfg.Grafana.Auth, cfg.Grafana.URL, "", true, cfg.OutputDir, "", "", cfg.IncludeResources); err != nil {
 			return err
 		}
 	}
@@ -82,13 +82,18 @@ func Generate(ctx context.Context, cfg *Config) error {
 	return nil
 }
 
-func generateImportBlocks(ctx context.Context, client *common.Client, listerData any, resources []*common.Resource, outPath, provider string) error {
+func generateImportBlocks(ctx context.Context, client *common.Client, listerData any, resources []*common.Resource, outPath, provider string, includedResources []string) error {
 	generatedFilename := func(suffix string) string {
 		if provider == "" {
 			return filepath.Join(outPath, suffix)
 		}
 
 		return filepath.Join(outPath, provider+"-"+suffix)
+	}
+
+	resources, err := filterResources(resources, includedResources)
+	if err != nil {
+		return err
 	}
 
 	// Generate HCL blocks in parallel with a wait group
@@ -129,11 +134,24 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 			//   to = aws_iot_thing.bar
 			//   id = "foo"
 			// }
-			blocks := make([]*hclwrite.Block, len(ids))
-			for i, id := range ids {
+			var blocks []*hclwrite.Block
+			for _, id := range ids {
 				cleanedID := allowedTerraformChars.ReplaceAllString(id, "_")
 				if provider != "cloud" {
 					cleanedID = strings.ReplaceAll(provider, "-", "_") + "_" + cleanedID
+				}
+
+				matched, err := filterResourceByName(resource.Name, cleanedID, includedResources)
+				if err != nil {
+					wg.Done()
+					results <- result{
+						resource: resource,
+						err:      err,
+					}
+					return
+				}
+				if !matched {
+					continue
 				}
 
 				b := hclwrite.NewBlock("import", nil)
@@ -143,8 +161,7 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 					b.Body().SetAttributeTraversal("provider", traversal("grafana", provider))
 				}
 
-				blocks[i] = b
-				// TODO: Match and update existing import blocks
+				blocks = append(blocks, b)
 			}
 
 			wg.Done()
@@ -186,4 +203,50 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 	}
 
 	return sortResourcesFile(generatedFilename("resources.tf"))
+}
+
+func filterResources(resources []*common.Resource, includedResources []string) ([]*common.Resource, error) {
+	if len(includedResources) == 0 {
+		return resources, nil
+	}
+
+	filteredResources := []*common.Resource{}
+	allowedResourceTypes := []string{}
+	for _, included := range includedResources {
+		if !strings.Contains(included, ".") {
+			return nil, fmt.Errorf("included resource %q is not in the format <type>.<name>", included)
+		}
+		allowedResourceTypes = append(allowedResourceTypes, strings.Split(included, ".")[0])
+	}
+
+	for _, resource := range resources {
+		for _, allowedResourceType := range allowedResourceTypes {
+			matched, err := filepath.Match(allowedResourceType, resource.Name)
+			if err != nil {
+				return nil, err
+			}
+			if matched {
+				filteredResources = append(filteredResources, resource)
+				break
+			}
+		}
+	}
+	return filteredResources, nil
+}
+
+func filterResourceByName(resourceType, resourceName string, includedResources []string) (bool, error) {
+	if len(includedResources) == 0 {
+		return true, nil
+	}
+
+	for _, included := range includedResources {
+		matched, err := filepath.Match(included, resourceType+"."+resourceName)
+		if err != nil {
+			return false, err
+		}
+		if matched {
+			return true, nil
+		}
+	}
+	return false, nil
 }
