@@ -16,38 +16,99 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func TestAccGenerate_Dashboard(t *testing.T) {
+func TestAccGenerate(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t)
 
-	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
-				Check: func(s *terraform.State) error {
-					tempDir := t.TempDir()
-					config := generate.Config{
-						OutputDir:       tempDir,
-						Clobber:         true,
-						Format:          generate.OutputFormatHCL,
-						ProviderVersion: "v3.0.0",
-						Grafana: &generate.GrafanaConfig{
-							URL:  "http://localhost:3000",
-							Auth: "admin:admin",
-						},
-					}
-
-					require.NoError(t, generate.Generate(context.Background(), &config))
-					assertFiles(t, tempDir, "testdata/generate/dashboard-expected", "", []string{
-						".terraform",
-						".terraform.lock.hcl",
-					})
-
-					return nil
-				},
+	cases := []struct {
+		name           string
+		config         string
+		generateConfig func(cfg *generate.Config)
+		check          func(t *testing.T, tempDir string)
+	}{
+		{
+			name:   "dashboard",
+			config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
+			check: func(t *testing.T, tempDir string) {
+				assertFiles(t, tempDir, "testdata/generate/dashboard-expected", "", []string{
+					".terraform",
+					".terraform.lock.hcl",
+				})
 			},
 		},
-	})
+		{
+			name:   "dashboard-filter-strict",
+			config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
+			generateConfig: func(cfg *generate.Config) {
+				cfg.IncludeResources = []string{"grafana_dashboard._1_my-dashboard-uid"}
+			},
+			check: func(t *testing.T, tempDir string) {
+				assertFiles(t, tempDir, "testdata/generate/dashboard-filtered", "", []string{
+					".terraform",
+					".terraform.lock.hcl",
+				})
+			},
+		},
+		{
+			name:   "dashboard-filter-wildcard-on-resource-type",
+			config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
+			generateConfig: func(cfg *generate.Config) {
+				cfg.IncludeResources = []string{"*._1_my-dashboard-uid"}
+			},
+			check: func(t *testing.T, tempDir string) {
+				assertFiles(t, tempDir, "testdata/generate/dashboard-filtered", "", []string{
+					".terraform",
+					".terraform.lock.hcl",
+				})
+			},
+		},
+		{
+			name:   "dashboard-filter-wildcard-on-resource-name",
+			config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
+			generateConfig: func(cfg *generate.Config) {
+				cfg.IncludeResources = []string{"grafana_dashboard.*"}
+			},
+			check: func(t *testing.T, tempDir string) {
+				assertFiles(t, tempDir, "testdata/generate/dashboard-filtered", "", []string{
+					".terraform",
+					".terraform.lock.hcl",
+				})
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			resource.Test(t, resource.TestCase{
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				Steps: []resource.TestStep{
+					{
+						Config: tc.config,
+						Check: func(s *terraform.State) error {
+							tempDir := t.TempDir()
+							config := generate.Config{
+								OutputDir:       tempDir,
+								Clobber:         true,
+								Format:          generate.OutputFormatHCL,
+								ProviderVersion: "v3.0.0",
+								Grafana: &generate.GrafanaConfig{
+									URL:  "http://localhost:3000",
+									Auth: "admin:admin",
+								},
+							}
+							if tc.generateConfig != nil {
+								tc.generateConfig(&config)
+							}
+
+							require.NoError(t, generate.Generate(context.Background(), &config))
+							tc.check(t, tempDir)
+
+							return nil
+						},
+					},
+				},
+			})
+		})
+	}
 }
 
 // assertFiles checks that all files in the "expectedFilesDir" directory match the files in the "gotFilesDir" directory.

@@ -23,7 +23,13 @@ type CloudConfig struct {
 }
 
 type Config struct {
-	OutputDir       string
+	// IncludeResources is a list of patterns to filter resources by.
+	// If a resource name matches any of the patterns, it will be included in the output.
+	// Patterns are in the form of `resourceType.resourceName` and support * as a wildcard.
+	IncludeResources []string
+	// OutputDir is the directory to write the generated files to.
+	OutputDir string
+	// Clobber will overwrite existing files in the output directory.
 	Clobber         bool
 	Format          OutputFormat
 	ProviderVersion string

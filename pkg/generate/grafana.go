@@ -15,7 +15,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func generateGrafanaResources(ctx context.Context, auth, url, stackName string, genProvider bool, outPath, smURL, smToken string) error {
+// TODO: Refactor this sig
+func generateGrafanaResources(ctx context.Context, auth, url, stackName string, genProvider bool, outPath, smURL, smToken string, includedResources []string) error {
 	generatedFilename := func(suffix string) string {
 		if stackName == "" {
 			return filepath.Join(outPath, suffix)
@@ -65,7 +66,7 @@ func generateGrafanaResources(ctx context.Context, auth, url, stackName string, 
 		resources = append(resources, machinelearning.Resources...)
 		resources = append(resources, syntheticmonitoring.Resources...)
 	}
-	if err := generateImportBlocks(ctx, client, listerData, resources, outPath, stackName); err != nil {
+	if err := generateImportBlocks(ctx, client, listerData, resources, outPath, stackName, includedResources); err != nil {
 		return err
 	}
 
