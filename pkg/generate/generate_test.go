@@ -36,6 +36,19 @@ func TestAccGenerate(t *testing.T) {
 			},
 		},
 		{
+			name:   "dashboard-json",
+			config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
+			generateConfig: func(cfg *generate.Config) {
+				cfg.Format = generate.OutputFormatJSON
+			},
+			check: func(t *testing.T, tempDir string) {
+				assertFiles(t, tempDir, "testdata/generate/dashboard-json", "", []string{
+					".terraform",
+					".terraform.lock.hcl",
+				})
+			},
+		},
+		{
 			name:   "dashboard-filter-strict",
 			config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
 			generateConfig: func(cfg *generate.Config) {
