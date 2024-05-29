@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
+	tfjson "github.com/hashicorp/terraform-json"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -138,9 +139,12 @@ var knownReferences = []string{
 	"grafana_team_preferences.team_id=grafana_team.id",
 }
 
-// TODO: Also find references from the state (computed fields, like ID)
-func replaceReferences(fpath string, extraKnownReferences []string) error {
-	file, err := readHCLFile(fpath)
+type postprocessor struct {
+	plannedState *tfjson.Plan
+}
+
+func (p *postprocessor) replaceReferences(fpath string, extraKnownReferences []string) error {
+	file, err := p.readHCLFile(fpath)
 	if err != nil {
 		return err
 	}
@@ -149,17 +153,23 @@ func replaceReferences(fpath string, extraKnownReferences []string) error {
 
 	knownReferences := knownReferences
 	knownReferences = append(knownReferences, extraKnownReferences...)
-	// Find all resources. This map will be used to search for references
-	resourcesBlocks := map[string]*hclwrite.Block{}
-	for _, block := range file.Body().Blocks() {
-		if block.Type() == "resource" {
-			resourcesBlocks[block.Labels()[0]+"."+block.Labels()[1]] = block
-		}
-	}
+
+	plannedResources := p.plannedState.PlannedValues.RootModule.Resources
 
 	for _, block := range file.Body().Blocks() {
-		for attrName, attr := range block.Body().Attributes() {
-			attrValue := string(attr.Expr().BuildTokens(nil).Bytes())
+		var blockResource *tfjson.StateResource
+		for _, plannedResource := range plannedResources {
+			if plannedResource.Type == block.Labels()[0] && plannedResource.Name == block.Labels()[1] {
+				blockResource = plannedResource
+				break
+			}
+		}
+		if blockResource == nil {
+			return fmt.Errorf("resource %s.%s not found in planned state", block.Labels()[0], block.Labels()[1])
+		}
+
+		for attrName := range block.Body().Attributes() {
+			attrValue := blockResource.AttributeValues[attrName]
 			attrReplaced := false
 
 			// Check the field name. If it has a possible reference, we have to search for it in the resources
@@ -178,20 +188,19 @@ func replaceReferences(fpath string, extraKnownReferences []string) error {
 				refToResource := strings.Split(refTo, ".")[0]
 				refToAttr := strings.Split(refTo, ".")[1]
 
-				for possibleResourceRefName, possibleResourceRef := range resourcesBlocks {
-					if strings.HasPrefix(possibleResourceRefName, refToResource+".") {
-						valueFromRef := ""
-						if possibleResourceRef.Body().GetAttribute(refToAttr) != nil {
-							valueFromRef = string(possibleResourceRef.Body().GetAttribute(refToAttr).Expr().BuildTokens(nil).Bytes())
-						}
-						// If the value from the first block matches the value from the second block, we have a reference
-						if attrValue == valueFromRef {
-							// Replace the value with the reference
-							block.Body().SetAttributeTraversal(attrName, traversal(possibleResourceRefName, refToAttr))
-							hasChanges = true
-							attrReplaced = true
-							break
-						}
+				for _, plannedResource := range plannedResources {
+					if plannedResource.Type != refToResource {
+						continue
+					}
+
+					valueFromRef := plannedResource.AttributeValues[refToAttr]
+					// If the value from the first block matches the value from the second block, we have a reference
+					if attrValue == valueFromRef {
+						// Replace the value with the reference
+						block.Body().SetAttributeTraversal(attrName, traversal(plannedResource.Type, plannedResource.Name, refToAttr))
+						hasChanges = true
+						attrReplaced = true
+						break
 					}
 				}
 			}
@@ -206,15 +215,15 @@ func replaceReferences(fpath string, extraKnownReferences []string) error {
 	return nil
 }
 
-func stripDefaults(fpath string, extraFieldsToRemove map[string]any) error {
-	file, err := readHCLFile(fpath)
+func (p *postprocessor) stripDefaults(fpath string, extraFieldsToRemove map[string]any) error {
+	file, err := p.readHCLFile(fpath)
 	if err != nil {
 		return err
 	}
 
 	hasChanges := false
 	for _, block := range file.Body().Blocks() {
-		if s := stripDefaultsFromBlock(block, extraFieldsToRemove); s {
+		if s := p.stripDefaultsFromBlock(block, extraFieldsToRemove); s {
 			hasChanges = true
 		}
 	}
@@ -225,8 +234,8 @@ func stripDefaults(fpath string, extraFieldsToRemove map[string]any) error {
 	return nil
 }
 
-func wrapJSONFieldsInFunction(fpath string) error {
-	file, err := readHCLFile(fpath)
+func (p *postprocessor) wrapJSONFieldsInFunction(fpath string) error {
+	file, err := p.readHCLFile(fpath)
 	if err != nil {
 		return err
 	}
@@ -235,7 +244,7 @@ func wrapJSONFieldsInFunction(fpath string) error {
 	// Find json attributes and use jsonencode
 	for _, block := range file.Body().Blocks() {
 		for key, attr := range block.Body().Attributes() {
-			asMap, err := attributeToMap(attr)
+			asMap, err := p.attributeToMap(attr)
 			if err != nil || asMap == nil {
 				continue
 			}
@@ -252,11 +261,11 @@ func wrapJSONFieldsInFunction(fpath string) error {
 	return nil
 }
 
-func abstractDashboards(fpath string) error {
+func (p *postprocessor) abstractDashboards(fpath string) error {
 	fDir := filepath.Dir(fpath)
 	outPath := filepath.Join(fDir, "files")
 
-	file, err := readHCLFile(fpath)
+	file, err := p.readHCLFile(fpath)
 	if err != nil {
 		return err
 	}
@@ -269,7 +278,7 @@ func abstractDashboards(fpath string) error {
 			continue
 		}
 
-		dashboard, err := attributeToJSON(block.Body().GetAttribute("config_json"))
+		dashboard, err := p.attributeToJSON(block.Body().GetAttribute("config_json"))
 		if err != nil {
 			return err
 		}
@@ -316,7 +325,7 @@ func abstractDashboards(fpath string) error {
 	return nil
 }
 
-func attributeToMap(attr *hclwrite.Attribute) (map[string]interface{}, error) {
+func (p *postprocessor) attributeToMap(attr *hclwrite.Attribute) (map[string]interface{}, error) {
 	var err error
 
 	// Convert jsonencode to raw json
@@ -345,8 +354,8 @@ func attributeToMap(attr *hclwrite.Attribute) (map[string]interface{}, error) {
 	return dashboardMap, nil
 }
 
-func attributeToJSON(attr *hclwrite.Attribute) ([]byte, error) {
-	jsonMap, err := attributeToMap(attr)
+func (p *postprocessor) attributeToJSON(attr *hclwrite.Attribute) ([]byte, error) {
+	jsonMap, err := p.attributeToMap(attr)
 	if err != nil || jsonMap == nil {
 		return nil, err
 	}
@@ -359,7 +368,7 @@ func attributeToJSON(attr *hclwrite.Attribute) ([]byte, error) {
 	return jsonMarshalled, nil
 }
 
-func readHCLFile(fpath string) (*hclwrite.File, error) {
+func (p *postprocessor) readHCLFile(fpath string) (*hclwrite.File, error) {
 	src, err := os.ReadFile(fpath)
 	if err != nil {
 		return nil, err
@@ -373,10 +382,10 @@ func readHCLFile(fpath string) (*hclwrite.File, error) {
 	return file, nil
 }
 
-func stripDefaultsFromBlock(block *hclwrite.Block, extraFieldsToRemove map[string]any) bool {
+func (p *postprocessor) stripDefaultsFromBlock(block *hclwrite.Block, extraFieldsToRemove map[string]any) bool {
 	hasChanges := false
 	for _, innblock := range block.Body().Blocks() {
-		if s := stripDefaultsFromBlock(innblock, extraFieldsToRemove); s {
+		if s := p.stripDefaultsFromBlock(innblock, extraFieldsToRemove); s {
 			hasChanges = true
 		}
 		if len(innblock.Body().Attributes()) == 0 && len(innblock.Body().Blocks()) == 0 {
@@ -405,7 +414,7 @@ func stripDefaultsFromBlock(block *hclwrite.Block, extraFieldsToRemove map[strin
 			if name == key {
 				toRemove := false
 				fieldValue := strings.TrimSpace(string(attribute.Expr().BuildTokens(nil).Bytes()))
-				fieldValue, err := extractJSONEncode(fieldValue)
+				fieldValue, err := p.extractJSONEncode(fieldValue)
 				if err != nil {
 					continue
 				}
@@ -424,6 +433,16 @@ func stripDefaultsFromBlock(block *hclwrite.Block, extraFieldsToRemove map[strin
 		}
 	}
 	return hasChanges
+}
+func (p *postprocessor) extractJSONEncode(value string) (string, error) {
+	if !strings.HasPrefix(value, "jsonencode(") {
+		return "", nil
+	}
+	value = strings.TrimPrefix(value, "jsonencode(")
+	value = strings.TrimSuffix(value, ")")
+
+	b, err := json.MarshalIndent(value, "", "  ")
+	return string(b), err
 }
 
 // BELOW IS FROM https://github.com/hashicorp/terraform/blob/main/internal/configs/hcl2shim/values.go
@@ -471,15 +490,4 @@ func HCL2ValueFromConfigValue(v interface{}) cty.Value {
 		// the above, so if we get here something has gone very wrong.
 		panic(fmt.Errorf("can't convert %#v to cty.Value", v))
 	}
-}
-
-func extractJSONEncode(value string) (string, error) {
-	if !strings.HasPrefix(value, "jsonencode(") {
-		return "", nil
-	}
-	value = strings.TrimPrefix(value, "jsonencode(")
-	value = strings.TrimSuffix(value, ")")
-
-	b, err := json.MarshalIndent(value, "", "  ")
-	return string(b), err
 }

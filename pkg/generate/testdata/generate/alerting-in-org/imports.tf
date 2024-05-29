@@ -14,13 +14,13 @@ import {
 }
 
 import {
-  to = grafana_notification_policy._2_policy
-  id = "2:policy"
+  to = grafana_notification_policy._1_policy
+  id = "1:policy"
 }
 
 import {
-  to = grafana_notification_policy._1_policy
-  id = "1:policy"
+  to = grafana_notification_policy._2_policy
+  id = "2:policy"
 }
 
 import {
@@ -29,13 +29,13 @@ import {
 }
 
 import {
-  to = grafana_organization_preferences._2
-  id = "2"
+  to = grafana_organization_preferences._1
+  id = "1"
 }
 
 import {
-  to = grafana_organization_preferences._1
-  id = "1"
+  to = grafana_organization_preferences._2
+  id = "2"
 }
 
 import {

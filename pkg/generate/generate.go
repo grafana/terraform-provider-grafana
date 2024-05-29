@@ -138,6 +138,7 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 				}
 				return
 			}
+			sort.Strings(ids)
 
 			// Write blocks like these
 			// import {

@@ -3,7 +3,7 @@
 
 # __generated__ by Terraform from "2:alert-rule-folder"
 resource "grafana_folder" "_2_alert-rule-folder" {
-  org_id = jsonencode(2)
+  org_id = grafana_organization._2.id
   title  = "My Alert Rule Folder"
   uid    = "alert-rule-folder"
 }
@@ -11,14 +11,14 @@ resource "grafana_folder" "_2_alert-rule-folder" {
 # __generated__ by Terraform from "2:My Reusable Template"
 resource "grafana_message_template" "_2_My_Reusable_Template" {
   name     = "My Reusable Template"
-  org_id   = jsonencode(2)
+  org_id   = grafana_organization._2.id
   template = "{{define \"My Reusable Template\" }}\n template content\n{{ end }}"
 }
 
 # __generated__ by Terraform from "2:My Mute Timing"
 resource "grafana_mute_timing" "_2_My_Mute_Timing" {
   name   = "My Mute Timing"
-  org_id = jsonencode(2)
+  org_id = grafana_organization._2.id
   intervals {
     days_of_month = ["1:7", "-1"]
     location      = "America/New_York"
@@ -44,7 +44,7 @@ resource "grafana_notification_policy" "_2_policy" {
   contact_point      = "my-contact-point"
   disable_provenance = false
   group_by           = ["..."]
-  org_id             = jsonencode(2)
+  org_id             = grafana_organization._2.id
 }
 
 # __generated__ by Terraform from "2"
@@ -59,7 +59,7 @@ resource "grafana_organization_preferences" "_1" {
 
 # __generated__ by Terraform from "2"
 resource "grafana_organization_preferences" "_2" {
-  org_id = jsonencode(2)
+  org_id = grafana_organization._2.id
 }
 
 # __generated__ by Terraform from "2:alert-rule-folder:My Rule Group"
@@ -68,7 +68,7 @@ resource "grafana_rule_group" "_2_alert-rule-folder_My_Rule_Group" {
   folder_uid         = grafana_folder._2_alert-rule-folder.uid
   interval_seconds   = 240
   name               = "My Rule Group"
-  org_id             = jsonencode(2)
+  org_id             = grafana_organization._2.id
   rule {
     annotations = {
       a = "b"
