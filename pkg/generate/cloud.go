@@ -14,11 +14,13 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
 	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/zclconf/go-cty/cty"
 )
 
 type stack struct {
+	name          string
 	slug          string
 	url           string
 	managementKey string
@@ -66,7 +68,7 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
 	}
 
 	data := cloud.NewListerData(cfg.Cloud.Org)
-	if err := generateImportBlocks(ctx, client, data, cloud.Resources, cfg.OutputDir, "cloud", cfg.IncludeResources); err != nil {
+	if err := generateImportBlocks(ctx, client, data, cloud.Resources, cfg, "cloud"); err != nil {
 		return nil, err
 	}
 
@@ -140,12 +142,12 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
 		}
 
 		// Apply then go into the state and find the management key
-		err := runTerraform(cfg.OutputDir, "apply", "-auto-approve",
-			"-target=grafana_cloud_stack_service_account."+stack.Slug,
-			"-target=grafana_cloud_stack_service_account_token."+stack.Slug,
-			"-target=grafana_cloud_access_policy."+policyResourceName,
-			"-target=grafana_cloud_access_policy_token."+policyResourceName,
-			"-target=grafana_synthetic_monitoring_installation."+stack.Slug,
+		err := cfg.Terraform.Apply(ctx,
+			tfexec.Target("grafana_cloud_stack_service_account."+stack.Slug),
+			tfexec.Target("grafana_cloud_stack_service_account_token."+stack.Slug),
+			tfexec.Target("grafana_cloud_access_policy."+policyResourceName),
+			tfexec.Target("grafana_cloud_access_policy_token."+policyResourceName),
+			tfexec.Target("grafana_synthetic_monitoring_installation."+stack.Slug),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to apply management service account blocks for stack %q: %w", stack.Slug, err)
@@ -153,29 +155,29 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
 	}
 
 	managedStacks := []stack{}
-	state, err := getState(cfg.OutputDir)
+	state, err := getState(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
 	stacksMap := map[string]stack{}
-	for _, resource := range state.resources() {
-		if resource.resourceType() == "grafana_cloud_stack_service_account_token" {
-			slug := resource.values()["stack_slug"].(string)
+	for _, resource := range state.Values.RootModule.Resources {
+		if resource.Type == "grafana_cloud_stack_service_account_token" {
+			slug := resource.AttributeValues["stack_slug"].(string)
 			stack := stacksMap[slug]
 			stack.slug = slug
 			stack.url = stacksBySlug[slug].Url
-			stack.managementKey = resource.values()["key"].(string)
+			stack.managementKey = resource.AttributeValues["key"].(string)
 			stacksMap[slug] = stack
 		}
-		if resource.resourceType() == "grafana_synthetic_monitoring_installation" {
-			idStr := resource.values()["stack_id"].(string)
+		if resource.Type == "grafana_synthetic_monitoring_installation" {
+			idStr := resource.AttributeValues["stack_id"].(string)
 			slug := idStr
 			if id, err := strconv.Atoi(idStr); err == nil {
 				slug = stacksByID[id].Slug
 			}
 			stack := stacksMap[slug]
-			stack.smToken = resource.values()["sm_access_token"].(string)
-			stack.smURL = resource.values()["stack_sm_api_url"].(string)
+			stack.smToken = resource.AttributeValues["sm_access_token"].(string)
+			stack.smURL = resource.AttributeValues["stack_sm_api_url"].(string)
 			stacksMap[slug] = stack
 		}
 	}

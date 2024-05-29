@@ -1,31 +1,46 @@
 package generate
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/hc-install/product"
+	"github.com/hashicorp/hc-install/releases"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/tmccombs/hcl2json/convert"
 )
 
-func runTerraformWithOutput(dir string, command ...string) ([]byte, error) {
-	cmd := exec.Command("terraform", command...)
-	cmd.Dir = dir
-	cmd.Stderr = os.Stderr
-	return cmd.Output()
-}
+func setupTerraform(cfg *Config) (*tfexec.Terraform, error) {
+	installer := &releases.ExactVersion{
+		Product: product.Terraform,
+		Version: version.Must(version.NewVersion("1.8.4")),
+	}
 
-func runTerraform(dir string, command ...string) error {
-	out, err := runTerraformWithOutput(dir, command...)
-	fmt.Println(string(out))
-	return err
+	execPath, err := installer.Install(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("error installing Terraform: %s", err)
+	}
+
+	tf, err := tfexec.NewTerraform(cfg.OutputDir, execPath)
+	if err != nil {
+		return nil, fmt.Errorf("error running NewTerraform: %s", err)
+	}
+
+	err = tf.Init(context.Background(), tfexec.Upgrade(true))
+	if err != nil {
+		return nil, fmt.Errorf("error running Init: %s", err)
+	}
+
+	return tf, nil
 }
 
 func writeBlocks(filepath string, blocks ...*hclwrite.Block) error {
