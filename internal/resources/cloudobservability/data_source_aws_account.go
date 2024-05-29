@@ -27,5 +27,9 @@ func datasourceAWSAccount() *schema.Resource {
 }
 
 func datasourceAWSAccountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	return nil
+	var diags diag.Diagnostics
+
+	d.SetId(resourceAWSAccountTerraformID.Make(d.Get("stack_id").(string), d.Get("name").(string)))
+
+	return diags
 }
