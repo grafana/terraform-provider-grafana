@@ -6,8 +6,7 @@ import (
 )
 
 var DatasourcesMap = map[string]*schema.Resource{
-	"grafana_cloud_observability_aws_account":  datasourceAWSAccount(),
-	"grafana_cloud_observability_aws_accounts": datasourceAWSAccounts(),
+	"grafana_cloud_observability_aws_account": datasourceAWSAccount(),
 }
 
 var Resources = []*common.Resource{

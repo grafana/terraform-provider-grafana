@@ -1,7 +1,11 @@
-data "grafana_cloud_observability_aws_accounts" "test" {
-  stack_id       = grafana_cloud_stack.test.id
-  name           = "my-aws-connection"
-  aws_account_id = "1234567"
-  regions        = ["us-east-1", "us-east-2", "us-west-1"]
-  role_arn       = "my role"
+// TODO(tristan): Should this be made a cloud-only test?
+
+/*data "grafana_cloud_stack" "test" {
+  slug = grafana_cloud_stack.test.slug
+}*/
+
+data "grafana_cloud_observability_aws_account" "test" {
+  //stack_id = data.grafana_cloud_stack.test.id
+  stack_id = "001"
+  name     = "my-aws-account"
 }
