@@ -56,9 +56,10 @@ func resourceAWSAccount() *common.Resource {
 }
 
 func resourceAWSAccountCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
 
-	return diags
+	d.SetId(resourceAWSAccountTerraformID.Make(d.Get("stack_id").(string), d.Get("name").(string)))
+
+	return resourceAWSAccountRead(ctx, d, nil)
 }
 
 func resourceAWSAccountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
