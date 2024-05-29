@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net"
-	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -69,16 +67,7 @@ func Generate(ctx context.Context, cfg *Config) error {
 	}
 
 	if cfg.Grafana != nil {
-		grafanaURLParsed, err := url.Parse(cfg.Grafana.URL)
-		if err != nil {
-			return err
-		}
-
-		stackName := grafanaURLParsed.Hostname()
-		if net.ParseIP(stackName) != nil {
-			stackName = "ip_" + strings.ReplaceAll(stackName, ".", "_")
-		}
-		if err := generateGrafanaResources(ctx, cfg.Grafana.Auth, cfg.Grafana.URL, stackName, true, cfg.OutputDir, "", ""); err != nil {
+		if err := generateGrafanaResources(ctx, cfg.Grafana.Auth, cfg.Grafana.URL, "", true, cfg.OutputDir, "", ""); err != nil {
 			return err
 		}
 	}
@@ -94,6 +83,14 @@ func Generate(ctx context.Context, cfg *Config) error {
 }
 
 func generateImportBlocks(ctx context.Context, client *common.Client, listerData any, resources []*common.Resource, outPath, provider string) error {
+	generatedFilename := func(suffix string) string {
+		if provider == "" {
+			return filepath.Join(outPath, suffix)
+		}
+
+		return filepath.Join(outPath, provider+"-"+suffix)
+	}
+
 	// Generate HCL blocks in parallel with a wait group
 	wg := sync.WaitGroup{}
 	wg.Add(len(resources))
@@ -140,9 +137,11 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 				}
 
 				b := hclwrite.NewBlock("import", nil)
-				b.Body().SetAttributeTraversal("provider", traversal("grafana", provider))
 				b.Body().SetAttributeTraversal("to", traversal(resource.Name, cleanedID))
 				b.Body().SetAttributeValue("id", cty.StringVal(id))
+				if provider != "" {
+					b.Body().SetAttributeTraversal("provider", traversal("grafana", provider))
+				}
 
 				blocks[i] = b
 				// TODO: Match and update existing import blocks
@@ -178,14 +177,13 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 		allBlocks = append(allBlocks, r.blocks...)
 	}
 
-	if err := writeBlocks(filepath.Join(outPath, provider+"-imports.tf"), allBlocks...); err != nil {
+	if err := writeBlocks(generatedFilename("imports.tf"), allBlocks...); err != nil {
 		return err
 	}
 
-	generatedFilename := fmt.Sprintf("%s-resources.tf", provider)
-	if err := runTerraform(outPath, "plan", "-generate-config-out="+generatedFilename); err != nil {
+	if err := runTerraform(outPath, "plan", "-generate-config-out="+generatedFilename("resources.tf")); err != nil {
 		return fmt.Errorf("failed to generate resources: %w", err)
 	}
 
-	return sortResourcesFile(filepath.Join(outPath, generatedFilename))
+	return sortResourcesFile(generatedFilename("resources.tf"))
 }
