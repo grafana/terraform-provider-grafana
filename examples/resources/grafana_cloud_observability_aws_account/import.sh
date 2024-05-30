@@ -1,1 +1,1 @@
-terraform import grafana_cloud_observability_aws_account.test "{{ stackID }}:{{ name }}"
+terraform import grafana_cloud_observability_aws_account.name "{{ stack_id }}:{{ name }}"
