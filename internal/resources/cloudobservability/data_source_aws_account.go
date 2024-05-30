@@ -30,6 +30,8 @@ func datasourceAWSAccountRead(ctx context.Context, d *schema.ResourceData, m int
 	var diags diag.Diagnostics
 
 	d.SetId(resourceAWSAccountTerraformID.Make(d.Get("stack_id").(string), d.Get("name").(string)))
+	d.Set("role_arns", TestAWSAccountData.RoleARNs)
+	d.Set("regions", TestAWSAccountData.Regions)
 
 	return diags
 }

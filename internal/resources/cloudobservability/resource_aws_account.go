@@ -57,7 +57,7 @@ func resourceAWSAccount() *common.Resource {
 
 func resourceAWSAccountCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 
-	d.SetId(resourceAWSAccountTerraformID.Make(d.Get("stack_id").(string), d.Get("name").(string)))
+	d.SetId(resourceAWSAccountTerraformID.Make(TestAWSAccountData.StackID, TestAWSAccountData.Name))
 
 	return resourceAWSAccountRead(ctx, d, nil)
 }
@@ -65,11 +65,19 @@ func resourceAWSAccountCreate(ctx context.Context, d *schema.ResourceData, m int
 func resourceAWSAccountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
+	d.Set("role_arns", TestAWSAccountData.RoleARNs)
+	d.Set("regions", TestAWSAccountData.Regions)
+
 	return diags
 }
 
 func resourceAWSAccountUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
+
+	TestAWSAccountData.RoleARNs = d.Get("role_arns").(map[string]string)
+	TestAWSAccountData.Regions = d.Get("regions").([]string)
+	d.Set("role_arns", TestAWSAccountData.RoleARNs)
+	d.Set("regions", TestAWSAccountData.Regions)
 
 	return diags
 }
