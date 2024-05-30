@@ -262,7 +262,7 @@ func listReports(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *Lister
 		client = client.Clone().WithOrgID(orgID)
 
 		resp, err := client.Reports.GetReports()
-		if common.IsNotFoundError(err) {
+		if err != nil && common.IsNotFoundError(err) {
 			return nil, nil // Reports are not available in the current Grafana version (Probably OSS)
 		}
 		if err != nil {

@@ -17,6 +17,9 @@ import (
 )
 
 func TestAccGenerate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping long test")
+	}
 	testutils.CheckOSSTestsEnabled(t)
 
 	cases := []struct {
@@ -29,7 +32,7 @@ func TestAccGenerate(t *testing.T) {
 			name:   "dashboard",
 			config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
 			check: func(t *testing.T, tempDir string) {
-				assertFiles(t, tempDir, "testdata/generate/dashboard-expected", "", []string{
+				assertFiles(t, tempDir, "testdata/generate/dashboard", []string{
 					".terraform",
 					".terraform.lock.hcl",
 				})
@@ -42,7 +45,7 @@ func TestAccGenerate(t *testing.T) {
 				cfg.Format = generate.OutputFormatJSON
 			},
 			check: func(t *testing.T, tempDir string) {
-				assertFiles(t, tempDir, "testdata/generate/dashboard-json", "", []string{
+				assertFiles(t, tempDir, "testdata/generate/dashboard-json", []string{
 					".terraform",
 					".terraform.lock.hcl",
 				})
@@ -55,7 +58,7 @@ func TestAccGenerate(t *testing.T) {
 				cfg.IncludeResources = []string{"grafana_dashboard._1_my-dashboard-uid"}
 			},
 			check: func(t *testing.T, tempDir string) {
-				assertFiles(t, tempDir, "testdata/generate/dashboard-filtered", "", []string{
+				assertFiles(t, tempDir, "testdata/generate/dashboard-filtered", []string{
 					".terraform",
 					".terraform.lock.hcl",
 				})
@@ -68,7 +71,7 @@ func TestAccGenerate(t *testing.T) {
 				cfg.IncludeResources = []string{"*._1_my-dashboard-uid"}
 			},
 			check: func(t *testing.T, tempDir string) {
-				assertFiles(t, tempDir, "testdata/generate/dashboard-filtered", "", []string{
+				assertFiles(t, tempDir, "testdata/generate/dashboard-filtered", []string{
 					".terraform",
 					".terraform.lock.hcl",
 				})
@@ -81,7 +84,7 @@ func TestAccGenerate(t *testing.T) {
 				cfg.IncludeResources = []string{"grafana_dashboard.*"}
 			},
 			check: func(t *testing.T, tempDir string) {
-				assertFiles(t, tempDir, "testdata/generate/dashboard-filtered", "", []string{
+				assertFiles(t, tempDir, "testdata/generate/dashboard-filtered", []string{
 					".terraform",
 					".terraform.lock.hcl",
 				})
@@ -125,7 +128,12 @@ func TestAccGenerate(t *testing.T) {
 }
 
 // assertFiles checks that all files in the "expectedFilesDir" directory match the files in the "gotFilesDir" directory.
-func assertFiles(t *testing.T, gotFilesDir, expectedFilesDir, subdir string, ignoreDirEntries []string) {
+func assertFiles(t *testing.T, gotFilesDir, expectedFilesDir string, ignoreDirEntries []string) {
+	t.Helper()
+	assertFilesSubdir(t, gotFilesDir, expectedFilesDir, "", ignoreDirEntries)
+}
+
+func assertFilesSubdir(t *testing.T, gotFilesDir, expectedFilesDir, subdir string, ignoreDirEntries []string) {
 	t.Helper()
 
 	originalGotFilesDir := gotFilesDir
@@ -149,7 +157,7 @@ func assertFiles(t *testing.T, gotFilesDir, expectedFilesDir, subdir string, ign
 		}
 
 		if gotFile.IsDir() {
-			assertFiles(t, originalGotFilesDir, originalExpectedFilesDir, filepath.Join(subdir, gotFile.Name()), ignoreDirEntries)
+			assertFilesSubdir(t, originalGotFilesDir, originalExpectedFilesDir, filepath.Join(subdir, gotFile.Name()), ignoreDirEntries)
 			continue
 		}
 
@@ -169,7 +177,7 @@ func assertFiles(t *testing.T, gotFilesDir, expectedFilesDir, subdir string, ign
 	}
 	for _, expectedFile := range expectedFiles {
 		if expectedFile.IsDir() {
-			assertFiles(t, originalGotFilesDir, originalExpectedFilesDir, filepath.Join(subdir, expectedFile.Name()), ignoreDirEntries)
+			assertFilesSubdir(t, originalGotFilesDir, originalExpectedFilesDir, filepath.Join(subdir, expectedFile.Name()), ignoreDirEntries)
 			continue
 		}
 		expectedContent, err := os.ReadFile(filepath.Join(expectedFilesDir, expectedFile.Name()))

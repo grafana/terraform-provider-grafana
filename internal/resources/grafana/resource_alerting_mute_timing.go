@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/go-openapi/runtime"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -142,13 +145,23 @@ func listMuteTimings(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *Li
 	for _, orgID := range orgIDs {
 		client = client.Clone().WithOrgID(orgID)
 
-		resp, err := client.Provisioning.GetMuteTimings()
-		if err != nil {
-			return nil, err
-		}
+		// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+		// The alertmanager is provisioned asynchronously when the org is created.
+		if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+			resp, err := client.Provisioning.GetMuteTimings()
+			if err != nil {
+				if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+					return retry.RetryableError(err)
+				}
+				return retry.NonRetryableError(err)
+			}
 
-		for _, muteTiming := range resp.Payload {
-			ids = append(ids, MakeOrgResourceID(orgID, muteTiming.Name))
+			for _, muteTiming := range resp.Payload {
+				ids = append(ids, MakeOrgResourceID(orgID, muteTiming.Name))
+			}
+			return nil
+		}); err != nil {
+			return nil, err
 		}
 	}
 
