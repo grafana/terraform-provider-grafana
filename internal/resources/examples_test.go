@@ -90,7 +90,9 @@ func TestAccExamples(t *testing.T) {
 			category: "Cloud Observability",
 			testCheck: func(t *testing.T, filename string) {
 				t.Skip() // TODO: Make all examples work
-				//testutils.CheckCloudInstanceTestsEnabled(t)
+				// TODO(tristan): this check will probably need to be enabled
+				// once we start having to talk to the actual API.
+				// testutils.CheckCloudInstanceTestsEnabled(t)
 			},
 		},
 		{

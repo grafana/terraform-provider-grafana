@@ -5,8 +5,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-// TODO(tristan): move this to test package once we're using
-// the actual API for interactions.
+// TestAWSAccountData is only temporarily exported here until
+// we have the resource handlers talking to the real API.
+// TODO(tristan): move this to test package and unexport
+// once we're using the actual API for interactions.
 var TestAWSAccountData = struct {
 	StackID  string
 	Name     string
