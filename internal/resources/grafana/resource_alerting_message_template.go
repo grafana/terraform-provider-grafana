@@ -78,13 +78,23 @@ func listMessageTemplate(ctx context.Context, client *goapi.GrafanaHTTPAPI, data
 	for _, orgID := range orgIDs {
 		client = client.Clone().WithOrgID(orgID)
 
-		resp, err := client.Provisioning.GetTemplates()
-		if err != nil {
-			return nil, err
-		}
+		// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+		// The alertmanager is provisioned asynchronously when the org is created.
+		if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+			resp, err := client.Provisioning.GetTemplates()
+			if err != nil {
+				if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+					return retry.RetryableError(err)
+				}
+				return retry.NonRetryableError(err)
+			}
 
-		for _, template := range resp.Payload {
-			ids = append(ids, MakeOrgResourceID(orgID, template.Name))
+			for _, template := range resp.Payload {
+				ids = append(ids, MakeOrgResourceID(orgID, template.Name))
+			}
+			return nil
+		}); err != nil {
+			return nil, err
 		}
 	}
 

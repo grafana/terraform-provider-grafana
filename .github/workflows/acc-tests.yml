@@ -55,7 +55,7 @@ jobs:
         # OSS tests, run on all versions
         version: ['11.0.0', '10.4.3', '9.5.18']
         type: ['oss']
-        subset: ['basic', 'other', 'long']
+        subset: ['basic', 'other', 'long', 'generate']
         include:
           - version: '11.0.0'
             type: 'oss'
@@ -108,3 +108,4 @@ jobs:
             ${{ matrix.subset == 'other' && '-skip=".*_basic" -short -parallel 2' || '' }}
             ${{ matrix.subset == 'long' && '-run=".*longtest" -parallel 1' || '' }}
             ${{ matrix.subset == 'examples' && '-run=".*Examples" -parallel 1' || '' }}
+            ${{ matrix.subset == 'generate' && '-run="TestAccGenerate" -parallel 1' || '' }}
