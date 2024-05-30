@@ -1,0 +1,37 @@
+{
+  "resource": {
+    "grafana_dashboard": {
+      "_1_my-dashboard-uid": [
+        {
+          "config_json": "${jsonencode({\n    title = \"My Dashboard\"\n    uid   = \"my-dashboard-uid\"\n  })}",
+          "folder": "my-folder-uid"
+        }
+      ]
+    },
+    "grafana_folder": {
+      "_1_my-folder-uid": [
+        {
+          "title": "My Folder",
+          "uid": "my-folder-uid"
+        }
+      ]
+    },
+    "grafana_notification_policy": {
+      "_1_policy": [
+        {
+          "contact_point": "grafana-default-email",
+          "disable_provenance": true,
+          "group_by": [
+            "grafana_folder",
+            "alertname"
+          ]
+        }
+      ]
+    },
+    "grafana_organization_preferences": {
+      "_1": [
+        {}
+      ]
+    }
+  }
+}
