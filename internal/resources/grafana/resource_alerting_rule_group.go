@@ -9,11 +9,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
@@ -264,13 +266,23 @@ func listRuleGroups(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *Lis
 	for _, orgID := range orgIDs {
 		client = client.Clone().WithOrgID(orgID)
 
-		resp, err := client.Provisioning.GetAlertRules()
-		if err != nil {
-			return nil, err
-		}
+		// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+		// The alertmanager is provisioned asynchronously when the org is created.
+		if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+			resp, err := client.Provisioning.GetAlertRules()
+			if err != nil {
+				if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+					return retry.RetryableError(err)
+				}
+				return retry.NonRetryableError(err)
+			}
 
-		for _, rule := range resp.Payload {
-			idMap[MakeOrgResourceID(orgID, resourceRuleGroupID.Make(rule.FolderUID, rule.RuleGroup))] = true
+			for _, rule := range resp.Payload {
+				idMap[resourceRuleGroupID.Make(orgID, rule.FolderUID, rule.RuleGroup)] = true
+			}
+			return nil
+		}); err != nil {
+			return nil, err
 		}
 	}
 

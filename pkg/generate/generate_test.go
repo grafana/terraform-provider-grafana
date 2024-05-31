@@ -90,6 +90,20 @@ func TestAccGenerate(t *testing.T) {
 				})
 			},
 		},
+		{
+			name: "alerting-in-org",
+			config: func() string {
+				content, err := os.ReadFile("testdata/generate/alerting-in-org.tf")
+				require.NoError(t, err)
+				return string(content)
+			}(),
+			check: func(t *testing.T, tempDir string) {
+				assertFiles(t, tempDir, "testdata/generate/alerting-in-org", []string{
+					".terraform",
+					".terraform.lock.hcl",
+				})
+			},
+		},
 	}
 
 	for _, tc := range cases {
