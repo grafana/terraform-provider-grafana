@@ -5,7 +5,7 @@ package provider
 import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloudobservability"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloudprovider"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/machinelearning"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/oncall"
@@ -18,7 +18,7 @@ import (
 func Resources() []*common.Resource {
 	var resources []*common.Resource
 	resources = append(resources, cloud.Resources...)
-	resources = append(resources, cloudobservability.Resources...)
+	resources = append(resources, cloudprovider.Resources...)
 	resources = append(resources, grafana.Resources...)
 	resources = append(resources, machinelearning.Resources...)
 	resources = append(resources, oncall.Resources...)

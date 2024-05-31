@@ -54,7 +54,7 @@
     "resources/synthetic_monitoring_check": "Synthetic Monitoring",
     "resources/synthetic_monitoring_installation": "Synthetic Monitoring",
     "resources/synthetic_monitoring_probe": "Synthetic Monitoring",
-    "resources/cloud_observability_aws_account": "Cloud Observability",
+    "resources/cloud_provider_aws_account": "Cloud Provider",
     "data-sources/cloud_ips": "Cloud",
     "data-sources/cloud_organization": "Cloud",
     "data-sources/cloud_stack": "Cloud",
@@ -82,5 +82,5 @@
     "data-sources/slos": "SLO",
     "data-sources/synthetic_monitoring_probe": "Synthetic Monitoring",
     "data-sources/synthetic_monitoring_probes": "Synthetic Monitoring",
-    "data-sources/cloud_observability_aws_account": "Cloud Observability"
+    "data-sources/cloud_provider_aws_account": "Cloud Provider"
 }

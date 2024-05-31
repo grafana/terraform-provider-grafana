@@ -1,4 +1,4 @@
-package cloudobservability
+package cloudprovider
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	resourceAWSAccountTerraformID = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("name"))
+	resourceAWSAccountTerraformID = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("role_arn"))
 )
 
 func resourceAWSAccount() *common.Resource {
@@ -24,18 +24,10 @@ func resourceAWSAccount() *common.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 			},
-			"name": {
-				Description: "A name to help identify this AWS Account resource. This name must be unique per StackID. Part of the Terraform Resource ID.",
+			"role_arn": {
+				Description: "An IAM Role ARN string to represent with this AWS Account resource.",
 				Type:        schema.TypeString,
 				Required:    true,
-			},
-			"role_arns": {
-				Description: "A map consisting of one or more name => IAM Role ARN pairs to associate with this AWS Account resource.",
-				Type:        schema.TypeMap,
-				Required:    true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
 			},
 			"regions": {
 				Description: "A list of regions that this AWS Account resource applies to.",
@@ -49,14 +41,14 @@ func resourceAWSAccount() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
-		"grafana_cloud_observability_aws_account",
+		"grafana_cloud_provider_aws_account",
 		resourceAWSAccountTerraformID,
 		schema,
 	)
 }
 
 func resourceAWSAccountCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	d.SetId(resourceAWSAccountTerraformID.Make(TestAWSAccountData.StackID, TestAWSAccountData.Name))
+	d.SetId(resourceAWSAccountTerraformID.Make(TestAWSAccountData.StackID, TestAWSAccountData.RoleARN))
 
 	return resourceAWSAccountRead(ctx, d, nil)
 }
@@ -64,7 +56,8 @@ func resourceAWSAccountCreate(ctx context.Context, d *schema.ResourceData, m int
 func resourceAWSAccountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	d.Set("role_arns", TestAWSAccountData.RoleARNs)
+	d.Set("stack_id", TestAWSAccountData.StackID)
+	d.Set("role_arn", TestAWSAccountData.RoleARN)
 	d.Set("regions", TestAWSAccountData.Regions)
 
 	return diags
@@ -73,9 +66,11 @@ func resourceAWSAccountRead(ctx context.Context, d *schema.ResourceData, m inter
 func resourceAWSAccountUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	TestAWSAccountData.RoleARNs = d.Get("role_arns").(map[string]string)
+	TestAWSAccountData.StackID = d.Get("stack_id").(string)
+	TestAWSAccountData.RoleARN = d.Get("role_arn").(string)
 	TestAWSAccountData.Regions = d.Get("regions").([]string)
-	d.Set("role_arns", TestAWSAccountData.RoleARNs)
+	d.Set("stack_id", TestAWSAccountData.StackID)
+	d.Set("role_arn", TestAWSAccountData.RoleARN)
 	d.Set("regions", TestAWSAccountData.Regions)
 
 	return diags

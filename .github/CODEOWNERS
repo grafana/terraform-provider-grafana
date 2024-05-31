@@ -2,7 +2,7 @@
 
 /internal/resources/grafana/*_alerting_* @grafana/terraform-provider @grafana/alerting-squad
 /internal/resources/cloud/* @grafana/terraform-provider @grafana/grafana-com-maintainers
-/internal/resources/cloudobservability/* @grafana/terraform-provider @grafana/middleware-apps
+/internal/resources/cloudprovider/* @grafana/terraform-provider @grafana/middleware-apps
 /internal/resources/machinelearning/* @grafana/terraform-provider @grafana/machine-learning
 /internal/resources/oncall/* @grafana/terraform-provider @grafana/grafana-oncall
 /internal/resources/slo/* @grafana/terraform-provider @grafana/slo-squad

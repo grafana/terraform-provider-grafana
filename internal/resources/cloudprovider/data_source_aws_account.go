@@ -1,4 +1,4 @@
-package cloudobservability
+package cloudprovider
 
 import (
 	"context"
@@ -13,12 +13,12 @@ func datasourceAWSAccount() *schema.Resource {
 		ReadContext: datasourceAWSAccountRead,
 		Schema: common.CloneResourceSchemaForDatasource(resourceAWSAccount().Schema, map[string]*schema.Schema{
 			"stack_id": {
-				Description: "The StackID of the Grafana Cloud instance. Part of the Terraform Resource ID.",
+				Description: "The StackID of the AWS Account resource to look up.",
 				Type:        schema.TypeString,
 				Required:    true,
 			},
-			"name": {
-				Description: "A name to help identify this AWS Account resource. This name must be unique per StackID. Part of the Terraform Resource ID.",
+			"role_arn": {
+				Description: "The IAM Role ARN string of the AWS Account resource to look up.",
 				Type:        schema.TypeString,
 				Required:    true,
 			},
@@ -29,8 +29,8 @@ func datasourceAWSAccount() *schema.Resource {
 func datasourceAWSAccountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	d.SetId(resourceAWSAccountTerraformID.Make(d.Get("stack_id").(string), d.Get("name").(string)))
-	d.Set("role_arns", TestAWSAccountData.RoleARNs)
+	d.SetId(resourceAWSAccountTerraformID.Make(d.Get("stack_id").(string), d.Get("role_arn").(string)))
+	d.Set("role_arn", TestAWSAccountData.RoleARN)
 	d.Set("regions", TestAWSAccountData.Regions)
 
 	return diags

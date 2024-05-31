@@ -87,7 +87,7 @@ func TestAccExamples(t *testing.T) {
 			},
 		},
 		{
-			category: "Cloud Observability",
+			category: "Cloud Provider",
 			testCheck: func(t *testing.T, filename string) {
 				t.Skip() // TODO: Make all examples work
 				// TODO(tristan): this check will probably need to be enabled
