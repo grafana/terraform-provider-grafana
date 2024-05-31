@@ -204,15 +204,23 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 		allBlocks = append(allBlocks, r.blocks...)
 	}
 
+	if len(allBlocks) == 0 {
+		if err := os.WriteFile(generatedFilename("resources.tf"), []byte("# No resources were found\n"), 0600); err != nil {
+			return err
+		}
+		if err := os.WriteFile(generatedFilename("imports.tf"), []byte("# No resources were found\n"), 0600); err != nil {
+			return err
+		}
+		return nil
+	}
+
 	if err := writeBlocks(generatedFilename("imports.tf"), allBlocks...); err != nil {
 		return err
 	}
-
 	_, err = cfg.Terraform.Plan(ctx, tfexec.GenerateConfigOut(generatedFilename("resources.tf")))
 	if err != nil {
 		return fmt.Errorf("failed to generate resources: %w", err)
 	}
-
 	return sortResourcesFile(generatedFilename("resources.tf"))
 }
 
