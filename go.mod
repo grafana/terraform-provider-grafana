@@ -17,7 +17,7 @@ require (
 	github.com/grafana/synthetic-monitoring-agent v0.24.1
 	github.com/grafana/synthetic-monitoring-api-go-client v0.8.0
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
-	github.com/hashicorp/go-retryablehttp v0.7.6
+	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/hc-install v0.6.4
