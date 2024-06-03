@@ -72,11 +72,17 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
 		return nil, err
 	}
 
-	log.Println("Post-processing for cloud")
-	if err := stripDefaults(filepath.Join(cfg.OutputDir, "cloud-resources.tf"), nil); err != nil {
+	postprocessor := &postprocessor{}
+	if postprocessor.plannedState, err = getPlannedState(ctx, cfg); err != nil {
 		return nil, err
 	}
-	if err := wrapJSONFieldsInFunction(filepath.Join(cfg.OutputDir, "cloud-resources.tf")); err != nil {
+	if err := postprocessor.stripDefaults(filepath.Join(cfg.OutputDir, "cloud-resources.tf"), nil); err != nil {
+		return nil, err
+	}
+	if err := postprocessor.wrapJSONFieldsInFunction(filepath.Join(cfg.OutputDir, "cloud-resources.tf")); err != nil {
+		return nil, err
+	}
+	if err := postprocessor.replaceReferences(filepath.Join(cfg.OutputDir, "cloud-resources.tf"), nil); err != nil {
 		return nil, err
 	}
 

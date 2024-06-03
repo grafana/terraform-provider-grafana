@@ -198,6 +198,24 @@ func listNotificationPolicies(ctx context.Context, client *goapi.GrafanaHTTPAPI,
 
 	var ids []string
 	for _, orgID := range orgIDs {
+		client = client.Clone().WithOrgID(orgID)
+
+		// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+		// The alertmanager is provisioned asynchronously when the org is created.
+		if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+			_, err := client.Provisioning.GetPolicyTree()
+			if err != nil {
+				if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+					return retry.RetryableError(err)
+				}
+				return retry.NonRetryableError(err)
+			}
+
+			return nil
+		}); err != nil {
+			return nil, err
+		}
+
 		ids = append(ids, MakeOrgResourceID(orgID, PolicySingletonID))
 	}
 

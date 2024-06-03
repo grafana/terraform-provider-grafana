@@ -105,8 +105,8 @@ This resource requires Grafana 9.1.0 or later.
 	)
 }
 
-// TODO: Fix lister
-// .WithLister(listerFunction(listContactPoints))
+// TODO: Fix contact points lister. Terraform doesn't read any of the sensitive fields (or their container)
+// It outputs an empty `email {}` block for example, which is not valid.
 // func listContactPoints(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
 // 	orgIDs, err := data.OrgIDs(client)
 // 	if err != nil {
@@ -117,13 +117,23 @@ This resource requires Grafana 9.1.0 or later.
 // 	for _, orgID := range orgIDs {
 // 		client = client.Clone().WithOrgID(orgID)
 
-// 		resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
-// 		if err != nil {
-// 			return nil, err
-// 		}
+// 		// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+// 		// The alertmanager is provisioned asynchronously when the org is created.
+// 		if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+// 			resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
+// 			if err != nil {
+// 				if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+// 					return retry.RetryableError(err)
+// 				}
+// 				return retry.NonRetryableError(err)
+// 			}
 
-// 		for _, contactPoint := range resp.Payload {
-// 			idMap[MakeOrgResourceID(orgID, contactPoint.Name)] = true
+// 			for _, contactPoint := range resp.Payload {
+// 				idMap[MakeOrgResourceID(orgID, contactPoint.Name)] = true
+// 			}
+// 			return nil
+// 		}); err != nil {
+// 			return nil, err
 // 		}
 // 	}
 
@@ -138,13 +148,16 @@ This resource requires Grafana 9.1.0 or later.
 func readContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	// First, try to fetch the contact point by name.
-	// If that fails, try to fetch it by the UID of its notifiers.
-	resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams().WithName(&name))
+	resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	points := resp.Payload
+	var points []*models.EmbeddedContactPoint
+	for _, p := range resp.Payload {
+		if p.Name == name {
+			points = append(points, p)
+		}
+	}
 	if len(points) == 0 {
 		return common.WarnMissing("contact point", data)
 	}

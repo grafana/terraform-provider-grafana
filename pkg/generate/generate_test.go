@@ -90,6 +90,33 @@ func TestAccGenerate(t *testing.T) {
 				})
 			},
 		},
+		{
+			name:   "filter-all",
+			config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
+			generateConfig: func(cfg *generate.Config) {
+				cfg.IncludeResources = []string{"doesnot.exist"}
+			},
+			check: func(t *testing.T, tempDir string) {
+				assertFiles(t, tempDir, "testdata/generate/empty", []string{
+					".terraform",
+					".terraform.lock.hcl",
+				})
+			},
+		},
+		{
+			name: "alerting-in-org",
+			config: func() string {
+				content, err := os.ReadFile("testdata/generate/alerting-in-org.tf")
+				require.NoError(t, err)
+				return string(content)
+			}(),
+			check: func(t *testing.T, tempDir string) {
+				assertFiles(t, tempDir, "testdata/generate/alerting-in-org", []string{
+					".terraform",
+					".terraform.lock.hcl",
+				})
+			},
+		},
 	}
 
 	for _, tc := range cases {
