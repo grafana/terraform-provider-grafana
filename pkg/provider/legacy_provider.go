@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloudprovider"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/machinelearning"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/oncall"
@@ -146,6 +147,7 @@ func Provider(version string) *schema.Provider {
 			syntheticmonitoring.DatasourcesMap,
 			oncall.DatasourcesMap,
 			cloud.DatasourcesMap,
+			cloudprovider.DatasourcesMap,
 		),
 	}
 
