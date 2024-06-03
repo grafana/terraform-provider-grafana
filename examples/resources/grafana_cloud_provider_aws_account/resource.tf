@@ -1,5 +1,5 @@
 data "grafana_cloud_stack" "test" {
-  slug = grafana_cloud_stack.test.slug
+  slug = "gcloudstacktest"
 }
 
 data "aws_iam_role" "test" {
