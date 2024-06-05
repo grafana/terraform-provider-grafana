@@ -293,7 +293,7 @@ func TestAccAlertRule_inOrg(t *testing.T) {
 	})
 }
 
-func TestAccAlertRule_nameConflict(t *testing.T) {
+func TestAccAlertRule_ruleNameConflict(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	name := acctest.RandString(10)
@@ -314,11 +314,11 @@ resource "grafana_folder" "first" {
 
 resource "grafana_rule_group" "first" {
 	org_id = grafana_organization.test.id
-	name             = "%[1]s"
+	name             = "alert rule group"
 	folder_uid       = grafana_folder.first.uid
 	interval_seconds = 60
 	rule {
-		name           = "My Alert Rule first"
+		name           = "My Alert Rule"
 		for            = "2m"
 		condition      = "B"
 		no_data_state  = "NoData"
@@ -340,21 +340,8 @@ resource "grafana_rule_group" "first" {
 			})
 		}
 	}
-}
-
-resource "grafana_folder" "second" {
-	depends_on = [grafana_rule_group.first]
-	org_id = grafana_organization.test.id
-	title = "%[1]s-second"
-}
-
-resource "grafana_rule_group" "second" {
-	org_id = grafana_organization.test.id
-	name             = "%[1]s"
-	folder_uid       = grafana_folder.second.uid
-	interval_seconds = 60
 	rule {
-		name           = "My Alert Rule second"
+		name           = "My Alert Rule"
 		for            = "2m"
 		condition      = "B"
 		no_data_state  = "NoData"
@@ -378,7 +365,7 @@ resource "grafana_rule_group" "second" {
 	}
 }
 				`, name),
-				ExpectError: regexp.MustCompile(`rule group with name "` + name + `" already exists`),
+				ExpectError: regexp.MustCompile(`rule with name "My Alert Rule" is defined more than oncendnndndndn`),
 			},
 		},
 	})
