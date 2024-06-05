@@ -141,12 +141,17 @@ func readContactPoint(ctx context.Context, data *schema.ResourceData, meta inter
 
 	// First, try to fetch the contact point by name.
 	// If that fails, try to fetch it by the UID of its notifiers.
-	resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams().WithName(&name))
+	resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	points := resp.Payload
-	if len(points) == 0 && !strings.Contains(name, ":") {
+	var points []*models.EmbeddedContactPoint
+	for _, p := range resp.Payload {
+		if p.Name == name {
+			points = append(points, p)
+		}
+	}
+	if len(points) == 0 && !strings.Contains(data.Id(), ":") {
 		// If the contact point was not found by name, try to fetch it by UID.
 		// This is a deprecated ID format (uid;uid2;uid3)
 		// TODO: Remove on the next major version
