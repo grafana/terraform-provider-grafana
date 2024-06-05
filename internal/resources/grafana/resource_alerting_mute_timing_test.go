@@ -107,3 +107,59 @@ resource "grafana_mute_timing" "my_mute_timing" {
 		},
 	})
 }
+
+func TestAccMuteTiming_RemoveInUse(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">9.0.0")
+
+	config := func(mute bool) string {
+		return fmt.Sprintf(`
+		locals {
+			use_mute = %t
+		}
+		
+		resource "grafana_organization" "my_org" {
+			name = "mute-timing-test"
+		}
+		
+		resource "grafana_contact_point" "default_policy" {
+			org_id = grafana_organization.my_org.id
+			name   = "default-policy"
+			email {
+				addresses = ["test@example.com"]
+			}
+		}
+		
+		resource "grafana_notification_policy" "org_policy" {
+			org_id             = grafana_organization.my_org.id
+			group_by           = ["..."]
+			group_wait         = "45s"
+			group_interval     = "6m"
+			repeat_interval    = "3h"
+			contact_point      = grafana_contact_point.default_policy.name
+			
+			policy {
+				mute_timings = local.use_mute ? [grafana_mute_timing.test[0].name] : [] 
+				contact_point = grafana_contact_point.default_policy.name
+			}
+		}
+		
+		resource "grafana_mute_timing" "test" {
+			count = local.use_mute ? 1 : 0
+			org_id = grafana_organization.my_org.id
+			name = "test-mute-timing"
+			intervals {}
+		}`, mute)
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: config(true),
+			},
+			{
+				Config: config(false),
+			},
+		},
+	})
+}
