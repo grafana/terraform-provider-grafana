@@ -312,7 +312,7 @@ resource "grafana_folder" "test" {
 	title = "%[1]s-test"
 }
 
-resource "grafana_rule_group" "test" {
+resource "grafana_rule_group" "first" {
 	org_id = grafana_organization.test.id
 	name             = "%[1]s"
 	folder_uid       = grafana_folder.test.uid
@@ -342,7 +342,8 @@ resource "grafana_rule_group" "test" {
 	}
 }
 
-resource "grafana_rule_group" "test" {
+resource "grafana_rule_group" "second" {
+	depends_on = [ grafana_rule_group.first ]
 	org_id = grafana_organization.test.id
 	name             = "%[1]s"
 	folder_uid       = grafana_folder.test.uid
@@ -450,7 +451,7 @@ resource "grafana_rule_group" "first" {
 	}
 }
 				`, name),
-				ExpectError: regexp.MustCompile(`rule with name "My Alert Rule" is defined more than oncendnndndndn`),
+				ExpectError: regexp.MustCompile(`rule with name "My Alert Rule" is defined more than once`),
 			},
 		},
 	})
