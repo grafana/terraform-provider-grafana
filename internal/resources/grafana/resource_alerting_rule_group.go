@@ -351,6 +351,7 @@ func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta inte
 
 		for _, rule := range respAlertRules.Payload {
 			name := data.Get("name").(string)
+			folder := data.Get("folder").(string)
 			if *rule.RuleGroup == name && *rule.FolderUID == folder {
 				return diag.Errorf("rule group with name %q already exists", name)
 			}
