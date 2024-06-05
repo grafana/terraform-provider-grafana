@@ -24,15 +24,15 @@ func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.R
 	}
 }
 
-var DatasourcesMap = map[string]*schema.Resource{
-	"grafana_oncall_user":             dataSourceUser(),
-	"grafana_oncall_escalation_chain": dataSourceEscalationChain(),
-	"grafana_oncall_schedule":         dataSourceSchedule(),
-	"grafana_oncall_slack_channel":    dataSourceSlackChannel(),
-	"grafana_oncall_outgoing_webhook": dataSourceOutgoingWebhook(),
-	"grafana_oncall_user_group":       dataSourceUserGroup(),
-	"grafana_oncall_team":             dataSourceTeam(),
-	"grafana_oncall_integration":      dataSourceIntegration(),
+var DataSources = []*common.DataSource{
+	dataSourceUser(),
+	dataSourceEscalationChain(),
+	dataSourceSchedule(),
+	dataSourceSlackChannel(),
+	dataSourceOutgoingWebhook(),
+	dataSourceUserGroup(),
+	dataSourceTeam(),
+	dataSourceIntegration(),
 }
 
 var Resources = []*common.Resource{

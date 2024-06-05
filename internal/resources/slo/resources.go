@@ -21,8 +21,8 @@ func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.R
 	}
 }
 
-var DatasourcesMap = map[string]*schema.Resource{
-	"grafana_slos": datasourceSlo(),
+var DataSources = []*common.DataSource{
+	datasourceSlo(),
 }
 
 var Resources = []*common.Resource{

@@ -10,12 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/machinelearning"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/oncall"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/slo"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/syntheticmonitoring"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -137,16 +131,8 @@ func Provider(version string) *schema.Provider {
 			},
 		},
 
-		ResourcesMap: resourceMap(),
-
-		DataSourcesMap: mergeResourceMaps(
-			grafana.DatasourcesMap,
-			machinelearning.DatasourcesMap,
-			slo.DatasourcesMap,
-			syntheticmonitoring.DatasourcesMap,
-			oncall.DatasourcesMap,
-			cloud.DatasourcesMap,
-		),
+		ResourcesMap:   legacySDKResources(),
+		DataSourcesMap: legacySDKDataSources(),
 	}
 
 	p.ConfigureContextFunc = configure(version, p)

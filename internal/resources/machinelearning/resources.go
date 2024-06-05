@@ -18,7 +18,7 @@ func checkClient(f func(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 }
 
-var DatasourcesMap = map[string]*schema.Resource{}
+var DataSources = []*common.DataSource{}
 
 var Resources = []*common.Resource{
 	resourceJob(),

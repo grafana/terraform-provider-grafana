@@ -6,12 +6,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceOrganization() *schema.Resource {
-	return &schema.Resource{
+func datasourceOrganization() *common.DataSource {
+	schema := &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/organization-management/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/org/)
@@ -49,6 +50,7 @@ func datasourceOrganization() *schema.Resource {
 			},
 		},
 	}
+	return common.NewLegacySDKDataSource("grafana_organization", schema)
 }
 
 func dataSourceOrganizationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

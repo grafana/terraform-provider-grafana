@@ -5,12 +5,13 @@ import (
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func dataSourceIntegration() *schema.Resource {
-	return &schema.Resource{
+func dataSourceIntegration() *common.DataSource {
+	schema := &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/integrations/)
 `,
@@ -28,6 +29,7 @@ func dataSourceIntegration() *schema.Resource {
 			},
 		},
 	}
+	return common.NewLegacySDKDataSource("grafana_oncall_integration", schema)
 }
 
 func dataSourceIntegrationRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
