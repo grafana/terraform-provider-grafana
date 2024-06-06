@@ -36,6 +36,7 @@ require (
 	github.com/zclconf/go-cty v1.14.4
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
 	golang.org/x/text v0.16.0
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
@@ -122,7 +123,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240304161311-37d4d3c04a78 // indirect
 	google.golang.org/grpc v1.63.2 // indirect
 	google.golang.org/protobuf v1.34.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

@@ -2,7 +2,6 @@ package generate
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -86,7 +85,7 @@ func Generate(ctx context.Context, cfg *Config) error {
 		return convertToTFJSON(cfg.OutputDir)
 	}
 	if cfg.Format == OutputFormatCrossplane {
-		return errors.New("crossplane output format is not yet supported")
+		return convertToCrossplane(cfg)
 	}
 
 	return nil
