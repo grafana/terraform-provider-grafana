@@ -1,1 +1,3 @@
 * @grafana/terraform-provider
+
+/internal/resources/grafana/resource_alerting_* @grafana/terraform-provider @grafana/alerting-backend
