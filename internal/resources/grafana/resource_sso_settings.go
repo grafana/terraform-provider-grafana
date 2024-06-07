@@ -409,6 +409,11 @@ var samlSettingsSchema = &schema.Resource{
 			Optional:    true,
 			Description: "List of comma- or space-separated roles which will be mapped into the None role.",
 		},
+		"role_values_viewer": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "List of comma- or space-separated roles which will be mapped into the Viewer role.",
+		},
 		"role_values_editor": {
 			Type:        schema.TypeString,
 			Optional:    true,

@@ -164,6 +164,7 @@ Optional:
 - `role_values_editor` (String) List of comma- or space-separated roles which will be mapped into the Editor role.
 - `role_values_grafana_admin` (String) List of comma- or space-separated roles which will be mapped into the Grafana Admin (Super Admin) role.
 - `role_values_none` (String) List of comma- or space-separated roles which will be mapped into the None role.
+- `role_values_viewer` (String) List of comma- or space-separated roles which will be mapped into the Viewer role.
 - `signature_algorithm` (String) Signature algorithm used for signing requests to the IdP. Supported values are rsa-sha1, rsa-sha256, rsa-sha512.
 - `single_logout` (Boolean) Whether SAML Single Logout is enabled.
 - `skip_org_role_sync` (Boolean) Prevent synchronizing users’ organization roles from your IdP.

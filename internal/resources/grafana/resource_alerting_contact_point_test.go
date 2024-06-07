@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/stretchr/testify/require"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 )
@@ -477,6 +478,53 @@ func TestAccContactPoint_inOrg(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					orgCheckExists.exists("grafana_organization.test", &org),
 					alertingContactPointCheckExists.destroyed(&points, nil),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContactPoint_recreate(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	var points models.ContactPoints
+	name := acctest.RandString(10)
+	config := testutils.TestAccExampleWithReplace(t, "resources/grafana_contact_point/resource.tf", map[string]string{
+		"My Contact Point": name,
+	})
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			// Creation
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.my_contact_point", &points, 1),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "name", name),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.#", "1"),
+				),
+			},
+			// Delete the contact point and check that it is missing
+			{
+				PreConfig: func() {
+					client := grafanaTestClient()
+					for _, point := range points {
+						_, err := client.Provisioning.DeleteContactpoints(point.UID)
+						require.NoError(t, err)
+					}
+				},
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+			// Recreate the contact point
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.my_contact_point", &points, 1),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "name", name),
+					resource.TestCheckResourceAttr("grafana_contact_point.my_contact_point", "email.#", "1"),
 				),
 			},
 		},

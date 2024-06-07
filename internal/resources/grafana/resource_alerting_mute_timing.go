@@ -198,10 +198,24 @@ func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 		params.SetXDisableProvenance(&provenanceDisabled)
 	}
 
-	resp, err := client.Provisioning.PostMuteTiming(params)
+	var resp *provisioning.PostMuteTimingCreated
+	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		var postErr error
+		resp, postErr = client.Provisioning.PostMuteTiming(params)
+		if orgID > 1 && postErr != nil {
+			if apiError, ok := postErr.(*runtime.APIError); ok && (apiError.IsCode(500) || apiError.IsCode(404)) {
+				return retry.RetryableError(postErr)
+			}
+		}
+		if postErr != nil {
+			return retry.NonRetryableError(postErr)
+		}
+		return nil
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	data.SetId(MakeOrgResourceID(orgID, resp.Payload.Name))
 	return readMuteTiming(ctx, data, meta)
 }
@@ -231,9 +245,42 @@ func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	_, err := client.Provisioning.DeleteMuteTiming(name)
+	// Remove the mute timing from all notification policies
+	policyResp, err := client.Provisioning.GetPolicyTree()
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	policy := policyResp.Payload
+	modified := false
+	policy, modified = removeMuteTimingFromRoute(name, policy)
+	if modified {
+		_, err = client.Provisioning.PutPolicyTree(provisioning.NewPutPolicyTreeParams().WithBody(policy))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	_, err = client.Provisioning.DeleteMuteTiming(name)
 	diag, _ := common.CheckReadError("mute timing", data, err)
 	return diag
+}
+
+func removeMuteTimingFromRoute(name string, route *models.Route) (*models.Route, bool) {
+	modified := false
+	for i, m := range route.MuteTimeIntervals {
+		if m == name {
+			route.MuteTimeIntervals = append(route.MuteTimeIntervals[:i], route.MuteTimeIntervals[i+1:]...)
+			modified = true
+			break
+		}
+	}
+	for j, p := range route.Routes {
+		var subRouteModified bool
+		route.Routes[j], subRouteModified = removeMuteTimingFromRoute(name, p)
+		modified = modified || subRouteModified
+	}
+
+	return route, modified
 }
 
 func suppressMonthDiff(k, oldValue, newValue string, d *schema.ResourceData) bool {
