@@ -298,11 +298,10 @@ func listRuleGroups(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *Lis
 func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID, idWithoutOrg := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	split, err := resourceRuleGroupID.Split(idWithoutOrg)
-	if err != nil {
-		return diag.FromErr(err)
+	folderUID, title, found := strings.Cut(idWithoutOrg, common.ResourceIDSeparator)
+	if !found {
+		return diag.Errorf("invalid ID %q", idWithoutOrg)
 	}
-	folderUID, title := split[0].(string), split[1].(string)
 
 	resp, err := client.Provisioning.GetAlertRuleGroup(title, folderUID)
 	if err, shouldReturn := common.CheckReadError("rule group", data, err); shouldReturn {
@@ -413,11 +412,11 @@ func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta inte
 func deleteAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, idWithoutOrg := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	split, err := resourceRuleGroupID.Split(idWithoutOrg)
-	if err != nil {
-		return diag.FromErr(err)
+	folderUID, title, found := strings.Cut(idWithoutOrg, common.ResourceIDSeparator)
+	if !found {
+		return diag.Errorf("invalid ID %q", idWithoutOrg)
 	}
-	folderUID, title := split[0].(string), split[1].(string)
+
 	// TODO use DeleteAlertRuleGroup method instead (available since Grafana 11)
 	resp, err := client.Provisioning.GetAlertRuleGroup(title, folderUID)
 	if err != nil {
