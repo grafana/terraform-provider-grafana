@@ -271,7 +271,7 @@ func TestAccAlertRule_inOrg(t *testing.T) {
 
 	var group models.AlertRuleGroup
 	var org models.OrgDetailsDTO
-	name := acctest.RandString(10)
+	name := "test:" + acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,

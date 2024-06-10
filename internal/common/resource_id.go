@@ -10,7 +10,7 @@ import (
 type ResourceIDFieldType string
 
 const (
-	defaultSeparator          = ":"
+	ResourceIDSeparator       = ":"
 	ResourceIDFieldTypeInt    = ResourceIDFieldType("int")
 	ResourceIDFieldTypeString = ResourceIDFieldType("string")
 )
@@ -71,14 +71,14 @@ func (id *ResourceID) RequiredFields() []ResourceIDField {
 }
 
 func NewResourceID(expectedFields ...ResourceIDField) *ResourceID {
-	return newResourceIDWithSeparators([]string{defaultSeparator}, expectedFields...)
+	return newResourceIDWithSeparators([]string{ResourceIDSeparator}, expectedFields...)
 }
 
 // Deprecated: Use NewResourceID instead
 // We should standardize on a single separator, so that function should only be used for old resources
 // On major versions, switch to NewResourceID and remove uses of this function
 func NewResourceIDWithLegacySeparator(legacySeparator string, expectedFields ...ResourceIDField) *ResourceID {
-	return newResourceIDWithSeparators([]string{defaultSeparator, legacySeparator}, expectedFields...)
+	return newResourceIDWithSeparators([]string{ResourceIDSeparator, legacySeparator}, expectedFields...)
 }
 
 func newResourceIDWithSeparators(separators []string, expectedFields ...ResourceIDField) *ResourceID {
@@ -118,7 +118,7 @@ func (id *ResourceID) Make(parts ...any) string {
 		}
 	}
 
-	return strings.Join(stringParts, defaultSeparator)
+	return strings.Join(stringParts, ResourceIDSeparator)
 }
 
 // Single parses a resource ID into a single value
@@ -181,5 +181,5 @@ func split(resourceID string, expectedFields []ResourceIDField, separators []str
 	for i, f := range expectedFields {
 		expectedFieldNames[i] = f.Name
 	}
-	return nil, fmt.Errorf("id %q does not match expected format. Should be in the format: %s", resourceID, strings.Join(expectedFieldNames, defaultSeparator))
+	return nil, fmt.Errorf("id %q does not match expected format. Should be in the format: %s", resourceID, strings.Join(expectedFieldNames, ResourceIDSeparator))
 }
