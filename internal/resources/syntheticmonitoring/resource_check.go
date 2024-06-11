@@ -745,6 +745,7 @@ multiple checks for a single endpoint to check different capabilities.
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategorySyntheticMonitoring,
 		"grafana_synthetic_monitoring_check",
 		resourceCheckID,
 		schema,

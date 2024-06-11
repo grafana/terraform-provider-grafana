@@ -28,7 +28,7 @@ func datasourceFolder() *common.DataSource {
 			"prevent_destroy_if_not_empty": nil,
 		}),
 	}
-	return common.NewLegacySDKDataSource("grafana_folder", schema)
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_folder", schema)
 }
 
 func findFolderWithTitle(client *goapi.GrafanaHTTPAPI, title string) (string, error) {

@@ -41,6 +41,7 @@ Manages the entire set of permissions for a dashboard. Permissions that aren't s
 	crudHelper.addCommonSchemaAttributes(schema.Schema)
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_dashboard_permission",
 		orgResourceIDString("dashboardUID"),
 		schema,

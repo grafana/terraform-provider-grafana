@@ -145,6 +145,7 @@ set to true. This feature is only available in Grafana 10.2+.
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_organization",
 		common.NewResourceID(common.IntIDField("id")),
 		schema,

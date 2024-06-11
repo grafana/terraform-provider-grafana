@@ -28,7 +28,7 @@ func datasourceServiceAccount() *common.DataSource {
 			},
 		}),
 	}
-	return common.NewLegacySDKDataSource("grafana_service_account", schema)
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_service_account", schema)
 }
 
 func datasourceServiceAccountRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

@@ -74,7 +74,7 @@ func datasourceDashboard() *common.DataSource {
 			},
 		},
 	}
-	return common.NewLegacySDKDataSource("grafana_dashboard", schema)
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_dashboard", schema)
 }
 
 func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

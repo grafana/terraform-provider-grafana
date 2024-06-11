@@ -58,7 +58,7 @@ func datasourceIPs() *common.DataSource {
 			},
 		},
 	}
-	return common.NewLegacySDKDataSource("grafana_cloud_ips", schema)
+	return common.NewLegacySDKDataSource(common.CategoryCloud, "grafana_cloud_ips", schema)
 }
 
 func datasourceIPsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

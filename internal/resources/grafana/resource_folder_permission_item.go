@@ -26,7 +26,12 @@ func makeResourceFolderPermissionItem() *common.Resource {
 			resourceType: foldersPermissionsType,
 		},
 	}
-	return common.NewResource(resourceFolderPermissionItemName, resourceFolderPermissionItemID, resourceStruct)
+	return common.NewResource(
+		common.CategoryGrafanaOSS,
+		resourceFolderPermissionItemName,
+		resourceFolderPermissionItemID,
+		resourceStruct,
+	)
 }
 
 type resourceFolderPermissionItemModel struct {

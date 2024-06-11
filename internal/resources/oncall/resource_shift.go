@@ -183,6 +183,7 @@ func resourceOnCallShift() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryOnCall,
 		"grafana_oncall_on_call_shift",
 		resourceID,
 		schema,

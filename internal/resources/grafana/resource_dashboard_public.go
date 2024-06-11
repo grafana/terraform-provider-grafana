@@ -84,6 +84,7 @@ Manages Grafana public dashboards.
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_dashboard_public",
 		resourcePublicDashboardID,
 		schema,

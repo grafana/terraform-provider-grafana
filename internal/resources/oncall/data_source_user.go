@@ -33,7 +33,7 @@ func dataSourceUser() *common.DataSource {
 			},
 		},
 	}
-	return common.NewLegacySDKDataSource("grafana_oncall_user", schema)
+	return common.NewLegacySDKDataSource(common.CategoryOnCall, "grafana_oncall_user", schema)
 }
 
 func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {

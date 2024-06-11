@@ -36,7 +36,7 @@ Datasource for retrieving all SLOs.
 			},
 		},
 	}
-	return common.NewLegacySDKDataSource("grafana_slos", schema)
+	return common.NewLegacySDKDataSource(common.CategorySLO, "grafana_slos", schema)
 }
 
 // Function sends a GET request to the SLO API Endpoint which returns a list of all SLOs

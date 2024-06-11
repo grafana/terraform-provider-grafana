@@ -10,10 +10,23 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+type ResourceCategory string
+
+var (
+	CategoryAlerting            ResourceCategory = "Alerting"
+	CategoryCloud               ResourceCategory = "Cloud"
+	CategoryGrafanaEnterprise   ResourceCategory = "Grafana Enterprise"
+	CategoryGrafanaOSS          ResourceCategory = "Grafana OSS"
+	CategoryMachineLearning     ResourceCategory = "Machine Learning"
+	CategoryOnCall              ResourceCategory = "OnCall"
+	CategorySLO                 ResourceCategory = "SLO"
+	CategorySyntheticMonitoring ResourceCategory = "Synthetic Monitoring"
+)
+
 type ResourceCommon struct {
-	Name   string
-	Schema *schema.Resource // Legacy SDKv2 schema
-	// Category string // TODO
+	Name     string
+	Schema   *schema.Resource // Legacy SDKv2 schema
+	Category ResourceCategory
 }
 
 // DataSource represents a Terraform data source, implemented either with the SDKv2 or Terraform Plugin Framework.
@@ -22,20 +35,22 @@ type DataSource struct {
 	PluginFrameworkSchema datasource.DataSourceWithConfigure
 }
 
-func NewLegacySDKDataSource(name string, schema *schema.Resource) *DataSource {
+func NewLegacySDKDataSource(category ResourceCategory, name string, schema *schema.Resource) *DataSource {
 	d := &DataSource{
 		ResourceCommon: ResourceCommon{
-			Name:   name,
-			Schema: schema,
+			Name:     name,
+			Schema:   schema,
+			Category: category,
 		},
 	}
 	return d
 }
 
-func NewDataSource(name string, schema datasource.DataSourceWithConfigure) *DataSource {
+func NewDataSource(category ResourceCategory, name string, schema datasource.DataSourceWithConfigure) *DataSource {
 	d := &DataSource{
 		ResourceCommon: ResourceCommon{
-			Name: name,
+			Name:     name,
+			Category: category,
 		},
 		PluginFrameworkSchema: schema,
 	}
@@ -55,21 +70,23 @@ type Resource struct {
 	PluginFrameworkSchema resource.ResourceWithConfigure
 }
 
-func NewLegacySDKResource(name string, idType *ResourceID, schema *schema.Resource) *Resource {
+func NewLegacySDKResource(category ResourceCategory, name string, idType *ResourceID, schema *schema.Resource) *Resource {
 	r := &Resource{
 		ResourceCommon: ResourceCommon{
-			Name:   name,
-			Schema: schema,
+			Name:     name,
+			Schema:   schema,
+			Category: category,
 		},
 		IDType: idType,
 	}
 	return r
 }
 
-func NewResource(name string, idType *ResourceID, schema resource.ResourceWithConfigure) *Resource {
+func NewResource(category ResourceCategory, name string, idType *ResourceID, schema resource.ResourceWithConfigure) *Resource {
 	r := &Resource{
 		ResourceCommon: ResourceCommon{
-			Name: name,
+			Name:     name,
+			Category: category,
 		},
 		IDType:                idType,
 		PluginFrameworkSchema: schema,

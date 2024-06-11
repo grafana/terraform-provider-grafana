@@ -99,7 +99,12 @@ A job defines the queries and model parameters for a machine learning task.
 		},
 	}
 
-	return common.NewLegacySDKResource("grafana_machine_learning_job", resourceJobID, schema)
+	return common.NewLegacySDKResource(
+		common.CategoryMachineLearning,
+		"grafana_machine_learning_job",
+		resourceJobID,
+		schema,
+	)
 }
 
 func resourceJobCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

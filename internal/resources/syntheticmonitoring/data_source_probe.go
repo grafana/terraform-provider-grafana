@@ -25,7 +25,7 @@ func dataSourceProbe() *common.DataSource {
 			"auth_token": nil,
 		}),
 	}
-	return common.NewLegacySDKDataSource("grafana_synthetic_monitoring_probe", schema)
+	return common.NewLegacySDKDataSource(common.CategorySyntheticMonitoring, "grafana_synthetic_monitoring_probe", schema)
 }
 
 func dataSourceProbeRead(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {

@@ -31,7 +31,7 @@ func datasourceDatasource() *common.DataSource {
 			"http_headers":             nil,
 		}),
 	}
-	return common.NewLegacySDKDataSource("grafana_data_source", schema)
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_data_source", schema)
 }
 
 func datasourceDatasourceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

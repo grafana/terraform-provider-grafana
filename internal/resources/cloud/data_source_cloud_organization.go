@@ -42,7 +42,7 @@ func datasourceOrganization() *common.DataSource {
 			},
 		},
 	}
-	return common.NewLegacySDKDataSource("grafana_cloud_organization", schema)
+	return common.NewLegacySDKDataSource(common.CategoryCloud, "grafana_cloud_organization", schema)
 }
 
 func datasourceOrganizationRead(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {

@@ -104,6 +104,7 @@ func resourceOutgoingWebhook() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryOnCall,
 		"grafana_oncall_outgoing_webhook",
 		resourceID,
 		schema,

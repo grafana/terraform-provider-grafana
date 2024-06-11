@@ -26,7 +26,7 @@ func datasourceLibraryPanel() *common.DataSource {
 			},
 		}),
 	}
-	return common.NewLegacySDKDataSource("grafana_library_panel", schema)
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_library_panel", schema)
 }
 
 func dataSourceLibraryPanelRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

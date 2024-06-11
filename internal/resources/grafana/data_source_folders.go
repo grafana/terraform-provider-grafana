@@ -55,7 +55,7 @@ func datasourceFolders() *common.DataSource {
 			},
 		},
 	}
-	return common.NewLegacySDKDataSource("grafana_folders", schema)
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_folders", schema)
 }
 
 func readFolders(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

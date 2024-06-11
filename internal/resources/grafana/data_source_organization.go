@@ -50,7 +50,7 @@ func datasourceOrganization() *common.DataSource {
 			},
 		},
 	}
-	return common.NewLegacySDKDataSource("grafana_organization", schema)
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_organization", schema)
 }
 
 func dataSourceOrganizationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

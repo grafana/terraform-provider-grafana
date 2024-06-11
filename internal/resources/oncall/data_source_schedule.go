@@ -29,7 +29,7 @@ func dataSourceSchedule() *common.DataSource {
 			},
 		},
 	}
-	return common.NewLegacySDKDataSource("grafana_oncall_schedule", schema)
+	return common.NewLegacySDKDataSource(common.CategoryOnCall, "grafana_oncall_schedule", schema)
 }
 
 func dataSourceScheduleRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {

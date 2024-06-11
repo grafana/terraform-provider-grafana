@@ -102,6 +102,7 @@ func resourceSchedule() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryOnCall,
 		"grafana_oncall_schedule",
 		resourceID,
 		schema,

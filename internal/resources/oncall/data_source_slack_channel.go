@@ -28,7 +28,7 @@ func dataSourceSlackChannel() *common.DataSource {
 			},
 		},
 	}
-	return common.NewLegacySDKDataSource("grafana_oncall_slack_channel", schema)
+	return common.NewLegacySDKDataSource(common.CategoryOnCall, "grafana_oncall_slack_channel", schema)
 }
 
 func dataSourceSlackChannelRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {

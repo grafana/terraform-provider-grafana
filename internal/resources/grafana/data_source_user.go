@@ -51,7 +51,7 @@ does not currently work with API Tokens. You must use basic auth.
 			},
 		},
 	}
-	return common.NewLegacySDKDataSource("grafana_user", schema)
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_user", schema)
 }
 
 func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

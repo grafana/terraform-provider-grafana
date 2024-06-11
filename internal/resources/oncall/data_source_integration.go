@@ -29,7 +29,7 @@ func dataSourceIntegration() *common.DataSource {
 			},
 		},
 	}
-	return common.NewLegacySDKDataSource("grafana_oncall_integration", schema)
+	return common.NewLegacySDKDataSource(common.CategoryOnCall, "grafana_oncall_integration", schema)
 }
 
 func dataSourceIntegrationRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {

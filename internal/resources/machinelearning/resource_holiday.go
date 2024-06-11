@@ -104,7 +104,12 @@ resource "grafana_machine_learning_job" "test_job" {
 		},
 	}
 
-	return common.NewLegacySDKResource("grafana_machine_learning_holiday", resourceHolidayID, schema)
+	return common.NewLegacySDKResource(
+		common.CategoryMachineLearning,
+		"grafana_machine_learning_holiday",
+		resourceHolidayID,
+		schema,
+	)
 }
 
 func resourceHolidayCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

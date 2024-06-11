@@ -28,7 +28,12 @@ var (
 )
 
 func makeResourceRoleAssignmentItem() *common.Resource {
-	return common.NewResource(resourceRoleAssignmentItemName, resourceRoleAssignmentItemID, &resourceRoleAssignmentItem{})
+	return common.NewResource(
+		common.CategoryGrafanaEnterprise,
+		resourceRoleAssignmentItemName,
+		resourceRoleAssignmentItemID,
+		&resourceRoleAssignmentItem{},
+	)
 }
 
 type resourceRoleAssignmentItemModel struct {

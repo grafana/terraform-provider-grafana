@@ -30,7 +30,7 @@ available at “https://<stack_slug>.grafana.net".`,
 			"wait_for_readiness_timeout": nil,
 		}),
 	}
-	return common.NewLegacySDKDataSource("grafana_cloud_stack", schema)
+	return common.NewLegacySDKDataSource(common.CategoryCloud, "grafana_cloud_stack", schema)
 }
 
 func datasourceStackRead(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {

@@ -73,6 +73,7 @@ func resourcePlaylist() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_playlist",
 		orgResourceIDString("uid"),
 		schema,

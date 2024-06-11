@@ -236,6 +236,7 @@ func resourceIntegration() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryOnCall,
 		"grafana_oncall_integration",
 		resourceID,
 		schema,
