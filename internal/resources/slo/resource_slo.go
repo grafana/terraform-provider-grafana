@@ -592,8 +592,7 @@ func packAlertMetadata(metadata []interface{}) slo.SloV00AlertingMetadata {
 
 func setTerraformState(d *schema.ResourceData, slo slo.SloV00Slo) error {
 	// After CREATE / UPDATE - the modified SLO is readback. Verify that the Provenance field is appropriately set
-	var terraform string
-	if slo.ReadOnly.Provenance != &terraform {
+	if *slo.ReadOnly.Provenance != "terraform" {
 		return errors.New(`provenance header missing - verify within the Grafana Terraform Provider that the 'Grafana-Terraform-Provider' request header is set to 'true'`)
 	}
 
