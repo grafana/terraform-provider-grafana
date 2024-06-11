@@ -2,6 +2,7 @@ package slo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 
@@ -593,7 +594,7 @@ func setTerraformState(d *schema.ResourceData, slo slo.SloV00Slo) error {
 	// After CREATE / UPDATE - the modified SLO is readback. Verify that the Provenance field is appropriately set
 	var terraform string
 	if slo.ReadOnly.Provenance != &terraform {
-		return fmt.Errorf(`Provenance header missing. Verify within the Grafana Terraform Provider that the 'Grafana-Terraform-Provider' request header is set to 'true'`)
+		return errors.New(`provenance header missing - verify within the Grafana Terraform Provider that the 'Grafana-Terraform-Provider' request header is set to 'true'`)
 	}
 
 	d.Set("name", slo.Name)
