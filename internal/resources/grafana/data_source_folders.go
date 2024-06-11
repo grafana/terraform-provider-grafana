@@ -10,8 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceFolders() *schema.Resource {
-	return &schema.Resource{
+func datasourceFolders() *common.DataSource {
+	schema := &schema.Resource{
 		ReadContext: readFolders,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -55,6 +55,7 @@ func datasourceFolders() *schema.Resource {
 			},
 		},
 	}
+	return common.NewLegacySDKDataSource("grafana_folders", schema)
 }
 
 func readFolders(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

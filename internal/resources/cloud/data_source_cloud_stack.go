@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceStack() *schema.Resource {
-	return &schema.Resource{
+func datasourceStack() *common.DataSource {
+	schema := &schema.Resource{
 		Description: "Data source for Grafana Stack",
 		ReadContext: withClient[schema.ReadContextFunc](datasourceStackRead),
 		Schema: common.CloneResourceSchemaForDatasource(resourceStack().Schema, map[string]*schema.Schema{
@@ -30,6 +30,7 @@ available at “https://<stack_slug>.grafana.net".`,
 			"wait_for_readiness_timeout": nil,
 		}),
 	}
+	return common.NewLegacySDKDataSource("grafana_cloud_stack", schema)
 }
 
 func datasourceStackRead(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {

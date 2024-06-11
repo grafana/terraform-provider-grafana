@@ -4,12 +4,13 @@ import (
 	"context"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func dataSourceSchedule() *schema.Resource {
-	return &schema.Resource{
+func dataSourceSchedule() *common.DataSource {
+	schema := &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/oncall/latest/manage/on-call-schedules/)
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/schedules/)
@@ -28,6 +29,7 @@ func dataSourceSchedule() *schema.Resource {
 			},
 		},
 	}
+	return common.NewLegacySDKDataSource("grafana_oncall_schedule", schema)
 }
 
 func dataSourceScheduleRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {

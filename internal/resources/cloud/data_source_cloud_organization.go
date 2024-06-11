@@ -5,12 +5,13 @@ import (
 	"strconv"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceOrganization() *schema.Resource {
-	return &schema.Resource{
+func datasourceOrganization() *common.DataSource {
+	schema := &schema.Resource{
 		ReadContext: withClient[schema.ReadContextFunc](datasourceOrganizationRead),
 		Schema: map[string]*schema.Schema{
 			"id": {
@@ -41,6 +42,7 @@ func datasourceOrganization() *schema.Resource {
 			},
 		},
 	}
+	return common.NewLegacySDKDataSource("grafana_cloud_organization", schema)
 }
 
 func datasourceOrganizationRead(ctx context.Context, d *schema.ResourceData, client *gcom.APIClient) diag.Diagnostics {

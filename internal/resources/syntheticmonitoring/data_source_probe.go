@@ -12,8 +12,8 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 )
 
-func dataSourceProbe() *schema.Resource {
-	return &schema.Resource{
+func dataSourceProbe() *common.DataSource {
+	schema := &schema.Resource{
 		Description: "Data source for retrieving a single probe by name.",
 		ReadContext: withClient[schema.ReadContextFunc](dataSourceProbeRead),
 		Schema: common.CloneResourceSchemaForDatasource(resourceProbe().Schema, map[string]*schema.Schema{
@@ -25,6 +25,7 @@ func dataSourceProbe() *schema.Resource {
 			"auth_token": nil,
 		}),
 	}
+	return common.NewLegacySDKDataSource("grafana_synthetic_monitoring_probe", schema)
 }
 
 func dataSourceProbeRead(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {

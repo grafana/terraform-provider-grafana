@@ -4,12 +4,13 @@ import (
 	"context"
 
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func dataSourceProbes() *schema.Resource {
-	return &schema.Resource{
+func dataSourceProbes() *common.DataSource {
+	schema := &schema.Resource{
 		Description: "Data source for retrieving all probes.",
 		ReadContext: withClient[schema.ReadContextFunc](dataSourceProbesRead),
 		Schema: map[string]*schema.Schema{
@@ -29,6 +30,7 @@ func dataSourceProbes() *schema.Resource {
 			},
 		},
 	}
+	return common.NewLegacySDKDataSource("grafana_synthetic_monitoring_probes", schema)
 }
 
 func dataSourceProbesRead(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {

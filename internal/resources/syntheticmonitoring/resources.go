@@ -21,9 +21,9 @@ func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.R
 	}
 }
 
-var DatasourcesMap = map[string]*schema.Resource{
-	"grafana_synthetic_monitoring_probe":  dataSourceProbe(),
-	"grafana_synthetic_monitoring_probes": dataSourceProbes(),
+var DataSources = []*common.DataSource{
+	dataSourceProbe(),
+	dataSourceProbes(),
 }
 
 var Resources = []*common.Resource{

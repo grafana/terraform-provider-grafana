@@ -70,37 +70,37 @@ func addValidationToSchema(r *schema.Resource) {
 	}
 }
 
-func addValidationToMap(resources map[string]*schema.Resource) map[string]*schema.Resource {
-	for _, r := range resources {
-		addValidationToSchema(r)
+func addValidationToDataSources(dataSources ...*common.DataSource) []*common.DataSource {
+	for _, d := range dataSources {
+		addValidationToSchema(d.Schema)
 	}
-	return resources
+	return dataSources
 }
 
-func addValidationToList(resources []*common.Resource) []*common.Resource {
+func addValidationToResources(resources ...*common.Resource) []*common.Resource {
 	for _, r := range resources {
 		addValidationToSchema(r.Schema)
 	}
 	return resources
 }
 
-var DatasourcesMap = addValidationToMap(map[string]*schema.Resource{
-	"grafana_dashboard":                datasourceDashboard(),
-	"grafana_dashboards":               datasourceDashboards(),
-	"grafana_data_source":              datasourceDatasource(),
-	"grafana_folder":                   datasourceFolder(),
-	"grafana_folders":                  datasourceFolders(),
-	"grafana_library_panel":            datasourceLibraryPanel(),
-	"grafana_user":                     datasourceUser(),
-	"grafana_users":                    datasourceUsers(),
-	"grafana_role":                     datasourceRole(),
-	"grafana_service_account":          datasourceServiceAccount(),
-	"grafana_team":                     datasourceTeam(),
-	"grafana_organization":             datasourceOrganization(),
-	"grafana_organization_preferences": datasourceOrganizationPreferences(),
-})
+var DataSources = addValidationToDataSources(
+	datasourceDashboard(),
+	datasourceDashboards(),
+	datasourceDatasource(),
+	datasourceFolder(),
+	datasourceFolders(),
+	datasourceLibraryPanel(),
+	datasourceUser(),
+	datasourceUsers(),
+	datasourceRole(),
+	datasourceServiceAccount(),
+	datasourceTeam(),
+	datasourceOrganization(),
+	datasourceOrganizationPreferences(),
+)
 
-var Resources = addValidationToList([]*common.Resource{
+var Resources = addValidationToResources(
 	makeResourceFolderPermissionItem(),
 	makeResourceDashboardPermissionItem(),
 	makeResourceDatasourcePermissionItem(),
@@ -134,4 +134,4 @@ var Resources = addValidationToList([]*common.Resource{
 	resourceServiceAccountPermission(),
 	resourceSSOSettings(),
 	resourceUser(),
-})
+)
