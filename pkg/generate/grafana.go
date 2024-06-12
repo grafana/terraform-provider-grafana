@@ -29,6 +29,14 @@ func generateGrafanaResources(ctx context.Context, cfg *Config, stack stack, gen
 		providerBlock := hclwrite.NewBlock("provider", []string{"grafana"})
 		providerBlock.Body().SetAttributeValue("url", cty.StringVal(stack.url))
 		providerBlock.Body().SetAttributeValue("auth", cty.StringVal(stack.managementKey))
+		if stack.smToken != "" && stack.smURL != "" {
+			providerBlock.Body().SetAttributeValue("sm_url", cty.StringVal(stack.smURL))
+			providerBlock.Body().SetAttributeValue("sm_access_token", cty.StringVal(stack.smToken))
+		}
+		if stack.onCallToken != "" && stack.onCallURL != "" {
+			providerBlock.Body().SetAttributeValue("oncall_url", cty.StringVal(stack.onCallURL))
+			providerBlock.Body().SetAttributeValue("oncall_access_token", cty.StringVal(stack.onCallToken))
+		}
 		if stack.name != "" {
 			providerBlock.Body().SetAttributeValue("alias", cty.StringVal(stack.name))
 		}
