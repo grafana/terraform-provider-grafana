@@ -22,6 +22,13 @@ var (
 )
 
 func Generate(ctx context.Context, cfg *Config) error {
+	var err error
+	if !filepath.IsAbs(cfg.OutputDir) {
+		if cfg.OutputDir, err = filepath.Abs(cfg.OutputDir); err != nil {
+			return fmt.Errorf("failed to get absolute path for %s: %w", cfg.OutputDir, err)
+		}
+	}
+
 	if _, err := os.Stat(cfg.OutputDir); err == nil && cfg.Clobber {
 		log.Printf("Deleting all files in %s", cfg.OutputDir)
 		if err := os.RemoveAll(cfg.OutputDir); err != nil {
