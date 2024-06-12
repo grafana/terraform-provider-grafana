@@ -2,6 +2,8 @@ package syntheticmonitoring_test
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"testing"
@@ -11,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAccResourceCheck_dns(t *testing.T) {
@@ -368,10 +371,17 @@ func TestAccResourceCheck_multihttp(t *testing.T) {
 func TestAccResourceCheck_scripted(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
+	// Find and replace the path.module since it's not available in the test environment
+	scriptFilepathAbs, err := filepath.Abs("../../../examples/resources/grafana_synthetic_monitoring_check")
+	require.NoError(t, err)
+	scriptFileContent, err := os.ReadFile(filepath.Join(scriptFilepathAbs, "script.js"))
+	require.NoError(t, err)
+
 	// Inject random job names to avoid conflicts with other tests
 	jobName := acctest.RandomWithPrefix("scripted")
 	nameReplaceMap := map[string]string{
-		`"Scripted defaults"`: strconv.Quote(jobName),
+		`"Validate homepage"`: strconv.Quote(jobName),
+		"${path.module}":      scriptFilepathAbs,
 	}
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
@@ -382,11 +392,11 @@ func TestAccResourceCheck_scripted(t *testing.T) {
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.scripted", "id"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.scripted", "tenant_id"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "job", jobName),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "target", "scripted target"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "target", "https://grafana.com/"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "timeout", "5000"), // scripted has a default timeout of 5000
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.scripted", "probes.0"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "labels.foo", "bar"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "settings.0.scripted.0.script", "console.log('Hello, world!')"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "labels.environment", "production"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "settings.0.scripted.0.script", string(scriptFileContent)),
 				),
 			},
 			{
