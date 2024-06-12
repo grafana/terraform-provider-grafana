@@ -13,12 +13,12 @@ const (
 var OutputFormats = []OutputFormat{OutputFormatJSON, OutputFormatHCL, OutputFormatCrossplane}
 
 type GrafanaConfig struct {
-	URL           string
-	Auth          string
-	SMURL         string
-	SMAccessToken string
-	OnCallURL     string
-	OnCallToken   string
+	URL               string
+	Auth              string
+	SMURL             string
+	SMAccessToken     string
+	OnCallURL         string
+	OnCallAccessToken string
 }
 
 type CloudConfig struct {

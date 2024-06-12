@@ -82,7 +82,7 @@ func Generate(ctx context.Context, cfg *Config) error {
 			url:           cfg.Grafana.URL,
 			smToken:       cfg.Grafana.SMAccessToken,
 			smURL:         cfg.Grafana.SMURL,
-			onCallToken:   cfg.Grafana.OnCallToken,
+			onCallToken:   cfg.Grafana.OnCallAccessToken,
 			onCallURL:     cfg.Grafana.OnCallURL,
 		}
 		if err := generateGrafanaResources(ctx, cfg, stack, true); err != nil {

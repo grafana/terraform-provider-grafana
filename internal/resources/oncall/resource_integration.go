@@ -243,24 +243,15 @@ func resourceIntegration() *common.Resource {
 	).WithLister(oncallListerFunction(listIntegrations))
 }
 
-func listIntegrations(ctx context.Context, client *onCallAPI.Client) ([]string, error) {
-	var ids []string
-	page := 1
-	for {
-		resp, _, err := client.Integrations.ListIntegrations(&onCallAPI.ListIntegrationOptions{ListOptions: onCallAPI.ListOptions{Page: page}})
-		if err != nil {
-			return nil, err
-		}
-		for _, i := range resp.Integrations {
-			ids = append(ids, i.ID)
-		}
-		page++
-		if resp.Next == nil {
-			break
-		}
+func listIntegrations(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
+	resp, _, err := client.Integrations.ListIntegrations(&onCallAPI.ListIntegrationOptions{ListOptions: listOptions})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	return ids, nil
+	for _, i := range resp.Integrations {
+		ids = append(ids, i.ID)
+	}
+	return ids, resp.Next, nil
 }
 
 func onCallTemplate(description string, hasMessage, hasImage bool) *schema.Schema {

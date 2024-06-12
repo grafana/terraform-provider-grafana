@@ -89,10 +89,10 @@ This supports a glob format. Examples:
 				EnvVars:  []string{"TFGEN_SYNTHETIC_MONITORING_URL"},
 			},
 			&cli.StringFlag{
-				Name:     "synthetic-monitoring-token",
+				Name:     "synthetic-monitoring-access-token",
 				Usage:    "API token for the Synthetic Monitoring instance",
 				Category: "Grafana",
-				EnvVars:  []string{"TFGEN_SYNTHETIC_MONITORING_TOKEN"},
+				EnvVars:  []string{"TFGEN_SYNTHETIC_MONITORING_ACCESS_TOKEN"},
 			},
 			&cli.StringFlag{
 				Name:     "oncall-url",
@@ -101,10 +101,10 @@ This supports a glob format. Examples:
 				EnvVars:  []string{"TFGEN_ONCALL_URL"},
 			},
 			&cli.StringFlag{
-				Name:     "oncall-token",
+				Name:     "oncall-access-token",
 				Usage:    "API token for the OnCall instance",
 				Category: "Grafana",
-				EnvVars:  []string{"TFGEN_ONCALL_TOKEN"},
+				EnvVars:  []string{"TFGEN_ONCALL_ACCESS_TOKEN"},
 			},
 
 			// Grafana Cloud flags
@@ -156,12 +156,12 @@ func parseFlags(ctx *cli.Context) (*generate.Config, error) {
 		Format:          generate.OutputFormat(ctx.String("output-format")),
 		ProviderVersion: ctx.String("terraform-provider-version"),
 		Grafana: &generate.GrafanaConfig{
-			URL:           ctx.String("grafana-url"),
-			Auth:          ctx.String("grafana-auth"),
-			SMURL:         ctx.String("synthetic-monitoring-url"),
-			SMAccessToken: ctx.String("synthetic-monitoring-token"),
-			OnCallURL:     ctx.String("oncall-url"),
-			OnCallToken:   ctx.String("oncall-token"),
+			URL:               ctx.String("grafana-url"),
+			Auth:              ctx.String("grafana-auth"),
+			SMURL:             ctx.String("synthetic-monitoring-url"),
+			SMAccessToken:     ctx.String("synthetic-monitoring-access-token"),
+			OnCallURL:         ctx.String("oncall-url"),
+			OnCallAccessToken: ctx.String("oncall-access-token"),
 		},
 		Cloud: &generate.CloudConfig{
 			AccessPolicyToken:         ctx.String("cloud-access-policy-token"),
@@ -180,7 +180,7 @@ func parseFlags(ctx *cli.Context) (*generate.Config, error) {
 	err := newFlagValidations().
 		atLeastOne("grafana-url", "cloud-access-policy-token").
 		conflicting(
-			[]string{"grafana-url", "grafana-auth", "synthetic-monitoring-url", "synthetic-monitoring-token", "oncall-url", "oncall-token"},
+			[]string{"grafana-url", "grafana-auth", "synthetic-monitoring-url", "synthetic-monitoring-access-token", "oncall-url", "oncall-access-token"},
 			[]string{"cloud-access-policy-token", "cloud-org", "cloud-create-stack-service-account", "cloud-stack-service-account-name"},
 		).
 		requiredWhenSet("grafana-url", "grafana-auth").

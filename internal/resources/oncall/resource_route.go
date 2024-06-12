@@ -138,24 +138,15 @@ func resourceRoute() *common.Resource {
 	).WithLister(oncallListerFunction(listRoutes))
 }
 
-func listRoutes(ctx context.Context, client *onCallAPI.Client) ([]string, error) {
-	var ids []string
-	page := 1
-	for {
-		resp, _, err := client.Routes.ListRoutes(&onCallAPI.ListRouteOptions{ListOptions: onCallAPI.ListOptions{Page: page}})
-		if err != nil {
-			return nil, err
-		}
-		for _, i := range resp.Routes {
-			ids = append(ids, i.ID)
-		}
-		page++
-		if resp.Next == nil {
-			break
-		}
+func listRoutes(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
+	resp, _, err := client.Routes.ListRoutes(&onCallAPI.ListRouteOptions{ListOptions: listOptions})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	return ids, nil
+	for _, i := range resp.Routes {
+		ids = append(ids, i.ID)
+	}
+	return ids, resp.Next, nil
 }
 
 func resourceRouteCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
