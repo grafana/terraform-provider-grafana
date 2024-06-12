@@ -155,33 +155,18 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 	deleteParams := folders.NewDeleteFolderParams().WithFolderUID(uid)
 	if d.Get("prevent_destroy_if_not_empty").(bool) {
-		var dashboardAndFolderNames []string
-		searchType := "dash-db"
-		searchParams := search.NewSearchParams().WithFolderUIDs([]string{uid}).WithType(&searchType)
+		searchParams := search.NewSearchParams().WithFolderUIDs([]string{uid})
 		searchResp, err := client.Search.Search(searchParams)
 		if err != nil {
 			return diag.Errorf("failed to search for dashboards in folder: %s", err)
 		}
 		if len(searchResp.GetPayload()) > 0 {
+			var dashboardAndFolderNames []string
 			for _, dashboard := range searchResp.GetPayload() {
 				dashboardAndFolderNames = append(dashboardAndFolderNames, dashboard.Title)
 			}
-		}
-		searchType = "dash-folder"
-		searchParams = search.NewSearchParams().WithFolderUIDs([]string{uid}).WithType(&searchType)
-		searchResp, err = client.Search.Search(searchParams)
-		if err != nil {
-			return diag.Errorf("failed to search for folders in folder: %s", err)
-		}
-		if len(searchResp.GetPayload()) > 0 {
-			for _, folder := range searchResp.GetPayload() {
-				dashboardAndFolderNames = append(dashboardAndFolderNames, folder.Title)
-			}
-		}
-		if len(dashboardAndFolderNames) > 0 {
 			return diag.Errorf("folder %s is not empty and prevent_destroy_if_not_empty is set. It contains the following dashboards and/or folders: %v", uid, dashboardAndFolderNames)
 		}
-
 	} else {
 		// If we're not preventing destroys, then we can force delete folders that have alert rules
 		force := true
