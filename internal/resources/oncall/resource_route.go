@@ -138,7 +138,7 @@ func resourceRoute() *common.Resource {
 	).WithLister(oncallListerFunction(listRoutes))
 }
 
-func listRoutes(ctx context.Context, client *onCallAPI.Client, ld *ListerData) ([]string, error) {
+func listRoutes(ctx context.Context, client *onCallAPI.Client) ([]string, error) {
 	var ids []string
 	page := 1
 	for {

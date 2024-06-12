@@ -190,7 +190,7 @@ func resourceOnCallShift() *common.Resource {
 	).WithLister(oncallListerFunction(listShifts))
 }
 
-func listShifts(ctx context.Context, client *onCallAPI.Client, ld *ListerData) ([]string, error) {
+func listShifts(ctx context.Context, client *onCallAPI.Client) ([]string, error) {
 	var ids []string
 	page := 1
 	for {

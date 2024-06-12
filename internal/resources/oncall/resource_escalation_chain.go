@@ -46,7 +46,7 @@ func resourceEscalationChain() *common.Resource {
 	).WithLister(oncallListerFunction(listEscalationChains))
 }
 
-func listEscalationChains(ctx context.Context, client *onCallAPI.Client, ld *ListerData) ([]string, error) {
+func listEscalationChains(ctx context.Context, client *onCallAPI.Client) ([]string, error) {
 	var ids []string
 	page := 1
 	for {

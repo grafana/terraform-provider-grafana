@@ -228,7 +228,7 @@ func resourceEscalation() *common.Resource {
 	).WithLister(oncallListerFunction(listEscalations))
 }
 
-func listEscalations(ctx context.Context, client *onCallAPI.Client, ld *ListerData) ([]string, error) {
+func listEscalations(ctx context.Context, client *onCallAPI.Client) ([]string, error) {
 	var ids []string
 	page := 1
 	for {

@@ -111,7 +111,7 @@ func resourceOutgoingWebhook() *common.Resource {
 	).WithLister(oncallListerFunction(listWebhooks))
 }
 
-func listWebhooks(ctx context.Context, client *onCallAPI.Client, ld *ListerData) ([]string, error) {
+func listWebhooks(ctx context.Context, client *onCallAPI.Client) ([]string, error) {
 	var ids []string
 	page := 1
 	for {
