@@ -15,13 +15,13 @@ type ResourceCategory string
 var (
 	CategoryAlerting            ResourceCategory = "Alerting"
 	CategoryCloud               ResourceCategory = "Cloud"
-	CategoryCloudProvider       ResourceCategory = "Cloud Provider"
 	CategoryGrafanaEnterprise   ResourceCategory = "Grafana Enterprise"
 	CategoryGrafanaOSS          ResourceCategory = "Grafana OSS"
 	CategoryMachineLearning     ResourceCategory = "Machine Learning"
 	CategoryOnCall              ResourceCategory = "OnCall"
 	CategorySLO                 ResourceCategory = "SLO"
 	CategorySyntheticMonitoring ResourceCategory = "Synthetic Monitoring"
+	CategoryCloudProvider       ResourceCategory = "Cloud Provider"
 )
 
 type ResourceCommon struct {

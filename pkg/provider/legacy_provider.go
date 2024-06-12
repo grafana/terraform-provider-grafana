@@ -129,6 +129,13 @@ func Provider(version string) *schema.Provider {
 				Description:  "An Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable.",
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
+
+			"cloud_provider_api_url": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "A Grafana Cloud Provider API URL. May alternatively be set via the `GRAFANA_CLOUD_PROVIDER_API_URL` environment variable.",
+				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
+			},
 		},
 
 		ResourcesMap:   legacySDKResources(),
@@ -174,6 +181,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			SMURL:                  stringValueOrNull(d, "sm_url"),
 			OncallAccessToken:      stringValueOrNull(d, "oncall_access_token"),
 			OncallURL:              stringValueOrNull(d, "oncall_url"),
+			CloudProviderAPIURL:    stringValueOrNull(d, "cloud_provider_api_url"),
 			StoreDashboardSha256:   boolValueOrNull(d, "store_dashboard_sha256"),
 			HTTPHeaders:            headers,
 			Retries:                int64ValueOrNull(d, "retries"),

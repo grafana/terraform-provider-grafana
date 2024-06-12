@@ -34,6 +34,8 @@ type ProviderConfig struct {
 	CloudAccessPolicyToken types.String `tfsdk:"cloud_access_policy_token"`
 	CloudAPIURL            types.String `tfsdk:"cloud_api_url"`
 
+	CloudProviderAPIURL types.String `tfsdk:"cloud_provider_api_url"`
+
 	SMAccessToken types.String `tfsdk:"sm_access_token"`
 	SMURL         types.String `tfsdk:"sm_url"`
 
@@ -57,6 +59,7 @@ func (c *ProviderConfig) SetDefaults() error {
 	c.SMURL = envDefaultFuncString(c.SMURL, "GRAFANA_SM_URL", "https://synthetic-monitoring-api.grafana.net")
 	c.OncallAccessToken = envDefaultFuncString(c.OncallAccessToken, "GRAFANA_ONCALL_ACCESS_TOKEN")
 	c.OncallURL = envDefaultFuncString(c.OncallURL, "GRAFANA_ONCALL_URL", "https://oncall-prod-us-central-0.grafana.net/oncall")
+	c.CloudProviderAPIURL = envDefaultFuncString(c.CloudProviderAPIURL, "GRAFANA_CLOUD_PROVIDER_API_URL")
 	if c.StoreDashboardSha256, err = envDefaultFuncBool(c.StoreDashboardSha256, "GRAFANA_STORE_DASHBOARD_SHA256", false); err != nil {
 		return fmt.Errorf("failed to parse GRAFANA_STORE_DASHBOARD_SHA256: %w", err)
 	}
@@ -189,6 +192,11 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 			"oncall_url": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "An Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable.",
+			},
+
+			"cloud_provider_api_url": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "A Grafana Cloud Provider API URL. May alternatively be set via the `GRAFANA_CLOUD_PROVIDER_API_URL` environment variable.",
 			},
 		},
 	}
