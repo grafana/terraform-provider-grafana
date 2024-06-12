@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceSlo() *schema.Resource {
-	return &schema.Resource{
+func datasourceSlo() *common.DataSource {
+	schema := &schema.Resource{
 		Description: `
 Datasource for retrieving all SLOs.
 		
@@ -36,6 +36,7 @@ Datasource for retrieving all SLOs.
 			},
 		},
 	}
+	return common.NewLegacySDKDataSource(common.CategorySLO, "grafana_slos", schema)
 }
 
 // Function sends a GET request to the SLO API Endpoint which returns a list of all SLOs

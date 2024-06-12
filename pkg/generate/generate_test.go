@@ -52,6 +52,16 @@ func TestAccGenerate(t *testing.T) {
 			},
 		},
 		{
+			name:   "dashboard-crossplane",
+			config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
+			generateConfig: func(cfg *generate.Config) {
+				cfg.Format = generate.OutputFormatCrossplane
+			},
+			check: func(t *testing.T, tempDir string) {
+				assertFiles(t, tempDir, "testdata/generate/dashboard-crossplane", nil)
+			},
+		},
+		{
 			name:   "dashboard-filter-strict",
 			config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
 			generateConfig: func(cfg *generate.Config) {

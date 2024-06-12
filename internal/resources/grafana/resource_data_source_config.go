@@ -45,6 +45,7 @@ func resourceDataSourceConfig() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_data_source_config",
 		orgResourceIDString("uid"),
 		schema,

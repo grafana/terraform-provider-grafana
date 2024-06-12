@@ -41,6 +41,7 @@ func resourceAWSAccount() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryCloudProvider,
 		"grafana_cloud_provider_aws_account",
 		resourceAWSAccountTerraformID,
 		schema,

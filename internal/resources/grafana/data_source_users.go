@@ -6,12 +6,13 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/users"
 	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceUsers() *schema.Resource {
-	return &schema.Resource{
+func datasourceUsers() *common.DataSource {
+	schema := &schema.Resource{
 		ReadContext: readUsers,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -62,6 +63,7 @@ does not currently work with API Tokens. You must use basic auth.
 			},
 		},
 	}
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_users", schema)
 }
 
 func readUsers(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

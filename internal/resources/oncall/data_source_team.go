@@ -6,13 +6,14 @@ import (
 	"time"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func dataSourceTeam() *schema.Resource {
-	return &schema.Resource{
+func dataSourceTeam() *common.DataSource {
+	schema := &schema.Resource{
 		ReadContext: withClient[schema.ReadContextFunc](dataSourceTeamRead),
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -30,6 +31,7 @@ func dataSourceTeam() *schema.Resource {
 			},
 		},
 	}
+	return common.NewLegacySDKDataSource(common.CategoryOnCall, "grafana_oncall_team", schema)
 }
 
 func dataSourceTeamRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {

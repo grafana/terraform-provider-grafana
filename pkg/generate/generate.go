@@ -2,7 +2,6 @@ package generate
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -23,6 +22,13 @@ var (
 )
 
 func Generate(ctx context.Context, cfg *Config) error {
+	var err error
+	if !filepath.IsAbs(cfg.OutputDir) {
+		if cfg.OutputDir, err = filepath.Abs(cfg.OutputDir); err != nil {
+			return fmt.Errorf("failed to get absolute path for %s: %w", cfg.OutputDir, err)
+		}
+	}
+
 	if _, err := os.Stat(cfg.OutputDir); err == nil && cfg.Clobber {
 		log.Printf("Deleting all files in %s", cfg.OutputDir)
 		if err := os.RemoveAll(cfg.OutputDir); err != nil {
@@ -86,7 +92,7 @@ func Generate(ctx context.Context, cfg *Config) error {
 		return convertToTFJSON(cfg.OutputDir)
 	}
 	if cfg.Format == OutputFormatCrossplane {
-		return errors.New("crossplane output format is not yet supported")
+		return convertToCrossplane(cfg)
 	}
 
 	return nil

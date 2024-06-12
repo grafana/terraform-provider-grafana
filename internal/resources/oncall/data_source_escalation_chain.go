@@ -4,12 +4,13 @@ import (
 	"context"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func dataSourceEscalationChain() *schema.Resource {
-	return &schema.Resource{
+func dataSourceEscalationChain() *common.DataSource {
+	schema := &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/escalation_chains/)
 `,
@@ -22,6 +23,7 @@ func dataSourceEscalationChain() *schema.Resource {
 			},
 		},
 	}
+	return common.NewLegacySDKDataSource(common.CategoryOnCall, "grafana_oncall_escalation_chain", schema)
 }
 
 func dataSourceEscalationChainRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {

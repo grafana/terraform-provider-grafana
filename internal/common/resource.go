@@ -5,9 +5,58 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+type ResourceCategory string
+
+var (
+	CategoryAlerting            ResourceCategory = "Alerting"
+	CategoryCloud               ResourceCategory = "Cloud"
+	CategoryCloudProvider       ResourceCategory = "Cloud Provider"
+	CategoryGrafanaEnterprise   ResourceCategory = "Grafana Enterprise"
+	CategoryGrafanaOSS          ResourceCategory = "Grafana OSS"
+	CategoryMachineLearning     ResourceCategory = "Machine Learning"
+	CategoryOnCall              ResourceCategory = "OnCall"
+	CategorySLO                 ResourceCategory = "SLO"
+	CategorySyntheticMonitoring ResourceCategory = "Synthetic Monitoring"
+)
+
+type ResourceCommon struct {
+	Name     string
+	Schema   *schema.Resource // Legacy SDKv2 schema
+	Category ResourceCategory
+}
+
+// DataSource represents a Terraform data source, implemented either with the SDKv2 or Terraform Plugin Framework.
+type DataSource struct {
+	ResourceCommon
+	PluginFrameworkSchema datasource.DataSourceWithConfigure
+}
+
+func NewLegacySDKDataSource(category ResourceCategory, name string, schema *schema.Resource) *DataSource {
+	d := &DataSource{
+		ResourceCommon: ResourceCommon{
+			Name:     name,
+			Schema:   schema,
+			Category: category,
+		},
+	}
+	return d
+}
+
+func NewDataSource(category ResourceCategory, name string, schema datasource.DataSourceWithConfigure) *DataSource {
+	d := &DataSource{
+		ResourceCommon: ResourceCommon{
+			Name:     name,
+			Category: category,
+		},
+		PluginFrameworkSchema: schema,
+	}
+	return d
+}
 
 // ResourceListIDsFunc is a function that returns a list of resource IDs.
 // This is used to generate TF config from existing resources.
@@ -16,25 +65,30 @@ type ResourceListIDsFunc func(ctx context.Context, client *Client, data any) ([]
 
 // Resource represents a Terraform resource, implemented either with the SDKv2 or Terraform Plugin Framework.
 type Resource struct {
-	Name                  string
+	ResourceCommon
 	IDType                *ResourceID
 	ListIDsFunc           ResourceListIDsFunc
-	Schema                *schema.Resource
 	PluginFrameworkSchema resource.ResourceWithConfigure
 }
 
-func NewLegacySDKResource(name string, idType *ResourceID, schema *schema.Resource) *Resource {
+func NewLegacySDKResource(category ResourceCategory, name string, idType *ResourceID, schema *schema.Resource) *Resource {
 	r := &Resource{
-		Name:   name,
+		ResourceCommon: ResourceCommon{
+			Name:     name,
+			Schema:   schema,
+			Category: category,
+		},
 		IDType: idType,
-		Schema: schema,
 	}
 	return r
 }
 
-func NewResource(name string, idType *ResourceID, schema resource.ResourceWithConfigure) *Resource {
+func NewResource(category ResourceCategory, name string, idType *ResourceID, schema resource.ResourceWithConfigure) *Resource {
 	r := &Resource{
-		Name:                  name,
+		ResourceCommon: ResourceCommon{
+			Name:     name,
+			Category: category,
+		},
 		IDType:                idType,
 		PluginFrameworkSchema: schema,
 	}

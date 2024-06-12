@@ -441,6 +441,7 @@ Optional:
 - `http` (Block Set, Max: 1) Settings for HTTP check. The target must be a URL (http or https). (see [below for nested schema](#nestedblock--settings--http))
 - `multihttp` (Block Set, Max: 1) Settings for MultiHTTP check. The target must be a URL (http or https) (see [below for nested schema](#nestedblock--settings--multihttp))
 - `ping` (Block Set, Max: 1) Settings for ping (ICMP) check. The target must be a valid hostname or IP address. (see [below for nested schema](#nestedblock--settings--ping))
+- `scripted` (Block Set, Max: 1) Settings for scripted check. See https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/checks/k6/. (see [below for nested schema](#nestedblock--settings--scripted))
 - `tcp` (Block Set, Max: 1) Settings for TCP check. The target must be of the form `<host>:<port>`, where the host portion must be a valid hostname or IP address. (see [below for nested schema](#nestedblock--settings--tcp))
 - `traceroute` (Block Set, Max: 1) Settings for traceroute check. The target must be a valid hostname or IP address (see [below for nested schema](#nestedblock--settings--traceroute))
 
@@ -662,6 +663,14 @@ Optional:
 - `source_ip_address` (String) Source IP address.
 
 
+<a id="nestedblock--settings--scripted"></a>
+### Nested Schema for `settings.scripted`
+
+Required:
+
+- `script` (String)
+
+
 <a id="nestedblock--settings--tcp"></a>
 ### Nested Schema for `settings.tcp`
 
@@ -823,6 +832,31 @@ resource "grafana_synthetic_monitoring_check" "multihttp" {
   }
 }
 ``` 
+
+### Scripted Basic
+
+```terraform
+data "grafana_synthetic_monitoring_probes" "main" {}
+
+resource "grafana_synthetic_monitoring_check" "scripted" {
+  job     = "Validate homepage"
+  target  = "https://grafana.com/"
+  enabled = true
+  probes = [
+    data.grafana_synthetic_monitoring_probes.main.probes.Paris,
+  ]
+  labels = {
+    environment = "production"
+  }
+  settings {
+    scripted {
+      // `script.js` is a file in the same directory as this file and contains the
+      // script to be executed.
+      script = file("${path.module}/script.js")
+    }
+  }
+}
+```
 
 ## Import
 

@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceDatasource() *schema.Resource {
-	return &schema.Resource{
+func datasourceDatasource() *common.DataSource {
+	schema := &schema.Resource{
 		Description: "Get details about a Grafana Datasource querying by either name, uid or ID",
 		ReadContext: datasourceDatasourceRead,
 		Schema: common.CloneResourceSchemaForDatasource(resourceDataSource().Schema, map[string]*schema.Schema{
@@ -31,6 +31,7 @@ func datasourceDatasource() *schema.Resource {
 			"http_headers":             nil,
 		}),
 	}
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_data_source", schema)
 }
 
 func datasourceDatasourceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

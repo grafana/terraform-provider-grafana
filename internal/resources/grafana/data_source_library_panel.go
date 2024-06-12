@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceLibraryPanel() *schema.Resource {
-	return &schema.Resource{
+func datasourceLibraryPanel() *common.DataSource {
+	schema := &schema.Resource{
 		Description: "Data source for retrieving a single library panel by name or uid.",
 		ReadContext: dataSourceLibraryPanelRead,
 		Schema: common.CloneResourceSchemaForDatasource(resourceLibraryPanel().Schema, map[string]*schema.Schema{
@@ -26,6 +26,7 @@ func datasourceLibraryPanel() *schema.Resource {
 			},
 		}),
 	}
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_library_panel", schema)
 }
 
 func dataSourceLibraryPanelRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

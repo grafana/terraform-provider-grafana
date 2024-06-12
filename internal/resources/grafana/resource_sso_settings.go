@@ -68,6 +68,7 @@ Manages Grafana SSO Settings for OAuth2 and SAML. Support for SAML is currently 
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_sso_settings",
 		orgResourceIDString("provider"),
 		schema,

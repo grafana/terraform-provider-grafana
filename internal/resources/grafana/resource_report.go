@@ -245,6 +245,7 @@ func resourceReport() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaEnterprise,
 		"grafana_report",
 		orgResourceIDInt("id"),
 		schema,

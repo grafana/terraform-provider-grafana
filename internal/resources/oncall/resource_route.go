@@ -131,6 +131,7 @@ func resourceRoute() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryOnCall,
 		"grafana_oncall_route",
 		resourceID,
 		schema,

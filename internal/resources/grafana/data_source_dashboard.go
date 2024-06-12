@@ -13,8 +13,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceDashboard() *schema.Resource {
-	return &schema.Resource{
+func datasourceDashboard() *common.DataSource {
+	schema := &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
 * [Folder/Dashboard Search HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder_dashboard_search/)
@@ -74,6 +74,7 @@ func datasourceDashboard() *schema.Resource {
 			},
 		},
 	}
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_dashboard", schema)
 }
 
 func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

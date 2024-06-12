@@ -30,7 +30,12 @@ func makeResourceServiceAccountPermissionItem() *common.Resource {
 			resourceType: serviceAccountsPermissionsType,
 		},
 	}
-	return common.NewResource(resourceServiceAccountPermissionItemName, resourceServiceAccountPermissionItemID, resourceStruct)
+	return common.NewResource(
+		common.CategoryGrafanaOSS,
+		resourceServiceAccountPermissionItemName,
+		resourceServiceAccountPermissionItemID,
+		resourceStruct,
+	)
 }
 
 type resourceServiceAccountPermissionItemModel struct {

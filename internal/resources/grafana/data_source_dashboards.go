@@ -11,8 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceDashboards() *schema.Resource {
-	return &schema.Resource{
+func datasourceDashboards() *common.DataSource {
+	schema := &schema.Resource{
 		Description: `
 Datasource for retrieving all dashboards. Specify list of folder IDs to search in for dashboards.
 
@@ -63,6 +63,7 @@ Datasource for retrieving all dashboards. Specify list of folder IDs to search i
 			},
 		},
 	}
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_dashboards", schema)
 }
 
 func dataSourceReadDashboards(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

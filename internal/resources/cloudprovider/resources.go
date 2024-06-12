@@ -2,7 +2,6 @@ package cloudprovider
 
 import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 // TestAWSAccountData is only temporarily exported here until
@@ -19,8 +18,8 @@ var TestAWSAccountData = struct {
 	Regions: []string{"us-east-1", "us-east-2", "us-west-1"},
 }
 
-var DatasourcesMap = map[string]*schema.Resource{
-	"grafana_cloud_provider_aws_account": datasourceAWSAccount(),
+var Datasources = []*common.DataSource{
+	datasourceAWSAccount(),
 }
 
 var Resources = []*common.Resource{

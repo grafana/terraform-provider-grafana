@@ -185,6 +185,7 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 				Config:  testAccFolderExample_PreventDeletion(name, true), // Create protected folder
 				Destroy: true,
 			},
+			// test with dashboard added to folder from outside Terraform:
 			{
 				Config: testAccFolderExample_PreventDeletion(name, true), // Create protected folder again
 				Check: resource.ComposeTestCheckFunc(
@@ -198,6 +199,50 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 								"uid":   name + "-dashboard",
 								"title": name + "-dashboard",
 							}})
+						return err
+					},
+				),
+			},
+			{
+				Config:  testAccFolderExample_PreventDeletion(name, true),
+				Destroy: true, // Try to delete the protected folder
+				ExpectError: regexp.MustCompile(
+					fmt.Sprintf(`.+folder %s is not empty and prevent_destroy_if_not_empty is set.+`, name),
+				), // Fail because it's protected
+			},
+			{
+				Config: testAccFolderExample_PreventDeletion(name, false), // Remove protected flag
+			},
+			{
+				Config:  testAccFolderExample_PreventDeletion(name, false),
+				Destroy: true, // No error if the folder is not protected
+			},
+		},
+	})
+}
+
+func TestAccFolder_PreventDeletionNested(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t)
+
+	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+	var folder models.Folder
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			// test with a nested folder inside the folder:
+			{
+				Config: testAccFolderExample_PreventDeletion(name, true), // Create protected folder again
+				Check: resource.ComposeTestCheckFunc(
+					folderCheckExists.exists("grafana_folder.test_folder", &folder),
+					// Create a dashboard in the protected folder
+					func(s *terraform.State) error {
+						client := grafanaTestClient()
+						_, err := client.Folders.CreateFolder(&models.CreateFolderCommand{
+							Title:     "Inner folder",
+							ParentUID: name,
+							UID:       acctest.RandStringFromCharSet(10, acctest.CharSetAlpha),
+						})
 						return err
 					},
 				),

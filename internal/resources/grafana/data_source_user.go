@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceUser() *schema.Resource {
-	return &schema.Resource{
+func datasourceUser() *common.DataSource {
+	schema := &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/user-management/server-user-management/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/user/)
@@ -50,6 +51,7 @@ does not currently work with API Tokens. You must use basic auth.
 			},
 		},
 	}
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_user", schema)
 }
 
 func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

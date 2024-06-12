@@ -26,7 +26,12 @@ func makeResourceDatasourcePermissionItem() *common.Resource {
 			resourceType: datasourcesPermissionsType,
 		},
 	}
-	return common.NewResource(resourceDatasourcePermissionItemName, resourceDatasourcePermissionItemID, resourceStruct)
+	return common.NewResource(
+		common.CategoryGrafanaEnterprise,
+		resourceDatasourcePermissionItemName,
+		resourceDatasourcePermissionItemID,
+		resourceStruct,
+	)
 }
 
 type resourceDatasourcePermissionItemModel struct {

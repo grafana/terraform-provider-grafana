@@ -57,6 +57,7 @@ func resourceServiceAccount() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_service_account",
 		orgResourceIDInt("id"),
 		schema,

@@ -11,8 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceFolder() *schema.Resource {
-	return &schema.Resource{
+func datasourceFolder() *common.DataSource {
+	schema := &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/manage-dashboards/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/folder/)
@@ -28,6 +28,7 @@ func datasourceFolder() *schema.Resource {
 			"prevent_destroy_if_not_empty": nil,
 		}),
 	}
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_folder", schema)
 }
 
 func findFolderWithTitle(client *goapi.GrafanaHTTPAPI, title string) (string, error) {

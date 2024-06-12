@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceAWSAccount() *schema.Resource {
-	return &schema.Resource{
+func datasourceAWSAccount() *common.DataSource {
+	schema := &schema.Resource{
 		ReadContext: datasourceAWSAccountRead,
 		Schema: common.CloneResourceSchemaForDatasource(resourceAWSAccount().Schema, map[string]*schema.Schema{
 			"stack_id": {
@@ -24,6 +24,12 @@ func datasourceAWSAccount() *schema.Resource {
 			},
 		}),
 	}
+
+	return common.NewLegacySDKDataSource(
+		common.CategoryCloudProvider,
+		"grafana_cloud_provider_aws_account",
+		schema,
+	)
 }
 
 func datasourceAWSAccountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

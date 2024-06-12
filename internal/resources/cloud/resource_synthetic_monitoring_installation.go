@@ -72,6 +72,7 @@ Required access policy scopes:
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategorySyntheticMonitoring,
 		"grafana_synthetic_monitoring_installation",
 		nil,
 		schema,
