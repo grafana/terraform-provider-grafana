@@ -122,6 +122,7 @@ func listWebhooks(ctx context.Context, client *onCallAPI.Client) ([]string, erro
 		for _, i := range resp.Webhooks {
 			ids = append(ids, i.ID)
 		}
+		page++
 		if resp.Next == nil {
 			break
 		}

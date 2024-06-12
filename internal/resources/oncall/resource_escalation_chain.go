@@ -57,6 +57,7 @@ func listEscalationChains(ctx context.Context, client *onCallAPI.Client) ([]stri
 		for _, i := range resp.EscalationChains {
 			ids = append(ids, i.ID)
 		}
+		page++
 		if resp.Next == nil {
 			break
 		}

@@ -149,6 +149,7 @@ func listRoutes(ctx context.Context, client *onCallAPI.Client) ([]string, error)
 		for _, i := range resp.Routes {
 			ids = append(ids, i.ID)
 		}
+		page++
 		if resp.Next == nil {
 			break
 		}

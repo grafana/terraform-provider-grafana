@@ -120,6 +120,7 @@ func listSchedules(ctx context.Context, client *onCallAPI.Client) ([]string, err
 		for _, i := range resp.Schedules {
 			ids = append(ids, i.ID)
 		}
+		page++
 		if resp.Next == nil {
 			break
 		}
