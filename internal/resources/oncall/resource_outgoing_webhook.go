@@ -108,7 +108,26 @@ func resourceOutgoingWebhook() *common.Resource {
 		"grafana_oncall_outgoing_webhook",
 		resourceID,
 		schema,
-	)
+	).WithLister(oncallListerFunction(listWebhooks))
+}
+
+func listWebhooks(ctx context.Context, client *onCallAPI.Client, ld *ListerData) ([]string, error) {
+	var ids []string
+	page := 1
+	for {
+		resp, _, err := client.Webhooks.ListWebhooks(&onCallAPI.ListWebhookOptions{ListOptions: onCallAPI.ListOptions{Page: page}})
+		if err != nil {
+			return nil, err
+		}
+		for _, i := range resp.Webhooks {
+			ids = append(ids, i.ID)
+		}
+		if resp.Next == nil {
+			break
+		}
+	}
+
+	return ids, nil
 }
 
 func resourceOutgoingWebhookCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {

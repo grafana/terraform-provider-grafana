@@ -135,7 +135,26 @@ func resourceRoute() *common.Resource {
 		"grafana_oncall_route",
 		resourceID,
 		schema,
-	)
+	).WithLister(oncallListerFunction(listRoutes))
+}
+
+func listRoutes(ctx context.Context, client *onCallAPI.Client, ld *ListerData) ([]string, error) {
+	var ids []string
+	page := 1
+	for {
+		resp, _, err := client.Routes.ListRoutes(&onCallAPI.ListRouteOptions{ListOptions: onCallAPI.ListOptions{Page: page}})
+		if err != nil {
+			return nil, err
+		}
+		for _, i := range resp.Routes {
+			ids = append(ids, i.ID)
+		}
+		if resp.Next == nil {
+			break
+		}
+	}
+
+	return ids, nil
 }
 
 func resourceRouteCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {

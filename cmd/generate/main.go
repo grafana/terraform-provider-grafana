@@ -82,6 +82,30 @@ This supports a glob format. Examples:
 				Category: "Grafana",
 				EnvVars:  []string{"TFGEN_GRAFANA_AUTH"},
 			},
+			&cli.StringFlag{
+				Name:     "synthetic-monitoring-url",
+				Usage:    "URL of the Synthetic Monitoring instance to generate resources from",
+				Category: "Grafana",
+				EnvVars:  []string{"TFGEN_SYNTHETIC_MONITORING_URL"},
+			},
+			&cli.StringFlag{
+				Name:     "synthetic-monitoring-token",
+				Usage:    "API token for the Synthetic Monitoring instance",
+				Category: "Grafana",
+				EnvVars:  []string{"TFGEN_SYNTHETIC_MONITORING_TOKEN"},
+			},
+			&cli.StringFlag{
+				Name:     "oncall-url",
+				Usage:    "URL of the OnCall instance to generate resources from",
+				Category: "Grafana",
+				EnvVars:  []string{"TFGEN_ONCALL_URL"},
+			},
+			&cli.StringFlag{
+				Name:     "oncall-token",
+				Usage:    "API token for the OnCall instance",
+				Category: "Grafana",
+				EnvVars:  []string{"TFGEN_ONCALL_TOKEN"},
+			},
 
 			// Grafana Cloud flags
 			&cli.StringFlag{
@@ -132,8 +156,12 @@ func parseFlags(ctx *cli.Context) (*generate.Config, error) {
 		Format:          generate.OutputFormat(ctx.String("output-format")),
 		ProviderVersion: ctx.String("terraform-provider-version"),
 		Grafana: &generate.GrafanaConfig{
-			URL:  ctx.String("grafana-url"),
-			Auth: ctx.String("grafana-auth"),
+			URL:           ctx.String("grafana-url"),
+			Auth:          ctx.String("grafana-auth"),
+			SMURL:         ctx.String("synthetic-monitoring-url"),
+			SMAccessToken: ctx.String("synthetic-monitoring-token"),
+			OnCallURL:     ctx.String("oncall-url"),
+			OnCallToken:   ctx.String("oncall-token"),
 		},
 		Cloud: &generate.CloudConfig{
 			AccessPolicyToken:         ctx.String("cloud-access-policy-token"),
@@ -152,7 +180,7 @@ func parseFlags(ctx *cli.Context) (*generate.Config, error) {
 	err := newFlagValidations().
 		atLeastOne("grafana-url", "cloud-access-policy-token").
 		conflicting(
-			[]string{"grafana-url", "grafana-auth"},
+			[]string{"grafana-url", "grafana-auth", "synthetic-monitoring-url", "synthetic-monitoring-token", "oncall-url", "oncall-token"},
 			[]string{"cloud-access-policy-token", "cloud-org", "cloud-create-stack-service-account", "cloud-stack-service-account-name"},
 		).
 		requiredWhenSet("grafana-url", "grafana-auth").

@@ -187,7 +187,26 @@ func resourceOnCallShift() *common.Resource {
 		"grafana_oncall_on_call_shift",
 		resourceID,
 		schema,
-	)
+	).WithLister(oncallListerFunction(listShifts))
+}
+
+func listShifts(ctx context.Context, client *onCallAPI.Client, ld *ListerData) ([]string, error) {
+	var ids []string
+	page := 1
+	for {
+		resp, _, err := client.OnCallShifts.ListOnCallShifts(&onCallAPI.ListOnCallShiftOptions{ListOptions: onCallAPI.ListOptions{Page: page}})
+		if err != nil {
+			return nil, err
+		}
+		for _, i := range resp.OnCallShifts {
+			ids = append(ids, i.ID)
+		}
+		if resp.Next == nil {
+			break
+		}
+	}
+
+	return ids, nil
 }
 
 func resourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
