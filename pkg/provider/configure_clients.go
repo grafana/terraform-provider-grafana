@@ -58,7 +58,7 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 		onCallClient.UserAgent = providerConfig.UserAgent.ValueString()
 		c.OnCallClient = onCallClient
 	}
-	if !providerConfig.CloudProviderAPIURL.IsNull() {
+	if !providerConfig.CloudProviderAccessToken.IsNull() {
 		if err := createCloudProviderClient(c, providerConfig); err != nil {
 			return nil, err
 		}
@@ -171,7 +171,10 @@ func createOnCallClient(providerConfig ProviderConfig) (*onCallAPI.Client, error
 }
 
 func createCloudProviderClient(client *common.Client, providerConfig ProviderConfig) error {
-	apiClient, err := cloudproviderapi.NewClient(providerConfig.CloudProviderAPIURL.ValueString())
+	apiClient, err := cloudproviderapi.NewClient(
+		providerConfig.CloudProviderAccessToken.ValueString(),
+		providerConfig.CloudProviderURL.ValueString(),
+	)
 	if err != nil {
 		return err
 	}
