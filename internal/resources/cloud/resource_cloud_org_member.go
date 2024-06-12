@@ -31,7 +31,7 @@ func resourceOrgMember() *common.Resource {
 		resourceOrgMemberName,
 		resourceOrgMemberID,
 		&orgMemberResource{},
-	)
+	).WithLister(cloudListerFunction(listOrgMembers))
 }
 
 type resourceOrgMemberModel struct {
@@ -86,6 +86,20 @@ func (r *orgMemberResource) Schema(ctx context.Context, req resource.SchemaReque
 		},
 		MarkdownDescription: "Manages the membership of a user in an organization.",
 	}
+}
+
+func listOrgMembers(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]string, error) {
+	resp, _, err := client.OrgsAPI.GetOrgMembers(ctx, data.OrgSlug()).Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for _, member := range resp.Items {
+		ids = append(ids, resourceOrgMemberID.Make(data.OrgSlug(), member.UserUsername))
+	}
+
+	return ids, nil
 }
 
 func (r *orgMemberResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
