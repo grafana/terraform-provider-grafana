@@ -365,6 +365,39 @@ func TestAccResourceCheck_multihttp(t *testing.T) {
 	})
 }
 
+func TestAccResourceCheck_scripted(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	// Inject random job names to avoid conflicts with other tests
+	jobName := acctest.RandomWithPrefix("scripted")
+	nameReplaceMap := map[string]string{
+		`"Scripted defaults"`: strconv.Quote(jobName),
+	}
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/scripted_basic.tf", nameReplaceMap),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.scripted", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.scripted", "tenant_id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "job", jobName),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "target", "scripted target"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "timeout", "5000"), // scripted has a default timeout of 5000
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.scripted", "probes.0"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "labels.foo", "bar"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "settings.0.scripted.0.script", "console.log('Hello, world!')"),
+				),
+			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.scripted",
+			},
+		},
+	})
+}
+
 // Test that a check is recreated if deleted outside the Terraform process
 func TestAccResourceCheck_recreate(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
