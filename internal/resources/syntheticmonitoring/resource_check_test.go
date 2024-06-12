@@ -371,7 +371,7 @@ func TestAccResourceCheck_scripted(t *testing.T) {
 	// Inject random job names to avoid conflicts with other tests
 	jobName := acctest.RandomWithPrefix("scripted")
 	nameReplaceMap := map[string]string{
-		`"Scripted defaults"`: strconv.Quote(jobName),
+		`"Validate homepage"`: strconv.Quote(jobName),
 	}
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
