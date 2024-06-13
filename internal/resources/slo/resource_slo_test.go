@@ -157,7 +157,7 @@ func testAccSloCheckDestroy(slo *slo.SloV00Slo) resource.TestCheckFunc {
 			return nil
 		}
 
-		if *gotSlo.ReadOnly.Status.Type == "deleting" {
+		if gotSlo.ReadOnly.Status.Type == "deleting" {
 			return nil
 		}
 
