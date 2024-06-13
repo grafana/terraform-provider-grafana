@@ -170,7 +170,7 @@ resource grafana_folder child2 {
 }
 
 func TestAccFolder_PreventDeletion(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t, ">=10.2.0") // Searching by folder UID was added in 10.2.0
 
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 	var folder models.Folder
@@ -222,7 +222,7 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 }
 
 func TestAccFolder_PreventDeletionNested(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t, ">=10.2.0") // Searching by folder UID was added in 10.2.0
 
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 	var folder models.Folder
