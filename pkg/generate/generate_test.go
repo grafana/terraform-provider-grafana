@@ -120,6 +120,20 @@ func TestAccGenerate(t *testing.T) {
 				require.NoError(t, err)
 				return string(content)
 			}(),
+			generateConfig: func(cfg *generate.Config) {
+				// The alerting rule group sometimes also creates an annotation.
+				// It seems to be async so it makes the test flaky.
+				// We can include only the resources we care about to avoid this.x
+				cfg.IncludeResources = []string{
+					"grafana_contact_point.*",
+					"grafana_folder.*",
+					"grafana_message_template.*",
+					"grafana_mute_timing.*",
+					"grafana_notification_policy.*",
+					"grafana_organization.*",
+					"grafana_rule_group.*",
+				}
+			},
 			check: func(t *testing.T, tempDir string) {
 				assertFiles(t, tempDir, "testdata/generate/alerting-in-org", []string{
 					".terraform",

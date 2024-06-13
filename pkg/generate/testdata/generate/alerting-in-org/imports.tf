@@ -29,16 +29,6 @@ import {
 }
 
 import {
-  to = grafana_organization_preferences._1
-  id = "1"
-}
-
-import {
-  to = grafana_organization_preferences._2
-  id = "2"
-}
-
-import {
   to = grafana_rule_group._2_alert-rule-folder_My_Rule_Group
   id = "2:alert-rule-folder:My Rule Group"
 }
