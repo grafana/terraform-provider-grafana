@@ -116,12 +116,7 @@ func testAccSloCheckExists(rn string, slo *slo.SloV00Slo) resource.TestCheckFunc
 			return fmt.Errorf("error getting SLO: %s", err)
 		}
 
-		readOnly := gotSlo.GetReadOnly()
-		if readOnly == nil {
-			return nil
-		}
-
-		if readOnly.GetProvenance() != "terraform" {
+		if *gotSlo.ReadOnly.Provenance != "terraform" {
 			return fmt.Errorf("provenance header missing - verify within the Grafana Terraform Provider that the 'Grafana-Terraform-Provider' request header is set to 'true'")
 		}
 
@@ -162,22 +157,7 @@ func testAccSloCheckDestroy(slo *slo.SloV00Slo) resource.TestCheckFunc {
 			return nil
 		}
 
-		readOnly := gotSlo.GetReadOnly()
-		if readOnly == nil {
-			return fmt.Errorf("readOnly is nil")
-		}
-
-		status, ok := readOnly.GetStatusOk()
-		if !ok {
-			return fmt.Errorf("status is nil")
-		}
-
-		statusType, ok := status.GetTypeOk()
-		if !ok {
-			return fmt.Errorf("type is nil")
-		}
-
-		if statusType == "deleting" {
+		if *gotSlo.ReadOnly.Status.Type == "deleting" {
 			return nil
 		}
 
