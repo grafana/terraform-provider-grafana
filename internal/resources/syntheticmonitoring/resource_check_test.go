@@ -2,6 +2,8 @@ package syntheticmonitoring_test
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"testing"
@@ -11,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAccResourceCheck_dns(t *testing.T) {
@@ -360,6 +363,46 @@ func TestAccResourceCheck_multihttp(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.1.assertions.4.type", "JSON_PATH_ASSERTION"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.1.assertions.4.expression", "$.slideshow.slides"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccResourceCheck_scripted(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	// Find and replace the path.module since it's not available in the test environment
+	scriptFilepathAbs, err := filepath.Abs("../../../examples/resources/grafana_synthetic_monitoring_check")
+	require.NoError(t, err)
+	scriptFileContent, err := os.ReadFile(filepath.Join(scriptFilepathAbs, "script.js"))
+	require.NoError(t, err)
+
+	// Inject random job names to avoid conflicts with other tests
+	jobName := acctest.RandomWithPrefix("scripted")
+	nameReplaceMap := map[string]string{
+		`"Validate homepage"`: strconv.Quote(jobName),
+		"${path.module}":      scriptFilepathAbs,
+	}
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/scripted_basic.tf", nameReplaceMap),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.scripted", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.scripted", "tenant_id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "job", jobName),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "target", "https://grafana.com/"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "timeout", "5000"), // scripted has a default timeout of 5000
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.scripted", "probes.0"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "labels.environment", "production"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "settings.0.scripted.0.script", string(scriptFileContent)),
+				),
+			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.scripted",
 			},
 		},
 	})

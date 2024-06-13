@@ -43,7 +43,18 @@ func resourceEscalationChain() *common.Resource {
 		"grafana_oncall_escalation_chain",
 		resourceID,
 		schema,
-	)
+	).WithLister(oncallListerFunction(listEscalationChains))
+}
+
+func listEscalationChains(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
+	resp, _, err := client.EscalationChains.ListEscalationChains(&onCallAPI.ListEscalationChainOptions{ListOptions: listOptions})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, i := range resp.EscalationChains {
+		ids = append(ids, i.ID)
+	}
+	return ids, resp.Next, nil
 }
 
 func resourceEscalationChainCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {

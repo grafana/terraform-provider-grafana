@@ -178,8 +178,8 @@ Required access policy scopes:
 			"graphite_status":  common.ComputedString(),
 
 			// Connections
-			"influx_url": common.ComputedStringWithDescription("Base URL of the InfluxDB instance configured for this stack. See https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-influxdb/push-from-telegraf/ for docs on how to use this."),
-			"otlp_url":   common.ComputedStringWithDescription("Base URL of the OTLP instance configured for this stack. See https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/ for docs on how to use this."),
+			"influx_url": common.ComputedStringWithDescription("Base URL of the InfluxDB instance configured for this stack. The username is the same as the metrics' (`prometheus_user_id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-influxdb/push-from-telegraf/ for docs on how to use this."),
+			"otlp_url":   common.ComputedStringWithDescription("Base URL of the OTLP instance configured for this stack. The username is the stack's ID (`id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/ for docs on how to use this."),
 		},
 		CustomizeDiff: customdiff.All(
 			customdiff.ComputedIf("url", func(_ context.Context, diff *schema.ResourceDiff, meta interface{}) bool {

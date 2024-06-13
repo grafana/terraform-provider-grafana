@@ -26,6 +26,9 @@ type stack struct {
 	managementKey string
 	smURL         string
 	smToken       string
+
+	onCallURL   string
+	onCallToken string
 }
 
 func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
