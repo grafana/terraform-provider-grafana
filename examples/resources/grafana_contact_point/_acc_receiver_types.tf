@@ -130,7 +130,7 @@ resource "grafana_contact_point" "receiver_types" {
   telegram {
     token                    = "token"
     chat_id                  = "chat-id"
-    message_thread_id        = "message-thread-id"
+    message_thread_id        = "5"
     message                  = "message"
     parse_mode               = "Markdown"
     disable_web_page_preview = true
