@@ -1817,7 +1817,7 @@ func (t telegramNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Reso
 
 	packNotifierStringField(&settings, &notifier, "bottoken", "token")
 	packNotifierStringField(&settings, &notifier, "chatid", "chat_id")
-	packNotifierStringField(&settings, &notifier, "messagethreadid", "message_thread_id")
+	packNotifierStringField(&settings, &notifier, "message_thread_id", "message_thread_id")
 	packNotifierStringField(&settings, &notifier, "message", "message")
 	packNotifierStringField(&settings, &notifier, "parse_mode", "parse_mode")
 
@@ -1846,7 +1846,7 @@ func (t telegramNotifier) unpack(raw interface{}, name string) *models.EmbeddedC
 
 	unpackNotifierStringField(&json, &settings, "token", "bottoken")
 	unpackNotifierStringField(&json, &settings, "chat_id", "chatid")
-	unpackNotifierStringField(&json, &settings, "message_thread_id", "messagethreadid")
+	unpackNotifierStringField(&json, &settings, "message_thread_id", "message_thread_id")
 	unpackNotifierStringField(&json, &settings, "message", "message")
 	unpackNotifierStringField(&json, &settings, "parse_mode", "parse_mode")
 
