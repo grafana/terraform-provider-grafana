@@ -2,7 +2,6 @@ package slo
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"regexp"
 
@@ -310,14 +309,7 @@ func resourceSloRead(ctx context.Context, d *schema.ResourceData, client *slo.AP
 		return apiError("Unable to read SLO - API", err)
 	}
 
-	err = setTerraformState(d, *slo)
-	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Missing Terraform provenance request header",
-			Detail:   err.Error(),
-		})
-	}
+	setTerraformState(d, *slo)
 
 	return diags
 }
@@ -590,12 +582,7 @@ func packAlertMetadata(metadata []interface{}) slo.SloV00AlertingMetadata {
 	return apiMetadata
 }
 
-func setTerraformState(d *schema.ResourceData, slo slo.SloV00Slo) error {
-	// After CREATE / UPDATE - the modified SLO is readback. Verify that the Provenance field is appropriately set
-	if *slo.ReadOnly.Provenance != "terraform" {
-		return errors.New(`provenance header missing - verify within the Grafana Terraform Provider that the 'Grafana-Terraform-Provider' request header is set to 'true'`)
-	}
-
+func setTerraformState(d *schema.ResourceData, slo slo.SloV00Slo) {
 	d.Set("name", slo.Name)
 	d.Set("description", slo.Description)
 
@@ -612,8 +599,6 @@ func setTerraformState(d *schema.ResourceData, slo slo.SloV00Slo) error {
 
 	retAlerting := unpackAlerting(slo.Alerting)
 	d.Set("alerting", retAlerting)
-
-	return nil
 }
 
 func apiError(action string, err error) diag.Diagnostics {
