@@ -120,6 +120,8 @@ func testAccSloCheckExists(rn string, slo *slo.SloV00Slo) resource.TestCheckFunc
 			return fmt.Errorf("provenance header missing - verify within the Grafana Terraform Provider that the 'Grafana-Terraform-Provider' request header is set to 'true'")
 		}
 
+		*slo = *gotSlo
+
 		return nil
 	}
 }
