@@ -182,8 +182,8 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 				Config: testAccFolderExample_PreventDeletion(name, true), // Create protected folder
 			},
 			{
-				Config:  testAccFolderExample_PreventDeletion(name, true), // Create protected folder
-				Destroy: true,
+				// Delete the protected folder, passes because it's empty
+				Config: " ",
 			},
 			// test with dashboard added to folder from outside Terraform:
 			{
@@ -204,8 +204,7 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 				),
 			},
 			{
-				Config:  testAccFolderExample_PreventDeletion(name, true),
-				Destroy: true, // Try to delete the protected folder
+				Config: " ", // Try to delete the protected folder
 				ExpectError: regexp.MustCompile(
 					fmt.Sprintf(`.+folder %s is not empty and prevent_destroy_if_not_empty is set.+`, name),
 				), // Fail because it's protected
@@ -214,8 +213,8 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 				Config: testAccFolderExample_PreventDeletion(name, false), // Remove protected flag
 			},
 			{
-				Config:  testAccFolderExample_PreventDeletion(name, false),
-				Destroy: true, // No error if the folder is not protected
+				// No error if the folder is not protected
+				Config: " ",
 			},
 		},
 	})
@@ -232,7 +231,7 @@ func TestAccFolder_PreventDeletionNested(t *testing.T) {
 		Steps: []resource.TestStep{
 			// test with a nested folder inside the folder:
 			{
-				Config: testAccFolderExample_PreventDeletion(name, true), // Create protected folder again
+				Config: testAccFolderExample_PreventDeletion(name, true),
 				Check: resource.ComposeTestCheckFunc(
 					folderCheckExists.exists("grafana_folder.test_folder", &folder),
 					// Create a dashboard in the protected folder
@@ -248,8 +247,8 @@ func TestAccFolder_PreventDeletionNested(t *testing.T) {
 				),
 			},
 			{
-				Config:  testAccFolderExample_PreventDeletion(name, true),
-				Destroy: true, // Try to delete the protected folder
+				// Try to delete the protected folder
+				Config: " ",
 				ExpectError: regexp.MustCompile(
 					fmt.Sprintf(`.+folder %s is not empty and prevent_destroy_if_not_empty is set.+`, name),
 				), // Fail because it's protected
@@ -258,8 +257,8 @@ func TestAccFolder_PreventDeletionNested(t *testing.T) {
 				Config: testAccFolderExample_PreventDeletion(name, false), // Remove protected flag
 			},
 			{
-				Config:  testAccFolderExample_PreventDeletion(name, false),
-				Destroy: true, // No error if the folder is not protected
+				// No error if the folder is not protected
+				Config: " ",
 			},
 		},
 	})
