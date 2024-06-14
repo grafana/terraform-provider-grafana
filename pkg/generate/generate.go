@@ -80,6 +80,7 @@ func Generate(ctx context.Context, cfg *Config) error {
 		stack := stack{
 			managementKey: cfg.Grafana.Auth,
 			url:           cfg.Grafana.URL,
+			isCloud:       cfg.Grafana.IsGrafanaCloudStack,
 			smToken:       cfg.Grafana.SMAccessToken,
 			smURL:         cfg.Grafana.SMURL,
 			onCallToken:   cfg.Grafana.OnCallAccessToken,
