@@ -17,13 +17,9 @@ data "grafana_cloud_stack" "test" {
   slug = "gcloudstacktest"
 }
 
-data "aws_iam_role" "test" {
-  name = "my-role"
-}
-
 data "grafana_cloud_provider_aws_account" "test" {
   stack_id = data.grafana_cloud_stack.test.id
-  role_arn = data.aws_iam_role.test.arn
+  account_id = "1"
 }
 ```
 
@@ -32,10 +28,11 @@ data "grafana_cloud_provider_aws_account" "test" {
 
 ### Required
 
-- `role_arn` (String) The IAM Role ARN string of the AWS Account resource to look up.
+- `account_id` (String) The ID computed by the Grafana Cloud Provider API for the AWS Account resource.
 - `stack_id` (String) The StackID of the AWS Account resource to look up.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `regions` (List of String) A list of regions that this AWS Account resource applies to.
+- `regions` (Set of String) A set of regions that this AWS Account resource applies to.
+- `role_arn` (String) An IAM Role ARN string to represent with this AWS Account resource.

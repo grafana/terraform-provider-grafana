@@ -21,7 +21,7 @@ func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.R
 	}
 }
 
-var Datasources = []*common.DataSource{
+var DataSources = []*common.DataSource{
 	datasourceAWSAccount(),
 }
 

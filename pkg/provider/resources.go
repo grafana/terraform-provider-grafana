@@ -24,6 +24,7 @@ func DataSources() []*common.DataSource {
 	resources = append(resources, oncall.DataSources...)
 	resources = append(resources, slo.DataSources...)
 	resources = append(resources, syntheticmonitoring.DataSources...)
+	resources = append(resources, cloudprovider.DataSources...)
 	return resources
 }
 

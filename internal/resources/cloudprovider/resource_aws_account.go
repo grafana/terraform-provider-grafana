@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	resourceAWSAccountTerraformID = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("role_arn"))
+	resourceAWSAccountTerraformID = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("account_id"))
 )
 
 func resourceAWSAccount() *common.Resource {
@@ -37,7 +37,7 @@ func resourceAWSAccount() *common.Resource {
 				Required:    true,
 			},
 			"regions": {
-				Description: "A list of regions that this AWS Account resource applies to.",
+				Description: "A set of regions that this AWS Account resource applies to.",
 				Type:        schema.TypeSet,
 				Required:    true,
 				Elem: &schema.Schema{
