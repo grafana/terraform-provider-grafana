@@ -55,12 +55,12 @@ func pluginFrameworkDataSources() []func() datasource.DataSource {
 func Resources() []*common.Resource {
 	var resources []*common.Resource
 	resources = append(resources, cloud.Resources...)
-	resources = append(resources, cloudprovider.Resources...)
 	resources = append(resources, grafana.Resources...)
 	resources = append(resources, machinelearning.Resources...)
 	resources = append(resources, oncall.Resources...)
 	resources = append(resources, slo.Resources...)
 	resources = append(resources, syntheticmonitoring.Resources...)
+	resources = append(resources, cloudprovider.Resources...)
 	return resources
 }
 
