@@ -429,8 +429,8 @@ func TestAccResourceCheck_grpc(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "target", "host.docker.internal:50051"),
 					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.grpc", "probes.0"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "labels.foo", "bar"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "settings.0.tcp.0.ip_version", "V4"),
-					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "settings.0.tcp.0.tls", "false"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "settings.0.grpc.0.ip_version", "V4"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "settings.0.grpc.0.tls", "false"),
 				),
 			},
 			{
