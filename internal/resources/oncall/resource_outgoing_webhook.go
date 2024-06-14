@@ -98,7 +98,8 @@ func resourceOutgoingWebhook() *common.Resource {
 			"is_webhook_enabled": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Controls whether the outgoing webhook will trigger or is ignored. The default is `true`.",
+				Default:     true,
+				Description: "Controls whether the outgoing webhook will trigger or is ignored.",
 			},
 		},
 	}
