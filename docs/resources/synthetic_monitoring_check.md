@@ -921,7 +921,7 @@ resource "grafana_synthetic_monitoring_check" "grpc" {
   }
   settings {
     grpc {
-      service: "health-check-test"
+      service    = "health-check-test"
       ip_version = "V6"
       tls        = true
 
