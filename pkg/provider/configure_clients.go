@@ -132,6 +132,7 @@ func createSLOClient(client *common.Client, providerConfig ProviderConfig) error
 	sloConfig.Host = client.GrafanaAPIURLParsed.Host
 	sloConfig.Scheme = client.GrafanaAPIURLParsed.Scheme
 	sloConfig.DefaultHeader["Authorization"] = "Bearer " + providerConfig.Auth.ValueString()
+	sloConfig.DefaultHeader["Grafana-Terraform-Provider"] = "true"
 	sloConfig.HTTPClient = getRetryClient(providerConfig)
 	client.SLOClient = slo.NewAPIClient(sloConfig)
 	return nil
