@@ -438,6 +438,7 @@ resource "grafana_synthetic_monitoring_check" "traceroute" {
 Optional:
 
 - `dns` (Block Set, Max: 1) Settings for DNS check. The target must be a valid hostname (or IP address for `PTR` records). (see [below for nested schema](#nestedblock--settings--dns))
+- `grpc` (Block Set, Max: 1) Settings for gRPC Health check. The target must be of the form `<host>:<port>`, where the host portion must be a valid hostname or IP address. (see [below for nested schema](#nestedblock--settings--grpc))
 - `http` (Block Set, Max: 1) Settings for HTTP check. The target must be a URL (http or https). (see [below for nested schema](#nestedblock--settings--http))
 - `multihttp` (Block Set, Max: 1) Settings for MultiHTTP check. The target must be a URL (http or https) (see [below for nested schema](#nestedblock--settings--multihttp))
 - `ping` (Block Set, Max: 1) Settings for ping (ICMP) check. The target must be a valid hostname or IP address. (see [below for nested schema](#nestedblock--settings--ping))
@@ -486,6 +487,29 @@ Optional:
 
 - `fail_if_matches_regexp` (Set of String) Fail if value matches regex.
 - `fail_if_not_matches_regexp` (Set of String) Fail if value does not match regex.
+
+
+
+<a id="nestedblock--settings--grpc"></a>
+### Nested Schema for `settings.grpc`
+
+Optional:
+
+- `ip_version` (String) Options are `V4`, `V6`, `Any`. Specifies whether the corresponding check will be performed using IPv4 or IPv6. The `Any` value indicates that IPv6 should be used, falling back to IPv4 if that's not available. Defaults to `V4`.
+- `service` (String) gRPC service.
+- `tls` (Boolean) Whether or not TLS is used when the connection is initiated. Defaults to `false`.
+- `tls_config` (Block Set, Max: 1) TLS config. (see [below for nested schema](#nestedblock--settings--grpc--tls_config))
+
+<a id="nestedblock--settings--grpc--tls_config"></a>
+### Nested Schema for `settings.grpc.tls_config`
+
+Optional:
+
+- `ca_cert` (String) CA certificate in PEM format.
+- `client_cert` (String) Client certificate in PEM format.
+- `client_key` (String, Sensitive) Client key in PEM format.
+- `insecure_skip_verify` (Boolean) Disable target certificate validation. Defaults to `false`.
+- `server_name` (String) Used to verify the hostname for the targets.
 
 
 
@@ -853,6 +877,86 @@ resource "grafana_synthetic_monitoring_check" "scripted" {
       // `script.js` is a file in the same directory as this file and contains the
       // script to be executed.
       script = file("${path.module}/script.js")
+    }
+  }
+}
+```
+
+### gRPC Health Check Basic
+
+```terraform
+data "grafana_synthetic_monitoring_probes" "main" {}
+
+resource "grafana_synthetic_monitoring_check" "grpc" {
+  job     = "gRPC Defaults"
+  target  = "host.docker.internal:50051"
+  enabled = false
+  probes = [
+    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
+  ]
+  labels = {
+    foo = "bar"
+  }
+  settings {
+    grpc {}
+  }
+}
+```
+
+### gRPC Health Check Complex
+
+```terraform
+data "grafana_synthetic_monitoring_probes" "main" {}
+
+resource "grafana_synthetic_monitoring_check" "grpc" {
+  job     = "gRPC Defaults"
+  target  = "host.docker.internal:50051"
+  enabled = false
+  probes = [
+    data.grafana_synthetic_monitoring_probes.main.probes.Frankfurt,
+    data.grafana_synthetic_monitoring_probes.main.probes.London,
+  ]
+  labels = {
+    foo = "baz"
+  }
+  settings {
+    grpc {
+      service    = "health-check-test"
+      ip_version = "V6"
+      tls        = true
+
+      tls_config {
+        server_name = "grafana.com"
+        ca_cert     = <<EOS
+-----BEGIN CERTIFICATE-----
+MIIEljCCAn4CCQCKJPUQQxeO0zANBgkqhkiG9w0BAQsFADANMQswCQYDVQQGEwJT
+RTAeFw0yMTA1MjkxOTIyNTdaFw0yNDAzMTgxOTIyNTdaMA0xCzAJBgNVBAYTAlNF
+MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAnmbazDNUT0rSI4BpGZK+
+0AJ+9FDkIYWJUtRLJoxw8CF+AobMFploYA2L2Myt80cTA1w8FrewjC8qlqdnrPWr
+h1ely2zsUljgi1/niH0ndjFzliL7UkinXQiAsTtYOrOQmzyd/o5PNdu7dz0m7stD
+BN/Sz5TlXZnA1/eJbqV/kqMau6b1MaBx8SbRfUG9+cSmUobFJwuktDrPuwJhcEkl
+iDmhEqu1GuZzmKvzPacLTVia1vSlmCTCu89NiHI8iGiiLtqNrapup7f8j5m3a3SL
+a+vXhplFj2piNl7Nc0dfuVgtEliTI+qUL2/+4A7gzRWZpHy21/LxMMXmBhdJW9En
+FWkev97VZLgb5TR3+qpSWmXcodjPy4dibvwsOMpdd+Q4AYulwvlDw5idRPVgGvk7
+qq03+w9ppZ5Fugws9k2CD9F/75JX2mCbRpkuPe8XXZ7bqrMaQgQMLOrs68HuiiCk
+FTklglq4DMKxnf/Y/T/MgIa9Q1o28YSevh6A7FnfPGARj2H2T4rToi+bC1Vf7qNB
+Z18bDpz99tRUTbyiRUSBMWLCGhU6c4HAqUrfrkpperOKFBQ3i38a79838oFdXHBW
+6rx1t5cC3XwtEoUyeBKAygez8G1LDXbN3607MxVhAjhHKtPkYvuBfysSNU6JrR0z
+UV1IURJANt2UMuKgSEkG/IMCAwEAATANBgkqhkiG9w0BAQsFAAOCAgEAcipMhp/w
+yzfPy61faVAw9SPaMNRlnW9FCDC3N9CGOjo2knjXpObPzyzsJiUURTjrA9eFMpRA
+e2Rgn2j+nvm2XdLAlC4Kh8jqv/wCL0X6BTQMdN5aOhXdSiXtpXOMvXYY/dQ4ebRZ
+XeRCVWQD79JbV6/uyx0nCV3FVcU7L1P4UjxroefVr0soLPMirgxHmOxLnkoVgdcB
+tqufP5kJx9CIeJXPx3QQsk1XfEtxtUvuw4ZaZkQnNUqvGl7V+AZpur5Eqfv3zBi8
+QxxL7qGkARNssNWH2Ju+tqpM/UZRnjlFrDR4SXUgT0coTduBalUY6qHkciHmRpiP
+tf3SgpDeiCSOV2iVFGdaR1mz3muWoAYWFstcWN3a3HjjVugIi23yLN8Gv8CNeoH4
+prulinFCLrFgAh8SLAF8mOAZanT06LH8jOIFYrdUxH+ZeRBR0rLoFjUF+JB7UKD9
+5TA+B4EBzQ1tMbGFU1DX79MjAejq0IV0Nzq+GMfBvLHxEf4+Oz8nqhDXQcJ6TdtY
+l3Lyw5zBvOL80SBK+Mr0UP7d9U3VXgbGHCYVJU6Ot1TwiGwahtWALRALA3TWeGkq
+7kyD1H+nm+9lfKhuyBRQnRGBVyze2lAp7oxwshJuhBwEXosXFxq1Cy6QhPN77r6N
+vuhxvtppolNnyOgGxwG4zquqq2V5/+vKjKY=
+-----END CERTIFICATE-----
+EOS
+      }
     }
   }
 }

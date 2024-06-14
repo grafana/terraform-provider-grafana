@@ -53,15 +53,6 @@ resource "grafana_organization" "_2" {
   name   = "alerting-org"
 }
 
-# __generated__ by Terraform from "1"
-resource "grafana_organization_preferences" "_1" {
-}
-
-# __generated__ by Terraform from "2"
-resource "grafana_organization_preferences" "_2" {
-  org_id = grafana_organization._2.id
-}
-
 # __generated__ by Terraform from "2:alert-rule-folder:My Rule Group"
 resource "grafana_rule_group" "_2_alert-rule-folder_My_Rule_Group" {
   disable_provenance = false

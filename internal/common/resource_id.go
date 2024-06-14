@@ -10,7 +10,7 @@ import (
 type ResourceIDFieldType string
 
 const (
-	defaultSeparator          = ":"
+	ResourceIDSeparator       = ":"
 	ResourceIDFieldTypeInt    = ResourceIDFieldType("int")
 	ResourceIDFieldTypeString = ResourceIDFieldType("string")
 )
@@ -104,7 +104,7 @@ func (id *ResourceID) Make(parts ...any) string {
 		}
 	}
 
-	return strings.Join(stringParts, defaultSeparator)
+	return strings.Join(stringParts, ResourceIDSeparator)
 }
 
 // Single parses a resource ID into a single value
@@ -141,7 +141,7 @@ func (id *ResourceID) Split(resourceID string) ([]any, error) {
 // Split parses a resource ID into its parts
 // The parts will be cast to the expected types
 func split(resourceID string, expectedFields []ResourceIDField) ([]any, error) {
-	parts := strings.Split(resourceID, defaultSeparator)
+	parts := strings.Split(resourceID, ResourceIDSeparator)
 	if len(parts) == len(expectedFields) {
 		partsAsAny := make([]any, len(parts))
 		for i, part := range parts {
@@ -165,5 +165,5 @@ func split(resourceID string, expectedFields []ResourceIDField) ([]any, error) {
 	for i, f := range expectedFields {
 		expectedFieldNames[i] = f.Name
 	}
-	return nil, fmt.Errorf("id %q does not match expected format. Should be in the format: %s", resourceID, strings.Join(expectedFieldNames, defaultSeparator))
+	return nil, fmt.Errorf("id %q does not match expected format. Should be in the format: %s", resourceID, strings.Join(expectedFieldNames, ResourceIDSeparator))
 }

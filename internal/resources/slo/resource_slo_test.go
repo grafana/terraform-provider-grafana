@@ -112,9 +112,12 @@ func testAccSloCheckExists(rn string, slo *slo.SloV00Slo) resource.TestCheckFunc
 		client := testutils.Provider.Meta().(*common.Client).SLOClient
 		req := client.DefaultAPI.V1SloIdGet(context.Background(), rs.Primary.ID)
 		gotSlo, _, err := req.Execute()
-
 		if err != nil {
 			return fmt.Errorf("error getting SLO: %s", err)
+		}
+
+		if *gotSlo.ReadOnly.Provenance != "terraform" {
+			return fmt.Errorf("provenance header missing - verify within the Grafana Terraform Provider that the 'Grafana-Terraform-Provider' request header is set to 'true'")
 		}
 
 		*slo = *gotSlo
@@ -155,6 +158,7 @@ func testAccSloCheckDestroy(slo *slo.SloV00Slo) resource.TestCheckFunc {
 		if resp.StatusCode == 404 {
 			return nil
 		}
+
 		if gotSlo.ReadOnly.Status.Type == "deleting" {
 			return nil
 		}

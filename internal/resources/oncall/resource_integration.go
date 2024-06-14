@@ -240,7 +240,18 @@ func resourceIntegration() *common.Resource {
 		"grafana_oncall_integration",
 		resourceID,
 		schema,
-	)
+	).WithLister(oncallListerFunction(listIntegrations))
+}
+
+func listIntegrations(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
+	resp, _, err := client.Integrations.ListIntegrations(&onCallAPI.ListIntegrationOptions{ListOptions: listOptions})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, i := range resp.Integrations {
+		ids = append(ids, i.ID)
+	}
+	return ids, resp.Next, nil
 }
 
 func onCallTemplate(description string, hasMessage, hasImage bool) *schema.Schema {

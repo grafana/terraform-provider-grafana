@@ -122,7 +122,19 @@ Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/
 		"grafana_machine_learning_outlier_detector",
 		resourceOutlierDetectorID,
 		schema,
-	)
+	).WithLister(lister(listOutliers))
+}
+
+func listOutliers(ctx context.Context, client *mlapi.Client) ([]string, error) {
+	outliers, err := client.OutlierDetectors(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, len(outliers))
+	for i, outlier := range outliers {
+		ids[i] = outlier.ID
+	}
+	return ids, nil
 }
 
 func resourceOutlierCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
