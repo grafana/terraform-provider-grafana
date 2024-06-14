@@ -58,7 +58,7 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 		onCallClient.UserAgent = providerConfig.UserAgent.ValueString()
 		c.OnCallClient = onCallClient
 	}
-	if !providerConfig.CloudProviderAccessToken.IsNull() {
+	if !providerConfig.CloudProviderURL.IsNull() && !providerConfig.CloudProviderAccessToken.IsNull() {
 		if err := createCloudProviderClient(c, providerConfig); err != nil {
 			return nil, err
 		}

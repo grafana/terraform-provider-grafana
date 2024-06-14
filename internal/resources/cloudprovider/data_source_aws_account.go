@@ -4,21 +4,22 @@ import (
 	"context"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func datasourceAWSAccount() *common.DataSource {
 	schema := &schema.Resource{
-		ReadContext: datasourceAWSAccountRead,
+		ReadContext: withClient[schema.ReadContextFunc](datasourceAWSAccountRead),
 		Schema: common.CloneResourceSchemaForDatasource(resourceAWSAccount().Schema, map[string]*schema.Schema{
 			"stack_id": {
 				Description: "The StackID of the AWS Account resource to look up.",
 				Type:        schema.TypeString,
 				Required:    true,
 			},
-			"role_arn": {
-				Description: "The IAM Role ARN string of the AWS Account resource to look up.",
+			"account_id": {
+				Description: "The ID computed by the Grafana Cloud Provider API for the AWS Account resource.",
 				Type:        schema.TypeString,
 				Required:    true,
 			},
@@ -32,12 +33,17 @@ func datasourceAWSAccount() *common.DataSource {
 	)
 }
 
-func datasourceAWSAccountRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func datasourceAWSAccountRead(ctx context.Context, d *schema.ResourceData, c *cloudproviderapi.Client) diag.Diagnostics {
 	var diags diag.Diagnostics
-
-	d.SetId(resourceAWSAccountTerraformID.Make(d.Get("stack_id").(string), d.Get("role_arn").(string)))
-	d.Set("role_arn", TestAWSAccountData.RoleARN)
-	d.Set("regions", TestAWSAccountData.Regions)
-
+	account, err := c.GetAWSAccount(
+		ctx,
+		d.Get("stack_id").(string),
+		d.Get("account_id").(string),
+	)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.Set("role_arn", account.RoleARN)
+	d.Set("regions", common.StringSliceToSet(account.Regions))
 	return diags
 }
