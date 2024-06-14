@@ -408,6 +408,52 @@ func TestAccResourceCheck_scripted(t *testing.T) {
 	})
 }
 
+func TestAccResourceCheck_grpc(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	// Inject random job names to avoid conflicts with other tests
+	jobName := acctest.RandomWithPrefix("grpc")
+	nameReplaceMap := map[string]string{
+		`"gRPC Defaults"`: strconv.Quote(jobName),
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/grpc_basic.tf", nameReplaceMap),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.grpc", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.grpc", "tenant_id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "job", jobName),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "target", "host.docker.internal:50051"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.grpc", "probes.0"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "labels.foo", "bar"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "settings.0.tcp.0.ip_version", "V4"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "settings.0.tcp.0.tls", "false"),
+				),
+			},
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/grpc_complex.tf", nameReplaceMap),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.grpc", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.grpc", "tenant_id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "job", jobName),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "target", "host.docker.internal:50051"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.grpc", "probes.0"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.grpc", "probes.1"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "labels.foo", "baz"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "settings.0.grpc.0.service", "health-check-test"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "settings.0.grpc.0.ip_version", "V6"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "settings.0.grpc.0.tls", "true"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "settings.0.grpc.0.tls_config.0.server_name", "grafana.com"),
+					resource.TestMatchResourceAttr("grafana_synthetic_monitoring_check.grpc", "settings.0.grpc.0.tls_config.0.ca_cert", regexp.MustCompile((`^-{5}BEGIN CERTIFICATE`))),
+				),
+			},
+		},
+	})
+}
+
 // Test that a check is recreated if deleted outside the Terraform process
 func TestAccResourceCheck_recreate(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
