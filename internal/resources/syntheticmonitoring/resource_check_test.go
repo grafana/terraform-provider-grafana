@@ -450,6 +450,11 @@ func TestAccResourceCheck_grpc(t *testing.T) {
 					resource.TestMatchResourceAttr("grafana_synthetic_monitoring_check.grpc", "settings.0.grpc.0.tls_config.0.ca_cert", regexp.MustCompile((`^-{5}BEGIN CERTIFICATE`))),
 				),
 			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.grpc",
+			},
 		},
 	})
 }
