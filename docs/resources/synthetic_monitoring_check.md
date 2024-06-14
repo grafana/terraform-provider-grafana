@@ -438,6 +438,7 @@ resource "grafana_synthetic_monitoring_check" "traceroute" {
 Optional:
 
 - `dns` (Block Set, Max: 1) Settings for DNS check. The target must be a valid hostname (or IP address for `PTR` records). (see [below for nested schema](#nestedblock--settings--dns))
+- `grpc` (Block Set, Max: 1) Settings for gRPC Health check. The target must be of the form `<host>:<port>`, where the host portion must be a valid hostname or IP address. (see [below for nested schema](#nestedblock--settings--grpc))
 - `http` (Block Set, Max: 1) Settings for HTTP check. The target must be a URL (http or https). (see [below for nested schema](#nestedblock--settings--http))
 - `multihttp` (Block Set, Max: 1) Settings for MultiHTTP check. The target must be a URL (http or https) (see [below for nested schema](#nestedblock--settings--multihttp))
 - `ping` (Block Set, Max: 1) Settings for ping (ICMP) check. The target must be a valid hostname or IP address. (see [below for nested schema](#nestedblock--settings--ping))
@@ -486,6 +487,29 @@ Optional:
 
 - `fail_if_matches_regexp` (Set of String) Fail if value matches regex.
 - `fail_if_not_matches_regexp` (Set of String) Fail if value does not match regex.
+
+
+
+<a id="nestedblock--settings--grpc"></a>
+### Nested Schema for `settings.grpc`
+
+Optional:
+
+- `ip_version` (String) Options are `V4`, `V6`, `Any`. Specifies whether the corresponding check will be performed using IPv4 or IPv6. The `Any` value indicates that IPv6 should be used, falling back to IPv4 if that's not available. Defaults to `V4`.
+- `service` (String) gRPC service.
+- `tls` (Boolean) Whether or not TLS is used when the connection is initiated. Defaults to `false`.
+- `tls_config` (Block Set, Max: 1) TLS config. (see [below for nested schema](#nestedblock--settings--grpc--tls_config))
+
+<a id="nestedblock--settings--grpc--tls_config"></a>
+### Nested Schema for `settings.grpc.tls_config`
+
+Optional:
+
+- `ca_cert` (String) CA certificate in PEM format.
+- `client_cert` (String) Client certificate in PEM format.
+- `client_key` (String, Sensitive) Client key in PEM format.
+- `insecure_skip_verify` (Boolean) Disable target certificate validation. Defaults to `false`.
+- `server_name` (String) Used to verify the hostname for the targets.
 
 
 
@@ -858,7 +882,7 @@ resource "grafana_synthetic_monitoring_check" "scripted" {
 }
 ```
 
-### gRPC Health Basic
+### gRPC Health Check Basic
 
 ```terraform
 data "grafana_synthetic_monitoring_probes" "main" {}
@@ -877,10 +901,9 @@ resource "grafana_synthetic_monitoring_check" "grpc" {
     grpc {}
   }
 }
-
 ```
 
-### gRPC Health Complex
+### gRPC Health Check Complex
 
 ```terraform
 data "grafana_synthetic_monitoring_probes" "main" {}
@@ -937,7 +960,6 @@ EOS
     }
   }
 }
-
 ```
 
 ## Import
