@@ -73,7 +73,7 @@ func generateGrafanaResources(ctx context.Context, cfg *Config, stack stack, gen
 		return err
 	}
 
-	if strings.HasPrefix(stack.name, "stack-") { // TODO: is cloud. Find a better way to detect this
+	if stack.isCloud {
 		resources = append(resources, slo.Resources...)
 		resources = append(resources, machinelearning.Resources...)
 	}

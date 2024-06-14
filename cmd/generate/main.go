@@ -82,6 +82,12 @@ This supports a glob format. Examples:
 				Category: "Grafana",
 				EnvVars:  []string{"TFGEN_GRAFANA_AUTH"},
 			},
+			&cli.BoolFlag{
+				Name:     "grafana-is-cloud-stack",
+				Usage:    "Indicates that the Grafana instance is a Grafana Cloud stack",
+				Category: "Grafana",
+				EnvVars:  []string{"TFGEN_GRAFANA_IS_CLOUD_STACK"},
+			},
 			&cli.StringFlag{
 				Name:     "synthetic-monitoring-url",
 				Usage:    "URL of the Synthetic Monitoring instance to generate resources from",
@@ -156,12 +162,13 @@ func parseFlags(ctx *cli.Context) (*generate.Config, error) {
 		Format:          generate.OutputFormat(ctx.String("output-format")),
 		ProviderVersion: ctx.String("terraform-provider-version"),
 		Grafana: &generate.GrafanaConfig{
-			URL:               ctx.String("grafana-url"),
-			Auth:              ctx.String("grafana-auth"),
-			SMURL:             ctx.String("synthetic-monitoring-url"),
-			SMAccessToken:     ctx.String("synthetic-monitoring-access-token"),
-			OnCallURL:         ctx.String("oncall-url"),
-			OnCallAccessToken: ctx.String("oncall-access-token"),
+			URL:                 ctx.String("grafana-url"),
+			Auth:                ctx.String("grafana-auth"),
+			IsGrafanaCloudStack: ctx.Bool("grafana-is-cloud-stack"),
+			SMURL:               ctx.String("synthetic-monitoring-url"),
+			SMAccessToken:       ctx.String("synthetic-monitoring-access-token"),
+			OnCallURL:           ctx.String("oncall-url"),
+			OnCallAccessToken:   ctx.String("oncall-access-token"),
 		},
 		Cloud: &generate.CloudConfig{
 			AccessPolicyToken:         ctx.String("cloud-access-policy-token"),
