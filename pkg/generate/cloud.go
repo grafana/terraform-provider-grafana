@@ -22,10 +22,14 @@ import (
 type stack struct {
 	name          string
 	slug          string
+	isCloud       bool
 	url           string
 	managementKey string
 	smURL         string
 	smToken       string
+
+	onCallURL   string
+	onCallToken string
 }
 
 func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
@@ -170,6 +174,7 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
 		if resource.Type == "grafana_cloud_stack_service_account_token" {
 			slug := resource.AttributeValues["stack_slug"].(string)
 			stack := stacksMap[slug]
+			stack.isCloud = true
 			stack.slug = slug
 			stack.url = stacksBySlug[slug].Url
 			stack.managementKey = resource.AttributeValues["key"].(string)

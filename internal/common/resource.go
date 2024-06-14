@@ -107,7 +107,7 @@ func (r *Resource) ImportExample() string {
 			fieldTemplates[i] = fmt.Sprintf("{{ %s }}", fields[i].Name)
 		}
 		return fmt.Sprintf(`terraform import %s.name %q
-`, r.Name, strings.Join(fieldTemplates, defaultSeparator))
+`, r.Name, strings.Join(fieldTemplates, ResourceIDSeparator))
 	}
 
 	id := r.IDType

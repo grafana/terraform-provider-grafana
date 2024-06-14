@@ -243,7 +243,7 @@ func TestAccAlertRule_inOrg(t *testing.T) {
 
 	var group models.AlertRuleGroup
 	var org models.OrgDetailsDTO
-	name := acctest.RandString(10)
+	name := "test:" + acctest.RandString(10)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
@@ -452,6 +452,104 @@ resource "grafana_rule_group" "first" {
 }
 				`, name),
 				ExpectError: regexp.MustCompile(`rule with name "My Alert Rule" is defined more than once`),
+			},
+		},
+	})
+}
+
+func TestAccAlertRule_moveRules(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	name := acctest.RandString(10)
+	ruleFunc := func(ruleName string) string {
+		return fmt.Sprintf(`
+	rule {
+		name           = "%[1]s"
+		for            = "2m"
+		condition      = "B"
+		no_data_state  = "NoData"
+		exec_err_state = "Alerting"
+		is_paused = false
+		data {
+			ref_id     = "A"
+			query_type = ""
+			relative_time_range {
+				from = 600
+				to   = 0
+			}
+			datasource_uid = "PD8C576611E62080A"
+			model = jsonencode({
+				hide          = false
+				intervalMs    = 1000
+				maxDataPoints = 43200
+				refId         = "A"
+			})
+		}
+	}
+	`, ruleName)
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource "grafana_folder" "test" {
+	title = "%[1]s"
+	uid   = "%[1]s"
+}
+
+resource "grafana_rule_group" "first" {
+	name             = "%[1]s-first"
+	folder_uid       = grafana_folder.test.uid
+	interval_seconds = 60
+	%[2]s
+	%[3]s
+}
+
+resource "grafana_rule_group" "second" {
+	name             = "%[1]s-second"
+	folder_uid       = grafana_folder.test.uid
+	interval_seconds = 60
+	%[4]s
+}
+				`, name, ruleFunc("My Alert Rule 1"), ruleFunc("My Alert Rule 2"), ruleFunc("My Alert Rule 3")),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_rule_group.first", "rule.#", "2"),
+					resource.TestCheckResourceAttr("grafana_rule_group.first", "rule.0.name", "My Alert Rule 1"),
+					resource.TestCheckResourceAttr("grafana_rule_group.first", "rule.1.name", "My Alert Rule 2"),
+					resource.TestCheckResourceAttr("grafana_rule_group.second", "rule.#", "1"),
+					resource.TestCheckResourceAttr("grafana_rule_group.second", "rule.0.name", "My Alert Rule 3"),
+				),
+			},
+			{
+				Config: fmt.Sprintf(`
+resource "grafana_folder" "test" {
+	title = "%[1]s"
+	uid   = "%[1]s"
+}
+
+resource "grafana_rule_group" "first" {
+	name             = "%[1]s-first"
+	folder_uid       = grafana_folder.test.uid
+	interval_seconds = 60
+	%[2]s
+}
+
+resource "grafana_rule_group" "second" {
+	name             = "%[1]s-second"
+	folder_uid       = grafana_folder.test.uid
+	interval_seconds = 60
+	%[3]s
+	%[4]s
+}`, name, ruleFunc("My Alert Rule 1"), ruleFunc("My Alert Rule 2"), ruleFunc("My Alert Rule 3")),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_rule_group.first", "rule.#", "1"),
+					resource.TestCheckResourceAttr("grafana_rule_group.first", "rule.0.name", "My Alert Rule 1"),
+					resource.TestCheckResourceAttr("grafana_rule_group.second", "rule.#", "2"),
+					resource.TestCheckResourceAttr("grafana_rule_group.second", "rule.0.name", "My Alert Rule 2"),
+					resource.TestCheckResourceAttr("grafana_rule_group.second", "rule.1.name", "My Alert Rule 3"),
+				),
 			},
 		},
 	})

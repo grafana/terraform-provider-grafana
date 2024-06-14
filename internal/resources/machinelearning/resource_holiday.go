@@ -109,7 +109,19 @@ resource "grafana_machine_learning_job" "test_job" {
 		"grafana_machine_learning_holiday",
 		resourceHolidayID,
 		schema,
-	)
+	).WithLister(lister(listHolidays))
+}
+
+func listHolidays(ctx context.Context, client *mlapi.Client) ([]string, error) {
+	holidays, err := client.Holidays(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, len(holidays))
+	for i, holiday := range holidays {
+		ids[i] = holiday.ID
+	}
+	return ids, nil
 }
 
 func resourceHolidayCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

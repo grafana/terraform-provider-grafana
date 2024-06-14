@@ -7,6 +7,7 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/machinelearning"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/oncall"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/slo"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/syntheticmonitoring"
 	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
@@ -28,6 +29,14 @@ func generateGrafanaResources(ctx context.Context, cfg *Config, stack stack, gen
 		providerBlock := hclwrite.NewBlock("provider", []string{"grafana"})
 		providerBlock.Body().SetAttributeValue("url", cty.StringVal(stack.url))
 		providerBlock.Body().SetAttributeValue("auth", cty.StringVal(stack.managementKey))
+		if stack.smToken != "" && stack.smURL != "" {
+			providerBlock.Body().SetAttributeValue("sm_url", cty.StringVal(stack.smURL))
+			providerBlock.Body().SetAttributeValue("sm_access_token", cty.StringVal(stack.smToken))
+		}
+		if stack.onCallToken != "" && stack.onCallURL != "" {
+			providerBlock.Body().SetAttributeValue("oncall_url", cty.StringVal(stack.onCallURL))
+			providerBlock.Body().SetAttributeValue("oncall_access_token", cty.StringVal(stack.onCallToken))
+		}
 		if stack.name != "" {
 			providerBlock.Body().SetAttributeValue("alias", cty.StringVal(stack.name))
 		}
@@ -44,11 +53,16 @@ func generateGrafanaResources(ctx context.Context, cfg *Config, stack stack, gen
 		URL:  types.StringValue(stack.url),
 		Auth: types.StringValue(stack.managementKey),
 	}
-	if stack.smToken != "" {
+	resources := grafana.Resources
+	if stack.smToken != "" && stack.smURL != "" {
+		resources = append(resources, syntheticmonitoring.Resources...)
+		config.SMURL = types.StringValue(stack.smURL)
 		config.SMAccessToken = types.StringValue(stack.smToken)
 	}
-	if stack.smURL != "" {
-		config.SMURL = types.StringValue(stack.smURL)
+	if stack.onCallToken != "" && stack.onCallURL != "" {
+		resources = append(resources, oncall.Resources...)
+		config.OncallAccessToken = types.StringValue(stack.onCallToken)
+		config.OncallURL = types.StringValue(stack.onCallURL)
 	}
 	if err := config.SetDefaults(); err != nil {
 		return err
@@ -59,11 +73,9 @@ func generateGrafanaResources(ctx context.Context, cfg *Config, stack stack, gen
 		return err
 	}
 
-	resources := grafana.Resources
-	if strings.HasPrefix(stack.name, "stack-") { // TODO: is cloud. Find a better way to detect this
+	if stack.isCloud {
 		resources = append(resources, slo.Resources...)
 		resources = append(resources, machinelearning.Resources...)
-		resources = append(resources, syntheticmonitoring.Resources...)
 	}
 	if err := generateImportBlocks(ctx, client, listerData, resources, cfg, stack.name); err != nil {
 		return err

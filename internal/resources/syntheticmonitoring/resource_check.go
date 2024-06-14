@@ -36,7 +36,7 @@ var (
 		Default:  "V4",
 	}
 
-	// HTTP and TCP checks can set TLS config.
+	// HTTP, TCP and gRPC Health checks can set TLS config.
 	syntheticMonitoringCheckTLSConfig = &schema.Schema{
 		Description: "TLS config.",
 		Type:        schema.TypeSet,
@@ -125,6 +125,13 @@ var (
 				Optional:    true,
 				MaxItems:    1,
 				Elem:        syntheticMonitoringCheckSettingsScripted,
+			},
+			"grpc": {
+				Description: "Settings for gRPC Health check. The target must be of the form `<host>:<port>`, where the host portion must be a valid hostname or IP address.",
+				Type:        schema.TypeSet,
+				Optional:    true,
+				MaxItems:    1,
+				Elem:        syntheticMonitoringCheckSettingsGRPC,
 			},
 		},
 	}
@@ -641,6 +648,24 @@ var (
 		},
 	}
 
+	syntheticMonitoringCheckSettingsGRPC = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"ip_version": syntheticMonitoringCheckIPVersion,
+			"tls": {
+				Description: "Whether or not TLS is used when the connection is initiated.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+			},
+			"tls_config": syntheticMonitoringCheckTLSConfig,
+			"service": {
+				Description: "gRPC service.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+		},
+	}
+
 	resourceCheckID = common.NewResourceID(common.IntIDField("id"))
 )
 
@@ -1107,6 +1132,20 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 		settings.Add(map[string]any{
 			"scripted": scripted,
 		})
+	case chk.Settings.Grpc != nil:
+		grpc := schema.NewSet(
+			schema.HashResource(syntheticMonitoringCheckSettingsGRPC),
+			[]interface{}{},
+		)
+		grpc.Add(map[string]interface{}{
+			"ip_version": chk.Settings.Grpc.IpVersion.String(),
+			"tls_config": tlsConfig(chk.Settings.Grpc.TlsConfig),
+			"tls":        chk.Settings.Grpc.Tls,
+			"service":    chk.Settings.Grpc.Service,
+		})
+		settings.Add(map[string]interface{}{
+			"grpc": grpc,
+		})
 	}
 
 	d.Set("settings", settings)
@@ -1532,6 +1571,19 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 		s := scripted[0].(map[string]interface{})
 		cs.Scripted = &sm.ScriptedSettings{
 			Script: []byte(s["script"].(string)),
+		}
+	}
+
+	grpc := settings["grpc"].(*schema.Set).List()
+	if len(grpc) > 0 {
+		t := grpc[0].(map[string]interface{})
+		cs.Grpc = &sm.GrpcSettings{
+			Service:   t["service"].(string),
+			IpVersion: sm.IpVersion(sm.IpVersion_value[t["ip_version"].(string)]),
+			Tls:       t["tls"].(bool),
+		}
+		if t["tls_config"].(*schema.Set).Len() > 0 {
+			cs.Grpc.TlsConfig = tlsConfig(t["tls_config"].(*schema.Set))
 		}
 	}
 

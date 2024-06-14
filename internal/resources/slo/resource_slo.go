@@ -305,7 +305,6 @@ func resourceSloRead(ctx context.Context, d *schema.ResourceData, client *slo.AP
 
 	req := client.DefaultAPI.V1SloIdGet(ctx, sloID)
 	slo, _, err := req.Execute()
-
 	if err != nil {
 		return apiError("Unable to read SLO - API", err)
 	}

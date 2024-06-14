@@ -59,7 +59,7 @@ func resourceFolder() *common.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Prevent deletion of the folder if it is not empty (contains dashboards or alert rules).",
+				Description: "Prevent deletion of the folder if it is not empty (contains dashboards or alert rules). This feature requires Grafana 10.2 or later.",
 			},
 			"parent_folder_uid": {
 				Type:     schema.TypeString,
