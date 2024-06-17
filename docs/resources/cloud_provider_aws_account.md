@@ -43,13 +43,13 @@ resource "grafana_cloud_provider_aws_account" "test" {
 
 ### Read-Only
 
-- `account_id` (String) The ID computed by the Grafana Cloud Provider API for the AWS Account resource.
 - `id` (String) The ID of this resource.
+- `resource_id` (String) The ID given by the Grafana Cloud Provider API to this AWS Account resource.
 
 ## Import
 
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_cloud_provider_aws_account.name "{{ stack_id }}:{{ account_id }}"
+terraform import grafana_cloud_provider_aws_account.name "{{ stack_id }}:{{ resource_id }}"
 ```

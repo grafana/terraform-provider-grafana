@@ -18,8 +18,8 @@ func datasourceAWSAccount() *common.DataSource {
 				Type:        schema.TypeString,
 				Required:    true,
 			},
-			"account_id": {
-				Description: "The ID computed by the Grafana Cloud Provider API for the AWS Account resource.",
+			"resource_id": {
+				Description: "The stack-unique ID given by the Grafana Cloud Provider API to this AWS Account resource.",
 				Type:        schema.TypeString,
 				Required:    true,
 			},
@@ -38,7 +38,7 @@ func datasourceAWSAccountRead(ctx context.Context, d *schema.ResourceData, c *cl
 	account, err := c.GetAWSAccount(
 		ctx,
 		d.Get("stack_id").(string),
-		d.Get("account_id").(string),
+		d.Get("resource_id").(string),
 	)
 	if err != nil {
 		return diag.FromErr(err)

@@ -19,7 +19,7 @@ data "grafana_cloud_stack" "test" {
 
 data "grafana_cloud_provider_aws_account" "test" {
   stack_id   = data.grafana_cloud_stack.test.id
-  account_id = "1"
+  resource_id = "1"
 }
 ```
 
@@ -28,7 +28,7 @@ data "grafana_cloud_provider_aws_account" "test" {
 
 ### Required
 
-- `account_id` (String) The ID computed by the Grafana Cloud Provider API for the AWS Account resource.
+- `resource_id` (String) The stack-unique ID given by the Grafana Cloud Provider API to this AWS Account resource.
 - `stack_id` (String) The StackID of the AWS Account resource to look up.
 
 ### Read-Only

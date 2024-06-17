@@ -174,6 +174,7 @@ func createCloudProviderClient(client *common.Client, providerConfig ProviderCon
 	apiClient, err := cloudproviderapi.NewClient(
 		providerConfig.CloudProviderAccessToken.ValueString(),
 		providerConfig.CloudProviderURL.ValueString(),
+		getRetryClient(providerConfig),
 	)
 	if err != nil {
 		return err

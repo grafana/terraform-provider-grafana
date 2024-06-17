@@ -3,31 +3,20 @@ package cloudproviderapi
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
-	"math/big"
 	"net/http"
 	"net/url"
-	"time"
 )
 
 type Client struct {
-	authToken   string
-	apiURL      url.URL
-	client      *http.Client
-	retryConfig retryConfig
+	authToken string
+	apiURL    url.URL
+	client    *http.Client
 }
 
-type retryConfig struct {
-	maxAttempts int
-	baseTimeout time.Duration
-	maxTimeout  time.Duration
-}
-
-func NewClient(authToken string, rawAPIURL string) (*Client, error) {
+func NewClient(authToken string, rawAPIURL string, client *http.Client) (*Client, error) {
 	parsedAPIURL, err := url.Parse(rawAPIURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse Cloud Provider API url: %w", err)
@@ -36,12 +25,7 @@ func NewClient(authToken string, rawAPIURL string) (*Client, error) {
 	return &Client{
 		authToken: authToken,
 		apiURL:    *parsedAPIURL,
-		client:    http.DefaultClient,
-		retryConfig: retryConfig{
-			maxAttempts: 5,
-			baseTimeout: 5 * time.Second,
-			maxTimeout:  125 * time.Second,
-		},
+		client:    client,
 	}, nil
 }
 
@@ -96,41 +80,27 @@ func (c *Client) DeleteAWSAccount(ctx context.Context, stackID string, accountID
 	return nil
 }
 
-func (c *Client) doAWSAccountsAPIRequest(ctx context.Context, method string, path string, accountData *AWSAccount) (*AWSAccount, error) {
+func (c *Client) doAWSAccountsAPIRequest(ctx context.Context, method string, path string, body any) (*AWSAccount, error) {
 	var reqBodyBytes io.Reader
-	if accountData != nil {
-		bs, err := json.Marshal(accountData)
+	if body != nil {
+		bs, err := json.Marshal(body)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal request body: %w", err)
 		}
 		reqBodyBytes = bytes.NewReader(bs)
 	}
 	var resp *http.Response
-	timeoutDuration := c.retryConfig.baseTimeout
-	for i := 1; i <= c.retryConfig.maxAttempts; i++ {
-		logStrPrefix := fmt.Sprintf("attempt %d/%d: ", i, c.retryConfig.maxAttempts)
 
-		req, err := http.NewRequestWithContext(ctx, method, c.apiURL.String()+path, reqBodyBytes)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create request: %w", err)
-		}
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
-		req.Header.Add("Content-Type", "application/json")
+	req, err := http.NewRequestWithContext(ctx, method, c.apiURL.String()+path, reqBodyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+	req.Header.Add("Content-Type", "application/json")
 
-		resp, err = c.client.Do(req)
-		if err != nil {
-			log.Printf("%s - failed to do request: %s", logStrPrefix, err.Error())
-			timeoutDuration = c.doRetryTimeout(timeoutDuration)
-			continue
-		}
-		if resp.StatusCode < http.StatusInternalServerError &&
-			resp.StatusCode != http.StatusTooManyRequests {
-			break
-		} else {
-			log.Printf("%s - received status code %d, retrying...", logStrPrefix, resp.StatusCode)
-			timeoutDuration = c.doRetryTimeout(timeoutDuration)
-			continue
-		}
+	resp, err = c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to do request: %w", err)
 	}
 
 	bodyContents, err := io.ReadAll(resp.Body)
@@ -150,14 +120,4 @@ func (c *Client) doAWSAccountsAPIRequest(ctx context.Context, method string, pat
 		return &responseData.Data, nil
 	}
 	return nil, nil
-}
-
-func (c *Client) doRetryTimeout(timeoutDuration time.Duration) time.Duration {
-	time.Sleep(timeoutDuration)
-	nextTimeoutBase := min(timeoutDuration*2, c.retryConfig.maxTimeout)
-	nBig, err := rand.Int(rand.Reader, big.NewInt(int64(nextTimeoutBase)))
-	if err != nil {
-		panic(err)
-	}
-	return nextTimeoutBase/2 + time.Duration(nBig.Int64())
 }

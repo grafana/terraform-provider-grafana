@@ -21,7 +21,9 @@ var testAWSAccountData = struct {
 }
 
 func TestAccResourceAWSAccount(t *testing.T) {
-	t.Skip("TODO(tristan): switch to CloudInstanceTestsEnabled")
+	// TODO(tristan): switch to CloudInstanceTestsEnabled
+	// as part of https://github.com/grafana/grafana-aws-app/issues/381
+	t.Skip("not yet implemented. see TODO comment.")
 	// testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
