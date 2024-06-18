@@ -76,16 +76,14 @@ func TestAccExamples(t *testing.T) {
 			},
 		},
 		{
-			category: "Cloud Provider",
+			category: "Synthetic Monitoring",
 			testCheck: func(t *testing.T, filename string) {
 				t.Skip() // TODO: Make all examples work
-				// TODO(tristan): this check will probably need to be enabled
-				// once we start having to talk to the actual API.
-				// testutils.CheckCloudInstanceTestsEnabled(t)
+				testutils.CheckCloudInstanceTestsEnabled(t)
 			},
 		},
 		{
-			category: "Synthetic Monitoring",
+			category: "Cloud Provider",
 			testCheck: func(t *testing.T, filename string) {
 				t.Skip() // TODO: Make all examples work
 				testutils.CheckCloudInstanceTestsEnabled(t)

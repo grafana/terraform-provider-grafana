@@ -37,18 +37,19 @@ resource "grafana_cloud_provider_aws_account" "test" {
 
 ### Required
 
-- `regions` (List of String) A list of regions that this AWS Account resource applies to.
+- `regions` (Set of String) A set of regions that this AWS Account resource applies to.
 - `role_arn` (String) An IAM Role ARN string to represent with this AWS Account resource.
 - `stack_id` (String) The StackID of the Grafana Cloud instance. Part of the Terraform Resource ID.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ resource_id }}".
+- `resource_id` (String) The ID given by the Grafana Cloud Provider API to this AWS Account resource.
 
 ## Import
 
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_cloud_provider_aws_account.name "{{ stack_id }}:{{ role_arn }}"
+terraform import grafana_cloud_provider_aws_account.name "{{ stack_id }}:{{ resource_id }}"
 ```
