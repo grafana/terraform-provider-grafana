@@ -33,6 +33,6 @@ data "grafana_cloud_provider_aws_account" "test" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ resource_id }}".
 - `regions` (Set of String) A set of regions that this AWS Account resource applies to.
 - `role_arn` (String) An IAM Role ARN string to represent with this AWS Account resource.

@@ -25,6 +25,11 @@ func resourceAWSAccount() *common.Resource {
 			StateContext: importAccountState,
 		},
 		Schema: map[string]*schema.Schema{
+			"id": {
+				Description: "The Terraform Resource ID. This has the format \"{{ stack_id }}:{{ resource_id }}\".",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
 			"stack_id": {
 				Description: "The StackID of the Grafana Cloud instance. Part of the Terraform Resource ID.",
 				Type:        schema.TypeString,
