@@ -638,8 +638,8 @@ func getSettingsFromResourceData(d *schema.ResourceData, settingsKey string) (ma
 	for _, item := range settingsList {
 		settings := item.(map[string]any)
 
-		clientId, ok := settings["client_id"]
-		if ok && clientId != "" {
+		clientID, ok := settings["client_id"]
+		if ok && clientID != "" {
 			return settings, nil
 		}
 
