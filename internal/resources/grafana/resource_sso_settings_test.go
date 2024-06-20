@@ -539,6 +539,8 @@ var testConfigsWithValidationErrors = []string{
   saml_settings {
     certificate = "this-is-a-valid-certificate"
     certificate_path = "/valid/certificate/path"
+    private_key = "this-is-a-valid-private-key"
+    idp_metadata_path = "/path/to/metadata"
   }
 }`,
 	// missing idp_metadata for saml
