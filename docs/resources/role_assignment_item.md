@@ -65,7 +65,7 @@ resource "grafana_role_assignment_item" "service_account" {
 
 ### Optional
 
-- `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
+- `org_id` (String) The Organization ID. If not set, the default organization is used for basic authentication, or the one that owns your service account for token authentication.
 - `service_account_id` (String) the service account onto which the role is to be assigned
 - `team_id` (String) the team onto which the role is to be assigned
 - `user_id` (String) the user onto which the role is to be assigned
