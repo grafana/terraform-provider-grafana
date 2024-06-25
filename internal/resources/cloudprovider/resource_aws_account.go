@@ -22,7 +22,7 @@ func resourceAWSAccount() *common.Resource {
 		UpdateContext: withClient[schema.UpdateContextFunc](resourceAWSAccountUpdate),
 		DeleteContext: withClient[schema.DeleteContextFunc](resourceAWSAccountDelete),
 		Importer: &schema.ResourceImporter{
-			StateContext: importAccountState,
+			StateContext: importAWSAccountState,
 		},
 		Schema: map[string]*schema.Schema{
 			"id": {
@@ -128,7 +128,7 @@ func resourceAWSAccountDelete(ctx context.Context, d *schema.ResourceData, c *cl
 	return diags
 }
 
-func importAccountState(ctx context.Context, d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
+func importAWSAccountState(ctx context.Context, d *schema.ResourceData, c interface{}) ([]*schema.ResourceData, error) {
 	parts := strings.SplitN(d.Id(), ":", 2)
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
 		return nil, fmt.Errorf("invalid import ID: %s", d.Id())

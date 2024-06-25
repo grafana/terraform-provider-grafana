@@ -27,4 +27,5 @@ var DataSources = []*common.DataSource{
 
 var Resources = []*common.Resource{
 	resourceAWSAccount(),
+	resourceAWSCloudWatchScrapeJob(),
 }
