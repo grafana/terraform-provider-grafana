@@ -99,7 +99,7 @@ func TestAccResourceSlo(t *testing.T) {
 				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_ratio_advanced_options.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccSloCheckExists("grafana_slo.ratio_options", &slo),
-					resource.TestCheckResourceAttr("grafana_slo.ratio_options", "alerting.advanced_options.min_failures", "10"),
+					resource.TestCheckResourceAttr("grafana_slo.ratio_options", "alerting.0.advanced_options.0.min_failures", "10"),
 				),
 			},
 		},
