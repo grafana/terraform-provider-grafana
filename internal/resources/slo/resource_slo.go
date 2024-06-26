@@ -568,6 +568,8 @@ func packAlerting(tfAlerting map[string]interface{}) slo.SloV00Alerting {
 		lf := failures.([]interface{})
 		if len(lf) > 0 {
 			lf2 := lf[0].(map[string]interface{})
+			print("GOT THEM OPTS")
+			println(lf2["min_failures"])
 			tfAdvancedOptions.SetMinFailures(int64(lf2["min_failures"].(int)))
 		}
 	}
