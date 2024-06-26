@@ -5,237 +5,148 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-// var routeTypeOptions = []string{
-// 	"jinja2",
-// 	"regex",
-// }
+var userNotificationRuleTypeOptions = []string{
+	"wait",
+	"notify_by_slack",
+	"notify_by_sms",
+	"notify_by_phone_call",
+	"notify_by_telegram",
+	"notify_by_email",
+}
 
-// var routeTypeOptionsVerbal = strings.Join(routeTypeOptions, ", ")
+var userNotificationRuleTypeOptionsVerbal = strings.Join(userNotificationRuleTypeOptions, ", ")
 
 func resourceUserNotificationRule() *common.Resource {
 	schema := &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/personal_notification_rules/)
 `,
-		CreateContext: withClient[schema.CreateContextFunc](resourceRouteCreate),
-		ReadContext:   withClient[schema.ReadContextFunc](resourceRouteRead),
-		UpdateContext: withClient[schema.UpdateContextFunc](resourceRouteUpdate),
-		DeleteContext: withClient[schema.DeleteContextFunc](resourceRouteDelete),
+		CreateContext: withClient[schema.CreateContextFunc](resourceUserNotificationRuleCreate),
+		ReadContext:   withClient[schema.ReadContextFunc](resourceUserNotificationRuleRead),
+		UpdateContext: withClient[schema.UpdateContextFunc](resourceUserNotificationRuleUpdate),
+		DeleteContext: withClient[schema.DeleteContextFunc](resourceUserNotificationRuleDelete),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
-			"integration_id": {
+			"user_id": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The ID of the integration.",
-			},
-			"escalation_chain_id": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The ID of the escalation chain.",
+				Description: "User ID",
 			},
 			"position": {
 				Type:        schema.TypeInt,
-				Required:    true,
-				Description: "The position of the route (starts from 0).",
+				Optional:    true,
+				Description: "Personal notification rules execute one after another starting from position=0. Position=-1 will put the escalation policy to the end of the list. A new escalation policy created with a position of an existing escalation policy will move the old one (and all following) down on the list.",
 			},
-			"routing_type": {
+			"duration": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     300,
+				Description: "A time in secs when type wait is chosen for type.",
+			},
+			"important": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Boolean value which indicates if a rule is “important”",
+			},
+			"type": {
 				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.StringInSlice(routeTypeOptions, false),
-				Default:      "regex",
-				Description:  fmt.Sprintf("The type of route. Can be %s", routeTypeOptionsVerbal),
-			},
-			"routing_regex": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Python Regex query. Route is chosen for an alert if there is a match inside the alert payload.",
-			},
-			"slack": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"channel_id": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Description: "Slack channel id. Alerts will be directed to this channel in Slack.",
-						},
-						"enabled": {
-							Type:        schema.TypeBool,
-							Optional:    true,
-							Description: "Enable notification in Slack.",
-							Default:     true,
-						},
-					},
-				},
-				MaxItems:    1,
-				Description: "Slack-specific settings for a route.",
-			},
-			"telegram": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Description: "Telegram channel id. Alerts will be directed to this channel in Telegram.",
-						},
-						"enabled": {
-							Type:        schema.TypeBool,
-							Optional:    true,
-							Description: "Enable notification in Telegram.",
-							Default:     true,
-						},
-					},
-				},
-				MaxItems:    1,
-				Description: "Telegram-specific settings for a route.",
-			},
-			"msteams": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Description: "MS teams channel id. Alerts will be directed to this channel in Microsoft teams.",
-						},
-						"enabled": {
-							Type:        schema.TypeBool,
-							Optional:    true,
-							Description: "Enable notification in MS teams.",
-							Default:     true,
-						},
-					},
-				},
-				MaxItems:    1,
-				Description: "MS teams-specific settings for a route.",
+				Required:     true,
+				ValidateFunc: validation.StringInSlice(userNotificationRuleTypeOptions, false),
+				Description:  fmt.Sprintf("The type of notification rule. Can be %s", userNotificationRuleTypeOptionsVerbal),
 			},
 		},
 	}
 
 	return common.NewLegacySDKResource(
 		common.CategoryOnCall,
-		"grafana_oncall_route",
+		"grafana_oncall_user_notification_rule",
 		resourceID,
 		schema,
-	).WithLister(oncallListerFunction(listRoutes))
+	).WithLister(oncallListerFunction(listUserNotificationRules))
 }
 
 func listUserNotificationRules(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
-	// TODO: update the API client
-	resp, _, err := client.Routes.ListRoutes(&onCallAPI.ListRouteOptions{ListOptions: listOptions})
+	resp, _, err := client.UserNotificationRules.ListUserNotificationRules(&onCallAPI.ListUserNotificationRuleOptions{ListOptions: listOptions})
 	if err != nil {
 		return nil, nil, err
 	}
-	for _, i := range resp.Routes {
+	for _, i := range resp.UserNotificationRules {
 		ids = append(ids, i.ID)
 	}
 	return ids, resp.Next, nil
 }
 
 func resourceUserNotificationRuleCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
-	integrationID := d.Get("integration_id").(string)
-	escalationChainID := d.Get("escalation_chain_id").(string)
-	routingType := d.Get("routing_type").(string)
-	routingRegex := d.Get("routing_regex").(string)
+	userId := d.Get("user_id").(string)
 	position := d.Get("position").(int)
-	slack := d.Get("slack").([]interface{})
-	telegram := d.Get("telegram").([]interface{})
-	msTeams := d.Get("msteams").([]interface{})
+	duration := d.Get("duration").(int)
+	important := d.Get("important").(bool)
+	ruleType := d.Get("type").(string)
 
-	createOptions := &onCallAPI.CreateRouteOptions{
-		IntegrationId:     integrationID,
-		EscalationChainId: escalationChainID,
-		RoutingType:       routingType,
-		RoutingRegex:      routingRegex,
-		Position:          &position,
-		ManualOrder:       true,
-		Slack:             expandRouteSlack(slack),
-		Telegram:          expandRouteTelegram(telegram),
-		MSTeams:           expandRouteMSTeams(msTeams),
+	createOptions := &onCallAPI.CreateUserNotificationRuleOptions{
+		UserId:    userId,
+		Position:  &position,
+		Duration:  &duration,
+		Important: important,
+		Type:      ruleType,
 	}
 
-	route, _, err := client.Routes.CreateRoute(createOptions)
+	userNotificationRule, _, err := client.UserNotificationRules.CreateUserNotificationRule(createOptions)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(route.ID)
+	d.SetId(userNotificationRule.ID)
 
-	return resourceRouteRead(ctx, d, client)
+	return resourceUserNotificationRuleRead(ctx, d, client)
 }
 
-func resourceRouteRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
-	route, r, err := client.Routes.GetRoute(d.Id(), &onCallAPI.GetRouteOptions{})
+func resourceUserNotificationRuleRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
+	userNotificationRule, r, err := client.UserNotificationRules.GetUserNotificationRule(d.Id(), &onCallAPI.GetUserNotificationRuleOptions{})
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] removing route %s from state because it no longer exists", d.Id())
+			log.Printf("[WARN] removing user notification rule %s from state because it no longer exists", d.Id())
 			d.SetId("")
 			return nil
 		}
 		return diag.FromErr(err)
 	}
 
-	d.Set("integration_id", route.IntegrationId)
-	d.Set("escalation_chain_id", route.EscalationChainId)
-	d.Set("routing_type", route.RoutingType)
-	d.Set("routing_regex", route.RoutingRegex)
-	d.Set("position", route.Position)
-
-	// Set messengers data only if related fields are presented
-	_, slackOk := d.GetOk("slack")
-	if slackOk {
-		d.Set("slack", flattenRouteSlack(route.SlackRoute))
-	}
-	_, telegramOk := d.GetOk("telegram")
-	if telegramOk {
-		d.Set("telegram", flattenRouteTelegram(route.TelegramRoute))
-	}
-	_, msteamsOk := d.GetOk("msteams")
-	if msteamsOk {
-		d.Set("msteams", flattenRouteMSTeams(route.MSTeamsRoute))
-	}
+	d.Set("user_id", userNotificationRule.UserId)
+	d.Set("position", userNotificationRule.Position)
+	d.Set("duration", userNotificationRule.Duration)
+	d.Set("important", userNotificationRule.Important)
+	d.Set("type", userNotificationRule.Type)
 
 	return nil
 }
 
-func resourceRouteUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
-	escalationChainID := d.Get("escalation_chain_id").(string)
-	routingType := d.Get("routing_type").(string)
-	routingRegex := d.Get("routing_regex").(string)
+func resourceUserNotificationRuleUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	position := d.Get("position").(int)
-	slack := d.Get("slack").([]interface{})
-	telegram := d.Get("telegram").([]interface{})
-	msTeams := d.Get("msteams").([]interface{})
+	duration := d.Get("duration").(int)
+	ruleType := d.Get("type").(string)
 
-	updateOptions := &onCallAPI.UpdateRouteOptions{
-		EscalationChainId: escalationChainID,
-		RoutingType:       routingType,
-		RoutingRegex:      routingRegex,
-		Position:          &position,
-		ManualOrder:       true,
-		Slack:             expandRouteSlack(slack),
-		Telegram:          expandRouteTelegram(telegram),
-		MSTeams:           expandRouteMSTeams(msTeams),
+	updateOptions := &onCallAPI.UpdateUserNotificationRuleOptions{
+		Position: &position,
+		Duration: &duration,
+		Type:     ruleType,
 	}
 
-	route, _, err := client.Routes.UpdateRoute(d.Id(), updateOptions)
+	route, _, err := client.UserNotificationRules.UpdateUserNotificationRule(d.Id(), updateOptions)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -244,8 +155,8 @@ func resourceRouteUpdate(ctx context.Context, d *schema.ResourceData, client *on
 	return resourceRouteRead(ctx, d, client)
 }
 
-func resourceRouteDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
-	_, err := client.Routes.DeleteRoute(d.Id(), &onCallAPI.DeleteRouteOptions{})
+func resourceUserNotificationRuleDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
+	_, err := client.UserNotificationRules.DeleteUserNotificationRule(d.Id(), &onCallAPI.DeleteUserNotificationRuleOptions{})
 	if err != nil {
 		return diag.FromErr(err)
 	}
