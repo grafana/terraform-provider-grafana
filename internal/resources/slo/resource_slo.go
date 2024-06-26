@@ -566,15 +566,18 @@ func packAlerting(tfAlerting map[string]interface{}) slo.SloV00Alerting {
 	// Adding a second feature will need to make a better way of checking what is there
 	if failures := tfAlerting["advanced_options"]; failures != nil {
 		lf := failures.([]interface{})
-		lf2 := lf[0].(map[string]interface{})
-		tfAdvancedOptions.SetMinFailures(lf2["min_failures"].(int64))
+		if len(lf) > 0 {
+			lf2 := lf[0].(map[string]interface{})
+			tfAdvancedOptions.SetMinFailures(lf2["min_failures"].(int64))
+		}
 	}
 
 	alerting := slo.SloV00Alerting{
-		Annotations: tfAnnots,
-		Labels:      tfLabels,
-		FastBurn:    &tfFastBurn,
-		SlowBurn:    &tfSlowBurn,
+		Annotations:     tfAnnots,
+		Labels:          tfLabels,
+		FastBurn:        &tfFastBurn,
+		SlowBurn:        &tfSlowBurn,
+		AdvancedOptions: &tfAdvancedOptions,
 	}
 
 	return alerting
