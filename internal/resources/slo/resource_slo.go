@@ -583,8 +583,6 @@ func packAlerting(tfAlerting map[string]interface{}) slo.SloV00Alerting {
 		AdvancedOptions: &tfAdvancedOptions,
 	}
 
-	print("MONEY")
-	println(*alerting.AdvancedOptions.MinFailures)
 	return alerting
 }
 
