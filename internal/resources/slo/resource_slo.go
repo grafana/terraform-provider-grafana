@@ -540,6 +540,7 @@ func packAlerting(tfAlerting map[string]interface{}) slo.SloV00Alerting {
 	var tfLabels []slo.SloV00Label
 	var tfFastBurn slo.SloV00AlertingMetadata
 	var tfSlowBurn slo.SloV00AlertingMetadata
+	var tfAdvancedOptions slo.SloV00AdvancedOptions
 
 	annots, ok := tfAlerting["annotation"].([]interface{})
 	if ok {
@@ -559,6 +560,14 @@ func packAlerting(tfAlerting map[string]interface{}) slo.SloV00Alerting {
 	slowBurn, ok := tfAlerting["slowburn"].([]interface{})
 	if ok {
 		tfSlowBurn = packAlertMetadata(slowBurn)
+	}
+
+	// All options in advanced options will be optional
+	// Adding a second feature will need to make a better way of checking what is there
+	if failures := tfAlerting["advanced_options"]; failures != nil {
+		lf := failures.([]interface{})
+		lf2 := lf[0].(map[string]interface{})
+		tfAdvancedOptions.SetMinFailures(lf2["min_failures"].(int64))
 	}
 
 	alerting := slo.SloV00Alerting{
