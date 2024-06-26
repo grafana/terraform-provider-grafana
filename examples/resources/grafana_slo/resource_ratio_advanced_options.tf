@@ -42,8 +42,8 @@ resource "grafana_slo" "ratio_options" {
         value = "Error budget is burning too fast"
       }
     }
-    advancedOptions {
-      minFailures = 10
+    advanced_options {
+      min_failures = 10
     }
   }
 }
