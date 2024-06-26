@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/hc-install/fs"
 	"github.com/hashicorp/hc-install/product"
 	"github.com/hashicorp/hc-install/releases"
 	"github.com/hashicorp/hcl/v2"
@@ -20,14 +22,42 @@ import (
 )
 
 func setupTerraform(cfg *Config) (*tfexec.Terraform, error) {
-	installer := &releases.ExactVersion{
-		Product: product.Terraform,
-		Version: version.Must(version.NewVersion("1.8.4")),
+	var err error
+
+	tfVersion := cfg.TerraformInstallConfig.Version
+	if tfVersion == nil {
+		// Not using latest to avoid unexpected breaking changes
+		log.Printf("No Terraform version specified, defaulting to version 1.8.5")
+		tfVersion = version.Must(version.NewVersion("1.8.5"))
 	}
 
-	execPath, err := installer.Install(context.Background())
-	if err != nil {
-		return nil, fmt.Errorf("error installing Terraform: %s", err)
+	// Check if Terraform is already installed
+	var execPath string
+	if cfg.TerraformInstallConfig.InstallDir != "" {
+		finder := fs.ExactVersion{
+			Product: product.Terraform,
+			Version: tfVersion,
+			ExtraPaths: []string{
+				cfg.TerraformInstallConfig.InstallDir,
+			},
+		}
+
+		if execPath, err = finder.Find(context.Background()); err == nil {
+			log.Printf("Terraform %s already installed at %s", tfVersion, execPath)
+		}
+	}
+
+	// Install Terraform if not found
+	if execPath == "" {
+		log.Printf("Installing Terraform %s", tfVersion)
+		installer := &releases.ExactVersion{
+			Product:    product.Terraform,
+			Version:    tfVersion,
+			InstallDir: cfg.TerraformInstallConfig.InstallDir,
+		}
+		if execPath, err = installer.Install(context.Background()); err != nil {
+			return nil, fmt.Errorf("error installing Terraform: %s", err)
+		}
 	}
 
 	tf, err := tfexec.NewTerraform(cfg.OutputDir, execPath)
