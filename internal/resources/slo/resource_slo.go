@@ -413,6 +413,7 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 		req.Alerting = &tfalerting
 	}
 
+	print(req.Alerting.HasAdvancedOptions())
 	// Check the Optional Destination Datasource Field
 	if rawdestinationdatasource, ok := d.GetOk("destination_datasource"); ok {
 		destinationDatasourceData, ok := rawdestinationdatasource.([]interface{})
