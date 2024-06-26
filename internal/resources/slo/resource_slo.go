@@ -221,6 +221,22 @@ Resource manages Grafana SLOs.
 								},
 							},
 						},
+						"advanced_options": {
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Advanced Options for Alert Rules",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"min_failures": {
+										Type:         schema.TypeInt,
+										Optional:     true,
+										Description:  "Minimum number of failed events to trigger an alert",
+										ValidateFunc: validation.IntAtLeast(0),
+									},
+								},
+							},
+						},
 					},
 				},
 			},
