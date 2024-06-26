@@ -172,6 +172,7 @@ func testAdvancedOptionsExists(expectation bool, rn string, slo *slo.SloV00Slo) 
 		}
 		*slo = *gotSlo
 
+		println(slo.Alerting.HasAdvancedOptions())
 		if slo.Alerting.AdvancedOptions == nil && expectation == false {
 			return nil
 		}
@@ -180,7 +181,7 @@ func testAdvancedOptionsExists(expectation bool, rn string, slo *slo.SloV00Slo) 
 			return nil
 		}
 
-		return fmt.Errorf("SLO Alerting expectation mismatch")
+		return fmt.Errorf("SLO Advanced Options expectation mismatch")
 	}
 }
 
