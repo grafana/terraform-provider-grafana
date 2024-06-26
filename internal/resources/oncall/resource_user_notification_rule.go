@@ -53,7 +53,6 @@ func resourceUserNotificationRule() *common.Resource {
 			"duration": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     300,
 				Description: "A time in secs when type wait is chosen for type.",
 			},
 			"important": {
@@ -92,17 +91,27 @@ func listUserNotificationRules(client *onCallAPI.Client, listOptions onCallAPI.L
 
 func resourceUserNotificationRuleCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	userId := d.Get("user_id").(string)
-	position := d.Get("position").(int)
-	duration := d.Get("duration").(int)
-	important := d.Get("important").(bool)
 	ruleType := d.Get("type").(string)
 
 	createOptions := &onCallAPI.CreateUserNotificationRuleOptions{
-		UserId:    userId,
-		Position:  &position,
-		Duration:  &duration,
-		Important: important,
-		Type:      ruleType,
+		UserId: userId,
+		Type:   ruleType,
+	}
+
+	position, positionOk := d.GetOk("position")
+	if positionOk {
+		p := position.(int)
+		createOptions.Position = &p
+	}
+	duration, durationOk := d.GetOk("duration")
+	if durationOk {
+		d := duration.(int)
+		createOptions.Duration = &d
+	}
+	important, importantOk := d.GetOk("important")
+	if importantOk {
+		i := important.(bool)
+		createOptions.Important = i
 	}
 
 	userNotificationRule, _, err := client.UserNotificationRules.CreateUserNotificationRule(createOptions)
@@ -136,23 +145,30 @@ func resourceUserNotificationRuleRead(ctx context.Context, d *schema.ResourceDat
 }
 
 func resourceUserNotificationRuleUpdate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
-	position := d.Get("position").(int)
-	duration := d.Get("duration").(int)
 	ruleType := d.Get("type").(string)
 
 	updateOptions := &onCallAPI.UpdateUserNotificationRuleOptions{
-		Position: &position,
-		Duration: &duration,
-		Type:     ruleType,
+		Type: ruleType,
 	}
 
-	route, _, err := client.UserNotificationRules.UpdateUserNotificationRule(d.Id(), updateOptions)
+	position, positionOk := d.GetOk("position")
+	if positionOk {
+		p := position.(int)
+		updateOptions.Position = &p
+	}
+	duration, durationOk := d.GetOk("duration")
+	if durationOk {
+		d := duration.(int)
+		updateOptions.Duration = &d
+	}
+
+	userNotificationRule, _, err := client.UserNotificationRules.UpdateUserNotificationRule(d.Id(), updateOptions)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(route.ID)
-	return resourceRouteRead(ctx, d, client)
+	d.SetId(userNotificationRule.ID)
+	return resourceUserNotificationRuleRead(ctx, d, client)
 }
 
 func resourceUserNotificationRuleDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
