@@ -63,6 +63,7 @@ func Generate(ctx context.Context, cfg *Config) error {
 	cfg.Terraform = tf
 
 	if cfg.Cloud != nil {
+		log.Printf("Generating cloud resources")
 		stacks, err := generateCloudResources(ctx, cfg)
 		if err != nil {
 			return err
@@ -86,6 +87,7 @@ func Generate(ctx context.Context, cfg *Config) error {
 			onCallToken:   cfg.Grafana.OnCallAccessToken,
 			onCallURL:     cfg.Grafana.OnCallURL,
 		}
+		log.Printf("Generating Grafana resources")
 		if err := generateGrafanaResources(ctx, cfg, stack, true); err != nil {
 			return err
 		}
