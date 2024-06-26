@@ -43,4 +43,5 @@ var Resources = []*common.Resource{
 	resourceOnCallShift(),
 	resourceSchedule(),
 	resourceOutgoingWebhook(),
+	resourceUserNotificationRule(),
 }
