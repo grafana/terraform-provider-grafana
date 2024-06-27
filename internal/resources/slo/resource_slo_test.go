@@ -172,7 +172,6 @@ func testAdvancedOptionsExists(expectation bool, rn string, slo *slo.SloV00Slo) 
 		}
 		*slo = *gotSlo
 
-		println(slo.Alerting.HasAdvancedOptions())
 		if slo.Alerting.AdvancedOptions == nil && expectation == false {
 			return nil
 		}

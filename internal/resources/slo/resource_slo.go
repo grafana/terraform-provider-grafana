@@ -409,15 +409,9 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 				tfalerting = packAlerting(alert)
 			}
 		}
-		print("Has options, in pack check")
-		println(tfalerting.HasAdvancedOptions())
 		req.Alerting = &tfalerting
 	}
 
-	_, ok := d.GetOk("alerting")
-	print("Was SLO ok")
-	print(ok)
-	println(req.Alerting.HasAdvancedOptions())
 	// Check the Optional Destination Datasource Field
 	if rawdestinationdatasource, ok := d.GetOk("destination_datasource"); ok {
 		destinationDatasourceData, ok := rawdestinationdatasource.([]interface{})
@@ -567,6 +561,13 @@ func packAlerting(tfAlerting map[string]interface{}) slo.SloV00Alerting {
 		tfSlowBurn = packAlertMetadata(slowBurn)
 	}
 
+	alerting := slo.SloV00Alerting{
+		Annotations: tfAnnots,
+		Labels:      tfLabels,
+		FastBurn:    &tfFastBurn,
+		SlowBurn:    &tfSlowBurn,
+	}
+
 	// All options in advanced options will be optional
 	// Adding a second feature will need to make a better way of checking what is there
 	if failures := tfAlerting["advanced_options"]; failures != nil {
@@ -578,14 +579,7 @@ func packAlerting(tfAlerting map[string]interface{}) slo.SloV00Alerting {
 				MinFailures: &i64,
 			}
 		}
-	}
-
-	alerting := slo.SloV00Alerting{
-		Annotations:     tfAnnots,
-		Labels:          tfLabels,
-		FastBurn:        &tfFastBurn,
-		SlowBurn:        &tfSlowBurn,
-		AdvancedOptions: &tfAdvancedOptions,
+		alerting.SetAdvancedOptions(tfAdvancedOptions)
 	}
 
 	return alerting
