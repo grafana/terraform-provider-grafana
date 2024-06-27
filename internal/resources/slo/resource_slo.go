@@ -578,8 +578,8 @@ func packAlerting(tfAlerting map[string]interface{}) slo.SloV00Alerting {
 			tfAdvancedOptions = slo.SloV00AdvancedOptions{
 				MinFailures: &i64,
 			}
+			alerting.SetAdvancedOptions(tfAdvancedOptions)
 		}
-		alerting.SetAdvancedOptions(tfAdvancedOptions)
 	}
 
 	return alerting
