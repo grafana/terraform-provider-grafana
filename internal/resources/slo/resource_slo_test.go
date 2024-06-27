@@ -94,6 +94,16 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_slo.ratio", "query.0.ratio.0.group_by_labels.1", "instance"),
 				),
 			},
+			{
+				// Tests Advanced Options
+				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_ratio_advanced_options.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.ratio_options", &slo),
+					testAlertingExists(true, "grafana_slo.ratio_options", &slo),
+					testAdvancedOptionsExists(true, "grafana_slo.ratio_options", &slo),
+					resource.TestCheckResourceAttr("grafana_slo.ratio_options", "alerting.0.advanced_options.0.min_failures", "10"),
+				),
+			},
 		},
 	})
 }
@@ -147,6 +157,30 @@ func testAlertingExists(expectation bool, rn string, slo *slo.SloV00Slo) resourc
 		}
 
 		return fmt.Errorf("SLO Alerting expectation mismatch")
+	}
+}
+
+func testAdvancedOptionsExists(expectation bool, rn string, slo *slo.SloV00Slo) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs := s.RootModule().Resources[rn]
+		client := testutils.Provider.Meta().(*common.Client).SLOClient
+		req := client.DefaultAPI.V1SloIdGet(context.Background(), rs.Primary.ID)
+		gotSlo, _, err := req.Execute()
+
+		if err != nil {
+			return fmt.Errorf("error getting SLO: %s", err)
+		}
+		*slo = *gotSlo
+
+		if slo.Alerting.AdvancedOptions == nil && expectation == false {
+			return nil
+		}
+
+		if slo.Alerting.AdvancedOptions != nil && expectation == true {
+			return nil
+		}
+
+		return fmt.Errorf("SLO Advanced Options expectation mismatch")
 	}
 }
 

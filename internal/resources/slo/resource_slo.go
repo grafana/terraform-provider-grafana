@@ -221,6 +221,22 @@ Resource manages Grafana SLOs.
 								},
 							},
 						},
+						"advanced_options": {
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Advanced Options for Alert Rules",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"min_failures": {
+										Type:         schema.TypeInt,
+										Optional:     true,
+										Description:  "Minimum number of failed events to trigger an alert",
+										ValidateFunc: validation.IntAtLeast(0),
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -393,7 +409,6 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 				tfalerting = packAlerting(alert)
 			}
 		}
-
 		req.Alerting = &tfalerting
 	}
 
@@ -524,6 +539,7 @@ func packAlerting(tfAlerting map[string]interface{}) slo.SloV00Alerting {
 	var tfLabels []slo.SloV00Label
 	var tfFastBurn slo.SloV00AlertingMetadata
 	var tfSlowBurn slo.SloV00AlertingMetadata
+	var tfAdvancedOptions slo.SloV00AdvancedOptions
 
 	annots, ok := tfAlerting["annotation"].([]interface{})
 	if ok {
@@ -550,6 +566,22 @@ func packAlerting(tfAlerting map[string]interface{}) slo.SloV00Alerting {
 		Labels:      tfLabels,
 		FastBurn:    &tfFastBurn,
 		SlowBurn:    &tfSlowBurn,
+	}
+
+	// All options in advanced options will be optional
+	// Adding a second feature will need to make a better way of checking what is there
+	if failures := tfAlerting["advanced_options"]; failures != nil {
+		lf, ok := failures.([]interface{})
+		if ok && len(lf) > 0 {
+			lf2, ok := lf[0].(map[string]interface{})
+			if ok {
+				i64 := int64(lf2["min_failures"].(int))
+				tfAdvancedOptions = slo.SloV00AdvancedOptions{
+					MinFailures: &i64,
+				}
+				alerting.SetAdvancedOptions(tfAdvancedOptions)
+			}
+		}
 	}
 
 	return alerting
