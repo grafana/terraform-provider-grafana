@@ -571,14 +571,16 @@ func packAlerting(tfAlerting map[string]interface{}) slo.SloV00Alerting {
 	// All options in advanced options will be optional
 	// Adding a second feature will need to make a better way of checking what is there
 	if failures := tfAlerting["advanced_options"]; failures != nil {
-		lf := failures.([]interface{})
-		if len(lf) > 0 {
-			lf2 := lf[0].(map[string]interface{})
-			i64 := int64(lf2["min_failures"].(int))
-			tfAdvancedOptions = slo.SloV00AdvancedOptions{
-				MinFailures: &i64,
+		lf, ok := failures.([]interface{})
+		if ok && len(lf) > 0 {
+			lf2, ok := lf[0].(map[string]interface{})
+			if ok {
+				i64 := int64(lf2["min_failures"].(int))
+				tfAdvancedOptions = slo.SloV00AdvancedOptions{
+					MinFailures: &i64,
+				}
+				alerting.SetAdvancedOptions(tfAdvancedOptions)
 			}
-			alerting.SetAdvancedOptions(tfAdvancedOptions)
 		}
 	}
 

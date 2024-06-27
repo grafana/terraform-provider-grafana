@@ -216,9 +216,9 @@ func unpackAlertingMetadata(metaData slo.SloV00AlertingMetadata) []map[string]in
 	return retAlertMetaData
 }
 
-func unpackAdvancedOptions(options slo.SloV00AdvancedOptions) []map[string]int {
-	retAdvancedOptions := []map[string]int{}
-	minFailuresStruct := make(map[string]int)
+func unpackAdvancedOptions(options slo.SloV00AdvancedOptions) []map[string]interface{} {
+	retAdvancedOptions := []map[string]interface{}{}
+	minFailuresStruct := make(map[string]interface{})
 
 	if options.MinFailures != nil {
 		minFailuresStruct["min_failures"] = int(*options.MinFailures)
