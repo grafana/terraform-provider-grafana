@@ -49,6 +49,7 @@ func resourceAWSAccount() *common.Resource {
 				Description: "A set of regions that this AWS Account resource applies to.",
 				Type:        schema.TypeSet,
 				Required:    true,
+				MinItems:    1,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},

@@ -11,13 +11,20 @@ import (
 )
 
 type AWSCloudWatchServiceConfigurations struct {
-	Name                  string
-	Metrics               []AWSCloudWatchMetric
-	ScrapeIntervalSeconds int64
+	Name                        string
+	Metrics                     []AWSCloudWatchMetric
+	ScrapeIntervalSeconds       int64
+	ResourceDiscoveryTagFilters []AWSCloudWatchTagFilter
+	TagsToAddToMetrics          []string
+	IsCustomNamespace           bool
 }
 type AWSCloudWatchMetric struct {
 	Name       string
 	Statistics []string
+}
+type AWSCloudWatchTagFilter struct {
+	Key   string
+	Value string
 }
 
 var TestAWSCloudWatchScrapeJobData = struct {
@@ -34,14 +41,35 @@ var TestAWSCloudWatchScrapeJobData = struct {
 	Regions:              []string{"us-east-1", "us-east-2", "us-west-1"},
 	ServiceConfigurations: []AWSCloudWatchServiceConfigurations{
 		{
-			Name: "EC2",
+			Name: "AWS/EC2",
 			Metrics: []AWSCloudWatchMetric{
 				{
-					Name:       "CPUUtilization",
+					Name:       "aws_ec2_cpuutilization",
 					Statistics: []string{"Average"},
 				},
+				{
+					Name:       "aws_ec2_status_check_failed",
+					Statistics: []string{"Maximum"},
+				},
 			},
+			ResourceDiscoveryTagFilters: []AWSCloudWatchTagFilter{
+				{
+					Key:   "k8s.io/cluster-autoscaler/enabled",
+					Value: "true",
+				},
+			},
+			TagsToAddToMetrics: []string{"eks:cluster-name"},
+		},
+		{
+			Name:                  "CoolApp",
+			IsCustomNamespace:     true,
 			ScrapeIntervalSeconds: 300,
+			Metrics: []AWSCloudWatchMetric{
+				{
+					Name:       "CoolMetric",
+					Statistics: []string{"Maximum", "Sum"},
+				},
+			},
 		},
 	},
 }
@@ -66,7 +94,7 @@ func resourceAWSCloudWatchScrapeJob() *common.Resource {
 				Computed:    true,
 			},
 			"stack_id": {
-				Description: "The StackID of the Grafana Cloud instance. Part of the Terraform Resource ID.",
+				Description: "The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.",
 				Type:        schema.TypeString,
 				Required:    true,
 			},
@@ -76,20 +104,21 @@ func resourceAWSCloudWatchScrapeJob() *common.Resource {
 				Required:    true,
 			},
 			"enabled": {
-				Description: "Whether the CloudWatch Scrape Job is enabled or not. Defaults to true.",
+				Description: "Whether the CloudWatch Scrape Job is enabled or not.",
 				Type:        schema.TypeString,
-				Required:    false,
+				Optional:    true,
 				Default:     true,
 			},
 			"aws_account_resource_id": {
-				Description: "",
+				Description: "The ID assigned by the Grafana Cloud Provider API to the AWS Account resource.",
 				Type:        schema.TypeString,
 				Required:    true,
 			},
 			"regions": {
-				Description: "A set of regions that this CloudWatch Scrape Job resource applies to.",
+				Description: "A set of AWS region names that this CloudWatch Scrape Job resource applies to.",
 				Type:        schema.TypeSet,
 				Required:    true,
+				MinItems:    1,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -98,10 +127,11 @@ func resourceAWSCloudWatchScrapeJob() *common.Resource {
 				Description: "A set of configurations that dictates what this CloudWatch Scrape Job resource should scrape.",
 				Type:        schema.TypeSet,
 				Required:    true,
+				MinItems:    1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
-							Description: "The name of the service to scrape.",
+							Description: "The name of the service to scrape. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported services, metrics, and their statistics.",
 							Type:        schema.TypeString,
 							Required:    true,
 						},
@@ -109,6 +139,7 @@ func resourceAWSCloudWatchScrapeJob() *common.Resource {
 							Description: "A set of metrics to scrape.",
 							Type:        schema.TypeSet,
 							Required:    true,
+							MinItems:    1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {
@@ -120,6 +151,7 @@ func resourceAWSCloudWatchScrapeJob() *common.Resource {
 										Description: "A set of statistics to scrape.",
 										Type:        schema.TypeSet,
 										Required:    true,
+										MinItems:    1,
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
 										},
@@ -128,9 +160,49 @@ func resourceAWSCloudWatchScrapeJob() *common.Resource {
 							},
 						},
 						"scrape_interval_seconds": {
-							Description: "The interval in seconds to scrape the service.",
+							Description: "The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported scrape intervals.",
 							Type:        schema.TypeInt,
-							Required:    true,
+							Optional:    true,
+							Default:     300,
+						},
+						"resource_discovery_tag_filters": {
+							Description: "A set of tag filters to use for resource discovery.",
+							Type:        schema.TypeSet,
+							Optional:    true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"key": {
+										Description: "The key of the tag filter.",
+										Type:        schema.TypeString,
+										Required:    true,
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+									"value": {
+										Description: "The value of the tag filter.",
+										Type:        schema.TypeString,
+										Required:    true,
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+								},
+							},
+						},
+						"tags_to_add_to_metrics": {
+							Description: "A set of tags to add to all metrics exported by this scrape job, for use in PromQL queries.",
+							Type:        schema.TypeSet,
+							Optional:    true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
+						"is_custom_namespace": {
+							Description: "Whether the service name is a custom, user-generated metrics namespace, as opposed to a standard AWS metrics namespace.",
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
 						},
 					},
 				},
