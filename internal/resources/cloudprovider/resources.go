@@ -23,6 +23,8 @@ func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.R
 
 var DataSources = []*common.DataSource{
 	datasourceAWSAccount(),
+	datasourceAWSCloudWatchScrapeJob(),
+	datasourceAWSCloudWatchScrapeJobs(),
 }
 
 var Resources = []*common.Resource{
