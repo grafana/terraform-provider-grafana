@@ -101,7 +101,7 @@ func TestAccResourceSlo(t *testing.T) {
 					testAccSloCheckExists("grafana_slo.ratio_options", &slo),
 					testAlertingExists(true, "grafana_slo.ratio_options", &slo),
 					testAdvancedOptionsExists(true, "grafana_slo.ratio_options", &slo),
-					resource.TestCheckResourceAttr("grafana_slo.ratio_options", "alerting.0.advanced_options.0.min_failures", "10"),
+					resource.TestCheckResourceAttr("grafana_slo.ratio_options", "alerting.0.advanced_options.min_failures", "10"),
 				),
 			},
 		},
