@@ -88,20 +88,20 @@ func generateGrafanaResources(ctx context.Context, cfg *Config, stack stack, gen
 		stripDefaultsExtraFields["org_id"] = `"1"` // Remove org_id if it's the default
 	}
 
-	postprocessor := &postprocessor{}
-	if postprocessor.plannedState, err = getPlannedState(ctx, cfg); err != nil {
+	plannedState, err := getPlannedState(ctx, cfg)
+	if err != nil {
 		return err
 	}
-	if err := postprocessor.stripDefaults(generatedFilename("resources.tf"), stripDefaultsExtraFields); err != nil {
+	if err := stripDefaults(generatedFilename("resources.tf"), stripDefaultsExtraFields); err != nil {
 		return err
 	}
-	if err := postprocessor.abstractDashboards(generatedFilename("resources.tf")); err != nil {
+	if err := abstractDashboards(generatedFilename("resources.tf")); err != nil {
 		return err
 	}
-	if err := postprocessor.wrapJSONFieldsInFunction(generatedFilename("resources.tf")); err != nil {
+	if err := wrapJSONFieldsInFunction(generatedFilename("resources.tf")); err != nil {
 		return err
 	}
-	if err := postprocessor.replaceReferences(generatedFilename("resources.tf"), []string{
+	if err := replaceReferences(generatedFilename("resources.tf"), plannedState, []string{
 		"*.org_id=grafana_organization.id",
 	}); err != nil {
 		return err
