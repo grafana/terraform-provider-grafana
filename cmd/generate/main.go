@@ -68,6 +68,12 @@ This supports a glob format. Examples:
 				EnvVars:  []string{"TFGEN_INCLUDE_RESOURCES"},
 				Required: false,
 			},
+			&cli.BoolFlag{
+				Name:    "output-credentials",
+				Usage:   "Output credentials in the generated resources",
+				EnvVars: []string{"TFGEN_OUTPUT_CREDENTIALS"},
+				Value:   false,
+			},
 
 			// Grafana OSS flags
 			&cli.StringFlag{
@@ -157,10 +163,11 @@ This supports a glob format. Examples:
 
 func parseFlags(ctx *cli.Context) (*generate.Config, error) {
 	config := &generate.Config{
-		OutputDir:       ctx.String("output-dir"),
-		Clobber:         ctx.Bool("clobber"),
-		Format:          generate.OutputFormat(ctx.String("output-format")),
-		ProviderVersion: ctx.String("terraform-provider-version"),
+		OutputDir:         ctx.String("output-dir"),
+		Clobber:           ctx.Bool("clobber"),
+		Format:            generate.OutputFormat(ctx.String("output-format")),
+		ProviderVersion:   ctx.String("terraform-provider-version"),
+		OutputCredentials: ctx.Bool("output-credentials"),
 		Grafana: &generate.GrafanaConfig{
 			URL:                 ctx.String("grafana-url"),
 			Auth:                ctx.String("grafana-auth"),
