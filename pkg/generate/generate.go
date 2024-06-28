@@ -91,11 +91,18 @@ func Generate(ctx context.Context, cfg *Config) error {
 		}
 	}
 
-	if cfg.Format == OutputFormatJSON {
-		return convertToTFJSON(cfg.OutputDir)
-	}
 	if cfg.Format == OutputFormatCrossplane {
 		return convertToCrossplane(cfg)
+	}
+
+	if !cfg.OutputCredentials {
+		if err := redactCredentials(cfg.OutputDir); err != nil {
+			return fmt.Errorf("failed to redact credentials: %w", err)
+		}
+	}
+
+	if cfg.Format == OutputFormatJSON {
+		return convertToTFJSON(cfg.OutputDir)
 	}
 
 	return nil

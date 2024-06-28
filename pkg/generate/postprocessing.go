@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -140,193 +139,189 @@ var knownReferences = []string{
 	"grafana_team_preferences.team_id=grafana_team.id",
 }
 
-type postprocessor struct {
-	plannedState *tfjson.Plan
-}
+func replaceReferences(fpath string, plannedState *tfjson.Plan, extraKnownReferences []string) error {
+	return postprocessFile(fpath, func(file *hclwrite.File) error {
+		knownReferences := knownReferences
+		knownReferences = append(knownReferences, extraKnownReferences...)
 
-func (p *postprocessor) replaceReferences(fpath string, extraKnownReferences []string) error {
-	file, err := p.readHCLFile(fpath)
-	if err != nil {
-		return err
-	}
+		plannedResources := plannedState.PlannedValues.RootModule.Resources
 
-	hasChanges := false
-
-	knownReferences := knownReferences
-	knownReferences = append(knownReferences, extraKnownReferences...)
-
-	plannedResources := p.plannedState.PlannedValues.RootModule.Resources
-
-	for _, block := range file.Body().Blocks() {
-		var blockResource *tfjson.StateResource
-		for _, plannedResource := range plannedResources {
-			if plannedResource.Type == block.Labels()[0] && plannedResource.Name == block.Labels()[1] {
-				blockResource = plannedResource
-				break
-			}
-		}
-		if blockResource == nil {
-			return fmt.Errorf("resource %s.%s not found in planned state", block.Labels()[0], block.Labels()[1])
-		}
-
-		for attrName := range block.Body().Attributes() {
-			attrValue := blockResource.AttributeValues[attrName]
-			attrReplaced := false
-
-			// Check the field name. If it has a possible reference, we have to search for it in the resources
-			for _, ref := range knownReferences {
-				if attrReplaced {
+		for _, block := range file.Body().Blocks() {
+			var blockResource *tfjson.StateResource
+			for _, plannedResource := range plannedResources {
+				if plannedResource.Type == block.Labels()[0] && plannedResource.Name == block.Labels()[1] {
+					blockResource = plannedResource
 					break
 				}
+			}
+			if blockResource == nil {
+				return fmt.Errorf("resource %s.%s not found in planned state", block.Labels()[0], block.Labels()[1])
+			}
 
-				refFrom := strings.Split(ref, "=")[0]
-				refTo := strings.Split(ref, "=")[1]
-				hasPossibleReference := refFrom == fmt.Sprintf("%s.%s", block.Labels()[0], attrName) || (strings.HasPrefix(refFrom, "*.") && strings.HasSuffix(refFrom, fmt.Sprintf(".%s", attrName)))
-				if !hasPossibleReference {
-					continue
-				}
+			for attrName := range block.Body().Attributes() {
+				attrValue := blockResource.AttributeValues[attrName]
+				attrReplaced := false
 
-				refToResource := strings.Split(refTo, ".")[0]
-				refToAttr := strings.Split(refTo, ".")[1]
+				// Check the field name. If it has a possible reference, we have to search for it in the resources
+				for _, ref := range knownReferences {
+					if attrReplaced {
+						break
+					}
 
-				for _, plannedResource := range plannedResources {
-					if plannedResource.Type != refToResource {
+					refFrom := strings.Split(ref, "=")[0]
+					refTo := strings.Split(ref, "=")[1]
+					hasPossibleReference := refFrom == fmt.Sprintf("%s.%s", block.Labels()[0], attrName) || (strings.HasPrefix(refFrom, "*.") && strings.HasSuffix(refFrom, fmt.Sprintf(".%s", attrName)))
+					if !hasPossibleReference {
 						continue
 					}
 
-					valueFromRef := plannedResource.AttributeValues[refToAttr]
-					// If the value from the first block matches the value from the second block, we have a reference
-					if attrValue == valueFromRef {
-						// Replace the value with the reference
-						block.Body().SetAttributeTraversal(attrName, traversal(plannedResource.Type, plannedResource.Name, refToAttr))
-						hasChanges = true
-						attrReplaced = true
-						break
+					refToResource := strings.Split(refTo, ".")[0]
+					refToAttr := strings.Split(refTo, ".")[1]
+
+					for _, plannedResource := range plannedResources {
+						if plannedResource.Type != refToResource {
+							continue
+						}
+
+						valueFromRef := plannedResource.AttributeValues[refToAttr]
+						// If the value from the first block matches the value from the second block, we have a reference
+						if attrValue == valueFromRef {
+							// Replace the value with the reference
+							block.Body().SetAttributeTraversal(attrName, traversal(plannedResource.Type, plannedResource.Name, refToAttr))
+							attrReplaced = true
+							break
+						}
 					}
 				}
 			}
 		}
-	}
-
-	if hasChanges {
-		log.Printf("Updating file: %s\n", fpath)
-		return os.WriteFile(fpath, file.Bytes(), 0600)
-	}
-
-	return nil
+		return nil
+	})
 }
 
-func (p *postprocessor) stripDefaults(fpath string, extraFieldsToRemove map[string]any) error {
-	file, err := p.readHCLFile(fpath)
+func redactCredentials(dir string) error {
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return err
 	}
 
-	hasChanges := false
-	for _, block := range file.Body().Blocks() {
-		if s := p.stripDefaultsFromBlock(block, extraFieldsToRemove); s {
-			hasChanges = true
-		}
-	}
-	if hasChanges {
-		log.Printf("Updating file: %s\n", fpath)
-		return os.WriteFile(fpath, file.Bytes(), 0600)
-	}
-	return nil
-}
-
-func (p *postprocessor) wrapJSONFieldsInFunction(fpath string) error {
-	file, err := p.readHCLFile(fpath)
-	if err != nil {
-		return err
-	}
-
-	hasChanges := false
-	// Find json attributes and use jsonencode
-	for _, block := range file.Body().Blocks() {
-		for key, attr := range block.Body().Attributes() {
-			asMap, err := p.attributeToMap(attr)
-			if err != nil || asMap == nil {
-				continue
-			}
-			tokens := hclwrite.TokensForValue(HCL2ValueFromConfigValue(asMap))
-			block.Body().SetAttributeRaw(key, hclwrite.TokensForFunctionCall("jsonencode", tokens))
-			hasChanges = true
-		}
-	}
-
-	if hasChanges {
-		log.Printf("Updating file: %s\n", fpath)
-		return os.WriteFile(fpath, file.Bytes(), 0600)
-	}
-	return nil
-}
-
-func (p *postprocessor) abstractDashboards(fpath string) error {
-	fDir := filepath.Dir(fpath)
-	outPath := filepath.Join(fDir, "files")
-
-	file, err := p.readHCLFile(fpath)
-	if err != nil {
-		return err
-	}
-
-	hasChanges := false
-	dashboardJsons := map[string][]byte{}
-	for _, block := range file.Body().Blocks() {
-		labels := block.Labels()
-		if len(labels) == 0 || labels[0] != "grafana_dashboard" {
+	for _, file := range files {
+		if !strings.HasSuffix(file.Name(), ".tf") {
 			continue
 		}
+		fpath := filepath.Join(dir, file.Name())
+		err := postprocessFile(fpath, func(file *hclwrite.File) error {
+			for _, block := range file.Body().Blocks() {
+				if block.Type() != "provider" {
+					continue
+				}
+				for name := range block.Body().Attributes() {
+					if strings.Contains(name, "auth") || strings.Contains(name, "token") {
+						block.Body().SetAttributeValue(name, cty.StringVal("REDACTED"))
+					}
+				}
+			}
 
-		dashboard, err := p.attributeToJSON(block.Body().GetAttribute("config_json"))
+			return nil
+		})
 		if err != nil {
 			return err
 		}
-
-		if dashboard == nil {
-			continue
-		}
-
-		writeTo := filepath.Join(outPath, fmt.Sprintf("%s.json", block.Labels()[1]))
-
-		// Replace $${ with ${ in the json. No need to escape in the json file
-		dashboard = []byte(strings.ReplaceAll(string(dashboard), "$${", "${"))
-		dashboardJsons[writeTo] = dashboard
-
-		// Hacky relative path with interpolation
-		relativePath := strings.ReplaceAll(writeTo, fDir, "")
-		pathWithInterpolation := hclwrite.Tokens{
-			{Type: hclsyntax.TokenOQuote, Bytes: []byte(`"`)},
-			{Type: hclsyntax.TokenTemplateInterp, Bytes: []byte(`${`)},
-			{Type: hclsyntax.TokenIdent, Bytes: []byte(`path.module`)},
-			{Type: hclsyntax.TokenTemplateSeqEnd, Bytes: []byte(`}`)},
-			{Type: hclsyntax.TokenQuotedLit, Bytes: []byte(relativePath)},
-			{Type: hclsyntax.TokenCQuote, Bytes: []byte(`"`)},
-		}
-
-		block.Body().SetAttributeRaw(
-			"config_json",
-			hclwrite.TokensForFunctionCall("file", pathWithInterpolation),
-		)
-
-		hasChanges = true
 	}
-	if hasChanges {
-		log.Printf("Updating file: %s\n", fpath)
-		os.Mkdir(outPath, 0755)
-		for writeTo, dashboard := range dashboardJsons {
-			err := os.WriteFile(writeTo, dashboard, 0600)
-			if err != nil {
-				panic(err)
-			}
-		}
-		return os.WriteFile(fpath, file.Bytes(), 0600)
-	}
+
 	return nil
 }
 
-func (p *postprocessor) attributeToMap(attr *hclwrite.Attribute) (map[string]interface{}, error) {
+func stripDefaults(fpath string, extraFieldsToRemove map[string]any) error {
+	return postprocessFile(fpath, func(file *hclwrite.File) error {
+		for _, block := range file.Body().Blocks() {
+			stripDefaultsFromBlock(block, extraFieldsToRemove)
+		}
+		return nil
+	})
+}
+
+func wrapJSONFieldsInFunction(fpath string) error {
+	return postprocessFile(fpath, func(file *hclwrite.File) error {
+		// Find json attributes and use jsonencode
+		for _, block := range file.Body().Blocks() {
+			for key, attr := range block.Body().Attributes() {
+				asMap, err := attributeToMap(attr)
+				if err != nil || asMap == nil {
+					continue
+				}
+				tokens := hclwrite.TokensForValue(HCL2ValueFromConfigValue(asMap))
+				block.Body().SetAttributeRaw(key, hclwrite.TokensForFunctionCall("jsonencode", tokens))
+			}
+		}
+
+		return nil
+	})
+}
+
+func abstractDashboards(fpath string) error {
+	fDir := filepath.Dir(fpath)
+	outPath := filepath.Join(fDir, "files")
+
+	return postprocessFile(fpath, func(file *hclwrite.File) error {
+		dashboardJsons := map[string][]byte{}
+		for _, block := range file.Body().Blocks() {
+			labels := block.Labels()
+			if len(labels) == 0 || labels[0] != "grafana_dashboard" {
+				continue
+			}
+
+			dashboard, err := attributeToJSON(block.Body().GetAttribute("config_json"))
+			if err != nil {
+				return err
+			}
+
+			if dashboard == nil {
+				continue
+			}
+
+			writeTo := filepath.Join(outPath, fmt.Sprintf("%s.json", block.Labels()[1]))
+
+			// Replace $${ with ${ in the json. No need to escape in the json file
+			dashboard = []byte(strings.ReplaceAll(string(dashboard), "$${", "${"))
+			dashboardJsons[writeTo] = dashboard
+
+			// Hacky relative path with interpolation
+			relativePath := strings.ReplaceAll(writeTo, fDir, "")
+			pathWithInterpolation := hclwrite.Tokens{
+				{Type: hclsyntax.TokenOQuote, Bytes: []byte(`"`)},
+				{Type: hclsyntax.TokenTemplateInterp, Bytes: []byte(`${`)},
+				{Type: hclsyntax.TokenIdent, Bytes: []byte(`path.module`)},
+				{Type: hclsyntax.TokenTemplateSeqEnd, Bytes: []byte(`}`)},
+				{Type: hclsyntax.TokenQuotedLit, Bytes: []byte(relativePath)},
+				{Type: hclsyntax.TokenCQuote, Bytes: []byte(`"`)},
+			}
+
+			block.Body().SetAttributeRaw(
+				"config_json",
+				hclwrite.TokensForFunctionCall("file", pathWithInterpolation),
+			)
+		}
+
+		if len(dashboardJsons) == 0 {
+			return nil
+		}
+
+		if err := os.Mkdir(outPath, 0755); err != nil {
+			return err
+		}
+		for writeTo, dashboard := range dashboardJsons {
+			err := os.WriteFile(writeTo, dashboard, 0600)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
+func attributeToMap(attr *hclwrite.Attribute) (map[string]interface{}, error) {
 	var err error
 
 	// Convert jsonencode to raw json
@@ -355,8 +350,8 @@ func (p *postprocessor) attributeToMap(attr *hclwrite.Attribute) (map[string]int
 	return dashboardMap, nil
 }
 
-func (p *postprocessor) attributeToJSON(attr *hclwrite.Attribute) ([]byte, error) {
-	jsonMap, err := p.attributeToMap(attr)
+func attributeToJSON(attr *hclwrite.Attribute) ([]byte, error) {
+	jsonMap, err := attributeToMap(attr)
 	if err != nil || jsonMap == nil {
 		return nil, err
 	}
@@ -369,53 +364,61 @@ func (p *postprocessor) attributeToJSON(attr *hclwrite.Attribute) ([]byte, error
 	return jsonMarshalled, nil
 }
 
-func (p *postprocessor) readHCLFile(fpath string) (*hclwrite.File, error) {
+type postprocessingFunc func(*hclwrite.File) error
+
+func postprocessFile(fpath string, fn postprocessingFunc) error {
 	src, err := os.ReadFile(fpath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	file, diags := hclwrite.ParseConfig(src, fpath, hcl.Pos{Line: 1, Column: 1})
 	if diags.HasErrors() {
-		return nil, errors.New(diags.Error())
+		return errors.New(diags.Error())
+	}
+	initialBytes := file.Bytes()
+
+	if err := fn(file); err != nil {
+		return err
 	}
 
-	return file, nil
+	// Write the file only if it has changed
+	if string(initialBytes) != string(file.Bytes()) {
+		stat, err := os.Stat(fpath)
+		if err != nil {
+			return err
+		}
+
+		if err := os.WriteFile(fpath, file.Bytes(), stat.Mode()); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
-func (p *postprocessor) stripDefaultsFromBlock(block *hclwrite.Block, extraFieldsToRemove map[string]any) bool {
-	hasChanges := false
+func stripDefaultsFromBlock(block *hclwrite.Block, extraFieldsToRemove map[string]any) {
 	for _, innblock := range block.Body().Blocks() {
-		if s := p.stripDefaultsFromBlock(innblock, extraFieldsToRemove); s {
-			hasChanges = true
-		}
+		stripDefaultsFromBlock(innblock, extraFieldsToRemove)
 		if len(innblock.Body().Attributes()) == 0 && len(innblock.Body().Blocks()) == 0 {
-			if rm := block.Body().RemoveBlock(innblock); rm {
-				hasChanges = true
-			}
+			block.Body().RemoveBlock(innblock)
 		}
 	}
 	for name, attribute := range block.Body().Attributes() {
 		if string(attribute.Expr().BuildTokens(nil).Bytes()) == " null" {
-			if rm := block.Body().RemoveAttribute(name); rm != nil {
-				hasChanges = true
-			}
+			block.Body().RemoveAttribute(name)
 		}
 		if string(attribute.Expr().BuildTokens(nil).Bytes()) == " {}" {
-			if rm := block.Body().RemoveAttribute(name); rm != nil {
-				hasChanges = true
-			}
+			block.Body().RemoveAttribute(name)
 		}
 		if string(attribute.Expr().BuildTokens(nil).Bytes()) == " []" {
-			if rm := block.Body().RemoveAttribute(name); rm != nil {
-				hasChanges = true
-			}
+			block.Body().RemoveAttribute(name)
 		}
 		for key, valueToRemove := range extraFieldsToRemove {
 			if name == key {
 				toRemove := false
 				fieldValue := strings.TrimSpace(string(attribute.Expr().BuildTokens(nil).Bytes()))
-				fieldValue, err := p.extractJSONEncode(fieldValue)
+				fieldValue, err := extractJSONEncode(fieldValue)
 				if err != nil {
 					continue
 				}
@@ -426,16 +429,14 @@ func (p *postprocessor) stripDefaultsFromBlock(block *hclwrite.Block, extraField
 					toRemove = true
 				}
 				if toRemove {
-					if rm := block.Body().RemoveAttribute(name); rm != nil {
-						hasChanges = true
-					}
+					block.Body().RemoveAttribute(name)
 				}
 			}
 		}
 	}
-	return hasChanges
 }
-func (p *postprocessor) extractJSONEncode(value string) (string, error) {
+
+func extractJSONEncode(value string) (string, error) {
 	if !strings.HasPrefix(value, "jsonencode(") {
 		return "", nil
 	}
