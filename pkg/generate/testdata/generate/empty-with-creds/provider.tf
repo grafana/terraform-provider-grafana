@@ -9,5 +9,5 @@ terraform {
 
 provider "grafana" {
   url  = "http://localhost:3000"
-  auth = "REDACTED"
+  auth = "admin:admin"
 }

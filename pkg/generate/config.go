@@ -37,10 +37,11 @@ type Config struct {
 	// OutputDir is the directory to write the generated files to.
 	OutputDir string
 	// Clobber will overwrite existing files in the output directory.
-	Clobber         bool
-	Format          OutputFormat
-	ProviderVersion string
-	Grafana         *GrafanaConfig
-	Cloud           *CloudConfig
-	Terraform       *tfexec.Terraform
+	Clobber           bool
+	OutputCredentials bool
+	Format            OutputFormat
+	ProviderVersion   string
+	Grafana           *GrafanaConfig
+	Cloud             *CloudConfig
+	Terraform         *tfexec.Terraform
 }
