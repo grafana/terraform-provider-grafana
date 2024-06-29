@@ -12,12 +12,7 @@ import (
 )
 
 type datasourceAWSAccount struct {
-	client     *cloudproviderapi.Client
-	ID         types.String `tfsdk:"id"`
-	StackID    types.String `tfsdk:"stack_id"`
-	ResourceID types.String `tfsdk:"resource_id"`
-	RoleARN    types.String `tfsdk:"role_arn"`
-	Regions    types.Set    `tfsdk:"regions"`
+	client *cloudproviderapi.Client
 }
 
 func makeDataSourceAWSAccount() *common.DataSource {
@@ -81,6 +76,7 @@ func (r *datasourceAWSAccount) Read(ctx context.Context, req datasource.ReadRequ
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
 	account, err := r.client.GetAWSAccount(
 		ctx,
 		data.StackID.ValueString(),
@@ -90,6 +86,7 @@ func (r *datasourceAWSAccount) Read(ctx context.Context, req datasource.ReadRequ
 		resp.Diagnostics.AddError("Failed to read AWS Account", err.Error())
 		return
 	}
+
 	diags = resp.State.SetAttribute(ctx, path.Root("id"), types.StringValue(resourceAWSAccountTerraformID.Make(data.StackID.ValueString(), data.ResourceID.ValueString())))
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {

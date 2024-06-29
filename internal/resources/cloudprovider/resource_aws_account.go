@@ -99,6 +99,7 @@ func (r *resourceAWSAccount) ImportState(ctx context.Context, req resource.Impor
 	}
 	stackID := parts[0]
 	resourceID := parts[1]
+
 	account, err := r.client.GetAWSAccount(
 		ctx,
 		stackID,
@@ -108,6 +109,7 @@ func (r *resourceAWSAccount) ImportState(ctx context.Context, req resource.Impor
 		resp.Diagnostics.AddError("Failed to read AWS Account", err.Error())
 		return
 	}
+
 	regions, diags := types.SetValueFrom(ctx, basetypes.StringType{}, account.Regions)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -129,6 +131,7 @@ func (r *resourceAWSAccount) Create(ctx context.Context, req resource.CreateRequ
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
 	accountData := cloudproviderapi.AWSAccount{}
 	accountData.RoleARN = data.RoleARN.ValueString()
 	diags = data.Regions.ElementsAs(ctx, &accountData.Regions, false)
@@ -145,6 +148,7 @@ func (r *resourceAWSAccount) Create(ctx context.Context, req resource.CreateRequ
 		resp.Diagnostics.AddError("Failed to create AWS Account", err.Error())
 		return
 	}
+
 	resp.State.Set(ctx, &resourceAWSAccountModel{
 		ID:         types.StringValue(resourceAWSAccountTerraformID.Make(data.StackID.ValueString(), account.ID)),
 		StackID:    data.StackID,
@@ -161,6 +165,7 @@ func (r *resourceAWSAccount) Read(ctx context.Context, req resource.ReadRequest,
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
 	account, err := r.client.GetAWSAccount(
 		ctx,
 		data.StackID.ValueString(),
@@ -170,6 +175,7 @@ func (r *resourceAWSAccount) Read(ctx context.Context, req resource.ReadRequest,
 		resp.Diagnostics.AddError("Failed to read AWS Account", err.Error())
 		return
 	}
+
 	diags = resp.State.SetAttribute(ctx, path.Root("role_arn"), account.RoleARN)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -183,18 +189,19 @@ func (r *resourceAWSAccount) Read(ctx context.Context, req resource.ReadRequest,
 }
 
 func (r *resourceAWSAccount) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var configData resourceAWSAccountModel
-	diags := req.Config.Get(ctx, &configData)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 	var stateData resourceAWSAccountModel
-	diags = req.State.Get(ctx, &stateData)
+	diags := req.State.Get(ctx, &stateData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var configData resourceAWSAccountModel
+	diags = req.Config.Get(ctx, &configData)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	accountData := cloudproviderapi.AWSAccount{}
 	accountData.RoleARN = configData.RoleARN.ValueString()
 	diags = configData.Regions.ElementsAs(ctx, &accountData.Regions, false)
@@ -212,6 +219,7 @@ func (r *resourceAWSAccount) Update(ctx context.Context, req resource.UpdateRequ
 		resp.Diagnostics.AddError("Failed to update AWS Account", err.Error())
 		return
 	}
+
 	diags = resp.State.SetAttribute(ctx, path.Root("role_arn"), account.RoleARN)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -231,6 +239,7 @@ func (r *resourceAWSAccount) Delete(ctx context.Context, req resource.DeleteRequ
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
 	err := r.client.DeleteAWSAccount(
 		ctx,
 		data.StackID.ValueString(),
@@ -240,5 +249,6 @@ func (r *resourceAWSAccount) Delete(ctx context.Context, req resource.DeleteRequ
 		resp.Diagnostics.AddError("Failed to delete AWS Account", err.Error())
 		return
 	}
+
 	resp.State.Set(ctx, nil)
 }

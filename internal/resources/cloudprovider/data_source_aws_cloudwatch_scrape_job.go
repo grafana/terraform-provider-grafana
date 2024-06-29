@@ -4,42 +4,150 @@ import (
 	"context"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-func makeDatasourceAWSCloudWatchScrapeJob() *common.DataSource {
-	schema := &schema.Resource{
-		ReadContext: datasourceAWSCloudWatchScrapeJobRead,
-		Schema: common.CloneResourceSchemaForDatasource(resourceAWSCloudWatchScrapeJob().Schema, map[string]*schema.Schema{
-			"stack_id": {
-				Description: "The StackID of the AWS CloudWatch Scrape Job resource to look up.",
-				Type:        schema.TypeString,
-				Required:    true,
-			},
-			"name": {
-				Description: "The name of the CloudWatch Scrape Job resource to look up.",
-				Type:        schema.TypeString,
-				Required:    true,
-			},
-		}),
-	}
+type datasourceAWSCloudWatchScrapeJob struct {
+	client *cloudproviderapi.Client
+}
 
-	return common.NewLegacySDKDataSource(
+func makeDatasourceAWSCloudWatchScrapeJob() *common.DataSource {
+	return common.NewDataSource(
 		common.CategoryCloudProvider,
-		"grafana_cloud_provider_aws_cloudwatch_scrape_job",
-		schema,
+		resourceAWSCloudWatchScrapeJobTerraformName,
+		&datasourceAWSCloudWatchScrapeJob{},
 	)
 }
 
-func datasourceAWSCloudWatchScrapeJobRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
+func (r *datasourceAWSCloudWatchScrapeJob) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	// Configure is called multiple times (sometimes when ProviderData is not yet available), we only want to configure once
+	if req.ProviderData == nil || r.client != nil {
+		return
+	}
 
-	d.SetId(resourceAWSCWScrapeJobTerraformID.Make(d.Get("stack_id").(string), d.Get("name").(string)))
-	d.Set("aws_account_resource_id", TestAWSCloudWatchScrapeJobData.AWSAccountResourceID)
-	d.Set("enabled", TestAWSCloudWatchScrapeJobData.Enabled)
-	d.Set("regions", TestAWSCloudWatchScrapeJobData.Regions)
-	d.Set("service_configurations", TestAWSCloudWatchScrapeJobData.ServiceConfigurations)
+	client, err := withClientForDataSource(req, resp)
+	if err != nil {
+		return
+	}
 
-	return diags
+	r.client = client
+}
+
+func (r *datasourceAWSCloudWatchScrapeJob) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = datasourceAWSCWScrapeJobsTerraformName
+}
+
+func (r *datasourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The Terraform Resource ID. This has the format \"{{ stack_id }}:{{ job_name }}\".",
+				Computed:    true,
+			},
+			"stack_id": schema.StringAttribute{
+				Description: "The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.",
+				Required:    true,
+			},
+			"name": schema.StringAttribute{
+				Description: "The name of the CloudWatch Scrape Job. Part of the Terraform Resource ID.",
+				Computed:    true,
+			},
+			"enabled": schema.BoolAttribute{
+				Description: "Whether the CloudWatch Scrape Job is enabled or not.",
+				Computed:    true,
+			},
+			"aws_account_resource_id": schema.StringAttribute{
+				Description: "The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this CloudWatch Scrape Job.",
+				Computed:    true,
+			},
+			"regions": schema.SetAttribute{
+				Description: "A set of AWS region names that this CloudWatch Scrape Job applies to.",
+				Computed:    true,
+				ElementType: types.StringType,
+			},
+			"service_configuration": schema.SetNestedAttribute{
+				Description: "Each block is a service configuration that dictates what this CloudWatch Scrape Job should scrape for the specified AWS service.",
+				Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							Description: "The name of the service to scrape. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported services, metrics, and their statistics.",
+							Computed:    true,
+						},
+						"metrics": schema.SetNestedAttribute{
+							Description: "A set of metrics to scrape.",
+							Computed:    true,
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"name": schema.StringAttribute{
+										Description: "The name of the metric to scrape.",
+										Computed:    true,
+									},
+									"statistics": schema.SetAttribute{
+										Description: "A set of statistics to scrape.",
+										Computed:    true,
+										ElementType: types.StringType,
+									},
+								},
+							},
+						},
+						"scrape_interval_seconds": schema.Int64Attribute{
+							Description: "The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported scrape intervals.",
+							Computed:    true,
+						},
+						"resource_discovery_tag_filters": schema.SetNestedAttribute{
+							Description: "A set of tag filters to use for discovery of resource entities in the associated AWS account.",
+							Computed:    true,
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"key": schema.StringAttribute{
+										Description: "The key of the tag filter.",
+										Computed:    true,
+									},
+									"value": schema.StringAttribute{
+										Description: "The value of the tag filter.",
+										Computed:    true,
+									},
+								},
+							},
+						},
+						"tags_to_add_to_metrics": schema.SetAttribute{
+							Description: "A set of tags to add to all metrics exported by this scrape job, for use in PromQL queries.",
+							Computed:    true,
+							ElementType: types.StringType,
+						},
+						"is_custom_namespace": schema.BoolAttribute{
+							Description: "Whether the service name is a custom, user-generated metrics namespace, as opposed to a standard AWS service metrics namespace.",
+							Computed:    true,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func (r *datasourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	regions, diags := types.SetValueFrom(ctx, types.SetType{}, &TestAWSCloudWatchScrapeJobData.Regions)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	serviceConfigurations, diags := types.SetValueFrom(ctx, types.SetType{}, &TestAWSCloudWatchScrapeJobData.ServiceConfigurations)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.State.Set(ctx, &resourceAWSCloudWatchScrapeJobModel{
+		ID:                    types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(TestAWSCloudWatchScrapeJobData.StackID, TestAWSCloudWatchScrapeJobData.Name)),
+		StackID:               types.StringValue(TestAWSCloudWatchScrapeJobData.StackID),
+		Name:                  types.StringValue(TestAWSCloudWatchScrapeJobData.Name),
+		Enabled:               types.BoolValue(TestAWSCloudWatchScrapeJobData.Enabled),
+		AWSAccountResourceID:  types.StringValue(TestAWSCloudWatchScrapeJobData.AWSAccountResourceID),
+		Regions:               regions,
+		ServiceConfigurations: serviceConfigurations,
+	})
 }
