@@ -8,10 +8,12 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 var (
@@ -19,13 +21,16 @@ var (
 	resourceAWSAccountTerraformID   = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("resource_id"))
 )
 
-type resourceAWSAccount struct {
-	client     *cloudproviderapi.Client
+type resourceAWSAccountModel struct {
 	ID         types.String `tfsdk:"id"`
 	StackID    types.String `tfsdk:"stack_id"`
 	ResourceID types.String `tfsdk:"resource_id"`
 	RoleARN    types.String `tfsdk:"role_arn"`
 	Regions    types.Set    `tfsdk:"regions"`
+}
+
+type resourceAWSAccount struct {
+	client *cloudproviderapi.Client
 }
 
 func makeResourceAWSAccount() *common.Resource {
@@ -43,7 +48,7 @@ func (r *resourceAWSAccount) Configure(ctx context.Context, req resource.Configu
 		return
 	}
 
-	client, err := withClient(ctx, req, resp)
+	client, err := withClientForResource(req, resp)
 	if err != nil {
 		return
 	}
@@ -87,24 +92,46 @@ func (r *resourceAWSAccount) Schema(ctx context.Context, req resource.SchemaRequ
 }
 
 func (r *resourceAWSAccount) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	parts := strings.SplitN(d.Id(), ":", 2)
+	parts := strings.SplitN(req.ID, ":", 2)
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-		return nil, fmt.Errorf("invalid import ID: %s", d.Id())
+		resp.Diagnostics.AddError("Invalid ID", fmt.Sprintf("Invalid ID: %s", req.ID))
+		return
 	}
-	d.Set("stack_id", parts[0])
-	d.Set("resource_id", parts[1])
-	return []*schema.ResourceData{d}, nil
+	stackID := parts[0]
+	resourceID := parts[1]
+	account, err := r.client.GetAWSAccount(
+		ctx,
+		stackID,
+		resourceID,
+	)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to read AWS Account", err.Error())
+		return
+	}
+	regions, diags := types.SetValueFrom(ctx, basetypes.StringType{}, account.Regions)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.State.Set(ctx, &resourceAWSAccountModel{
+		ID:         types.StringValue(req.ID),
+		StackID:    types.StringValue(stackID),
+		ResourceID: types.StringValue(resourceID),
+		RoleARN:    types.StringValue(account.RoleARN),
+		Regions:    regions,
+	})
 }
 
 func (r *resourceAWSAccount) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data resourceAWSAccount
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	var data resourceAWSAccountModel
+	diags := req.Plan.Get(ctx, &data)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 	accountData := cloudproviderapi.AWSAccount{}
 	accountData.RoleARN = data.RoleARN.ValueString()
-	diags := data.Regions.ElementsAs(ctx, accountData.Regions, false)
+	diags = data.Regions.ElementsAs(ctx, &accountData.Regions, false)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -118,8 +145,8 @@ func (r *resourceAWSAccount) Create(ctx context.Context, req resource.CreateRequ
 		resp.Diagnostics.AddError("Failed to create AWS Account", err.Error())
 		return
 	}
-	resp.State.Set(ctx, &resourceAWSAccount{
-		ID:         types.StringValue(fmt.Sprintf("%s:%s", data.StackID, account.ID)),
+	resp.State.Set(ctx, &resourceAWSAccountModel{
+		ID:         types.StringValue(resourceAWSAccountTerraformID.Make(data.StackID.ValueString(), account.ID)),
 		StackID:    data.StackID,
 		ResourceID: types.StringValue(account.ID),
 		RoleARN:    data.RoleARN,
@@ -127,95 +154,91 @@ func (r *resourceAWSAccount) Create(ctx context.Context, req resource.CreateRequ
 	})
 }
 
-func (r *resourceAWSAccount) Read(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data resourceAWSAccount
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	accountData := cloudproviderapi.AWSAccount{}
-	accountData.RoleARN = data.RoleARN.ValueString()
-	diags := data.Regions.ElementsAs(ctx, accountData.Regions, false)
+func (r *resourceAWSAccount) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data resourceAWSAccountModel
+	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	account, err := r.client.CreateAWSAccount(
+	account, err := r.client.GetAWSAccount(
 		ctx,
 		data.StackID.ValueString(),
-		accountData,
+		data.ResourceID.ValueString(),
 	)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to create AWS Account", err.Error())
+		resp.Diagnostics.AddError("Failed to read AWS Account", err.Error())
 		return
 	}
-	resp.State.Set(ctx, &resourceAWSAccount{
-		ID:         types.StringValue(fmt.Sprintf("%s:%s", data.StackID, account.ID)),
-		StackID:    data.StackID,
-		ResourceID: types.StringValue(account.ID),
-		RoleARN:    data.RoleARN,
-		Regions:    data.Regions,
-	})
+	diags = resp.State.SetAttribute(ctx, path.Root("role_arn"), account.RoleARN)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	diags = resp.State.SetAttribute(ctx, path.Root("regions"), account.Regions)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
-func (r *resourceAWSAccount) Update(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data resourceAWSAccount
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	accountData := cloudproviderapi.AWSAccount{}
-	accountData.RoleARN = data.RoleARN.ValueString()
-	diags := data.Regions.ElementsAs(ctx, accountData.Regions, false)
+func (r *resourceAWSAccount) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var configData resourceAWSAccountModel
+	diags := req.Config.Get(ctx, &configData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	account, err := r.client.CreateAWSAccount(
+	var stateData resourceAWSAccountModel
+	diags = req.State.Get(ctx, &stateData)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	accountData := cloudproviderapi.AWSAccount{}
+	accountData.RoleARN = configData.RoleARN.ValueString()
+	diags = configData.Regions.ElementsAs(ctx, &accountData.Regions, false)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	account, err := r.client.UpdateAWSAccount(
 		ctx,
-		data.StackID.ValueString(),
+		stateData.StackID.ValueString(),
+		stateData.ResourceID.ValueString(),
 		accountData,
 	)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to create AWS Account", err.Error())
+		resp.Diagnostics.AddError("Failed to update AWS Account", err.Error())
 		return
 	}
-	resp.State.Set(ctx, &resourceAWSAccount{
-		ID:         types.StringValue(fmt.Sprintf("%s:%s", data.StackID, account.ID)),
-		StackID:    data.StackID,
-		ResourceID: types.StringValue(account.ID),
-		RoleARN:    data.RoleARN,
-		Regions:    data.Regions,
-	})
+	diags = resp.State.SetAttribute(ctx, path.Root("role_arn"), account.RoleARN)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	diags = resp.State.SetAttribute(ctx, path.Root("regions"), account.Regions)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
-func (r *resourceAWSAccount) Delete(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data resourceAWSAccount
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	accountData := cloudproviderapi.AWSAccount{}
-	accountData.RoleARN = data.RoleARN.ValueString()
-	diags := data.Regions.ElementsAs(ctx, accountData.Regions, false)
+func (r *resourceAWSAccount) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data resourceAWSAccountModel
+	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	account, err := r.client.CreateAWSAccount(
+	err := r.client.DeleteAWSAccount(
 		ctx,
 		data.StackID.ValueString(),
-		accountData,
+		data.ResourceID.ValueString(),
 	)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to create AWS Account", err.Error())
+		resp.Diagnostics.AddError("Failed to delete AWS Account", err.Error())
 		return
 	}
-	resp.State.Set(ctx, &resourceAWSAccount{
-		ID:         types.StringValue(fmt.Sprintf("%s:%s", data.StackID, account.ID)),
-		StackID:    data.StackID,
-		ResourceID: types.StringValue(account.ID),
-		RoleARN:    data.RoleARN,
-		Regions:    data.Regions,
-	})
+	resp.State.Set(ctx, nil)
 }

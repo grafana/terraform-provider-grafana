@@ -28,8 +28,8 @@ data "grafana_cloud_provider_aws_account" "test" {
 
 ### Required
 
-- `resource_id` (String) The stack-unique ID given by the Grafana Cloud Provider API to this AWS Account resource.
-- `stack_id` (String) The StackID of the AWS Account resource to look up.
+- `resource_id` (String) The ID given by the Grafana Cloud Provider API to this AWS Account resource.
+- `stack_id` (String) The StackID of the Grafana Cloud instance. Part of the Terraform Resource ID.
 
 ### Read-Only
 

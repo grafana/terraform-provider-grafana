@@ -44,23 +44,23 @@ Read-Only:
 - `id` (String)
 - `name` (String)
 - `regions` (Set of String)
-- `service_configurations` (Set of Object) (see [below for nested schema](#nestedobjatt--jobs--service_configurations))
+- `service_configuration` (Set of Object) (see [below for nested schema](#nestedobjatt--jobs--service_configuration))
 - `stack_id` (String)
 
-<a id="nestedobjatt--jobs--service_configurations"></a>
-### Nested Schema for `jobs.service_configurations`
+<a id="nestedobjatt--jobs--service_configuration"></a>
+### Nested Schema for `jobs.service_configuration`
 
 Read-Only:
 
 - `is_custom_namespace` (Boolean)
-- `metrics` (Set of Object) (see [below for nested schema](#nestedobjatt--jobs--service_configurations--metrics))
+- `metrics` (Set of Object) (see [below for nested schema](#nestedobjatt--jobs--service_configuration--metrics))
 - `name` (String)
-- `resource_discovery_tag_filters` (Set of Object) (see [below for nested schema](#nestedobjatt--jobs--service_configurations--resource_discovery_tag_filters))
+- `resource_discovery_tag_filters` (Set of Object) (see [below for nested schema](#nestedobjatt--jobs--service_configuration--resource_discovery_tag_filters))
 - `scrape_interval_seconds` (Number)
 - `tags_to_add_to_metrics` (Set of String)
 
-<a id="nestedobjatt--jobs--service_configurations--metrics"></a>
-### Nested Schema for `jobs.service_configurations.metrics`
+<a id="nestedobjatt--jobs--service_configuration--metrics"></a>
+### Nested Schema for `jobs.service_configuration.metrics`
 
 Read-Only:
 
@@ -68,8 +68,8 @@ Read-Only:
 - `statistics` (Set of String)
 
 
-<a id="nestedobjatt--jobs--service_configurations--resource_discovery_tag_filters"></a>
-### Nested Schema for `jobs.service_configurations.resource_discovery_tag_filters`
+<a id="nestedobjatt--jobs--service_configuration--resource_discovery_tag_filters"></a>
+### Nested Schema for `jobs.service_configuration.resource_discovery_tag_filters`
 
 Read-Only:
 

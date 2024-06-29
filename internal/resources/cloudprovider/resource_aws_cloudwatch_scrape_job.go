@@ -7,15 +7,46 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 var (
-	resourceAWSCWScrapeJobTerraformID = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("job_name"))
+	resourceAWSCWScrapeJobTerraformName = "grafana_cloud_provider_aws_cloudwatch_scrape_job"
+	resourceAWSCWScrapeJobTerraformID   = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("job_name"))
 )
 
-func resourceAWSCloudWatchScrapeJob() *common.Resource {
+type resourceAWSCloudWatchScrapeJobModel struct {
+	StackID               types.String `tfsdk:"stack_id"`
+	Name                  types.String `tfsdk:"name"`
+	Enabled               types.Bool   `tfsdk:"enabled"`
+	AWSAccountResourceID  types.String `tfsdk:"aws_account_resource_id"`
+	Regions               types.Set    `tfsdk:"regions"`
+	ServiceConfigurations types.Set    `tfsdk:"service_configurations"`
+}
+type awsCloudWatchServiceConfigurationModel struct {
+	Name                        types.String `tfsdk:"name"`
+	Metrics                     types.Set    `tfsdk:"metrics"`
+	ScrapeIntervalSeconds       types.Int64  `tfsdk:"scrape_interval_seconds"`
+	ResourceDiscoveryTagFilters types.Set    `tfsdk:"resource_discovery_tag_filters"`
+	TagsToAddToMetrics          types.Set    `tfsdk:"tags_to_add_to_metrics"`
+	IsCustomNamespace           types.Bool   `tfsdk:"is_custom_namespace"`
+}
+type awsCloudWatchMetricsModel struct {
+	Name       types.String `tfsdk:"name"`
+	Statistics types.Set    `tfsdk:"statistics"`
+}
+type awsCloudWatchTagFilterModel struct {
+	Key   types.String `tfsdk:"key"`
+	Value types.String `tfsdk:"value"`
+}
+
+type resourceAWSCloudWatchScrapeJob struct {
+	client *cloudproviderapi.Client
+}
+
+func makeResourceAWSCloudWatchScrapeJob() *common.Resource {
 	schema := &schema.Resource{
 		CreateContext: resourceAWSCloudWatchScrapeJobCreate,
 		ReadContext:   resourceAWSCloudWatchScrapeJobRead,
@@ -147,7 +178,7 @@ func resourceAWSCloudWatchScrapeJob() *common.Resource {
 		},
 	}
 
-	return common.NewResource(
+	return common.NewLegacySDKResource(
 		common.CategoryCloudProvider,
 		"grafana_cloud_provider_aws_cloudwatch_scrape_job",
 		resourceAWSCWScrapeJobTerraformID,

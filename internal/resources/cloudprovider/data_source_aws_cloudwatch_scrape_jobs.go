@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceAWSCloudWatchScrapeJobs() *common.DataSource {
+func makeDatasourceAWSCloudWatchScrapeJobs() *common.DataSource {
 	schema := &schema.Resource{
 		ReadContext: datasourceAWSCloudWatchScrapeJobRead,
 		Schema: map[string]*schema.Schema{
@@ -29,7 +29,7 @@ func datasourceAWSCloudWatchScrapeJobs() *common.DataSource {
 		},
 	}
 
-	return common.NewDataSource(
+	return common.NewLegacySDKDataSource(
 		common.CategoryCloudProvider,
 		"grafana_cloud_provider_aws_cloudwatch_scrape_jobs",
 		schema,

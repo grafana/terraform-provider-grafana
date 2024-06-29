@@ -33,26 +33,26 @@ data "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
 
 ### Read-Only
 
-- `aws_account_resource_id` (String) The ID assigned by the Grafana Cloud Provider API to the AWS Account resource.
+- `aws_account_resource_id` (String) The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this CloudWatch Scrape Job.
 - `enabled` (String) Whether the CloudWatch Scrape Job is enabled or not.
 - `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ job_name }}".
-- `regions` (Set of String) A set of AWS region names that this CloudWatch Scrape Job resource applies to.
-- `service_configurations` (Set of Object) A set of configurations that dictates what this CloudWatch Scrape Job resource should scrape. (see [below for nested schema](#nestedatt--service_configurations))
+- `regions` (Set of String) A set of AWS region names that this CloudWatch Scrape Job applies to.
+- `service_configuration` (Set of Object) Each block is a service configuration that dictates what this CloudWatch Scrape Job should scrape for the specified AWS service. (see [below for nested schema](#nestedatt--service_configuration))
 
-<a id="nestedatt--service_configurations"></a>
-### Nested Schema for `service_configurations`
+<a id="nestedatt--service_configuration"></a>
+### Nested Schema for `service_configuration`
 
 Read-Only:
 
 - `is_custom_namespace` (Boolean)
-- `metrics` (Set of Object) (see [below for nested schema](#nestedobjatt--service_configurations--metrics))
+- `metrics` (Set of Object) (see [below for nested schema](#nestedobjatt--service_configuration--metrics))
 - `name` (String)
-- `resource_discovery_tag_filters` (Set of Object) (see [below for nested schema](#nestedobjatt--service_configurations--resource_discovery_tag_filters))
+- `resource_discovery_tag_filters` (Set of Object) (see [below for nested schema](#nestedobjatt--service_configuration--resource_discovery_tag_filters))
 - `scrape_interval_seconds` (Number)
 - `tags_to_add_to_metrics` (Set of String)
 
-<a id="nestedobjatt--service_configurations--metrics"></a>
-### Nested Schema for `service_configurations.metrics`
+<a id="nestedobjatt--service_configuration--metrics"></a>
+### Nested Schema for `service_configuration.metrics`
 
 Read-Only:
 
@@ -60,8 +60,8 @@ Read-Only:
 - `statistics` (Set of String)
 
 
-<a id="nestedobjatt--service_configurations--resource_discovery_tag_filters"></a>
-### Nested Schema for `service_configurations.resource_discovery_tag_filters`
+<a id="nestedobjatt--service_configuration--resource_discovery_tag_filters"></a>
+### Nested Schema for `service_configuration.resource_discovery_tag_filters`
 
 Read-Only:
 
