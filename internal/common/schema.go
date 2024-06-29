@@ -41,7 +41,6 @@ func CloneResourceSchemaForDatasource(r *schema.Resource, updates map[string]*sc
 		clone[k].ValidateFunc = nil
 		clone[k].ConflictsWith = nil
 		clone[k].ExactlyOneOf = nil
-		clone[k].MinItems = 0
 		clone[k].MaxItems = 0
 	}
 	for k, v := range updates {

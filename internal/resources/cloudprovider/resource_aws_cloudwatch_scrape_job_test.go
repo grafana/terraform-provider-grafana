@@ -45,15 +45,15 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
     content {
       name = service_configuration.value.name
       dynamic "metric" {
-        for_each = service_configuration.value.metric
+        for_each = service_configuration.value.metrics
         content {
           name = metric.value.name
-          statistics = metrics.value.statistics
+          statistics = metric.value.statistics
         }
       }
       scrape_interval_seconds = service_configuration.value.scrape_interval_seconds
       dynamic "resource_discovery_tag_filter" {
-        for_each = service_configuration.value.resource_discovery_tag_filter
+        for_each = service_configuration.value.resource_discovery_tag_filters
         content {
           key = resource_discovery_tag_filter.value.key
           value = resource_discovery_tag_filter.value.value
