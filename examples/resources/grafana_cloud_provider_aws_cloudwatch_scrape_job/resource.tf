@@ -16,11 +16,7 @@ resource "grafana_cloud_provider_aws_account" "test" {
   ]
 }
 
-resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
-  stack_id = data.grafana_cloud_stack.test.id
-  name = "my-cloudwatch-scrape-job"
-  aws_account_resource_id = grafana_cloud_provider_aws_account.test.resource_id
-  regions = grafana_cloud_provider_aws_account.regions
+locals {
   service_configurations = [
     {
       name = "AWS/EC2",
@@ -64,4 +60,34 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
       is_custom_namespace = true,
     },
   ]
+}
+
+resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
+  stack_id = data.grafana_cloud_stack.test.id
+  name = "my-cloudwatch-scrape-job"
+  aws_account_resource_id = grafana_cloud_provider_aws_account.test.resource_id
+  regions = grafana_cloud_provider_aws_account.regions
+  dynamic "service_configuration" {
+    for_each = local.service_configurations
+    content {
+      name = service_configuration.value.name
+      metric {
+        for_each = service_configuration.value.metric
+        content {
+          name = metric.value.name
+          statistics = metric.value.statistics
+        }
+      }
+      scrape_interval_seconds = service_configuration.value.scrape_interval_seconds
+      resource_discovery_tag_filter {
+        for_each = service_configuration.value.resource_discovery_tag_filter
+        content {
+          key = resource_discovery_tag_filter.value.key
+          value = resource_discovery_tag_filter.value.value
+        }
+      
+      }
+      tags_to_add_to_metrics = service_configuration.value.tags_to_add_to_metrics
+      is_custom_namespace = service_configuration.value.is_custom_namespace
+  }
 }

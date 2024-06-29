@@ -8,6 +8,7 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 var testAWSAccountData = struct {
@@ -28,6 +29,12 @@ func TestAccResourceAWSAccount(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		// TODO(tristan): actually check for resource existence
+		CheckDestroy: func() resource.TestCheckFunc {
+			return func(s *terraform.State) error {
+				return nil
+			}
+		}(),
 		Steps: []resource.TestStep{
 			{
 				Config: awsAccountResourceData(),

@@ -80,6 +80,31 @@ func (c *Client) DeleteAWSAccount(ctx context.Context, stackID string, accountID
 	return nil
 }
 
+type AWSCloudWatchScrapeJob struct {
+	StackID               string
+	Name                  string
+	Enabled               bool
+	AWSAccountResourceID  string
+	Regions               []string
+	ServiceConfigurations []AWSCloudWatchServiceConfiguration
+}
+type AWSCloudWatchServiceConfiguration struct {
+	Name                        string
+	Metrics                     []AWSCloudWatchMetric
+	ScrapeIntervalSeconds       int64
+	ResourceDiscoveryTagFilters []AWSCloudWatchTagFilter
+	TagsToAddToMetrics          []string
+	IsCustomNamespace           bool
+}
+type AWSCloudWatchMetric struct {
+	Name       string
+	Statistics []string
+}
+type AWSCloudWatchTagFilter struct {
+	Key   string
+	Value string
+}
+
 func (c *Client) doAWSAccountsAPIRequest(ctx context.Context, method string, path string, body any) (*AWSAccount, error) {
 	var reqBodyBytes io.Reader
 	if body != nil {

@@ -35,5 +35,11 @@ func datasourceAWSCloudWatchScrapeJob() *common.DataSource {
 func datasourceAWSCloudWatchScrapeJobRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 
+	d.SetId(resourceAWSCWScrapeJobTerraformID.Make(d.Get("stack_id").(string), d.Get("name").(string)))
+	d.Set("aws_account_resource_id", TestAWSCloudWatchScrapeJobData.AWSAccountResourceID)
+	d.Set("enabled", TestAWSCloudWatchScrapeJobData.Enabled)
+	d.Set("regions", TestAWSCloudWatchScrapeJobData.Regions)
+	d.Set("service_configurations", TestAWSCloudWatchScrapeJobData.ServiceConfigurations)
+
 	return diags
 }

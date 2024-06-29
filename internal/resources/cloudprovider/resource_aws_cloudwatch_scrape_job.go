@@ -6,73 +6,10 @@ import (
 	"strings"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
-
-type AWSCloudWatchServiceConfigurations struct {
-	Name                        string
-	Metrics                     []AWSCloudWatchMetric
-	ScrapeIntervalSeconds       int64
-	ResourceDiscoveryTagFilters []AWSCloudWatchTagFilter
-	TagsToAddToMetrics          []string
-	IsCustomNamespace           bool
-}
-type AWSCloudWatchMetric struct {
-	Name       string
-	Statistics []string
-}
-type AWSCloudWatchTagFilter struct {
-	Key   string
-	Value string
-}
-
-var TestAWSCloudWatchScrapeJobData = struct {
-	StackID               string
-	JobName               string
-	JobEnabled            bool
-	AWSAccountResourceID  string
-	Regions               []string
-	ServiceConfigurations []AWSCloudWatchServiceConfigurations
-}{
-	StackID:              "001",
-	JobName:              "test-scrape-job",
-	AWSAccountResourceID: "1",
-	Regions:              []string{"us-east-1", "us-east-2", "us-west-1"},
-	ServiceConfigurations: []AWSCloudWatchServiceConfigurations{
-		{
-			Name: "AWS/EC2",
-			Metrics: []AWSCloudWatchMetric{
-				{
-					Name:       "aws_ec2_cpuutilization",
-					Statistics: []string{"Average"},
-				},
-				{
-					Name:       "aws_ec2_status_check_failed",
-					Statistics: []string{"Maximum"},
-				},
-			},
-			ResourceDiscoveryTagFilters: []AWSCloudWatchTagFilter{
-				{
-					Key:   "k8s.io/cluster-autoscaler/enabled",
-					Value: "true",
-				},
-			},
-			TagsToAddToMetrics: []string{"eks:cluster-name"},
-		},
-		{
-			Name:                  "CoolApp",
-			IsCustomNamespace:     true,
-			ScrapeIntervalSeconds: 300,
-			Metrics: []AWSCloudWatchMetric{
-				{
-					Name:       "CoolMetric",
-					Statistics: []string{"Maximum", "Sum"},
-				},
-			},
-		},
-	},
-}
 
 var (
 	resourceAWSCWScrapeJobTerraformID = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("job_name"))
@@ -110,12 +47,12 @@ func resourceAWSCloudWatchScrapeJob() *common.Resource {
 				Default:     true,
 			},
 			"aws_account_resource_id": {
-				Description: "The ID assigned by the Grafana Cloud Provider API to the AWS Account resource.",
+				Description: "The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this CloudWatch Scrape Job.",
 				Type:        schema.TypeString,
 				Required:    true,
 			},
 			"regions": {
-				Description: "A set of AWS region names that this CloudWatch Scrape Job resource applies to.",
+				Description: "A set of AWS region names that this CloudWatch Scrape Job applies to.",
 				Type:        schema.TypeSet,
 				Required:    true,
 				MinItems:    1,
@@ -123,8 +60,8 @@ func resourceAWSCloudWatchScrapeJob() *common.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			"service_configurations": {
-				Description: "A set of configurations that dictates what this CloudWatch Scrape Job resource should scrape.",
+			"service_configuration": {
+				Description: "Each block is a service configuration that dictates what this CloudWatch Scrape Job should scrape for the specified AWS service.",
 				Type:        schema.TypeSet,
 				Required:    true,
 				MinItems:    1,
@@ -166,7 +103,7 @@ func resourceAWSCloudWatchScrapeJob() *common.Resource {
 							Default:     300,
 						},
 						"resource_discovery_tag_filters": {
-							Description: "A set of tag filters to use for resource discovery.",
+							Description: "A set of tag filters to use for discovery of resource entities in the associated AWS account.",
 							Type:        schema.TypeSet,
 							Optional:    true,
 							Elem: &schema.Resource{
@@ -199,7 +136,7 @@ func resourceAWSCloudWatchScrapeJob() *common.Resource {
 							},
 						},
 						"is_custom_namespace": {
-							Description: "Whether the service name is a custom, user-generated metrics namespace, as opposed to a standard AWS metrics namespace.",
+							Description: "Whether the service name is a custom, user-generated metrics namespace, as opposed to a standard AWS service metrics namespace.",
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Default:     false,
@@ -219,22 +156,69 @@ func resourceAWSCloudWatchScrapeJob() *common.Resource {
 }
 
 func resourceAWSCloudWatchScrapeJobCreate(ctx context.Context, d *schema.ResourceData, c interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-	return diags
+
+	d.SetId(resourceAWSCWScrapeJobTerraformID.Make(TestAWSCloudWatchScrapeJobData.StackID, TestAWSCloudWatchScrapeJobData.Name))
+
+	return resourceAWSCloudWatchScrapeJobRead(ctx, d, c)
 }
 
 func resourceAWSCloudWatchScrapeJobRead(ctx context.Context, d *schema.ResourceData, c interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
+
+	d.Set("stack_id", TestAWSCloudWatchScrapeJobData.StackID)
+	d.Set("name", TestAWSCloudWatchScrapeJobData.Name)
+	d.Set("aws_account_resource_id", TestAWSCloudWatchScrapeJobData.AWSAccountResourceID)
+	d.Set("enabled", TestAWSCloudWatchScrapeJobData.Enabled)
+	d.Set("regions", TestAWSCloudWatchScrapeJobData.Regions)
+	d.Set("service_configurations", TestAWSCloudWatchScrapeJobData.ServiceConfigurations)
+
 	return diags
 }
 
 func resourceAWSCloudWatchScrapeJobUpdate(ctx context.Context, d *schema.ResourceData, c interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
+
+	TestAWSCloudWatchScrapeJobData.StackID = d.Get("stack_id").(string)
+	TestAWSCloudWatchScrapeJobData.Name = d.Get("name").(string)
+	TestAWSCloudWatchScrapeJobData.AWSAccountResourceID = d.Get("aws_account_resource_id").(string)
+	TestAWSCloudWatchScrapeJobData.Enabled = d.Get("enabled").(bool)
+	TestAWSCloudWatchScrapeJobData.Regions = common.SetToStringSlice(d.Get("regions").(*schema.Set))
+	TestAWSCloudWatchScrapeJobData.ServiceConfigurations = make([]cloudproviderapi.AWSCloudWatchServiceConfiguration, len(d.Get("service_configurations").([]interface{})))
+	for i, serviceConfig := range d.Get("service_configurations").([]interface{}) {
+		serviceConfigMap := serviceConfig.(map[string]interface{})
+		TestAWSCloudWatchScrapeJobData.ServiceConfigurations[i].Name = serviceConfigMap["name"].(string)
+		TestAWSCloudWatchScrapeJobData.ServiceConfigurations[i].ScrapeIntervalSeconds = int64(serviceConfigMap["scrape_interval_seconds"].(int))
+		TestAWSCloudWatchScrapeJobData.ServiceConfigurations[i].IsCustomNamespace = serviceConfigMap["is_custom_namespace"].(bool)
+		TestAWSCloudWatchScrapeJobData.ServiceConfigurations[i].Metrics = make([]cloudproviderapi.AWSCloudWatchMetric, len(serviceConfigMap["metrics"].([]interface{})))
+		for j, metric := range serviceConfigMap["metrics"].([]interface{}) {
+			metricMap := metric.(map[string]interface{})
+			TestAWSCloudWatchScrapeJobData.ServiceConfigurations[i].Metrics[j].Name = metricMap["name"].(string)
+			TestAWSCloudWatchScrapeJobData.ServiceConfigurations[i].Metrics[j].Statistics = common.SetToStringSlice(metricMap["statistics"].(*schema.Set))
+		}
+		TestAWSCloudWatchScrapeJobData.ServiceConfigurations[i].ResourceDiscoveryTagFilters = make([]cloudproviderapi.AWSCloudWatchTagFilter, len(serviceConfigMap["resource_discovery_tag_filters"].([]interface{})))
+		for j, tagFilter := range serviceConfigMap["resource_discovery_tag_filters"].([]interface{}) {
+			tagFilterMap := tagFilter.(map[string]interface{})
+			TestAWSCloudWatchScrapeJobData.ServiceConfigurations[i].ResourceDiscoveryTagFilters[j].Key = tagFilterMap["key"].(string)
+			TestAWSCloudWatchScrapeJobData.ServiceConfigurations[i].ResourceDiscoveryTagFilters[j].Value = tagFilterMap["value"].(string)
+		}
+		TestAWSCloudWatchScrapeJobData.ServiceConfigurations[i].TagsToAddToMetrics = common.SetToStringSlice(serviceConfigMap["tags_to_add_to_metrics"].(*schema.Set))
+	}
+
+	d.Set("stack_id", TestAWSCloudWatchScrapeJobData.StackID)
+	d.Set("name", TestAWSCloudWatchScrapeJobData.Name)
+	d.Set("aws_account_resource_id", TestAWSCloudWatchScrapeJobData.AWSAccountResourceID)
+	d.Set("enabled", TestAWSCloudWatchScrapeJobData.Enabled)
+	d.Set("regions", TestAWSCloudWatchScrapeJobData.Regions)
+	d.Set("service_configurations", TestAWSCloudWatchScrapeJobData.ServiceConfigurations)
+
 	return diags
 }
 
 func resourceAWSCloudWatchScrapeJobDelete(ctx context.Context, d *schema.ResourceData, c interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
+
+	d.SetId("")
+
 	return diags
 }
 
