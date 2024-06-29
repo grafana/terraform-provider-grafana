@@ -2,23 +2,26 @@ package cloudprovider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
 
-type crudWithClientFunc func(ctx context.Context, d *schema.ResourceData, client *cloudproviderapi.Client) diag.Diagnostics
+func withClient(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) (*cloudproviderapi.Client, error) {
+	client, ok := req.ProviderData.(*common.Client)
 
-func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.ReadContextFunc | schema.DeleteContextFunc](f crudWithClientFunc) T {
-	return func(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-		client := meta.(*common.Client).CloudProviderAPI
-		if client == nil {
-			return diag.Errorf("the Cloud Provider API client is required for this resource. Set the cloud_provider_access_token provider attribute")
-		}
-		return f(ctx, d, client)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *common.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return nil, fmt.Errorf("unexpected Resource Configure Type: %T, expected *common.Client", req.ProviderData)
 	}
+
+	return client.CloudProviderAPI, nil
 }
 
 var DataSources = []*common.DataSource{
@@ -28,7 +31,7 @@ var DataSources = []*common.DataSource{
 }
 
 var Resources = []*common.Resource{
-	resourceAWSAccount(),
+	makeResourceAWSAccount(),
 	resourceAWSCloudWatchScrapeJob(),
 }
 

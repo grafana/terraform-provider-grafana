@@ -147,7 +147,7 @@ func resourceAWSCloudWatchScrapeJob() *common.Resource {
 		},
 	}
 
-	return common.NewLegacySDKResource(
+	return common.NewResource(
 		common.CategoryCloudProvider,
 		"grafana_cloud_provider_aws_cloudwatch_scrape_job",
 		resourceAWSCWScrapeJobTerraformID,

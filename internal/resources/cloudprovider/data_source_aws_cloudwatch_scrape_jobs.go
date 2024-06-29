@@ -29,7 +29,7 @@ func datasourceAWSCloudWatchScrapeJobs() *common.DataSource {
 		},
 	}
 
-	return common.NewLegacySDKDataSource(
+	return common.NewDataSource(
 		common.CategoryCloudProvider,
 		"grafana_cloud_provider_aws_cloudwatch_scrape_jobs",
 		schema,
