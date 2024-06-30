@@ -64,10 +64,10 @@ func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
 func awsCloudWatchScrapeJobResourceData() string {
 	data := fmt.Sprintf(`
 resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
-	stack_id = "%[1]s"
-	name = "%[2]s"
-	aws_account_resource_id = "%[3]s"
-	regions = [%[4]s]
+  stack_id = "%[1]s"
+  name = "%[2]s"
+  aws_account_resource_id = "%[3]s"
+  regions = [%[4]s]
   dynamic "service_configuration" {
     for_each = [%[5]s]
     content {
@@ -81,15 +81,16 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
       }
       scrape_interval_seconds = service_configuration.value.scrape_interval_seconds
       dynamic "resource_discovery_tag_filter" {
-        for_each = service_configuration.value.resource_discovery_tag_filters
+        for_each = lookup(service_configuration.value, "resource_discovery_tag_filters", [])
         content {
           key = resource_discovery_tag_filter.value.key
           value = resource_discovery_tag_filter.value.value
         }
+      
       }
-      tags_to_add_to_metrics = service_configuration.value.tags_to_add_to_metrics
-      is_custom_namespace = service_configuration.value.is_custom_namespace
-		}
+      tags_to_add_to_metrics = lookup(service_configuration.value, "tags_to_add_to_metrics", [])
+      is_custom_namespace = lookup(service_configuration.value, "is_custom_namespace", false)
+    }
   }
 }
 `,

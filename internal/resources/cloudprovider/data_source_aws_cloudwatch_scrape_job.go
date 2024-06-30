@@ -146,9 +146,9 @@ func (r *datasourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req datasou
 	resp.State.Set(ctx, converted)
 }
 
-func scrapeJobClientModelToTerraformModel(ctx context.Context, scrapeJobData cloudproviderapi.AWSCloudWatchScrapeJob) (*resourceAWSCloudWatchScrapeJobModel, diag.Diagnostics) {
+func scrapeJobClientModelToTerraformModel(ctx context.Context, scrapeJobData cloudproviderapi.AWSCloudWatchScrapeJob) (*awsCloudWatchScrapeJobModel, diag.Diagnostics) {
 	conversionDiags := diag.Diagnostics{}
-	converted := &resourceAWSCloudWatchScrapeJobModel{
+	converted := &awsCloudWatchScrapeJobModel{
 		ID:                   types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(scrapeJobData.StackID, scrapeJobData.Name)),
 		StackID:              types.StringValue(scrapeJobData.StackID),
 		Name:                 types.StringValue(scrapeJobData.Name),

@@ -21,35 +21,6 @@ var (
 	resourceAWSCloudWatchScrapeJobTerraformID   = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("job_name"))
 )
 
-type resourceAWSCloudWatchScrapeJobModel struct {
-	ID                   types.String `tfsdk:"id"`
-	StackID              types.String `tfsdk:"stack_id"`
-	Name                 types.String `tfsdk:"name"`
-	Enabled              types.Bool   `tfsdk:"enabled"`
-	AWSAccountResourceID types.String `tfsdk:"aws_account_resource_id"`
-	Regions              types.Set    `tfsdk:"regions"`
-	// TODO(tristan): if the grafana provider is update the Terraform v6 schema,
-	// we can consider adding additional support to use Set Nested Attributes, instead of Blocks.
-	// See https://developer.hashicorp.com/terraform/plugin/framework/handling-data/attributes#nested-attribute-types
-	ServiceConfigurationBlocks []awsCloudWatchScrapeJobServiceConfigurationModel `tfsdk:"service_configuration"`
-}
-type awsCloudWatchScrapeJobServiceConfigurationModel struct {
-	Name                        types.String                           `tfsdk:"name"`
-	Metrics                     []awsCloudWatchScrapeJobMetricModel    `tfsdk:"metric"`
-	ScrapeIntervalSeconds       types.Int64                            `tfsdk:"scrape_interval_seconds"`
-	ResourceDiscoveryTagFilters []awsCloudWatchScrapeJobTagFilterModel `tfsdk:"resource_discovery_tag_filter"`
-	TagsToAddToMetrics          types.Set                              `tfsdk:"tags_to_add_to_metrics"`
-	IsCustomNamespace           types.Bool                             `tfsdk:"is_custom_namespace"`
-}
-type awsCloudWatchScrapeJobMetricModel struct {
-	Name       types.String `tfsdk:"name"`
-	Statistics types.Set    `tfsdk:"statistics"`
-}
-type awsCloudWatchScrapeJobTagFilterModel struct {
-	Key   types.String `tfsdk:"key"`
-	Value types.String `tfsdk:"value"`
-}
-
 type resourceAWSCloudWatchScrapeJob struct {
 	client *cloudproviderapi.Client
 }
@@ -199,7 +170,7 @@ func (r *resourceAWSCloudWatchScrapeJob) ImportState(ctx context.Context, req re
 	stackID := parts[0]
 	jobName := parts[1]
 	// TODO(tristan): use client to get AWS account so we only import a resource that exists
-	resp.State.Set(ctx, &resourceAWSCloudWatchScrapeJobModel{
+	resp.State.Set(ctx, &awsCloudWatchScrapeJobModel{
 		ID:      types.StringValue(req.ID),
 		StackID: types.StringValue(stackID),
 		Name:    types.StringValue(jobName),
@@ -207,14 +178,14 @@ func (r *resourceAWSCloudWatchScrapeJob) ImportState(ctx context.Context, req re
 }
 
 func (r *resourceAWSCloudWatchScrapeJob) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data resourceAWSCloudWatchScrapeJobModel
+	var data awsCloudWatchScrapeJobModel
 	diags := req.Plan.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.State.Set(ctx, &resourceAWSCloudWatchScrapeJobModel{
+	resp.State.Set(ctx, &awsCloudWatchScrapeJobModel{
 		ID:                         types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(data.StackID.ValueString(), data.Name.ValueString())),
 		StackID:                    data.StackID,
 		Name:                       data.Name,
@@ -226,14 +197,14 @@ func (r *resourceAWSCloudWatchScrapeJob) Create(ctx context.Context, req resourc
 }
 
 func (r *resourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data resourceAWSCloudWatchScrapeJobModel
+	var data awsCloudWatchScrapeJobModel
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.State.Set(ctx, &resourceAWSCloudWatchScrapeJobModel{
+	resp.State.Set(ctx, &awsCloudWatchScrapeJobModel{
 		ID:                         types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(data.StackID.ValueString(), data.Name.ValueString())),
 		StackID:                    data.StackID,
 		Name:                       data.Name,
@@ -245,20 +216,20 @@ func (r *resourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req resource.
 }
 
 func (r *resourceAWSCloudWatchScrapeJob) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var stateData resourceAWSCloudWatchScrapeJobModel
+	var stateData awsCloudWatchScrapeJobModel
 	diags := req.State.Get(ctx, &stateData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	var configData resourceAWSCloudWatchScrapeJobModel
+	var configData awsCloudWatchScrapeJobModel
 	diags = req.Config.Get(ctx, &configData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.State.Set(ctx, &resourceAWSCloudWatchScrapeJobModel{
+	resp.State.Set(ctx, &awsCloudWatchScrapeJobModel{
 		ID:                         types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(stateData.StackID.ValueString(), configData.Name.ValueString())),
 		StackID:                    stateData.StackID,
 		Name:                       configData.Name,
@@ -270,7 +241,7 @@ func (r *resourceAWSCloudWatchScrapeJob) Update(ctx context.Context, req resourc
 }
 
 func (r *resourceAWSCloudWatchScrapeJob) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data resourceAWSCloudWatchScrapeJobModel
+	var data awsCloudWatchScrapeJobModel
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {

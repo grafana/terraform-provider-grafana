@@ -7,7 +7,37 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
+
+type awsCloudWatchScrapeJobModel struct {
+	ID                   types.String `tfsdk:"id"`
+	StackID              types.String `tfsdk:"stack_id"`
+	Name                 types.String `tfsdk:"name"`
+	Enabled              types.Bool   `tfsdk:"enabled"`
+	AWSAccountResourceID types.String `tfsdk:"aws_account_resource_id"`
+	Regions              types.Set    `tfsdk:"regions"`
+	// TODO(tristan): if the grafana provider is update the Terraform v6 schema,
+	// we can consider adding additional support to use Set Nested Attributes, instead of Blocks.
+	// See https://developer.hashicorp.com/terraform/plugin/framework/handling-data/attributes#nested-attribute-types
+	ServiceConfigurationBlocks []awsCloudWatchScrapeJobServiceConfigurationModel `tfsdk:"service_configuration"`
+}
+type awsCloudWatchScrapeJobServiceConfigurationModel struct {
+	Name                        types.String                           `tfsdk:"name"`
+	Metrics                     []awsCloudWatchScrapeJobMetricModel    `tfsdk:"metric"`
+	ScrapeIntervalSeconds       types.Int64                            `tfsdk:"scrape_interval_seconds"`
+	ResourceDiscoveryTagFilters []awsCloudWatchScrapeJobTagFilterModel `tfsdk:"resource_discovery_tag_filter"`
+	TagsToAddToMetrics          types.Set                              `tfsdk:"tags_to_add_to_metrics"`
+	IsCustomNamespace           types.Bool                             `tfsdk:"is_custom_namespace"`
+}
+type awsCloudWatchScrapeJobMetricModel struct {
+	Name       types.String `tfsdk:"name"`
+	Statistics types.Set    `tfsdk:"statistics"`
+}
+type awsCloudWatchScrapeJobTagFilterModel struct {
+	Key   types.String `tfsdk:"key"`
+	Value types.String `tfsdk:"value"`
+}
 
 func withClientForResource(req resource.ConfigureRequest, resp *resource.ConfigureResponse) (*cloudproviderapi.Client, error) {
 	client, ok := req.ProviderData.(*common.Client)

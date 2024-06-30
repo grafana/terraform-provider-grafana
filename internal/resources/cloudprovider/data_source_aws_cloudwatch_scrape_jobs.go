@@ -16,9 +16,9 @@ var (
 )
 
 type datasourceAWSCloudWatchScrapeJobsModel struct {
-	ID         types.String                          `tfsdk:"id"`
-	StackID    types.String                          `tfsdk:"stack_id"`
-	ScrapeJobs []resourceAWSCloudWatchScrapeJobModel `tfsdk:"scrape_job"`
+	ID         types.String                  `tfsdk:"id"`
+	StackID    types.String                  `tfsdk:"stack_id"`
+	ScrapeJobs []awsCloudWatchScrapeJobModel `tfsdk:"scrape_job"`
 }
 
 type datasourceAWSCloudWatchScrapeJobs struct {
@@ -84,7 +84,7 @@ func (r *datasourceAWSCloudWatchScrapeJobs) Read(ctx context.Context, req dataso
 	}
 
 	scrapeJobsResp := []cloudproviderapi.AWSCloudWatchScrapeJob{TestAWSCloudWatchScrapeJobData}
-	scrapeJobs := make([]resourceAWSCloudWatchScrapeJobModel, len(scrapeJobsResp))
+	scrapeJobs := make([]awsCloudWatchScrapeJobModel, len(scrapeJobsResp))
 	for i, scrapeJobData := range scrapeJobsResp {
 		scrapeJob, diags := scrapeJobClientModelToTerraformModel(ctx, scrapeJobData)
 		resp.Diagnostics.Append(diags...)
