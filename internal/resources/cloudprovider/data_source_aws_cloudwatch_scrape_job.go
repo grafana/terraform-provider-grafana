@@ -7,7 +7,9 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 var (
@@ -41,7 +43,7 @@ var (
 		},
 		Blocks: map[string]schema.Block{
 			"service_configuration": schema.SetNestedBlock{
-				Description: "One or more service configuration blocks that dictates what this CloudWatch Scrape Job should scrape for the specified AWS service.",
+				Description: "Each block dictates what this CloudWatch Scrape Job should scrape for the specified AWS service.",
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"name": schema.StringAttribute{
@@ -64,7 +66,7 @@ var (
 					},
 					Blocks: map[string]schema.Block{
 						"metric": schema.SetNestedBlock{
-							Description: "One or more metric blocks to configure metrics and their statistics to scrape.",
+							Description: "Each block configures a metric and their statistics to scrape.",
 							NestedObject: schema.NestedBlockObject{
 								Attributes: map[string]schema.Attribute{
 									"name": schema.StringAttribute{
@@ -80,7 +82,7 @@ var (
 							},
 						},
 						"resource_discovery_tag_filter": schema.SetNestedBlock{
-							Description: "One or more tag filter blocks to use for discovery of resource entities in the associated AWS account.",
+							Description: "Each block configures a tag filter applied to discovery of resource entities in the associated AWS account.",
 							NestedObject: schema.NestedBlockObject{
 								Attributes: map[string]schema.Attribute{
 									"key": schema.StringAttribute{
@@ -136,23 +138,70 @@ func (r *datasourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req datas
 }
 
 func (r *datasourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	regions, diags := types.SetValueFrom(ctx, types.SetType{}, &TestAWSCloudWatchScrapeJobData.Regions)
+	converted, diags := scrapeJobClientModelToTerraformModel(ctx, TestAWSCloudWatchScrapeJobData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	serviceConfigurations, diags := types.SetValueFrom(ctx, types.SetType{}, &TestAWSCloudWatchScrapeJobData.ServiceConfigurations)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
+	resp.State.Set(ctx, converted)
+}
+
+func scrapeJobClientModelToTerraformModel(ctx context.Context, scrapeJobData cloudproviderapi.AWSCloudWatchScrapeJob) (*resourceAWSCloudWatchScrapeJobModel, diag.Diagnostics) {
+	conversionDiags := diag.Diagnostics{}
+	converted := &resourceAWSCloudWatchScrapeJobModel{
+		ID:                   types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(scrapeJobData.StackID, scrapeJobData.Name)),
+		StackID:              types.StringValue(scrapeJobData.StackID),
+		Name:                 types.StringValue(scrapeJobData.Name),
+		Enabled:              types.BoolValue(scrapeJobData.Enabled),
+		AWSAccountResourceID: types.StringValue(scrapeJobData.AWSAccountResourceID),
 	}
-	resp.State.Set(ctx, &resourceAWSCloudWatchScrapeJobModel{
-		ID:                         types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(TestAWSCloudWatchScrapeJobData.StackID, TestAWSCloudWatchScrapeJobData.Name)),
-		StackID:                    types.StringValue(TestAWSCloudWatchScrapeJobData.StackID),
-		Name:                       types.StringValue(TestAWSCloudWatchScrapeJobData.Name),
-		Enabled:                    types.BoolValue(TestAWSCloudWatchScrapeJobData.Enabled),
-		AWSAccountResourceID:       types.StringValue(TestAWSCloudWatchScrapeJobData.AWSAccountResourceID),
-		Regions:                    regions,
-		ServiceConfigurationBlocks: serviceConfigurations,
-	})
+
+	regions, diags := types.SetValueFrom(ctx, basetypes.StringType{}, &scrapeJobData.Regions)
+	diags.Append(diags...)
+	if diags.HasError() {
+		return nil, conversionDiags
+	}
+	converted.Regions = regions
+
+	for _, serviceConfigData := range scrapeJobData.ServiceConfigurations {
+		serviceConfig := awsCloudWatchScrapeJobServiceConfigurationModel{
+			Name:                  types.StringValue(serviceConfigData.Name),
+			ScrapeIntervalSeconds: types.Int64Value(serviceConfigData.ScrapeIntervalSeconds),
+			IsCustomNamespace:     types.BoolValue(serviceConfigData.IsCustomNamespace),
+		}
+
+		metricsData := make([]awsCloudWatchScrapeJobMetricModel, len(serviceConfigData.Metrics))
+		for i, metricData := range serviceConfigData.Metrics {
+			metricsData[i] = awsCloudWatchScrapeJobMetricModel{
+				Name: types.StringValue(metricData.Name),
+			}
+			statistics, diags := types.SetValueFrom(ctx, basetypes.StringType{}, &metricData.Statistics)
+			conversionDiags.Append(diags...)
+			if conversionDiags.HasError() {
+				return nil, conversionDiags
+			}
+			metricsData[i].Statistics = statistics
+		}
+		serviceConfig.Metrics = metricsData
+
+		tagFiltersData := make([]awsCloudWatchScrapeJobTagFilterModel, len(serviceConfigData.ResourceDiscoveryTagFilters))
+		for i, tagFilterData := range serviceConfigData.ResourceDiscoveryTagFilters {
+			tagFiltersData[i] = awsCloudWatchScrapeJobTagFilterModel{
+				Key:   types.StringValue(tagFilterData.Key),
+				Value: types.StringValue(tagFilterData.Value),
+			}
+		}
+		serviceConfig.ResourceDiscoveryTagFilters = tagFiltersData
+
+		tagsToAdd, diags := types.SetValueFrom(ctx, basetypes.StringType{}, &serviceConfigData.TagsToAddToMetrics)
+		conversionDiags.Append(diags...)
+		if conversionDiags.HasError() {
+			return nil, conversionDiags
+		}
+		serviceConfig.TagsToAddToMetrics = tagsToAdd
+
+		converted.ServiceConfigurationBlocks = append(converted.ServiceConfigurationBlocks, serviceConfig)
+	}
+
+	return converted, conversionDiags
 }

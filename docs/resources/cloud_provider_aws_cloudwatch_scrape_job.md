@@ -116,12 +116,12 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
 - `aws_account_resource_id` (String) The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this CloudWatch Scrape Job.
 - `name` (String) The name of the CloudWatch Scrape Job. Part of the Terraform Resource ID.
 - `regions` (Set of String) A set of AWS region names that this CloudWatch Scrape Job applies to.
-- `service_configuration` (Block Set, Min: 1) Each block is a service configuration that dictates what this CloudWatch Scrape Job should scrape for the specified AWS service. (see [below for nested schema](#nestedblock--service_configuration))
 - `stack_id` (String) The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.
 
 ### Optional
 
-- `enabled` (String) Whether the CloudWatch Scrape Job is enabled or not. Defaults to `true`.
+- `enabled` (Boolean) Whether the CloudWatch Scrape Job is enabled or not.
+- `service_configuration` (Block Set) Each block dictates what this CloudWatch Scrape Job should scrape for the specified AWS service. (see [below for nested schema](#nestedblock--service_configuration))
 
 ### Read-Only
 
@@ -132,18 +132,18 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
 
 Required:
 
-- `metrics` (Block Set, Min: 1) A set of metrics to scrape. (see [below for nested schema](#nestedblock--service_configuration--metrics))
 - `name` (String) The name of the service to scrape. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported services, metrics, and their statistics.
 
 Optional:
 
-- `is_custom_namespace` (Boolean) Whether the service name is a custom, user-generated metrics namespace, as opposed to a standard AWS service metrics namespace. Defaults to `false`.
-- `resource_discovery_tag_filters` (Block Set) A set of tag filters to use for discovery of resource entities in the associated AWS account. (see [below for nested schema](#nestedblock--service_configuration--resource_discovery_tag_filters))
-- `scrape_interval_seconds` (Number) The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported scrape intervals. Defaults to `300`.
+- `is_custom_namespace` (Boolean) Whether the service name is a custom, user-generated metrics namespace, as opposed to a standard AWS service metrics namespace.
+- `metric` (Block Set) Each block configures a metric and their statistics to scrape. (see [below for nested schema](#nestedblock--service_configuration--metric))
+- `resource_discovery_tag_filter` (Block Set) Each block configures a tag filter applied to discovery of resource entities in the associated AWS account. (see [below for nested schema](#nestedblock--service_configuration--resource_discovery_tag_filter))
+- `scrape_interval_seconds` (Number) The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported scrape intervals.
 - `tags_to_add_to_metrics` (Set of String) A set of tags to add to all metrics exported by this scrape job, for use in PromQL queries.
 
-<a id="nestedblock--service_configuration--metrics"></a>
-### Nested Schema for `service_configuration.metrics`
+<a id="nestedblock--service_configuration--metric"></a>
+### Nested Schema for `service_configuration.metric`
 
 Required:
 
@@ -151,8 +151,8 @@ Required:
 - `statistics` (Set of String) A set of statistics to scrape.
 
 
-<a id="nestedblock--service_configuration--resource_discovery_tag_filters"></a>
-### Nested Schema for `service_configuration.resource_discovery_tag_filters`
+<a id="nestedblock--service_configuration--resource_discovery_tag_filter"></a>
+### Nested Schema for `service_configuration.resource_discovery_tag_filter`
 
 Required:
 

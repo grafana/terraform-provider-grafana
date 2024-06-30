@@ -27,51 +27,57 @@ data "grafana_cloud_provider_aws_cloudwatch_scrape_jobs" "test" {
 
 ### Required
 
-- `stack_id` (String) The StackID whose scrape jobs are to be listed.
+- `stack_id` (String) The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.
+
+### Optional
+
+- `scrape_job` (Block Set) One or more AWS CloudWatch Scrape Job blocks associated with the given StackID. (see [below for nested schema](#nestedblock--scrape_job))
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `jobs` (Set of Object) The CloudWatch Scrape Jobs associated with the StackID. (see [below for nested schema](#nestedatt--jobs))
+- `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}".
 
-<a id="nestedatt--jobs"></a>
-### Nested Schema for `jobs`
+<a id="nestedblock--scrape_job"></a>
+### Nested Schema for `scrape_job`
 
-Read-Only:
+Required:
 
-- `aws_account_resource_id` (String)
-- `enabled` (String)
-- `id` (String)
-- `name` (String)
-- `regions` (Set of String)
-- `service_configuration` (Set of Object) (see [below for nested schema](#nestedobjatt--jobs--service_configuration))
-- `stack_id` (String)
-
-<a id="nestedobjatt--jobs--service_configuration"></a>
-### Nested Schema for `jobs.service_configuration`
+- `name` (String) The name of the CloudWatch Scrape Job. Part of the Terraform Resource ID.
+- `stack_id` (String) The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.
 
 Read-Only:
 
-- `is_custom_namespace` (Boolean)
-- `metrics` (Set of Object) (see [below for nested schema](#nestedobjatt--jobs--service_configuration--metrics))
-- `name` (String)
-- `resource_discovery_tag_filters` (Set of Object) (see [below for nested schema](#nestedobjatt--jobs--service_configuration--resource_discovery_tag_filters))
-- `scrape_interval_seconds` (Number)
-- `tags_to_add_to_metrics` (Set of String)
+- `aws_account_resource_id` (String) The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this CloudWatch Scrape Job.
+- `enabled` (Boolean) Whether the CloudWatch Scrape Job is enabled or not.
+- `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ job_name }}".
+- `regions` (Set of String) A set of AWS region names that this CloudWatch Scrape Job applies to.
+- `service_configuration` (Block Set) Each block dictates what this CloudWatch Scrape Job should scrape for the specified AWS service. (see [below for nested schema](#nestedblock--scrape_job--service_configuration))
 
-<a id="nestedobjatt--jobs--service_configuration--metrics"></a>
-### Nested Schema for `jobs.service_configuration.metrics`
-
-Read-Only:
-
-- `name` (String)
-- `statistics` (Set of String)
-
-
-<a id="nestedobjatt--jobs--service_configuration--resource_discovery_tag_filters"></a>
-### Nested Schema for `jobs.service_configuration.resource_discovery_tag_filters`
+<a id="nestedblock--scrape_job--service_configuration"></a>
+### Nested Schema for `scrape_job.service_configuration`
 
 Read-Only:
 
-- `key` (String)
-- `value` (String)
+- `is_custom_namespace` (Boolean) Whether the service name is a custom, user-generated metrics namespace, as opposed to a standard AWS service metrics namespace.
+- `metric` (Block Set) Each block configures a metric and their statistics to scrape. (see [below for nested schema](#nestedblock--scrape_job--service_configuration--metric))
+- `name` (String) The name of the service to scrape. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported services, metrics, and their statistics.
+- `resource_discovery_tag_filter` (Block Set) Each block configures a tag filter applied to discovery of resource entities in the associated AWS account. (see [below for nested schema](#nestedblock--scrape_job--service_configuration--resource_discovery_tag_filter))
+- `scrape_interval_seconds` (Number) The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported scrape intervals.
+- `tags_to_add_to_metrics` (Set of String) A set of tags to add to all metrics exported by this scrape job, for use in PromQL queries.
+
+<a id="nestedblock--scrape_job--service_configuration--metric"></a>
+### Nested Schema for `scrape_job.service_configuration.metric`
+
+Read-Only:
+
+- `name` (String) The name of the metric to scrape.
+- `statistics` (Set of String) A set of statistics to scrape.
+
+
+<a id="nestedblock--scrape_job--service_configuration--resource_discovery_tag_filter"></a>
+### Nested Schema for `scrape_job.service_configuration.resource_discovery_tag_filter`
+
+Read-Only:
+
+- `key` (String) The key of the tag filter.
+- `value` (String) The value of the tag filter.

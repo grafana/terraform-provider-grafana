@@ -12,11 +12,13 @@ import (
 
 var (
 	datasourceAWSCloudWatchScrapeJobsTerraformName = "grafana_cloud_provider_aws_cloudwatch_scrape_jobs"
+	datasourceAWSCloudWatchScrapeJobsTerraformID   = common.NewResourceID(common.StringIDField("stack_id"))
 )
 
 type datasourceAWSCloudWatchScrapeJobsModel struct {
-	StackID    types.String `tfsdk:"stack_id"`
-	ScrapeJobs types.Set    `tfsdk:"scrape_jobs"`
+	ID         types.String                          `tfsdk:"id"`
+	StackID    types.String                          `tfsdk:"stack_id"`
+	ScrapeJobs []resourceAWSCloudWatchScrapeJobModel `tfsdk:"scrape_job"`
 }
 
 type datasourceAWSCloudWatchScrapeJobs struct {
@@ -52,14 +54,18 @@ func (r *datasourceAWSCloudWatchScrapeJobs) Metadata(ctx context.Context, req da
 func (r *datasourceAWSCloudWatchScrapeJobs) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The Terraform Resource ID. This has the format \"{{ stack_id }}\".",
+				Computed:    true,
+			},
 			"stack_id": schema.StringAttribute{
 				Description: "The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.",
 				Required:    true,
 			},
 		},
 		Blocks: map[string]schema.Block{
-			"scrape_jobs": schema.SetNestedBlock{
-				Description: "The set of AWS CloudWatch Scrape Jobs associated with the given StackID.",
+			"scrape_job": schema.SetNestedBlock{
+				Description: "One or more AWS CloudWatch Scrape Job blocks associated with the given StackID.",
 				NestedObject: schema.NestedBlockObject{
 					Attributes: datasourceAWSCloudWatchScrapeJobTerraformSchema.Attributes,
 					Blocks:     datasourceAWSCloudWatchScrapeJobTerraformSchema.Blocks,
@@ -78,25 +84,18 @@ func (r *datasourceAWSCloudWatchScrapeJobs) Read(ctx context.Context, req dataso
 	}
 
 	scrapeJobsResp := []cloudproviderapi.AWSCloudWatchScrapeJob{TestAWSCloudWatchScrapeJobData}
-	scrapeJobsData := make([]map[string]interface{}, len(scrapeJobsResp))
-	for i, result := range scrapeJobsResp {
-		scrapeJobsData[i] = map[string]interface{}{
-			"id":                      resourceAWSCloudWatchScrapeJobTerraformID.Make(data.StackID.ValueString(), result.Name),
-			"stack_id":                data.StackID.ValueString(),
-			"name":                    result.Name,
-			"enabled":                 result.Enabled,
-			"aws_account_resource_id": result.AWSAccountResourceID,
-			"regions":                 result.Regions,
-			"service_configurations":  result.ServiceConfigurations,
+	scrapeJobs := make([]resourceAWSCloudWatchScrapeJobModel, len(scrapeJobsResp))
+	for i, scrapeJobData := range scrapeJobsResp {
+		scrapeJob, diags := scrapeJobClientModelToTerraformModel(ctx, scrapeJobData)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
 		}
+		scrapeJobs[i] = *scrapeJob
 	}
 
-	scrapeJobs, diags := types.SetValueFrom(ctx, types.SetType{}, &scrapeJobsData)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 	resp.State.Set(ctx, &datasourceAWSCloudWatchScrapeJobsModel{
+		ID:         types.StringValue(datasourceAWSCloudWatchScrapeJobsTerraformID.Make(data.StackID.ValueString())),
 		StackID:    data.StackID,
 		ScrapeJobs: scrapeJobs,
 	})

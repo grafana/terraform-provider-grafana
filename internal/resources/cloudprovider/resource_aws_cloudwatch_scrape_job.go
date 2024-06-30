@@ -31,7 +31,23 @@ type resourceAWSCloudWatchScrapeJobModel struct {
 	// TODO(tristan): if the grafana provider is update the Terraform v6 schema,
 	// we can consider adding additional support to use Set Nested Attributes, instead of Blocks.
 	// See https://developer.hashicorp.com/terraform/plugin/framework/handling-data/attributes#nested-attribute-types
-	ServiceConfigurationBlocks types.Set `tfsdk:"service_configuration"`
+	ServiceConfigurationBlocks []awsCloudWatchScrapeJobServiceConfigurationModel `tfsdk:"service_configuration"`
+}
+type awsCloudWatchScrapeJobServiceConfigurationModel struct {
+	Name                        types.String                           `tfsdk:"name"`
+	Metrics                     []awsCloudWatchScrapeJobMetricModel    `tfsdk:"metric"`
+	ScrapeIntervalSeconds       types.Int64                            `tfsdk:"scrape_interval_seconds"`
+	ResourceDiscoveryTagFilters []awsCloudWatchScrapeJobTagFilterModel `tfsdk:"resource_discovery_tag_filter"`
+	TagsToAddToMetrics          types.Set                              `tfsdk:"tags_to_add_to_metrics"`
+	IsCustomNamespace           types.Bool                             `tfsdk:"is_custom_namespace"`
+}
+type awsCloudWatchScrapeJobMetricModel struct {
+	Name       types.String `tfsdk:"name"`
+	Statistics types.Set    `tfsdk:"statistics"`
+}
+type awsCloudWatchScrapeJobTagFilterModel struct {
+	Key   types.String `tfsdk:"key"`
+	Value types.String `tfsdk:"value"`
 }
 
 type resourceAWSCloudWatchScrapeJob struct {
@@ -101,7 +117,7 @@ func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resourc
 		},
 		Blocks: map[string]schema.Block{
 			"service_configuration": schema.SetNestedBlock{
-				Description: "One or more service configuration blocks that dictates what this CloudWatch Scrape Job should scrape for the specified AWS service.",
+				Description: "Each block dictates what this CloudWatch Scrape Job should scrape for the specified AWS service.",
 				Validators: []validator.Set{
 					setvalidator.SizeAtLeast(1),
 				},
@@ -131,7 +147,7 @@ func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resourc
 					},
 					Blocks: map[string]schema.Block{
 						"metric": schema.SetNestedBlock{
-							Description: "One or more metric blocks to configure metrics and their statistics to scrape.",
+							Description: "Each block configures a metric and their statistics to scrape.",
 							Validators: []validator.Set{
 								setvalidator.SizeAtLeast(1),
 							},
@@ -153,7 +169,7 @@ func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resourc
 							},
 						},
 						"resource_discovery_tag_filter": schema.SetNestedBlock{
-							Description: "One or more tag filter blocks to use for discovery of resource entities in the associated AWS account.",
+							Description: "Each block configures a tag filter applied to discovery of resource entities in the associated AWS account.",
 							NestedObject: schema.NestedBlockObject{
 								Attributes: map[string]schema.Attribute{
 									"key": schema.StringAttribute{
