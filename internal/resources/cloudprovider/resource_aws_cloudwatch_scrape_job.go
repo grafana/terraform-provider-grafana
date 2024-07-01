@@ -7,6 +7,7 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -87,10 +88,11 @@ func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resourc
 			},
 		},
 		Blocks: map[string]schema.Block{
-			"service_configuration": schema.SetNestedBlock{
-				Description: "Each block dictates what this CloudWatch Scrape Job should scrape for the specified AWS service.",
-				Validators: []validator.Set{
-					setvalidator.SizeAtLeast(1),
+			"service_configuration": schema.ListNestedBlock{
+				Description: "One or more configuration blocks to dictate what this CloudWatch Scrape Job should scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+					awsCWScrapeJobNoDuplicateServiceConfigNamesValidator{},
 				},
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
@@ -117,10 +119,11 @@ func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resourc
 						},
 					},
 					Blocks: map[string]schema.Block{
-						"metric": schema.SetNestedBlock{
-							Description: "Each block configures a metric and their statistics to scrape.",
-							Validators: []validator.Set{
-								setvalidator.SizeAtLeast(1),
+						"metric": schema.ListNestedBlock{
+							Description: "One or more configuration blocks to configure metrics and their statistics to scrape. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects.",
+							Validators: []validator.List{
+								listvalidator.SizeAtLeast(1),
+								awsCWScrapeJobNoDuplicateMetricNamesValidator{},
 							},
 							NestedObject: schema.NestedBlockObject{
 								Attributes: map[string]schema.Attribute{
@@ -139,8 +142,8 @@ func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resourc
 								},
 							},
 						},
-						"resource_discovery_tag_filter": schema.SetNestedBlock{
-							Description: "Each block configures a tag filter applied to discovery of resource entities in the associated AWS account.",
+						"resource_discovery_tag_filter": schema.ListNestedBlock{
+							Description: "One or more configuration blocks to configure tag filters applied to discovery of resource entities in the associated AWS account. When accessing this as an attribute reference, it is a list of objects.",
 							NestedObject: schema.NestedBlockObject{
 								Attributes: map[string]schema.Attribute{
 									"key": schema.StringAttribute{

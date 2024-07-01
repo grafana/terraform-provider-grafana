@@ -64,8 +64,8 @@ func (r *datasourceAWSCloudWatchScrapeJobs) Schema(ctx context.Context, req data
 			},
 		},
 		Blocks: map[string]schema.Block{
-			"scrape_job": schema.SetNestedBlock{
-				Description: "One or more AWS CloudWatch Scrape Job blocks associated with the given StackID.",
+			"scrape_job": schema.ListNestedBlock{
+				Description: "A list of AWS CloudWatch Scrape Job objects associated with the given StackID.",
 				NestedObject: schema.NestedBlockObject{
 					Attributes: datasourceAWSCloudWatchScrapeJobTerraformSchema.Attributes,
 					Blocks:     datasourceAWSCloudWatchScrapeJobTerraformSchema.Blocks,
