@@ -12,6 +12,6 @@ resource "grafana_cloud_provider_aws_account" "test" {
 }
 
 data "grafana_cloud_provider_aws_account" "test" {
-  stack_id = data.grafana_cloud_stack.test.id
+  stack_id    = data.grafana_cloud_stack.test.id
   resource_id = grafana_cloud_provider_aws_account.test.resource_id
 }

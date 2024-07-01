@@ -111,7 +111,7 @@ func convertScrapeJobClientModelToTFModel(ctx context.Context, scrapeJobData clo
 	}
 	converted.Regions = regions
 
-	for _, serviceConfigData := range scrapeJobData.ServiceConfigurations {
+	for i, serviceConfigData := range scrapeJobData.ServiceConfigurations {
 		serviceConfig := awsCWScrapeJobServiceConfigTFModel{
 			Name:                  types.StringValue(serviceConfigData.Name),
 			ScrapeIntervalSeconds: types.Int64Value(serviceConfigData.ScrapeIntervalSeconds),
@@ -119,29 +119,29 @@ func convertScrapeJobClientModelToTFModel(ctx context.Context, scrapeJobData clo
 		}
 
 		metricsData := make([]awsCWScrapeJobMetricTFModel, len(serviceConfigData.Metrics))
-		for i, metricData := range serviceConfigData.Metrics {
-			metricsData[i] = awsCWScrapeJobMetricTFModel{
+		for j, metricData := range serviceConfigData.Metrics {
+			metricsData[j] = awsCWScrapeJobMetricTFModel{
 				Name: types.StringValue(metricData.Name),
 			}
-			statistics, diags := types.SetValueFrom(ctx, basetypes.StringType{}, &metricData.Statistics)
+			statistics, diags := types.SetValueFrom(ctx, basetypes.StringType{}, &scrapeJobData.ServiceConfigurations[i].Metrics[j].Statistics)
 			conversionDiags.Append(diags...)
 			if conversionDiags.HasError() {
 				return nil, conversionDiags
 			}
-			metricsData[i].Statistics = statistics
+			metricsData[j].Statistics = statistics
 		}
 		serviceConfig.Metrics = metricsData
 
 		tagFiltersData := make([]awsCWScrapeJobTagFilterTFModel, len(serviceConfigData.ResourceDiscoveryTagFilters))
-		for i, tagFilterData := range serviceConfigData.ResourceDiscoveryTagFilters {
-			tagFiltersData[i] = awsCWScrapeJobTagFilterTFModel{
+		for j, tagFilterData := range serviceConfigData.ResourceDiscoveryTagFilters {
+			tagFiltersData[j] = awsCWScrapeJobTagFilterTFModel{
 				Key:   types.StringValue(tagFilterData.Key),
 				Value: types.StringValue(tagFilterData.Value),
 			}
 		}
 		serviceConfig.ResourceDiscoveryTagFilters = tagFiltersData
 
-		tagsToAdd, diags := types.SetValueFrom(ctx, basetypes.StringType{}, &serviceConfigData.TagsToAddToMetrics)
+		tagsToAdd, diags := types.SetValueFrom(ctx, basetypes.StringType{}, &scrapeJobData.ServiceConfigurations[i].TagsToAddToMetrics)
 		conversionDiags.Append(diags...)
 		if conversionDiags.HasError() {
 			return nil, conversionDiags

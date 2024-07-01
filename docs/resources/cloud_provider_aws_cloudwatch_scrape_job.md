@@ -52,7 +52,7 @@ locals {
       scrape_interval_seconds = 300,
       resource_discovery_tag_filters = [
         {
-          key = "k8s.io/cluster-autoscaler/enabled",
+          key   = "k8s.io/cluster-autoscaler/enabled",
           value = "true",
         }
       ],
@@ -72,16 +72,16 @@ locals {
         },
       ],
       scrape_interval_seconds = 300,
-      is_custom_namespace = true,
+      is_custom_namespace     = true,
     },
   ]
 }
 
 resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
-  stack_id = data.grafana_cloud_stack.test.id
-  name = "my-cloudwatch-scrape-job"
+  stack_id                = data.grafana_cloud_stack.test.id
+  name                    = "my-cloudwatch-scrape-job"
   aws_account_resource_id = grafana_cloud_provider_aws_account.test.resource_id
-  regions = grafana_cloud_provider_aws_account.test.regions
+  regions                 = grafana_cloud_provider_aws_account.test.regions
   dynamic "service_configuration" {
     for_each = local.service_configurations
     content {
@@ -89,7 +89,7 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
       dynamic "metric" {
         for_each = service_configuration.value.metrics
         content {
-          name = metric.value.name
+          name       = metric.value.name
           statistics = metric.value.statistics
         }
       }
@@ -97,13 +97,13 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
       dynamic "resource_discovery_tag_filter" {
         for_each = lookup(service_configuration.value, "resource_discovery_tag_filters", [])
         content {
-          key = resource_discovery_tag_filter.value.key
+          key   = resource_discovery_tag_filter.value.key
           value = resource_discovery_tag_filter.value.value
         }
-      
+
       }
       tags_to_add_to_metrics = lookup(service_configuration.value, "tags_to_add_to_metrics", [])
-      is_custom_namespace = lookup(service_configuration.value, "is_custom_namespace", false)
+      is_custom_namespace    = lookup(service_configuration.value, "is_custom_namespace", false)
     }
   }
 }
