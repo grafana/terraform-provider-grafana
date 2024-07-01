@@ -170,7 +170,7 @@ func (r *resourceAWSCloudWatchScrapeJob) ImportState(ctx context.Context, req re
 	stackID := parts[0]
 	jobName := parts[1]
 	// TODO(tristan): use client to get AWS account so we only import a resource that exists
-	resp.State.Set(ctx, &awsCloudWatchScrapeJobModel{
+	resp.State.Set(ctx, &awsCWScrapeJobTFModel{
 		ID:      types.StringValue(req.ID),
 		StackID: types.StringValue(stackID),
 		Name:    types.StringValue(jobName),
@@ -178,14 +178,14 @@ func (r *resourceAWSCloudWatchScrapeJob) ImportState(ctx context.Context, req re
 }
 
 func (r *resourceAWSCloudWatchScrapeJob) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data awsCloudWatchScrapeJobModel
+	var data awsCWScrapeJobTFModel
 	diags := req.Plan.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.State.Set(ctx, &awsCloudWatchScrapeJobModel{
+	resp.State.Set(ctx, &awsCWScrapeJobTFModel{
 		ID:                         types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(data.StackID.ValueString(), data.Name.ValueString())),
 		StackID:                    data.StackID,
 		Name:                       data.Name,
@@ -197,14 +197,14 @@ func (r *resourceAWSCloudWatchScrapeJob) Create(ctx context.Context, req resourc
 }
 
 func (r *resourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data awsCloudWatchScrapeJobModel
+	var data awsCWScrapeJobTFModel
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.State.Set(ctx, &awsCloudWatchScrapeJobModel{
+	resp.State.Set(ctx, &awsCWScrapeJobTFModel{
 		ID:                         types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(data.StackID.ValueString(), data.Name.ValueString())),
 		StackID:                    data.StackID,
 		Name:                       data.Name,
@@ -216,20 +216,20 @@ func (r *resourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req resource.
 }
 
 func (r *resourceAWSCloudWatchScrapeJob) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var stateData awsCloudWatchScrapeJobModel
+	var stateData awsCWScrapeJobTFModel
 	diags := req.State.Get(ctx, &stateData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	var configData awsCloudWatchScrapeJobModel
+	var configData awsCWScrapeJobTFModel
 	diags = req.Config.Get(ctx, &configData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.State.Set(ctx, &awsCloudWatchScrapeJobModel{
+	resp.State.Set(ctx, &awsCWScrapeJobTFModel{
 		ID:                         types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(stateData.StackID.ValueString(), configData.Name.ValueString())),
 		StackID:                    stateData.StackID,
 		Name:                       configData.Name,
@@ -241,7 +241,7 @@ func (r *resourceAWSCloudWatchScrapeJob) Update(ctx context.Context, req resourc
 }
 
 func (r *resourceAWSCloudWatchScrapeJob) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data awsCloudWatchScrapeJobModel
+	var data awsCWScrapeJobTFModel
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
