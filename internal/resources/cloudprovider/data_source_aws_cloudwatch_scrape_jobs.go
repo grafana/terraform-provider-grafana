@@ -67,8 +67,22 @@ func (r *datasourceAWSCloudWatchScrapeJobs) Schema(ctx context.Context, req data
 			"scrape_job": schema.ListNestedBlock{
 				Description: "A list of AWS CloudWatch Scrape Job objects associated with the given StackID.",
 				NestedObject: schema.NestedBlockObject{
-					Attributes: datasourceAWSCloudWatchScrapeJobTerraformSchema.Attributes,
-					Blocks:     datasourceAWSCloudWatchScrapeJobTerraformSchema.Blocks,
+					Attributes: func() map[string]schema.Attribute {
+						attrs := make(map[string]schema.Attribute, len(datasourceAWSCloudWatchScrapeJobTerraformSchema.Attributes))
+						for k, v := range datasourceAWSCloudWatchScrapeJobTerraformSchema.Attributes {
+							attrs[k] = v
+						}
+						attrs["stack_id"] = schema.StringAttribute{
+							Description: "The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.",
+							Computed:    true,
+						}
+						attrs["name"] = schema.StringAttribute{
+							Description: "The name of the CloudWatch Scrape Job. Part of the Terraform Resource ID.",
+							Computed:    true,
+						}
+						return attrs
+					}(),
+					Blocks: datasourceAWSCloudWatchScrapeJobTerraformSchema.Blocks,
 				},
 			},
 		},

@@ -29,29 +29,23 @@ data "grafana_cloud_provider_aws_cloudwatch_scrape_jobs" "test" {
 
 - `stack_id` (String) The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.
 
-### Optional
-
-- `scrape_job` (Block List) A list of AWS CloudWatch Scrape Job objects associated with the given StackID. (see [below for nested schema](#nestedblock--scrape_job))
-
 ### Read-Only
 
 - `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}".
+- `scrape_job` (Block List) A list of AWS CloudWatch Scrape Job objects associated with the given StackID. (see [below for nested schema](#nestedblock--scrape_job))
 
 <a id="nestedblock--scrape_job"></a>
 ### Nested Schema for `scrape_job`
-
-Required:
-
-- `name` (String) The name of the CloudWatch Scrape Job. Part of the Terraform Resource ID.
-- `stack_id` (String) The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.
 
 Read-Only:
 
 - `aws_account_resource_id` (String) The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this CloudWatch Scrape Job.
 - `enabled` (Boolean) Whether the CloudWatch Scrape Job is enabled or not.
 - `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ job_name }}".
+- `name` (String) The name of the CloudWatch Scrape Job. Part of the Terraform Resource ID.
 - `regions` (Set of String) A set of AWS region names that this CloudWatch Scrape Job applies to.
 - `service_configuration` (Block List) One or more configuration blocks to dictate what this CloudWatch Scrape Job should scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--scrape_job--service_configuration))
+- `stack_id` (String) The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.
 
 <a id="nestedblock--scrape_job--service_configuration"></a>
 ### Nested Schema for `scrape_job.service_configuration`
