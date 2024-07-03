@@ -77,7 +77,7 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
       dynamic "metric" {
         for_each = service.value.metrics
         content {
-          name = metric.value.name
+          name       = metric.value.name
           statistics = metric.value.statistics
         }
       }
@@ -85,10 +85,10 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
       dynamic "resource_discovery_tag_filter" {
         for_each = lookup(service.value, "resource_discovery_tag_filters", [])
         content {
-          key = resource_discovery_tag_filter.value.key
+          key   = resource_discovery_tag_filter.value.key
           value = resource_discovery_tag_filter.value.value
         }
-      
+
       }
       tags_to_add_to_metrics = lookup(service.value, "tags_to_add_to_metrics", [])
     }
@@ -101,7 +101,7 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
       dynamic "metric" {
         for_each = custom_namespace.value.metrics
         content {
-          name = metric.value.name
+          name       = metric.value.name
           statistics = metric.value.statistics
         }
       }
