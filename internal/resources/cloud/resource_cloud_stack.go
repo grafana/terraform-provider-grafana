@@ -343,7 +343,13 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 		return nil
 	}
 
-	if err := flattenStack(d, stack); err != nil {
+	connectionsReq := client.InstancesAPI.GetConnections(ctx, id.(string))
+	connections, _, err := connectionsReq.Execute()
+	if err != nil {
+		return apiError(err)
+	}
+
+	if err := flattenStack(d, stack, connections); err != nil {
 		return diag.FromErr(err)
 	}
 	// Always set the wait attribute to true after creation
@@ -356,7 +362,7 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 	return nil
 }
 
-func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance) error {
+func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, connections *gcom.FormattedApiInstanceConnections) error {
 	id := strconv.FormatInt(int64(stack.Id), 10)
 	d.SetId(id)
 	d.Set("name", stack.Name)
@@ -410,6 +416,14 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance) erro
 	d.Set("graphite_name", stack.HmInstanceGraphiteName)
 	d.Set("graphite_url", stack.HmInstanceGraphiteUrl)
 	d.Set("graphite_status", stack.HmInstanceGraphiteStatus)
+
+	if otlpURL := connections.OtlpHttpUrl; otlpURL.IsSet() {
+		d.Set("otlp_url", otlpURL.Get())
+	}
+
+	if influxURL := connections.InfluxUrl; influxURL.IsSet() {
+		d.Set("influx_url", influxURL.Get())
+	}
 
 	return nil
 }
