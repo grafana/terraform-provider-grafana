@@ -21,6 +21,8 @@ var userNotificationRuleTypeOptions = []string{
 	"notify_by_phone_call",
 	"notify_by_telegram",
 	"notify_by_email",
+	"notify_by_mobile_app",
+	"notify_by_mobile_app_critical",
 }
 
 var userNotificationRuleTypeOptionsVerbal = strings.Join(userNotificationRuleTypeOptions, ", ")
@@ -29,6 +31,8 @@ func resourceUserNotificationRule() *common.Resource {
 	schema := &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/personal_notification_rules/)
+
+**Note**: you must be running Grafana OnCall >= v1.8.0 to use this resource.
 `,
 		CreateContext: withClient[schema.CreateContextFunc](resourceUserNotificationRuleCreate),
 		ReadContext:   withClient[schema.ReadContextFunc](resourceUserNotificationRuleRead),
@@ -94,8 +98,9 @@ func resourceUserNotificationRuleCreate(ctx context.Context, d *schema.ResourceD
 	ruleType := d.Get("type").(string)
 
 	createOptions := &onCallAPI.CreateUserNotificationRuleOptions{
-		UserId: userId,
-		Type:   ruleType,
+		UserId:      userId,
+		Type:        ruleType,
+		ManualOrder: true,
 	}
 
 	position, positionOk := d.GetOk("position")
@@ -148,7 +153,8 @@ func resourceUserNotificationRuleUpdate(ctx context.Context, d *schema.ResourceD
 	ruleType := d.Get("type").(string)
 
 	updateOptions := &onCallAPI.UpdateUserNotificationRuleOptions{
-		Type: ruleType,
+		Type:        ruleType,
+		ManualOrder: true,
 	}
 
 	position, positionOk := d.GetOk("position")
