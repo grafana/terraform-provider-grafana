@@ -88,16 +88,16 @@ func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resourc
 			},
 		},
 		Blocks: map[string]schema.Block{
-			"service_configuration": schema.ListNestedBlock{
-				Description: "One or more configuration blocks to dictate what this CloudWatch Scrape Job should scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
+			"service": schema.ListNestedBlock{
+				Description: "One or more configuration blocks to configure AWS services for the CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
 				Validators: []validator.List{
 					listvalidator.SizeAtLeast(1),
-					awsCWScrapeJobNoDuplicateServiceConfigNamesValidator{},
+					awsCWScrapeJobNoDuplicateServiceNamesValidator{},
 				},
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"name": schema.StringAttribute{
-							Description: "The name of the service to scrape. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported services, metrics, and their statistics.",
+							Description: "The name of the service to scrape. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported services.",
 							Required:    true,
 						},
 						"scrape_interval_seconds": schema.Int64Attribute{
@@ -111,16 +111,10 @@ func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resourc
 							Optional:    true,
 							ElementType: types.StringType,
 						},
-						"is_custom_namespace": schema.BoolAttribute{
-							Description: "Whether the service name is a custom, user-generated metrics namespace, as opposed to a standard AWS service metrics namespace.",
-							Optional:    true,
-							Computed:    true,
-							Default:     booldefault.StaticBool(false),
-						},
 					},
 					Blocks: map[string]schema.Block{
 						"metric": schema.ListNestedBlock{
-							Description: "One or more configuration blocks to configure metrics and their statistics to scrape. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects.",
+							Description: "One or more configuration blocks to configure metrics and their statistics to scrape. Please note that AWS metric names must be supplied, and not their PromQL counterparts. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects.",
 							Validators: []validator.List{
 								listvalidator.SizeAtLeast(1),
 								awsCWScrapeJobNoDuplicateMetricNamesValidator{},
@@ -160,6 +154,51 @@ func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resourc
 					},
 				},
 			},
+			"custom_namespace": schema.ListNestedBlock{
+				Description: "Zero or more configuration blocks to configure custom namespaces for the CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
+				Validators: []validator.List{
+					awsCWScrapeJobNoDuplicateCustomNamespaceNamesValidator{},
+				},
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							Description: "The name of the custom namespace to scrape.",
+							Required:    true,
+						},
+						"scrape_interval_seconds": schema.Int64Attribute{
+							Description: "The interval in seconds to scrape the custom namespace.",
+							Optional:    true,
+							Computed:    true,
+							Default:     int64default.StaticInt64(300),
+						},
+					},
+					Blocks: map[string]schema.Block{
+						"metric": schema.ListNestedBlock{
+							Description: "One or more configuration blocks to configure metrics and their statistics to scrape. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects.",
+							Validators: []validator.List{
+								listvalidator.SizeAtLeast(1),
+								awsCWScrapeJobNoDuplicateMetricNamesValidator{},
+							},
+							NestedObject: schema.NestedBlockObject{
+								Attributes: map[string]schema.Attribute{
+									"name": schema.StringAttribute{
+										Description: "The name of the metric to scrape.",
+										Required:    true,
+									},
+									"statistics": schema.SetAttribute{
+										Description: "A set of statistics to scrape.",
+										Required:    true,
+										Validators: []validator.Set{
+											setvalidator.SizeAtLeast(1),
+										},
+										ElementType: types.StringType,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -189,13 +228,14 @@ func (r *resourceAWSCloudWatchScrapeJob) Create(ctx context.Context, req resourc
 	}
 
 	resp.State.Set(ctx, &awsCWScrapeJobTFModel{
-		ID:                         types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(data.StackID.ValueString(), data.Name.ValueString())),
-		StackID:                    data.StackID,
-		Name:                       data.Name,
-		Enabled:                    data.Enabled,
-		AWSAccountResourceID:       data.AWSAccountResourceID,
-		Regions:                    data.Regions,
-		ServiceConfigurationBlocks: data.ServiceConfigurationBlocks,
+		ID:                   types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(data.StackID.ValueString(), data.Name.ValueString())),
+		StackID:              data.StackID,
+		Name:                 data.Name,
+		Enabled:              data.Enabled,
+		AWSAccountResourceID: data.AWSAccountResourceID,
+		Regions:              data.Regions,
+		Services:             data.Services,
+		CustomNamespaces:     data.CustomNamespaces,
 	})
 }
 
@@ -208,13 +248,14 @@ func (r *resourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req resource.
 	}
 
 	resp.State.Set(ctx, &awsCWScrapeJobTFModel{
-		ID:                         types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(data.StackID.ValueString(), data.Name.ValueString())),
-		StackID:                    data.StackID,
-		Name:                       data.Name,
-		Enabled:                    data.Enabled,
-		AWSAccountResourceID:       data.AWSAccountResourceID,
-		Regions:                    data.Regions,
-		ServiceConfigurationBlocks: data.ServiceConfigurationBlocks,
+		ID:                   types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(data.StackID.ValueString(), data.Name.ValueString())),
+		StackID:              data.StackID,
+		Name:                 data.Name,
+		Enabled:              data.Enabled,
+		AWSAccountResourceID: data.AWSAccountResourceID,
+		Regions:              data.Regions,
+		Services:             data.Services,
+		CustomNamespaces:     data.CustomNamespaces,
 	})
 }
 
@@ -233,13 +274,14 @@ func (r *resourceAWSCloudWatchScrapeJob) Update(ctx context.Context, req resourc
 	}
 
 	resp.State.Set(ctx, &awsCWScrapeJobTFModel{
-		ID:                         types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(stateData.StackID.ValueString(), configData.Name.ValueString())),
-		StackID:                    stateData.StackID,
-		Name:                       configData.Name,
-		Enabled:                    configData.Enabled,
-		AWSAccountResourceID:       configData.AWSAccountResourceID,
-		Regions:                    configData.Regions,
-		ServiceConfigurationBlocks: configData.ServiceConfigurationBlocks,
+		ID:                   types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(stateData.StackID.ValueString(), configData.Name.ValueString())),
+		StackID:              stateData.StackID,
+		Name:                 configData.Name,
+		Enabled:              configData.Enabled,
+		AWSAccountResourceID: configData.AWSAccountResourceID,
+		Regions:              configData.Regions,
+		Services:             configData.Services,
+		CustomNamespaces:     configData.CustomNamespaces,
 	})
 }
 

@@ -40,7 +40,7 @@ var (
 			},
 		},
 		Blocks: map[string]schema.Block{
-			"service_configuration": schema.ListNestedBlock{
+			"service": schema.ListNestedBlock{
 				Description: "One or more configuration blocks to dictate what this CloudWatch Scrape Job should scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
@@ -56,10 +56,6 @@ var (
 							Description: "A set of tags to add to all metrics exported by this scrape job, for use in PromQL queries.",
 							Computed:    true,
 							ElementType: types.StringType,
-						},
-						"is_custom_namespace": schema.BoolAttribute{
-							Description: "Whether the service name is a custom, user-generated metrics namespace, as opposed to a standard AWS service metrics namespace.",
-							Computed:    true,
 						},
 					},
 					Blocks: map[string]schema.Block{
@@ -90,6 +86,39 @@ var (
 									"value": schema.StringAttribute{
 										Description: "The value of the tag filter.",
 										Computed:    true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"custom_namespace": schema.ListNestedBlock{
+				Description: "Zero or more configuration blocks to configure custom namespaces for the CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							Description: "The name of the custom namespace to scrape.",
+							Computed:    true,
+						},
+						"scrape_interval_seconds": schema.Int64Attribute{
+							Description: "The interval in seconds to scrape the custom namespace.",
+							Computed:    true,
+						},
+					},
+					Blocks: map[string]schema.Block{
+						"metric": schema.ListNestedBlock{
+							Description: "One or more configuration blocks to configure metrics and their statistics to scrape. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects.",
+							NestedObject: schema.NestedBlockObject{
+								Attributes: map[string]schema.Attribute{
+									"name": schema.StringAttribute{
+										Description: "The name of the metric to scrape.",
+										Computed:    true,
+									},
+									"statistics": schema.SetAttribute{
+										Description: "A set of statistics to scrape.",
+										Computed:    true,
+										ElementType: types.StringType,
 									},
 								},
 							},

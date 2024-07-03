@@ -33,28 +33,25 @@ func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.0", cloudprovider.TestAWSCloudWatchScrapeJobData.Regions[0]),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.1", cloudprovider.TestAWSCloudWatchScrapeJobData.Regions[1]),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.2", cloudprovider.TestAWSCloudWatchScrapeJobData.Regions[2]),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations))),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.0.name", cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[0].Name),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.0.metric.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[0].Metrics))),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.0.metric.0.name", cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[0].Metrics[0].Name),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.0.metric.0.statistics.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[0].Metrics[0].Statistics))),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.0.metric.0.statistics.0", cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[0].Metrics[0].Statistics[0]),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.0.scrape_interval_seconds", fmt.Sprintf("%d", cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[0].ScrapeIntervalSeconds)),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.0.resource_discovery_tag_filter.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[0].ResourceDiscoveryTagFilters))),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.0.resource_discovery_tag_filter.0.key", cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[0].ResourceDiscoveryTagFilters[0].Key),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.0.resource_discovery_tag_filter.0.value", cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[0].ResourceDiscoveryTagFilters[0].Value),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.0.tags_to_add_to_metrics.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[0].TagsToAddToMetrics))),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.0.tags_to_add_to_metrics.0", cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[0].TagsToAddToMetrics[0]),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.0.is_custom_namespace", fmt.Sprintf("%t", cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[0].IsCustomNamespace)),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.1.name", cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[1].Name),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.1.metric.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[1].Metrics))),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.1.metric.0.name", cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[1].Metrics[0].Name),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.1.metric.0.statistics.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[1].Metrics[0].Statistics))),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.1.metric.0.statistics.0", cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[1].Metrics[0].Statistics[0]),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.1.scrape_interval_seconds", fmt.Sprintf("%d", cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[1].ScrapeIntervalSeconds)),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.1.resource_discovery_tag_filter.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[1].ResourceDiscoveryTagFilters))),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.1.tags_to_add_to_metrics.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[1].TagsToAddToMetrics))),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service_configuration.1.is_custom_namespace", fmt.Sprintf("%t", cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations[1].IsCustomNamespace)),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.Services))),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.name", cloudprovider.TestAWSCloudWatchScrapeJobData.Services[0].Name),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.metric.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.Services[0].Metrics))),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.metric.0.name", cloudprovider.TestAWSCloudWatchScrapeJobData.Services[0].Metrics[0].Name),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.metric.0.statistics.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.Services[0].Metrics[0].Statistics))),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.metric.0.statistics.0", cloudprovider.TestAWSCloudWatchScrapeJobData.Services[0].Metrics[0].Statistics[0]),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.scrape_interval_seconds", fmt.Sprintf("%d", cloudprovider.TestAWSCloudWatchScrapeJobData.Services[0].ScrapeIntervalSeconds)),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.resource_discovery_tag_filter.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.Services[0].ResourceDiscoveryTagFilters))),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.resource_discovery_tag_filter.0.key", cloudprovider.TestAWSCloudWatchScrapeJobData.Services[0].ResourceDiscoveryTagFilters[0].Key),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.resource_discovery_tag_filter.0.value", cloudprovider.TestAWSCloudWatchScrapeJobData.Services[0].ResourceDiscoveryTagFilters[0].Value),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.tags_to_add_to_metrics.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.Services[0].TagsToAddToMetrics))),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.tags_to_add_to_metrics.0", cloudprovider.TestAWSCloudWatchScrapeJobData.Services[0].TagsToAddToMetrics[0]),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.CustomNamespaces))),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.name", cloudprovider.TestAWSCloudWatchScrapeJobData.CustomNamespaces[0].Name),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.metric.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.CustomNamespaces[0].Metrics))),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.metric.0.name", cloudprovider.TestAWSCloudWatchScrapeJobData.CustomNamespaces[0].Metrics[0].Name),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.metric.0.statistics.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.CustomNamespaces[0].Metrics[0].Statistics))),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.metric.0.statistics.0", cloudprovider.TestAWSCloudWatchScrapeJobData.CustomNamespaces[0].Metrics[0].Statistics[0]),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.scrape_interval_seconds", fmt.Sprintf("%d", cloudprovider.TestAWSCloudWatchScrapeJobData.CustomNamespaces[0].ScrapeIntervalSeconds)),
 				),
 			},
 		},
@@ -68,28 +65,41 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
   name = "%[2]s"
   aws_account_resource_id = "%[3]s"
   regions = [%[4]s]
-  dynamic "service_configuration" {
+  dynamic "service" {
     for_each = [%[5]s]
     content {
-      name = service_configuration.value.name
+      name = service.value.name
       dynamic "metric" {
-        for_each = service_configuration.value.metrics
+        for_each = service.value.metrics
         content {
           name = metric.value.name
           statistics = metric.value.statistics
         }
       }
-      scrape_interval_seconds = service_configuration.value.scrape_interval_seconds
+      scrape_interval_seconds = service.value.scrape_interval_seconds
       dynamic "resource_discovery_tag_filter" {
-        for_each = lookup(service_configuration.value, "resource_discovery_tag_filters", [])
+        for_each = lookup(service.value, "resource_discovery_tag_filters", [])
         content {
           key = resource_discovery_tag_filter.value.key
           value = resource_discovery_tag_filter.value.value
         }
       
       }
-      tags_to_add_to_metrics = lookup(service_configuration.value, "tags_to_add_to_metrics", [])
-      is_custom_namespace = lookup(service_configuration.value, "is_custom_namespace", false)
+      tags_to_add_to_metrics = lookup(service.value, "tags_to_add_to_metrics", [])
+    }
+  }
+  dynamic "custom_namespace" {
+    for_each = [%[6]s]
+    content {
+      name = custom_namespace.value.name
+      dynamic "metric" {
+        for_each = custom_namespace.value.metrics
+        content {
+          name = metric.value.name
+          statistics = metric.value.statistics
+        }
+      }
+      scrape_interval_seconds = custom_namespace.value.scrape_interval_seconds
     }
   }
 }
@@ -98,18 +108,19 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
 		cloudprovider.TestAWSCloudWatchScrapeJobData.Name,
 		cloudprovider.TestAWSCloudWatchScrapeJobData.AWSAccountResourceID,
 		regionsString(cloudprovider.TestAWSCloudWatchScrapeJobData.Regions),
-		serviceConfigurationsString(cloudprovider.TestAWSCloudWatchScrapeJobData.ServiceConfigurations),
+		servicesString(cloudprovider.TestAWSCloudWatchScrapeJobData.Services),
+		customNamespacesString(cloudprovider.TestAWSCloudWatchScrapeJobData.CustomNamespaces),
 	)
 
 	return data
 }
 
-func serviceConfigurationsString(svcConfigs []cloudproviderapi.AWSCloudWatchServiceConfiguration) string {
-	if len(svcConfigs) == 0 {
+func servicesString(svcs []cloudproviderapi.AWSCloudWatchService) string {
+	if len(svcs) == 0 {
 		return ""
 	}
 	b := new(bytes.Buffer)
-	for _, svcConfig := range svcConfigs {
+	for _, svc := range svcs {
 		fmt.Fprintf(b, "\n\t\t")
 		fmt.Fprintf(b, `{
 			name = "%[1]s",
@@ -117,14 +128,33 @@ func serviceConfigurationsString(svcConfigs []cloudproviderapi.AWSCloudWatchServ
 			scrape_interval_seconds = %[3]d,
 			resource_discovery_tag_filters = [%[4]s],
 			tags_to_add_to_metrics = [%[5]s],
-			is_custom_namespace = %[6]t,
 		},`,
-			svcConfig.Name,
-			metricsString(svcConfig.Metrics),
-			svcConfig.ScrapeIntervalSeconds,
-			tagFiltersString(svcConfig.ResourceDiscoveryTagFilters),
-			tagsString(svcConfig.TagsToAddToMetrics),
-			svcConfig.IsCustomNamespace,
+			svc.Name,
+			metricsString(svc.Metrics),
+			svc.ScrapeIntervalSeconds,
+			tagFiltersString(svc.ResourceDiscoveryTagFilters),
+			tagsString(svc.TagsToAddToMetrics),
+		)
+	}
+	fmt.Fprintf(b, "\n\t\t")
+	return b.String()
+}
+
+func customNamespacesString(customNamespaces []cloudproviderapi.AWSCloudWatchCustomNamespace) string {
+	if len(customNamespaces) == 0 {
+		return ""
+	}
+	b := new(bytes.Buffer)
+	for _, customNamespace := range customNamespaces {
+		fmt.Fprintf(b, "\n\t\t")
+		fmt.Fprintf(b, `{
+			name = "%[1]s",
+			metrics = [%[2]s],
+			scrape_interval_seconds = %[3]d,
+		},`,
+			customNamespace.Name,
+			metricsString(customNamespace.Metrics),
+			customNamespace.ScrapeIntervalSeconds,
 		)
 	}
 	fmt.Fprintf(b, "\n\t\t")

@@ -17,18 +17,18 @@ resource "grafana_cloud_provider_aws_account" "test" {
 }
 
 locals {
-  service_configurations = [
+  services = [
     {
       name = "AWS/EC2",
       metrics = [
         {
-          name = "aws_ec2_cpuutilization",
+          name = "CPUUtilization",
           statistics = [
             "Average",
           ],
         },
         {
-          name = "aws_ec2_status_check_failed",
+          name = "StatusCheckFailed",
           statistics = [
             "Maximum",
           ],
@@ -45,6 +45,8 @@ locals {
         "eks:cluster-name",
       ]
     },
+  ]
+  custom_namespaces = [
     {
       name = "CoolApp",
       metrics = [
@@ -67,28 +69,43 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
   name                    = "my-cloudwatch-scrape-job"
   aws_account_resource_id = grafana_cloud_provider_aws_account.test.resource_id
   regions                 = grafana_cloud_provider_aws_account.test.regions
-  dynamic "service_configuration" {
-    for_each = local.service_configurations
+
+  dynamic "service" {
+    for_each = local.services
     content {
-      name = service_configuration.value.name
+      name = service.value.name
       dynamic "metric" {
-        for_each = service_configuration.value.metrics
+        for_each = service.value.metrics
         content {
-          name       = metric.value.name
+          name = metric.value.name
           statistics = metric.value.statistics
         }
       }
-      scrape_interval_seconds = service_configuration.value.scrape_interval_seconds
+      scrape_interval_seconds = service.value.scrape_interval_seconds
       dynamic "resource_discovery_tag_filter" {
-        for_each = lookup(service_configuration.value, "resource_discovery_tag_filters", [])
+        for_each = lookup(service.value, "resource_discovery_tag_filters", [])
         content {
-          key   = resource_discovery_tag_filter.value.key
+          key = resource_discovery_tag_filter.value.key
           value = resource_discovery_tag_filter.value.value
         }
-
+      
       }
-      tags_to_add_to_metrics = lookup(service_configuration.value, "tags_to_add_to_metrics", [])
-      is_custom_namespace    = lookup(service_configuration.value, "is_custom_namespace", false)
+      tags_to_add_to_metrics = lookup(service.value, "tags_to_add_to_metrics", [])
+    }
+  }
+
+  dynamic "custom_namespace" {
+    for_each = local.custom_namespaces
+    content {
+      name = custom_namespace.value.name
+      dynamic "metric" {
+        for_each = custom_namespace.value.metrics
+        content {
+          name = metric.value.name
+          statistics = metric.value.statistics
+        }
+      }
+      scrape_interval_seconds = custom_namespace.value.scrape_interval_seconds
     }
   }
 }

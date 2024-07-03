@@ -32,18 +32,18 @@ resource "grafana_cloud_provider_aws_account" "test" {
 }
 
 locals {
-  service_configurations = [
+  services = [
     {
       name = "AWS/EC2",
       metrics = [
         {
-          name = "aws_ec2_cpuutilization",
+          name = "CPUUtilization",
           statistics = [
             "Average",
           ],
         },
         {
-          name = "aws_ec2_status_check_failed",
+          name = "StatusCheckFailed",
           statistics = [
             "Maximum",
           ],
@@ -60,6 +60,8 @@ locals {
         "eks:cluster-name",
       ]
     },
+  ]
+  custom_namespaces = [
     {
       name = "CoolApp",
       metrics = [
@@ -82,28 +84,43 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
   name                    = "my-cloudwatch-scrape-job"
   aws_account_resource_id = grafana_cloud_provider_aws_account.test.resource_id
   regions                 = grafana_cloud_provider_aws_account.test.regions
-  dynamic "service_configuration" {
-    for_each = local.service_configurations
+
+  dynamic "service" {
+    for_each = local.services
     content {
-      name = service_configuration.value.name
+      name = service.value.name
       dynamic "metric" {
-        for_each = service_configuration.value.metrics
+        for_each = service.value.metrics
         content {
-          name       = metric.value.name
+          name = metric.value.name
           statistics = metric.value.statistics
         }
       }
-      scrape_interval_seconds = service_configuration.value.scrape_interval_seconds
+      scrape_interval_seconds = service.value.scrape_interval_seconds
       dynamic "resource_discovery_tag_filter" {
-        for_each = lookup(service_configuration.value, "resource_discovery_tag_filters", [])
+        for_each = lookup(service.value, "resource_discovery_tag_filters", [])
         content {
-          key   = resource_discovery_tag_filter.value.key
+          key = resource_discovery_tag_filter.value.key
           value = resource_discovery_tag_filter.value.value
         }
-
+      
       }
-      tags_to_add_to_metrics = lookup(service_configuration.value, "tags_to_add_to_metrics", [])
-      is_custom_namespace    = lookup(service_configuration.value, "is_custom_namespace", false)
+      tags_to_add_to_metrics = lookup(service.value, "tags_to_add_to_metrics", [])
+    }
+  }
+
+  dynamic "custom_namespace" {
+    for_each = local.custom_namespaces
+    content {
+      name = custom_namespace.value.name
+      dynamic "metric" {
+        for_each = custom_namespace.value.metrics
+        content {
+          name = metric.value.name
+          statistics = metric.value.statistics
+        }
+      }
+      scrape_interval_seconds = custom_namespace.value.scrape_interval_seconds
     }
   }
 }
@@ -126,25 +143,23 @@ data "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
 ### Read-Only
 
 - `aws_account_resource_id` (String) The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this CloudWatch Scrape Job.
+- `custom_namespace` (Block List) Zero or more configuration blocks to configure custom namespaces for the CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--custom_namespace))
 - `enabled` (Boolean) Whether the CloudWatch Scrape Job is enabled or not.
 - `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ job_name }}".
 - `regions` (Set of String) A set of AWS region names that this CloudWatch Scrape Job applies to.
-- `service_configuration` (Block List) One or more configuration blocks to dictate what this CloudWatch Scrape Job should scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service_configuration))
+- `service` (Block List) One or more configuration blocks to dictate what this CloudWatch Scrape Job should scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service))
 
-<a id="nestedblock--service_configuration"></a>
-### Nested Schema for `service_configuration`
+<a id="nestedblock--custom_namespace"></a>
+### Nested Schema for `custom_namespace`
 
 Read-Only:
 
-- `is_custom_namespace` (Boolean) Whether the service name is a custom, user-generated metrics namespace, as opposed to a standard AWS service metrics namespace.
-- `metric` (Block List) One or more configuration blocks to configure metrics and their statistics to scrape. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service_configuration--metric))
-- `name` (String) The name of the service to scrape. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported services, metrics, and their statistics.
-- `resource_discovery_tag_filter` (Block List) One or more configuration blocks to configure tag filters applied to discovery of resource entities in the associated AWS account. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service_configuration--resource_discovery_tag_filter))
-- `scrape_interval_seconds` (Number) The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported scrape intervals.
-- `tags_to_add_to_metrics` (Set of String) A set of tags to add to all metrics exported by this scrape job, for use in PromQL queries.
+- `metric` (Block List) One or more configuration blocks to configure metrics and their statistics to scrape. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--custom_namespace--metric))
+- `name` (String) The name of the custom namespace to scrape.
+- `scrape_interval_seconds` (Number) The interval in seconds to scrape the custom namespace.
 
-<a id="nestedblock--service_configuration--metric"></a>
-### Nested Schema for `service_configuration.metric`
+<a id="nestedblock--custom_namespace--metric"></a>
+### Nested Schema for `custom_namespace.metric`
 
 Read-Only:
 
@@ -152,8 +167,29 @@ Read-Only:
 - `statistics` (Set of String) A set of statistics to scrape.
 
 
-<a id="nestedblock--service_configuration--resource_discovery_tag_filter"></a>
-### Nested Schema for `service_configuration.resource_discovery_tag_filter`
+
+<a id="nestedblock--service"></a>
+### Nested Schema for `service`
+
+Read-Only:
+
+- `metric` (Block List) One or more configuration blocks to configure metrics and their statistics to scrape. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service--metric))
+- `name` (String) The name of the service to scrape. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported services, metrics, and their statistics.
+- `resource_discovery_tag_filter` (Block List) One or more configuration blocks to configure tag filters applied to discovery of resource entities in the associated AWS account. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service--resource_discovery_tag_filter))
+- `scrape_interval_seconds` (Number) The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported scrape intervals.
+- `tags_to_add_to_metrics` (Set of String) A set of tags to add to all metrics exported by this scrape job, for use in PromQL queries.
+
+<a id="nestedblock--service--metric"></a>
+### Nested Schema for `service.metric`
+
+Read-Only:
+
+- `name` (String) The name of the metric to scrape.
+- `statistics` (Set of String) A set of statistics to scrape.
+
+
+<a id="nestedblock--service--resource_discovery_tag_filter"></a>
+### Nested Schema for `service.resource_discovery_tag_filter`
 
 Read-Only:
 
