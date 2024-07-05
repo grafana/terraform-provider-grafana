@@ -2,15 +2,41 @@ package oncall
 
 import (
 	"context"
+	"fmt"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 // All on-call resources have a single string ID format
 var resourceID = common.NewResourceID(common.StringIDField("id"))
+
+type basePluginFrameworkResource struct {
+	client *onCallAPI.Client
+}
+
+func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Configure is called multiple times (sometimes when ProviderData is not yet available), we only want to configure once
+	if req.ProviderData == nil || r.client != nil {
+		return
+	}
+
+	client, ok := req.ProviderData.(*common.Client)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *common.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return
+	}
+
+	r.client = client.OnCallClient
+}
 
 type crudWithClientFunc func(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics
 
