@@ -15,7 +15,7 @@ import (
 func TestAccUserNotificationRule_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	userId := acctest.RandString(8)
+	userID := acctest.RandString(8)
 	resourceName := "grafana_oncall_user_notification_rule.test-acc-user_notification_rule"
 
 	resource.ParallelTest(t, resource.TestCase{
@@ -23,10 +23,10 @@ func TestAccUserNotificationRule_basic(t *testing.T) {
 		CheckDestroy:             testAccCheckOnCallUserNotificationRuleResourceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccOnCallUserNotificationRuleWait(userId),
+				Config: testAccOnCallUserNotificationRuleWait(userID),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOnCallUserNotificationRuleResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "user_id", userId),
+					resource.TestCheckResourceAttr(resourceName, "user_id", userID),
 					resource.TestCheckResourceAttr(resourceName, "position", "1"),
 					resource.TestCheckResourceAttr(resourceName, "duration", "300"),
 					resource.TestCheckResourceAttr(resourceName, "type", "wait"),
@@ -52,7 +52,7 @@ func testAccCheckOnCallUserNotificationRuleResourceDestroy(s *terraform.State) e
 	return nil
 }
 
-func testAccOnCallUserNotificationRuleWait(userId string) string {
+func testAccOnCallUserNotificationRuleWait(userID string) string {
 	return fmt.Sprintf(`
 resource "grafana_oncall_user_notification_rule" "test-acc-user_notification_rule" {
   user_id  = "%s"
@@ -60,7 +60,7 @@ resource "grafana_oncall_user_notification_rule" "test-acc-user_notification_rul
   duration = 300
   type     = "wait"
 }
-`, userId)
+`, userID)
 }
 
 func testAccCheckOnCallUserNotificationRuleResourceExists(name string) resource.TestCheckFunc {
