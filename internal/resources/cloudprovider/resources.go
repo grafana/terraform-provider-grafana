@@ -9,6 +9,17 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
 
+var DataSources = []*common.DataSource{
+	makeDataSourceAWSAccount(),
+	makeDatasourceAWSCloudWatchScrapeJob(),
+	makeDatasourceAWSCloudWatchScrapeJobs(),
+}
+
+var Resources = []*common.Resource{
+	makeResourceAWSAccount(),
+	makeResourceAWSCloudWatchScrapeJob(),
+}
+
 func withClientForResource(req resource.ConfigureRequest, resp *resource.ConfigureResponse) (*cloudproviderapi.Client, error) {
 	client, ok := req.ProviderData.(*common.Client)
 
@@ -37,15 +48,4 @@ func withClientForDataSource(req datasource.ConfigureRequest, resp *datasource.C
 	}
 
 	return client.CloudProviderAPI, nil
-}
-
-var DataSources = []*common.DataSource{
-	makeDataSourceAWSAccount(),
-	makeDatasourceAWSCloudWatchScrapeJob(),
-	makeDatasourceAWSCloudWatchScrapeJobs(),
-}
-
-var Resources = []*common.Resource{
-	makeResourceAWSAccount(),
-	makeResourceAWSCloudWatchScrapeJob(),
 }

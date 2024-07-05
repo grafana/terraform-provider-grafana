@@ -11,6 +11,8 @@ import (
 )
 
 var (
+	// It is intended to use the same schema for scrape jobs between the singular and
+	// plural versions of the data source.
 	datasourceAWSCloudWatchScrapeJobTerraformSchema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
