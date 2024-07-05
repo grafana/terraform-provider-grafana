@@ -3,7 +3,6 @@ package oncall
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -82,11 +82,13 @@ func (r *userNotificationRuleResource) Schema(ctx context.Context, req resource.
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"user_id": schema.StringAttribute{
 				MarkdownDescription: "User ID",
 				Required:            true,
-				// TODO: test PlanModifiers here
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -98,6 +100,8 @@ func (r *userNotificationRuleResource) Schema(ctx context.Context, req resource.
 			"duration": schema.Int64Attribute{
 				MarkdownDescription: fmt.Sprintf("A time in seconds to wait (when `type=wait`). Can be %s", userNotificationRuleDurationOptionsVerbal),
 				Optional:            true,
+				// Computed:            true,
+				// Default:             int64default.StaticInt64(0),
 				Validators: []validator.Int64{
 					int64validator.OneOf(userNotificationRuleDurationOptions...),
 				},
@@ -107,6 +111,9 @@ func (r *userNotificationRuleResource) Schema(ctx context.Context, req resource.
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
 			},
 			"type": schema.StringAttribute{
 				MarkdownDescription: fmt.Sprintf("The type of notification rule. Can be %s", userNotificationRuleTypeOptionsVerbal),
@@ -136,13 +143,6 @@ func listUserNotificationRules(client *onCallAPI.Client, listOptions onCallAPI.L
 }
 
 func (r *userNotificationRuleResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	// TODO: we probably don't need this...
-	// _, err := resourceID.Split(req.ID)
-	// if err != nil {
-	// 	resp.Diagnostics.AddError("Invalid ID", "Unable to decode ID")
-	// 	return
-	// }
-
 	data, diags := r.readFromID(ctx, req.ID)
 	if diags != nil {
 		resp.Diagnostics = diags
@@ -199,7 +199,7 @@ func (r *userNotificationRuleResource) Create(ctx context.Context, req resource.
 		createOptions.Position = &p
 	}
 
-	if !data.Duration.IsNull() {
+	if data.Duration.ValueInt64() > 0 {
 		d := int(data.Duration.ValueInt64())
 		createOptions.Duration = &d
 	}
@@ -250,7 +250,9 @@ func (r *userNotificationRuleResource) Update(ctx context.Context, req resource.
 		updateOptions.Position = &p
 	}
 
-	if !data.Duration.IsNull() {
+	if data.Duration.ValueInt64() == 0 {
+		updateOptions.Duration = nil
+	} else {
 		d := int(data.Duration.ValueInt64())
 		updateOptions.Duration = &d
 	}
@@ -310,17 +312,18 @@ func (r *userNotificationRuleResource) readFromID(_ context.Context, id string) 
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Unable to read resource", err.Error())}
 	}
 
-	// TODO: remove these when done
-	log.Printf("[DEBUG] ruleResp: %+v", ruleResp)
-	log.Printf("[DEBUG] id: %s", id)
-
 	data := &resourceUserNotificationRuleModel{
 		ID:        types.StringValue(id),
 		UserId:    types.StringValue(ruleResp.UserId),
 		Position:  types.Int64Value(int64(ruleResp.Position)),
-		Duration:  types.Int64Value(int64(ruleResp.Duration)),
 		Important: types.BoolValue(ruleResp.Important),
 		Type:      types.StringValue(ruleResp.Type),
+	}
+
+	if ruleResp.Duration == 0 {
+		data.Duration = types.Int64Null()
+	} else {
+		data.Duration = types.Int64Value(int64(ruleResp.Duration))
 	}
 
 	return data, nil
