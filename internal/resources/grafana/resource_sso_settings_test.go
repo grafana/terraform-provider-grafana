@@ -89,6 +89,22 @@ func TestSSOSettings_basic_saml(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.certificate_path", "devenv/docker/blocks/auth/saml-enterprise/cert.crt"),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.private_key_path", "devenv/docker/blocks/auth/saml-enterprise/key.pem"),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.idp_metadata_url", "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.signature_algorithm", "rsa-sha256"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.metadata_valid_duration", "24h"),
+				),
+			},
+			{
+				Config: testConfigForSamlProviderUpdated,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.certificate_path", "devenv/docker/blocks/auth/saml-enterprise/cert.crt"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.private_key_path", "devenv/docker/blocks/auth/saml-enterprise/key.pem"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.idp_metadata_url", "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.signature_algorithm", "rsa-sha512"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.metadata_valid_duration", "48h"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.assertion_attribute_email", "email"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.allow_sign_up", "true"),
 				),
 			},
 			{
@@ -151,6 +167,51 @@ func TestSSOSettings_customFields(t *testing.T) {
 						}
 						if settings["camelCaseField"] != "custom3" {
 							t.Fatalf("expected value for camelCaseField is not equal to the actual value: %s", settings["camelCaseField"])
+						}
+
+						return nil
+					},
+				),
+			},
+			{
+				Config: testConfigWithCustomFieldsUpdated,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.client_id", "client_id_updated"),
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.client_secret", "client_secret"),
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.scopes", "email profile"),
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.custom.custom_field", "custom1_updated"),
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.custom.another_custom_field", "custom2_updated"),
+					resource.TestCheckResourceAttr(resourceName, "oauth2_settings.0.custom.one_more_custom_field", "custom4"),
+					// check that all custom fields are returned by the API
+					func(s *terraform.State) error {
+						resp, err := api.SsoSettings.GetProviderSettings(provider)
+						if err != nil {
+							return err
+						}
+
+						payload := resp.GetPayload()
+						settings := payload.Settings.(map[string]any)
+
+						// the API returns the settings names in camelCase
+						if settings["clientId"] != "client_id_updated" {
+							t.Fatalf("expected value for client_id is not equal to the actual value: %s", settings["clientId"])
+						}
+						if settings["scopes"] != "email profile" {
+							t.Fatalf("expected value for scopes is not equal to the actual value: %s", settings["scopes"])
+						}
+						if settings["customField"] != "custom1_updated" {
+							t.Fatalf("expected value for custom_field is not equal to the actual value: %s", settings["customField"])
+						}
+						if settings["anotherCustomField"] != "custom2_updated" {
+							t.Fatalf("expected value for another_custom_field is not equal to the actual value: %s", settings["anotherCustomField"])
+						}
+						if settings["oneMoreCustomField"] != "custom4" {
+							t.Fatalf("expected value for one_more_custom_field is not equal to the actual value: %s", settings["oneMoreCustomField"])
+						}
+						if _, ok := settings["camelCaseField"]; ok {
+							t.Fatalf("camelCaseField custom field is not expected to exist")
 						}
 
 						return nil
@@ -299,9 +360,24 @@ func testConfigForOAuth2Provider(provider string, prefix string) string {
 const testConfigForSamlProvider = `resource "grafana_sso_settings" "saml_sso_settings" {
   provider_name = "saml"
   saml_settings {
-    certificate_path = "devenv/docker/blocks/auth/saml-enterprise/cert.crt"
-    private_key_path = "devenv/docker/blocks/auth/saml-enterprise/key.pem"
-    idp_metadata_url = "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"
+    certificate_path        = "devenv/docker/blocks/auth/saml-enterprise/cert.crt"
+    private_key_path        = "devenv/docker/blocks/auth/saml-enterprise/key.pem"
+    idp_metadata_url        = "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"
+    signature_algorithm     = "rsa-sha256"
+    metadata_valid_duration = "24h"
+  }
+}`
+
+const testConfigForSamlProviderUpdated = `resource "grafana_sso_settings" "saml_sso_settings" {
+  provider_name = "saml"
+  saml_settings {
+    certificate_path          = "devenv/docker/blocks/auth/saml-enterprise/cert.crt"
+    private_key_path          = "devenv/docker/blocks/auth/saml-enterprise/key.pem"
+    idp_metadata_url          = "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"
+    allow_sign_up             = true
+    signature_algorithm       = "rsa-sha512"
+    metadata_valid_duration   = "48h"
+    assertion_attribute_email = "email"
   }
 }`
 
@@ -314,6 +390,20 @@ const testConfigWithCustomFields = `resource "grafana_sso_settings" "sso_setting
       custom_field = "custom1"
       another_custom_field = "custom2"
       camelCaseField = "custom3"
+    }
+  }
+}`
+
+const testConfigWithCustomFieldsUpdated = `resource "grafana_sso_settings" "sso_settings" {
+  provider_name = "github"
+  oauth2_settings {
+    client_id     = "client_id_updated"
+    client_secret = "client_secret"
+    scopes        = "email profile"
+    custom = {
+      custom_field = "custom1_updated"
+      another_custom_field = "custom2_updated"
+      one_more_custom_field = "custom4"
     }
   }
 }`
@@ -449,6 +539,8 @@ var testConfigsWithValidationErrors = []string{
   saml_settings {
     certificate = "this-is-a-valid-certificate"
     certificate_path = "/valid/certificate/path"
+    private_key = "this-is-a-valid-private-key"
+    idp_metadata_path = "/path/to/metadata"
   }
 }`,
 	// missing idp_metadata for saml
