@@ -100,8 +100,6 @@ func (r *userNotificationRuleResource) Schema(ctx context.Context, req resource.
 			"duration": schema.Int64Attribute{
 				MarkdownDescription: fmt.Sprintf("A time in seconds to wait (when `type=wait`). Can be %s", userNotificationRuleDurationOptionsVerbal),
 				Optional:            true,
-				// Computed:            true,
-				// Default:             int64default.StaticInt64(0),
 				Validators: []validator.Int64{
 					int64validator.OneOf(userNotificationRuleDurationOptions...),
 				},
