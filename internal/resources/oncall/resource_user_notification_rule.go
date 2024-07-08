@@ -28,6 +28,7 @@ var (
 	userNotificationRuleTypeOptions = []string{
 		"wait",
 		"notify_by_slack",
+		"notify_by_msteams",
 		"notify_by_sms",
 		"notify_by_phone_call",
 		"notify_by_telegram",
@@ -94,7 +95,7 @@ func (r *userNotificationRuleResource) Schema(ctx context.Context, req resource.
 				},
 			},
 			"position": schema.Int64Attribute{
-				MarkdownDescription: "Personal notification rules execute one after another starting from position=0. Position=-1 will put the escalation policy to the end of the list. A new escalation policy created with a position of an existing escalation policy will move the old one (and all following) down on the list.",
+				MarkdownDescription: "Personal notification rules execute one after another starting from position=0. A new escalation policy created with a position of an existing escalation policy will move the old one (and all following) down on the list.",
 				Optional:            true,
 			},
 			"duration": schema.Int64Attribute{
@@ -114,7 +115,7 @@ func (r *userNotificationRuleResource) Schema(ctx context.Context, req resource.
 				},
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: fmt.Sprintf("The type of notification rule. Can be %s", userNotificationRuleTypeOptionsVerbal),
+				MarkdownDescription: fmt.Sprintf("The type of notification rule. Can be %s. NOTE: `notify_by_msteams` is only available for Grafana Cloud customers.", userNotificationRuleTypeOptionsVerbal),
 				Required:            true,
 				Validators: []validator.String{
 					stringvalidator.OneOf(userNotificationRuleTypeOptions...),
