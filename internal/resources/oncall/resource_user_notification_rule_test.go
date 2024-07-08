@@ -15,7 +15,9 @@ func TestAccUserNotificationRule_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	var (
-		userID       = "grafana_user"
+		// We need an actual user to test the resource
+		// This is a user created from my personal email, but it can be replaced by any existing user
+		userID       = "joeyorlando"
 		resourceName = "grafana_oncall_user_notification_rule.test-acc-user_notification_rule"
 
 		testSteps []resource.TestStep
