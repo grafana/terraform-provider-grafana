@@ -63,7 +63,7 @@ func resourceUserNotificationRule() *common.Resource {
 
 type resourceUserNotificationRuleModel struct {
 	ID        types.String `tfsdk:"id"`
-	UserId    types.String `tfsdk:"user_id"`
+	UserID    types.String `tfsdk:"user_id"`
 	Position  types.Int64  `tfsdk:"position"`
 	Duration  types.Int64  `tfsdk:"duration"`
 	Important types.Bool   `tfsdk:"important"`
@@ -188,7 +188,7 @@ func (r *userNotificationRuleResource) Create(ctx context.Context, req resource.
 	}
 
 	createOptions := &onCallAPI.CreateUserNotificationRuleOptions{
-		UserId:      data.UserId.ValueString(),
+		UserId:      data.UserID.ValueString(),
 		Type:        data.Type.ValueString(),
 		ManualOrder: true,
 	}
@@ -313,7 +313,7 @@ func (r *userNotificationRuleResource) readFromID(_ context.Context, id string) 
 
 	data := &resourceUserNotificationRuleModel{
 		ID:        types.StringValue(id),
-		UserId:    types.StringValue(ruleResp.UserId),
+		UserID:    types.StringValue(ruleResp.UserId),
 		Position:  types.Int64Value(int64(ruleResp.Position)),
 		Important: types.BoolValue(ruleResp.Important),
 		Type:      types.StringValue(ruleResp.Type),
