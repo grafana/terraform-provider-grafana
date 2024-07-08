@@ -180,11 +180,7 @@ func resourceHolidayUpdate(ctx context.Context, d *schema.ResourceData, meta int
 func resourceHolidayDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	err := c.DeleteHoliday(ctx, d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId("")
-	return nil
+	return diag.FromErr(err)
 }
 
 func makeMLHoliday(d *schema.ResourceData) (mlapi.Holiday, error) {

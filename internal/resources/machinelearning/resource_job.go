@@ -175,11 +175,7 @@ func resourceJobUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 func resourceJobDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	err := c.DeleteJob(ctx, d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId("")
-	return nil
+	return diag.FromErr(err)
 }
 
 func makeMLJob(d *schema.ResourceData, meta interface{}) (mlapi.Job, error) {
