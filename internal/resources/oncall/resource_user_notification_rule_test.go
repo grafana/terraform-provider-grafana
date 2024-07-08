@@ -91,8 +91,12 @@ func testAccCheckOnCallUserNotificationRuleResourceDestroy(s *terraform.State) e
 
 func testAccOnCallUserNotificationRuleWait(userID string, important bool) string {
 	return fmt.Sprintf(`
+data "grafana_oncall_user" "user" {
+	name = "%s"
+}
+
 resource "grafana_oncall_user_notification_rule" "test-acc-user_notification_rule" {
-  user_id   = "%s"
+  user_id   = data.grafana_oncall_user.user.id
   type      = "wait"
   position  = 1
   duration  = 300
@@ -103,8 +107,12 @@ resource "grafana_oncall_user_notification_rule" "test-acc-user_notification_rul
 
 func testAccOnCallUserNotificationRuleNotificationStep(ruleType, userID string, important bool) string {
 	return fmt.Sprintf(`
+data "grafana_oncall_user" "user" {
+	name = "%s"
+}
+
 resource "grafana_oncall_user_notification_rule" "test-acc-user_notification_rule" {
-  user_id   = "%s"
+  user_id   = data.grafana_oncall_user.user.id
   type      = "%s"
   position  = 1
   important = %t
