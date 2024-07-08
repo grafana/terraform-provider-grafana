@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -338,9 +337,7 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 	}
 
 	if stack.Status == "deleted" {
-		log.Printf("[WARN] removing stack %s from state because it was deleted outside of Terraform", stack.Name)
-		d.SetId("")
-		return nil
+		return common.WarnMissing("stack", d)
 	}
 
 	connectionsReq := client.InstancesAPI.GetConnections(ctx, id.(string))

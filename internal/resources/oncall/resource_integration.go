@@ -3,7 +3,6 @@ package oncall
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
@@ -345,9 +344,7 @@ func resourceIntegrationRead(ctx context.Context, d *schema.ResourceData, client
 	integration, r, err := client.Integrations.GetIntegration(d.Id(), options)
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] removing integreation %s from state because it no longer exists", d.Get("name").(string))
-			d.SetId("")
-			return nil
+			return common.WarnMissing("integration", d)
 		}
 		return diag.FromErr(err)
 	}
@@ -365,13 +362,7 @@ func resourceIntegrationRead(ctx context.Context, d *schema.ResourceData, client
 func resourceIntegrationDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.DeleteIntegrationOptions{}
 	_, err := client.Integrations.DeleteIntegration(d.Id(), options)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return nil
+	return diag.FromErr(err)
 }
 
 func flattenRouteSlack(in *onCallAPI.SlackRoute) []map[string]interface{} {

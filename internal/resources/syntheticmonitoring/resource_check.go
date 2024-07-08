@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -836,9 +835,7 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 	chk, err := c.GetCheck(ctx, id.(int64))
 	if err != nil {
 		if strings.Contains(err.Error(), "404 Not Found") {
-			log.Printf("[WARN] removing check %s from state because it no longer exists", d.Id())
-			d.SetId("")
-			return nil
+			return common.WarnMissing("check", d)
 		}
 		return diag.FromErr(err)
 	}
@@ -1166,17 +1163,12 @@ func resourceCheckUpdate(ctx context.Context, d *schema.ResourceData, c *smapi.C
 }
 
 func resourceCheckDelete(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
-	var diags diag.Diagnostics
 	id, err := resourceCheckID.Single(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	err = c.DeleteCheck(ctx, id.(int64))
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId("")
-	return diags
+	return diag.FromErr(err)
 }
 
 // makeCheck populates an instance of sm.Check. We need this for create and

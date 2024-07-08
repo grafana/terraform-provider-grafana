@@ -186,11 +186,7 @@ func resourceOutlierUpdate(ctx context.Context, d *schema.ResourceData, meta int
 func resourceOutlierDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	err := c.DeleteOutlierDetector(ctx, d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId("")
-	return nil
+	return diag.FromErr(err)
 }
 
 func convertToSetStructure(al mlapi.OutlierAlgorithm) []interface{} {
