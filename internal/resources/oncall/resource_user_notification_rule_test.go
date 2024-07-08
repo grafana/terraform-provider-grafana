@@ -19,7 +19,13 @@ func TestAccUserNotificationRule_basic(t *testing.T) {
 		userID       = acctest.RandString(8)
 		resourceName = "grafana_oncall_user_notification_rule.test-acc-user_notification_rule"
 
-		testSteps []resource.TestStep
+		testSteps = []resource.TestStep{
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		}
 		ruleTypes = []string{
 			"wait",
 			"notify_by_slack",
@@ -54,10 +60,8 @@ func TestAccUserNotificationRule_basic(t *testing.T) {
 			}
 
 			testSteps = append(testSteps, resource.TestStep{
-				Config:            config,
-				Check:             resource.ComposeTestCheckFunc(testCheckFuncFunctions...),
-				ImportState:       true,
-				ImportStateVerify: true,
+				Config: config,
+				Check:  resource.ComposeTestCheckFunc(testCheckFuncFunctions...),
 			})
 		}
 	}
