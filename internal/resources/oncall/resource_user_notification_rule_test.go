@@ -7,7 +7,6 @@ import (
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -16,7 +15,7 @@ func TestAccUserNotificationRule_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	var (
-		userID       = acctest.RandString(8)
+		userID       = "grafana_user"
 		resourceName = "grafana_oncall_user_notification_rule.test-acc-user_notification_rule"
 
 		testSteps []resource.TestStep
