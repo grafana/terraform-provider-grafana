@@ -19,10 +19,9 @@ func TestAccUserNotificationRule_basic(t *testing.T) {
 		userID       = acctest.RandString(8)
 		resourceName = "grafana_oncall_user_notification_rule.test-acc-user_notification_rule"
 
-		ruleTypeTestSteps []resource.TestStep
-		waitTypeTestSteps []resource.TestStep
-
+		testSteps []resource.TestStep
 		ruleTypes = []string{
+			"wait",
 			"notify_by_slack",
 			"notify_by_msteams",
 			"notify_by_sms",
@@ -32,50 +31,41 @@ func TestAccUserNotificationRule_basic(t *testing.T) {
 			"notify_by_mobile_app",
 			"notify_by_mobile_app_critical",
 		}
-
-		configFunctionImportantMap = map[bool]func(string) string{
-			false: testAccOnCallUserNotificationRuleWait,
-			true:  testAccOnCallUserNotificationRuleImportantWait,
-		}
 	)
 
 	for _, ruleType := range ruleTypes {
 		for _, important := range []bool{false, true} {
-			ruleTypeTestSteps = append(ruleTypeTestSteps, resource.TestStep{
-				Config: testAccOnCallUserNotificationRuleWait(userID),
-				Check: resource.ComposeTestCheckFunc(
+			var (
+				config                 string
+				testCheckFuncFunctions = []resource.TestCheckFunc{
 					testAccCheckOnCallUserNotificationRuleResourceExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "user_id", userID),
 					resource.TestCheckResourceAttr(resourceName, "position", "1"),
 					resource.TestCheckResourceAttr(resourceName, "type", ruleType),
 					resource.TestCheckResourceAttr(resourceName, "important", fmt.Sprintf("%t", important)),
-				),
+				}
+			)
+
+			if ruleType == "wait" {
+				config = testAccOnCallUserNotificationRuleWait(userID, important)
+				testCheckFuncFunctions = append(testCheckFuncFunctions, resource.TestCheckResourceAttr(resourceName, "duration", "300"))
+			} else {
+				config = testAccOnCallUserNotificationRuleNotificationStep(ruleType, userID, important)
+			}
+
+			testSteps = append(testSteps, resource.TestStep{
+				Config:            config,
+				Check:             resource.ComposeTestCheckFunc(testCheckFuncFunctions...),
 				ImportState:       true,
 				ImportStateVerify: true,
 			})
 		}
 	}
 
-	for important, configFunction := range configFunctionImportantMap {
-		waitTypeTestSteps = append(waitTypeTestSteps, resource.TestStep{
-			Config: configFunction(userID),
-			Check: resource.ComposeTestCheckFunc(
-				testAccCheckOnCallUserNotificationRuleResourceExists(resourceName),
-				resource.TestCheckResourceAttr(resourceName, "user_id", userID),
-				resource.TestCheckResourceAttr(resourceName, "position", "1"),
-				resource.TestCheckResourceAttr(resourceName, "duration", "300"),
-				resource.TestCheckResourceAttr(resourceName, "type", "wait"),
-				resource.TestCheckResourceAttr(resourceName, "important", fmt.Sprintf("%t", important)),
-			),
-			ImportState:       true,
-			ImportStateVerify: true,
-		})
-	}
-
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy:             testAccCheckOnCallUserNotificationRuleResourceDestroy,
-		Steps:                    append(ruleTypeTestSteps, waitTypeTestSteps...),
+		Steps:                    testSteps,
 	})
 }
 
@@ -93,48 +83,27 @@ func testAccCheckOnCallUserNotificationRuleResourceDestroy(s *terraform.State) e
 	return nil
 }
 
-func testAccOnCallUserNotificationRuleWait(userID string) string {
+func testAccOnCallUserNotificationRuleWait(userID string, important bool) string {
 	return fmt.Sprintf(`
 resource "grafana_oncall_user_notification_rule" "test-acc-user_notification_rule" {
-  user_id  = "%s"
-  type     = "wait"
-  position = 1
-  duration = 300
+  user_id   = "%s"
+  type      = "wait"
+  position  = 1
+  duration  = 300
+  important = %t
 }
-`, userID)
+`, userID, important)
 }
 
-func testAccOnCallUserNotificationRuleImportantWait(userID string) string {
+func testAccOnCallUserNotificationRuleNotificationStep(ruleType, userID string, important bool) string {
 	return fmt.Sprintf(`
 resource "grafana_oncall_user_notification_rule" "test-acc-user_notification_rule" {
-  user_id  = "%s"
-  type     = "wait"
-  important = true
-  position = 1
-  duration = 300
+  user_id   = "%s"
+  type      = "%s"
+  position  = 1
+  important = %t
 }
-`, userID)
-}
-
-func testAccOnCallUserNotificationRuleNotificationStep(ruleType, userID string) string {
-	return fmt.Sprintf(`
-resource "grafana_oncall_user_notification_rule" "test-acc-user_notification_rule" {
-  user_id  = "%s"
-  type     = "%s"
-  position = 1
-}
-`, ruleType, userID)
-}
-
-func testAccOnCallUserNotificationRuleImportantNotificationStep(ruleType, userID string) string {
-	return fmt.Sprintf(`
-resource "grafana_oncall_user_notification_rule" "test-acc-user_notification_rule" {
-  user_id  = "%s"
-  type     = "%s"
-  important = true
-  position = 1
-}
-`, ruleType, userID)
+`, userID, ruleType, important)
 }
 
 func testAccCheckOnCallUserNotificationRuleResourceExists(name string) resource.TestCheckFunc {
