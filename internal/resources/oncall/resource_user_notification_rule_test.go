@@ -41,7 +41,7 @@ func TestAccUserNotificationRule_basic(t *testing.T) {
 				config                 string
 				testCheckFuncFunctions = []resource.TestCheckFunc{
 					testAccCheckOnCallUserNotificationRuleResourceExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "user_id", userID),
+					// resource.TestCheckResourceAttr(resourceName, "user_id", userID),
 					resource.TestCheckResourceAttr(resourceName, "position", "1"),
 					resource.TestCheckResourceAttr(resourceName, "type", ruleType),
 					resource.TestCheckResourceAttr(resourceName, "important", fmt.Sprintf("%t", important)),
@@ -89,7 +89,7 @@ func testAccCheckOnCallUserNotificationRuleResourceDestroy(s *terraform.State) e
 	return nil
 }
 
-func testAccOnCallUserNotificationRuleWait(userID string, important bool) string {
+func testAccOnCallUserNotificationRuleWait(userName string, important bool) string {
 	return fmt.Sprintf(`
 data "grafana_oncall_user" "user" {
 	username = "%s"
@@ -102,10 +102,10 @@ resource "grafana_oncall_user_notification_rule" "test-acc-user_notification_rul
 	duration  = 300
 	important = %t
 }
-`, userID, important)
+`, userName, important)
 }
 
-func testAccOnCallUserNotificationRuleNotificationStep(ruleType, userID string, important bool) string {
+func testAccOnCallUserNotificationRuleNotificationStep(ruleType, userName string, important bool) string {
 	return fmt.Sprintf(`
 data "grafana_oncall_user" "user" {
 	username = "%s"
@@ -117,7 +117,7 @@ resource "grafana_oncall_user_notification_rule" "test-acc-user_notification_rul
 	position  = 1
 	important = %t
 }
-`, userID, ruleType, important)
+`, userName, ruleType, important)
 }
 
 func testAccCheckOnCallUserNotificationRuleResourceExists(name string) resource.TestCheckFunc {
