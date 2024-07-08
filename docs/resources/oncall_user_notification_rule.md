@@ -89,14 +89,14 @@ resource "grafana_oncall_user_notification_rule" "my_user_important_step_3" {
 
 ### Required
 
-- `type` (String) The type of notification rule. Can be wait, notify_by_slack, notify_by_sms, notify_by_phone_call, notify_by_telegram, notify_by_email, notify_by_mobile_app, notify_by_mobile_app_critical
+- `type` (String) The type of notification rule. Can be wait, notify_by_slack, notify_by_msteams, notify_by_sms, notify_by_phone_call, notify_by_telegram, notify_by_email, notify_by_mobile_app, notify_by_mobile_app_critical. NOTE: `notify_by_msteams` is only available for Grafana Cloud customers.
 - `user_id` (String) User ID
 
 ### Optional
 
 - `duration` (Number) A time in seconds to wait (when `type=wait`). Can be 60, 300, 900, 1800, 3600
 - `important` (Boolean) Boolean value which indicates if a rule is “important”
-- `position` (Number) Personal notification rules execute one after another starting from position=0. Position=-1 will put the escalation policy to the end of the list. A new escalation policy created with a position of an existing escalation policy will move the old one (and all following) down on the list.
+- `position` (Number) Personal notification rules execute one after another starting from position=0. A new escalation policy created with a position of an existing escalation policy will move the old one (and all following) down on the list.
 
 ### Read-Only
 
