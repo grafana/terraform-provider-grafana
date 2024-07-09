@@ -897,7 +897,6 @@ func ssoValidateOnlyOneOf(keys ...string) validateFunc {
 // XOR validation of variables
 func ssoValidateInterdependencyXOR(keys ...string) validateFunc {
 	return func(settingsMap map[string]any, provider string) error {
-
 		configuredKeys := 0
 		nonConfiguredKeys := 0
 
