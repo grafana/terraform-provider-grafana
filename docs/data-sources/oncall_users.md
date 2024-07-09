@@ -17,6 +17,7 @@ description: |-
 
 ### Read-Only
 
+- `id` (String) The ID of this resource.
 - `users` (List of Object) (see [below for nested schema](#nestedatt--users))
 
 <a id="nestedatt--users"></a>
