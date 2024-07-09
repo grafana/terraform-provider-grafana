@@ -440,6 +440,27 @@ var samlSettingsSchema = &schema.Resource{
 			Optional:    true,
 			Description: "Prevent synchronizing users’ organization roles from your IdP.",
 		},
+		"client_id": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "The client Id of your OAuth2 app.",
+		},
+		"client_secret": {
+			Type:     schema.TypeString,
+			Optional: true,
+			// Sensitive:   true,
+			Description: "The client secret of your OAuth2 app.",
+		},
+		"token_url": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "The token endpoint of your OAuth2 provider. Required for Azure AD providers.",
+		},
+		"force_use_graph_api": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "If enabled, Grafana will fetch groups from Microsoft Graph API instead of using the groups claim from the ID token.",
+		},
 	},
 }
 
@@ -703,6 +724,8 @@ var validationsByProvider = map[string][]validateFunc{
 		ssoValidateOnlyOneOf("private_key", "private_key_path"),
 		ssoValidateOnlyOneOf("idp_metadata", "idp_metadata_path", "idp_metadata_url"),
 		ssoValidateURL("idp_metadata_url"),
+		ssoValidateInterdependencyXOR("client_id", "client_secret", "token_url"),
+		ssoValidateURL("token_url"),
 	},
 }
 
@@ -865,6 +888,29 @@ func ssoValidateOnlyOneOf(keys ...string) validateFunc {
 
 		if configuredKeys != 1 {
 			return fmt.Errorf("exactly one of %v must be configured for provider %s", keys, provider)
+		}
+
+		return nil
+	}
+}
+
+// XOR validation of variables
+func ssoValidateInterdependencyXOR(keys ...string) validateFunc {
+	return func(settingsMap map[string]any, provider string) error {
+
+		configuredKeys := 0
+		nonConfiguredKeys := 0
+
+		for _, key := range keys {
+			if settingsMap[key].(string) != "" {
+				configuredKeys++
+			} else {
+				nonConfiguredKeys++
+			}
+		}
+
+		if configuredKeys != len(keys) && nonConfiguredKeys != len(keys) {
+			return fmt.Errorf("all varialbes in %v must be configured or empty for provider %s", keys, provider)
 		}
 
 		return nil

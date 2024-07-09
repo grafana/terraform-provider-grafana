@@ -108,10 +108,27 @@ func TestSSOSettings_basic_saml(t *testing.T) {
 				),
 			},
 			{
+				Config: testConfigForSAMLProviderWithAzureAD,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.certificate_path", "devenv/docker/blocks/auth/saml-enterprise/cert.crt"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.private_key_path", "devenv/docker/blocks/auth/saml-enterprise/key.pem"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.idp_metadata_url", "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.signature_algorithm", "rsa-sha256"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.metadata_valid_duration", "24h"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.assertion_attribute_email", "email"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.client_id", "client_id"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.client_secret", "client_secret"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.token_url", "https://myidp.com/oauth/token"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.force_use_graph_api", "true"),
+				),
+			},
+			{
 				ResourceName:            resourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"saml_settings.0.private_key_path", "saml_settings.0.certificate_path"},
+				ImportStateVerifyIgnore: []string{"saml_settings.0.private_key_path", "saml_settings.0.certificate_path", "saml_settings.0.client_secret", "saml_settings.0.token_url"},
 			},
 		},
 	})
@@ -381,6 +398,22 @@ const testConfigForSamlProviderUpdated = `resource "grafana_sso_settings" "saml_
   }
 }`
 
+const testConfigForSAMLProviderWithAzureAD = `resource "grafana_sso_settings" "saml_sso_settings" {
+	provider_name = "saml"
+	saml_settings {
+		certificate_path          = "devenv/docker/blocks/auth/saml-enterprise/cert.crt"
+		private_key_path          = "devenv/docker/blocks/auth/saml-enterprise/key.pem"
+		idp_metadata_url          = "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"
+		signature_algorithm       = "rsa-sha256"
+		metadata_valid_duration   = "24h"
+		assertion_attribute_email = "email"
+		client_id                 = "client_id"
+		client_secret             = "client_secret"
+		token_url                 = "https://myidp.com/oauth/token"
+		force_use_graph_api       = true
+	}
+}`
+
 const testConfigWithCustomFields = `resource "grafana_sso_settings" "sso_settings" {
   provider_name = "github"
   oauth2_settings {
@@ -550,5 +583,17 @@ var testConfigsWithValidationErrors = []string{
     certificate = "this-is-a-valid-certificate"
     private_key = "this-is-a-valid-private-key"
   }
+}`,
+	// missing value value for client_secret
+	`resource "grafana_sso_settings" "saml_sso_settings" {
+	provider_name = "saml"
+	saml_settings {
+		certificate = "this-is-a-valid-certificate"
+		private_key = "this-is-a-valid-private-key"
+		idp_metadata_path = "/path/to/metadata"
+		client_id = "client_id"
+		client_secret = ""
+		token_url = "https://myidp.com/oauth/token"
+	}
 }`,
 }
