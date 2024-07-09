@@ -12,7 +12,7 @@ require (
 	github.com/grafana/amixr-api-go-client v0.0.12 // main branch
 	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240322153219-42c6a1d2bcab
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20240523010106-657d101fcbd9
-	github.com/grafana/machine-learning-go-client v0.7.0
+	github.com/grafana/machine-learning-go-client v0.8.0
 	github.com/grafana/slo-openapi-client/go v0.0.0-20240626093634-e6741482b090
 	github.com/grafana/synthetic-monitoring-agent v0.24.3
 	github.com/grafana/synthetic-monitoring-api-go-client v0.8.0
@@ -30,6 +30,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.23.0
 	github.com/hashicorp/terraform-plugin-mux v0.16.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.34.0
+	github.com/prometheus/common v0.53.0
 	github.com/stretchr/testify v1.9.0
 	github.com/tmccombs/hcl2json v0.6.3
 	github.com/urfave/cli/v2 v2.27.2
@@ -129,7 +130,6 @@ require (
 	github.com/posener/complete v1.2.3 // indirect
 	github.com/prometheus/client_golang v1.19.1 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.53.0 // indirect
 	github.com/prometheus/procfs v0.14.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
