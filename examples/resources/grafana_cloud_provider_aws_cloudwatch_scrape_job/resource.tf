@@ -59,7 +59,6 @@ locals {
         },
       ],
       scrape_interval_seconds = 300,
-      is_custom_namespace     = true,
     },
   ]
 }
