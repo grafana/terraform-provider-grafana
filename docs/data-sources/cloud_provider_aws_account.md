@@ -17,9 +17,18 @@ data "grafana_cloud_stack" "test" {
   slug = "gcloudstacktest"
 }
 
+resource "grafana_cloud_provider_aws_account" "test" {
+  stack_id = data.grafana_cloud_stack.test.id
+  role_arn = data.aws_iam_role.test.arn
+  regions = [
+    "us-east-2",
+    "eu-west-3"
+  ]
+}
+
 data "grafana_cloud_provider_aws_account" "test" {
   stack_id    = data.grafana_cloud_stack.test.id
-  resource_id = "1"
+  resource_id = grafana_cloud_provider_aws_account.test.resource_id
 }
 ```
 
@@ -28,8 +37,8 @@ data "grafana_cloud_provider_aws_account" "test" {
 
 ### Required
 
-- `resource_id` (String) The stack-unique ID given by the Grafana Cloud Provider API to this AWS Account resource.
-- `stack_id` (String) The StackID of the AWS Account resource to look up.
+- `resource_id` (String) The ID given by the Grafana Cloud Provider API to this AWS Account resource.
+- `stack_id` (String) The StackID of the Grafana Cloud instance. Part of the Terraform Resource ID.
 
 ### Read-Only
 
