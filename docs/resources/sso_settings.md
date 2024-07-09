@@ -148,7 +148,10 @@ Optional:
 - `auto_login` (Boolean) Whether SAML auto login is enabled.
 - `certificate` (String, Sensitive) Base64-encoded string for the SP X.509 certificate.
 - `certificate_path` (String) Path for the SP X.509 certificate.
+- `client_id` (String) The client Id of your OAuth2 app.
+- `client_secret` (String) The client secret of your OAuth2 app.
 - `enabled` (Boolean) Define whether this configuration is enabled for SAML. Defaults to `true`.
+- `force_use_graph_api` (Boolean) If enabled, Grafana will fetch groups from Microsoft Graph API instead of using the groups claim from the ID token.
 - `idp_metadata` (String) Base64-encoded string for the IdP SAML metadata XML.
 - `idp_metadata_path` (String) Path for the IdP SAML metadata XML.
 - `idp_metadata_url` (String) URL for the IdP SAML metadata XML.
@@ -168,6 +171,7 @@ Optional:
 - `signature_algorithm` (String) Signature algorithm used for signing requests to the IdP. Supported values are rsa-sha1, rsa-sha256, rsa-sha512.
 - `single_logout` (Boolean) Whether SAML Single Logout is enabled.
 - `skip_org_role_sync` (Boolean) Prevent synchronizing users’ organization roles from your IdP.
+- `token_url` (String) The token endpoint of your OAuth2 provider. Required for Azure AD providers.
 
 ## Import
 
