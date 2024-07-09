@@ -15,12 +15,8 @@ func TestAccUserNotificationRule_basic(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	var (
-		// We need an actual user to test the resource
-		// This is a user created from my personal email, but it can be replaced by any existing user
-		userID       = "joeyorlando"
 		resourceName = "grafana_oncall_user_notification_rule.test-acc-user_notification_rule"
-
-		testSteps []resource.TestStep
+		testSteps    []resource.TestStep
 
 		ruleTypes = []string{
 			"wait",
@@ -41,7 +37,6 @@ func TestAccUserNotificationRule_basic(t *testing.T) {
 				config                 string
 				testCheckFuncFunctions = []resource.TestCheckFunc{
 					testAccCheckOnCallUserNotificationRuleResourceExists(resourceName),
-					// resource.TestCheckResourceAttr(resourceName, "user_id", userID),
 					resource.TestCheckResourceAttr(resourceName, "position", "1"),
 					resource.TestCheckResourceAttr(resourceName, "type", ruleType),
 					resource.TestCheckResourceAttr(resourceName, "important", fmt.Sprintf("%t", important)),
@@ -49,10 +44,10 @@ func TestAccUserNotificationRule_basic(t *testing.T) {
 			)
 
 			if ruleType == "wait" {
-				config = testAccOnCallUserNotificationRuleWait(userID, important)
+				config = testAccOnCallUserNotificationRuleWait(important)
 				testCheckFuncFunctions = append(testCheckFuncFunctions, resource.TestCheckResourceAttr(resourceName, "duration", "300"))
 			} else {
-				config = testAccOnCallUserNotificationRuleNotificationStep(ruleType, userID, important)
+				config = testAccOnCallUserNotificationRuleNotificationStep(ruleType, important)
 			}
 
 			testSteps = append(testSteps, resource.TestStep{
@@ -89,35 +84,33 @@ func testAccCheckOnCallUserNotificationRuleResourceDestroy(s *terraform.State) e
 	return nil
 }
 
-func testAccOnCallUserNotificationRuleWait(userName string, important bool) string {
+func testAccOnCallUserNotificationRuleWait(important bool) string {
 	return fmt.Sprintf(`
-data "grafana_oncall_user" "user" {
-	username = "%s"
-}
+# Grab the first user from the full list of users
+data "grafana_oncall_users" "all" {}
 
 resource "grafana_oncall_user_notification_rule" "test-acc-user_notification_rule" {
-	user_id   = data.grafana_oncall_user.user.id
+	user_id   = data.grafana_oncall_users.all.users[0].id
 	type      = "wait"
 	position  = 1
 	duration  = 300
 	important = %t
 }
-`, userName, important)
+`, important)
 }
 
-func testAccOnCallUserNotificationRuleNotificationStep(ruleType, userName string, important bool) string {
+func testAccOnCallUserNotificationRuleNotificationStep(ruleType string, important bool) string {
 	return fmt.Sprintf(`
-data "grafana_oncall_user" "user" {
-	username = "%s"
-}
+# Grab the first user from the full list of users
+data "grafana_oncall_users" "all" {}
 
 resource "grafana_oncall_user_notification_rule" "test-acc-user_notification_rule" {
-	user_id   = data.grafana_oncall_user.user.id
+	user_id   = data.grafana_oncall_users.all.users[0].id
 	type      = "%s"
 	position  = 1
 	important = %t
 }
-`, userName, ruleType, important)
+`, ruleType, important)
 }
 
 func testAccCheckOnCallUserNotificationRuleResourceExists(name string) resource.TestCheckFunc {
