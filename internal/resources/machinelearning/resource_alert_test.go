@@ -39,6 +39,14 @@ func TestAccResourceJobAlert(t *testing.T) {
 					testAccMLJobAlertCheckExists("grafana_machine_learning_alert.test_job_alert", &job, &alert),
 				),
 			},
+			{
+				ResourceName: "grafana_machine_learning_alert.test_job_alert",
+				ImportState:  true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return fmt.Sprintf("/jobs/%s/alerts/%s", job.ID, alert.ID), nil
+				},
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
@@ -67,6 +75,14 @@ func TestAccResourceOutlierAlert(t *testing.T) {
 					testAccMLOutlierCheckExists("grafana_machine_learning_outlier_detector.test_alert_outlier_detector", &outlier),
 					testAccMLOutlierAlertCheckExists("grafana_machine_learning_alert.test_outlier_alert", &outlier, &alert),
 				),
+			},
+			{
+				ResourceName: "grafana_machine_learning_alert.test_outlier_alert",
+				ImportState:  true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return fmt.Sprintf("/outliers/%s/alerts/%s", outlier.ID, alert.ID), nil
+				},
+				ImportStateVerify: true,
 			},
 		},
 	})

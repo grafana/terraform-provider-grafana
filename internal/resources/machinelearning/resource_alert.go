@@ -3,6 +3,7 @@ package machinelearning
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
@@ -26,6 +27,9 @@ import (
 var (
 	resourceAlertID   = common.NewResourceID(common.StringIDField("id"))
 	resourceAlertName = "grafana_machine_learning_alert"
+
+	// Check interface
+	_ resource.ResourceWithImportState = (*alertResource)(nil)
 )
 
 func resourceAlert() *common.Resource {
@@ -165,6 +169,37 @@ func (r *alertResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 			},
 		},
 	}
+}
+
+func (r *alertResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Import ID looks like: /(jobs|outliers)/<jobID>/alerts/<alertID>
+	id := strings.TrimLeft(req.ID, "/")
+	parts := strings.Split(id, "/")
+	if len(parts) != 4 ||
+		(parts[0] != "jobs" && parts[0] != "outliers") ||
+		parts[2] != "alerts" {
+		resp.Diagnostics.AddError("Invalid import ID format", "Import ID must be in the format '/(jobs|outliers)/<jobID>/alerts/<alertID>'")
+		return
+	}
+	model := resourceAlertModel{
+		ID: types.StringValue(parts[3]),
+	}
+	if parts[0] == "jobs" {
+		model.JobID = types.StringValue(parts[1])
+	} else {
+		model.OutlierID = types.StringValue(parts[1])
+	}
+
+	data, diags := r.read(ctx, model)
+	if diags != nil {
+		resp.Diagnostics = diags
+		return
+	}
+	if data == nil {
+		resp.Diagnostics.AddError("Resource not found", "Resource not found")
+		return
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
 
 func (r *alertResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
