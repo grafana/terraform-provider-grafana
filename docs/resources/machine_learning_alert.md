@@ -3,12 +3,12 @@
 page_title: "grafana_machine_learning_alert Resource - terraform-provider-grafana"
 subcategory: "Machine Learning"
 description: |-
-  A job defines the queries and model parameters for a machine learning task.
+  
 ---
 
 # grafana_machine_learning_alert (Resource)
 
-A job defines the queries and model parameters for a machine learning task.
+
 
 
 
