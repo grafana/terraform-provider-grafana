@@ -12,6 +12,7 @@ import (
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate/postprocessing"
 	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-exec/tfexec"
@@ -80,13 +81,13 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := stripDefaults(filepath.Join(cfg.OutputDir, "cloud-resources.tf"), nil); err != nil {
+	if err := postprocessing.StripDefaults(filepath.Join(cfg.OutputDir, "cloud-resources.tf"), nil); err != nil {
 		return nil, err
 	}
-	if err := wrapJSONFieldsInFunction(filepath.Join(cfg.OutputDir, "cloud-resources.tf")); err != nil {
+	if err := postprocessing.WrapJSONFieldsInFunction(filepath.Join(cfg.OutputDir, "cloud-resources.tf")); err != nil {
 		return nil, err
 	}
-	if err := replaceReferences(filepath.Join(cfg.OutputDir, "cloud-resources.tf"), plannedState, nil); err != nil {
+	if err := postprocessing.ReplaceReferences(filepath.Join(cfg.OutputDir, "cloud-resources.tf"), plannedState, nil); err != nil {
 		return nil, err
 	}
 
