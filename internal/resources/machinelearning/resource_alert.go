@@ -347,6 +347,9 @@ func alertFromModel(model resourceAlertModel) (mlapi.Alert, error) {
 }
 
 func labelsToMapValue(labels map[string]string) basetypes.MapValue {
+	if labels == nil {
+		return basetypes.NewMapNull(types.StringType)
+	}
 	values := map[string]attr.Value{}
 	for k, v := range labels {
 		values[k] = types.StringValue(v)
@@ -355,6 +358,9 @@ func labelsToMapValue(labels map[string]string) basetypes.MapValue {
 }
 
 func mapToLabels(m basetypes.MapValue) (map[string]string, error) {
+	if m.IsNull() {
+		return nil, nil
+	}
 	labels := map[string]string{}
 	for k, v := range m.Elements() {
 		if vString, ok := v.(types.String); ok {
