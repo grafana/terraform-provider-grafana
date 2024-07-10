@@ -3,9 +3,11 @@ package machinelearning
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework-validators/helpers/validatordiag"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -127,6 +129,9 @@ func (r *alertResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				Optional:    true,
 				Computed:    true,
 				Default:     stringdefault.StaticString("0s"),
+				Validators: []validator.String{
+					anyDuration(),
+				},
 			},
 			"threshold": schema.StringAttribute{
 				Description: "The threshold of points over the window that need to be anomalous to alert.",
@@ -137,6 +142,9 @@ func (r *alertResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				Optional:    true,
 				Computed:    true,
 				Default:     stringdefault.StaticString("0s"),
+				Validators: []validator.String{
+					maxDuration(12 * time.Hour),
+				},
 			},
 			"labels": schema.MapAttribute{
 				Description: "Labels to add to the alert generated in Grafana.",
@@ -389,4 +397,47 @@ func parseDuration(s string) (model.Duration, error) {
 		return 0, nil
 	}
 	return model.ParseDuration(s)
+}
+
+type durationValidator struct {
+	max model.Duration
+}
+
+func (v durationValidator) Description(ctx context.Context) string {
+	return v.MarkdownDescription(ctx)
+}
+
+func (v durationValidator) MarkdownDescription(_ context.Context) string {
+	if v.max == 0 {
+		return "value must be a duration like 5m"
+	}
+	return fmt.Sprintf("value must be a duration less than: %s", v.max)
+}
+
+func (v durationValidator) ValidateString(ctx context.Context, request validator.StringRequest, response *validator.StringResponse) {
+	if request.ConfigValue.IsNull() || request.ConfigValue.IsUnknown() {
+		return
+	}
+
+	value := request.ConfigValue
+
+	duration, err := model.ParseDuration(request.ConfigValue.ValueString())
+
+	if err != nil || (v.max > 0 && duration > v.max) {
+		response.Diagnostics.Append(validatordiag.InvalidAttributeValueDiagnostic(
+			request.Path,
+			v.Description(ctx),
+			value.String(),
+		))
+	}
+}
+
+func anyDuration() validator.String {
+	return durationValidator{}
+}
+
+func maxDuration(max time.Duration) validator.String {
+	return durationValidator{
+		max: model.Duration(max),
+	}
 }

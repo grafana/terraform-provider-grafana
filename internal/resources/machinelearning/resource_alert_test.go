@@ -3,6 +3,7 @@ package machinelearning_test
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
@@ -153,4 +154,34 @@ func testAccMLOutlierAlertCheckDestroy(outlier *mlapi.OutlierDetector, alert *ml
 		}
 		return nil
 	}
+}
+
+func TestAccResourceInvalidMachineLearningAlert(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "grafana_machine_learning_alert" "invalid" {
+  job_id = "xyz"
+  title  = "Test Job"
+  for    = "foo"
+}
+`,
+				ExpectError: regexp.MustCompile(".*value must be a duration.*"),
+			},
+			{
+				Config: `
+resource "grafana_machine_learning_alert" "invalid" {
+  job_id = "xyz"
+  title  = "Test Job"
+  window = "24h"
+}
+`,
+				ExpectError: regexp.MustCompile(".*value must be a duration less than: 12h.*"),
+			},
+		},
+	})
 }
