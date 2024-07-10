@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -118,11 +119,14 @@ func (r *alertResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				Optional:    true,
 				Validators: []validator.String{
 					stringvalidator.OneOf("any", "low", "high"),
+					stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("outlier_id")),
 				},
 			},
 			"for": schema.StringAttribute{
 				Description: "How long values must be anomalous before firing an alert.",
 				Optional:    true,
+				Computed:    true,
+				Default:     stringdefault.StaticString("0s"),
 			},
 			"threshold": schema.StringAttribute{
 				Description: "The threshold of points over the window that need to be anomalous to alert.",
@@ -131,6 +135,8 @@ func (r *alertResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 			"window": schema.StringAttribute{
 				Description: "How much time to average values over",
 				Optional:    true,
+				Computed:    true,
+				Default:     stringdefault.StaticString("0s"),
 			},
 			"labels": schema.MapAttribute{
 				Description: "Labels to add to the alert generated in Grafana.",
@@ -305,13 +311,19 @@ func (r *alertResource) read(ctx context.Context, model resourceAlertModel) (*re
 	data.JobID = model.JobID
 	data.OutlierID = model.OutlierID
 	data.Title = types.StringValue(alert.Title)
-	data.AnomalyCondition = types.StringValue(string(alert.AnomalyCondition))
+	if alert.AnomalyCondition != "" {
+		data.AnomalyCondition = types.StringValue(string(alert.AnomalyCondition))
+	}
 	data.For = types.StringValue(alert.For.String())
-	data.Threshold = types.StringValue(alert.Threshold)
+	if alert.Threshold != "" {
+		data.Threshold = types.StringValue(alert.Threshold)
+	}
 	data.Window = types.StringValue(alert.Window.String())
 	data.Labels = labelsToMapValue(alert.Labels)
 	data.Annotations = labelsToMapValue(alert.Annotations)
-	data.NoDataState = types.StringValue(string(alert.NoDataState))
+	if alert.NoDataState != "" {
+		data.NoDataState = types.StringValue(string(alert.NoDataState))
+	}
 
 	return data, nil
 }
