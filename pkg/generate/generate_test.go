@@ -22,6 +22,9 @@ func TestAccGenerate(t *testing.T) {
 	}
 	testutils.CheckOSSTestsEnabled(t)
 
+	// Install Terraform to a temporary directory to avoid reinstalling it for each test case.
+	installDir := t.TempDir()
+
 	cases := []struct {
 		name           string
 		config         string
@@ -114,6 +117,20 @@ func TestAccGenerate(t *testing.T) {
 			},
 		},
 		{
+			name:   "with-creds",
+			config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
+			generateConfig: func(cfg *generate.Config) {
+				cfg.IncludeResources = []string{"doesnot.exist"}
+				cfg.OutputCredentials = true
+			},
+			check: func(t *testing.T, tempDir string) {
+				assertFiles(t, tempDir, "testdata/generate/empty-with-creds", []string{
+					".terraform",
+					".terraform.lock.hcl",
+				})
+			},
+		},
+		{
 			name: "alerting-in-org",
 			config: func() string {
 				content, err := os.ReadFile("testdata/generate/alerting-in-org.tf")
@@ -160,6 +177,9 @@ func TestAccGenerate(t *testing.T) {
 								Grafana: &generate.GrafanaConfig{
 									URL:  "http://localhost:3000",
 									Auth: "admin:admin",
+								},
+								TerraformInstallConfig: generate.TerraformInstallConfig{
+									InstallDir: installDir,
 								},
 							}
 							if tc.generateConfig != nil {

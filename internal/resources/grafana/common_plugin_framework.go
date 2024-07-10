@@ -7,6 +7,7 @@ import (
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	frameworkSchema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -14,6 +15,49 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
+
+type basePluginFrameworkDataSource struct {
+	client *goapi.GrafanaHTTPAPI
+	config *goapi.TransportConfig
+}
+
+func (r *basePluginFrameworkDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	// Configure is called multiple times (sometimes when ProviderData is not yet available), we only want to configure once
+	if req.ProviderData == nil || r.client != nil {
+		return
+	}
+
+	client, ok := req.ProviderData.(*common.Client)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *common.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return
+	}
+
+	r.client = client.GrafanaAPI
+	r.config = client.GrafanaAPIConfig
+}
+
+// clientFromNewOrgResource creates an OpenAPI client from the `org_id` attribute of a resource
+// This client is meant to be used in `Create` functions when the ID hasn't already been baked into the resource ID
+func (r *basePluginFrameworkDataSource) clientFromNewOrgResource(orgIDStr string) (*goapi.GrafanaHTTPAPI, int64, error) {
+	if r.client == nil {
+		return nil, 0, fmt.Errorf("client not configured")
+	}
+
+	client := r.client.Clone()
+	orgID, _ := strconv.ParseInt(orgIDStr, 10, 64)
+	if orgID == 0 {
+		orgID = client.OrgID()
+	} else if orgID > 0 {
+		client = client.WithOrgID(orgID)
+	}
+	return client, orgID, nil
+}
 
 type basePluginFrameworkResource struct {
 	client *goapi.GrafanaHTTPAPI
@@ -98,7 +142,7 @@ func pluginFrameworkOrgIDAttribute() frameworkSchema.Attribute {
 	return frameworkSchema.StringAttribute{
 		Optional:    true,
 		Computed:    true,
-		Description: "The Organization ID. If not set, the Org ID defined in the provider block will be used.",
+		Description: "The Organization ID. If not set, the default organization is used for basic authentication, or the one that owns your service account for token authentication.",
 		PlanModifiers: []planmodifier.String{
 			stringplanmodifier.RequiresReplace(),
 			&orgIDAttributePlanModifier{},

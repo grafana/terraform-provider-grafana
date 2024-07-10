@@ -63,6 +63,7 @@ func Generate(ctx context.Context, cfg *Config) error {
 	cfg.Terraform = tf
 
 	if cfg.Cloud != nil {
+		log.Printf("Generating cloud resources")
 		stacks, err := generateCloudResources(ctx, cfg)
 		if err != nil {
 			return err
@@ -86,16 +87,24 @@ func Generate(ctx context.Context, cfg *Config) error {
 			onCallToken:   cfg.Grafana.OnCallAccessToken,
 			onCallURL:     cfg.Grafana.OnCallURL,
 		}
+		log.Printf("Generating Grafana resources")
 		if err := generateGrafanaResources(ctx, cfg, stack, true); err != nil {
 			return err
 		}
 	}
 
-	if cfg.Format == OutputFormatJSON {
-		return convertToTFJSON(cfg.OutputDir)
-	}
 	if cfg.Format == OutputFormatCrossplane {
 		return convertToCrossplane(cfg)
+	}
+
+	if !cfg.OutputCredentials {
+		if err := redactCredentials(cfg.OutputDir); err != nil {
+			return fmt.Errorf("failed to redact credentials: %w", err)
+		}
+	}
+
+	if cfg.Format == OutputFormatJSON {
+		return convertToTFJSON(cfg.OutputDir)
 	}
 
 	return nil
