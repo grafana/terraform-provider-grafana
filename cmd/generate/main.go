@@ -9,6 +9,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate"
 
 	"github.com/fatih/color"
+	goVersion "github.com/hashicorp/go-version"
 	"github.com/urfave/cli/v2"
 )
 
@@ -73,6 +74,18 @@ This supports a glob format. Examples:
 				Usage:   "Output credentials in the generated resources",
 				EnvVars: []string{"TFGEN_OUTPUT_CREDENTIALS"},
 				Value:   false,
+			},
+			&cli.StringFlag{
+				Name:     "terraform-install-dir",
+				Usage:    `Directory to install Terraform to. If not set, a temporary directory will be created.`,
+				EnvVars:  []string{"TFGEN_TERRAFORM_INSTALL_DIR"},
+				Required: false,
+			},
+			&cli.StringFlag{
+				Name:     "terraform-install-version",
+				Usage:    `Version of Terraform to install. If not set, the latest version _tested in this tool_ will be installed.`,
+				EnvVars:  []string{"TFGEN_TERRAFORM_INSTALL_VERSION"},
+				Required: false,
 			},
 
 			// Grafana OSS flags
@@ -184,6 +197,16 @@ func parseFlags(ctx *cli.Context) (*generate.Config, error) {
 			StackServiceAccountName:   ctx.String("cloud-stack-service-account-name"),
 		},
 		IncludeResources: ctx.StringSlice("include-resources"),
+		TerraformInstallConfig: generate.TerraformInstallConfig{
+			InstallDir: ctx.String("terraform-install-dir"),
+		},
+	}
+	var err error
+	if tfVersion := ctx.String("terraform-install-version"); tfVersion != "" {
+		config.TerraformInstallConfig.Version, err = goVersion.NewVersion(ctx.String("terraform-install-version"))
+		if err != nil {
+			return nil, fmt.Errorf("terraform-install-version must be a valid version: %w", err)
+		}
 	}
 
 	if config.ProviderVersion == "" {
@@ -191,7 +214,7 @@ func parseFlags(ctx *cli.Context) (*generate.Config, error) {
 	}
 
 	// Validate flags
-	err := newFlagValidations().
+	err = newFlagValidations().
 		atLeastOne("grafana-url", "cloud-access-policy-token").
 		conflicting(
 			[]string{"grafana-url", "grafana-auth", "synthetic-monitoring-url", "synthetic-monitoring-access-token", "oncall-url", "oncall-access-token"},
