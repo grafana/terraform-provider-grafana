@@ -114,6 +114,20 @@ func TestAccGenerate(t *testing.T) {
 			},
 		},
 		{
+			name:   "with-creds",
+			config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
+			generateConfig: func(cfg *generate.Config) {
+				cfg.IncludeResources = []string{"doesnot.exist"}
+				cfg.OutputCredentials = true
+			},
+			check: func(t *testing.T, tempDir string) {
+				assertFiles(t, tempDir, "testdata/generate/empty-with-creds", []string{
+					".terraform",
+					".terraform.lock.hcl",
+				})
+			},
+		},
+		{
 			name: "alerting-in-org",
 			config: func() string {
 				content, err := os.ReadFile("testdata/generate/alerting-in-org.tf")

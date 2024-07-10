@@ -53,7 +53,8 @@ ${REPO_ROOT}/terraform-provider-grafana-generate \
   --grafana-url ${GRAFANA_URL} \
   --grafana-auth "admin:admin" \
   --clobber \
-  --output-dir ${SCRIPT_DIR}/generated
+  --output-dir ${SCRIPT_DIR}/generated \
+  --output-credentials
 
 ${REPO_ROOT}/terraform-provider-grafana-generate \
   --terraform-provider-version "v3.0.0" \
@@ -61,7 +62,8 @@ ${REPO_ROOT}/terraform-provider-grafana-generate \
   --grafana-auth "admin:admin" \
   --clobber \
   --output-dir ${SCRIPT_DIR}/generated-json \
-  --output-format json
+  --output-format json \
+  --output-credentials
 
 # Test the generated code
 for dir in "generated" "generated-json" ; do
