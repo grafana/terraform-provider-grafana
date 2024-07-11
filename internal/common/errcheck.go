@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-const NotFoundError = "status: 404"
+const NotFoundError = "404"
 
 // CheckReadError checks for common cases on resource read/delete paths:
 // - If the resource no longer exists and 404s, it should be removed from state and return nil, to stop processing the read.
