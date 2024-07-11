@@ -10,6 +10,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/oncall"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/slo"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/syntheticmonitoring"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate/postprocessing"
 	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -92,16 +93,16 @@ func generateGrafanaResources(ctx context.Context, cfg *Config, stack stack, gen
 	if err != nil {
 		return err
 	}
-	if err := stripDefaults(generatedFilename("resources.tf"), stripDefaultsExtraFields); err != nil {
+	if err := postprocessing.StripDefaults(generatedFilename("resources.tf"), stripDefaultsExtraFields); err != nil {
 		return err
 	}
-	if err := abstractDashboards(generatedFilename("resources.tf")); err != nil {
+	if err := postprocessing.AbstractDashboards(generatedFilename("resources.tf")); err != nil {
 		return err
 	}
-	if err := wrapJSONFieldsInFunction(generatedFilename("resources.tf")); err != nil {
+	if err := postprocessing.WrapJSONFieldsInFunction(generatedFilename("resources.tf")); err != nil {
 		return err
 	}
-	if err := replaceReferences(generatedFilename("resources.tf"), plannedState, []string{
+	if err := postprocessing.ReplaceReferences(generatedFilename("resources.tf"), plannedState, []string{
 		"*.org_id=grafana_organization.id",
 	}); err != nil {
 		return err

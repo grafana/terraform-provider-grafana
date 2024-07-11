@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate/postprocessing"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/zclconf/go-cty/cty"
@@ -98,7 +99,7 @@ func Generate(ctx context.Context, cfg *Config) error {
 	}
 
 	if !cfg.OutputCredentials {
-		if err := redactCredentials(cfg.OutputDir); err != nil {
+		if err := postprocessing.RedactCredentials(cfg.OutputDir); err != nil {
 			return fmt.Errorf("failed to redact credentials: %w", err)
 		}
 	}
