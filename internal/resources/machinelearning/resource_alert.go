@@ -69,7 +69,7 @@ func (r *alertResource) Configure(ctx context.Context, req resource.ConfigureReq
 
 	if !ok {
 		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
+			"Unexpected resource configure type",
 			fmt.Sprintf("Expected *common.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
@@ -204,7 +204,7 @@ func (r *alertResource) ImportState(ctx context.Context, req resource.ImportStat
 
 func (r *alertResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	if r.mlapi == nil {
-		resp.Diagnostics.AddError("client not configured", "client not configured")
+		resp.Diagnostics.AddError("Client not configured", "Client not configured")
 		return
 	}
 
@@ -216,7 +216,7 @@ func (r *alertResource) Create(ctx context.Context, req resource.CreateRequest, 
 	}
 	alert, err := alertFromModel(data)
 	if err != nil {
-		resp.Diagnostics.AddError("unable to make alert structure", err.Error())
+		resp.Diagnostics.AddError("Unable to make alert structure", err.Error())
 		return
 	}
 	if data.JobID.ValueString() != "" {
@@ -225,7 +225,7 @@ func (r *alertResource) Create(ctx context.Context, req resource.CreateRequest, 
 		alert, err = r.mlapi.NewOutlierAlert(ctx, data.OutlierID.ValueString(), alert)
 	}
 	if err != nil {
-		resp.Diagnostics.AddError("Unable to Create Resource", err.Error())
+		resp.Diagnostics.AddError("Unable to create resource", err.Error())
 		return
 	}
 
@@ -267,7 +267,7 @@ func (r *alertResource) Read(ctx context.Context, req resource.ReadRequest, resp
 
 func (r *alertResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	if r.mlapi == nil {
-		resp.Diagnostics.AddError("client not configured", "client not configured")
+		resp.Diagnostics.AddError("Client not configured", "Client not configured")
 		return
 	}
 
@@ -280,7 +280,7 @@ func (r *alertResource) Update(ctx context.Context, req resource.UpdateRequest, 
 
 	alert, err := alertFromModel(data)
 	if err != nil {
-		resp.Diagnostics.AddError("unable to make alert structure", err.Error())
+		resp.Diagnostics.AddError("Unable to make alert structure", err.Error())
 		return
 	}
 	if data.JobID.ValueString() != "" {
@@ -310,7 +310,7 @@ func (r *alertResource) Update(ctx context.Context, req resource.UpdateRequest, 
 
 func (r *alertResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	if r.mlapi == nil {
-		resp.Diagnostics.AddError("client not configured", "client not configured")
+		resp.Diagnostics.AddError("Client not configured", "Client not configured")
 		return
 	}
 
