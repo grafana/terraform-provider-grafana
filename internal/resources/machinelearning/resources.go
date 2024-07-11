@@ -35,4 +35,5 @@ var Resources = []*common.Resource{
 	resourceJob(),
 	resourceHoliday(),
 	resourceOutlierDetector(),
+	resourceAlert(),
 }
