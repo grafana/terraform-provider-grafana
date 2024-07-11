@@ -63,6 +63,7 @@ func Generate(ctx context.Context, cfg *Config) error {
 	}
 	cfg.Terraform = tf
 
+	var generationErrors GenerationErrors
 	if cfg.Cloud != nil {
 		log.Printf("Generating cloud resources")
 		stacks, err := generateCloudResources(ctx, cfg)
@@ -73,7 +74,11 @@ func Generate(ctx context.Context, cfg *Config) error {
 		for _, stack := range stacks {
 			stack.name = "stack-" + stack.slug
 			if err := generateGrafanaResources(ctx, cfg, stack, false); err != nil {
-				return err
+				if errs, ok := err.(GenerationErrors); ok {
+					generationErrors = append(generationErrors, errs...)
+				} else {
+					return err
+				}
 			}
 		}
 	}
@@ -90,7 +95,11 @@ func Generate(ctx context.Context, cfg *Config) error {
 		}
 		log.Printf("Generating Grafana resources")
 		if err := generateGrafanaResources(ctx, cfg, stack, true); err != nil {
-			return err
+			if errs, ok := err.(GenerationErrors); ok {
+				generationErrors = append(generationErrors, errs...)
+			} else {
+				return err
+			}
 		}
 	}
 
@@ -108,7 +117,26 @@ func Generate(ctx context.Context, cfg *Config) error {
 		return convertToTFJSON(cfg.OutputDir)
 	}
 
-	return nil
+	return generationErrors
+}
+
+type GenerationError struct {
+	Resource string
+	Err      error
+}
+type GenerationErrors []GenerationError
+
+func (e GenerationErrors) Error() string {
+	var b strings.Builder
+	b.WriteString("generation errors:\n")
+	for _, err := range e {
+		b.WriteString(err.Resource)
+		b.WriteString(": ")
+		b.WriteString(err.Err.Error())
+		b.WriteString("\n")
+	}
+	return b.String()
+
 }
 
 func generateImportBlocks(ctx context.Context, client *common.Client, listerData any, resources []*common.Resource, cfg *Config, provider string) error {
@@ -131,7 +159,7 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 	type result struct {
 		resource *common.Resource
 		blocks   []*hclwrite.Block
-		err      error
+		err      *GenerationError
 	}
 	results := make(chan result, len(resources))
 
@@ -153,7 +181,10 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 				wg.Done()
 				results <- result{
 					resource: resource,
-					err:      err,
+					err: &GenerationError{
+						Resource: resource.Name,
+						Err:      err,
+					},
 				}
 				return
 			}
@@ -176,7 +207,10 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 					wg.Done()
 					results <- result{
 						resource: resource,
-						err:      err,
+						err: &GenerationError{
+							Resource: resource.Name,
+							Err:      err,
+						},
 					}
 					return
 				}
@@ -207,10 +241,11 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 	wg.Wait()
 	close(results)
 
+	var generationErrors GenerationErrors
 	resultsSlice := []result{}
 	for r := range results {
 		if r.err != nil {
-			return fmt.Errorf("failed to generate %s resources: %w", r.resource.Name, r.err)
+			generationErrors = append(generationErrors, *r.err)
 		}
 		resultsSlice = append(resultsSlice, r)
 	}
@@ -241,7 +276,11 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 	if err != nil {
 		return fmt.Errorf("failed to generate resources: %w", err)
 	}
-	return sortResourcesFile(generatedFilename("resources.tf"))
+	if err := sortResourcesFile(generatedFilename("resources.tf")); err != nil {
+		return fmt.Errorf("failed to sort resources: %w", err)
+	}
+
+	return generationErrors
 }
 
 func filterResources(resources []*common.Resource, includedResources []string) ([]*common.Resource, error) {

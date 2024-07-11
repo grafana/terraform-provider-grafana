@@ -78,8 +78,13 @@ func generateGrafanaResources(ctx context.Context, cfg *Config, stack stack, gen
 		resources = append(resources, slo.Resources...)
 		resources = append(resources, machinelearning.Resources...)
 	}
+	var generationErrors GenerationErrors
 	if err := generateImportBlocks(ctx, client, listerData, resources, cfg, stack.name); err != nil {
-		return err
+		if errors, ok := err.(GenerationErrors); ok {
+			generationErrors = errors
+		} else {
+			return err
+		}
 	}
 
 	stripDefaultsExtraFields := map[string]any{}
@@ -108,5 +113,5 @@ func generateGrafanaResources(ctx context.Context, cfg *Config, stack stack, gen
 		return err
 	}
 
-	return nil
+	return generationErrors
 }

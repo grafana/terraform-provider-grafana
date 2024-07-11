@@ -73,8 +73,13 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
 	}
 
 	data := cloud.NewListerData(cfg.Cloud.Org)
+	var generationErrors GenerationErrors
 	if err := generateImportBlocks(ctx, client, data, cloud.Resources, cfg, "cloud"); err != nil {
-		return nil, err
+		if errors, ok := err.(GenerationErrors); ok {
+			generationErrors = errors
+		} else {
+			return nil, err
+		}
 	}
 
 	plannedState, err := getPlannedState(ctx, cfg)
@@ -92,7 +97,7 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
 	}
 
 	if !cfg.Cloud.CreateStackServiceAccount {
-		return nil, nil
+		return nil, generationErrors
 	}
 
 	// Add management service account (grafana_cloud_stack_service_account)
@@ -198,7 +203,7 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
 		managedStacks = append(managedStacks, stack)
 	}
 
-	return managedStacks, nil
+	return managedStacks, generationErrors
 }
 
 func createManagementStackServiceAccount(ctx context.Context, cloudClient *gcom.APIClient, stack gcom.FormattedApiInstance, saName string) error {

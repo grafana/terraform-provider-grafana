@@ -30,6 +30,7 @@ func TestAccGenerate(t *testing.T) {
 		config         string
 		generateConfig func(cfg *generate.Config)
 		check          func(t *testing.T, tempDir string)
+		errCheck       func(t *testing.T, err error)
 	}{
 		{
 			name:   "dashboard",
@@ -158,6 +159,28 @@ func TestAccGenerate(t *testing.T) {
 				})
 			},
 		},
+		{
+			name:   "fail-to-generate",
+			config: " ",
+			generateConfig: func(cfg *generate.Config) {
+				cfg.Grafana.IsGrafanaCloudStack = true // Querying Grafana Cloud stuff will fail (this is a local instance)
+			},
+			errCheck: func(t *testing.T, err error) {
+				require.Error(t, err)
+				genErrors, ok := err.(generate.GenerationErrors)
+				require.True(t, ok, "expected a GenerationErrors error, got: %v", err)
+				require.Greater(t, len(genErrors), 1, "expected more than one error")
+
+				gotCloudErrors := false
+				for _, genErr := range genErrors {
+					if strings.HasPrefix(genErr.Resource, "grafana_machine_learning") || strings.HasPrefix(genErr.Resource, "grafana_slo") {
+						gotCloudErrors = true
+						break
+					}
+				}
+				require.True(t, gotCloudErrors, "expected errors related to Grafana Cloud resources, got: %v", genErrors)
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -186,9 +209,14 @@ func TestAccGenerate(t *testing.T) {
 								tc.generateConfig(&config)
 							}
 
-							require.NoError(t, generate.Generate(context.Background(), &config))
-							tc.check(t, tempDir)
+							err := generate.Generate(context.Background(), &config)
+							if tc.errCheck != nil {
+								tc.errCheck(t, err)
+								return nil
+							}
 
+							require.NoError(t, err)
+							tc.check(t, tempDir)
 							return nil
 						},
 					},
