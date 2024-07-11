@@ -78,7 +78,7 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 			{
 				Config: testAccCloudAccessPolicyTokenConfigBasic(initialName, "", "us", initialScopes, expiresAt),
 				PreConfig: func() {
-					orgID, err := strconv.Atoi(*policy.OrgId)
+					orgID, err := strconv.ParseInt(*policy.OrgId, 10, 32)
 					if err != nil {
 						t.Fatal(err)
 					}
