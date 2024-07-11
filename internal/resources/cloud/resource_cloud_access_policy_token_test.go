@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -42,7 +43,6 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 	randomName := acctest.RandStringFromCharSet(6, acctest.CharSetAlpha)
 	initialName := fmt.Sprintf("initial-%s", randomName)
 	initialToken := fmt.Sprintf("token-%s", initialName)
-	rotationName := fmt.Sprintf("rotation-%s", randomName)
 	updatedName := fmt.Sprintf("updated-%s", randomName)
 
 	resource.Test(t, resource.TestCase{
@@ -74,6 +74,23 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy_token.test", "display_name", initialToken),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy_token.test", "expires_at", expiresAt),
 				),
+			},
+			{
+				Config: testAccCloudAccessPolicyTokenConfigBasic(initialName, "", "us", initialScopes, expiresAt),
+				PreConfig: func() {
+					orgID, err := strconv.Atoi(*policy.OrgId)
+					if err != nil {
+						t.Fatal(err)
+					}
+					client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+					_, _, err = client.TokensAPI.DeleteToken(context.Background(), *policyToken.Id).
+						Region("us").
+						OrgId(int32(orgID)).
+						XRequestId("deleting-token").Execute()
+					if err != nil {
+						t.Fatalf("error getting cloud access policy: %s", err)
+					}
+				},
 			},
 			{
 				Config: testAccCloudAccessPolicyTokenConfigBasic(initialName, "updated", "us", updatedScopes, expiresAt),
