@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -167,7 +168,8 @@ This supports a glob format. Examples:
 			if err != nil {
 				return fmt.Errorf("failed to parse flags: %w", err)
 			}
-			return generate.Generate(ctx.Context, cfg)
+			result := generate.Generate(ctx.Context, cfg)
+			return errors.Join(result.Errors...)
 		},
 	}
 

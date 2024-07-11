@@ -22,26 +22,65 @@ var (
 	allowedTerraformChars = regexp.MustCompile(`[^a-zA-Z0-9_-]`)
 )
 
-func Generate(ctx context.Context, cfg *Config) error {
+// ResourceError is an error that occurred while generating a resource.
+// It can be filtered out by the caller if it is not critical that a single resource failed.
+type ResourceError struct {
+	Resource *common.Resource
+	Err      error
+}
+
+func (e ResourceError) Error() string {
+	return fmt.Sprintf("resource %s: %v", e.Resource.Name, e.Err)
+}
+
+type GenerationSuccess struct {
+	Resource *common.Resource
+	Blocks   int
+}
+
+type GenerationResult struct {
+	Success []GenerationSuccess
+	Errors  []error
+}
+
+func (r GenerationResult) Blocks() int {
+	blocks := 0
+	for _, s := range r.Success {
+		blocks += s.Blocks
+	}
+	return blocks
+}
+
+func failure(err error) GenerationResult {
+	return GenerationResult{
+		Errors: []error{err},
+	}
+}
+
+func failuref(format string, args ...any) GenerationResult {
+	return failure(fmt.Errorf(format, args...))
+}
+
+func Generate(ctx context.Context, cfg *Config) GenerationResult {
 	var err error
 	if !filepath.IsAbs(cfg.OutputDir) {
 		if cfg.OutputDir, err = filepath.Abs(cfg.OutputDir); err != nil {
-			return fmt.Errorf("failed to get absolute path for %s: %w", cfg.OutputDir, err)
+			return failuref("failed to get absolute path for %s: %w", cfg.OutputDir, err)
 		}
 	}
 
 	if _, err := os.Stat(cfg.OutputDir); err == nil && cfg.Clobber {
 		log.Printf("Deleting all files in %s", cfg.OutputDir)
 		if err := os.RemoveAll(cfg.OutputDir); err != nil {
-			return fmt.Errorf("failed to delete %s: %s", cfg.OutputDir, err)
+			return failuref("failed to delete %s: %s", cfg.OutputDir, err)
 		}
 	} else if err == nil && !cfg.Clobber {
-		return fmt.Errorf("output dir %q already exists. Use the clobber option to delete it", cfg.OutputDir)
+		return failuref("output dir %q already exists. Use the clobber option to delete it", cfg.OutputDir)
 	}
 
 	log.Printf("Generating resources to %s", cfg.OutputDir)
 	if err := os.MkdirAll(cfg.OutputDir, 0755); err != nil {
-		return fmt.Errorf("failed to create output directory %s: %s", cfg.OutputDir, err)
+		return failuref("failed to create output directory %s: %s", cfg.OutputDir, err)
 	}
 
 	// Generate provider installation block
@@ -59,22 +98,21 @@ func Generate(ctx context.Context, cfg *Config) error {
 	tf, err := setupTerraform(cfg)
 	// Terraform init to download the provider
 	if err != nil {
-		return fmt.Errorf("failed to run terraform init: %w", err)
+		return failuref("failed to run terraform init: %w", err)
 	}
 	cfg.Terraform = tf
 
+	var returnResult GenerationResult
 	if cfg.Cloud != nil {
 		log.Printf("Generating cloud resources")
-		stacks, err := generateCloudResources(ctx, cfg)
-		if err != nil {
-			return err
-		}
+		var stacks []stack
+		stacks, returnResult = generateCloudResources(ctx, cfg)
 
 		for _, stack := range stacks {
 			stack.name = "stack-" + stack.slug
-			if err := generateGrafanaResources(ctx, cfg, stack, false); err != nil {
-				return err
-			}
+			stackResult := generateGrafanaResources(ctx, cfg, stack, false)
+			returnResult.Success = append(returnResult.Success, stackResult.Success...)
+			returnResult.Errors = append(returnResult.Errors, stackResult.Errors...)
 		}
 	}
 
@@ -89,29 +127,42 @@ func Generate(ctx context.Context, cfg *Config) error {
 			onCallURL:     cfg.Grafana.OnCallURL,
 		}
 		log.Printf("Generating Grafana resources")
-		if err := generateGrafanaResources(ctx, cfg, stack, true); err != nil {
-			return err
+		returnResult = generateGrafanaResources(ctx, cfg, stack, true)
+	}
+
+	if !cfg.OutputCredentials && cfg.Format != OutputFormatCrossplane {
+		if err := postprocessing.RedactCredentials(cfg.OutputDir); err != nil {
+			return failuref("failed to redact credentials: %w", err)
 		}
+	}
+
+	if returnResult.Blocks() == 0 {
+		if err := os.WriteFile(filepath.Join(cfg.OutputDir, "resources.tf"), []byte("# No resources were found\n"), 0600); err != nil {
+			return failure(err)
+		}
+		if err := os.WriteFile(filepath.Join(cfg.OutputDir, "imports.tf"), []byte("# No resources were found\n"), 0600); err != nil {
+			return failure(err)
+		}
+		return returnResult
 	}
 
 	if cfg.Format == OutputFormatCrossplane {
-		return convertToCrossplane(cfg)
-	}
-
-	if !cfg.OutputCredentials {
-		if err := postprocessing.RedactCredentials(cfg.OutputDir); err != nil {
-			return fmt.Errorf("failed to redact credentials: %w", err)
+		if err := convertToCrossplane(cfg); err != nil {
+			return failure(err)
 		}
+		return returnResult
 	}
 
 	if cfg.Format == OutputFormatJSON {
-		return convertToTFJSON(cfg.OutputDir)
+		if err := convertToTFJSON(cfg.OutputDir); err != nil {
+			return failure(err)
+		}
 	}
 
-	return nil
+	return returnResult
 }
 
-func generateImportBlocks(ctx context.Context, client *common.Client, listerData any, resources []*common.Resource, cfg *Config, provider string) error {
+func generateImportBlocks(ctx context.Context, client *common.Client, listerData any, resources []*common.Resource, cfg *Config, provider string) GenerationResult {
 	generatedFilename := func(suffix string) string {
 		if provider == "" {
 			return filepath.Join(cfg.OutputDir, suffix)
@@ -122,7 +173,7 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 
 	resources, err := filterResources(resources, cfg.IncludeResources)
 	if err != nil {
-		return err
+		return failure(err)
 	}
 
 	// Generate HCL blocks in parallel with a wait group
@@ -207,12 +258,21 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 	wg.Wait()
 	close(results)
 
+	returnResult := GenerationResult{}
 	resultsSlice := []result{}
 	for r := range results {
 		if r.err != nil {
-			return fmt.Errorf("failed to generate %s resources: %w", r.resource.Name, r.err)
+			returnResult.Errors = append(returnResult.Errors, ResourceError{
+				Resource: r.resource,
+				Err:      r.err,
+			})
+		} else {
+			resultsSlice = append(resultsSlice, r)
+			returnResult.Success = append(returnResult.Success, GenerationSuccess{
+				Resource: r.resource,
+				Blocks:   len(r.blocks),
+			})
 		}
-		resultsSlice = append(resultsSlice, r)
 	}
 	sort.Slice(resultsSlice, func(i, j int) bool {
 		return resultsSlice[i].resource.Name < resultsSlice[j].resource.Name
@@ -225,23 +285,21 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 	}
 
 	if len(allBlocks) == 0 {
-		if err := os.WriteFile(generatedFilename("resources.tf"), []byte("# No resources were found\n"), 0600); err != nil {
-			return err
-		}
-		if err := os.WriteFile(generatedFilename("imports.tf"), []byte("# No resources were found\n"), 0600); err != nil {
-			return err
-		}
-		return nil
+		return returnResult
 	}
 
 	if err := writeBlocks(generatedFilename("imports.tf"), allBlocks...); err != nil {
-		return err
+		return failure(err)
 	}
 	_, err = cfg.Terraform.Plan(ctx, tfexec.GenerateConfigOut(generatedFilename("resources.tf")))
 	if err != nil {
-		return fmt.Errorf("failed to generate resources: %w", err)
+		return failuref("failed to generate resources: %w", err)
 	}
-	return sortResourcesFile(generatedFilename("resources.tf"))
+	if err := sortResourcesFile(generatedFilename("resources.tf")); err != nil {
+		return failure(err)
+	}
+
+	return returnResult
 }
 
 func filterResources(resources []*common.Resource, includedResources []string) ([]*common.Resource, error) {
