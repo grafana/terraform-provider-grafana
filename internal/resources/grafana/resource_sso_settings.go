@@ -204,6 +204,16 @@ var oauth2SettingsSchema = &schema.Resource{
 			Optional:    true,
 			Description: "Prevent synchronizing users’ organization roles from your IdP.",
 		},
+		"org_mapping": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "List of comma- or space-separated Organization:OrgIdOrOrgName:Role mappings. Organization can be * meaning “All users”. Role is optional and can have the following values: None, Viewer, Editor or Admin.",
+		},
+		"org_attribute_path": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: `JMESPath expression to use for the organization mapping lookup from the user ID token. The extracted list will be used for the organization mapping (to match "Organization" in the "org_mapping"). Only applicable to Generic OAuth and Okta.`,
+		},
 		"define_allowed_groups": {
 			Type:        schema.TypeBool,
 			Optional:    true,
@@ -685,6 +695,7 @@ var validationsByProvider = map[string][]validateFunc{
 		ssoValidateNotEmpty("auth_url"),
 		ssoValidateNotEmpty("token_url"),
 		ssoValidateEmpty("api_url"),
+		ssoValidateEmpty("org_attribute_path"),
 		ssoValidateURL("auth_url"),
 		ssoValidateURL("token_url"),
 	},
@@ -708,16 +719,19 @@ var validationsByProvider = map[string][]validateFunc{
 		ssoValidateEmpty("auth_url"),
 		ssoValidateEmpty("token_url"),
 		ssoValidateEmpty("api_url"),
+		ssoValidateEmpty("org_attribute_path"),
 	},
 	"gitlab": {
 		ssoValidateEmpty("auth_url"),
 		ssoValidateEmpty("token_url"),
 		ssoValidateEmpty("api_url"),
+		ssoValidateEmpty("org_attribute_path"),
 	},
 	"google": {
 		ssoValidateEmpty("auth_url"),
 		ssoValidateEmpty("token_url"),
 		ssoValidateEmpty("api_url"),
+		ssoValidateEmpty("org_attribute_path"),
 	},
 	"saml": {
 		ssoValidateOnlyOneOf("certificate", "certificate_path"),
