@@ -18,7 +18,7 @@ func TestAccResourceJobAlert(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	randomJobName := acctest.RandomWithPrefix("Test Job")
-	randomAlertName := acctest.RandomWithPrefix("Test Job Alert")
+	randomAlertName := acctest.RandomWithPrefix("Test Alert")
 
 	var job mlapi.Job
 	var alert mlapi.Alert
@@ -37,6 +37,28 @@ func TestAccResourceJobAlert(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccMLJobCheckExists("grafana_machine_learning_job.test_alert_job", &job),
 					testAccMLJobAlertCheckExists("grafana_machine_learning_alert.test_job_alert", &job, &alert),
+					resource.TestCheckResourceAttrSet("grafana_machine_learning_alert.test_job_alert", "id"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_job_alert", "title", randomAlertName),
+					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_job_alert", "anomaly_condition", "any"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_job_alert", "threshold", ">0.8"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_job_alert", "window", "15m"),
+				),
+			},
+			// Update the alert with a new anomaly condition.
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_alert/resource.tf", map[string]string{
+					"Test Job":   randomJobName,
+					"Test Alert": randomAlertName,
+					"\"any\"":    "\"low\"",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccMLJobCheckExists("grafana_machine_learning_job.test_alert_job", &job),
+					testAccMLJobAlertCheckExists("grafana_machine_learning_alert.test_job_alert", &job, &alert),
+					resource.TestCheckResourceAttrSet("grafana_machine_learning_alert.test_job_alert", "id"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_job_alert", "title", randomAlertName),
+					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_job_alert", "anomaly_condition", "low"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_job_alert", "threshold", ">0.8"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_job_alert", "window", "15m"),
 				),
 			},
 			{
@@ -54,8 +76,8 @@ func TestAccResourceJobAlert(t *testing.T) {
 func TestAccResourceOutlierAlert(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	randomOutlierName := acctest.RandomWithPrefix("Test Job")
-	randomAlertName := acctest.RandomWithPrefix("Test Outlier Alert")
+	randomOutlierName := acctest.RandomWithPrefix("Test Outlier")
+	randomAlertName := acctest.RandomWithPrefix("Test Alert")
 
 	var outlier mlapi.OutlierDetector
 	var alert mlapi.Alert
@@ -74,6 +96,22 @@ func TestAccResourceOutlierAlert(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccMLOutlierCheckExists("grafana_machine_learning_outlier_detector.test_alert_outlier_detector", &outlier),
 					testAccMLOutlierAlertCheckExists("grafana_machine_learning_alert.test_outlier_alert", &outlier, &alert),
+					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_outlier_alert", "title", randomAlertName),
+					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_outlier_alert", "window", "1h"),
+				),
+			},
+			// Test updating the window.
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_alert/outlier_alert.tf", map[string]string{
+					"Test Outlier": randomOutlierName,
+					"Test Alert":   randomAlertName,
+					"\"1h\"":       "\"30m\"",
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccMLOutlierCheckExists("grafana_machine_learning_outlier_detector.test_alert_outlier_detector", &outlier),
+					testAccMLOutlierAlertCheckExists("grafana_machine_learning_alert.test_outlier_alert", &outlier, &alert),
+					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_outlier_alert", "title", randomAlertName),
+					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_outlier_alert", "window", "30m"),
 				),
 			},
 			{
