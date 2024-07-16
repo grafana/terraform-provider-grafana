@@ -13,6 +13,7 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate/postprocessing"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate/utils"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/zclconf/go-cty/cty"
@@ -22,8 +23,13 @@ var (
 	allowedTerraformChars = regexp.MustCompile(`[^a-zA-Z0-9_-]`)
 )
 
+// NonCriticalError is an error that is not critical to the generation process.
+// It can be handled differently by the caller.
+type NonCriticalError interface {
+	NonCriticalError()
+}
+
 // ResourceError is an error that occurred while generating a resource.
-// It can be filtered out by the caller if it is not critical that a single resource failed.
 type ResourceError struct {
 	Resource *common.Resource
 	Err      error
@@ -32,6 +38,12 @@ type ResourceError struct {
 func (e ResourceError) Error() string {
 	return fmt.Sprintf("resource %s: %v", e.Resource.Name, e.Err)
 }
+
+func (ResourceError) NonCriticalError() {}
+
+type NonCriticalGenerationFailure struct{ error }
+
+func (f NonCriticalGenerationFailure) NonCriticalError() {}
 
 type GenerationSuccess struct {
 	Resource *common.Resource
@@ -293,13 +305,59 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 	}
 	_, err = cfg.Terraform.Plan(ctx, tfexec.GenerateConfigOut(generatedFilename("resources.tf")))
 	if err != nil {
-		return failuref("failed to generate resources: %w", err)
+		// If resources.tf was created and is not empty, return the error as a "non-critical" error
+		if stat, statErr := os.Stat(generatedFilename("resources.tf")); statErr == nil && stat.Size() > 0 {
+			returnResult.Errors = append(returnResult.Errors, NonCriticalGenerationFailure{err})
+		} else {
+			return failuref("failed to generate resources: %w", err)
+		}
 	}
+
+	if err := removeOrphanedImports(generatedFilename("imports.tf"), generatedFilename("resources.tf")); err != nil {
+		return failure(err)
+	}
+
 	if err := sortResourcesFile(generatedFilename("resources.tf")); err != nil {
 		return failure(err)
 	}
 
 	return returnResult
+}
+
+// removeOrphanedImports removes import blocks that do not have a corresponding resource block in the resources file.
+// These happen when the Terraform plan command has failed for some resources.
+func removeOrphanedImports(importsFile, resourcesFile string) error {
+	imports, err := utils.ReadHCLFile(importsFile)
+	if err != nil {
+		return err
+	}
+
+	resources, err := utils.ReadHCLFile(resourcesFile)
+	if err != nil {
+		return err
+	}
+
+	resourcesMap := map[string]struct{}{}
+	for _, block := range resources.Body().Blocks() {
+		if block.Type() != "resource" {
+			continue
+		}
+
+		resourcesMap[strings.Join(block.Labels(), ".")] = struct{}{}
+	}
+
+	for _, block := range imports.Body().Blocks() {
+		if block.Type() != "import" {
+			continue
+		}
+
+		importTo := strings.TrimSpace(string(block.Body().GetAttribute("to").Expr().BuildTokens(nil).Bytes()))
+		if _, ok := resourcesMap[importTo]; !ok {
+			imports.Body().RemoveBlock(block)
+		}
+	}
+
+	return writeBlocksFile(importsFile, true, imports.Body().Blocks()...)
 }
 
 func filterResources(resources []*common.Resource, includedResources []string) ([]*common.Resource, error) {
