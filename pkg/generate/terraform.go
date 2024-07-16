@@ -74,12 +74,18 @@ func setupTerraform(cfg *Config) (*tfexec.Terraform, error) {
 }
 
 func writeBlocks(filepath string, blocks ...*hclwrite.Block) error {
+	return writeBlocksFile(filepath, false, blocks...)
+}
+
+func writeBlocksFile(filepath string, new bool, blocks ...*hclwrite.Block) error {
 	contents := hclwrite.NewFile()
-	if fileBytes, err := os.ReadFile(filepath); err == nil {
-		var diags hcl.Diagnostics
-		contents, diags = hclwrite.ParseConfig(fileBytes, filepath, hcl.InitialPos)
-		if diags.HasErrors() {
-			return errors.Join(diags.Errs()...)
+	if !new {
+		if fileBytes, err := os.ReadFile(filepath); err == nil {
+			var diags hcl.Diagnostics
+			contents, diags = hclwrite.ParseConfig(fileBytes, filepath, hcl.InitialPos)
+			if diags.HasErrors() {
+				return errors.Join(diags.Errs()...)
+			}
 		}
 	}
 
