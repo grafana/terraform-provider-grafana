@@ -116,28 +116,19 @@ Manages Grafana library panels.
 		"grafana_library_panel",
 		orgResourceIDString("uid"),
 		schema,
-	).WithLister(listerFunction(listLibraryPanels))
+	).WithLister(listerFunctionOrgResource(listLibraryPanels))
 }
 
-func listLibraryPanels(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
-	orgIDs, err := data.OrgIDs(client)
+func listLibraryPanels(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	var ids []string
+	params := library_elements.NewGetLibraryElementsParams().WithKind(common.Ref(libraryPanelKind))
+	resp, err := client.LibraryElements.GetLibraryElements(params)
 	if err != nil {
 		return nil, err
 	}
 
-	var ids []string
-	for _, orgID := range orgIDs {
-		client = client.Clone().WithOrgID(orgID)
-
-		params := library_elements.NewGetLibraryElementsParams().WithKind(common.Ref(libraryPanelKind))
-		resp, err := client.LibraryElements.GetLibraryElements(params)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, panel := range resp.Payload.Result.Elements {
-			ids = append(ids, MakeOrgResourceID(orgID, panel.UID))
-		}
+	for _, panel := range resp.Payload.Result.Elements {
+		ids = append(ids, MakeOrgResourceID(orgID, panel.UID))
 	}
 
 	return ids, nil

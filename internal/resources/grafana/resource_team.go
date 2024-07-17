@@ -158,37 +158,28 @@ Team Sync can be provisioned using [grafana_team_external_group resource](https:
 		"grafana_team",
 		orgResourceIDInt("id"),
 		schema,
-	).WithLister(listerFunction(listTeams))
+	).WithLister(listerFunctionOrgResource(listTeams))
 }
 
-func listTeams(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
-	orgIDs, err := data.OrgIDs(client)
-	if err != nil {
-		return nil, err
-	}
-
+func listTeams(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
 	var ids []string
-	for _, orgID := range orgIDs {
-		client = client.Clone().WithOrgID(orgID)
-
-		var page int64 = 1
-		for {
-			params := teams.NewSearchTeamsParams().WithPage(&page)
-			resp, err := client.Teams.SearchTeams(params)
-			if err != nil {
-				return nil, err
-			}
-
-			for _, team := range resp.Payload.Teams {
-				ids = append(ids, MakeOrgResourceID(orgID, team.ID))
-			}
-
-			if resp.Payload.TotalCount <= int64(len(ids)) {
-				break
-			}
-
-			page++
+	var page int64 = 1
+	for {
+		params := teams.NewSearchTeamsParams().WithPage(&page)
+		resp, err := client.Teams.SearchTeams(params)
+		if err != nil {
+			return nil, err
 		}
+
+		for _, team := range resp.Payload.Teams {
+			ids = append(ids, MakeOrgResourceID(orgID, team.ID))
+		}
+
+		if resp.Payload.TotalCount <= int64(len(ids)) {
+			break
+		}
+
+		page++
 	}
 
 	return ids, nil
