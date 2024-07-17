@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/grafana/grafana-openapi-client-go/client/access_control"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
@@ -23,10 +22,7 @@ import (
 )
 
 func TestAccGenerate(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping long test")
-	}
-	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckEnterpriseTestsEnabled(t, ">=10.0.0")
 
 	// Install Terraform to a temporary directory to avoid reinstalling it for each test case.
 	installDir := t.TempDir()
@@ -235,9 +231,6 @@ func TestAccGenerate(t *testing.T) {
 }
 
 func TestAccGenerate_RestrictedPermissions(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping long test")
-	}
 	testutils.CheckEnterpriseTestsEnabled(t, ">=10.0.0")
 
 	// Create SA with no permissions
@@ -288,8 +281,6 @@ func TestAccGenerate_RestrictedPermissions(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-
-	time.Sleep(5 * time.Second) // Wait for permissions to propagate
 
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
