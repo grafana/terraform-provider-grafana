@@ -33,6 +33,7 @@ func TestAccTeam_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamName+"@example.com"),
 					resource.TestMatchResourceAttr("grafana_team.test", "id", defaultOrgIDRegexp),
 					resource.TestCheckResourceAttr("grafana_team.test", "org_id", "1"),
+					testutils.CheckLister("grafana_team.test"),
 				),
 			},
 			{

@@ -32,6 +32,7 @@ func TestAccResourceHoliday(t *testing.T) {
 					testAccMLHolidayCheckExists("grafana_machine_learning_holiday.ical", &holiday),
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_holiday.ical", "id"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_holiday.ical", "name", randomName),
+					testutils.CheckLister("grafana_machine_learning_holiday.ical"),
 				),
 			},
 			{

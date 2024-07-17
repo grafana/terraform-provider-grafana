@@ -32,6 +32,7 @@ func TestAccLibraryPanel_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_library_panel.test", "name", name),
 					resource.TestCheckResourceAttr("grafana_library_panel.test", "version", "1"),
 					resource.TestCheckResourceAttr("grafana_library_panel.test", "model_json", fmt.Sprintf(`{"description":"","title":"%s","type":""}`, name)),
+					testutils.CheckLister("grafana_library_panel.test"),
 				),
 			},
 			{

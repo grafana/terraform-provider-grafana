@@ -59,6 +59,7 @@ func TestAccDataSource_Loki(t *testing.T) {
 		resource.TestCheckResourceAttr("grafana_data_source.loki", "name", dsName),
 		resource.TestCheckResourceAttr("grafana_data_source.loki", "type", "loki"),
 		resource.TestCheckResourceAttr("grafana_data_source.loki", "url", "http://acc-test.invalid/"),
+		testutils.CheckLister("grafana_data_source.loki"),
 		func(s *terraform.State) error {
 			jsonData := dataSource.JSONData.(map[string]interface{})
 			if jsonData["derivedFields"] == nil {
