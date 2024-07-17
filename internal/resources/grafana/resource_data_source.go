@@ -197,6 +197,9 @@ func listDatasources(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *Li
 		}
 
 		for _, ds := range resp.Payload {
+			if ds.ReadOnly {
+				continue
+			}
 			ids = append(ids, MakeOrgResourceID(orgID, ds.UID))
 		}
 	}
