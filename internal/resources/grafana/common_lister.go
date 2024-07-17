@@ -54,8 +54,11 @@ func (ld *ListerData) OrgIDs(client *goapi.GrafanaHTTPAPI) ([]int64, error) {
 	return ld.orgIDs, nil
 }
 
+type grafanaListerFunc func(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error)
+type grafanaOrgResourceListerFunc func(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error)
+
 // listerFunction is a helper function that wraps a lister function be used more easily in grafana resources.
-func listerFunction(listerFunc func(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error)) common.ResourceListIDsFunc {
+func listerFunction(listerFunc grafanaListerFunc) common.ResourceListIDsFunc {
 	return func(ctx context.Context, client *common.Client, data any) ([]string, error) {
 		lm, ok := data.(*ListerData)
 		if !ok {
@@ -66,4 +69,24 @@ func listerFunction(listerFunc func(ctx context.Context, client *goapi.GrafanaHT
 		}
 		return listerFunc(ctx, client.GrafanaAPI, lm)
 	}
+}
+
+func listerFunctionOrgResource(listerFunc grafanaOrgResourceListerFunc) common.ResourceListIDsFunc {
+	return listerFunction(func(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
+		orgIDs, err := data.OrgIDs(client)
+		if err != nil {
+			return nil, err
+		}
+
+		var ids []string
+		for _, orgID := range orgIDs {
+			idsInOrg, err := listerFunc(ctx, client.Clone().WithOrgID(orgID), orgID)
+			if err != nil {
+				return nil, err
+			}
+			ids = append(ids, idsInOrg...)
+		}
+
+		return ids, nil
+	})
 }

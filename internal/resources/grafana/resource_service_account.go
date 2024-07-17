@@ -62,37 +62,28 @@ func resourceServiceAccount() *common.Resource {
 		"grafana_service_account",
 		orgResourceIDInt("id"),
 		schema,
-	).WithLister(listerFunction(listServiceAccounts))
+	).WithLister(listerFunctionOrgResource(listServiceAccounts))
 }
 
-func listServiceAccounts(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
-	orgIDs, err := data.OrgIDs(client)
-	if err != nil {
-		return nil, err
-	}
-
+func listServiceAccounts(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
 	var ids []string
-	for _, orgID := range orgIDs {
-		client = client.Clone().WithOrgID(orgID)
-
-		var page int64 = 1
-		for {
-			params := service_accounts.NewSearchOrgServiceAccountsWithPagingParams().WithPage(&page)
-			resp, err := client.ServiceAccounts.SearchOrgServiceAccountsWithPaging(params)
-			if err != nil {
-				return nil, err
-			}
-
-			for _, sa := range resp.Payload.ServiceAccounts {
-				ids = append(ids, MakeOrgResourceID(orgID, sa.ID))
-			}
-
-			if resp.Payload.TotalCount <= int64(len(ids)) {
-				break
-			}
-
-			page++
+	var page int64 = 1
+	for {
+		params := service_accounts.NewSearchOrgServiceAccountsWithPagingParams().WithPage(&page)
+		resp, err := client.ServiceAccounts.SearchOrgServiceAccountsWithPaging(params)
+		if err != nil {
+			return nil, err
 		}
+
+		for _, sa := range resp.Payload.ServiceAccounts {
+			ids = append(ids, MakeOrgResourceID(orgID, sa.ID))
+		}
+
+		if resp.Payload.TotalCount <= int64(len(ids)) {
+			break
+		}
+
+		page++
 	}
 
 	return ids, nil

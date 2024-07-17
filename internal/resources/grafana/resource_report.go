@@ -249,30 +249,21 @@ func resourceReport() *common.Resource {
 		"grafana_report",
 		orgResourceIDInt("id"),
 		schema,
-	).WithLister(listerFunction(listReports))
+	).WithLister(listerFunctionOrgResource(listReports))
 }
 
-func listReports(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
-	orgIDs, err := data.OrgIDs(client)
+func listReports(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	var ids []string
+	resp, err := client.Reports.GetReports()
+	if err != nil && common.IsNotFoundError(err) {
+		return nil, nil // Reports are not available in the current Grafana version (Probably OSS)
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	var ids []string
-	for _, orgID := range orgIDs {
-		client = client.Clone().WithOrgID(orgID)
-
-		resp, err := client.Reports.GetReports()
-		if err != nil && common.IsNotFoundError(err) {
-			return nil, nil // Reports are not available in the current Grafana version (Probably OSS)
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		for _, report := range resp.Payload {
-			ids = append(ids, MakeOrgResourceID(orgID, report.ID))
-		}
+	for _, report := range resp.Payload {
+		ids = append(ids, MakeOrgResourceID(orgID, report.ID))
 	}
 
 	return ids, nil
