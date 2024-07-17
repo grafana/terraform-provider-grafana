@@ -240,6 +240,11 @@ Resource manages Grafana SLOs.
 					},
 				},
 			},
+			"search_expression": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The name of a search expression in Grafana Asserts. This is used in the SLO UI to open the Asserts RCA workbench and in alerts to link to the RCA workbench.",
+			},
 		},
 	}
 

@@ -145,6 +145,7 @@ resource "grafana_slo" "test" {
 - `destination_datasource` (Block List, Max: 1) Destination Datasource sets the datasource defined for an SLO (see [below for nested schema](#nestedblock--destination_datasource))
 - `folder_uid` (String) UID for the SLO folder
 - `label` (Block List) Additional labels that will be attached to all metrics generated from the query. These labels are useful for grouping SLOs in dashboard views that you create by hand. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$" (see [below for nested schema](#nestedblock--label))
+- `searchExpression` (String) The name of a search expression in Grafana Asserts. This is used in the SLO UI to open the Asserts RCA workbench and in alerts to link to the RCA workbench.
 
 ### Read-Only
 

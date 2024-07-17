@@ -105,6 +105,14 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_slo.ratio_options", "alerting.0.advanced_options.0.min_failures", "10"),
 				),
 			},
+			{
+				// Tests the Search Expression
+				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_search_expression.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.search_expression", &slo),
+					resource.TestCheckResourceAttr("grafana_slo.search_expression", "search_expression", "Entity Search for RCA Workbench"),
+				),
+			},
 		},
 	})
 }
