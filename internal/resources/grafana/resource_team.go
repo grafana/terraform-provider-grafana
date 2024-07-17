@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/teams"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -154,7 +155,40 @@ Team Sync can be provisioned using [grafana_team_external_group resource](https:
 		"grafana_team",
 		orgResourceIDInt("id"),
 		schema,
-	)
+	).WithLister(listerFunction(listTeams))
+}
+
+func listTeams(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
+	orgIDs, err := data.OrgIDs(client)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for _, orgID := range orgIDs {
+		client = client.Clone().WithOrgID(orgID)
+
+		var page int64 = 1
+		for {
+			params := teams.NewSearchTeamsParams().WithPage(&page)
+			resp, err := client.Teams.SearchTeams(params)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, team := range resp.Payload.Teams {
+				ids = append(ids, MakeOrgResourceID(orgID, team.ID))
+			}
+
+			if resp.Payload.TotalCount <= int64(len(ids)) {
+				break
+			}
+
+			page++
+		}
+	}
+
+	return ids, nil
 }
 
 func CreateTeam(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

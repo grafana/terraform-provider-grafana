@@ -76,7 +76,33 @@ You must use basic auth.
 		resourceUserID,
 		schema,
 	)
+	// ).WithLister(listerFunction(listUsers))
 }
+
+// TODO: Fix issues with password
+// func listUsers(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
+// 	var ids []string
+// 	var page int64 = 1
+// 	for {
+// 		params := users.NewSearchUsersParams().WithPage(&page)
+// 		resp, err := client.Users.SearchUsers(params)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+
+// 		for _, user := range resp.Payload {
+// 			ids = append(ids, strconv.FormatInt(user.ID, 10))
+// 		}
+
+// 		if len(resp.Payload) == 0 {
+// 			break
+// 		}
+
+// 		page++
+// 	}
+
+// 	return ids, nil
+// }
 
 func CreateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, err := OAPIGlobalClient(meta)

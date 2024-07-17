@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
@@ -61,7 +62,40 @@ func resourceServiceAccount() *common.Resource {
 		"grafana_service_account",
 		orgResourceIDInt("id"),
 		schema,
-	)
+	).WithLister(listerFunction(listServiceAccounts))
+}
+
+func listServiceAccounts(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
+	orgIDs, err := data.OrgIDs(client)
+	if err != nil {
+		return nil, err
+	}
+
+	var ids []string
+	for _, orgID := range orgIDs {
+		client = client.Clone().WithOrgID(orgID)
+
+		var page int64 = 1
+		for {
+			params := service_accounts.NewSearchOrgServiceAccountsWithPagingParams().WithPage(&page)
+			resp, err := client.ServiceAccounts.SearchOrgServiceAccountsWithPaging(params)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, sa := range resp.Payload.ServiceAccounts {
+				ids = append(ids, MakeOrgResourceID(orgID, sa.ID))
+			}
+
+			if resp.Payload.TotalCount <= int64(len(ids)) {
+				break
+			}
+
+			page++
+		}
+	}
+
+	return ids, nil
 }
 
 func CreateServiceAccount(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
