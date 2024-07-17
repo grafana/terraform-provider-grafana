@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/grafana/grafana-openapi-client-go/client/access_control"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
@@ -281,6 +282,8 @@ func TestAccGenerate_RestrictedPermissions(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+
+	time.Sleep(5 * time.Second) // Wait for permissions to propagate
 
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
