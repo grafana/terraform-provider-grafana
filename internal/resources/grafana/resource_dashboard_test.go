@@ -51,6 +51,7 @@ func TestAccDashboard_basic(t *testing.T) {
 							resource.TestCheckResourceAttr(
 								"grafana_dashboard.test", "config_json", expectedInitialConfig,
 							),
+							testutils.CheckLister("grafana_dashboard.test"),
 						),
 					},
 					{
@@ -238,6 +239,7 @@ func TestAccDashboard_inOrg(t *testing.T) {
 					checkResourceIsInOrg("grafana_dashboard.test", "grafana_organization.test"),
 
 					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
+					testutils.CheckLister("grafana_dashboard.test"),
 				),
 			},
 		},

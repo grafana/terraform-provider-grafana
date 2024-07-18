@@ -43,6 +43,7 @@ func TestAccResourceCheck_dns(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "settings.0.dns.0.port", "53"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "settings.0.dns.0.record_type", "A"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "settings.0.dns.0.protocol", "UDP"),
+					testutils.CheckLister("grafana_synthetic_monitoring_check.dns"),
 				),
 			},
 			{
