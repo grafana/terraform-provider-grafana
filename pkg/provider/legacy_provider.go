@@ -180,6 +180,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			RetryStatusCodes:       statusCodes,
 			RetryWait:              types.Int64Value(int64(d.Get("retry_wait").(int))),
 			UserAgent:              types.StringValue(p.UserAgent("terraform-provider-grafana", version)),
+			Version:                types.StringValue(version),
 		}
 		if err := cfg.SetDefaults(); err != nil {
 			return nil, diag.FromErr(err)
