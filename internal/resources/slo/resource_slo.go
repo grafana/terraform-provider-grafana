@@ -399,6 +399,11 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 		DestinationDatasource: nil,
 	}
 
+	// Check the Optional Search Expression Field
+	if searchexpression, ok := d.GetOk("search_expression"); ok && searchexpression != "" {
+		req.SearchExpression = common.Ref(searchexpression.(string))
+	}
+
 	// Check the Optional Alerting Field
 	if alerting, ok := d.GetOk("alerting"); ok {
 		alertData, ok := alerting.([]interface{})
@@ -630,6 +635,7 @@ func setTerraformState(d *schema.ResourceData, slo slo.SloV00Slo) {
 
 	retAlerting := unpackAlerting(slo.Alerting)
 	d.Set("alerting", retAlerting)
+	d.Set("search_expression", slo.SearchExpression)
 }
 
 func apiError(action string, err error) diag.Diagnostics {
