@@ -128,14 +128,17 @@ func createMLClient(client *common.Client, providerConfig ProviderConfig) error 
 }
 
 func createSLOClient(client *common.Client, providerConfig ProviderConfig) error {
+	var err error
+
 	sloConfig := slo.NewConfiguration()
 	sloConfig.Host = client.GrafanaAPIURLParsed.Host
 	sloConfig.Scheme = client.GrafanaAPIURLParsed.Scheme
+	sloConfig.DefaultHeader, err = getHTTPHeadersMap(providerConfig)
 	sloConfig.DefaultHeader["Authorization"] = "Bearer " + providerConfig.Auth.ValueString()
-	sloConfig.DefaultHeader["Grafana-Terraform-Provider"] = "true"
 	sloConfig.HTTPClient = getRetryClient(providerConfig)
 	client.SLOClient = slo.NewAPIClient(sloConfig)
-	return nil
+
+	return err
 }
 
 func createCloudClient(client *common.Client, providerConfig ProviderConfig) error {
@@ -167,7 +170,10 @@ func createOnCallClient(providerConfig ProviderConfig) (*onCallAPI.Client, error
 // Sets a custom HTTP Header on all requests coming from the Grafana Terraform Provider to Grafana-Terraform-Provider: true
 // in addition to any headers set within the `http_headers` field or the `GRAFANA_HTTP_HEADERS` environment variable
 func getHTTPHeadersMap(providerConfig ProviderConfig) (map[string]string, error) {
-	headers := map[string]string{"Grafana-Terraform-Provider": "true"}
+	headers := map[string]string{
+		"Grafana-Terraform-Provider":         "true",
+		"Grafana-Terraform-Provider-Version": providerConfig.Version.ValueString(),
+	}
 	for k, v := range providerConfig.HTTPHeaders.Elements() {
 		if vString, ok := v.(types.String); ok {
 			headers[k] = vString.ValueString()
