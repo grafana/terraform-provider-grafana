@@ -150,7 +150,7 @@ func (r *alertResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				Computed:    true,
 				Default:     stringdefault.StaticString("0s"),
 				Validators: []validator.String{
-					maxDuration(12 * time.Hour),
+					maxDuration(24 * time.Hour),
 				},
 			},
 			"labels": schema.MapAttribute{
