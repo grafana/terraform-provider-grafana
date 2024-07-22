@@ -213,9 +213,12 @@ func parseAuth(providerConfig ProviderConfig) (*url.Userinfo, int64, string, err
 	var orgID int64 = 1
 
 	if len(auth) == 2 {
-		return url.UserPassword(auth[0], auth[1]), orgID, "", nil
+		user := strings.TrimSpace(auth[0])
+		pass := strings.TrimSpace(auth[1])
+		return url.UserPassword(user, pass), orgID, "", nil
 	} else if auth[0] != "anonymous" {
-		return nil, 0, auth[0], nil
+		apiKey := strings.TrimSpace(auth[0])
+		return nil, 0, apiKey, nil
 	}
 	return nil, 0, "", nil
 }
