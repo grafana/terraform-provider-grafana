@@ -231,10 +231,10 @@ resource "grafana_machine_learning_alert" "invalid" {
 resource "grafana_machine_learning_alert" "invalid" {
   job_id = "xyz"
   title  = "Test Job"
-  window = "24h"
+  window = "25h"
 }
 `,
-				ExpectError: regexp.MustCompile(".*value must be a duration less than: 12h.*"),
+				ExpectError: regexp.MustCompile(".*value must be a duration less than: 1d.*"),
 			},
 		},
 	})
