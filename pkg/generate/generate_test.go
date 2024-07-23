@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -309,6 +310,57 @@ func TestAccGenerate_RestrictedPermissions(t *testing.T) {
 					}
 
 					assertFiles(t, tempDir, "testdata/generate/dashboard-restricted-permissions", []string{
+						".terraform",
+						".terraform.lock.hcl",
+					})
+
+					return nil
+				},
+			},
+		},
+	})
+}
+
+func TestAccGenerate_SMCheck(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	// Install Terraform to a temporary directory to avoid reinstalling it for each test case.
+	installDir := t.TempDir()
+	randomString := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf", map[string]string{
+					`"HTTP Defaults"`: strconv.Quote(randomString),
+				}),
+				Check: func(s *terraform.State) error {
+					smCheckResource := s.RootModule().Resources["grafana_synthetic_monitoring_check.http"]
+					require.NotNil(t, smCheckResource)
+
+					tempDir := t.TempDir()
+					config := generate.Config{
+						OutputDir:       tempDir,
+						Clobber:         true,
+						Format:          generate.OutputFormatHCL,
+						ProviderVersion: "v3.0.0",
+						Grafana: &generate.GrafanaConfig{
+							URL:           os.Getenv("GRAFANA_URL"),
+							Auth:          os.Getenv("GRAFANA_AUTH"),
+							SMURL:         os.Getenv("GRAFANA_SM_URL"),
+							SMAccessToken: os.Getenv("GRAFANA_SM_ACCESS_TOKEN"),
+						},
+						IncludeResources: []string{"grafana_synthetic_monitoring_check._" + smCheckResource.Primary.ID},
+						TerraformInstallConfig: generate.TerraformInstallConfig{
+							InstallDir: installDir,
+						},
+					}
+
+					result := generate.Generate(context.Background(), &config)
+					require.Len(t, result.Errors, 0, "expected no errors, got: %v", result.Errors)
+
+					assertFiles(t, tempDir, "testdata/generate/dashboard", []string{
 						".terraform",
 						".terraform.lock.hcl",
 					})

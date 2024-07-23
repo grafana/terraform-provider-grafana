@@ -74,66 +74,86 @@ var (
 		},
 	}
 
-	syntheticMonitoringCheckSettings = &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"dns": {
-				Description: "Settings for DNS check. The target must be a valid hostname (or IP address for `PTR` records).",
-				Type:        schema.TypeSet,
-				Optional:    true,
-				MaxItems:    1,
-				Elem:        syntheticMonitoringCheckSettingsDNS,
+	syntheticMonitoringCheckSettings = func() *schema.Resource {
+		settingsSchema := &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"dns": {
+					Description: "Settings for DNS check. The target must be a valid hostname (or IP address for `PTR` records).",
+					Type:        schema.TypeSet,
+					Optional:    true,
+					MaxItems:    1,
+					Elem:        syntheticMonitoringCheckSettingsDNS,
+				},
+				"http": {
+					Description: "Settings for HTTP check. The target must be a URL (http or https).",
+					Type:        schema.TypeSet,
+					Optional:    true,
+					MaxItems:    1,
+					Elem:        syntheticMonitoringCheckSettingsHTTP,
+				},
+				"ping": {
+					Description: "Settings for ping (ICMP) check. The target must be a valid hostname or IP address.",
+					Type:        schema.TypeSet,
+					Optional:    true,
+					MaxItems:    1,
+					Elem:        syntheticMonitoringCheckSettingsPing,
+				},
+				"tcp": {
+					Description: "Settings for TCP check. The target must be of the form `<host>:<port>`, where the host portion must be a valid hostname or IP address.",
+					Type:        schema.TypeSet,
+					Optional:    true,
+					MaxItems:    1,
+					Elem:        syntheticMonitoringCheckSettingsTCP,
+				},
+				"traceroute": {
+					Description: "Settings for traceroute check. The target must be a valid hostname or IP address",
+					Type:        schema.TypeSet,
+					Optional:    true,
+					MaxItems:    1,
+					Elem:        syntheticMonitoringCheckSettingsTraceroute,
+				},
+				"multihttp": {
+					Description: "Settings for MultiHTTP check. The target must be a URL (http or https)",
+					Type:        schema.TypeSet,
+					Optional:    true,
+					MaxItems:    1,
+					Elem:        syntheticMonitoringCheckSettingsMultiHTTP,
+				},
+				"scripted": {
+					Description: "Settings for scripted check. See https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/checks/k6/.",
+					Type:        schema.TypeSet,
+					Optional:    true,
+					MaxItems:    1,
+					Elem:        syntheticMonitoringCheckSettingsScripted,
+				},
+				"grpc": {
+					Description: "Settings for gRPC Health check. The target must be of the form `<host>:<port>`, where the host portion must be a valid hostname or IP address.",
+					Type:        schema.TypeSet,
+					Optional:    true,
+					MaxItems:    1,
+					Elem:        syntheticMonitoringCheckSettingsGRPC,
+				},
 			},
-			"http": {
-				Description: "Settings for HTTP check. The target must be a URL (http or https).",
-				Type:        schema.TypeSet,
-				Optional:    true,
-				MaxItems:    1,
-				Elem:        syntheticMonitoringCheckSettingsHTTP,
-			},
-			"ping": {
-				Description: "Settings for ping (ICMP) check. The target must be a valid hostname or IP address.",
-				Type:        schema.TypeSet,
-				Optional:    true,
-				MaxItems:    1,
-				Elem:        syntheticMonitoringCheckSettingsPing,
-			},
-			"tcp": {
-				Description: "Settings for TCP check. The target must be of the form `<host>:<port>`, where the host portion must be a valid hostname or IP address.",
-				Type:        schema.TypeSet,
-				Optional:    true,
-				MaxItems:    1,
-				Elem:        syntheticMonitoringCheckSettingsTCP,
-			},
-			"traceroute": {
-				Description: "Settings for traceroute check. The target must be a valid hostname or IP address",
-				Type:        schema.TypeSet,
-				Optional:    true,
-				MaxItems:    1,
-				Elem:        syntheticMonitoringCheckSettingsTraceroute,
-			},
-			"multihttp": {
-				Description: "Settings for MultiHTTP check. The target must be a URL (http or https)",
-				Type:        schema.TypeSet,
-				Optional:    true,
-				MaxItems:    1,
-				Elem:        syntheticMonitoringCheckSettingsMultiHTTP,
-			},
-			"scripted": {
-				Description: "Settings for scripted check. See https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/checks/k6/.",
-				Type:        schema.TypeSet,
-				Optional:    true,
-				MaxItems:    1,
-				Elem:        syntheticMonitoringCheckSettingsScripted,
-			},
-			"grpc": {
-				Description: "Settings for gRPC Health check. The target must be of the form `<host>:<port>`, where the host portion must be a valid hostname or IP address.",
-				Type:        schema.TypeSet,
-				Optional:    true,
-				MaxItems:    1,
-				Elem:        syntheticMonitoringCheckSettingsGRPC,
-			},
-		},
-	}
+		}
+
+		// Validate that only one check type is set.
+		allCheckTypes := []string{}
+		for k := range settingsSchema.Schema {
+			allCheckTypes = append(allCheckTypes, k)
+		}
+
+		for k, v := range settingsSchema.Schema {
+			conflictsWith := make([]string, 0, len(allCheckTypes)-1)
+			for _, checkType := range allCheckTypes {
+				if checkType != k {
+					conflictsWith = append(conflictsWith, "settings.0."+checkType)
+				}
+			}
+			v.ConflictsWith = conflictsWith
+		}
+
+		return settingsSchema
+	}()
 
 	syntheticMonitoringCheckSettingsScripted = &schema.Resource{
 		Schema: map[string]*schema.Schema{
@@ -687,7 +707,6 @@ multiple checks for a single endpoint to check different capabilities.
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		CustomizeDiff: resourceCheckCustomizeDiff,
 
 		Schema: map[string]*schema.Schema{
 			"id": {
@@ -1578,27 +1597,4 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 	}
 
 	return cs, nil
-}
-
-// Check if the user provider exactly one setting
-// Ideally, we'd use `ExactlyOneOf` here but it doesn't support TypeSet.
-// Also, TypeSet doesn't support ValidateFunc.
-// To maintain backwards compatibility, we do a custom validation in the CustomizeDiff function.
-func resourceCheckCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, meta interface{}) error {
-	settingsList := diff.Get("settings").(*schema.Set).List()
-	if len(settingsList) == 0 {
-		return fmt.Errorf("at least one check setting must be defined")
-	}
-	settings := settingsList[0].(map[string]interface{})
-
-	count := 0
-	for k := range syntheticMonitoringCheckSettings.Schema {
-		count += len(settings[k].(*schema.Set).List())
-	}
-
-	if count != 1 {
-		return fmt.Errorf("exactly one check setting must be defined, got %d", count)
-	}
-
-	return nil
 }
