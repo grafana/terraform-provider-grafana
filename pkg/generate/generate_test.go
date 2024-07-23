@@ -197,13 +197,14 @@ func TestAccGenerate(t *testing.T) {
 								OutputDir:       tempDir,
 								Clobber:         true,
 								Format:          generate.OutputFormatHCL,
-								ProviderVersion: "v3.0.0",
+								ProviderVersion: "999.999.999", // Using the code from the current branch
 								Grafana: &generate.GrafanaConfig{
 									URL:  "http://localhost:3000",
 									Auth: "admin:admin",
 								},
 								TerraformInstallConfig: generate.TerraformInstallConfig{
 									InstallDir: installDir,
+									PluginDir:  pluginDir(t),
 								},
 							}
 							if tc.generateConfig != nil {
@@ -293,10 +294,13 @@ func TestAccGenerate_RestrictedPermissions(t *testing.T) {
 						OutputDir:       tempDir,
 						Clobber:         true,
 						Format:          generate.OutputFormatHCL,
-						ProviderVersion: "v3.0.0",
+						ProviderVersion: "999.999.999", // Using the code from the current branch
 						Grafana: &generate.GrafanaConfig{
 							URL:  "http://localhost:3000",
 							Auth: saToken.Payload.Key,
+						},
+						TerraformInstallConfig: generate.TerraformInstallConfig{
+							PluginDir: pluginDir(t),
 						},
 					}
 
@@ -381,4 +385,12 @@ func assertFilesSubdir(t *testing.T, gotFilesDir, expectedFilesDir, subdir strin
 
 		assert.Equal(t, strings.TrimSpace(string(expectedContent)), strings.TrimSpace(string(gotContent)))
 	}
+}
+
+func pluginDir(t *testing.T) string {
+	t.Helper()
+
+	repoRoot, err := filepath.Abs("../..")
+	require.NoError(t, err)
+	return filepath.Join(repoRoot, "testdata", "plugins")
 }
