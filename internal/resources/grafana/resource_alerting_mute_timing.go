@@ -252,7 +252,8 @@ func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 		}
 	}
 
-	_, err = client.Provisioning.DeleteMuteTiming(name)
+	params := provisioning.NewDeleteMuteTimingParams().WithName(name)
+	_, err = client.Provisioning.DeleteMuteTiming(params)
 	diag, _ := common.CheckReadError("mute timing", data, err)
 	return diag
 }
