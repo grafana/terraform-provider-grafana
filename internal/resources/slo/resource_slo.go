@@ -240,6 +240,11 @@ Resource manages Grafana SLOs.
 					},
 				},
 			},
+			"search_expression": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The name of a search expression in Grafana Asserts. This is used in the SLO UI to open the Asserts RCA workbench and in alerts to link to the RCA workbench.",
+			},
 		},
 	}
 
@@ -392,6 +397,11 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 		Alerting:              nil,
 		Labels:                tflabels,
 		DestinationDatasource: nil,
+	}
+
+	// Check the Optional Search Expression Field
+	if searchexpression, ok := d.GetOk("search_expression"); ok && searchexpression != "" {
+		req.SearchExpression = common.Ref(searchexpression.(string))
 	}
 
 	// Check the Optional Alerting Field
@@ -625,6 +635,7 @@ func setTerraformState(d *schema.ResourceData, slo slo.SloV00Slo) {
 
 	retAlerting := unpackAlerting(slo.Alerting)
 	d.Set("alerting", retAlerting)
+	d.Set("search_expression", slo.SearchExpression)
 }
 
 func apiError(action string, err error) diag.Diagnostics {

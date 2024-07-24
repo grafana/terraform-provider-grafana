@@ -96,6 +96,12 @@ func TestAccResourceSlo(t *testing.T) {
 				),
 			},
 			{
+				// Import test (this tests that all fields are read correctly)
+				ResourceName:      "grafana_slo.ratio",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
 				// Tests Advanced Options
 				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_ratio_advanced_options.tf"),
 				Check: resource.ComposeTestCheckFunc(
@@ -104,6 +110,26 @@ func TestAccResourceSlo(t *testing.T) {
 					testAdvancedOptionsExists(true, "grafana_slo.ratio_options", &slo),
 					resource.TestCheckResourceAttr("grafana_slo.ratio_options", "alerting.0.advanced_options.0.min_failures", "10"),
 				),
+			},
+			{
+				// Import test (this tests that all fields are read correctly)
+				ResourceName:      "grafana_slo.ratio_options",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				// Tests the Search Expression
+				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_search_expression.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.search_expression", &slo),
+					resource.TestCheckResourceAttr("grafana_slo.search_expression", "search_expression", "Entity Search for RCA Workbench"),
+				),
+			},
+			{
+				// Import test (this tests that all fields are read correctly)
+				ResourceName:      "grafana_slo.search_expression",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})

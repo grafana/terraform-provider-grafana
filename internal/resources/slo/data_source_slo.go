@@ -88,6 +88,7 @@ func convertDatasourceSlo(slo slo.SloV00Slo) map[string]interface{} {
 
 	retAlerting := unpackAlerting(slo.Alerting)
 	ret["alerting"] = retAlerting
+	ret["search_expression"] = slo.SearchExpression
 
 	return ret
 }
