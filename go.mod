@@ -11,7 +11,7 @@ require (
 	github.com/go-openapi/strfmt v0.23.0
 	github.com/grafana/amixr-api-go-client v0.0.12 // main branch
 	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240322153219-42c6a1d2bcab
-	github.com/grafana/grafana-openapi-client-go v0.0.0-20240523010106-657d101fcbd9
+	github.com/grafana/grafana-openapi-client-go v0.0.0-20240723170622-ae2c94b7c9a3
 	github.com/grafana/machine-learning-go-client v0.8.0
 	github.com/grafana/slo-openapi-client/go v0.0.0-20240717162314-26344962b4c5
 	github.com/grafana/synthetic-monitoring-agent v0.25.0
