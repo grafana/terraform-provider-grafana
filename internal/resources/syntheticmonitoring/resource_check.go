@@ -1589,7 +1589,10 @@ func resourceCheckCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, 
 	if len(settingsList) == 0 {
 		return fmt.Errorf("at least one check setting must be defined")
 	}
-	settings := settingsList[0].(map[string]interface{})
+	settings, ok := settingsList[0].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("at least one check setting must be defined")
+	}
 
 	count := 0
 	for k := range syntheticMonitoringCheckSettings.Schema {
