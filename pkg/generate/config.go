@@ -35,6 +35,7 @@ type CloudConfig struct {
 type TerraformInstallConfig struct {
 	InstallDir string
 	Version    *version.Version
+	PluginDir  string
 }
 
 type Config struct {

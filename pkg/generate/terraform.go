@@ -65,7 +65,14 @@ func setupTerraform(cfg *Config) (*tfexec.Terraform, error) {
 		return nil, fmt.Errorf("error running NewTerraform: %s", err)
 	}
 
-	err = tf.Init(context.Background(), tfexec.Upgrade(true))
+	initOptions := []tfexec.InitOption{
+		tfexec.Upgrade(true),
+	}
+	if cfg.TerraformInstallConfig.PluginDir != "" {
+		initOptions = append(initOptions, tfexec.PluginDir(cfg.TerraformInstallConfig.PluginDir))
+	}
+
+	err = tf.Init(context.Background(), initOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("error running Init: %s", err)
 	}
