@@ -36,7 +36,20 @@ source selected (via the 'type' argument).
 		SchemaVersion: 1,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				client, _, idStr := OAPIClientFromExistingOrgResource(meta, d.Id())
+
+				resp, err := client.Datasources.GetDataSourceByUID(idStr)
+				if err != nil {
+					return nil, err
+				}
+
+				if resp.Payload.ReadOnly {
+					return nil, fmt.Errorf("this Grafana data source is read-only. It cannot be imported as a resource. Use the `data_grafana_data_source` data source instead")
+				}
+
+				return schema.ImportStatePassthroughContext(ctx, d, meta)
+			},
 		},
 
 		Schema: map[string]*schema.Schema{
