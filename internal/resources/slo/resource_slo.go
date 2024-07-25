@@ -259,12 +259,14 @@ Resource manages Grafana SLOs.
 var keyvalueSchema = &schema.Resource{
 	Schema: map[string]*schema.Schema{
 		"key": {
-			Type:     schema.TypeString,
-			Required: true,
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: `Key for filtering and identification`,
 		},
 		"value": {
-			Type:     schema.TypeString,
-			Required: true,
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: `Templatable value`,
 		},
 	},
 }

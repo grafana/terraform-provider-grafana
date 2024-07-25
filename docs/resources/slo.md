@@ -218,8 +218,8 @@ Optional:
 
 Required:
 
-- `key` (String)
-- `value` (String)
+- `key` (String) Key for filtering and identification
+- `value` (String) Templatable value
 
 
 <a id="nestedblock--alerting--fastburn"></a>
@@ -235,8 +235,8 @@ Optional:
 
 Required:
 
-- `key` (String)
-- `value` (String)
+- `key` (String) Key for filtering and identification
+- `value` (String) Templatable value
 
 
 <a id="nestedblock--alerting--fastburn--label"></a>
@@ -244,8 +244,8 @@ Required:
 
 Required:
 
-- `key` (String)
-- `value` (String)
+- `key` (String) Key for filtering and identification
+- `value` (String) Templatable value
 
 
 
@@ -254,8 +254,8 @@ Required:
 
 Required:
 
-- `key` (String)
-- `value` (String)
+- `key` (String) Key for filtering and identification
+- `value` (String) Templatable value
 
 
 <a id="nestedblock--alerting--slowburn"></a>
@@ -271,8 +271,8 @@ Optional:
 
 Required:
 
-- `key` (String)
-- `value` (String)
+- `key` (String) Key for filtering and identification
+- `value` (String) Templatable value
 
 
 <a id="nestedblock--alerting--slowburn--label"></a>
@@ -280,8 +280,8 @@ Required:
 
 Required:
 
-- `key` (String)
-- `value` (String)
+- `key` (String) Key for filtering and identification
+- `value` (String) Templatable value
 
 
 
@@ -299,8 +299,8 @@ Optional:
 
 Required:
 
-- `key` (String)
-- `value` (String)
+- `key` (String) Key for filtering and identification
+- `value` (String) Templatable value
 
 ## Import
 
