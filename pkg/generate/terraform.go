@@ -74,7 +74,7 @@ func setupTerraform(cfg *Config) (*tfexec.Terraform, error) {
 
 	err = tf.Init(context.Background(), initOptions...)
 	if err != nil {
-		return nil, fmt.Errorf("error running Init: %s", err)
+		return nil, fmt.Errorf("error running Init: %w", err)
 	}
 
 	return tf, nil

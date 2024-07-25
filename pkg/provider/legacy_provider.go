@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 
 	"fmt"
 	"strings"
@@ -12,6 +14,11 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+var (
+	EnableGenerateEnvVar     = "TF_GENERATE_UNSENSITIVE"
+	EnableGenerateMarkerFile = ".generate-make-all-fields-unsensitive"
 )
 
 func init() {
@@ -135,6 +142,29 @@ func Provider(version string) *schema.Provider {
 		DataSourcesMap: legacySDKDataSources(),
 	}
 
+	if os.Getenv(EnableGenerateEnvVar) != "" {
+		// If TF_GENERATE_UNSENSITIVE envvar is set and there's the "marker file" in the current directory,
+		// generate the provider with all fields marked as non-sensitive.
+		// The Terraform generation feature is overly-aggressive in redacting sensitive fields, it redacts all blocks at the root level.
+		// Security note:
+		// Setting an envvar + creating a marker file in the TF dir means that the user has full control over the TF context.
+		// This means that the user could also read sensitive data from the state, or use the `unsensitive` TF function to read sensitive data.
+		// So, this feature doesn't introduce a new way to extract sensitive data.
+
+		wd, err := os.Getwd()
+		if err != nil {
+			panic(err) // It's ok to panic, this is only meant to be used in the context of the generator.
+		}
+		_, err = os.Stat(filepath.Join(wd, EnableGenerateMarkerFile))
+		if err == nil {
+			for k := range p.ResourcesMap {
+				unsensitive(p.ResourcesMap[k])
+			}
+		} else {
+			fmt.Println("The marker file for generating unsensitive fields is not present, skipping.")
+		}
+	}
+
 	p.ConfigureContextFunc = configure(version, p)
 
 	return p
@@ -210,4 +240,16 @@ func int64ValueOrNull(d *schema.ResourceData, key string) types.Int64 {
 		return types.Int64Value(int64(v.(int)))
 	}
 	return types.Int64Null()
+}
+
+func unsensitive(r *schema.Resource) {
+	for _, s := range r.Schema {
+		s.Sensitive = false
+		if r, ok := s.Elem.(*schema.Resource); ok {
+			unsensitive(r)
+		}
+		if _, ok := s.Elem.(*schema.Schema); ok {
+			s.Elem.(*schema.Schema).Sensitive = false
+		}
+	}
 }

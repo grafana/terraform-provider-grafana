@@ -14,6 +14,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate/postprocessing"
 	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate/utils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/zclconf/go-cty/cty"
@@ -95,6 +96,14 @@ func Generate(ctx context.Context, cfg *Config) GenerationResult {
 		return failuref("failed to create output directory %s: %s", cfg.OutputDir, err)
 	}
 
+	// Enable "unsensitive" mode for the provider
+	os.Setenv(provider.EnableGenerateEnvVar, "true")
+	defer os.Unsetenv(provider.EnableGenerateEnvVar)
+	if err := os.WriteFile(filepath.Join(cfg.OutputDir, provider.EnableGenerateMarkerFile), []byte("unsensitive!"), 0600); err != nil {
+		return failuref("failed to write marker file: %w", err)
+	}
+	defer os.Remove(filepath.Join(cfg.OutputDir, provider.EnableGenerateMarkerFile))
+
 	// Generate provider installation block
 	providerBlock := hclwrite.NewBlock("terraform", nil)
 	requiredProvidersBlock := hclwrite.NewBlock("required_providers", nil)
@@ -104,7 +113,7 @@ func Generate(ctx context.Context, cfg *Config) GenerationResult {
 	}))
 	providerBlock.Body().AppendBlock(requiredProvidersBlock)
 	if err := writeBlocks(filepath.Join(cfg.OutputDir, "provider.tf"), providerBlock); err != nil {
-		log.Fatal(err)
+		return failure(err)
 	}
 
 	tf, err := setupTerraform(cfg)
@@ -304,13 +313,17 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 		return failure(err)
 	}
 	_, err = cfg.Terraform.Plan(ctx, tfexec.GenerateConfigOut(generatedFilename("resources.tf")))
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "Missing required argument") {
 		// If resources.tf was created and is not empty, return the error as a "non-critical" error
 		if stat, statErr := os.Stat(generatedFilename("resources.tf")); statErr == nil && stat.Size() > 0 {
 			returnResult.Errors = append(returnResult.Errors, NonCriticalGenerationFailure{err})
 		} else {
 			return failuref("failed to generate resources: %w", err)
 		}
+	}
+
+	if err := postprocessing.ReplaceNullSensitiveAttributes(generatedFilename("resources.tf")); err != nil {
+		return failure(err)
 	}
 
 	if err := removeOrphanedImports(generatedFilename("imports.tf"), generatedFilename("resources.tf")); err != nil {
