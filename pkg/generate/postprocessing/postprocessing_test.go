@@ -19,7 +19,7 @@ func postprocessingTest(t *testing.T, testFile string, fn func(fpath string)) {
 		tmpFilepath := filepath.Join(t.TempDir(), filepath.Base(testFile))
 		file, err := os.ReadFile(testFile)
 		require.NoError(t, err)
-		require.NoError(t, os.WriteFile(tmpFilepath, file, 0644))
+		require.NoError(t, os.WriteFile(tmpFilepath, file, 0600))
 
 		// Run the postprocessing function
 		fn(tmpFilepath)
