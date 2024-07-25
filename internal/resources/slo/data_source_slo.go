@@ -68,7 +68,7 @@ func datasourceSloRead(ctx context.Context, d *schema.ResourceData, client *slo.
 	return diags
 }
 
-func convertDatasourceSlo(slo slo.Slo) map[string]interface{} {
+func convertDatasourceSlo(slo slo.SloV00Slo) map[string]interface{} {
 	ret := make(map[string]interface{})
 
 	ret["uuid"] = slo.Uuid
@@ -91,7 +91,7 @@ func convertDatasourceSlo(slo slo.Slo) map[string]interface{} {
 	return ret
 }
 
-func unpackQuery(apiquery slo.Query) []map[string]interface{} {
+func unpackQuery(apiquery slo.SloV00Query) []map[string]interface{} {
 	retQuery := []map[string]interface{}{}
 
 	if apiquery.Type == QueryTypeFreeform {
@@ -124,7 +124,7 @@ func unpackQuery(apiquery slo.Query) []map[string]interface{} {
 	return retQuery
 }
 
-func unpackObjectives(objectives []slo.Objective) []map[string]interface{} {
+func unpackObjectives(objectives []slo.SloV00Objective) []map[string]interface{} {
 	retObjectives := []map[string]interface{}{}
 
 	for _, objective := range objectives {
@@ -140,22 +140,22 @@ func unpackObjectives(objectives []slo.Objective) []map[string]interface{} {
 func unpackLabels(labelsInterface interface{}) []map[string]interface{} {
 	retLabels := []map[string]interface{}{}
 
-	var labels []slo.Label
+	var labels []slo.SloV00Label
 	switch v := labelsInterface.(type) {
-	case *[]slo.Label:
+	case *[]slo.SloV00Label:
 		labels = *v
-	case []slo.Label:
+	case []slo.SloV00Label:
 		labels = v
 	case []interface{}:
 		for _, labelInterface := range v {
 			switch v := labelInterface.(type) {
 			case map[string]interface{}:
-				label := slo.Label{
+				label := slo.SloV00Label{
 					Key:   v["key"].(string),
 					Value: v["value"].(string),
 				}
 				labels = append(labels, label)
-			case slo.Label:
+			case slo.SloV00Label:
 				labels = append(labels, v)
 			}
 		}
@@ -170,7 +170,7 @@ func unpackLabels(labelsInterface interface{}) []map[string]interface{} {
 	return retLabels
 }
 
-func unpackAlerting(alertData *slo.Alerting) []map[string]interface{} {
+func unpackAlerting(alertData *slo.SloV00Alerting) []map[string]interface{} {
 	retAlertData := []map[string]interface{}{}
 
 	if alertData == nil {
@@ -193,7 +193,7 @@ func unpackAlerting(alertData *slo.Alerting) []map[string]interface{} {
 	return retAlertData
 }
 
-func unpackAlertingMetadata(metaData slo.AlertingMetadata) []map[string]interface{} {
+func unpackAlertingMetadata(metaData slo.SloV00AlertingMetadata) []map[string]interface{} {
 	retAlertMetaData := []map[string]interface{}{}
 	labelsAnnotsStruct := make(map[string]interface{})
 
@@ -211,7 +211,7 @@ func unpackAlertingMetadata(metaData slo.AlertingMetadata) []map[string]interfac
 	return retAlertMetaData
 }
 
-func unpackDestinationDatasource(destinationDatasource *slo.DestinationDatasource) []map[string]interface{} {
+func unpackDestinationDatasource(destinationDatasource *slo.SloV00DestinationDatasource) []map[string]interface{} {
 	retDestinationDatasources := []map[string]interface{}{}
 
 	retDestinationDatasource := make(map[string]interface{})
