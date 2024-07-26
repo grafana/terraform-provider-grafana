@@ -566,11 +566,10 @@ var testConfigsWithValidationErrors = []string{
     api_url  = "https://login.microsoftonline.com/12345/oauth2/v2.0/userinfo"
   }
 }`,
-	// certificate and certificate_path are both configured for saml
+	// mixed path and value are configured for saml for certificate and private_key
 	`resource "grafana_sso_settings" "saml_sso_settings" {
   provider_name = "saml"
   saml_settings {
-    certificate = "this-is-a-valid-certificate"
     certificate_path = "/valid/certificate/path"
     private_key = "this-is-a-valid-private-key"
     idp_metadata_path = "/path/to/metadata"
@@ -584,7 +583,7 @@ var testConfigsWithValidationErrors = []string{
     private_key = "this-is-a-valid-private-key"
   }
 }`,
-	// missing value value for client_secret
+	// missing value for client_secret
 	`resource "grafana_sso_settings" "saml_sso_settings" {
 	provider_name = "saml"
 	saml_settings {
