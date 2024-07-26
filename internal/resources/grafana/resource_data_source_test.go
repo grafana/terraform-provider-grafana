@@ -426,6 +426,24 @@ func TestAccDataSource_SeparateConfig(t *testing.T) {
 	})
 }
 
+func TestAccDataSource_ImportReadOnly(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:            `resource "grafana_data_source" "prometheus" {}`,
+				ImportState:       true,
+				ResourceName:      "grafana_data_source.prometheus",
+				ImportStateVerify: true,
+				ImportStateId:     "grafanacloud-prom",
+				ExpectError:       regexp.MustCompile("this Grafana data source is read-only. It cannot be imported as a resource. Use the `data_grafana_data_source` data source instead"),
+			},
+		},
+	})
+}
+
 func testAccDatasourceInOrganization(orgName string) string {
 	return fmt.Sprintf(`
 resource "grafana_organization" "test" {
