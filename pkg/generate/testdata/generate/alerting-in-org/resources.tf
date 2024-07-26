@@ -1,6 +1,41 @@
 # __generated__ by Terraform
 # Please review these resources and move them into your main configuration files.
 
+# __generated__ by Terraform from "1:email receiver"
+resource "grafana_contact_point" "_1_email_receiver" {
+  disable_provenance = true
+  name               = "email receiver"
+  email {
+    addresses               = ["<example@email.com>"]
+    disable_resolve_message = false
+    single_email            = false
+  }
+}
+
+# __generated__ by Terraform from "2:email receiver"
+resource "grafana_contact_point" "_2_email_receiver" {
+  disable_provenance = true
+  name               = "email receiver"
+  org_id             = grafana_organization._2.id
+  email {
+    addresses               = ["<example@email.com>"]
+    disable_resolve_message = false
+    single_email            = false
+  }
+}
+
+# __generated__ by Terraform from "2:my-contact-point"
+resource "grafana_contact_point" "_2_my-contact-point" {
+  disable_provenance = false
+  name               = "my-contact-point"
+  org_id             = grafana_organization._2.id
+  email {
+    addresses               = ["hello@example.com"]
+    disable_resolve_message = false
+    single_email            = false
+  }
+}
+
 # __generated__ by Terraform from "2:alert-rule-folder"
 resource "grafana_folder" "_2_alert-rule-folder" {
   org_id = grafana_organization._2.id
@@ -41,7 +76,7 @@ resource "grafana_notification_policy" "_1_policy" {
 
 # __generated__ by Terraform from "2:policy"
 resource "grafana_notification_policy" "_2_policy" {
-  contact_point      = "my-contact-point"
+  contact_point      = grafana_contact_point._2_my-contact-point.name
   disable_provenance = false
   group_by           = ["..."]
   org_id             = grafana_organization._2.id

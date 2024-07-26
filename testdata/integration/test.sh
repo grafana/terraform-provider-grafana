@@ -54,6 +54,8 @@ ${REPO_ROOT}/terraform-provider-grafana-generate \
   --grafana-auth "admin:admin" \
   --clobber \
   --output-dir ${SCRIPT_DIR}/generated \
+  --include-resources "grafana_folder.*" \
+  --include-resources "grafana_team.*" \
   --output-credentials
 
 ${REPO_ROOT}/terraform-provider-grafana-generate \
@@ -63,6 +65,8 @@ ${REPO_ROOT}/terraform-provider-grafana-generate \
   --clobber \
   --output-dir ${SCRIPT_DIR}/generated-json \
   --output-format json \
+  --include-resources "grafana_folder.*" \
+  --include-resources "grafana_team.*" \
   --output-credentials
 
 # Test the generated code

@@ -1,6 +1,17 @@
 # __generated__ by Terraform
 # Please review these resources and move them into your main configuration files.
 
+# __generated__ by Terraform from "1:email receiver"
+resource "grafana_contact_point" "_1_email_receiver" {
+  disable_provenance = true
+  name               = "email receiver"
+  email {
+    addresses               = ["<example@email.com>"]
+    disable_resolve_message = false
+    single_email            = false
+  }
+}
+
 # __generated__ by Terraform from "1:my-dashboard-uid"
 resource "grafana_dashboard" "_1_my-dashboard-uid" {
   config_json = jsonencode({
@@ -25,4 +36,12 @@ resource "grafana_notification_policy" "_1_policy" {
 
 # __generated__ by Terraform from "1"
 resource "grafana_organization_preferences" "_1" {
+}
+
+# __generated__ by Terraform
+resource "grafana_user" "_1" {
+  email    = "admin@localhost"
+  is_admin = true
+  login    = "admin"
+  password = "SENSITIVE_VALUE_TO_REPLACE"
 }
