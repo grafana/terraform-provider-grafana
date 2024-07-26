@@ -3,68 +3,43 @@ package provider
 import (
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreateTempFileIfLiteral(t *testing.T) {
 	t.Run("Test with empty string value returns empty and does not create temp file", func(t *testing.T) {
 		path, tempFile, err := createTempFileIfLiteral("")
-		if err != nil {
-			t.Fatalf("Expected no error, got %v", err)
-		}
-		if tempFile {
-			t.Fatalf("Expected tempFile to be false, got %v", tempFile)
-		}
-		if path != "" {
-			t.Fatalf("Expected empty path, got %v", path)
-		}
+		require.NoError(t, err)
+		require.False(t, tempFile, "Expected temp file to not be created")
+		require.Empty(t, path)
 	})
 	t.Run("Test file path returns given path and does not create a temp file", func(t *testing.T) {
 		// Create a temporary file to simulate an existing file
-		tmp, err := os.CreateTemp("", "existing-file")
-		if err != nil {
-			t.Fatalf("Failed to create file for test, error: %v", err)
-		}
-		defer os.Remove(tmp.Name())
+		tmp, err := os.CreateTemp(t.TempDir(), "existing-file")
+		require.NoError(t, err)
 
 		path, tempFile, err := createTempFileIfLiteral(tmp.Name())
-		if err != nil {
-			t.Fatalf("Expected no error, got %v", err)
-		}
-		if tempFile {
-			t.Fatalf("Expected tempFile to be false, got %v", tempFile)
-		}
-		if path != tmp.Name() {
-			t.Fatalf("Expected path to be '%s', got '%s'", tmp.Name(), path)
-		}
+		require.NoError(t, err)
+		require.False(t, tempFile, "Expected temp file to not be created")
+		require.Equal(t, tmp.Name(), path)
 	})
 
 	t.Run("Test with short literal creates temp file and path", func(t *testing.T) {
 		caCert := "certTest"
 
 		path, tempFile, err := createTempFileIfLiteral(caCert)
-		if err != nil {
-			t.Fatalf("Expected no error, got %v", err)
-		}
-		if !tempFile {
-			t.Fatalf("Expected tempFile to be true, got %v", tempFile)
-		}
-		if path == "" {
-			t.Fatalf("Expected a file path, got an empty string")
-		}
+		require.NoError(t, err)
+		require.True(t, tempFile, "Expected temp file to be created")
+		require.NotEmpty(t, path)
 
 		// Validate the file was created and has the correct content
 		content, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatalf("Expected to read the file, got %v", err)
-		}
-		if string(content) != caCert {
-			t.Fatalf("Expected file content to be '%s', got '%s'", caCert, string(content))
-		}
+		require.NoError(t, err)
+		require.Equal(t, caCert, string(content))
 
 		// Clean up the temporary file
-		if err := os.Remove(path); err != nil {
-			t.Fatalf("Expected to delete the file, got %v", err)
-		}
+		require.NoError(t, os.Remove(path))
 	})
 
 	t.Run("Test with a certificate literal creates temp file and path", func(t *testing.T) {
@@ -101,28 +76,16 @@ func TestCreateTempFileIfLiteral(t *testing.T) {
     -----END CERTIFICATE-----`
 
 		path, tempFile, err := createTempFileIfLiteral(caCert)
-		if err != nil {
-			t.Fatalf("Expected no error, got %v", err)
-		}
-		if !tempFile {
-			t.Fatalf("Expected tempFile to be true, got %v", tempFile)
-		}
-		if path == "" {
-			t.Fatalf("Expected a file path, got an empty string")
-		}
+		require.NoError(t, err)
+		require.True(t, tempFile, "Expected temp file to be created")
+		require.NotEmpty(t, path)
 
 		// Check if the file exists and has the correct content
 		content, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatalf("Expected to read the file, got %v", err)
-		}
-		if string(content) != caCert {
-			t.Fatalf("Expected file content to be '%s', got '%s'", caCert, string(content))
-		}
+		require.NoError(t, err)
+		require.Equal(t, caCert, string(content))
 
 		// Clean up the temporary file
-		if err := os.Remove(path); err != nil {
-			t.Fatalf("Expected to delete the file, got %v", err)
-		}
+		require.NoError(t, os.Remove(path))
 	})
 }
