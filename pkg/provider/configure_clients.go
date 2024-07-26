@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"syscall"
 	"time"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
@@ -190,7 +191,7 @@ func createTempFileIfLiteral(value string) (path string, tempFile bool, err erro
 		return "", false, nil
 	}
 
-	if _, err := os.Stat(value); errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(value); errors.Is(err, os.ErrNotExist) || errors.Is(err, syscall.ENAMETOOLONG) {
 		// value is not a file path, assume it's a literal
 		f, err := os.CreateTemp("", "grafana-provider-tls")
 		if err != nil {
