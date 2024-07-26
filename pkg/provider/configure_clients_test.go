@@ -4,6 +4,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -88,4 +91,54 @@ func TestCreateTempFileIfLiteral(t *testing.T) {
 		// Clean up the temporary file
 		require.NoError(t, os.Remove(path))
 	})
+}
+
+func TestCreateClients(t *testing.T) {
+	testCases := []struct {
+		name     string
+		config   ProviderConfig
+		expected func(c *common.Client, err error)
+	}{
+		{
+			name: "http with Grafana Cloud",
+			config: ProviderConfig{
+				URL:  types.StringValue("http://myinstance.grafana.net"),
+				Auth: types.StringValue("myapikey"),
+			},
+			expected: func(c *common.Client, err error) {
+				assert.EqualError(t, err, "http not supported in Grafana Cloud. Use the https scheme")
+			},
+		},
+		{
+			name: "https with Grafana Cloud",
+			config: ProviderConfig{
+				URL:  types.StringValue("https://myinstance.grafana.net"),
+				Auth: types.StringValue("myapikey"),
+			},
+			expected: func(c *common.Client, err error) {
+				assert.Nil(t, err)
+				assert.NotNil(t, c.GrafanaAPI)
+				assert.NotNil(t, c.MLAPI)
+				assert.NotNil(t, c.SLOClient)
+			},
+		},
+		{
+			name: "http with Grafana OSS",
+			config: ProviderConfig{
+				URL:  types.StringValue("http://localhost:3000"),
+				Auth: types.StringValue("admin:admin"),
+			},
+			expected: func(c *common.Client, err error) {
+				assert.Nil(t, err)
+				assert.NotNil(t, c.GrafanaAPI)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			c, err := CreateClients(tc.config)
+			tc.expected(c, err)
+		})
+	}
 }

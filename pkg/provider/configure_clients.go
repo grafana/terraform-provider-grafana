@@ -75,6 +75,11 @@ func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig
 	if err != nil {
 		return fmt.Errorf("failed to parse API url: %v", err.Error())
 	}
+
+	if client.GrafanaAPIURLParsed.Scheme == "http" && strings.Contains(client.GrafanaAPIURLParsed.Host, "grafana.net") {
+		return fmt.Errorf("http not supported in Grafana Cloud. Use the https scheme")
+	}
+
 	apiPath, err := url.JoinPath(client.GrafanaAPIURLParsed.Path, "api")
 	if err != nil {
 		return fmt.Errorf("failed to join API path: %v", err.Error())
