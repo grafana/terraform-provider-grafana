@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
@@ -115,13 +116,12 @@ func resourceAPIKeyCreate(ctx context.Context, d *schema.ResourceData, c *gcom.A
 }
 
 func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, c *gcom.APIClient) diag.Diagnostics {
-	split, err := resourceAPIKeyID.Split(d.Id())
+	org, name, err := resourceAPIKeySplitID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	org, name := split[0], split[1]
 
-	resp, _, err := c.OrgsAPI.GetApiKey(ctx, name.(string), org.(string)).Execute()
+	resp, _, err := c.OrgsAPI.GetApiKey(ctx, name, org).Execute()
 	if err != nil {
 		return apiError(err)
 	}
@@ -135,13 +135,27 @@ func resourceAPIKeyRead(ctx context.Context, d *schema.ResourceData, c *gcom.API
 }
 
 func resourceAPIKeyDelete(ctx context.Context, d *schema.ResourceData, c *gcom.APIClient) diag.Diagnostics {
-	split, err := resourceAPIKeyID.Split(d.Id())
+	org, name, err := resourceAPIKeySplitID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	org, name := split[0], split[1]
 
-	_, err = c.OrgsAPI.DelApiKey(ctx, name.(string), org.(string)).XRequestId(ClientRequestID()).Execute()
+	_, err = c.OrgsAPI.DelApiKey(ctx, name, org).XRequestId(ClientRequestID()).Execute()
 	d.SetId("")
 	return apiError(err)
+}
+
+func resourceAPIKeySplitID(id string) (string, string, error) {
+	var org, name string
+	if strings.Contains(id, common.ResourceIDSeparator) {
+		split, err := resourceAPIKeyID.Split(id)
+		if err != nil {
+			return "", "", err
+		}
+		org, name = split[0].(string), split[1].(string)
+	} else {
+		splitID := strings.SplitN(id, "-", 2)
+		org, name = splitID[0], splitID[1]
+	}
+	return org, name, nil
 }
