@@ -55,6 +55,14 @@ func TestAccCloudApiKey_Basic(t *testing.T) {
 						ImportStateVerify:       true,
 						ImportStateVerifyIgnore: []string{"key"},
 					},
+					// Test import/read with the ID format from version 2.12.2 and earlier
+					{
+						ResourceName:            "grafana_cloud_api_key.test",
+						ImportState:             true,
+						ImportStateVerify:       true,
+						ImportStateVerifyIgnore: []string{"key"},
+						ImportStateId:           fmt.Sprintf("%s-%s", os.Getenv("GRAFANA_CLOUD_ORG"), resourceName),
+					},
 				},
 			})
 		})
@@ -99,7 +107,7 @@ func testAccDeleteExistingCloudAPIKeys(t *testing.T, prefix string) {
 
 	for _, key := range resp.Items {
 		if strings.HasPrefix(key.Name, prefix) {
-			_, err := client.OrgsAPI.DelApiKey(context.Background(), org, key.Name).XRequestId(cloud.ClientRequestID()).Execute()
+			_, err := client.OrgsAPI.DelApiKey(context.Background(), key.Name, org).XRequestId(cloud.ClientRequestID()).Execute()
 			if err != nil {
 				t.Error(err)
 			}
