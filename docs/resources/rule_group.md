@@ -145,7 +145,8 @@ Optional:
 - `labels` (Map of String) Key-value pairs to attach to the alert rule that can be used in matching, grouping, and routing. Defaults to `map[]`.
 - `no_data_state` (String) Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, KeepLast, and Alerting. Defaults to `NoData`.
 - `notification_settings` (Block List, Max: 1) Notification settings for the rule. If specified, it overrides the notification policies. Available since Grafana 10.4, requires feature flag 'alertingSimplifiedRouting' to be enabled. (see [below for nested schema](#nestedblock--rule--notification_settings))
-- `record` (Block List, Max: 1) Settings for a recording rule. If specified, the rule is treated as a recording rule. Available since Grafana 11.2, requires feature flag `grafanaManagedRecordingRules` to be enabled. (see [below for nested schema](#nestedblock--rule--record))
+- `record` (Block List, Max: 1) Settings for a recording rule. Available since Grafana 11.2, requires feature flag 'grafanaManagedRecordingRules' to be enabled. (see [below for nested schema](#nestedblock--rule--record))
+
 Read-Only:
 
 - `uid` (String) The unique identifier of the alert rule.
@@ -189,13 +190,14 @@ Optional:
 - `mute_timings` (List of String) A list of mute timing names to apply to alerts that match this policy.
 - `repeat_interval` (String) Minimum time interval for re-sending a notification if an alert is still firing. Default is 4 hours.
 
+
 <a id="nestedblock--rule--record"></a>
 ### Nested Schema for `rule.record`
 
 Required:
 
+- `from` (String) The ref id of the query node in the data field to use as the source of the metric.
 - `metric` (String) The name of the metric to write to.
-- `from` (String) The ref id of the node in the data field to use as the source of the metric.
 
 ## Import
 
