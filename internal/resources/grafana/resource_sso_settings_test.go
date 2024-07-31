@@ -595,4 +595,36 @@ var testConfigsWithValidationErrors = []string{
 		token_url = "https://myidp.com/oauth/token"
 	}
 }`,
+	// org_attribute_path is not empty for AzureAD
+	`resource "grafana_sso_settings" "azure_sso_settings" {
+		provider_name = "azuread"
+		oauth2_settings {
+			client_id = "client_id"
+			auth_url  = "https://login.microsoftonline.com/12345/oauth2/v2.0/authorize"
+			token_url = "https://login.microsoftonline.com/12345/oauth2/v2.0/token"
+			org_attribute_path = "org"
+		}
+	}`,
+	// org_mapping is configured but org_attribute_path is missing for Okta
+	`resource "grafana_sso_settings" "okta_sso_settings" {
+  		provider_name = "okta"
+  		oauth2_settings {
+    		client_id = "client_id"
+    		auth_url  = "https://tenantid123.okta.com/oauth2/v1/auth"
+    		token_url = "https://tenantid123.okta.com/oauth2/v1/token"
+			api_url = "https://tenantid123.okta.com/oauth2/v1/userinfo"
+			org_mapping = "[\"Group A:1:Editor\",\"Group A:2:Admin\"]"
+  		}
+	}`,
+	// org_attribute_path is configured but org_mapping is missing for Generic OAuth
+	`resource "grafana_sso_settings" "generic_oauth_sso_settings" {
+		provider_name = "generic_oauth"
+		oauth2_settings {
+		  client_id = "client_id"
+		  auth_url  = "https://tenantid123.okta.com/oauth2/v1/auth"
+		  token_url = "https://tenantid123.okta.com/oauth2/v1/token"
+		  api_url = "https://tenantid123.okta.com/oauth2/v1/userinfo"
+		  org_attribute_path = "groups"
+		}
+  }`,
 }

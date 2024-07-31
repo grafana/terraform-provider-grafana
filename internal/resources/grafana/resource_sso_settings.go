@@ -706,6 +706,7 @@ var validationsByProvider = map[string][]validateFunc{
 		ssoValidateURL("auth_url"),
 		ssoValidateURL("token_url"),
 		ssoValidateURL("api_url"),
+		ssoValidateInterdependencyXOR("org_attribute_path", "org_mapping"),
 	},
 	"okta": {
 		ssoValidateNotEmpty("auth_url"),
@@ -714,6 +715,7 @@ var validationsByProvider = map[string][]validateFunc{
 		ssoValidateURL("auth_url"),
 		ssoValidateURL("token_url"),
 		ssoValidateURL("api_url"),
+		ssoValidateInterdependencyXOR("org_attribute_path", "org_mapping"),
 	},
 	"github": {
 		ssoValidateEmpty("auth_url"),
