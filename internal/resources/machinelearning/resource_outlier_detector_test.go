@@ -39,6 +39,7 @@ func TestAccResourceOutlierDetector(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_mad_outlier_detector", "interval", "300"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_mad_outlier_detector", "algorithm.0.name", "mad"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_outlier_detector.my_mad_outlier_detector", "algorithm.0.sensitivity", "0.7"),
+					testutils.CheckLister("grafana_machine_learning_outlier_detector.my_mad_outlier_detector"),
 				),
 			},
 			{

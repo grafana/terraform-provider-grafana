@@ -54,6 +54,8 @@ ${REPO_ROOT}/terraform-provider-grafana-generate \
   --grafana-auth "admin:admin" \
   --clobber \
   --output-dir ${SCRIPT_DIR}/generated \
+  --include-resources "grafana_folder.*" \
+  --include-resources "grafana_team.*" \
   --output-credentials
 
 ${REPO_ROOT}/terraform-provider-grafana-generate \
@@ -63,12 +65,14 @@ ${REPO_ROOT}/terraform-provider-grafana-generate \
   --clobber \
   --output-dir ${SCRIPT_DIR}/generated-json \
   --output-format json \
+  --include-resources "grafana_folder.*" \
+  --include-resources "grafana_team.*" \
   --output-credentials
 
 # Test the generated code
 for dir in "generated" "generated-json" ; do
   cd ${SCRIPT_DIR}/${dir}
-  terraform plan > plan.out
+  terraform plan | tee plan.out
   # Expect a folder called "My Folder" and no changes in the plan
   grep "My Folder" plan.out || (echo "Expected a folder called 'My Folder'" && exit 1)
   grep ' to import, 0 to add, 0 to change, 0 to destroy' plan.out || (echo "Expected no changes in the plan" && exit 1)

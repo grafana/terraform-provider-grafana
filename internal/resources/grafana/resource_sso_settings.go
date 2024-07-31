@@ -734,8 +734,8 @@ var validationsByProvider = map[string][]validateFunc{
 		ssoValidateEmpty("org_attribute_path"),
 	},
 	"saml": {
-		ssoValidateOnlyOneOf("certificate", "certificate_path"),
-		ssoValidateOnlyOneOf("private_key", "private_key_path"),
+		ssoValidateInterdependencyXOR("certificate", "private_key"),
+		ssoValidateInterdependencyXOR("certificate_path", "private_key_path"),
 		ssoValidateOnlyOneOf("idp_metadata", "idp_metadata_path", "idp_metadata_url"),
 		ssoValidateURL("idp_metadata_url"),
 		ssoValidateInterdependencyXOR("client_id", "client_secret", "token_url"),
@@ -923,7 +923,7 @@ func ssoValidateInterdependencyXOR(keys ...string) validateFunc {
 		}
 
 		if configuredKeys != len(keys) && nonConfiguredKeys != len(keys) {
-			return fmt.Errorf("all varialbes in %v must be configured or empty for provider %s", keys, provider)
+			return fmt.Errorf("all variables in %v must be configured or empty for provider %s", keys, provider)
 		}
 
 		return nil

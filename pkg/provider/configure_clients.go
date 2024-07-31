@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"syscall"
 	"time"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
@@ -74,6 +75,11 @@ func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig
 	if err != nil {
 		return fmt.Errorf("failed to parse API url: %v", err.Error())
 	}
+
+	if client.GrafanaAPIURLParsed.Scheme == "http" && strings.Contains(client.GrafanaAPIURLParsed.Host, "grafana.net") {
+		return fmt.Errorf("http not supported in Grafana Cloud. Use the https scheme")
+	}
+
 	apiPath, err := url.JoinPath(client.GrafanaAPIURLParsed.Path, "api")
 	if err != nil {
 		return fmt.Errorf("failed to join API path: %v", err.Error())
@@ -128,14 +134,17 @@ func createMLClient(client *common.Client, providerConfig ProviderConfig) error 
 }
 
 func createSLOClient(client *common.Client, providerConfig ProviderConfig) error {
+	var err error
+
 	sloConfig := slo.NewConfiguration()
 	sloConfig.Host = client.GrafanaAPIURLParsed.Host
 	sloConfig.Scheme = client.GrafanaAPIURLParsed.Scheme
+	sloConfig.DefaultHeader, err = getHTTPHeadersMap(providerConfig)
 	sloConfig.DefaultHeader["Authorization"] = "Bearer " + providerConfig.Auth.ValueString()
-	sloConfig.DefaultHeader["Grafana-Terraform-Provider"] = "true"
 	sloConfig.HTTPClient = getRetryClient(providerConfig)
 	client.SLOClient = slo.NewAPIClient(sloConfig)
-	return nil
+
+	return err
 }
 
 func createCloudClient(client *common.Client, providerConfig ProviderConfig) error {
@@ -167,7 +176,10 @@ func createOnCallClient(providerConfig ProviderConfig) (*onCallAPI.Client, error
 // Sets a custom HTTP Header on all requests coming from the Grafana Terraform Provider to Grafana-Terraform-Provider: true
 // in addition to any headers set within the `http_headers` field or the `GRAFANA_HTTP_HEADERS` environment variable
 func getHTTPHeadersMap(providerConfig ProviderConfig) (map[string]string, error) {
-	headers := map[string]string{"Grafana-Terraform-Provider": "true"}
+	headers := map[string]string{
+		"Grafana-Terraform-Provider":         "true",
+		"Grafana-Terraform-Provider-Version": providerConfig.Version.ValueString(),
+	}
 	for k, v := range providerConfig.HTTPHeaders.Elements() {
 		if vString, ok := v.(types.String); ok {
 			headers[k] = vString.ValueString()
@@ -184,7 +196,7 @@ func createTempFileIfLiteral(value string) (path string, tempFile bool, err erro
 		return "", false, nil
 	}
 
-	if _, err := os.Stat(value); errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(value); errors.Is(err, os.ErrNotExist) || errors.Is(err, syscall.ENAMETOOLONG) {
 		// value is not a file path, assume it's a literal
 		f, err := os.CreateTemp("", "grafana-provider-tls")
 		if err != nil {
@@ -207,9 +219,12 @@ func parseAuth(providerConfig ProviderConfig) (*url.Userinfo, int64, string, err
 	var orgID int64 = 1
 
 	if len(auth) == 2 {
-		return url.UserPassword(auth[0], auth[1]), orgID, "", nil
+		user := strings.TrimSpace(auth[0])
+		pass := strings.TrimSpace(auth[1])
+		return url.UserPassword(user, pass), orgID, "", nil
 	} else if auth[0] != "anonymous" {
-		return nil, 0, auth[0], nil
+		apiKey := strings.TrimSpace(auth[0])
+		return nil, 0, apiKey, nil
 	}
 	return nil, 0, "", nil
 }

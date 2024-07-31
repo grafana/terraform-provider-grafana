@@ -37,6 +37,7 @@ func TestAccMuteTiming_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.years.0", "2030"),
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.years.1", "2025:2026"),
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.location", "America/New_York"),
+					testutils.CheckLister("grafana_mute_timing.my_mute_timing"),
 				),
 			},
 			// Test import.

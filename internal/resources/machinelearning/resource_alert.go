@@ -115,6 +115,9 @@ func (r *alertResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 			"id": schema.StringAttribute{
 				Description: "The ID of the alert.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"title": schema.StringAttribute{
 				Description: "The title of the alert.",
@@ -147,7 +150,7 @@ func (r *alertResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				Computed:    true,
 				Default:     stringdefault.StaticString("0s"),
 				Validators: []validator.String{
-					maxDuration(12 * time.Hour),
+					maxDuration(24 * time.Hour),
 				},
 			},
 			"labels": schema.MapAttribute{
@@ -341,9 +344,9 @@ func (r *alertResource) read(ctx context.Context, model resourceAlertModel) (*re
 		err   error
 	)
 	if model.JobID.ValueString() != "" {
-		alert, err = r.mlapi.JobAlert(ctx, model.JobID.ValueString(), model.ID.String())
+		alert, err = r.mlapi.JobAlert(ctx, model.JobID.ValueString(), model.ID.ValueString())
 	} else {
-		alert, err = r.mlapi.OutlierAlert(ctx, model.OutlierID.ValueString(), model.ID.String())
+		alert, err = r.mlapi.OutlierAlert(ctx, model.OutlierID.ValueString(), model.ID.ValueString())
 	}
 	if err != nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Unable to read resource", err.Error())}

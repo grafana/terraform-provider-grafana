@@ -1,5 +1,22 @@
 {
   "resource": {
+    "grafana_contact_point": {
+      "_1_email_receiver": [
+        {
+          "disable_provenance": true,
+          "email": [
+            {
+              "addresses": [
+                "\u003cexample@email.com\u003e"
+              ],
+              "disable_resolve_message": false,
+              "single_email": false
+            }
+          ],
+          "name": "email receiver"
+        }
+      ]
+    },
     "grafana_dashboard": {
       "_1_my-dashboard-uid": [
         {
@@ -31,6 +48,16 @@
     "grafana_organization_preferences": {
       "_1": [
         {}
+      ]
+    },
+    "grafana_user": {
+      "_1": [
+        {
+          "email": "admin@localhost",
+          "is_admin": true,
+          "login": "admin",
+          "password": "SENSITIVE_VALUE_TO_REPLACE"
+        }
       ]
     }
   }

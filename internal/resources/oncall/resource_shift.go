@@ -292,6 +292,12 @@ func resourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, clie
 	rollingUsersData, rollingUsersOk := d.GetOk(rollingUsers)
 	if rollingUsersOk {
 		if typeData == rollingUsers {
+			listSet := rollingUsersData.([]interface{})
+			for _, set := range listSet {
+				if set == nil {
+					return diag.Errorf("`rolling_users` can not include an empty group")
+				}
+			}
 			rollingUsersDataSlice := common.ListOfSetsToStringSlice(rollingUsersData.([]interface{}))
 			createOptions.RollingUsers = &rollingUsersDataSlice
 		} else {
@@ -419,6 +425,12 @@ func resourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, clie
 	rollingUsersData, rollingUsersOk := d.GetOk(rollingUsers)
 	if rollingUsersOk {
 		if typeData == rollingUsers {
+			listSet := rollingUsersData.([]interface{})
+			for _, set := range listSet {
+				if set == nil {
+					return diag.Errorf("`rolling_users` can not include an empty group")
+				}
+			}
 			rollingUsersDataSlice := common.ListOfSetsToStringSlice(rollingUsersData.([]interface{}))
 			updateOptions.RollingUsers = &rollingUsersDataSlice
 		} else {

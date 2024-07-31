@@ -54,6 +54,7 @@ func TestAccResourceReport_Multiple_Dashboards(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.1.time_range.0.from", ""),
 					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.1.time_range.0.to", ""),
 					resource.TestCheckResourceAttr("grafana_report.test", "dashboards.1.uid", randomUID2),
+					testutils.CheckLister("grafana_report.test"),
 				),
 			},
 		},

@@ -91,7 +91,7 @@ This resource requires Grafana 9.1.0 or later.
 		"grafana_notification_policy",
 		orgResourceIDString("anyString"),
 		schema,
-	).WithLister(listerFunction(listNotificationPolicies))
+	).WithLister(listerFunctionOrgResource(listNotificationPolicies))
 }
 
 // The maximum depth of policy tree that the provider supports, as Terraform does not allow for infinitely recursive schemas.
@@ -191,34 +191,25 @@ func policySchema(depth uint) *schema.Resource {
 	return resource
 }
 
-func listNotificationPolicies(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
-	orgIDs, err := data.OrgIDs(client)
-	if err != nil {
+func listNotificationPolicies(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	var ids []string
+	// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+	// The alertmanager is provisioned asynchronously when the org is created.
+	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		_, err := client.Provisioning.GetPolicyTree()
+		if err != nil {
+			if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+
+		return nil
+	}); err != nil {
 		return nil, err
 	}
 
-	var ids []string
-	for _, orgID := range orgIDs {
-		client = client.Clone().WithOrgID(orgID)
-
-		// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
-		// The alertmanager is provisioned asynchronously when the org is created.
-		if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-			_, err := client.Provisioning.GetPolicyTree()
-			if err != nil {
-				if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
-					return retry.RetryableError(err)
-				}
-				return retry.NonRetryableError(err)
-			}
-
-			return nil
-		}); err != nil {
-			return nil, err
-		}
-
-		ids = append(ids, MakeOrgResourceID(orgID, PolicySingletonID))
-	}
+	ids = append(ids, MakeOrgResourceID(orgID, PolicySingletonID))
 
 	return ids, nil
 }

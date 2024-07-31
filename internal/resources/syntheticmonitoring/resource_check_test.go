@@ -43,6 +43,7 @@ func TestAccResourceCheck_dns(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "settings.0.dns.0.port", "53"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "settings.0.dns.0.record_type", "A"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "settings.0.dns.0.protocol", "UDP"),
+					testutils.CheckLister("grafana_synthetic_monitoring_check.dns"),
 				),
 			},
 			{
@@ -71,6 +72,11 @@ func TestAccResourceCheck_dns(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "settings.0.dns.0.validate_additional_rrs.0.fail_if_matches_regexp.0", ".+-bad-stuff*"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "settings.0.dns.0.validate_additional_rrs.0.fail_if_not_matches_regexp.0", ".+-good-stuff*"),
 				),
+			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.dns",
 			},
 		},
 	})
@@ -136,6 +142,11 @@ func TestAccResourceCheck_http(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_header_matches_regexp.0.allow_missing", "true"),
 				),
 			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.http",
+			},
 		},
 	})
 }
@@ -180,6 +191,11 @@ func TestAccResourceCheck_ping(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.ping", "settings.0.ping.0.payload_size", "20"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.ping", "settings.0.ping.0.dont_fragment", "true"),
 				),
+			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.ping",
 			},
 		},
 	})
@@ -232,6 +248,11 @@ func TestAccResourceCheck_tcp(t *testing.T) {
 					resource.TestMatchResourceAttr("grafana_synthetic_monitoring_check.tcp", "settings.0.tcp.0.tls_config.0.ca_cert", regexp.MustCompile((`^-{5}BEGIN CERTIFICATE`))),
 				),
 			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.tcp",
+			},
 		},
 	})
 }
@@ -278,6 +299,11 @@ func TestAccResourceCheck_traceroute(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "settings.0.traceroute.0.max_unknown_hops", "10"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "settings.0.traceroute.0.ptr_lookup", "false"),
 				),
+			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.traceroute",
 			},
 		},
 	})
@@ -363,6 +389,11 @@ func TestAccResourceCheck_multihttp(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.1.assertions.4.type", "JSON_PATH_ASSERTION"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.1.assertions.4.expression", "$.slideshow.slides"),
 				),
+			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.multihttp",
 			},
 		},
 	})

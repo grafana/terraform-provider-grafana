@@ -790,28 +790,26 @@ multiple checks for a single endpoint to check different capabilities.
 		"grafana_synthetic_monitoring_check",
 		resourceCheckID,
 		schema,
-	)
+	).WithLister(listChecks)
 }
 
-// TODO: Fix lister
-// .WithLister(listChecks)
-// func listChecks(ctx context.Context, client *common.Client, data any) ([]string, error) {
-// 	smClient := client.SMAPI
-// 	if smClient == nil {
-// 		return nil, fmt.Errorf("client not configured for SM API")
-// 	}
+func listChecks(ctx context.Context, client *common.Client, data any) ([]string, error) {
+	smClient := client.SMAPI
+	if smClient == nil {
+		return nil, fmt.Errorf("client not configured for SM API")
+	}
 
-// 	checkList, err := smClient.ListChecks(ctx)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	checkList, err := smClient.ListChecks(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-// 	var ids []string
-// 	for _, check := range checkList {
-// 		ids = append(ids, strconv.FormatInt(check.Id, 10))
-// 	}
-// 	return ids, nil
-// }
+	var ids []string
+	for _, check := range checkList {
+		ids = append(ids, strconv.FormatInt(check.Id, 10))
+	}
+	return ids, nil
+}
 
 func resourceCheckCreate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	chk, err := makeCheck(d)
@@ -1591,7 +1589,10 @@ func resourceCheckCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, 
 	if len(settingsList) == 0 {
 		return fmt.Errorf("at least one check setting must be defined")
 	}
-	settings := settingsList[0].(map[string]interface{})
+	settings, ok := settingsList[0].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("at least one check setting must be defined")
+	}
 
 	count := 0
 	for k := range syntheticMonitoringCheckSettings.Schema {

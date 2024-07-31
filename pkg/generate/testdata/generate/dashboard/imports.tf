@@ -1,4 +1,9 @@
 import {
+  to = grafana_contact_point._1_email_receiver
+  id = "1:email receiver"
+}
+
+import {
   to = grafana_dashboard._1_my-dashboard-uid
   id = "1:my-dashboard-uid"
 }
@@ -15,5 +20,10 @@ import {
 
 import {
   to = grafana_organization_preferences._1
+  id = "1"
+}
+
+import {
+  to = grafana_user._1
   id = "1"
 }
