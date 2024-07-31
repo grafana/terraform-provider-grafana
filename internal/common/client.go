@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/grafana-com-public-clients/go/gcom"
+	gcom "github.com/grafana/grafana-com-public-clients/go"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	slo "github.com/grafana/slo-openapi-client/go"
