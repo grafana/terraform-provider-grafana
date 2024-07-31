@@ -114,6 +114,8 @@ Optional:
 - `login_attribute_path` (String) JMESPath expression to use for user login lookup from the user ID token. Only applicable to Generic OAuth.
 - `name` (String) Helpful if you use more than one identity providers or SSO protocols.
 - `name_attribute_path` (String) JMESPath expression to use for user name lookup from the user ID token. This name will be used as the user’s display name. Only applicable to Generic OAuth.
+- `org_attribute_path` (String) JMESPath expression to use for the organization mapping lookup from the user ID token. The extracted list will be used for the organization mapping (to match "Organization" in the "org_mapping"). Only applicable to Generic OAuth and Okta.
+- `org_mapping` (String) List of comma- or space-separated Organization:OrgIdOrOrgName:Role mappings. Organization can be * meaning “All users”. Role is optional and can have the following values: None, Viewer, Editor or Admin.
 - `role_attribute_path` (String) JMESPath expression to use for Grafana role lookup.
 - `role_attribute_strict` (Boolean) If enabled, denies user login if the Grafana role cannot be extracted using Role attribute path.
 - `scopes` (String) List of comma- or space-separated OAuth2 scopes.
