@@ -252,6 +252,34 @@ func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 		}
 	}
 
+	// Remove the mute timing from alert rules
+	ruleResp, err := client.Provisioning.GetAlertRules()
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	rules := ruleResp.Payload
+	for _, rule := range rules {
+		if rule.NotificationSettings == nil {
+			continue
+		}
+
+		var muteTimeIntervals []string
+		for _, m := range rule.NotificationSettings.MuteTimeIntervals {
+			if m != name {
+				muteTimeIntervals = append(muteTimeIntervals, m)
+			}
+		}
+		if len(muteTimeIntervals) != len(rule.NotificationSettings.MuteTimeIntervals) {
+			rule.NotificationSettings.MuteTimeIntervals = muteTimeIntervals
+			params := provisioning.NewPutAlertRuleParams().WithBody(rule).WithUID(rule.UID)
+			_, err = client.Provisioning.PutAlertRule(params)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	}
+
+	// Delete the mute timing
 	params := provisioning.NewDeleteMuteTimingParams().WithName(name)
 	_, err = client.Provisioning.DeleteMuteTiming(params)
 	diag, _ := common.CheckReadError("mute timing", data, err)
