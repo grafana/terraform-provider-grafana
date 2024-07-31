@@ -202,7 +202,7 @@ This resource requires Grafana 9.1.0 or later.
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Optional:    true,
-							Description: "Notification settings for the rule. If specified, it overrides the notification policies. Available since Grafana 10.4, requires feature flag 'alertingSimplifiedRouting' enabled.",
+							Description: "Notification settings for the rule. If specified, it overrides the notification policies. Available since Grafana 10.4, requires feature flag 'alertingSimplifiedRouting' to be enabled.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"contact_point": {
@@ -240,6 +240,26 @@ This resource requires Grafana 9.1.0 or later.
 										Type:        schema.TypeString,
 										Optional:    true,
 										Description: "Minimum time interval for re-sending a notification if an alert is still firing. Default is 4 hours.",
+									},
+								},
+							},
+						},
+						"record": {
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Settings for a recording rule. Available since Grafana 11.2, requires feature flag 'grafanaManagedRecordingRules' to be enabled.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"metric": {
+										Type:        schema.TypeString,
+										Required:    true,
+										Description: "The name of the metric to write to.",
+									},
+									"from": {
+										Type:        schema.TypeString,
+										Required:    true,
+										Description: "The ref id of the query node in the data field to use as the source of the metric.",
 									},
 								},
 							},
