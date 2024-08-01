@@ -2,10 +2,13 @@ package generate_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
+	"text/template"
 
 	"github.com/grafana/grafana-openapi-client-go/client/access_control"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
@@ -23,7 +26,8 @@ import (
 
 type generateTestCase struct {
 	name           string
-	config         string // Terraform configuration to apply
+	config         string                         // Terraform configuration to apply
+	stateCheck     func(s *terraform.State) error // Check the Terraform state after applying. Useful to extract computed attributes from state.
 	generateConfig func(cfg *generate.Config)
 	check          func(t *testing.T, tempDir string)                   // Check the generated files
 	resultCheck    func(t *testing.T, result generate.GenerationResult) // Check the generation result
@@ -32,47 +36,54 @@ type generateTestCase struct {
 }
 
 func (tc *generateTestCase) Run(t *testing.T) {
+	stateCheck := func(s *terraform.State) error { return nil }
+	if tc.stateCheck != nil {
+		stateCheck = tc.stateCheck
+	}
 	t.Run(tc.name, func(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: tc.config,
-					Check: func(s *terraform.State) error {
-						tempDir := t.TempDir()
+					Check: resource.ComposeTestCheckFunc(
+						stateCheck,
+						func(s *terraform.State) error {
+							tempDir := t.TempDir()
 
-						// Default configs, use `generateConfig` to override
-						config := generate.Config{
-							OutputDir:       tempDir,
-							Clobber:         true,
-							Format:          generate.OutputFormatHCL,
-							ProviderVersion: "999.999.999", // Using the code from the current branch
-							Grafana: &generate.GrafanaConfig{
-								URL:  "http://localhost:3000",
-								Auth: "admin:admin",
-							},
-							TerraformInstallConfig: generate.TerraformInstallConfig{
-								InstallDir: tc.tfInstallDir,
-								PluginDir:  pluginDir(t),
-							},
-						}
-						if tc.generateConfig != nil {
-							tc.generateConfig(&config)
-						}
+							// Default configs, use `generateConfig` to override
+							config := generate.Config{
+								OutputDir:       tempDir,
+								Clobber:         true,
+								Format:          generate.OutputFormatHCL,
+								ProviderVersion: "999.999.999", // Using the code from the current branch
+								Grafana: &generate.GrafanaConfig{
+									URL:  "http://localhost:3000",
+									Auth: "admin:admin",
+								},
+								TerraformInstallConfig: generate.TerraformInstallConfig{
+									InstallDir: tc.tfInstallDir,
+									PluginDir:  pluginDir(t),
+								},
+							}
+							if tc.generateConfig != nil {
+								tc.generateConfig(&config)
+							}
 
-						result := generate.Generate(context.Background(), &config)
-						if tc.resultCheck != nil {
-							tc.resultCheck(t, result)
-						} else {
-							require.Len(t, result.Errors, 0, "expected no errors, got: %v", result.Errors)
-						}
+							result := generate.Generate(context.Background(), &config)
+							if tc.resultCheck != nil {
+								tc.resultCheck(t, result)
+							} else {
+								require.Len(t, result.Errors, 0, "expected no errors, got: %v", result.Errors)
+							}
 
-						if tc.check != nil {
-							tc.check(t, tempDir)
-						}
+							if tc.check != nil {
+								tc.check(t, tempDir)
+							}
 
-						return nil
-					},
+							return nil
+						},
+					),
 				},
 			},
 		})
@@ -319,10 +330,118 @@ func TestAccGenerate_RestrictedPermissions(t *testing.T) {
 	tc.Run(t)
 }
 
+func TestAccGenerate_CloudInstance(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	// Install Terraform to a temporary directory to avoid reinstalling it for each test case.
+	installDir := t.TempDir()
+
+	randomString := acctest.RandString(10)
+	var smCheckID string
+	cases := []generateTestCase{
+		{
+			name: "sm-check",
+			config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf", map[string]string{
+				`"HTTP Defaults"`: strconv.Quote(randomString),
+			}),
+			stateCheck: func(s *terraform.State) error {
+				checkResource, ok := s.RootModule().Resources["grafana_synthetic_monitoring_check.http"]
+				if !ok {
+					return fmt.Errorf("expected resource 'grafana_synthetic_monitoring_check.http' to be present")
+				}
+				smCheckID = checkResource.Primary.ID
+				return nil
+			},
+			generateConfig: func(cfg *generate.Config) {
+				cfg.Grafana = &generate.GrafanaConfig{
+					URL:           os.Getenv("GRAFANA_URL"),
+					Auth:          os.Getenv("GRAFANA_AUTH"),
+					SMURL:         os.Getenv("GRAFANA_SM_URL"),
+					SMAccessToken: os.Getenv("GRAFANA_SM_ACCESS_TOKEN"),
+				}
+				cfg.IncludeResources = []string{"grafana_synthetic_monitoring_check._" + smCheckID}
+			},
+			check: func(t *testing.T, tempDir string) {
+				templateAttrs := map[string]string{
+					"ID":  smCheckID,
+					"Job": randomString,
+				}
+				assertFilesWithTemplating(t, tempDir, "testdata/generate/sm-check", []string{
+					".terraform",
+					".terraform.lock.hcl",
+				}, templateAttrs)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		tc.tfInstallDir = installDir
+		tc.Run(t)
+	}
+}
+
 // assertFiles checks that all files in the "expectedFilesDir" directory match the files in the "gotFilesDir" directory.
 func assertFiles(t *testing.T, gotFilesDir, expectedFilesDir string, ignoreDirEntries []string) {
 	t.Helper()
+	assertFilesWithTemplating(t, gotFilesDir, expectedFilesDir, ignoreDirEntries, nil)
+}
+
+// assertFilesWithTemplating checks that all files in the "expectedFilesDir" directory match the files in the "gotFilesDir" directory.
+func assertFilesWithTemplating(t *testing.T, gotFilesDir, expectedFilesDir string, ignoreDirEntries []string, attributes map[string]string) {
+	t.Helper()
+
+	if attributes != nil {
+		expectedFilesDir = templateDir(t, expectedFilesDir, attributes)
+	}
+
 	assertFilesSubdir(t, gotFilesDir, expectedFilesDir, "", ignoreDirEntries)
+}
+
+func templateDir(t *testing.T, dir string, attributes map[string]string) string {
+	t.Helper()
+
+	templatedDir := t.TempDir()
+
+	// Copy all dirs and files from the expected directory to the templated directory
+	// Template all files that end with ".tmpl", renaming them to remove the ".tmpl" suffix
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		relativePath, err := filepath.Rel(dir, path)
+		if err != nil {
+			return err
+		}
+
+		templatedPath := filepath.Join(templatedDir, relativePath)
+		if info.IsDir() {
+			return os.MkdirAll(templatedPath, 0755)
+		}
+
+		// Copy the file
+		isTmpl := strings.HasSuffix(info.Name(), ".tmpl")
+		templatedPath = strings.TrimSuffix(templatedPath, ".tmpl")
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if isTmpl {
+			fileTmpl, err := template.New(path).Parse(string(content))
+			if err != nil {
+				return err
+			}
+			var templatedContent strings.Builder
+			if err := fileTmpl.Execute(&templatedContent, attributes); err != nil {
+				return err
+			}
+			content = []byte(templatedContent.String())
+		}
+		return os.WriteFile(templatedPath, content, 0600)
+	})
+	require.NoError(t, err)
+
+	return templatedDir
 }
 
 func assertFilesSubdir(t *testing.T, gotFilesDir, expectedFilesDir, subdir string, ignoreDirEntries []string) {
