@@ -73,6 +73,23 @@ func resourceTeam() *common.Resource {
 				},
 				Description: `
 A set of email addresses corresponding to users who should be given membership
+to the team. Use 'admins' field to grant team admin rights. Note: users specified here must already exist in Grafana.
+`,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if (new == "[]" && old == "") || (new == "" && old == "[]") {
+						return true
+					}
+					return false
+				},
+			},
+			"admins": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Description: `
+A set of email addresses corresponding to users who should be given admin membership
 to the team. Note: users specified here must already exist in Grafana.
 `,
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
@@ -336,6 +353,7 @@ func readTeamMembers(client *goapi.GrafanaHTTPAPI, d *schema.ResourceData) diag.
 	}
 	teamMembers := resp.GetPayload()
 	memberSlice := []string{}
+	adminSlice := []string{}
 	for _, teamMember := range teamMembers {
 		// Admin is added automatically to the team when the team is created.
 		// We can't interact with it, so we skip it from Terraform management.
@@ -348,27 +366,32 @@ func readTeamMembers(client *goapi.GrafanaHTTPAPI, d *schema.ResourceData) diag.
 		if (!hasKey || ignoreExternallySynced.(bool)) && len(teamMember.Labels) > 0 {
 			continue
 		}
-		memberSlice = append(memberSlice, teamMember.Email)
+		// Permission level 0 maps to members and 4 maps to admins
+		if teamMember.Permission == 4 {
+			adminSlice = append(adminSlice, teamMember.Email)
+		} else {
+			memberSlice = append(memberSlice, teamMember.Email)
+		}
 	}
 	d.Set("members", memberSlice)
+	d.Set("admins", adminSlice)
 
 	return nil
 }
 
 func UpdateMembers(client *goapi.GrafanaHTTPAPI, d *schema.ResourceData) error {
-	stateMembers, configMembers, err := collectMembers(d)
+	// TODO docs
+	members := common.SetToStringSlice(d.Get("members").(*schema.Set))
+	admins := common.SetToStringSlice(d.Get("admins").(*schema.Set))
+	teamMemberUpdate := models.SetTeamMembershipsCommand{
+		Members: members,
+		Admins:  admins,
+	}
+	_, err := client.Teams.SetTeamMemberships(strconv.Itoa(d.Get("team_id").(int)), &teamMemberUpdate)
 	if err != nil {
 		return err
 	}
-	// compile the list of differences between current state and config
-	changes := memberChanges(stateMembers, configMembers)
-	// retrieves the corresponding user IDs based on the email provided
-	changes, err = addMemberIdsToChanges(client, changes)
-	if err != nil {
-		return err
-	}
-	// now we can make the corresponding updates so current state matches config
-	return applyMemberChanges(client, int64(d.Get("team_id").(int)), changes)
+	return nil
 }
 
 func collectMembers(d *schema.ResourceData) (map[string]TeamMember, map[string]TeamMember, error) {

@@ -26,7 +26,7 @@ func TestAccTeam_basic(t *testing.T) {
 		CheckDestroy:             teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccTeamDefinition(teamName, nil, false, nil),
+				Config: testAccTeamDefinition(teamName, nil, nil, false, nil),
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
@@ -37,7 +37,7 @@ func TestAccTeam_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccTeamDefinition(teamNameUpdated, nil, false, nil),
+				Config: testAccTeamDefinition(teamNameUpdated, nil, nil, false, nil),
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamNameUpdated),
@@ -68,7 +68,7 @@ func TestAccTeam_preferences(t *testing.T) {
 		CheckDestroy:             teamCheckExists.destroyed(&team, nil),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccTeamDefinition(teamName, nil, false, nil),
+				Config: testAccTeamDefinition(teamName, nil, nil, false, nil),
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
@@ -82,7 +82,7 @@ func TestAccTeam_preferences(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccTeamDefinition(teamNameUpdated, nil, true, nil),
+				Config: testAccTeamDefinition(teamNameUpdated, nil, nil, true, nil),
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamNameUpdated),
@@ -117,7 +117,7 @@ func TestAccTeam_teamSync(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Test without team sync
 			{
-				Config: testAccTeamDefinition(teamName, nil, false, nil),
+				Config: testAccTeamDefinition(teamName, nil, nil, false, nil),
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
@@ -128,7 +128,7 @@ func TestAccTeam_teamSync(t *testing.T) {
 			},
 			// Add some groups
 			{
-				Config: testAccTeamDefinition(teamName, nil, false, []string{"group1", "group2"}),
+				Config: testAccTeamDefinition(teamName, nil, nil, false, []string{"group1", "group2"}),
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
@@ -141,7 +141,7 @@ func TestAccTeam_teamSync(t *testing.T) {
 			},
 			// Add some, remove some
 			{
-				Config: testAccTeamDefinition(teamName, nil, false, []string{"group3", "group2"}),
+				Config: testAccTeamDefinition(teamName, nil, nil, false, []string{"group3", "group2"}),
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
@@ -154,7 +154,7 @@ func TestAccTeam_teamSync(t *testing.T) {
 			},
 			// Remove all groups
 			{
-				Config: testAccTeamDefinition(teamName, nil, false, []string{}),
+				Config: testAccTeamDefinition(teamName, nil, nil, false, []string{}),
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
@@ -181,7 +181,7 @@ func TestAccTeam_Members(t *testing.T) {
 				Config: testAccTeamDefinition(teamName, []string{
 					"grafana_user.users.0.email",
 					"grafana_user.users.1.email",
-				}, false, nil),
+				}, nil, false, nil),
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
@@ -190,12 +190,28 @@ func TestAccTeam_Members(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_team.test", "members.1", teamName+"-user-1@example.com"),
 				),
 			},
+			// Can set an admin
+			{
+				Config: testAccTeamDefinition(teamName, []string{
+					"grafana_user.users.0.email",
+					"grafana_user.users.1.email",
+				}, []string{"grafana_user.users.3.email"}, false, nil),
+				Check: resource.ComposeTestCheckFunc(
+					teamCheckExists.exists("grafana_team.test", &team),
+					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "2"),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.0", teamName+"-user-0@example.com"),
+					resource.TestCheckResourceAttr("grafana_team.test", "members.1", teamName+"-user-1@example.com"),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.#", "1"),
+					resource.TestCheckResourceAttr("grafana_team.test", "admins.0", teamName+"-user-3@example.com"),
+				),
+			},
 			// Reorder members but only plan changes. There should be no changes.
 			{
 				Config: testAccTeamDefinition(teamName, []string{
 					"grafana_user.users.1.email",
 					"grafana_user.users.0.email",
-				}, false, nil),
+				}, nil, false, nil),
 				PlanOnly: true,
 			},
 			// When adding a new member, the state should be updated and re-sorted.
@@ -204,7 +220,7 @@ func TestAccTeam_Members(t *testing.T) {
 					"grafana_user.users.1.email",
 					"grafana_user.users.0.email",
 					"grafana_user.users.2.email",
-				}, false, nil),
+				}, nil, false, nil),
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
@@ -222,7 +238,7 @@ func TestAccTeam_Members(t *testing.T) {
 				ImportStateVerifyIgnore: []string{"ignore_externally_synced_members"},
 			},
 			{
-				Config: testAccTeamDefinition(teamName, nil, false, nil),
+				Config: testAccTeamDefinition(teamName, nil, nil, false, nil),
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "name", teamName),
@@ -261,7 +277,7 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 					}
 					userID = resp.Payload.ID
 				},
-				Config: testAccTeamDefinition(teamName, []string{`"user1@grafana.com"`}, false, nil),
+				Config: testAccTeamDefinition(teamName, []string{`"user1@grafana.com"`}, nil, false, nil),
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "1"),
@@ -275,7 +291,7 @@ func TestAccTeam_RemoveUnexistingMember(t *testing.T) {
 						t.Fatal(err)
 					}
 				},
-				Config: testAccTeamDefinition(teamName, nil, false, nil),
+				Config: testAccTeamDefinition(teamName, nil, nil, false, nil),
 				Check: resource.ComposeTestCheckFunc(
 					teamCheckExists.exists("grafana_team.test", &team),
 					resource.TestCheckResourceAttr("grafana_team.test", "members.#", "0"),
@@ -348,7 +364,7 @@ func TestAccTeam_OrgScopedOnAPIKey(t *testing.T) {
 	})
 }
 
-func testAccTeamDefinition(name string, teamMembers []string, withPreferences bool, externalGroups []string) string {
+func testAccTeamDefinition(name string, teamMembers []string, teamAdmins []string, withPreferences bool, externalGroups []string) string {
 	withPreferencesBlock := ""
 	if withPreferences {
 		withPreferencesBlock = `
@@ -385,14 +401,16 @@ resource "grafana_team" "test" {
 	name    = "%[1]s"
 	email   = "%[1]s@example.com"
 	members = [ %[2]s ]
+	admins = [ %[3]s ]
 
-	%[3]s // withPreferencesBlock
-	%[4]s // teamSyncBlock
+	%[4]s // withPreferencesBlock
+	%[5]s // teamSyncBlock
 }
-`, name, strings.Join(teamMembers, `, `), withPreferencesBlock, teamSyncBlock)
+`, name, strings.Join(teamMembers, `, `), strings.Join(teamAdmins, `, `), withPreferencesBlock, teamSyncBlock)
 
 	// If we're referencing a grafana_user resource, we need to create those users
-	if len(teamMembers) > 0 && strings.Contains(teamMembers[0], "grafana_user") {
+	users := append(teamMembers, teamAdmins...)
+	if len(users) > 0 && strings.Contains(users[0], "grafana_user") {
 		definition += fmt.Sprintf(`
 resource "grafana_user" "users" {
 	count = 3

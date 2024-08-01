@@ -21,11 +21,21 @@ resource "grafana_user" "viewer" {
   password = "my-password"
 }
 
+resource "grafana_user" "editor" {
+  name     = "Editor"
+  email    = "editor@example.com"
+  login    = "editor"
+  password = "my-password-2"
+}
+
 resource "grafana_team" "test-team" {
   name  = "Test Team"
   email = "teamemail@example.com"
   members = [
     grafana_user.viewer.email,
+  ]
+  admins = [
+    grafana_user.editor.email,
   ]
 }
 ```
@@ -39,12 +49,14 @@ resource "grafana_team" "test-team" {
 
 ### Optional
 
+- `admins` (Set of String) A set of email addresses corresponding to users who should be given admin membership
+to the team. Note: users specified here must already exist in Grafana.
 - `email` (String) An email address for the team.
 - `ignore_externally_synced_members` (Boolean) Ignores team members that have been added to team by [Team Sync](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-team-sync/).
 Team Sync can be provisioned using [grafana_team_external_group resource](https://registry.terraform.io/providers/grafana/grafana/latest/docs/resources/team_external_group).
  Defaults to `true`.
 - `members` (Set of String) A set of email addresses corresponding to users who should be given membership
-to the team. Note: users specified here must already exist in Grafana.
+to the team. Use 'admins' field to grant team admin rights. Note: users specified here must already exist in Grafana.
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
 - `preferences` (Block List, Max: 1) (see [below for nested schema](#nestedblock--preferences))
 - `team_sync` (Block List, Max: 1) Sync external auth provider groups with this Grafana team. Only available in Grafana Enterprise.
