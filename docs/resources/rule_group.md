@@ -4,7 +4,7 @@ page_title: "grafana_rule_group Resource - terraform-provider-grafana"
 subcategory: "Alerting"
 description: |-
   Manages Grafana Alerting rule groups.
-  Official documentation https://grafana.com/docs/grafana/latest/alerting/alerting-rules/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#alert-rules
+  Official documentation https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/ API https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#alert-rules
   This resource requires Grafana 9.1.0 or later.
 ---
 
@@ -12,7 +12,7 @@ description: |-
 
 Manages Grafana Alerting rule groups.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/alerting-rules/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#alert-rules)
 
 This resource requires Grafana 9.1.0 or later.
