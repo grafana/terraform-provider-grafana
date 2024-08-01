@@ -22,7 +22,7 @@ func resourceMuteTiming() *common.Resource {
 		Description: `
 Manages Grafana Alerting mute timings.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/configure-notifications/mute-timings/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
 * [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#mute-timings)
 
 This resource requires Grafana 9.1.0 or later.
