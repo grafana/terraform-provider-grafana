@@ -21,8 +21,8 @@ func resourceMessageTemplate() *common.Resource {
 		Description: `
 Manages Grafana Alerting message templates.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/configure-notifications/template-notifications/create-notification-templates/)
-* [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#templates)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#templates)
 
 This resource requires Grafana 9.1.0 or later.
 `,
