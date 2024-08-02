@@ -3,6 +3,7 @@ package oncall
 import (
 	"context"
 	"net/http"
+	"slices"
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
@@ -114,6 +115,9 @@ func listSchedules(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) 
 		return nil, nil, err
 	}
 	for _, i := range resp.Schedules {
+		if !slices.Contains(scheduleTypeOptions, i.Type) {
+			continue
+		}
 		ids = append(ids, i.ID)
 	}
 	return ids, resp.Next, nil

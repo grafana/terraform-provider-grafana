@@ -330,54 +330,145 @@ func TestAccGenerate_RestrictedPermissions(t *testing.T) {
 	tc.Run(t)
 }
 
-func TestAccGenerate_CloudInstance(t *testing.T) {
+func TestAccGenerate_SMCheck(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	// Install Terraform to a temporary directory to avoid reinstalling it for each test case.
-	installDir := t.TempDir()
-
 	randomString := acctest.RandString(10)
+
 	var smCheckID string
-	cases := []generateTestCase{
-		{
-			name: "sm-check",
-			config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf", map[string]string{
-				`"HTTP Defaults"`: strconv.Quote(randomString),
-			}),
-			stateCheck: func(s *terraform.State) error {
-				checkResource, ok := s.RootModule().Resources["grafana_synthetic_monitoring_check.http"]
-				if !ok {
-					return fmt.Errorf("expected resource 'grafana_synthetic_monitoring_check.http' to be present")
-				}
-				smCheckID = checkResource.Primary.ID
-				return nil
-			},
-			generateConfig: func(cfg *generate.Config) {
-				cfg.Grafana = &generate.GrafanaConfig{
-					URL:           os.Getenv("GRAFANA_URL"),
-					Auth:          os.Getenv("GRAFANA_AUTH"),
-					SMURL:         os.Getenv("GRAFANA_SM_URL"),
-					SMAccessToken: os.Getenv("GRAFANA_SM_ACCESS_TOKEN"),
-				}
-				cfg.IncludeResources = []string{"grafana_synthetic_monitoring_check._" + smCheckID}
-			},
-			check: func(t *testing.T, tempDir string) {
-				templateAttrs := map[string]string{
-					"ID":  smCheckID,
-					"Job": randomString,
-				}
-				assertFilesWithTemplating(t, tempDir, "testdata/generate/sm-check", []string{
-					".terraform",
-					".terraform.lock.hcl",
-				}, templateAttrs)
-			},
+	tc := generateTestCase{
+		name: "sm-check",
+		config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf", map[string]string{
+			`"HTTP Defaults"`: strconv.Quote(randomString),
+		}),
+		stateCheck: func(s *terraform.State) error {
+			checkResource, ok := s.RootModule().Resources["grafana_synthetic_monitoring_check.http"]
+			if !ok {
+				return fmt.Errorf("expected resource 'grafana_synthetic_monitoring_check.http' to be present")
+			}
+			smCheckID = checkResource.Primary.ID
+			return nil
+		},
+		generateConfig: func(cfg *generate.Config) {
+			cfg.Grafana = &generate.GrafanaConfig{
+				URL:           os.Getenv("GRAFANA_URL"),
+				Auth:          os.Getenv("GRAFANA_AUTH"),
+				SMURL:         os.Getenv("GRAFANA_SM_URL"),
+				SMAccessToken: os.Getenv("GRAFANA_SM_ACCESS_TOKEN"),
+			}
+			cfg.IncludeResources = []string{"grafana_synthetic_monitoring_check._" + smCheckID}
+		},
+		check: func(t *testing.T, tempDir string) {
+			templateAttrs := map[string]string{
+				"ID":  smCheckID,
+				"Job": randomString,
+			}
+			assertFilesWithTemplating(t, tempDir, "testdata/generate/sm-check", []string{
+				".terraform",
+				".terraform.lock.hcl",
+			}, templateAttrs)
 		},
 	}
 
-	for _, tc := range cases {
-		tc.tfInstallDir = installDir
-		tc.Run(t)
+	tc.Run(t)
+}
+
+func TestAccGenerate_OnCall(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	randomString := acctest.RandString(10)
+
+	tfConfig := fmt.Sprintf(`
+	resource "grafana_oncall_integration" "test" {
+	name = "%[1]s"
+	type = "grafana"
+	default_route {}
 	}
+	
+	resource "grafana_oncall_escalation_chain" "test"{
+	name = "%[1]s"
+	}
+	
+	resource "grafana_oncall_escalation" "test" {
+	escalation_chain_id = grafana_oncall_escalation_chain.test.id
+	type = "wait"
+	duration = "300"
+	position = 0
+	}
+	
+	resource "grafana_oncall_schedule" "test" {
+	name = "%[1]s"
+	type = "calendar"
+	time_zone = "America/New_York"
+	}
+	`, randomString)
+
+	var (
+		oncallIntegrationID     string
+		oncallEscalationChainID string
+		oncallEscalationID      string
+		oncallScheduleID        string
+	)
+	tc := generateTestCase{
+		name:   "oncall",
+		config: tfConfig,
+		generateConfig: func(cfg *generate.Config) {
+			cfg.Grafana = &generate.GrafanaConfig{
+				URL:               os.Getenv("GRAFANA_URL"),
+				Auth:              os.Getenv("GRAFANA_AUTH"),
+				OnCallURL:         "https://oncall-prod-us-central-0.grafana.net/oncall",
+				OnCallAccessToken: os.Getenv("GRAFANA_ONCALL_ACCESS_TOKEN"),
+			}
+			cfg.IncludeResources = []string{
+				"grafana_oncall_integration._" + oncallIntegrationID,
+				"grafana_oncall_escalation_chain._" + oncallEscalationChainID,
+				"grafana_oncall_escalation._" + oncallEscalationID,
+				"grafana_oncall_schedule._" + oncallScheduleID,
+			}
+		},
+		stateCheck: func(s *terraform.State) error {
+			integrationResource, ok := s.RootModule().Resources["grafana_oncall_integration.test"]
+			if !ok {
+				return fmt.Errorf("expected resource 'grafana_oncall_integration.test' to be present")
+			}
+			oncallIntegrationID = integrationResource.Primary.ID
+
+			chainResource, ok := s.RootModule().Resources["grafana_oncall_escalation_chain.test"]
+			if !ok {
+				return fmt.Errorf("expected resource 'grafana_oncall_escalation_chain.test' to be present")
+			}
+			oncallEscalationChainID = chainResource.Primary.ID
+
+			escalationResource, ok := s.RootModule().Resources["grafana_oncall_escalation.test"]
+			if !ok {
+				return fmt.Errorf("expected resource 'grafana_oncall_escalation.test' to be present")
+			}
+			oncallEscalationID = escalationResource.Primary.ID
+
+			scheduleResource, ok := s.RootModule().Resources["grafana_oncall_schedule.test"]
+			if !ok {
+				return fmt.Errorf("expected resource 'grafana_oncall_schedule.test' to be present")
+			}
+			oncallScheduleID = scheduleResource.Primary.ID
+
+			return nil
+		},
+		check: func(t *testing.T, tempDir string) {
+			templateAttrs := map[string]string{
+				"Name":              randomString,
+				"IntegrationID":     oncallIntegrationID,
+				"EscalationChainID": oncallEscalationChainID,
+				"EscalationID":      oncallEscalationID,
+				"ScheduleID":        oncallScheduleID,
+			}
+			assertFilesWithTemplating(t, tempDir, "testdata/generate/oncall-resources", []string{
+				".terraform",
+				".terraform.lock.hcl",
+			}, templateAttrs)
+		},
+	}
+
+	tc.Run(t)
 }
 
 // assertFiles checks that all files in the "expectedFilesDir" directory match the files in the "gotFilesDir" directory.

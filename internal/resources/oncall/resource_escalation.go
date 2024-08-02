@@ -363,16 +363,36 @@ func resourceEscalationRead(ctx context.Context, d *schema.ResourceData, client 
 	d.Set("escalation_chain_id", escalation.EscalationChainId)
 	d.Set("position", escalation.Position)
 	d.Set("type", escalation.Type)
-	d.Set("duration", escalation.Duration)
-	d.Set("notify_on_call_from_schedule", escalation.NotifyOnCallFromSchedule)
-	d.Set("persons_to_notify", escalation.PersonsToNotify)
-	d.Set("persons_to_notify_next_each_time", escalation.PersonsToNotifyEachTime)
-	d.Set("notify_to_team_members", escalation.TeamToNotify)
-	d.Set("group_to_notify", escalation.GroupToNotify)
-	d.Set("action_to_trigger", escalation.ActionToTrigger)
-	d.Set("important", escalation.Important)
-	d.Set("notify_if_time_from", escalation.NotifyIfTimeFrom)
-	d.Set("notify_if_time_to", escalation.NotifyIfTimeTo)
+	if escalation.Duration != nil {
+		d.Set("duration", escalation.Duration)
+	}
+	if escalation.NotifyOnCallFromSchedule != nil {
+		d.Set("notify_on_call_from_schedule", escalation.NotifyOnCallFromSchedule)
+	}
+	if escalation.PersonsToNotify != nil {
+		d.Set("persons_to_notify", escalation.PersonsToNotify)
+	}
+	if escalation.PersonsToNotifyEachTime != nil {
+		d.Set("persons_to_notify_next_each_time", escalation.PersonsToNotifyEachTime)
+	}
+	if escalation.TeamToNotify != nil {
+		d.Set("notify_to_team_members", escalation.TeamToNotify)
+	}
+	if escalation.GroupToNotify != nil {
+		d.Set("group_to_notify", escalation.GroupToNotify)
+	}
+	if escalation.ActionToTrigger != nil {
+		d.Set("action_to_trigger", escalation.ActionToTrigger)
+	}
+	if escalation.Important != nil {
+		d.Set("important", escalation.Important)
+	}
+	if escalation.NotifyIfTimeFrom != nil {
+		d.Set("notify_if_time_from", escalation.NotifyIfTimeFrom)
+	}
+	if escalation.NotifyIfTimeTo != nil {
+		d.Set("notify_if_time_to", escalation.NotifyIfTimeTo)
+	}
 
 	return nil
 }

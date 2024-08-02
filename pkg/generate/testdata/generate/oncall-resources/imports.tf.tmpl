@@ -1,0 +1,19 @@
+import {
+  to = grafana_oncall_escalation._{{ .EscalationID }}
+  id = "{{ .EscalationID }}"
+}
+
+import {
+  to = grafana_oncall_escalation_chain._{{ .EscalationChainID }}
+  id = "{{ .EscalationChainID }}"
+}
+
+import {
+  to = grafana_oncall_integration._{{ .IntegrationID }}
+  id = "{{ .IntegrationID }}"
+}
+
+import {
+  to = grafana_oncall_schedule._{{ .ScheduleID }}
+  id = "{{ .ScheduleID }}"
+}
