@@ -21,19 +21,71 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+type generateTestCase struct {
+	name           string
+	config         string // Terraform configuration to apply
+	generateConfig func(cfg *generate.Config)
+	check          func(t *testing.T, tempDir string)                   // Check the generated files
+	resultCheck    func(t *testing.T, result generate.GenerationResult) // Check the generation result
+
+	tfInstallDir string // Directory where Terraform is installed. Used to avoid reinstalling it for each test case.
+}
+
+func (tc *generateTestCase) Run(t *testing.T) {
+	t.Run(tc.name, func(t *testing.T) {
+		resource.Test(t, resource.TestCase{
+			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			Steps: []resource.TestStep{
+				{
+					Config: tc.config,
+					Check: func(s *terraform.State) error {
+						tempDir := t.TempDir()
+
+						// Default configs, use `generateConfig` to override
+						config := generate.Config{
+							OutputDir:       tempDir,
+							Clobber:         true,
+							Format:          generate.OutputFormatHCL,
+							ProviderVersion: "999.999.999", // Using the code from the current branch
+							Grafana: &generate.GrafanaConfig{
+								URL:  "http://localhost:3000",
+								Auth: "admin:admin",
+							},
+							TerraformInstallConfig: generate.TerraformInstallConfig{
+								InstallDir: tc.tfInstallDir,
+								PluginDir:  pluginDir(t),
+							},
+						}
+						if tc.generateConfig != nil {
+							tc.generateConfig(&config)
+						}
+
+						result := generate.Generate(context.Background(), &config)
+						if tc.resultCheck != nil {
+							tc.resultCheck(t, result)
+						} else {
+							require.Len(t, result.Errors, 0, "expected no errors, got: %v", result.Errors)
+						}
+
+						if tc.check != nil {
+							tc.check(t, tempDir)
+						}
+
+						return nil
+					},
+				},
+			},
+		})
+	})
+}
+
 func TestAccGenerate(t *testing.T) {
 	testutils.CheckEnterpriseTestsEnabled(t, ">=10.0.0")
 
 	// Install Terraform to a temporary directory to avoid reinstalling it for each test case.
 	installDir := t.TempDir()
 
-	cases := []struct {
-		name           string
-		config         string
-		generateConfig func(cfg *generate.Config)
-		check          func(t *testing.T, tempDir string)
-		resultCheck    func(t *testing.T, result generate.GenerationResult)
-	}{
+	cases := []generateTestCase{
 		{
 			name:   "dashboard",
 			config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
@@ -185,49 +237,8 @@ func TestAccGenerate(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			resource.Test(t, resource.TestCase{
-				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-				Steps: []resource.TestStep{
-					{
-						Config: tc.config,
-						Check: func(s *terraform.State) error {
-							tempDir := t.TempDir()
-							config := generate.Config{
-								OutputDir:       tempDir,
-								Clobber:         true,
-								Format:          generate.OutputFormatHCL,
-								ProviderVersion: "999.999.999", // Using the code from the current branch
-								Grafana: &generate.GrafanaConfig{
-									URL:  "http://localhost:3000",
-									Auth: "admin:admin",
-								},
-								TerraformInstallConfig: generate.TerraformInstallConfig{
-									InstallDir: installDir,
-									PluginDir:  pluginDir(t),
-								},
-							}
-							if tc.generateConfig != nil {
-								tc.generateConfig(&config)
-							}
-
-							result := generate.Generate(context.Background(), &config)
-							if tc.resultCheck != nil {
-								tc.resultCheck(t, result)
-							} else {
-								require.Len(t, result.Errors, 0, "expected no errors, got: %v", result.Errors)
-							}
-
-							if tc.check != nil {
-								tc.check(t, tempDir)
-							}
-
-							return nil
-						},
-					},
-				},
-			})
-		})
+		tc.tfInstallDir = installDir
+		tc.Run(t)
 	}
 }
 
@@ -283,45 +294,29 @@ func TestAccGenerate_RestrictedPermissions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
-				Check: func(s *terraform.State) error {
-					tempDir := t.TempDir()
-					config := generate.Config{
-						OutputDir:       tempDir,
-						Clobber:         true,
-						Format:          generate.OutputFormatHCL,
-						ProviderVersion: "999.999.999", // Using the code from the current branch
-						Grafana: &generate.GrafanaConfig{
-							URL:  "http://localhost:3000",
-							Auth: saToken.Payload.Key,
-						},
-						TerraformInstallConfig: generate.TerraformInstallConfig{
-							PluginDir: pluginDir(t),
-						},
-					}
-
-					result := generate.Generate(context.Background(), &config)
-					assert.NotEmpty(t, result.Errors, "expected errors, got: %+v", result)
-					for _, err := range result.Errors {
-						// Check that all errors are non critical
-						_, ok := err.(generate.NonCriticalError)
-						assert.True(t, ok, "expected NonCriticalError, got: %v (Type: %T)", err, err)
-					}
-
-					assertFiles(t, tempDir, "testdata/generate/dashboard-restricted-permissions", []string{
-						".terraform",
-						".terraform.lock.hcl",
-					})
-
-					return nil
-				},
-			},
+	tc := generateTestCase{
+		name:   "restricted-permissions",
+		config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
+		generateConfig: func(cfg *generate.Config) {
+			cfg.Grafana.Auth = saToken.Payload.Key
 		},
-	})
+		resultCheck: func(t *testing.T, result generate.GenerationResult) {
+			assert.NotEmpty(t, result.Errors, "expected errors, got: %+v", result)
+			for _, err := range result.Errors {
+				// Check that all errors are non critical
+				_, ok := err.(generate.NonCriticalError)
+				assert.True(t, ok, "expected NonCriticalError, got: %v (Type: %T)", err, err)
+			}
+		},
+		check: func(t *testing.T, tempDir string) {
+			assertFiles(t, tempDir, "testdata/generate/dashboard-restricted-permissions", []string{
+				".terraform",
+				".terraform.lock.hcl",
+			})
+		},
+	}
+
+	tc.Run(t)
 }
 
 // assertFiles checks that all files in the "expectedFilesDir" directory match the files in the "gotFilesDir" directory.
