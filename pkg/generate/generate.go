@@ -220,7 +220,7 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 			}
 
 			log.Printf("generating %s resources\n", resource.Name)
-			ids, err := lister(ctx, client, listerData)
+			listedIDs, err := lister(ctx, client, listerData)
 			if err != nil {
 				wg.Done()
 				results <- result{
@@ -228,6 +228,16 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 					err:      err,
 				}
 				return
+			}
+
+			// Make sure IDs are unique. If an API returns the same ID multiple times for any reason, we only want to import it once.
+			idMap := map[string]struct{}{}
+			for _, id := range listedIDs {
+				idMap[id] = struct{}{}
+			}
+			ids := []string{}
+			for id := range idMap {
+				ids = append(ids, id)
 			}
 			sort.Strings(ids)
 
