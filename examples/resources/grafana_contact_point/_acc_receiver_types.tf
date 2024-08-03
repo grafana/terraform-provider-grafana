@@ -54,6 +54,16 @@ resource "grafana_contact_point" "receiver_types" {
     description = "description"
   }
 
+  mqtt {
+    broker_url           = "tcp://localhost:1883"
+    topic                = "grafana/alerts"
+    client_id            = "client_id"
+    message_format       = "json"
+    username             = "username"
+    password             = "password"
+    insecure_skip_verify = false
+  }
+
   opsgenie {
     url               = "http://opsgenie-api"
     api_key           = "token"
