@@ -14,7 +14,7 @@ require (
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20240723170622-ae2c94b7c9a3
 	github.com/grafana/machine-learning-go-client v0.8.0
 	github.com/grafana/slo-openapi-client/go v0.0.0-20240731123249-1327bbecc168
-	github.com/grafana/synthetic-monitoring-agent v0.25.0
+	github.com/grafana/synthetic-monitoring-agent v0.25.2
 	github.com/grafana/synthetic-monitoring-api-go-client v0.8.0
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/go-retryablehttp v0.7.7
@@ -35,7 +35,7 @@ require (
 	github.com/tmccombs/hcl2json v0.6.3
 	github.com/urfave/cli/v2 v2.27.3
 	github.com/zclconf/go-cty v1.15.0
-	golang.org/x/exp v0.0.0-20240707233637-46b078467d37
+	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	golang.org/x/text v0.16.0
 	gopkg.in/yaml.v2 v2.4.0
 )
