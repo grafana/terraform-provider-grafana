@@ -32,7 +32,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.34.0
 	github.com/prometheus/common v0.55.0
 	github.com/stretchr/testify v1.9.0
-	github.com/tmccombs/hcl2json v0.6.3
+	github.com/tmccombs/hcl2json v0.6.4
 	github.com/urfave/cli/v2 v2.27.3
 	github.com/zclconf/go-cty v1.15.0
 	golang.org/x/exp v0.0.0-20240707233637-46b078467d37
