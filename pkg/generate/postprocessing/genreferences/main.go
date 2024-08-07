@@ -28,10 +28,21 @@ func main() {
 		log.Fatal("examples-dir and file flags are required")
 	}
 
+	walkDir, err := filepath.Abs(walkDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	exampleFiles := []string{}
 	if err := filepath.Walk(walkDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
+		}
+		if info.IsDir() {
+			if strings.HasPrefix(info.Name(), ".") {
+				return filepath.SkipDir
+			}
+			return nil
 		}
 		if filepath.Ext(path) == ".tf" {
 			exampleFiles = append(exampleFiles, path)
