@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	gcom "github.com/grafana/grafana-com-public-clients/go"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
