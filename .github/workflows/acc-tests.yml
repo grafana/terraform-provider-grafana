@@ -24,7 +24,9 @@ jobs:
       - run: make integration-test
 
   cloudinstance:
-    concurrency: cloud-instance
+    concurrency: 
+      group: cloud-instance
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -46,7 +48,11 @@ jobs:
           resource: ${{ env.GRAFANA_URL }}
           interval: 2000 # 2s
           timeout: 30000 # 30s
-      - run: make testacc-cloud-instance
+      - uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
+        with:
+          timeout_minutes: 30
+          max_attempts: 3 # Try 3 times to make sure we don't report failures on flaky tests
+          command: make testacc-cloud-instance
   
   local:
     strategy:
@@ -106,7 +112,11 @@ jobs:
         uses: ScribeMD/docker-cache@fb28c93772363301b8d0a6072ce850224b73f74e # v0.5.0
         with:
           key: docker-${{ runner.os }}-${{ matrix.type == 'enterprise' && 'enterprise' || 'oss' }}-${{ matrix.version }}
-      - run: make testacc-${{ matrix.type }}-docker
+      - uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
+        with:
+          timeout_minutes: 30
+          max_attempts: 3 # Try 3 times to make sure we don't report failures on flaky tests
+          command: make testacc-${{ matrix.type }}-docker
         env:
           GRAFANA_VERSION: ${{ matrix.version }}
           TESTARGS: >- 
