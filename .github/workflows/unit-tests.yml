@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - uses: hashicorp/setup-terraform@651471c36a6092792c552e8b1bef71e592b462d8 # v3.1.1
       - name: terraform fmt
-        run: terraform fmt -recursive -check || (echo "Terraform files aren't formatted. Run 'terraform fmt -recursive && go generate'"; exit 1;)
+        run: terraform fmt -recursive -check || (echo "Terraform files aren't formatted. Run 'terraform fmt -recursive && go generate ./...'"; exit 1;)
   
   docs:
     name: docs
@@ -32,11 +32,11 @@ jobs:
           go-version-file: go.mod
       - name: generate docs
         run: |
-          go generate
+          go generate ./...
           gitstatus="$(git status --porcelain)"
           if [ -n "$gitstatus" ]; then
             echo "$gitstatus"
-            echo 'docs are out of sync, run "go generate"'
+            echo 'docs are out of sync, run "go generate ./..."'
             exit 1
           fi
       - run: make linkcheck

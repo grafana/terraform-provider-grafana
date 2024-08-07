@@ -48,7 +48,7 @@ var integrationTypesVerbal = strings.Join(integrationTypes, ", ")
 func resourceIntegration() *common.Resource {
 	schema := &schema.Resource{
 		Description: `
-* [Official documentation](https://grafana.com/docs/oncall/latest/integrations/)
+* [Official documentation](https://grafana.com/docs/oncall/latest/configure/integrations/)
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/)
 `,
 
