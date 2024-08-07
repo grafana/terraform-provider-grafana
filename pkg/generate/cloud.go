@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	gcom "github.com/grafana/grafana-com-public-clients/go"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate/postprocessing"
