@@ -106,7 +106,9 @@ func resourceSchedule() *common.Resource {
 		"grafana_oncall_schedule",
 		resourceID,
 		schema,
-	).WithLister(oncallListerFunction(listSchedules))
+	).
+		WithLister(oncallListerFunction(listSchedules)).
+		WithPreferredResourceNameField("name")
 }
 
 func listSchedules(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {

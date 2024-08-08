@@ -224,7 +224,8 @@ func resourceEscalation() *common.Resource {
 		"grafana_oncall_escalation",
 		resourceID,
 		schema,
-	).WithLister(oncallListerFunction(listEscalations))
+	).
+		WithLister(oncallListerFunction(listEscalations))
 }
 
 func listEscalations(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {

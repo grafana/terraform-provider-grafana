@@ -239,7 +239,9 @@ func resourceIntegration() *common.Resource {
 		"grafana_oncall_integration",
 		resourceID,
 		schema,
-	).WithLister(oncallListerFunction(listIntegrations))
+	).
+		WithLister(oncallListerFunction(listIntegrations)).
+		WithPreferredResourceNameField("name")
 }
 
 func listIntegrations(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
