@@ -203,6 +203,15 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "line.0.token", "token"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "line.0.title", "title"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "line.0.description", "description"),
+					// mqtt
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.broker_url", "*broker_url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.topic", "*topic"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.client_id", "client_id"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.message_format", "json"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.username", "username"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.password", "password"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.insecure_skip_verify", "true"),
 					// opsgenie
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "opsgenie.0.url", "http://opsgenie-api"),
