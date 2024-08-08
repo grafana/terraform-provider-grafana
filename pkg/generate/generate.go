@@ -337,6 +337,7 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 		removeOrphanedImports(generatedFilename("imports.tf"), generatedFilename("resources.tf")),
 		postprocessing.UsePreferredResourceNames(generatedFilename("resources.tf"), generatedFilename("imports.tf")),
 		sortResourcesFile(generatedFilename("resources.tf")),
+		postprocessing.WrapJSONFieldsInFunction(generatedFilename("resources.tf")),
 	} {
 		if err != nil {
 			return failure(err)

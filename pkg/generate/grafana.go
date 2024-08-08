@@ -98,10 +98,7 @@ func generateGrafanaResources(ctx context.Context, cfg *Config, stack stack, gen
 	if err := postprocessing.StripDefaults(generatedFilename("resources.tf"), stripDefaultsExtraFields); err != nil {
 		return failure(err)
 	}
-	if err := postprocessing.AbstractDashboards(generatedFilename("resources.tf")); err != nil {
-		return failure(err)
-	}
-	if err := postprocessing.WrapJSONFieldsInFunction(generatedFilename("resources.tf")); err != nil {
+	if err := postprocessing.ExtractDashboards(generatedFilename("resources.tf"), plannedState); err != nil {
 		return failure(err)
 	}
 	if err := postprocessing.ReplaceReferences(generatedFilename("resources.tf"), plannedState, []string{
