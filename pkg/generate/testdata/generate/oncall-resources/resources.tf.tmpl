@@ -4,24 +4,24 @@
 # __generated__ by Terraform from "{{ .EscalationID }}"
 resource "grafana_oncall_escalation" "_{{ .EscalationID }}" {
   duration            = 300
-  escalation_chain_id = grafana_oncall_escalation_chain._{{ .EscalationChainID }}.id
+  escalation_chain_id = grafana_oncall_escalation_chain.{{ .Name }}.id
   position            = 0
   type                = "wait"
 }
 
 # __generated__ by Terraform from "{{ .EscalationChainID }}"
-resource "grafana_oncall_escalation_chain" "_{{ .EscalationChainID }}" {
+resource "grafana_oncall_escalation_chain" "{{ .Name }}" {
   name = "{{ .Name }}"
 }
 
 # __generated__ by Terraform from "{{ .IntegrationID }}"
-resource "grafana_oncall_integration" "_{{ .IntegrationID }}" {
+resource "grafana_oncall_integration" "{{ .Name }}" {
   name = "{{ .Name }}"
   type = "grafana"
 }
 
 # __generated__ by Terraform from "{{ .ScheduleID }}"
-resource "grafana_oncall_schedule" "_{{ .ScheduleID }}" {
+resource "grafana_oncall_schedule" "{{ .Name }}" {
   enable_web_overrides = false
   name                 = "{{ .Name }}"
   time_zone            = "America/New_York"

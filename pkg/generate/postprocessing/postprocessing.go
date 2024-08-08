@@ -34,3 +34,12 @@ func postprocessFile(fpath string, fn postprocessingFunc) error {
 
 	return nil
 }
+
+func postprocessFiles(fpaths []string, fn postprocessingFunc) error {
+	for _, fpath := range fpaths {
+		if err := postprocessFile(fpath, fn); err != nil {
+			return err
+		}
+	}
+	return nil
+}

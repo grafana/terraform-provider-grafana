@@ -42,7 +42,9 @@ func resourceEscalationChain() *common.Resource {
 		"grafana_oncall_escalation_chain",
 		resourceID,
 		schema,
-	).WithLister(oncallListerFunction(listEscalationChains))
+	).
+		WithLister(oncallListerFunction(listEscalationChains)).
+		WithPreferredResourceNameField("name")
 }
 
 func listEscalationChains(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {

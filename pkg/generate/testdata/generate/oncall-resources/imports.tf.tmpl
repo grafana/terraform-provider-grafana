@@ -4,16 +4,16 @@ import {
 }
 
 import {
-  to = grafana_oncall_escalation_chain._{{ .EscalationChainID }}
+  to = grafana_oncall_escalation_chain.{{ .Name }}
   id = "{{ .EscalationChainID }}"
 }
 
 import {
-  to = grafana_oncall_integration._{{ .IntegrationID }}
+  to = grafana_oncall_integration.{{ .Name }}
   id = "{{ .IntegrationID }}"
 }
 
 import {
-  to = grafana_oncall_schedule._{{ .ScheduleID }}
+  to = grafana_oncall_schedule.{{ .Name }}
   id = "{{ .ScheduleID }}"
 }

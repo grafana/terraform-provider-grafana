@@ -253,7 +253,9 @@ Resource manages Grafana SLOs.
 		"grafana_slo",
 		resourceSloID,
 		schema,
-	).WithLister(listSlos)
+	).
+		WithLister(listSlos).
+		WithPreferredResourceNameField("name")
 }
 
 var keyvalueSchema = &schema.Resource{

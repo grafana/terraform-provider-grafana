@@ -332,16 +332,15 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 		}
 	}
 
-	if err := postprocessing.ReplaceNullSensitiveAttributes(generatedFilename("resources.tf")); err != nil {
-		return failure(err)
-	}
-
-	if err := removeOrphanedImports(generatedFilename("imports.tf"), generatedFilename("resources.tf")); err != nil {
-		return failure(err)
-	}
-
-	if err := sortResourcesFile(generatedFilename("resources.tf")); err != nil {
-		return failure(err)
+	for _, err := range []error{
+		postprocessing.ReplaceNullSensitiveAttributes(generatedFilename("resources.tf")),
+		removeOrphanedImports(generatedFilename("imports.tf"), generatedFilename("resources.tf")),
+		postprocessing.UsePreferredResourceNames(generatedFilename("resources.tf"), generatedFilename("imports.tf")),
+		sortResourcesFile(generatedFilename("resources.tf")),
+	} {
+		if err != nil {
+			return failure(err)
+		}
 	}
 
 	return returnResult

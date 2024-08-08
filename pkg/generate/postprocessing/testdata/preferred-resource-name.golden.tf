@@ -1,13 +1,14 @@
-# __generated__ by Terraform
-# Please review these resources and move them into your main configuration files.
+import {
+  id = "12345"
+  to = grafana_synthetic_monitoring_check.testname
+}
 
-# __generated__ by Terraform from "{{ .ID }}"
-resource "grafana_synthetic_monitoring_check" "{{ .Job }}" {
+resource "grafana_synthetic_monitoring_check" "testname" {
   alert_sensitivity  = "none"
   basic_metrics_only = true
   enabled            = false
   frequency          = 60000
-  job                = "{{ .Job }}"
+  job                = "testname"
   labels = {
     foo = "bar"
   }
