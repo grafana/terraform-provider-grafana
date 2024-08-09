@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -18,10 +17,6 @@ import (
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/zclconf/go-cty/cty"
-)
-
-var (
-	allowedTerraformChars = regexp.MustCompile(`[^a-zA-Z0-9_-]`)
 )
 
 // NonCriticalError is an error that is not critical to the generation process.
@@ -248,14 +243,7 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 			// }
 			var blocks []*hclwrite.Block
 			for _, id := range ids {
-				cleanedID := allowedTerraformChars.ReplaceAllString(id, "_")
-				if provider != "cloud" && provider != "" {
-					cleanedID = strings.ReplaceAll(provider, "-", "_") + "_" + cleanedID
-				}
-				if cleanedID[0] >= '0' && cleanedID[0] <= '9' {
-					cleanedID = "_" + cleanedID
-				}
-
+				id := id
 				matched, err := filterResourceByName(resource.Name, id, cfg.IncludeResources)
 				if err != nil {
 					wg.Done()
@@ -269,8 +257,13 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 					continue
 				}
 
+				if provider != "cloud" && provider != "" {
+					id = provider + "_" + id
+				}
+				resourceName := postprocessing.CleanResourceName(id)
+
 				b := hclwrite.NewBlock("import", nil)
-				b.Body().SetAttributeTraversal("to", traversal(resource.Name, cleanedID))
+				b.Body().SetAttributeTraversal("to", traversal(resource.Name, resourceName))
 				b.Body().SetAttributeValue("id", cty.StringVal(id))
 				if provider != "" {
 					b.Body().SetAttributeTraversal("provider", traversal("grafana", provider))

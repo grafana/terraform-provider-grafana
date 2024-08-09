@@ -51,7 +51,7 @@
       ]
     },
     "grafana_user": {
-      "_1": [
+      "admin": [
         {
           "email": "admin@localhost",
           "is_admin": true,

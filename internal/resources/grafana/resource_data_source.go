@@ -127,7 +127,9 @@ source selected (via the 'type' argument).
 		"grafana_data_source",
 		orgResourceIDString("uid"),
 		schema,
-	).WithLister(listerFunctionOrgResource(listDatasources))
+	).
+		WithLister(listerFunctionOrgResource(listDatasources)).
+		WithPreferredResourceNameField("name")
 }
 
 func datasourceHTTPHeadersAttribute() *schema.Schema {
