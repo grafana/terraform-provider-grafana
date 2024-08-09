@@ -1,4 +1,4 @@
 import {
-  to = grafana_dashboard._1_my-dashboard-uid
-  id = "1:my-dashboard-uid"
+  to = grafana_dashboard.my-dashboard-uid
+  id = "my-dashboard-uid"
 }

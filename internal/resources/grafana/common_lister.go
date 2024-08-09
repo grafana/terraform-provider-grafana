@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
@@ -12,14 +13,16 @@ import (
 
 // ListerData is used as the data arg in "ListIDs" functions. It allows getting data common to multiple resources.
 type ListerData struct {
-	singleOrg bool
-	orgIDs    []int64
-	orgsInit  sync.Once
+	omitSingleOrgID bool
+	singleOrg       bool
+	orgIDs          []int64
+	orgsInit        sync.Once
 }
 
-func NewListerData(singleOrg bool) *ListerData {
+func NewListerData(singleOrg, omitSingleOrgID bool) *ListerData {
 	return &ListerData{
-		singleOrg: singleOrg,
+		singleOrg:       singleOrg,
+		omitSingleOrgID: omitSingleOrgID,
 	}
 }
 
@@ -84,7 +87,15 @@ func listerFunctionOrgResource(listerFunc grafanaOrgResourceListerFunc) common.R
 			if err != nil {
 				return nil, err
 			}
-			ids = append(ids, idsInOrg...)
+
+			// Trim org ID from IDs if there is only one org and it's the default org
+			if len(orgIDs) == 1 && (orgID <= 1) && data.omitSingleOrgID {
+				for _, id := range idsInOrg {
+					ids = append(ids, strings.TrimPrefix(id, fmt.Sprintf("%d:", orgID)))
+				}
+			} else {
+				ids = append(ids, idsInOrg...)
+			}
 		}
 
 		return ids, nil

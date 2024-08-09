@@ -134,7 +134,7 @@ func TestAccGenerate(t *testing.T) {
 			name:   "dashboard-filter-strict",
 			config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
 			generateConfig: func(cfg *generate.Config) {
-				cfg.IncludeResources = []string{"grafana_dashboard._1_my-dashboard-uid"}
+				cfg.IncludeResources = []string{"grafana_dashboard.my-dashboard-uid"}
 			},
 			check: func(t *testing.T, tempDir string) {
 				assertFiles(t, tempDir, "testdata/generate/dashboard-filtered", []string{
@@ -147,7 +147,7 @@ func TestAccGenerate(t *testing.T) {
 			name:   "dashboard-filter-wildcard-on-resource-type",
 			config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
 			generateConfig: func(cfg *generate.Config) {
-				cfg.IncludeResources = []string{"*._1_my-dashboard-uid"}
+				cfg.IncludeResources = []string{"*.my-dashboard-uid"}
 			},
 			check: func(t *testing.T, tempDir string) {
 				assertFiles(t, tempDir, "testdata/generate/dashboard-filtered", []string{
@@ -356,7 +356,7 @@ func TestAccGenerate_SMCheck(t *testing.T) {
 				SMURL:         os.Getenv("GRAFANA_SM_URL"),
 				SMAccessToken: os.Getenv("GRAFANA_SM_ACCESS_TOKEN"),
 			}
-			cfg.IncludeResources = []string{"grafana_synthetic_monitoring_check._" + smCheckID}
+			cfg.IncludeResources = []string{"grafana_synthetic_monitoring_check." + smCheckID}
 		},
 		check: func(t *testing.T, tempDir string) {
 			templateAttrs := map[string]string{
@@ -420,10 +420,10 @@ func TestAccGenerate_OnCall(t *testing.T) {
 				OnCallAccessToken: os.Getenv("GRAFANA_ONCALL_ACCESS_TOKEN"),
 			}
 			cfg.IncludeResources = []string{
-				"grafana_oncall_integration._" + oncallIntegrationID,
-				"grafana_oncall_escalation_chain._" + oncallEscalationChainID,
-				"grafana_oncall_escalation._" + oncallEscalationID,
-				"grafana_oncall_schedule._" + oncallScheduleID,
+				"grafana_oncall_integration." + oncallIntegrationID,
+				"grafana_oncall_escalation_chain." + oncallEscalationChainID,
+				"grafana_oncall_escalation." + oncallEscalationID,
+				"grafana_oncall_schedule." + oncallScheduleID,
 			}
 		},
 		stateCheck: func(s *terraform.State) error {

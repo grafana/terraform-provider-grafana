@@ -249,11 +249,14 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 			var blocks []*hclwrite.Block
 			for _, id := range ids {
 				cleanedID := allowedTerraformChars.ReplaceAllString(id, "_")
-				if provider != "cloud" {
+				if provider != "cloud" && provider != "" {
 					cleanedID = strings.ReplaceAll(provider, "-", "_") + "_" + cleanedID
 				}
+				if cleanedID[0] >= '0' && cleanedID[0] <= '9' {
+					cleanedID = "_" + cleanedID
+				}
 
-				matched, err := filterResourceByName(resource.Name, cleanedID, cfg.IncludeResources)
+				matched, err := filterResourceByName(resource.Name, id, cfg.IncludeResources)
 				if err != nil {
 					wg.Done()
 					results <- result{
@@ -411,13 +414,13 @@ func filterResources(resources []*common.Resource, includedResources []string) (
 	return filteredResources, nil
 }
 
-func filterResourceByName(resourceType, resourceName string, includedResources []string) (bool, error) {
+func filterResourceByName(resourceType, resourceID string, includedResources []string) (bool, error) {
 	if len(includedResources) == 0 {
 		return true, nil
 	}
 
 	for _, included := range includedResources {
-		matched, err := filepath.Match(included, resourceType+"."+resourceName)
+		matched, err := filepath.Match(included, resourceType+"."+resourceID)
 		if err != nil {
 			return false, err
 		}

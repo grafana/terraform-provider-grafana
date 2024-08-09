@@ -1,21 +1,21 @@
 import {
-  to = grafana_contact_point._1_email_receiver
-  id = "1:email receiver"
+  to = grafana_contact_point.email_receiver
+  id = "email receiver"
 }
 
 import {
-  to = grafana_dashboard._1_my-dashboard-uid
-  id = "1:my-dashboard-uid"
+  to = grafana_dashboard.my-dashboard-uid
+  id = "my-dashboard-uid"
 }
 
 import {
-  to = grafana_folder._1_my-folder-uid
-  id = "1:my-folder-uid"
+  to = grafana_folder.my-folder-uid
+  id = "my-folder-uid"
 }
 
 import {
-  to = grafana_notification_policy._1_policy
-  id = "1:policy"
+  to = grafana_notification_policy.policy
+  id = "policy"
 }
 
 import {

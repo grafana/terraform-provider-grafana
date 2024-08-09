@@ -46,7 +46,7 @@ func CheckLister(terraformResource string) resource.TestCheckFunc {
 
 		// Get the list of IDs from the lister function
 		ctx := context.Background()
-		var listerData any = grafana.NewListerData(false)
+		var listerData any = grafana.NewListerData(false, false)
 		if resource.Category == common.CategoryCloud {
 			listerData = cloud.NewListerData(os.Getenv("GRAFANA_CLOUD_ORG"))
 		}
