@@ -158,7 +158,9 @@ Team Sync can be provisioned using [grafana_team_external_group resource](https:
 		"grafana_team",
 		orgResourceIDInt("id"),
 		schema,
-	).WithLister(listerFunctionOrgResource(listTeams))
+	).
+		WithLister(listerFunctionOrgResource(listTeams)).
+		WithPreferredResourceNameField("name")
 }
 
 func listTeams(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {

@@ -24,6 +24,6 @@ import {
 }
 
 import {
-  to = grafana_user._1
+  to = grafana_user.admin
   id = "1"
 }

@@ -1,6 +1,7 @@
 package postprocessing
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
@@ -8,6 +9,8 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 )
+
+var allowedTerraformChars = regexp.MustCompile(`[^a-zA-Z0-9_-]`)
 
 // UsePreferredResourceNames replaces the resource name with the value of the preferred resource name field.
 // The input files (resources.tf + imports.tf) are modified in place.
@@ -38,6 +41,7 @@ func UsePreferredResourceNames(fpaths ...string) error {
 				continue
 			}
 			newResourceName := strings.Trim(string(nameAttr.Expr().BuildTokens(nil).Bytes()), "\" ") // Unquote + trim spaces
+			newResourceName = CleanResourceName(newResourceName)
 
 			replaceMap[strings.Join(block.Labels(), ".")] = traversal(resourceType, newResourceName)
 			block.SetLabels([]string{resourceType, newResourceName})
@@ -62,4 +66,12 @@ func UsePreferredResourceNames(fpaths ...string) error {
 
 		return nil
 	})
+}
+
+func CleanResourceName(name string) string {
+	cleaned := allowedTerraformChars.ReplaceAllString(name, "_")
+	if cleaned[0] >= '0' && cleaned[0] <= '9' {
+		cleaned = "_" + cleaned
+	}
+	return cleaned
 }

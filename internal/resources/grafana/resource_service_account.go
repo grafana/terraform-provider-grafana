@@ -62,7 +62,9 @@ func resourceServiceAccount() *common.Resource {
 		"grafana_service_account",
 		orgResourceIDInt("id"),
 		schema,
-	).WithLister(listerFunctionOrgResource(listServiceAccounts))
+	).
+		WithLister(listerFunctionOrgResource(listServiceAccounts)).
+		WithPreferredResourceNameField("name")
 }
 
 func listServiceAccounts(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {

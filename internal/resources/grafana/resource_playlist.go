@@ -77,7 +77,9 @@ func resourcePlaylist() *common.Resource {
 		"grafana_playlist",
 		orgResourceIDString("uid"),
 		schema,
-	).WithLister(listerFunctionOrgResource(listPlaylists))
+	).
+		WithLister(listerFunctionOrgResource(listPlaylists)).
+		WithPreferredResourceNameField("name")
 }
 
 func listPlaylists(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {

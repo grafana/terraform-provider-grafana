@@ -39,7 +39,7 @@ import {
 }
 
 import {
-  to = grafana_organization._2
+  to = grafana_organization.alerting-org
   id = "2"
 }
 

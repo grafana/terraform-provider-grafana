@@ -39,7 +39,7 @@ resource "grafana_organization_preferences" "_1" {
 }
 
 # __generated__ by Terraform
-resource "grafana_user" "_1" {
+resource "grafana_user" "admin" {
   email    = "admin@localhost"
   is_admin = true
   login    = "admin"

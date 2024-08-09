@@ -135,7 +135,9 @@ Required access policy scopes:
 		"grafana_cloud_access_policy",
 		resourceAccessPolicyID,
 		schema,
-	).WithLister(cloudListerFunction(listAccessPolicies))
+	).
+		WithLister(cloudListerFunction(listAccessPolicies)).
+		WithPreferredResourceNameField("name")
 }
 
 func listAccessPolicies(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]string, error) {
