@@ -47,7 +47,7 @@ func generateGrafanaResources(ctx context.Context, cfg *Config, stack stack, gen
 	}
 
 	singleOrg := !strings.Contains(stack.managementKey, ":")
-	listerData := grafana.NewListerData(singleOrg)
+	listerData := grafana.NewListerData(singleOrg, true)
 
 	// Generate resources
 	config := provider.ProviderConfig{

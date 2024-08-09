@@ -1,7 +1,7 @@
 apiVersion: alerting.grafana.crossplane.io/v1alpha1
 kind: ContactPoint
 metadata:
-  name: 1-email-receiver
+  name: email-receiver
   annotations:
     crossplane.io/external-name: 1:email receiver
 spec:

@@ -1,9 +1,9 @@
 import {
-  to = grafana_dashboard._0_my-dashboard-uid
-  id = "0:my-dashboard-uid"
+  to = grafana_dashboard.my-dashboard-uid
+  id = "my-dashboard-uid"
 }
 
 import {
-  to = grafana_folder._0_my-folder-uid
-  id = "0:my-folder-uid"
+  to = grafana_folder.my-folder-uid
+  id = "my-folder-uid"
 }
