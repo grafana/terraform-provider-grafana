@@ -1,0 +1,1146 @@
+{
+    "annotations": {
+        "list": [
+            {
+                "builtIn": 1,
+                "datasource": {
+                    "type": "grafana",
+                    "uid": "-- Grafana --"
+                },
+                "enable": true,
+                "hide": true,
+                "iconColor": "rgba(0, 211, 255, 1)",
+                "name": "Annotations and Alerts",
+                "target": {
+                    "limit": 100,
+                    "matchAny": false,
+                    "tags": [],
+                    "type": "dashboard"
+                },
+                "type": "dashboard"
+            }
+        ]
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 1,
+    "links": [],
+    "panels": [
+        {
+            "fieldConfig": {
+                "defaults": {},
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 4,
+                "w": 14,
+                "x": 0,
+                "y": 0
+            },
+            "options": {
+                "code": {
+                    "language": "plaintext",
+                    "showLineNumbers": false,
+                    "showMiniMap": false
+                },
+                "content": "# SLO Terraform Testing-4848308903255109881 - No Alerting Check SLO\nSLO Terraform Testing-4848308903255109881 - No Alerting Check",
+                "mode": "markdown"
+            },
+            "pluginVersion": "11.2.0-74459",
+            "title": "",
+            "transparent": true,
+            "type": "text"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "grafanacloud-prom"
+            },
+            "description": "The time window over which the service level objective is being measured over",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [],
+                    "max": 1,
+                    "min": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "super-light-blue",
+                                "value": null
+                            }
+                        ]
+                    },
+                    "unit": "percentunit"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 4,
+                "w": 5,
+                "x": 14,
+                "y": 0
+            },
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "/.*/",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+            },
+            "pluginVersion": "11.2.0-74459",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "grafanacloud-prom"
+                    },
+                    "editorMode": "builder",
+                    "expr": "label_replace(vector(1), \"time_period\", \"28d\", \"\", \"\")",
+                    "hide": false,
+                    "instant": false,
+                    "interval": "",
+                    "legendFormat": "__auto",
+                    "range": true,
+                    "refId": "time_window"
+                }
+            ],
+            "title": "Time Window",
+            "transformations": [
+                {
+                    "id": "labelsToFields",
+                    "options": {
+                        "mode": "rows"
+                    }
+                },
+                {
+                    "id": "organize",
+                    "options": {
+                        "excludeByName": {
+                            "label": true
+                        },
+                        "indexByName": {},
+                        "renameByName": {
+                            "label": "time_period",
+                            "value": "Time Window"
+                        }
+                    }
+                }
+            ],
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "grafanacloud-prom"
+            },
+            "description": "The SLO's Objective value. Always between 0 and 100%",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 1,
+                    "mappings": [],
+                    "max": 1,
+                    "min": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "super-light-blue",
+                                "value": null
+                            }
+                        ]
+                    },
+                    "unit": "percentunit"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 4,
+                "w": 5,
+                "x": 19,
+                "y": 0
+            },
+            "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "value",
+                "wideLayout": true
+            },
+            "pluginVersion": "11.2.0-74459",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "grafanacloud-prom"
+                    },
+                    "editorMode": "builder",
+                    "expr": "vector(0.995)",
+                    "hide": false,
+                    "instant": false,
+                    "interval": "",
+                    "legendFormat": "__auto",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "SLO",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "grafanacloud-prom"
+            },
+            "description": "",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [
+                        {
+                            "options": {
+                                "from": 1e-10,
+                                "result": {
+                                    "text": "FIRING"
+                                },
+                                "to": 1
+                            },
+                            "type": "range"
+                        },
+                        {
+                            "options": {
+                                "from": -1,
+                                "result": {
+                                    "text": "OK"
+                                },
+                                "to": 0
+                            },
+                            "type": "range"
+                        }
+                    ],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "orange",
+                                "value": 1
+                            }
+                        ]
+                    },
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 2,
+                "w": 5,
+                "x": 0,
+                "y": 4
+            },
+            "links": [
+                {
+                    "asDropdown": false,
+                    "icon": "",
+                    "includeVars": false,
+                    "keepTime": false,
+                    "targetBlank": true,
+                    "title": "View alert rule",
+                    "tooltip": "",
+                    "type": "link",
+                    "url": "https://tfprovidertests.grafana.net/alerting/list?queryString=grafana_slo_severity%3Dcritical%2Cgrafana_slo_uuid%3Dmcbsi2tzf7nxhnvgm9ke9"
+                }
+            ],
+            "options": {
+                "colorMode": "background",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "vertical",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "value_and_name",
+                "wideLayout": true
+            },
+            "pluginVersion": "11.2.0-74459",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "grafanacloud-prom"
+                    },
+                    "editorMode": "builder",
+                    "expr": "max(ALERTS{grafana_slo_uuid=\"mcbsi2tzf7nxhnvgm9ke9\", grafana_slo_severity=\"critical\"}) OR on() vector(0)",
+                    "hide": false,
+                    "instant": true,
+                    "interval": "",
+                    "legendFormat": "Critical alert",
+                    "range": false,
+                    "refId": "A"
+                }
+            ],
+            "title": "",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "grafanacloud-prom"
+            },
+            "description": "Service level indicator",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "axisSoftMax": 0.05,
+                        "barAlignment": 0,
+                        "barWidthFactor": 0.6,
+                        "drawStyle": "line",
+                        "fillOpacity": 0,
+                        "gradientMode": "scheme",
+                        "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                        },
+                        "insertNulls": false,
+                        "lineInterpolation": "linear",
+                        "lineWidth": 2,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                            "type": "linear"
+                        },
+                        "showPoints": "auto",
+                        "spanNulls": false,
+                        "stacking": {
+                            "group": "A",
+                            "mode": "none"
+                        },
+                        "thresholdsStyle": {
+                            "mode": "off"
+                        }
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "red",
+                                "value": null
+                            },
+                            {
+                                "color": "green",
+                                "value": 0.995
+                            }
+                        ]
+                    },
+                    "unit": "percentunit"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 7,
+                "w": 14,
+                "x": 5,
+                "y": 4
+            },
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": false
+                },
+                "tooltip": {
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "pluginVersion": "11.2.0-74459",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "grafanacloud-prom"
+                    },
+                    "editorMode": "builder",
+                    "expr": "avg_over_time(grafana_slo_sli_5m{grafana_slo_uuid=\"mcbsi2tzf7nxhnvgm9ke9\"}[$__rate_interval])",
+                    "hide": false,
+                    "instant": false,
+                    "interval": "",
+                    "legendFormat": "__auto",
+                    "queryType": "linear",
+                    "range": true,
+                    "refId": "recorded_data"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "grafanacloud-prom"
+                    },
+                    "editorMode": "code",
+                    "expr": "((sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval] offset 2m))) / (sum(rate(apiserver_request_total[$__rate_interval] offset 2m)))) AND timestamp(sum(rate(apiserver_request_total[$__rate_interval] offset 2m))) \u003c 1718292544",
+                    "hide": false,
+                    "instant": false,
+                    "interval": "",
+                    "legendFormat": "__auto",
+                    "queryType": "linear",
+                    "range": true,
+                    "refId": "computed_before_creation_time"
+                }
+            ],
+            "title": "SLI",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "grafanacloud-prom"
+            },
+            "description": "Service level indicator's value over the last 28d",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 2,
+                    "mappings": [],
+                    "max": 1,
+                    "min": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "red",
+                                "value": null
+                            },
+                            {
+                                "color": "green",
+                                "value": 0.995
+                            }
+                        ]
+                    },
+                    "unit": "percentunit"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 7,
+                "w": 5,
+                "x": 19,
+                "y": 4
+            },
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+            },
+            "pluginVersion": "11.2.0-74459",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "grafanacloud-prom"
+                    },
+                    "editorMode": "builder",
+                    "expr": "sum(sum_over_time(grafana_slo_success_rate_5m{grafana_slo_uuid=\"mcbsi2tzf7nxhnvgm9ke9\"}[28d]))\n/ sum(sum_over_time(grafana_slo_total_rate_5m{grafana_slo_uuid=\"mcbsi2tzf7nxhnvgm9ke9\"}[28d]))",
+                    "hide": false,
+                    "instant": false,
+                    "interval": "",
+                    "legendFormat": "__auto",
+                    "range": true,
+                    "refId": "recorded_data"
+                }
+            ],
+            "title": "SLI (last 28d)",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "grafanacloud-prom"
+            },
+            "description": "",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [
+                        {
+                            "options": {
+                                "from": 1e-10,
+                                "result": {
+                                    "text": "FIRING"
+                                },
+                                "to": 1
+                            },
+                            "type": "range"
+                        },
+                        {
+                            "options": {
+                                "from": -1,
+                                "result": {
+                                    "text": "OK"
+                                },
+                                "to": 0
+                            },
+                            "type": "range"
+                        }
+                    ],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "orange",
+                                "value": 1
+                            }
+                        ]
+                    },
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 2,
+                "w": 5,
+                "x": 0,
+                "y": 6
+            },
+            "links": [
+                {
+                    "asDropdown": false,
+                    "icon": "",
+                    "includeVars": false,
+                    "keepTime": false,
+                    "targetBlank": true,
+                    "title": "View alert rule",
+                    "tooltip": "",
+                    "type": "link",
+                    "url": "https://tfprovidertests.grafana.net/alerting/list?queryString=grafana_slo_severity%3Dwarning%2Cgrafana_slo_uuid%3Dmcbsi2tzf7nxhnvgm9ke9"
+                }
+            ],
+            "options": {
+                "colorMode": "background",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "vertical",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "value_and_name",
+                "wideLayout": true
+            },
+            "pluginVersion": "11.2.0-74459",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "grafanacloud-prom"
+                    },
+                    "editorMode": "builder",
+                    "expr": "max(ALERTS{grafana_slo_uuid=\"mcbsi2tzf7nxhnvgm9ke9\", grafana_slo_severity=\"warning\"}) OR on() vector(0)",
+                    "hide": false,
+                    "instant": true,
+                    "interval": "",
+                    "legendFormat": "Warning alert",
+                    "range": false,
+                    "refId": "A"
+                }
+            ],
+            "title": "",
+            "type": "stat"
+        },
+        {
+            "description": "All active alerts for this SLO",
+            "fieldConfig": {
+                "defaults": {},
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 17,
+                "w": 5,
+                "x": 0,
+                "y": 8
+            },
+            "options": {
+                "alertInstanceLabelFilter": "{grafana_slo_uuid=\"mcbsi2tzf7nxhnvgm9ke9\"}",
+                "alertName": "",
+                "dashboardAlerts": false,
+                "folder": "",
+                "groupBy": [],
+                "groupMode": "default",
+                "maxItems": 20,
+                "sortOrder": 1,
+                "stateFilter": {
+                    "error": true,
+                    "firing": true,
+                    "noData": true,
+                    "normal": true,
+                    "pending": true
+                },
+                "viewMode": "list"
+            },
+            "pluginVersion": "11.2.0-74459",
+            "title": "Burn Rate Alerts",
+            "type": "alertlist"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "grafanacloud-prom"
+            },
+            "description": "If error budget is decreasing over time, it means that your service is spending its error budget faster than it's earning it back.\n\nIf error budget is increasing over time, you're not spending too much of your error budget.",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "axisSoftMax": 1,
+                        "axisSoftMin": 0,
+                        "barAlignment": 0,
+                        "barWidthFactor": 0.6,
+                        "drawStyle": "line",
+                        "fillOpacity": 0,
+                        "gradientMode": "scheme",
+                        "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                        },
+                        "insertNulls": false,
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                            "type": "linear"
+                        },
+                        "showPoints": "auto",
+                        "spanNulls": false,
+                        "stacking": {
+                            "group": "A",
+                            "mode": "none"
+                        },
+                        "thresholdsStyle": {
+                            "mode": "off"
+                        }
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "red",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 0
+                            },
+                            {
+                                "color": "green",
+                                "value": 0.2
+                            }
+                        ]
+                    },
+                    "unit": "percentunit"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 7,
+                "w": 14,
+                "x": 5,
+                "y": 11
+            },
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": false
+                },
+                "tooltip": {
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "pluginVersion": "11.2.0-74459",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "grafanacloud-prom"
+                    },
+                    "editorMode": "builder",
+                    "expr": "(\n\t\tsum(sum_over_time(grafana_slo_success_rate_5m{grafana_slo_uuid=\"mcbsi2tzf7nxhnvgm9ke9\"}[28d]))\n\t\t/ sum(sum_over_time(grafana_slo_total_rate_5m{grafana_slo_uuid=\"mcbsi2tzf7nxhnvgm9ke9\"}[28d]))\n\t\t- on() grafana_slo_objective{grafana_slo_uuid=\"mcbsi2tzf7nxhnvgm9ke9\"}\n\t)\n\t/ on () (1 - grafana_slo_objective{grafana_slo_uuid=\"mcbsi2tzf7nxhnvgm9ke9\"})",
+                    "hide": false,
+                    "instant": false,
+                    "interval": "",
+                    "legendFormat": "__auto",
+                    "range": true,
+                    "refId": "error_budget_trend"
+                }
+            ],
+            "title": "Error Budget Trend",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "grafanacloud-prom"
+            },
+            "description": "The unspent error budget over the last {0.995 28d} Window",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [],
+                    "max": 1,
+                    "min": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "red",
+                                "value": 80
+                            }
+                        ]
+                    },
+                    "unit": "percentunit"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 7,
+                "w": 5,
+                "x": 19,
+                "y": 11
+            },
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+            },
+            "pluginVersion": "11.2.0-74459",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "grafanacloud-prom"
+                    },
+                    "editorMode": "builder",
+                    "exemplar": false,
+                    "expr": "(\n\t\tsum(sum_over_time(grafana_slo_success_rate_5m{grafana_slo_uuid=\"mcbsi2tzf7nxhnvgm9ke9\"}[28d]))\n\t\t/ sum(sum_over_time(grafana_slo_total_rate_5m{grafana_slo_uuid=\"mcbsi2tzf7nxhnvgm9ke9\"}[28d]))\n\t\t- on() grafana_slo_objective{grafana_slo_uuid=\"mcbsi2tzf7nxhnvgm9ke9\"}\n\t)\n\t/ on () (1 - grafana_slo_objective{grafana_slo_uuid=\"mcbsi2tzf7nxhnvgm9ke9\"})",
+                    "hide": false,
+                    "instant": true,
+                    "interval": "",
+                    "legendFormat": "__auto",
+                    "range": false,
+                    "refId": "A"
+                }
+            ],
+            "title": "Remaining Error Budget",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "grafanacloud-prom"
+            },
+            "description": "The burn rate is the rate that this SLO is spending its error budget over last 5 min [0, 1.0]. A 1x burn rate will consume the entire error budget allotted for that period.",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "axisSoftMin": 0,
+                        "barAlignment": 0,
+                        "barWidthFactor": 0.6,
+                        "drawStyle": "line",
+                        "fillOpacity": 0,
+                        "gradientMode": "scheme",
+                        "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                        },
+                        "insertNulls": false,
+                        "lineInterpolation": "smooth",
+                        "lineWidth": 2,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                            "type": "linear"
+                        },
+                        "showPoints": "never",
+                        "spanNulls": false,
+                        "stacking": {
+                            "group": "A",
+                            "mode": "none"
+                        },
+                        "thresholdsStyle": {
+                            "mode": "off"
+                        }
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 1
+                            },
+                            {
+                                "color": "dark-red",
+                                "value": 3
+                            }
+                        ]
+                    },
+                    "unit": "none"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 7,
+                "w": 14,
+                "x": 5,
+                "y": 18
+            },
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": false
+                },
+                "tooltip": {
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "pluginVersion": "11.2.0-74459",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "grafanacloud-prom"
+                    },
+                    "editorMode": "builder",
+                    "expr": "(1 - avg_over_time(grafana_slo_sli_5m{grafana_slo_uuid=\"mcbsi2tzf7nxhnvgm9ke9\"}[$__rate_interval])) / on(grafana_slo_uuid) group_left() (1 - avg_over_time(grafana_slo_objective{grafana_slo_uuid=\"mcbsi2tzf7nxhnvgm9ke9\"}[$__rate_interval]))",
+                    "hide": false,
+                    "instant": false,
+                    "interval": "",
+                    "legendFormat": "__auto",
+                    "range": true,
+                    "refId": "recorded_data"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "grafanacloud-prom"
+                    },
+                    "editorMode": "code",
+                    "expr": "((1 - ((sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval] offset 2m))) / (sum(rate(apiserver_request_total[$__rate_interval] offset 2m))))) / (1 - 0.995)) AND timestamp(sum(rate(apiserver_request_total[$__rate_interval] offset 2m))) \u003c 1718292544",
+                    "hide": false,
+                    "instant": false,
+                    "interval": "",
+                    "legendFormat": "__auto",
+                    "range": true,
+                    "refId": "computed_before_creation_time"
+                }
+            ],
+            "title": "Error Budget Burn Rate",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "datasource",
+                "uid": "grafanacloud-prom"
+            },
+            "description": "The burn rate is the rate that this SLO is spending its error budget over last 5 min [0, 1.0]. A 1x burn rate will consume the entire error budget allotted for that period.",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 2,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "#EAB839",
+                                "value": 1
+                            },
+                            {
+                                "color": "dark-red",
+                                "value": 3
+                            }
+                        ]
+                    },
+                    "unit": "none"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 7,
+                "w": 5,
+                "x": 19,
+                "y": 18
+            },
+            "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+            },
+            "pluginVersion": "11.2.0-74459",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "grafanacloud-prom"
+                    },
+                    "editorMode": "builder",
+                    "exemplar": false,
+                    "expr": "(1 - avg_over_time(grafana_slo_sli_5m{grafana_slo_uuid=\"mcbsi2tzf7nxhnvgm9ke9\"}[$__rate_interval])) / on(grafana_slo_uuid) group_left() (1 - avg_over_time(grafana_slo_objective{grafana_slo_uuid=\"mcbsi2tzf7nxhnvgm9ke9\"}[$__rate_interval]))",
+                    "hide": false,
+                    "instant": false,
+                    "interval": "",
+                    "legendFormat": "__auto",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Current Burn Rate",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "grafanacloud-prom"
+            },
+            "description": "Total Rate (for SLIs that compare rate of successful events to rate of total events, this is the latter)",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisPlacement": "auto",
+                        "axisSoftMax": 0.05,
+                        "drawStyle": "line",
+                        "fillOpacity": 0,
+                        "gradientMode": "none",
+                        "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                        },
+                        "lineInterpolation": "linear",
+                        "lineWidth": 2,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                            "type": "linear"
+                        },
+                        "showPoints": "auto",
+                        "spanNulls": false,
+                        "stacking": {
+                            "group": "A",
+                            "mode": "none"
+                        },
+                        "thresholdsStyle": {
+                            "mode": "off"
+                        }
+                    },
+                    "unit": "reqps"
+                }
+            },
+            "gridPos": {
+                "h": 7,
+                "w": 24,
+                "x": 0,
+                "y": 25
+            },
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "grafanacloud-prom"
+                    },
+                    "editorMode": "builder",
+                    "expr": "sum by (grafana_slo_uuid) (grafana_slo_total_rate_5m{grafana_slo_uuid=\"mcbsi2tzf7nxhnvgm9ke9\"})",
+                    "hide": false,
+                    "instant": false,
+                    "interval": "",
+                    "legendFormat": "",
+                    "queryType": "linear",
+                    "range": true,
+                    "refId": "recorded_data"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "grafanacloud-prom"
+                    },
+                    "editorMode": "code",
+                    "expr": "(sum(rate(apiserver_request_total[$__rate_interval] offset 2m))) AND timestamp(sum(rate(apiserver_request_total[$__rate_interval] offset 2m))) \u003c 1718292544",
+                    "hide": false,
+                    "instant": false,
+                    "interval": "",
+                    "legendFormat": "",
+                    "queryType": "linear",
+                    "range": true,
+                    "refId": "computed_before_creation_time"
+                }
+            ],
+            "title": "Event Rate",
+            "type": "timeseries"
+        }
+    ],
+    "preload": false,
+    "schemaVersion": 39,
+    "tags": [
+        "slo"
+    ],
+    "templating": {
+        "list": []
+    },
+    "time": {
+        "from": "now-6h",
+        "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "browser",
+    "title": "Testing Large Dashboard",
+    "uid": "large-dashboard-test",
+    "weekStart": ""
+}
