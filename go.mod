@@ -33,7 +33,7 @@ require (
 	github.com/prometheus/common v0.55.0
 	github.com/stretchr/testify v1.9.0
 	github.com/tmccombs/hcl2json v0.6.4
-	github.com/urfave/cli/v2 v2.27.3
+	github.com/urfave/cli/v2 v2.27.4
 	github.com/zclconf/go-cty v1.15.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	golang.org/x/text v0.16.0
