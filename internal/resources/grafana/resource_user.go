@@ -78,7 +78,9 @@ This resource is also not compatible with Grafana Cloud, as it does not allow ba
 		"grafana_user",
 		resourceUserID,
 		schema,
-	).WithLister(listerFunction(listUsers))
+	).
+		WithLister(listerFunction(listUsers)).
+		WithPreferredResourceNameField("login")
 }
 
 func listUsers(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {

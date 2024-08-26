@@ -104,7 +104,9 @@ A job defines the queries and model parameters for a machine learning task.
 		"grafana_machine_learning_job",
 		resourceJobID,
 		schema,
-	).WithLister(lister(listJobs))
+	).
+		WithLister(lister(listJobs)).
+		WithPreferredResourceNameField("name")
 }
 
 func listJobs(ctx context.Context, client *mlapi.Client) ([]string, error) {

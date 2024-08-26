@@ -109,7 +109,9 @@ resource "grafana_machine_learning_job" "test_job" {
 		"grafana_machine_learning_holiday",
 		resourceHolidayID,
 		schema,
-	).WithLister(lister(listHolidays))
+	).
+		WithLister(lister(listHolidays)).
+		WithPreferredResourceNameField("name")
 }
 
 func listHolidays(ctx context.Context, client *mlapi.Client) ([]string, error) {

@@ -150,7 +150,9 @@ set to true. This feature is only available in Grafana 10.2+.
 		"grafana_organization",
 		common.NewResourceID(common.IntIDField("id")),
 		schema,
-	).WithLister(listerFunction(listOrganizations))
+	).
+		WithLister(listerFunction(listOrganizations)).
+		WithPreferredResourceNameField("name")
 }
 
 func listOrganizations(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
