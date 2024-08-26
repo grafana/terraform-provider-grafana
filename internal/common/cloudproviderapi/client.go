@@ -84,33 +84,34 @@ func (c *Client) DeleteAWSAccount(ctx context.Context, stackID string, accountID
 }
 
 type AWSCloudWatchScrapeJob struct {
-	StackID              string
-	Name                 string
-	Enabled              bool
-	AWSAccountResourceID string
-	Regions              []string
-	Services             []AWSCloudWatchService
-	CustomNamespaces     []AWSCloudWatchCustomNamespace
+	Name                 string                         `json:"name"`
+	DisabledReason       string                         `json:"disabledReason"`
+	Enabled              bool                           `json:"enabled"`
+	ExportTags           bool                           `json:"exportTags"`
+	AWSAccountResourceID string                         `json:"AWSAccountResourceID"`
+	Regions              []string                       `json:"regions"`
+	Services             []AWSCloudWatchService         `json:"services"`
+	CustomNamespaces     []AWSCloudWatchCustomNamespace `json:"customNamespaces"`
 }
 type AWSCloudWatchService struct {
-	Name                        string
-	Metrics                     []AWSCloudWatchMetric
-	ScrapeIntervalSeconds       int64
-	ResourceDiscoveryTagFilters []AWSCloudWatchTagFilter
-	TagsToAddToMetrics          []string
+	Name                        string                   `json:"name"`
+	Metrics                     []AWSCloudWatchMetric    `json:"metrics"`
+	ScrapeIntervalSeconds       int64                    `json:"scrapeIntervalSeconds"`
+	ResourceDiscoveryTagFilters []AWSCloudWatchTagFilter `json:"resourceDiscoveryTagFilters"`
+	TagsToAddToMetrics          []string                 `json:"tagsToAddToMetrics"`
 }
 type AWSCloudWatchCustomNamespace struct {
-	Name                  string
-	Metrics               []AWSCloudWatchMetric
-	ScrapeIntervalSeconds int64
+	Name                  string                `json:"name"`
+	Metrics               []AWSCloudWatchMetric `json:"metrics"`
+	ScrapeIntervalSeconds int64                 `json:"scrapeIntervalSeconds"`
 }
 type AWSCloudWatchMetric struct {
-	Name       string
-	Statistics []string
+	Name       string   `json:"name"`
+	Statistics []string `json:"statistics"`
 }
 type AWSCloudWatchTagFilter struct {
-	Key   string
-	Value string
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 type awsCloudWatchJobsAPIResponseWrapper struct {
 	Data AWSCloudWatchScrapeJob `json:"data"`

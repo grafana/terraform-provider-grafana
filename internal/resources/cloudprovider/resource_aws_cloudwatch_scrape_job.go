@@ -228,11 +228,46 @@ func (r *resourceAWSCloudWatchScrapeJob) Create(ctx context.Context, req resourc
 	}
 
 	jobData := cloudproviderapi.AWSCloudWatchScrapeJob{}
-	jobData.RoleARN = data.RoleARN.ValueString()
-	diags = data.Regions.ElementsAs(ctx, &accountData.Regions, false)
+	jobData.Name = data.Name.ValueString()
+	jobData.Enabled = data.Enabled.ValueBool()
+	jobData.AWSAccountResourceID = data.AWSAccountResourceID.ValueString()
+	diags = data.Regions.ElementsAs(ctx, &jobData.Regions, false)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+	jobData.Services = make([]cloudproviderapi.AWSCloudWatchService, len(data.Services))
+	for i, service := range data.Services {
+		jobData.Services[i].Name = service.Name.ValueString()
+		jobData.Services[i].ScrapeIntervalSeconds = service.ScrapeIntervalSeconds.ValueInt64()
+		diags = service.TagsToAddToMetrics.ElementsAs(ctx, &jobData.Services[i].TagsToAddToMetrics, false)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		jobData.Services[i].Metrics = make([]cloudproviderapi.AWSCloudWatchMetric, len(service.Metrics))
+		for j, metric := range service.Metrics {
+			jobData.Services[i].Metrics[j].Name = metric.Name.ValueString()
+			diags = metric.Statistics.ElementsAs(ctx, &jobData.Services[i].Metrics[j].Statistics, false)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+		}
+	}
+	jobData.CustomNamespaces = make([]cloudproviderapi.AWSCloudWatchCustomNamespace, len(data.CustomNamespaces))
+	for i, customNamespace := range data.CustomNamespaces {
+		jobData.CustomNamespaces[i].Name = customNamespace.Name.ValueString()
+		jobData.CustomNamespaces[i].ScrapeIntervalSeconds = customNamespace.ScrapeIntervalSeconds.ValueInt64()
+		jobData.CustomNamespaces[i].Metrics = make([]cloudproviderapi.AWSCloudWatchMetric, len(customNamespace.Metrics))
+		for j, metric := range customNamespace.Metrics {
+			jobData.CustomNamespaces[i].Metrics[j].Name = metric.Name.ValueString()
+			diags = metric.Statistics.ElementsAs(ctx, &jobData.CustomNamespaces[i].Metrics[j].Statistics, false)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+		}
 	}
 	job, err := r.client.CreateAWSCloudWatchScrapeJob(ctx, data.StackID.ValueString(), jobData)
 	if err != nil {
@@ -244,7 +279,7 @@ func (r *resourceAWSCloudWatchScrapeJob) Create(ctx context.Context, req resourc
 		ID:                   types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(data.StackID.ValueString(), data.Name.ValueString())),
 		StackID:              data.StackID,
 		Name:                 data.Name,
-		Enabled:              data.Enabled,
+		Enabled:              types.BoolValue(job.Enabled),
 		AWSAccountResourceID: data.AWSAccountResourceID,
 		Regions:              data.Regions,
 		Services:             data.Services,
@@ -303,6 +338,16 @@ func (r *resourceAWSCloudWatchScrapeJob) Delete(ctx context.Context, req resourc
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	err := r.client.DeleteAWSCloudWatchScrapeJob(
+		ctx,
+		data.StackID.ValueString(),
+		data.Name.ValueString(),
+	)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to delete AWS CloudWatch scrape job", err.Error())
 		return
 	}
 

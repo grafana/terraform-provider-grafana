@@ -100,7 +100,7 @@ func (r *datasourceAWSCloudWatchScrapeJobs) Read(ctx context.Context, req dataso
 	scrapeJobsResp := []cloudproviderapi.AWSCloudWatchScrapeJob{TestAWSCloudWatchScrapeJobData}
 	scrapeJobs := make([]awsCWScrapeJobTFModel, len(scrapeJobsResp))
 	for i, scrapeJobData := range scrapeJobsResp {
-		scrapeJob, diags := convertScrapeJobClientModelToTFModel(ctx, scrapeJobData)
+		scrapeJob, diags := convertScrapeJobClientModelToTFModel(ctx, data.StackID.ValueString(), scrapeJobData)
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
 			return

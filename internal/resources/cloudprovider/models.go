@@ -129,11 +129,11 @@ func (v awsCWScrapeJobNoDuplicateMetricNamesValidator) ValidateList(ctx context.
 // convertScrapeJobClientModelToTFModel converts a cloudproviderapi.AWSCloudWatchScrapeJob instance to a awsCWScrapeJobTFModel instance.
 // A special converter is needed because the TFModel uses special Terraform types that build upon their underlying Go types for
 // supporting Terraform's state management/dependency analysis of the resource and its data.
-func convertScrapeJobClientModelToTFModel(ctx context.Context, scrapeJobData cloudproviderapi.AWSCloudWatchScrapeJob) (*awsCWScrapeJobTFModel, diag.Diagnostics) {
+func convertScrapeJobClientModelToTFModel(ctx context.Context, stackID string, scrapeJobData cloudproviderapi.AWSCloudWatchScrapeJob) (*awsCWScrapeJobTFModel, diag.Diagnostics) {
 	conversionDiags := diag.Diagnostics{}
 	converted := &awsCWScrapeJobTFModel{
-		ID:                   types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(scrapeJobData.StackID, scrapeJobData.Name)),
-		StackID:              types.StringValue(scrapeJobData.StackID),
+		ID:                   types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(stackID, scrapeJobData.Name)),
+		StackID:              types.StringValue(stackID),
 		Name:                 types.StringValue(scrapeJobData.Name),
 		Enabled:              types.BoolValue(scrapeJobData.Enabled),
 		AWSAccountResourceID: types.StringValue(scrapeJobData.AWSAccountResourceID),
@@ -215,8 +215,9 @@ func convertScrapeJobClientModelToTFModel(ctx context.Context, scrapeJobData clo
 // we have the resource handlers talking to the real API.
 // TODO(tristan): move this to test package and unexport
 // once we're using the actual API for interactions.
+const TestStackID = "test-stack-id"
+
 var TestAWSCloudWatchScrapeJobData = cloudproviderapi.AWSCloudWatchScrapeJob{
-	StackID:              "001",
 	Name:                 "test-scrape-job",
 	Enabled:              true,
 	AWSAccountResourceID: "1",

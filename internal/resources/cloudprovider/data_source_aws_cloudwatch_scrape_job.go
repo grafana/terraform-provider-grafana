@@ -167,7 +167,9 @@ func (r *datasourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req datas
 }
 
 func (r *datasourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	converted, diags := convertScrapeJobClientModelToTFModel(ctx, TestAWSCloudWatchScrapeJobData)
+	var data awsCWScrapeJobTFModel
+	diags := req.Config.Get(ctx, &data)
+	converted, diags := convertScrapeJobClientModelToTFModel(ctx, data.StackID.ValueString(), TestAWSCloudWatchScrapeJobData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

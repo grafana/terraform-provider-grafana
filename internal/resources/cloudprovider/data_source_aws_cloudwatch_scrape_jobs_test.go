@@ -24,10 +24,10 @@ func TestAccDataSourceAWSCloudWatchScrapeJobs(t *testing.T) {
 			{
 				Config: awsCloudWatchScrapeJobsDataSourceData(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_jobs.test", "id", cloudprovider.TestAWSCloudWatchScrapeJobData.StackID),
-					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_jobs.test", "stack_id", cloudprovider.TestAWSCloudWatchScrapeJobData.StackID),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_jobs.test", "id", cloudprovider.TestStackID),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_jobs.test", "stack_id", cloudprovider.TestStackID),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_jobs.test", "scrape_job.#", "1"),
-					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_jobs.test", "scrape_job.0.stack_id", cloudprovider.TestAWSCloudWatchScrapeJobData.StackID),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_jobs.test", "scrape_job.0.stack_id", cloudprovider.TestStackID),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_jobs.test", "scrape_job.0.name", cloudprovider.TestAWSCloudWatchScrapeJobData.Name),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_jobs.test", "scrape_job.0.aws_account_resource_id", cloudprovider.TestAWSCloudWatchScrapeJobData.AWSAccountResourceID),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_jobs.test", "scrape_job.0.regions.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.Regions))),
@@ -65,7 +65,7 @@ data "grafana_cloud_provider_aws_cloudwatch_scrape_jobs" "test" {
 	stack_id = "%[1]s"
 }
 `,
-		cloudprovider.TestAWSCloudWatchScrapeJobData.StackID,
+		cloudprovider.TestStackID,
 	)
 
 	return data
