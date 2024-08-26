@@ -46,7 +46,8 @@ func resourceOrganization() *common.Resource {
 
 This resource represents an instance-scoped resource and uses Grafana's admin APIs.
 It does not work with API tokens or service accounts which are org-scoped.
-You must use basic auth.
+You must use basic auth. 
+This resource is also not compatible with Grafana Cloud, as it does not allow basic auth.
 `,
 
 		CreateContext: CreateOrganization,
@@ -149,7 +150,9 @@ set to true. This feature is only available in Grafana 10.2+.
 		"grafana_organization",
 		common.NewResourceID(common.IntIDField("id")),
 		schema,
-	).WithLister(listerFunction(listOrganizations))
+	).
+		WithLister(listerFunction(listOrganizations)).
+		WithPreferredResourceNameField("name")
 }
 
 func listOrganizations(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {

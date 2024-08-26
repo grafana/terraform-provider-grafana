@@ -1,6 +1,9 @@
 package generate
 
-import "github.com/hashicorp/terraform-exec/tfexec"
+import (
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform-exec/tfexec"
+)
 
 type OutputFormat string
 
@@ -29,6 +32,12 @@ type CloudConfig struct {
 	StackServiceAccountName   string
 }
 
+type TerraformInstallConfig struct {
+	InstallDir string
+	Version    *version.Version
+	PluginDir  string
+}
+
 type Config struct {
 	// IncludeResources is a list of patterns to filter resources by.
 	// If a resource name matches any of the patterns, it will be included in the output.
@@ -37,10 +46,13 @@ type Config struct {
 	// OutputDir is the directory to write the generated files to.
 	OutputDir string
 	// Clobber will overwrite existing files in the output directory.
-	Clobber         bool
-	Format          OutputFormat
-	ProviderVersion string
-	Grafana         *GrafanaConfig
-	Cloud           *CloudConfig
-	Terraform       *tfexec.Terraform
+	Clobber           bool
+	OutputCredentials bool
+	Format            OutputFormat
+	ProviderVersion   string
+	Grafana           *GrafanaConfig
+	Cloud             *CloudConfig
+
+	TerraformInstallConfig TerraformInstallConfig
+	Terraform              *tfexec.Terraform
 }

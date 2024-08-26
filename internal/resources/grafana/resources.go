@@ -91,6 +91,7 @@ var DataSources = addValidationToDataSources(
 	datasourceFolder(),
 	datasourceFolders(),
 	datasourceLibraryPanel(),
+	datasourceLibraryPanels(),
 	datasourceUser(),
 	datasourceUsers(),
 	datasourceRole(),

@@ -84,27 +84,18 @@ func resourceAnnotation() *common.Resource {
 		"grafana_annotation",
 		orgResourceIDInt("id"),
 		schema,
-	).WithLister(listerFunction(listAnnotations))
+	).WithLister(listerFunctionOrgResource(listAnnotations))
 }
 
-func listAnnotations(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
-	orgIDs, err := data.OrgIDs(client)
+func listAnnotations(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	var ids []string
+	resp, err := client.Annotations.GetAnnotations(annotations.NewGetAnnotationsParams())
 	if err != nil {
 		return nil, err
 	}
 
-	var ids []string
-	for _, orgID := range orgIDs {
-		client = client.Clone().WithOrgID(orgID)
-
-		resp, err := client.Annotations.GetAnnotations(annotations.NewGetAnnotationsParams())
-		if err != nil {
-			return nil, err
-		}
-
-		for _, annotation := range resp.Payload {
-			ids = append(ids, MakeOrgResourceID(orgID, annotation.ID))
-		}
+	for _, annotation := range resp.Payload {
+		ids = append(ids, MakeOrgResourceID(orgID, annotation.ID))
 	}
 
 	return ids, nil

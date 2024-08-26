@@ -29,6 +29,11 @@ func TestAccOnCallSchedule_basic(t *testing.T) {
 				),
 			},
 			{
+				ImportState:       true,
+				ResourceName:      "grafana_oncall_schedule.test-acc-schedule",
+				ImportStateVerify: true,
+			},
+			{
 				Config: testAccOnCallScheduleConfigOverrides(scheduleName, true),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOnCallScheduleResourceExists("grafana_oncall_schedule.test-acc-schedule"),
@@ -36,11 +41,21 @@ func TestAccOnCallSchedule_basic(t *testing.T) {
 				),
 			},
 			{
+				ImportState:       true,
+				ResourceName:      "grafana_oncall_schedule.test-acc-schedule",
+				ImportStateVerify: true,
+			},
+			{
 				Config: testAccOnCallScheduleConfigOverrides(scheduleName, false),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOnCallScheduleResourceExists("grafana_oncall_schedule.test-acc-schedule"),
 					resource.TestCheckResourceAttr("grafana_oncall_schedule.test-acc-schedule", "enable_web_overrides", "false"),
 				),
+			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_oncall_schedule.test-acc-schedule",
+				ImportStateVerify: true,
 			},
 		},
 	})

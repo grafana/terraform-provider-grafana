@@ -5,6 +5,7 @@ import (
 )
 
 var DataSources = []*common.DataSource{
+	datasourceAccessPolicies(),
 	datasourceIPs(),
 	datasourceOrganization(),
 	datasourceStack(),

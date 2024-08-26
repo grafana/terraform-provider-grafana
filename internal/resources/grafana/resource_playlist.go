@@ -77,27 +77,20 @@ func resourcePlaylist() *common.Resource {
 		"grafana_playlist",
 		orgResourceIDString("uid"),
 		schema,
-	).WithLister(listerFunction(listPlaylists))
+	).
+		WithLister(listerFunctionOrgResource(listPlaylists)).
+		WithPreferredResourceNameField("name")
 }
 
-func listPlaylists(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
-	orgIDs, err := data.OrgIDs(client)
+func listPlaylists(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	var ids []string
+	resp, err := client.Playlists.SearchPlaylists(playlists.NewSearchPlaylistsParams())
 	if err != nil {
 		return nil, err
 	}
 
-	var ids []string
-	for _, orgID := range orgIDs {
-		client = client.Clone().WithOrgID(orgID)
-
-		resp, err := client.Playlists.SearchPlaylists(playlists.NewSearchPlaylistsParams())
-		if err != nil {
-			return nil, err
-		}
-
-		for _, playlist := range resp.Payload {
-			ids = append(ids, MakeOrgResourceID(orgID, playlist.UID))
-		}
+	for _, playlist := range resp.Payload {
+		ids = append(ids, MakeOrgResourceID(orgID, playlist.UID))
 	}
 
 	return ids, nil

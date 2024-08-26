@@ -59,6 +59,7 @@ func TestAccDataSource_Loki(t *testing.T) {
 		resource.TestCheckResourceAttr("grafana_data_source.loki", "name", dsName),
 		resource.TestCheckResourceAttr("grafana_data_source.loki", "type", "loki"),
 		resource.TestCheckResourceAttr("grafana_data_source.loki", "url", "http://acc-test.invalid/"),
+		testutils.CheckLister("grafana_data_source.loki"),
 		func(s *terraform.State) error {
 			jsonData := dataSource.JSONData.(map[string]interface{})
 			if jsonData["derivedFields"] == nil {
@@ -420,6 +421,24 @@ func TestAccDataSource_SeparateConfig(t *testing.T) {
 				ResourceName:            "grafana_data_source_config.influx",
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"secure_json_data_encoded", "http_headers"},
+			},
+		},
+	})
+}
+
+func TestAccDataSource_ImportReadOnly(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:            `resource "grafana_data_source" "prometheus" {}`,
+				ImportState:       true,
+				ResourceName:      "grafana_data_source.prometheus",
+				ImportStateVerify: true,
+				ImportStateId:     "grafanacloud-prom",
+				ExpectError:       regexp.MustCompile("this Grafana data source is read-only. It cannot be imported as a resource. Use the `data_grafana_data_source` data source instead"),
 			},
 		},
 	})

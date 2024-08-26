@@ -12,6 +12,7 @@ import (
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate/postprocessing"
 	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-exec/tfexec"
@@ -32,13 +33,13 @@ type stack struct {
 	onCallToken string
 }
 
-func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
+func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, GenerationResult) {
 	// Gen provider
 	providerBlock := hclwrite.NewBlock("provider", []string{"grafana"})
 	providerBlock.Body().SetAttributeValue("alias", cty.StringVal("cloud"))
 	providerBlock.Body().SetAttributeValue("cloud_access_policy_token", cty.StringVal(cfg.Cloud.AccessPolicyToken))
 	if err := writeBlocks(filepath.Join(cfg.OutputDir, "cloud-provider.tf"), providerBlock); err != nil {
-		return nil, err
+		return nil, failure(err)
 	}
 
 	// Generate imports
@@ -46,18 +47,18 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
 		CloudAccessPolicyToken: types.StringValue(cfg.Cloud.AccessPolicyToken),
 	}
 	if err := config.SetDefaults(); err != nil {
-		return nil, err
+		return nil, failure(err)
 	}
 
 	client, err := provider.CreateClients(config)
 	if err != nil {
-		return nil, err
+		return nil, failure(err)
 	}
 	cloudClient := client.GrafanaCloudAPI
 
 	stacks, _, err := cloudClient.InstancesAPI.GetInstances(ctx).Execute()
 	if err != nil {
-		return nil, err
+		return nil, failure(err)
 	}
 
 	// Cleanup SAs
@@ -66,32 +67,30 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
 	if cfg.Cloud.CreateStackServiceAccount {
 		for _, stack := range stacks.Items {
 			if err := createManagementStackServiceAccount(ctx, cloudClient, stack, managementServiceAccountName); err != nil {
-				return nil, err
+				return nil, failure(err)
 			}
 		}
 	}
 
 	data := cloud.NewListerData(cfg.Cloud.Org)
-	if err := generateImportBlocks(ctx, client, data, cloud.Resources, cfg, "cloud"); err != nil {
-		return nil, err
+	returnResult := generateImportBlocks(ctx, client, data, cloud.Resources, cfg, "cloud")
+	if returnResult.Blocks() == 0 { // Skip if no resources were found
+		return nil, returnResult
 	}
 
-	postprocessor := &postprocessor{}
-	if postprocessor.plannedState, err = getPlannedState(ctx, cfg); err != nil {
-		return nil, err
+	plannedState, err := getPlannedState(ctx, cfg)
+	if err != nil {
+		return nil, failure(err)
 	}
-	if err := postprocessor.stripDefaults(filepath.Join(cfg.OutputDir, "cloud-resources.tf"), nil); err != nil {
-		return nil, err
+	if err := postprocessing.StripDefaults(filepath.Join(cfg.OutputDir, "cloud-resources.tf"), nil); err != nil {
+		return nil, failure(err)
 	}
-	if err := postprocessor.wrapJSONFieldsInFunction(filepath.Join(cfg.OutputDir, "cloud-resources.tf")); err != nil {
-		return nil, err
-	}
-	if err := postprocessor.replaceReferences(filepath.Join(cfg.OutputDir, "cloud-resources.tf"), nil); err != nil {
-		return nil, err
+	if err := postprocessing.ReplaceReferences(filepath.Join(cfg.OutputDir, "cloud-resources.tf"), plannedState, nil); err != nil {
+		return nil, failure(err)
 	}
 
 	if !cfg.Cloud.CreateStackServiceAccount {
-		return nil, nil
+		return nil, returnResult
 	}
 
 	// Add management service account (grafana_cloud_stack_service_account)
@@ -148,7 +147,7 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
 		providerBlock.Body().SetAttributeTraversal("sm_url", traversal("grafana_synthetic_monitoring_installation", stack.Slug, "stack_sm_api_url"))
 
 		if err := writeBlocks(filepath.Join(cfg.OutputDir, fmt.Sprintf("stack-%s-provider.tf", stack.Slug)), saBlock, saTokenBlock, smInstallationMetricsPublishBlock, smInstallationTokenBlock, smInstallationBlock, providerBlock); err != nil {
-			return nil, fmt.Errorf("failed to write management service account blocks for stack %q: %w", stack.Slug, err)
+			return nil, failuref("failed to write management service account blocks for stack %q: %w", stack.Slug, err)
 		}
 
 		// Apply then go into the state and find the management key
@@ -160,14 +159,14 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
 			tfexec.Target("grafana_synthetic_monitoring_installation."+stack.Slug),
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to apply management service account blocks for stack %q: %w", stack.Slug, err)
+			return nil, failuref("failed to apply management service account blocks for stack %q: %w", stack.Slug, err)
 		}
 	}
 
 	managedStacks := []stack{}
 	state, err := getState(ctx, cfg)
 	if err != nil {
-		return nil, err
+		return nil, failure(err)
 	}
 	stacksMap := map[string]stack{}
 	for _, resource := range state.Values.RootModule.Resources {
@@ -197,7 +196,7 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, error) {
 		managedStacks = append(managedStacks, stack)
 	}
 
-	return managedStacks, nil
+	return managedStacks, returnResult
 }
 
 func createManagementStackServiceAccount(ctx context.Context, cloudClient *gcom.APIClient, stack gcom.FormattedApiInstance, saName string) error {

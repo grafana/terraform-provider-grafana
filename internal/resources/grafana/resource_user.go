@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/users"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -23,6 +25,7 @@ func resourceUser() *common.Resource {
 This resource represents an instance-scoped resource and uses Grafana's admin APIs.
 It does not work with API tokens or service accounts which are org-scoped. 
 You must use basic auth.
+This resource is also not compatible with Grafana Cloud, as it does not allow basic auth.
 `,
 
 		CreateContext: CreateUser,
@@ -75,7 +78,33 @@ You must use basic auth.
 		"grafana_user",
 		resourceUserID,
 		schema,
-	)
+	).
+		WithLister(listerFunction(listUsers)).
+		WithPreferredResourceNameField("login")
+}
+
+func listUsers(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
+	var ids []string
+	var page int64 = 1
+	for {
+		params := users.NewSearchUsersParams().WithPage(&page)
+		resp, err := client.Users.SearchUsers(params)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, user := range resp.Payload {
+			ids = append(ids, strconv.FormatInt(user.ID, 10))
+		}
+
+		if len(resp.Payload) == 0 {
+			break
+		}
+
+		page++
+	}
+
+	return ids, nil
 }
 
 func CreateUser(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

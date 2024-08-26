@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -38,6 +40,11 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 		"metrics:write",
 	}
 
+	randomName := acctest.RandStringFromCharSet(6, acctest.CharSetAlpha)
+	initialName := fmt.Sprintf("initial-%s", randomName)
+	initialToken := fmt.Sprintf("token-%s", initialName)
+	updatedName := fmt.Sprintf("updated-%s", randomName)
+
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
@@ -46,13 +53,13 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 		),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCloudAccessPolicyTokenConfigBasic("initial", "", "us", initialScopes, expiresAt),
+				Config: testAccCloudAccessPolicyTokenConfigBasic(initialName, "", "us", initialScopes, expiresAt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.test", &policy),
 					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_token.test", &policyToken),
 
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "name", "initial"),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "display_name", "initial"),
+					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "name", initialName),
+					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "display_name", initialName),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.#", "6"),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.0", "accesspolicies:delete"),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.1", "accesspolicies:read"),
@@ -63,37 +70,54 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "realm.#", "1"),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "realm.0.type", "org"),
 
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy_token.test", "name", "token-initial"),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy_token.test", "display_name", "token-initial"),
+					resource.TestCheckResourceAttr("grafana_cloud_access_policy_token.test", "name", initialToken),
+					resource.TestCheckResourceAttr("grafana_cloud_access_policy_token.test", "display_name", initialToken),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy_token.test", "expires_at", expiresAt),
 				),
 			},
 			{
-				Config: testAccCloudAccessPolicyTokenConfigBasic("initial", "updated", "us", updatedScopes, expiresAt),
+				Config: testAccCloudAccessPolicyTokenConfigBasic(initialName, "", "us", initialScopes, expiresAt),
+				PreConfig: func() {
+					orgID, err := strconv.ParseInt(*policy.OrgId, 10, 32)
+					if err != nil {
+						t.Fatal(err)
+					}
+					client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+					_, _, err = client.TokensAPI.DeleteToken(context.Background(), *policyToken.Id).
+						Region("us").
+						OrgId(int32(orgID)).
+						XRequestId("deleting-token").Execute()
+					if err != nil {
+						t.Fatalf("error getting cloud access policy: %s", err)
+					}
+				},
+			},
+			{
+				Config: testAccCloudAccessPolicyTokenConfigBasic(initialName, "updated", "us", updatedScopes, expiresAt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.test", &policy),
 					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_token.test", &policyToken),
 
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "name", "initial"),
+					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "name", initialName),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "display_name", "updated"),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.#", "1"),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.0", "metrics:write"),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "realm.#", "1"),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "realm.0.type", "org"),
 
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy_token.test", "name", "token-initial"),
+					resource.TestCheckResourceAttr("grafana_cloud_access_policy_token.test", "name", initialToken),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy_token.test", "display_name", "updated"),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy_token.test", "expires_at", expiresAt),
 				),
 			},
 			// Recreate
 			{
-				Config: testAccCloudAccessPolicyTokenConfigBasic("updated", "updated", "us", updatedScopes, expiresAt),
+				Config: testAccCloudAccessPolicyTokenConfigBasic(updatedName, "updated", "us", updatedScopes, expiresAt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.test", &policy),
 					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_token.test", &policyToken),
 
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "name", "updated"),
+					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "name", updatedName),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "display_name", "updated"),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.#", "1"),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.0", "metrics:write"),
@@ -123,11 +147,12 @@ func TestResourceAccessPolicyToken_NoExpiration(t *testing.T) {
 	var policy gcom.AuthAccessPolicy
 	var policyToken gcom.AuthToken
 
+	randomName := fmt.Sprintf("initial-no-expiration-%s", acctest.RandStringFromCharSet(6, acctest.CharSetAlpha))
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCloudAccessPolicyTokenConfigBasic("initial-no-expiration", "", "us", []string{"metrics:read"}, ""),
+				Config: testAccCloudAccessPolicyTokenConfigBasic(randomName, "", "us", []string{"metrics:read"}, ""),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.test", &policy),
 					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_token.test", &policyToken),

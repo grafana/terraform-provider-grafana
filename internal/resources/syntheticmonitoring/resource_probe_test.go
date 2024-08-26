@@ -36,6 +36,7 @@ func TestAccResourceProbe(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "public", "false"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "labels.type", "mountain"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "disable_scripted_checks", "false"),
+					testutils.CheckLister("grafana_synthetic_monitoring_probe.main"),
 				),
 			},
 			{

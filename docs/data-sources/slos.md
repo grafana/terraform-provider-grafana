@@ -87,6 +87,7 @@ Read-Only:
 - `name` (String)
 - `objectives` (List of Object) (see [below for nested schema](#nestedobjatt--slos--objectives))
 - `query` (List of Object) (see [below for nested schema](#nestedobjatt--slos--query))
+- `search_expression` (String)
 - `uuid` (String)
 
 <a id="nestedobjatt--slos--alerting"></a>

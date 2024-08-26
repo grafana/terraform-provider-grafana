@@ -2,7 +2,6 @@ package oncall
 
 import (
 	"context"
-	"log"
 	"net/http"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
@@ -109,7 +108,9 @@ func resourceOutgoingWebhook() *common.Resource {
 		"grafana_oncall_outgoing_webhook",
 		resourceID,
 		schema,
-	).WithLister(oncallListerFunction(listWebhooks))
+	).
+		WithLister(oncallListerFunction(listWebhooks)).
+		WithPreferredResourceNameField("name")
 }
 
 func listWebhooks(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
@@ -206,9 +207,7 @@ func resourceOutgoingWebhookRead(ctx context.Context, d *schema.ResourceData, cl
 	outgoingWebhook, r, err := client.Webhooks.GetWebhook(d.Id(), &onCallAPI.GetWebhookOptions{})
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] removing outgoingWebhook %s from state because it no longer exists", d.Get("name").(string))
-			d.SetId("")
-			return nil
+			return common.WarnMissing("outgoing webhook", d)
 		}
 		return diag.FromErr(err)
 	}
@@ -309,11 +308,5 @@ func resourceOutgoingWebhookUpdate(ctx context.Context, d *schema.ResourceData, 
 
 func resourceOutgoingWebhookDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	_, err := client.Webhooks.DeleteWebhook(d.Id(), &onCallAPI.DeleteWebhookOptions{})
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return nil
+	return diag.FromErr(err)
 }

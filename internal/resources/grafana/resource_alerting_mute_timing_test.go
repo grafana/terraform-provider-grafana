@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
@@ -37,6 +38,7 @@ func TestAccMuteTiming_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.years.0", "2030"),
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.years.1", "2025:2026"),
 					resource.TestCheckResourceAttr("grafana_mute_timing.my_mute_timing", "intervals.0.location", "America/New_York"),
+					testutils.CheckLister("grafana_mute_timing.my_mute_timing"),
 				),
 			},
 			// Test import.
@@ -142,13 +144,87 @@ func TestAccMuteTiming_RemoveInUse(t *testing.T) {
 				contact_point = grafana_contact_point.default_policy.name
 			}
 		}
-		
+
 		resource "grafana_mute_timing" "test" {
 			count = local.use_mute ? 1 : 0
 			org_id = grafana_organization.my_org.id
 			name = "test-mute-timing"
 			intervals {}
 		}`, mute)
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: config(true),
+			},
+			{
+				Config: config(false),
+			},
+		},
+	})
+}
+
+func TestAccMuteTiming_RemoveInUseInAlertRule(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Switch to OSS when this is released: https://github.com/grafana/grafana/pull/90500
+
+	randomStr := acctest.RandString(6)
+
+	config := func(mute bool) string {
+		return fmt.Sprintf(`
+		locals {
+			use_mute = %[2]t
+		}
+		
+		resource "grafana_folder" "rule_folder" {
+			title  = "%[1]s"
+		}
+		
+		resource "grafana_contact_point" "default_policy" {
+			name   = "%[1]s"
+			email {
+				addresses = ["test@example.com"]
+			}
+		}
+
+		resource "grafana_rule_group" "this" {
+			name               = "%[1]s"
+			folder_uid         = grafana_folder.rule_folder.uid
+			interval_seconds   = 60
+
+			rule {
+				name = "%[1]s"
+				condition      = "B"
+				notification_settings {
+					contact_point = grafana_contact_point.default_policy.name
+					group_by      = ["..."]
+					mute_timings  = local.use_mute ? [grafana_mute_timing.test[0].name] : []
+				}
+				data {
+					ref_id     = "A"
+					query_type = ""
+					relative_time_range {
+						from = 600
+						to   = 0
+					}
+					datasource_uid = "PD8C576611E62080A"
+					model = jsonencode({
+						hide          = false
+						intervalMs    = 1000
+						maxDataPoints = 43200
+						refId         = "A"
+					})
+				}
+			}
+		}
+
+		
+		resource "grafana_mute_timing" "test" {
+			count = local.use_mute ? 1 : 0
+			name = "%[1]s"
+			intervals {}
+		}`, randomStr, mute)
 	}
 
 	resource.ParallelTest(t, resource.TestCase{

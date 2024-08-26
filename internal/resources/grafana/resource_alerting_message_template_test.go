@@ -27,6 +27,7 @@ func TestAccMessageTemplate_basic(t *testing.T) {
 					alertingMessageTemplateCheckExists.exists("grafana_message_template.my_template", &tmpl),
 					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "My Reusable Template"),
 					resource.TestCheckResourceAttr("grafana_message_template.my_template", "template", "{{define \"My Reusable Template\" }}\n template content\n{{ end }}"),
+					testutils.CheckLister("grafana_message_template.my_template"),
 				),
 			},
 			// Test import.

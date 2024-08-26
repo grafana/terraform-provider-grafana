@@ -34,6 +34,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "org_id", "1"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.#", "1"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_alert_rule", "rule.0.data.0.model", "{\"hide\":false,\"refId\":\"A\"}"),
+					testutils.CheckLister("grafana_rule_group.my_alert_rule"),
 				),
 			},
 			// Test "for: 0s"

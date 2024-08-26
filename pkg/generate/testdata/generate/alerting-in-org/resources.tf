@@ -1,9 +1,44 @@
 # __generated__ by Terraform
 # Please review these resources and move them into your main configuration files.
 
+# __generated__ by Terraform from "1:email receiver"
+resource "grafana_contact_point" "_1_email_receiver" {
+  disable_provenance = true
+  name               = "email receiver"
+  email {
+    addresses               = ["<example@email.com>"]
+    disable_resolve_message = false
+    single_email            = false
+  }
+}
+
+# __generated__ by Terraform from "2:email receiver"
+resource "grafana_contact_point" "_2_email_receiver" {
+  disable_provenance = true
+  name               = "email receiver"
+  org_id             = grafana_organization.alerting-org.id
+  email {
+    addresses               = ["<example@email.com>"]
+    disable_resolve_message = false
+    single_email            = false
+  }
+}
+
+# __generated__ by Terraform from "2:my-contact-point"
+resource "grafana_contact_point" "_2_my-contact-point" {
+  disable_provenance = false
+  name               = "my-contact-point"
+  org_id             = grafana_organization.alerting-org.id
+  email {
+    addresses               = ["hello@example.com"]
+    disable_resolve_message = false
+    single_email            = false
+  }
+}
+
 # __generated__ by Terraform from "2:alert-rule-folder"
 resource "grafana_folder" "_2_alert-rule-folder" {
-  org_id = grafana_organization._2.id
+  org_id = grafana_organization.alerting-org.id
   title  = "My Alert Rule Folder"
   uid    = "alert-rule-folder"
 }
@@ -11,14 +46,14 @@ resource "grafana_folder" "_2_alert-rule-folder" {
 # __generated__ by Terraform from "2:My Reusable Template"
 resource "grafana_message_template" "_2_My_Reusable_Template" {
   name     = "My Reusable Template"
-  org_id   = grafana_organization._2.id
+  org_id   = grafana_organization.alerting-org.id
   template = "{{define \"My Reusable Template\" }}\n template content\n{{ end }}"
 }
 
 # __generated__ by Terraform from "2:My Mute Timing"
 resource "grafana_mute_timing" "_2_My_Mute_Timing" {
   name   = "My Mute Timing"
-  org_id = grafana_organization._2.id
+  org_id = grafana_organization.alerting-org.id
   intervals {
     days_of_month = ["1:7", "-1"]
     location      = "America/New_York"
@@ -41,14 +76,14 @@ resource "grafana_notification_policy" "_1_policy" {
 
 # __generated__ by Terraform from "2:policy"
 resource "grafana_notification_policy" "_2_policy" {
-  contact_point      = "my-contact-point"
+  contact_point      = grafana_contact_point._2_my-contact-point.name
   disable_provenance = false
   group_by           = ["..."]
-  org_id             = grafana_organization._2.id
+  org_id             = grafana_organization.alerting-org.id
 }
 
 # __generated__ by Terraform from "2"
-resource "grafana_organization" "_2" {
+resource "grafana_organization" "alerting-org" {
   admins = ["admin@localhost"]
   name   = "alerting-org"
 }
@@ -59,7 +94,7 @@ resource "grafana_rule_group" "_2_alert-rule-folder_My_Rule_Group" {
   folder_uid         = grafana_folder._2_alert-rule-folder.uid
   interval_seconds   = 240
   name               = "My Rule Group"
-  org_id             = grafana_organization._2.id
+  org_id             = grafana_organization.alerting-org.id
   rule {
     annotations = {
       a = "b"

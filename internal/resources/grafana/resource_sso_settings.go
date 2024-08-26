@@ -204,6 +204,16 @@ var oauth2SettingsSchema = &schema.Resource{
 			Optional:    true,
 			Description: "Prevent synchronizing users’ organization roles from your IdP.",
 		},
+		"org_mapping": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "List of comma- or space-separated Organization:OrgIdOrOrgName:Role mappings. Organization can be * meaning “All users”. Role is optional and can have the following values: None, Viewer, Editor or Admin.",
+		},
+		"org_attribute_path": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: `JMESPath expression to use for the organization mapping lookup from the user ID token. The extracted list will be used for the organization mapping (to match "Organization" in the "org_mapping"). Only applicable to Generic OAuth and Okta.`,
+		},
 		"define_allowed_groups": {
 			Type:        schema.TypeBool,
 			Optional:    true,
@@ -440,6 +450,27 @@ var samlSettingsSchema = &schema.Resource{
 			Optional:    true,
 			Description: "Prevent synchronizing users’ organization roles from your IdP.",
 		},
+		"client_id": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "The client Id of your OAuth2 app.",
+		},
+		"client_secret": {
+			Type:     schema.TypeString,
+			Optional: true,
+			// Sensitive:   true,
+			Description: "The client secret of your OAuth2 app.",
+		},
+		"token_url": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "The token endpoint of your OAuth2 provider. Required for Azure AD providers.",
+		},
+		"force_use_graph_api": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "If enabled, Grafana will fetch groups from Microsoft Graph API instead of using the groups claim from the ID token.",
+		},
 	},
 }
 
@@ -664,6 +695,7 @@ var validationsByProvider = map[string][]validateFunc{
 		ssoValidateNotEmpty("auth_url"),
 		ssoValidateNotEmpty("token_url"),
 		ssoValidateEmpty("api_url"),
+		ssoValidateEmpty("org_attribute_path"),
 		ssoValidateURL("auth_url"),
 		ssoValidateURL("token_url"),
 	},
@@ -674,6 +706,7 @@ var validationsByProvider = map[string][]validateFunc{
 		ssoValidateURL("auth_url"),
 		ssoValidateURL("token_url"),
 		ssoValidateURL("api_url"),
+		ssoValidateInterdependencyXOR("org_attribute_path", "org_mapping"),
 	},
 	"okta": {
 		ssoValidateNotEmpty("auth_url"),
@@ -682,27 +715,33 @@ var validationsByProvider = map[string][]validateFunc{
 		ssoValidateURL("auth_url"),
 		ssoValidateURL("token_url"),
 		ssoValidateURL("api_url"),
+		ssoValidateInterdependencyXOR("org_attribute_path", "org_mapping"),
 	},
 	"github": {
 		ssoValidateEmpty("auth_url"),
 		ssoValidateEmpty("token_url"),
 		ssoValidateEmpty("api_url"),
+		ssoValidateEmpty("org_attribute_path"),
 	},
 	"gitlab": {
 		ssoValidateEmpty("auth_url"),
 		ssoValidateEmpty("token_url"),
 		ssoValidateEmpty("api_url"),
+		ssoValidateEmpty("org_attribute_path"),
 	},
 	"google": {
 		ssoValidateEmpty("auth_url"),
 		ssoValidateEmpty("token_url"),
 		ssoValidateEmpty("api_url"),
+		ssoValidateEmpty("org_attribute_path"),
 	},
 	"saml": {
-		ssoValidateOnlyOneOf("certificate", "certificate_path"),
-		ssoValidateOnlyOneOf("private_key", "private_key_path"),
+		ssoValidateInterdependencyXOR("certificate", "private_key"),
+		ssoValidateInterdependencyXOR("certificate_path", "private_key_path"),
 		ssoValidateOnlyOneOf("idp_metadata", "idp_metadata_path", "idp_metadata_url"),
 		ssoValidateURL("idp_metadata_url"),
+		ssoValidateInterdependencyXOR("client_id", "client_secret", "token_url"),
+		ssoValidateURL("token_url"),
 	},
 }
 
@@ -865,6 +904,28 @@ func ssoValidateOnlyOneOf(keys ...string) validateFunc {
 
 		if configuredKeys != 1 {
 			return fmt.Errorf("exactly one of %v must be configured for provider %s", keys, provider)
+		}
+
+		return nil
+	}
+}
+
+// XOR validation of variables
+func ssoValidateInterdependencyXOR(keys ...string) validateFunc {
+	return func(settingsMap map[string]any, provider string) error {
+		configuredKeys := 0
+		nonConfiguredKeys := 0
+
+		for _, key := range keys {
+			if settingsMap[key].(string) != "" {
+				configuredKeys++
+			} else {
+				nonConfiguredKeys++
+			}
+		}
+
+		if configuredKeys != len(keys) && nonConfiguredKeys != len(keys) {
+			return fmt.Errorf("all variables in %v must be configured or empty for provider %s", keys, provider)
 		}
 
 		return nil

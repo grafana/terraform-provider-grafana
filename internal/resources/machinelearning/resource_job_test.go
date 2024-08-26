@@ -42,6 +42,7 @@ func TestAccResourceJob(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "query_params.expr", "grafanacloud_grafana_instance_active_user_count"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "interval", "300"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "training_window", "7776000"),
+					testutils.CheckLister("grafana_machine_learning_job.test_job"),
 				),
 			},
 			{

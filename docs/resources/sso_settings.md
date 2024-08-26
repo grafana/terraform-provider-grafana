@@ -114,6 +114,8 @@ Optional:
 - `login_attribute_path` (String) JMESPath expression to use for user login lookup from the user ID token. Only applicable to Generic OAuth.
 - `name` (String) Helpful if you use more than one identity providers or SSO protocols.
 - `name_attribute_path` (String) JMESPath expression to use for user name lookup from the user ID token. This name will be used as the user’s display name. Only applicable to Generic OAuth.
+- `org_attribute_path` (String) JMESPath expression to use for the organization mapping lookup from the user ID token. The extracted list will be used for the organization mapping (to match "Organization" in the "org_mapping"). Only applicable to Generic OAuth and Okta.
+- `org_mapping` (String) List of comma- or space-separated Organization:OrgIdOrOrgName:Role mappings. Organization can be * meaning “All users”. Role is optional and can have the following values: None, Viewer, Editor or Admin.
 - `role_attribute_path` (String) JMESPath expression to use for Grafana role lookup.
 - `role_attribute_strict` (Boolean) If enabled, denies user login if the Grafana role cannot be extracted using Role attribute path.
 - `scopes` (String) List of comma- or space-separated OAuth2 scopes.
@@ -148,7 +150,10 @@ Optional:
 - `auto_login` (Boolean) Whether SAML auto login is enabled.
 - `certificate` (String, Sensitive) Base64-encoded string for the SP X.509 certificate.
 - `certificate_path` (String) Path for the SP X.509 certificate.
+- `client_id` (String) The client Id of your OAuth2 app.
+- `client_secret` (String) The client secret of your OAuth2 app.
 - `enabled` (Boolean) Define whether this configuration is enabled for SAML. Defaults to `true`.
+- `force_use_graph_api` (Boolean) If enabled, Grafana will fetch groups from Microsoft Graph API instead of using the groups claim from the ID token.
 - `idp_metadata` (String) Base64-encoded string for the IdP SAML metadata XML.
 - `idp_metadata_path` (String) Path for the IdP SAML metadata XML.
 - `idp_metadata_url` (String) URL for the IdP SAML metadata XML.
@@ -168,6 +173,7 @@ Optional:
 - `signature_algorithm` (String) Signature algorithm used for signing requests to the IdP. Supported values are rsa-sha1, rsa-sha256, rsa-sha512.
 - `single_logout` (Boolean) Whether SAML Single Logout is enabled.
 - `skip_org_role_sync` (Boolean) Prevent synchronizing users’ organization roles from your IdP.
+- `token_url` (String) The token endpoint of your OAuth2 provider. Required for Azure AD providers.
 
 ## Import
 

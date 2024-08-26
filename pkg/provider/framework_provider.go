@@ -44,6 +44,7 @@ type ProviderConfig struct {
 	CloudProviderURL         types.String `tfsdk:"cloud_provider_url"`
 
 	UserAgent types.String `tfsdk:"-"`
+	Version   types.String `tfsdk:"-"`
 }
 
 func (c *ProviderConfig) SetDefaults() error {
@@ -221,6 +222,7 @@ func (p *frameworkProvider) Configure(ctx context.Context, req provider.Configur
 		resp.Diagnostics.AddError("failed to set defaults", err.Error())
 		return
 	}
+	cfg.Version = types.StringValue(p.version)
 	cfg.UserAgent = types.StringValue(fmt.Sprintf("Terraform/%s (+https://www.terraform.io) terraform-provider-grafana/%s", req.TerraformVersion, p.version))
 
 	clients, err := CreateClients(cfg)

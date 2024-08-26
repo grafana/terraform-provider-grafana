@@ -64,6 +64,14 @@ func Resources() []*common.Resource {
 	return resources
 }
 
+func ResourcesMap() map[string]*common.Resource {
+	result := make(map[string]*common.Resource)
+	for _, r := range Resources() {
+		result[r.Name] = r
+	}
+	return result
+}
+
 func legacySDKResources() map[string]*schema.Resource {
 	result := make(map[string]*schema.Resource)
 	for _, r := range Resources() {

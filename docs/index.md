@@ -237,7 +237,7 @@ This can be a Grafana API key, basic auth `username:password`, or a
 
 ### `cloud_access_policy_token`
 
-An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/create-api-key/).
+An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/authorize-services/).
 
 ### `sm_access_token`
 

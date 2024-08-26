@@ -1,0 +1,14 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: User
+metadata:
+  name: admin
+  annotations:
+    crossplane.io/external-name: "1"
+spec:
+  forProvider:
+    email: admin@localhost
+    isAdmin: true
+    login: admin
+    password: SENSITIVE_VALUE_TO_REPLACE
+  providerConfigRef:
+    name: grafana-provider

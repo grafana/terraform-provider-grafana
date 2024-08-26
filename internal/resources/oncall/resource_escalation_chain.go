@@ -2,7 +2,6 @@ package oncall
 
 import (
 	"context"
-	"log"
 	"net/http"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
@@ -43,7 +42,9 @@ func resourceEscalationChain() *common.Resource {
 		"grafana_oncall_escalation_chain",
 		resourceID,
 		schema,
-	).WithLister(oncallListerFunction(listEscalationChains))
+	).
+		WithLister(oncallListerFunction(listEscalationChains)).
+		WithPreferredResourceNameField("name")
 }
 
 func listEscalationChains(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
@@ -80,9 +81,7 @@ func resourceEscalationChainRead(ctx context.Context, d *schema.ResourceData, cl
 	escalationChain, r, err := client.EscalationChains.GetEscalationChain(d.Id(), &onCallAPI.GetEscalationChainOptions{})
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] removing escalation chain %s from state because it no longer exists", d.Get("name").(string))
-			d.SetId("")
-			return nil
+			return common.WarnMissing("escalation chain", d)
 		}
 		return diag.FromErr(err)
 	}
@@ -113,11 +112,5 @@ func resourceEscalationChainUpdate(ctx context.Context, d *schema.ResourceData, 
 
 func resourceEscalationChainDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	_, err := client.EscalationChains.DeleteEscalationChain(d.Id(), &onCallAPI.DeleteEscalationChainOptions{})
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return nil
+	return diag.FromErr(err)
 }

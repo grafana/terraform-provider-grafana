@@ -31,6 +31,7 @@ func TestAccAnnotation_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					annotationsCheckExists.exists("grafana_annotation.test", &annotation),
 					resource.TestCheckResourceAttr("grafana_annotation.test", "text", testAccAnnotationInitialText),
+					testutils.CheckLister("grafana_annotation.test"),
 				),
 			},
 			{

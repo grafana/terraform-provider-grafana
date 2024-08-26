@@ -8,11 +8,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
 	"gopkg.in/yaml.v2"
 )
 
 func convertToCrossplane(cfg *Config) error {
 	ctx := context.Background()
+	resourcesMap := provider.ResourcesMap()
 
 	state, err := getPlannedState(ctx, cfg)
 	if err != nil {
@@ -92,23 +95,25 @@ func convertToCrossplane(cfg *Config) error {
 		apiVersion := "oss.grafana.crossplane.io/v1alpha1"
 		snakeCaseType := strings.TrimPrefix(r.Type, "grafana_")
 		name := strings.ReplaceAll(strings.TrimPrefix(r.Name, "_"), "_", "-")
+		resourceInfo := resourcesMap[r.Type]
 
-		// TODO: Use categories from https://github.com/grafana/terraform-provider-grafana/pull/1588, when merged
-		switch {
-		case strings.HasPrefix(r.Type, "grafana_cloud"):
+		switch resourceInfo.Category {
+		case common.CategoryCloud:
 			apiVersion = "cloud.grafana.crossplane.io/v1alpha1"
 			snakeCaseType = strings.TrimPrefix(r.Type, "grafana_cloud_")
-		case strings.HasPrefix(r.Type, "grafana_synthetic_monitoring"):
+		case common.CategorySyntheticMonitoring:
 			apiVersion = "sm.grafana.crossplane.io/v1alpha1"
 			snakeCaseType = strings.TrimPrefix(r.Type, "grafana_synthetic_monitoring_")
-		case strings.HasPrefix(r.Type, "grafana_slo"):
+		case common.CategorySLO:
 			apiVersion = "slo.grafana.crossplane.io/v1alpha1"
-		case r.Type == "grafana_contact_point" ||
-			r.Type == "grafana_notification_policy" ||
-			r.Type == "grafana_mute_timing" ||
-			r.Type == "grafana_message_template" ||
-			r.Type == "grafana_rule_group":
+		case common.CategoryAlerting:
 			apiVersion = "alerting.grafana.crossplane.io/v1alpha1"
+		case common.CategoryMachineLearning:
+			apiVersion = "ml.grafana.crossplane.io/v1alpha1"
+		case common.CategoryOnCall:
+			apiVersion = "oncall.grafana.crossplane.io/v1alpha1"
+		case common.CategoryGrafanaEnterprise:
+			apiVersion = "enterprise.grafana.crossplane.io/v1alpha1"
 		}
 
 		kind := toCamelCase(snakeCaseType)
