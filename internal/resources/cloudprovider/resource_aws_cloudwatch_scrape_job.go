@@ -227,6 +227,19 @@ func (r *resourceAWSCloudWatchScrapeJob) Create(ctx context.Context, req resourc
 		return
 	}
 
+	jobData := cloudproviderapi.AWSCloudWatchScrapeJob{}
+	jobData.RoleARN = data.RoleARN.ValueString()
+	diags = data.Regions.ElementsAs(ctx, &accountData.Regions, false)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	job, err := r.client.CreateAWSCloudWatchScrapeJob(ctx, data.StackID.ValueString(), jobData)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create AWS CloudWatch Scrape Job", err.Error())
+		return
+	}
+
 	resp.State.Set(ctx, &awsCWScrapeJobTFModel{
 		ID:                   types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(data.StackID.ValueString(), data.Name.ValueString())),
 		StackID:              data.StackID,
