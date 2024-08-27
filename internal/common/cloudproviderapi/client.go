@@ -22,11 +22,19 @@ func NewClient(authToken string, rawAPIURL string, client *http.Client) (*Client
 		return nil, fmt.Errorf("failed to parse Cloud Provider API url: %w", err)
 	}
 
+	if client == nil {
+		client = http.DefaultClient
+	}
+
 	return &Client{
 		authToken: authToken,
 		apiURL:    *parsedAPIURL,
 		client:    client,
 	}, nil
+}
+
+type apiResponseWrapper[T any] struct {
+	Data T `json:"data"`
 }
 
 type AWSAccount struct {
@@ -40,13 +48,9 @@ type AWSAccount struct {
 	Regions []string `json:"regions"`
 }
 
-type awsAccountsAPIResponseWrapper struct {
-	Data AWSAccount `json:"data"`
-}
-
 func (c *Client) CreateAWSAccount(ctx context.Context, stackID string, accountData AWSAccount) (*AWSAccount, error) {
 	path := fmt.Sprintf("/api/v2/stacks/%s/aws/accounts", stackID)
-	respData := awsAccountsAPIResponseWrapper{}
+	respData := apiResponseWrapper[AWSAccount]{}
 	err := c.doAPIRequest(ctx, http.MethodPost, path, &accountData, &respData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create AWS account: %w", err)
@@ -56,7 +60,7 @@ func (c *Client) CreateAWSAccount(ctx context.Context, stackID string, accountDa
 
 func (c *Client) GetAWSAccount(ctx context.Context, stackID string, accountID string) (*AWSAccount, error) {
 	path := fmt.Sprintf("/api/v2/stacks/%s/aws/accounts/%s", stackID, accountID)
-	respData := awsAccountsAPIResponseWrapper{}
+	respData := apiResponseWrapper[AWSAccount]{}
 	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &respData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get AWS account: %w", err)
@@ -66,7 +70,7 @@ func (c *Client) GetAWSAccount(ctx context.Context, stackID string, accountID st
 
 func (c *Client) UpdateAWSAccount(ctx context.Context, stackID string, accountID string, accountData AWSAccount) (*AWSAccount, error) {
 	path := fmt.Sprintf("/api/v2/stacks/%s/aws/accounts/%s", stackID, accountID)
-	respData := awsAccountsAPIResponseWrapper{}
+	respData := apiResponseWrapper[AWSAccount]{}
 	err := c.doAPIRequest(ctx, http.MethodPut, path, &accountData, &respData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update AWS account: %w", err)
@@ -113,16 +117,33 @@ type AWSCloudWatchTagFilter struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
 }
-type awsCloudWatchJobsAPIResponseWrapper struct {
-	Data AWSCloudWatchScrapeJob `json:"data"`
-}
 
 func (c *Client) CreateAWSCloudWatchScrapeJob(ctx context.Context, stackID string, jobData AWSCloudWatchScrapeJob) (*AWSCloudWatchScrapeJob, error) {
 	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/cloudwatch", stackID)
-	respData := awsCloudWatchJobsAPIResponseWrapper{}
+	respData := apiResponseWrapper[AWSCloudWatchScrapeJob]{}
 	err := c.doAPIRequest(ctx, http.MethodPost, path, &jobData, &respData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create AWS CloudWatch scrape job: %w", err)
+	}
+	return &respData.Data, nil
+}
+
+func (c *Client) GetAWSCloudWatchScrapeJob(ctx context.Context, stackID string) (*AWSCloudWatchScrapeJob, error) {
+	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/cloudwatch", stackID)
+	respData := apiResponseWrapper[AWSCloudWatchScrapeJob]{}
+	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &respData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get AWS CloudWatch scrape job: %w", err)
+	}
+	return &respData.Data, nil
+}
+
+func (c *Client) UpdateAWSCloudWatchScrapeJob(ctx context.Context, stackID string, jobName string, jobData AWSCloudWatchScrapeJob) (*AWSCloudWatchScrapeJob, error) {
+	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/cloudwatch", stackID)
+	respData := apiResponseWrapper[AWSCloudWatchScrapeJob]{}
+	err := c.doAPIRequest(ctx, http.MethodPut, path, &jobData, &respData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update AWS CloudWatch scrape job: %w", err)
 	}
 	return &respData.Data, nil
 }
