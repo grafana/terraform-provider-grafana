@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -41,9 +42,8 @@ type resourceLBACRuleItemModel struct {
 	ID            types.String `tfsdk:"id"`
 	OrgID         types.String `tfsdk:"org_id"`
 	DatasourceUID types.String `tfsdk:"datasource_uid"`
-	TeamID        types.String `tfsdk:"team_id"`
-	UserID        types.String `tfsdk:"user_id"`
 	Rules         types.List   `tfsdk:"rules"`
+	TeamID        types.String `tfsdk:"team_id"`
 }
 
 type resourceLBACRuleItem struct {
@@ -133,6 +133,11 @@ resource "grafana_data_source_lbac_rule" "team_rule" {
 			// },
 		},
 	}
+}
+
+func (r *resourceLBACRuleItem) datasourceQuery(client *client.GrafanaHTTPAPI, datasourceUID string) error {
+	_, err := client.Datasources.GetDataSourceByUID(datasourceUID)
+	return err
 }
 
 func (r *resourceLBACRuleItem) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

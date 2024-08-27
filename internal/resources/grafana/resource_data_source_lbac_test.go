@@ -81,18 +81,16 @@ func TestAccDataSourceLBAC_inOrg(t *testing.T) {
 
 func dataSourceLBACConfig(name string) string {
 	return fmt.Sprintf(`
-resource "grafana_data_source" "test" {
-	name       = "%[1]s"
-	type       = "cloudwatch"
-	url        = "http://cloudwatch.amazonaws.com"
-	json_data {
-		default_region = "us-east-1"
-		auth_type      = "keys"
-	}
-	secure_json_data {
-		access_key = "123"
-		secret_key = "456"
-	}
+resource "grafana_data_source" "loki" {
+  type = "%[1]s"
+  name = "loki"
+  url  = "http://localhost:3100"
+  basic_auth_enabled  = true
+  basic_auth_username = "username"
+
+  lifecycle {
+    ignore_changes = [json_data_encoded, http_headers]
+  }
 }
 
 resource "grafana_team" "test" {
@@ -100,7 +98,7 @@ resource "grafana_team" "test" {
 }
 
 resource "grafana_data_source_lbac_rule" "test" {
-	datasource_uid = grafana_data_source.test.uid
+	datasource_uid = grafana_data_source.loki.uid
 	team_id         = grafana_team.test.id
 	rules          = [
 		"{ foo != \"bar\", foo !~ \"baz\" }",
@@ -113,37 +111,38 @@ resource "grafana_data_source_lbac_rule" "test" {
 func dataSourceLBACConfigInOrg(name string) string {
 	return fmt.Sprintf(`
 resource "grafana_organization" "test" {
-	name = "%[1]s"
+  name = "%[1]s"
 }
 
-resource "grafana_data_source" "test" {
-	org_id     = grafana_organization.test.id
-	name       = "%[1]s"
-	type       = "cloudwatch"
-	url        = "http://cloudwatch.amazonaws.com"
-	json_data {
-		default_region = "us-east-1"
-		auth_type      = "keys"
-	}
-	secure_json_data {
-		access_key = "123"
-		secret_key = "456"
-	}
+resource "grafana_data_source" "cloudwatch" {
+  org_id = grafana_organization.test.id
+  type   = "cloudwatch"
+  name   = "cw-example"
+
+  json_data_encoded = jsonencode({
+    defaultRegion = "us-east-1"
+    authType      = "keys"
+  })
+
+  secure_json_data_encoded = jsonencode({
+    accessKey = "123"
+    secretKey = "456"
+  })
 }
 
 resource "grafana_team" "test" {
-	org_id = grafana_organization.test.id
-	name   = "%[1]s"
+  org_id = grafana_organization.test.id
+  name   = "%[1]s"
 }
 
 resource "grafana_data_source_lbac_rule" "test" {
-	org_id         = grafana_organization.test.id
-	datasource_uid = grafana_data_source.test.uid
-	team_id         = grafana_team.test.id
-	rules           = [
-		"{ foo != \"bar\", foo !~ \"baz\" }",
-		"{ foo = \"qux\", bar ~ \"quux\" }"
-	]
+  org_id         = grafana_organization.test.id
+  datasource_uid = grafana_data_source.cloudwatch.uid
+  team_id        = grafana_team.test.id
+  rules = [
+    "{ foo != \"bar\", foo !~ \"baz\" }",
+    "{ foo = \"qux\", bar ~ \"quux\" }"
+  ]
 }
 `, name)
 }
