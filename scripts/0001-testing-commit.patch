@@ -1,0 +1,55 @@
+From f5f14b309ec5733c13be739d69abdb59c5ae7394 Mon Sep 17 00:00:00 2001
+From: Pablo Balbi <pablo.l.balbi@gmail.com>
+Date: Tue, 27 Aug 2024 13:34:42 -0300
+Subject: [PATCH] testing commit
+
+---
+ .../resources/cloud/resource_cloud_stack.go    | 18 ++----------------
+ 1 file changed, 2 insertions(+), 16 deletions(-)
+
+diff --git a/internal/resources/cloud/resource_cloud_stack.go b/internal/resources/cloud/resource_cloud_stack.go
+index dfc4e984..bb87bef8 100644
+--- a/internal/resources/cloud/resource_cloud_stack.go
++++ b/internal/resources/cloud/resource_cloud_stack.go
+@@ -342,13 +342,7 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
+ 		return common.WarnMissing("stack", d)
+ 	}
+ 
+-	connectionsReq := client.InstancesAPI.GetConnections(ctx, id.(string))
+-	connections, _, err := connectionsReq.Execute()
+-	if err != nil {
+-		return apiError(err)
+-	}
+-
+-	if err := flattenStack(d, stack, connections); err != nil {
++	if err := flattenStack(d, stack); err != nil {
+ 		return diag.FromErr(err)
+ 	}
+ 	// Always set the wait attribute to true after creation
+@@ -361,7 +355,7 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
+ 	return nil
+ }
+ 
+-func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, connections *gcom.FormattedApiInstanceConnections) error {
++func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance) error {
+ 	id := strconv.FormatInt(int64(stack.Id), 10)
+ 	d.SetId(id)
+ 	d.Set("name", stack.Name)
+@@ -416,14 +410,6 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
+ 	d.Set("graphite_url", stack.HmInstanceGraphiteUrl)
+ 	d.Set("graphite_status", stack.HmInstanceGraphiteStatus)
+ 
+-	if otlpURL := connections.OtlpHttpUrl; otlpURL.IsSet() {
+-		d.Set("otlp_url", otlpURL.Get())
+-	}
+-
+-	if influxURL := connections.InfluxUrl; influxURL.IsSet() {
+-		d.Set("influx_url", influxURL.Get())
+-	}
+-
+ 	return nil
+ }
+ 
+-- 
+2.39.3 (Apple Git-146)
+
