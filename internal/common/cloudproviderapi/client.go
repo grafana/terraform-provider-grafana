@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/hashicorp/go-retryablehttp"
 )
 
 type Client struct {
@@ -16,6 +18,10 @@ type Client struct {
 	client    *http.Client
 }
 
+const (
+	defaultRetries = 3
+)
+
 func NewClient(authToken string, rawAPIURL string, client *http.Client) (*Client, error) {
 	parsedAPIURL, err := url.Parse(rawAPIURL)
 	if err != nil {
@@ -23,7 +29,9 @@ func NewClient(authToken string, rawAPIURL string, client *http.Client) (*Client
 	}
 
 	if client == nil {
-		client = http.DefaultClient
+		retryClient := retryablehttp.NewClient()
+		retryClient.RetryMax = defaultRetries
+		client = retryClient.StandardClient()
 	}
 
 	return &Client{

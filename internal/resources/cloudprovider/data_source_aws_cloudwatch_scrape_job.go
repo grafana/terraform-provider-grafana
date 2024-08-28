@@ -169,10 +169,26 @@ func (r *datasourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req datas
 func (r *datasourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var data awsCWScrapeJobTFModel
 	diags := req.Config.Get(ctx, &data)
-	converted, diags := convertScrapeJobClientModelToTFModel(ctx, data.StackID.ValueString(), TestAWSCloudWatchScrapeJobData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	job, err := r.client.GetAWSCloudWatchScrapeJob(
+		ctx,
+		data.StackID.ValueString(),
+		data.Name.ValueString(),
+	)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get AWS CloudWatch Scrape Job", err.Error())
+		return
+	}
+
+	converted, diags := convertScrapeJobClientModelToTFModel(ctx, data.StackID.ValueString(), *job)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	resp.State.Set(ctx, converted)
 }

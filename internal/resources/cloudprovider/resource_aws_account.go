@@ -106,7 +106,7 @@ func (r *resourceAWSAccount) ImportState(ctx context.Context, req resource.Impor
 		resourceID,
 	)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to read AWS Account", err.Error())
+		resp.Diagnostics.AddError("Failed to get AWS Account", err.Error())
 		return
 	}
 
@@ -172,7 +172,7 @@ func (r *resourceAWSAccount) Read(ctx context.Context, req resource.ReadRequest,
 		data.ResourceID.ValueString(),
 	)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to read AWS Account", err.Error())
+		resp.Diagnostics.AddError("Failed to get AWS Account", err.Error())
 		return
 	}
 
