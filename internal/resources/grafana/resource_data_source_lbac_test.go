@@ -98,7 +98,7 @@ resource "grafana_team" "test" {
 }
 
 resource "grafana_data_source_lbac_rule" "test" {
-	datasource_uid = grafana_data_source.loki.uid
+	uid = grafana_data_source.loki.uid
 	team_id         = grafana_team.test.id
 	rules          = [
 		"{ foo != \"bar\", foo !~ \"baz\" }",
@@ -137,7 +137,7 @@ resource "grafana_team" "test" {
 
 resource "grafana_data_source_lbac_rule" "test" {
   org_id         = grafana_organization.test.id
-  datasource_uid = grafana_data_source.cloudwatch.uid
+  uid = grafana_data_source.cloudwatch.uid
   team_id        = grafana_team.test.id
   rules = [
     "{ foo != \"bar\", foo !~ \"baz\" }",
