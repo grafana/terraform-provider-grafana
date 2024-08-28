@@ -128,8 +128,8 @@ func (c *Client) CreateAWSCloudWatchScrapeJob(ctx context.Context, stackID strin
 	return &respData.Data, nil
 }
 
-func (c *Client) GetAWSCloudWatchScrapeJob(ctx context.Context, stackID string) (*AWSCloudWatchScrapeJob, error) {
-	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/cloudwatch", stackID)
+func (c *Client) GetAWSCloudWatchScrapeJob(ctx context.Context, stackID string, jobName string) (*AWSCloudWatchScrapeJob, error) {
+	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/cloudwatch/%s", stackID, jobName)
 	respData := apiResponseWrapper[AWSCloudWatchScrapeJob]{}
 	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &respData)
 	if err != nil {
@@ -138,8 +138,18 @@ func (c *Client) GetAWSCloudWatchScrapeJob(ctx context.Context, stackID string) 
 	return &respData.Data, nil
 }
 
-func (c *Client) UpdateAWSCloudWatchScrapeJob(ctx context.Context, stackID string, jobName string, jobData AWSCloudWatchScrapeJob) (*AWSCloudWatchScrapeJob, error) {
+func (c *Client) ListAWSCloudWatchScrapeJobs(ctx context.Context, stackID string) ([]AWSCloudWatchScrapeJob, error) {
 	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/cloudwatch", stackID)
+	respData := apiResponseWrapper[[]AWSCloudWatchScrapeJob]{}
+	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &respData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get AWS CloudWatch scrape job: %w", err)
+	}
+	return respData.Data, nil
+}
+
+func (c *Client) UpdateAWSCloudWatchScrapeJob(ctx context.Context, stackID string, jobName string, jobData AWSCloudWatchScrapeJob) (*AWSCloudWatchScrapeJob, error) {
+	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/cloudwatch/%s", stackID, jobName)
 	respData := apiResponseWrapper[AWSCloudWatchScrapeJob]{}
 	err := c.doAPIRequest(ctx, http.MethodPut, path, &jobData, &respData)
 	if err != nil {

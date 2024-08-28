@@ -11,6 +11,11 @@ import (
 )
 
 func TestAccDataSourceAWSCloudWatchScrapeJob(t *testing.T) {
+	// TODO(tristan): switch to CloudInstanceTestsEnabled
+	// as part of https://github.com/grafana/grafana-aws-app/issues/381
+	t.Skip("not yet implemented. see TODO comment.")
+	// testutils.CheckCloudInstanceTestsEnabled(t)
+
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		IsUnitTest:               true,
