@@ -254,6 +254,11 @@ func (r *resourceAWSCloudWatchScrapeJob) Create(ctx context.Context, req resourc
 				return
 			}
 		}
+		jobData.Services[i].ResourceDiscoveryTagFilters = make([]cloudproviderapi.AWSCloudWatchTagFilter, len(service.ResourceDiscoveryTagFilters))
+		for j, tagFilter := range service.ResourceDiscoveryTagFilters {
+			jobData.Services[i].ResourceDiscoveryTagFilters[j].Key = tagFilter.Key.ValueString()
+			jobData.Services[i].ResourceDiscoveryTagFilters[j].Value = tagFilter.Value.ValueString()
+		}
 	}
 	jobData.CustomNamespaces = make([]cloudproviderapi.AWSCloudWatchCustomNamespace, len(data.CustomNamespaces))
 	for i, customNamespace := range data.CustomNamespaces {
