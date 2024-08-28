@@ -356,7 +356,7 @@ func TestAccGenerate_RestrictedPermissions(t *testing.T) {
 func TestAccGenerate_SMCheck(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	randomString := acctest.RandString(10)
+	randomString := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	var smCheckID string
 	tc := generateTestCase{
@@ -399,7 +399,7 @@ func TestAccGenerate_SMCheck(t *testing.T) {
 func TestAccGenerate_OnCall(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	randomString := acctest.RandString(10)
+	randomString := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	tfConfig := fmt.Sprintf(`
 	resource "grafana_oncall_integration" "test" {
