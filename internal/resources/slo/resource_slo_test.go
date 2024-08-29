@@ -196,7 +196,6 @@ func TestAccSLO_recreate(t *testing.T) {
 			},
 		},
 	})
-
 }
 
 func testAccSloCheckExists(rn string, slo *slo.SloV00Slo) resource.TestCheckFunc {
