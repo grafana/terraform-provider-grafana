@@ -18,6 +18,8 @@ type awsCWScrapeJobTFModel struct {
 	Enabled              types.Bool   `tfsdk:"enabled"`
 	AWSAccountResourceID types.String `tfsdk:"aws_account_resource_id"`
 	Regions              types.Set    `tfsdk:"regions"`
+	ExportTags           types.Bool   `tfsdk:"export_tags"`
+	DisabledReason       types.String `tfsdk:"disabled_reason"`
 	// TODO(tristan): if the grafana provider is updated to use the Terraform v6 plugin protocol,
 	// we can consider adding additional support to use Set Nested Attributes, instead of Blocks.
 	// See https://developer.hashicorp.com/terraform/plugin/framework/handling-data/attributes#nested-attribute-types
@@ -137,6 +139,8 @@ func convertScrapeJobClientModelToTFModel(ctx context.Context, stackID string, s
 		Name:                 types.StringValue(scrapeJobData.Name),
 		Enabled:              types.BoolValue(scrapeJobData.Enabled),
 		AWSAccountResourceID: types.StringValue(scrapeJobData.AWSAccountResourceID),
+		ExportTags:           types.BoolValue(scrapeJobData.ExportTags),
+		DisabledReason:       types.StringValue(scrapeJobData.DisabledReason),
 	}
 
 	regions, diags := types.SetValueFrom(ctx, basetypes.StringType{}, &scrapeJobData.Regions)
@@ -222,6 +226,8 @@ var TestAWSCloudWatchScrapeJobData = cloudproviderapi.AWSCloudWatchScrapeJob{
 	Enabled:              true,
 	AWSAccountResourceID: "1",
 	Regions:              []string{"us-east-1", "us-east-2", "us-west-1"},
+	ExportTags:           true,
+	DisabledReason:       "",
 	Services: []cloudproviderapi.AWSCloudWatchService{
 		{
 			Name: "AWS/EC2",

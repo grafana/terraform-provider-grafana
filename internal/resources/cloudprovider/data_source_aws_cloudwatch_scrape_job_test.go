@@ -36,6 +36,8 @@ func TestAccDataSourceAWSCloudWatchScrapeJob(t *testing.T) {
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.0", cloudprovider.TestAWSCloudWatchScrapeJobData.Regions[0]),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.1", cloudprovider.TestAWSCloudWatchScrapeJobData.Regions[1]),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.2", cloudprovider.TestAWSCloudWatchScrapeJobData.Regions[2]),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "export_tags", fmt.Sprintf("%t", cloudprovider.TestAWSCloudWatchScrapeJobData.ExportTags)),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "disabled_reason", cloudprovider.TestAWSCloudWatchScrapeJobData.DisabledReason),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.Services))),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.name", cloudprovider.TestAWSCloudWatchScrapeJobData.Services[0].Name),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.metric.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.Services[0].Metrics))),

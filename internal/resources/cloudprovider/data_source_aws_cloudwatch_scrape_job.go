@@ -40,6 +40,14 @@ var (
 				Computed:    true,
 				ElementType: types.StringType,
 			},
+			"export_tags": schema.BoolAttribute{
+				Description: "When enabled, AWS resource tags are exported as Prometheus labels to metrics formatted as `aws_<service_name>_info`.",
+				Computed:    true,
+			},
+			"disabled_reason": schema.StringAttribute{
+				Description: "When the CloudWatch Scrape Job is disabled, this will show the reason that it is in that state.",
+				Computed:    true,
+			},
 		},
 		Blocks: map[string]schema.Block{
 			"service": schema.ListNestedBlock{
