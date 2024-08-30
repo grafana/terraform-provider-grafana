@@ -705,7 +705,7 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 
 	payload := resp.GetPayload()
 
-	settingsFromApi, err := getSettingsForTF(payload)
+	settingsFromAPI, err := getSettingsForTF(payload)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -729,7 +729,7 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 		}
 	}
 
-	for k, v := range settingsFromApi {
+	for k, v := range settingsFromAPI {
 		key := toSnake(k)
 
 		if _, ok := settingsSchema.Schema[key]; ok {
@@ -739,13 +739,14 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 			// importing existing sso settings into terraform. Otherwise, the API response may return fields
 			// that don't exist in the terraform state. We ignore them because they are not managed by terraform.
 			if ok || len(settingsFromTfState) == 0 {
-				if provider == "ldap" && key == "config" {
+				switch {
+				case provider == "ldap" && key == "config":
 					// special case for LDAP as the settings are nested
 					settingsSnake[key] = getSettingsWithSecretsForLdap(val, v)
-				} else if isSecret(key) {
+				case isSecret(key):
 					// secrets are not exposed by the SSO Settings API, we get them from the terraform state
 					settingsSnake[key] = val
-				} else if !isIgnored(provider, key) {
+				case !isIgnored(provider, key):
 					// some fields are returned by the API, but they are read only, so we ignore them
 					settingsSnake[key] = v
 				}
@@ -784,7 +785,7 @@ func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 		return diag.FromErr(err)
 	}
 
-	settings = getSettingsForApi(provider, settings)
+	settings = getSettingsForAPI(provider, settings)
 
 	if isOAuth2Provider(provider) {
 		diags := validateOAuth2CustomFields(settings)
@@ -933,7 +934,7 @@ func getSettingsForTF(payload *models.GetProviderSettingsOKBody) (map[string]any
 	return settings, nil
 }
 
-func getSettingsForApi(provider string, settings map[string]any) map[string]any {
+func getSettingsForAPI(provider string, settings map[string]any) map[string]any {
 	if provider == "ldap" {
 		config := settings["config"].([]any)
 
