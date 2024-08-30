@@ -889,16 +889,26 @@ func getSettingOk(key string, settings map[string]any) (any, bool) {
 func getSettingsWithSecretsForLdap(state any, config any) any {
 	secretFields := []string{"client_key", "client_key_value", "bind_password"}
 
-	if len(state.([]any)) == 0 || len(config.([]any)) == 0 {
-		return config
-	}
-
-	stateServers, ok := state.([]any)[0].(map[string]any)["servers"].([]any)
+	stateSlice, ok := state.([]any)
 	if !ok {
 		return config
 	}
 
-	configServers, ok := config.([]any)[0].(map[string]any)["servers"].([]any)
+	configSlice, ok := config.([]any)
+	if !ok {
+		return config
+	}
+
+	if len(stateSlice) == 0 || len(configSlice) == 0 {
+		return config
+	}
+
+	stateServers, ok := stateSlice[0].(map[string]any)["servers"].([]any)
+	if !ok {
+		return config
+	}
+
+	configServers, ok := configSlice[0].(map[string]any)["servers"].([]any)
 	if !ok {
 		return config
 	}
