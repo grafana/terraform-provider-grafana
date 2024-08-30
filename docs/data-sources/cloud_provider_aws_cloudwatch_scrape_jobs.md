@@ -44,7 +44,7 @@ Read-Only:
 - `disabled_reason` (String) When the CloudWatch Scrape Job is disabled, this will show the reason that it is in that state.
 - `enabled` (Boolean) Whether the CloudWatch Scrape Job is enabled or not.
 - `export_tags` (Boolean) When enabled, AWS resource tags are exported as Prometheus labels to metrics formatted as `aws_<service_name>_info`.
-- `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ job_name }}".
+- `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ name }}".
 - `name` (String) The name of the CloudWatch Scrape Job. Part of the Terraform Resource ID.
 - `regions` (Set of String) A set of AWS region names that this CloudWatch Scrape Job applies to.
 - `service` (Block List) One or more configuration blocks to dictate what this CloudWatch Scrape Job should scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--scrape_job--service))

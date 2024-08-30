@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
@@ -70,6 +72,9 @@ func (r *resourceAWSAccount) Schema(ctx context.Context, req resource.SchemaRequ
 			"stack_id": schema.StringAttribute{
 				Description: "The StackID of the Grafana Cloud instance. Part of the Terraform Resource ID.",
 				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"resource_id": schema.StringAttribute{
 				Description: "The ID given by the Grafana Cloud Provider API to this AWS Account resource.",

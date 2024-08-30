@@ -97,11 +97,11 @@ func (c *Client) DeleteAWSAccount(ctx context.Context, stackID string, accountID
 
 type AWSCloudWatchScrapeJob struct {
 	Name                 string                         `json:"name"`
-	DisabledReason       string                         `json:"disabledReason"`
 	Enabled              bool                           `json:"enabled"`
-	ExportTags           bool                           `json:"exportTags"`
 	AWSAccountResourceID string                         `json:"AWSAccountResourceID"`
 	Regions              []string                       `json:"regions"`
+	ExportTags           bool                           `json:"exportTags"`
+	DisabledReason       string                         `json:"disabledReason"`
 	Services             []AWSCloudWatchService         `json:"services"`
 	CustomNamespaces     []AWSCloudWatchCustomNamespace `json:"customNamespaces"`
 }

@@ -146,7 +146,7 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
 ### Read-Only
 
 - `disabled_reason` (String) When the CloudWatch Scrape Job is disabled, this will show the reason that it is in that state.
-- `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ job_name }}".
+- `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ name }}".
 
 <a id="nestedblock--custom_namespace"></a>
 ### Nested Schema for `custom_namespace`
@@ -206,5 +206,5 @@ Required:
 Import is supported using the following syntax:
 
 ```shell
-terraform import grafana_cloud_provider_aws_cloudwatch_scrape_job.name "{{ stack_id }}:{{ job_name }}"
+terraform import grafana_cloud_provider_aws_cloudwatch_scrape_job.name "{{ stack_id }}:{{ name }}"
 ```

@@ -16,7 +16,7 @@ var (
 	datasourceAWSCloudWatchScrapeJobTerraformSchema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "The Terraform Resource ID. This has the format \"{{ stack_id }}:{{ job_name }}\".",
+				Description: "The Terraform Resource ID. This has the format \"{{ stack_id }}:{{ name }}\".",
 				Computed:    true,
 			},
 			"stack_id": schema.StringAttribute{
@@ -188,7 +188,7 @@ func (r *datasourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req datasou
 		data.Name.ValueString(),
 	)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get AWS CloudWatch Scrape Job", err.Error())
+		resp.Diagnostics.AddError("Failed to get AWS CloudWatch scrape job", err.Error())
 		return
 	}
 

@@ -128,6 +128,83 @@ func (v awsCWScrapeJobNoDuplicateMetricNamesValidator) ValidateList(ctx context.
 	}
 }
 
+// convertScrapeJobTFModelToClientModel converts a awsCWScrapeJobTFModel instance to a cloudproviderapi.AWSCloudWatchScrapeJob instance.
+// A special converter is needed because the TFModel uses special Terraform types that build upon their underlying Go types for
+// supporting Terraform's state management/dependency analysis of the resource and its data.
+func convertScrapeJobTFModelToClientModel(ctx context.Context, tfData awsCWScrapeJobTFModel) (*cloudproviderapi.AWSCloudWatchScrapeJob, diag.Diagnostics) {
+	conversionDiags := diag.Diagnostics{}
+	converted := cloudproviderapi.AWSCloudWatchScrapeJob{
+		Name:                 tfData.Name.ValueString(),
+		Enabled:              tfData.Enabled.ValueBool(),
+		AWSAccountResourceID: tfData.AWSAccountResourceID.ValueString(),
+		ExportTags:           tfData.ExportTags.ValueBool(),
+	}
+
+	diags := tfData.Regions.ElementsAs(ctx, &converted.Regions, false)
+	conversionDiags.Append(diags...)
+	if conversionDiags.HasError() {
+		return nil, conversionDiags
+	}
+
+	converted.Services = make([]cloudproviderapi.AWSCloudWatchService, len(tfData.Services))
+	for i, service := range tfData.Services {
+		converted.Services[i] = cloudproviderapi.AWSCloudWatchService{
+			Name:                  service.Name.ValueString(),
+			ScrapeIntervalSeconds: service.ScrapeIntervalSeconds.ValueInt64(),
+		}
+
+		diags = service.TagsToAddToMetrics.ElementsAs(ctx, &converted.Services[i].TagsToAddToMetrics, false)
+		conversionDiags.Append(diags...)
+		if conversionDiags.HasError() {
+			return nil, conversionDiags
+		}
+
+		converted.Services[i].Metrics = make([]cloudproviderapi.AWSCloudWatchMetric, len(service.Metrics))
+		for j, metric := range service.Metrics {
+			converted.Services[i].Metrics[j] = cloudproviderapi.AWSCloudWatchMetric{
+				Name: metric.Name.ValueString(),
+			}
+
+			diags = metric.Statistics.ElementsAs(ctx, &converted.Services[i].Metrics[j].Statistics, false)
+			conversionDiags.Append(diags...)
+			if conversionDiags.HasError() {
+				return nil, conversionDiags
+			}
+		}
+
+		converted.Services[i].ResourceDiscoveryTagFilters = make([]cloudproviderapi.AWSCloudWatchTagFilter, len(service.ResourceDiscoveryTagFilters))
+		for j, tagFilter := range service.ResourceDiscoveryTagFilters {
+			converted.Services[i].ResourceDiscoveryTagFilters[j] = cloudproviderapi.AWSCloudWatchTagFilter{
+				Key:   tagFilter.Key.ValueString(),
+				Value: tagFilter.Value.ValueString(),
+			}
+		}
+	}
+
+	converted.CustomNamespaces = make([]cloudproviderapi.AWSCloudWatchCustomNamespace, len(tfData.CustomNamespaces))
+	for i, customNamespace := range tfData.CustomNamespaces {
+		converted.CustomNamespaces[i] = cloudproviderapi.AWSCloudWatchCustomNamespace{
+			Name:                  customNamespace.Name.ValueString(),
+			ScrapeIntervalSeconds: customNamespace.ScrapeIntervalSeconds.ValueInt64(),
+		}
+
+		converted.CustomNamespaces[i].Metrics = make([]cloudproviderapi.AWSCloudWatchMetric, len(customNamespace.Metrics))
+		for j, metric := range customNamespace.Metrics {
+			converted.CustomNamespaces[i].Metrics[j] = cloudproviderapi.AWSCloudWatchMetric{
+				Name: metric.Name.ValueString(),
+			}
+
+			diags = metric.Statistics.ElementsAs(ctx, &converted.CustomNamespaces[i].Metrics[j].Statistics, false)
+			conversionDiags.Append(diags...)
+			if conversionDiags.HasError() {
+				return nil, conversionDiags
+			}
+		}
+	}
+
+	return &converted, conversionDiags
+}
+
 // convertScrapeJobClientModelToTFModel converts a cloudproviderapi.AWSCloudWatchScrapeJob instance to a awsCWScrapeJobTFModel instance.
 // A special converter is needed because the TFModel uses special Terraform types that build upon their underlying Go types for
 // supporting Terraform's state management/dependency analysis of the resource and its data.
@@ -144,8 +221,8 @@ func convertScrapeJobClientModelToTFModel(ctx context.Context, stackID string, s
 	}
 
 	regions, diags := types.SetValueFrom(ctx, basetypes.StringType{}, &scrapeJobData.Regions)
-	diags.Append(diags...)
-	if diags.HasError() {
+	conversionDiags.Append(diags...)
+	if conversionDiags.HasError() {
 		return nil, conversionDiags
 	}
 	converted.Regions = regions
@@ -215,7 +292,7 @@ func convertScrapeJobClientModelToTFModel(ctx context.Context, stackID string, s
 	return converted, conversionDiags
 }
 
-// TestAWSCloudWatchScrapeJobData is only temporarily exported here until
+// TestAWSCloudWatchscrapeJobData is only temporarily exported here until
 // we have the resource handlers talking to the real API.
 // TODO(tristan): move this to test package and unexport
 // once we're using the actual API for interactions.
