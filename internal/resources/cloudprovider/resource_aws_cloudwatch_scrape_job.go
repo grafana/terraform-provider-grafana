@@ -61,6 +61,9 @@ func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resourc
 			"id": schema.StringAttribute{
 				Description: "The Terraform Resource ID. This has the format \"{{ stack_id }}:{{ name }}\".",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"stack_id": schema.StringAttribute{
 				Description: "The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.",

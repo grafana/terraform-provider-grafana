@@ -68,6 +68,9 @@ func (r *resourceAWSAccount) Schema(ctx context.Context, req resource.SchemaRequ
 			"id": schema.StringAttribute{
 				Description: "The Terraform Resource ID. This has the format \"{{ stack_id }}:{{ resource_id }}\".",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"stack_id": schema.StringAttribute{
 				Description: "The StackID of the Grafana Cloud instance. Part of the Terraform Resource ID.",
