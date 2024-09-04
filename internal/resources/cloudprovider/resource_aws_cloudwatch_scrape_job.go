@@ -309,32 +309,26 @@ func (r *resourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req resource.
 }
 
 func (r *resourceAWSCloudWatchScrapeJob) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var stateData awsCWScrapeJobTFModel
-	diags := req.State.Get(ctx, &stateData)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	var configData awsCWScrapeJobTFModel
-	diags = req.Config.Get(ctx, &configData)
+	var planData awsCWScrapeJobTFModel
+	diags := req.Plan.Get(ctx, &planData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	jobData, diags := convertScrapeJobTFModelToClientModel(ctx, configData)
+	jobData, diags := convertScrapeJobTFModelToClientModel(ctx, planData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	job, err := r.client.UpdateAWSCloudWatchScrapeJob(ctx, configData.StackID.ValueString(), configData.Name.ValueString(), *jobData)
+	job, err := r.client.UpdateAWSCloudWatchScrapeJob(ctx, planData.StackID.ValueString(), planData.Name.ValueString(), *jobData)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update AWS CloudWatch scrape job", err.Error())
 		return
 	}
 
-	jobTF, diags := convertScrapeJobClientModelToTFModel(ctx, configData.StackID.ValueString(), *job)
+	jobTF, diags := convertScrapeJobClientModelToTFModel(ctx, planData.StackID.ValueString(), *job)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

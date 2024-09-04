@@ -82,6 +82,9 @@ func (r *resourceAWSAccount) Schema(ctx context.Context, req resource.SchemaRequ
 			"resource_id": schema.StringAttribute{
 				Description: "The ID given by the Grafana Cloud Provider API to this AWS Account resource.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"role_arn": schema.StringAttribute{
 				Description: "An IAM Role ARN string to represent with this AWS Account resource.",
@@ -197,30 +200,24 @@ func (r *resourceAWSAccount) Read(ctx context.Context, req resource.ReadRequest,
 }
 
 func (r *resourceAWSAccount) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var stateData resourceAWSAccountModel
-	diags := req.State.Get(ctx, &stateData)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	var configData resourceAWSAccountModel
-	diags = req.Config.Get(ctx, &configData)
+	var planData resourceAWSAccountModel
+	diags := req.Plan.Get(ctx, &planData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	accountData := cloudproviderapi.AWSAccount{}
-	accountData.RoleARN = configData.RoleARN.ValueString()
-	diags = configData.Regions.ElementsAs(ctx, &accountData.Regions, false)
+	accountData.RoleARN = planData.RoleARN.ValueString()
+	diags = planData.Regions.ElementsAs(ctx, &accountData.Regions, false)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 	account, err := r.client.UpdateAWSAccount(
 		ctx,
-		stateData.StackID.ValueString(),
-		stateData.ResourceID.ValueString(),
+		planData.StackID.ValueString(),
+		planData.ResourceID.ValueString(),
 		accountData,
 	)
 	if err != nil {
