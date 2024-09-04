@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
 )
@@ -20,6 +21,7 @@ type Client struct {
 
 const (
 	defaultRetries = 3
+	defaultTimeout = 90 * time.Second
 )
 
 func NewClient(authToken string, rawAPIURL string, client *http.Client) (*Client, error) {
@@ -32,6 +34,7 @@ func NewClient(authToken string, rawAPIURL string, client *http.Client) (*Client
 		retryClient := retryablehttp.NewClient()
 		retryClient.RetryMax = defaultRetries
 		client = retryClient.StandardClient()
+		client.Timeout = defaultTimeout
 	}
 
 	return &Client{
@@ -203,7 +206,7 @@ func (c *Client) doAPIRequest(ctx context.Context, method string, path string, b
 	if err != nil {
 		return fmt.Errorf("failed to read response body: %w", err)
 	}
-	if resp.StatusCode >= 400 {
+	if !(resp.StatusCode >= 200 && resp.StatusCode <= 299) {
 		return fmt.Errorf("status: %d, body: %v", resp.StatusCode, string(bodyContents))
 	}
 	if responseData != nil && resp.StatusCode != http.StatusNoContent {
