@@ -13,13 +13,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var (
 	resourceAWSCloudWatchScrapeJobTerraformName = "grafana_cloud_provider_aws_cloudwatch_scrape_job"
-	resourceAWSCloudWatchScrapeJobTerraformID   = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("job_name"))
+	resourceAWSCloudWatchScrapeJobTerraformID   = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("name"))
 )
 
 type resourceAWSCloudWatchScrapeJob struct {
@@ -57,12 +59,18 @@ func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resourc
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "The Terraform Resource ID. This has the format \"{{ stack_id }}:{{ job_name }}\".",
+				Description: "The Terraform Resource ID. This has the format \"{{ stack_id }}:{{ name }}\".",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"stack_id": schema.StringAttribute{
 				Description: "The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.",
 				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"name": schema.StringAttribute{
 				Description: "The name of the CloudWatch Scrape Job. Part of the Terraform Resource ID.",
@@ -85,6 +93,19 @@ func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resourc
 					setvalidator.SizeAtLeast(1),
 				},
 				ElementType: types.StringType,
+			},
+			"export_tags": schema.BoolAttribute{
+				Description: "When enabled, AWS resource tags are exported as Prometheus labels to metrics formatted as `aws_<service_name>_info`.",
+				Optional:    true,
+				Computed:    true,
+				Default:     booldefault.StaticBool(true),
+			},
+			"disabled_reason": schema.StringAttribute{
+				Description: "When the CloudWatch Scrape Job is disabled, this will show the reason that it is in that state.",
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 		Blocks: map[string]schema.Block{
@@ -211,12 +232,24 @@ func (r *resourceAWSCloudWatchScrapeJob) ImportState(ctx context.Context, req re
 	}
 	stackID := parts[0]
 	jobName := parts[1]
-	// TODO(tristan): use client to get AWS account so we only import a resource that exists
-	resp.State.Set(ctx, &awsCWScrapeJobTFModel{
-		ID:      types.StringValue(req.ID),
-		StackID: types.StringValue(stackID),
-		Name:    types.StringValue(jobName),
-	})
+
+	job, err := r.client.GetAWSCloudWatchScrapeJob(
+		ctx,
+		stackID,
+		jobName,
+	)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get AWS CloudWatch scrape job", err.Error())
+		return
+	}
+
+	jobTF, diags := convertScrapeJobClientModelToTFModel(ctx, stackID, *job)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.State.Set(ctx, jobTF)
 }
 
 func (r *resourceAWSCloudWatchScrapeJob) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -227,16 +260,25 @@ func (r *resourceAWSCloudWatchScrapeJob) Create(ctx context.Context, req resourc
 		return
 	}
 
-	resp.State.Set(ctx, &awsCWScrapeJobTFModel{
-		ID:                   types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(data.StackID.ValueString(), data.Name.ValueString())),
-		StackID:              data.StackID,
-		Name:                 data.Name,
-		Enabled:              data.Enabled,
-		AWSAccountResourceID: data.AWSAccountResourceID,
-		Regions:              data.Regions,
-		Services:             data.Services,
-		CustomNamespaces:     data.CustomNamespaces,
-	})
+	jobData, diags := convertScrapeJobTFModelToClientModel(ctx, data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	job, err := r.client.CreateAWSCloudWatchScrapeJob(ctx, data.StackID.ValueString(), *jobData)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create AWS CloudWatch scrape job", err.Error())
+		return
+	}
+
+	jobTF, diags := convertScrapeJobClientModelToTFModel(ctx, data.StackID.ValueString(), *job)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.State.Set(ctx, jobTF)
 }
 
 func (r *resourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -247,16 +289,23 @@ func (r *resourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req resource.
 		return
 	}
 
-	resp.State.Set(ctx, &awsCWScrapeJobTFModel{
-		ID:                   types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(data.StackID.ValueString(), data.Name.ValueString())),
-		StackID:              data.StackID,
-		Name:                 data.Name,
-		Enabled:              data.Enabled,
-		AWSAccountResourceID: data.AWSAccountResourceID,
-		Regions:              data.Regions,
-		Services:             data.Services,
-		CustomNamespaces:     data.CustomNamespaces,
-	})
+	job, err := r.client.GetAWSCloudWatchScrapeJob(
+		ctx,
+		data.StackID.ValueString(),
+		data.Name.ValueString(),
+	)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get AWS CloudWatch scrape job", err.Error())
+		return
+	}
+
+	jobTF, diags := convertScrapeJobClientModelToTFModel(ctx, data.StackID.ValueString(), *job)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.State.Set(ctx, jobTF)
 }
 
 func (r *resourceAWSCloudWatchScrapeJob) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -273,16 +322,25 @@ func (r *resourceAWSCloudWatchScrapeJob) Update(ctx context.Context, req resourc
 		return
 	}
 
-	resp.State.Set(ctx, &awsCWScrapeJobTFModel{
-		ID:                   types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(stateData.StackID.ValueString(), configData.Name.ValueString())),
-		StackID:              stateData.StackID,
-		Name:                 configData.Name,
-		Enabled:              configData.Enabled,
-		AWSAccountResourceID: configData.AWSAccountResourceID,
-		Regions:              configData.Regions,
-		Services:             configData.Services,
-		CustomNamespaces:     configData.CustomNamespaces,
-	})
+	jobData, diags := convertScrapeJobTFModelToClientModel(ctx, configData)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	job, err := r.client.UpdateAWSCloudWatchScrapeJob(ctx, configData.StackID.ValueString(), configData.Name.ValueString(), *jobData)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to update AWS CloudWatch scrape job", err.Error())
+		return
+	}
+
+	jobTF, diags := convertScrapeJobClientModelToTFModel(ctx, configData.StackID.ValueString(), *job)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.State.Set(ctx, jobTF)
 }
 
 func (r *resourceAWSCloudWatchScrapeJob) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -290,6 +348,16 @@ func (r *resourceAWSCloudWatchScrapeJob) Delete(ctx context.Context, req resourc
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	err := r.client.DeleteAWSCloudWatchScrapeJob(
+		ctx,
+		data.StackID.ValueString(),
+		data.Name.ValueString(),
+	)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to delete AWS CloudWatch scrape job", err.Error())
 		return
 	}
 

@@ -68,6 +68,7 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
   name                    = "my-cloudwatch-scrape-job"
   aws_account_resource_id = grafana_cloud_provider_aws_account.test.resource_id
   regions                 = grafana_cloud_provider_aws_account.test.regions
+  export_tags             = true
 
   dynamic "service" {
     for_each = local.services

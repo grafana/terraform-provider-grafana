@@ -83,7 +83,7 @@ func (r *datasourceAWSAccount) Read(ctx context.Context, req datasource.ReadRequ
 		data.ResourceID.ValueString(),
 	)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to read AWS Account", err.Error())
+		resp.Diagnostics.AddError("Failed to get AWS Account", err.Error())
 		return
 	}
 

@@ -13,6 +13,11 @@ import (
 )
 
 func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
+	// TODO(tristan): switch to CloudInstanceTestsEnabled
+	// as part of https://github.com/grafana/grafana-aws-app/issues/381
+	t.Skip("not yet implemented. see TODO comment.")
+	// testutils.CheckCloudInstanceTestsEnabled(t)
+
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		IsUnitTest:               true,
@@ -26,13 +31,15 @@ func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
 			{
 				Config: awsCloudWatchScrapeJobResourceData(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "stack_id", cloudprovider.TestAWSCloudWatchScrapeJobData.StackID),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "stack_id", cloudprovider.TestStackID),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "name", cloudprovider.TestAWSCloudWatchScrapeJobData.Name),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "aws_account_resource_id", cloudprovider.TestAWSCloudWatchScrapeJobData.AWSAccountResourceID),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.Regions))),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.0", cloudprovider.TestAWSCloudWatchScrapeJobData.Regions[0]),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.1", cloudprovider.TestAWSCloudWatchScrapeJobData.Regions[1]),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.2", cloudprovider.TestAWSCloudWatchScrapeJobData.Regions[2]),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "export_tags", fmt.Sprintf("%t", cloudprovider.TestAWSCloudWatchScrapeJobData.ExportTags)),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "disabled_reason", cloudprovider.TestAWSCloudWatchScrapeJobData.DisabledReason),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.Services))),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.name", cloudprovider.TestAWSCloudWatchScrapeJobData.Services[0].Name),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.metric.#", fmt.Sprintf("%d", len(cloudprovider.TestAWSCloudWatchScrapeJobData.Services[0].Metrics))),
@@ -65,6 +72,7 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
   name = "%[2]s"
   aws_account_resource_id = "%[3]s"
   regions = [%[4]s]
+	export_tags = true
   dynamic "service" {
     for_each = [%[5]s]
     content {
@@ -104,7 +112,7 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
   }
 }
 `,
-		cloudprovider.TestAWSCloudWatchScrapeJobData.StackID,
+		cloudprovider.TestStackID,
 		cloudprovider.TestAWSCloudWatchScrapeJobData.Name,
 		cloudprovider.TestAWSCloudWatchScrapeJobData.AWSAccountResourceID,
 		regionsString(cloudprovider.TestAWSCloudWatchScrapeJobData.Regions),

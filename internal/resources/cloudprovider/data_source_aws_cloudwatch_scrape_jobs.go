@@ -97,10 +97,18 @@ func (r *datasourceAWSCloudWatchScrapeJobs) Read(ctx context.Context, req dataso
 		return
 	}
 
-	scrapeJobsResp := []cloudproviderapi.AWSCloudWatchScrapeJob{TestAWSCloudWatchScrapeJobData}
-	scrapeJobs := make([]awsCWScrapeJobTFModel, len(scrapeJobsResp))
-	for i, scrapeJobData := range scrapeJobsResp {
-		scrapeJob, diags := convertScrapeJobClientModelToTFModel(ctx, scrapeJobData)
+	jobs, err := r.client.ListAWSCloudWatchScrapeJobs(
+		ctx,
+		data.StackID.ValueString(),
+	)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to list AWS CloudWatch Scrape Jobs", err.Error())
+		return
+	}
+
+	scrapeJobs := make([]awsCWScrapeJobTFModel, len(jobs))
+	for i, scrapeJobData := range jobs {
+		scrapeJob, diags := convertScrapeJobClientModelToTFModel(ctx, data.StackID.ValueString(), scrapeJobData)
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
 			return

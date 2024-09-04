@@ -16,7 +16,7 @@ var (
 	datasourceAWSCloudWatchScrapeJobTerraformSchema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "The Terraform Resource ID. This has the format \"{{ stack_id }}:{{ job_name }}\".",
+				Description: "The Terraform Resource ID. This has the format \"{{ stack_id }}:{{ name }}\".",
 				Computed:    true,
 			},
 			"stack_id": schema.StringAttribute{
@@ -39,6 +39,14 @@ var (
 				Description: "A set of AWS region names that this CloudWatch Scrape Job applies to.",
 				Computed:    true,
 				ElementType: types.StringType,
+			},
+			"export_tags": schema.BoolAttribute{
+				Description: "When enabled, AWS resource tags are exported as Prometheus labels to metrics formatted as `aws_<service_name>_info`.",
+				Computed:    true,
+			},
+			"disabled_reason": schema.StringAttribute{
+				Description: "When the CloudWatch Scrape Job is disabled, this will show the reason that it is in that state.",
+				Computed:    true,
 			},
 		},
 		Blocks: map[string]schema.Block{
@@ -167,10 +175,28 @@ func (r *datasourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req datas
 }
 
 func (r *datasourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	converted, diags := convertScrapeJobClientModelToTFModel(ctx, TestAWSCloudWatchScrapeJobData)
+	var data awsCWScrapeJobTFModel
+	diags := req.Config.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	job, err := r.client.GetAWSCloudWatchScrapeJob(
+		ctx,
+		data.StackID.ValueString(),
+		data.Name.ValueString(),
+	)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get AWS CloudWatch scrape job", err.Error())
+		return
+	}
+
+	converted, diags := convertScrapeJobClientModelToTFModel(ctx, data.StackID.ValueString(), *job)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	resp.State.Set(ctx, converted)
 }
