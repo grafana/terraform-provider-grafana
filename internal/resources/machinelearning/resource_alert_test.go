@@ -18,7 +18,7 @@ func TestAccResourceJobAlert(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	randomJobName := acctest.RandomWithPrefix("Test Job")
-	randomAlertName := acctest.RandomWithPrefix("Test Alert")
+	randomAlertName := acctest.RandomWithPrefix("Test Alert for Job")
 
 	var job mlapi.Job
 	var alert mlapi.Alert
@@ -31,8 +31,8 @@ func TestAccResourceJobAlert(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_alert/resource.tf", map[string]string{
-					"Test Job":   randomJobName,
-					"Test Alert": randomAlertName,
+					"Test Job":           randomJobName,
+					"Test Alert for Job": randomAlertName,
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccMLJobCheckExists("grafana_machine_learning_job.test_alert_job", &job),
@@ -47,9 +47,9 @@ func TestAccResourceJobAlert(t *testing.T) {
 			// Update the alert with a new anomaly condition.
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_alert/resource.tf", map[string]string{
-					"Test Job":   randomJobName,
-					"Test Alert": randomAlertName,
-					"\"any\"":    "\"low\"",
+					"Test Job":           randomJobName,
+					"Test Alert for Job": randomAlertName,
+					"\"any\"":            "\"low\"",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccMLJobCheckExists("grafana_machine_learning_job.test_alert_job", &job),
@@ -77,7 +77,7 @@ func TestAccResourceOutlierAlert(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	randomOutlierName := acctest.RandomWithPrefix("Test Outlier")
-	randomAlertName := acctest.RandomWithPrefix("Test Alert")
+	randomAlertName := acctest.RandomWithPrefix("Test Alert for Outlier")
 
 	var outlier mlapi.OutlierDetector
 	var alert mlapi.Alert
@@ -90,8 +90,8 @@ func TestAccResourceOutlierAlert(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_alert/outlier_alert.tf", map[string]string{
-					"Test Outlier": randomOutlierName,
-					"Test Alert":   randomAlertName,
+					"Test Outlier":           randomOutlierName,
+					"Test Alert for Outlier": randomAlertName,
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccMLOutlierCheckExists("grafana_machine_learning_outlier_detector.test_alert_outlier_detector", &outlier),
@@ -103,9 +103,9 @@ func TestAccResourceOutlierAlert(t *testing.T) {
 			// Test updating the window.
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_alert/outlier_alert.tf", map[string]string{
-					"Test Outlier": randomOutlierName,
-					"Test Alert":   randomAlertName,
-					"\"1h\"":       "\"30m\"",
+					"Test Outlier":           randomOutlierName,
+					"Test Alert for Outlier": randomAlertName,
+					"\"1h\"":                 "\"30m\"",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccMLOutlierCheckExists("grafana_machine_learning_outlier_detector.test_alert_outlier_detector", &outlier),

@@ -25,7 +25,7 @@ resource "grafana_machine_learning_job" "test_alert_job" {
 
 resource "grafana_machine_learning_alert" "test_job_alert" {
   job_id            = grafana_machine_learning_job.test_alert_job.id
-  title             = "Test Alert"
+  title             = "Test Alert for Job"
   anomaly_condition = "any"
   threshold         = ">0.8"
   window            = "15m"

@@ -20,6 +20,6 @@ resource "grafana_machine_learning_outlier_detector" "test_alert_outlier_detecto
 
 resource "grafana_machine_learning_alert" "test_outlier_alert" {
   outlier_id = grafana_machine_learning_outlier_detector.test_alert_outlier_detector.id
-  title      = "Test Alert"
+  title      = "Test Alert for Outlier"
   window     = "1h"
 }
