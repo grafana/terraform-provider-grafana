@@ -69,6 +69,8 @@ func (r *resourceAWSAccount) Schema(ctx context.Context, req resource.SchemaRequ
 				Description: "The Terraform Resource ID. This has the format \"{{ stack_id }}:{{ resource_id }}\".",
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
+					// See https://developer.hashicorp.com/terraform/plugin/framework/resources/plan-modification#usestateforunknown
+					// for details on how this works.
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
@@ -83,6 +85,8 @@ func (r *resourceAWSAccount) Schema(ctx context.Context, req resource.SchemaRequ
 				Description: "The ID given by the Grafana Cloud Provider API to this AWS Account resource.",
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
+					// See https://developer.hashicorp.com/terraform/plugin/framework/resources/plan-modification#usestateforunknown
+					// for details on how this works.
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},

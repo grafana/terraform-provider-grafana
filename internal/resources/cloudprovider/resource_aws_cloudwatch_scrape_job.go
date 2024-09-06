@@ -9,6 +9,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -17,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 var (
@@ -62,6 +64,8 @@ func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resourc
 				Description: "The Terraform Resource ID. This has the format \"{{ stack_id }}:{{ name }}\".",
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
+					// See https://developer.hashicorp.com/terraform/plugin/framework/resources/plan-modification#usestateforunknown
+					// for details on how this works.
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
@@ -103,9 +107,6 @@ func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resourc
 			"disabled_reason": schema.StringAttribute{
 				Description: "When the CloudWatch Scrape Job is disabled, this will show the reason that it is in that state.",
 				Computed:    true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 		},
 		Blocks: map[string]schema.Block{
@@ -306,6 +307,33 @@ func (r *resourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req resource.
 	}
 
 	resp.State.Set(ctx, jobTF)
+}
+
+func (r *resourceAWSCloudWatchScrapeJob) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	var stateData awsCWScrapeJobTFModel
+	diags := req.State.Get(ctx, &stateData)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var planData awsCWScrapeJobTFModel
+	diags = req.Plan.Get(ctx, &planData)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// This helps reduce the occurrences of Unknown states for the disabled_reason attribute
+	// by tying it to how the enabled attribute will change.
+	switch {
+	case !stateData.Enabled.ValueBool() && planData.Enabled.ValueBool():
+		resp.Plan.SetAttribute(ctx, path.Root("disabled_reason"), basetypes.NewStringValue(""))
+	case stateData.Enabled.ValueBool() && !planData.Enabled.ValueBool():
+		resp.Plan.SetAttribute(ctx, path.Root("disabled_reason"), basetypes.NewStringUnknown())
+	default:
+		resp.Plan.SetAttribute(ctx, path.Root("disabled_reason"), basetypes.NewStringValue(stateData.DisabledReason.ValueString()))
+	}
 }
 
 func (r *resourceAWSCloudWatchScrapeJob) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
