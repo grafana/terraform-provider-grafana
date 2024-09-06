@@ -2,8 +2,8 @@ package grafana
 
 import (
 	"context"
-	"strconv"
 
+	"github.com/grafana/grafana-openapi-client-go/client/enterprise"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -40,6 +40,8 @@ type resourceLBACRuleItemModel struct {
 	DatasourceUID types.String `tfsdk:"datasource_uid"`
 	Rules         types.List   `tfsdk:"rules"`
 	TeamID        types.String `tfsdk:"team_id"`
+	// TODO: add user and service account support
+	// UserID types.String `tfsdk:"user_id"`
 }
 
 type resourceLBACRuleItem struct {
@@ -100,27 +102,6 @@ resource "grafana_data_source_lbac_rule" "team_rule" {
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			// "user_id": schema.StringAttribute{
-			// 	Optional:    true,
-			// 	Description: "the user onto which the rules should be added",
-			// 	Validators: []validator.String{
-			// 		targetOneOf,
-			// 	},
-			// 	PlanModifiers: []planmodifier.String{
-			// 		stringplanmodifier.RequiresReplace(),
-			// 	},
-			// },
-			// "service_account_id": schema.StringAttribute{
-			// 	Optional:    true,
-			// 	Description: "the service account onto which the rules should be added",
-			// 	Validators: []validator.String{
-			// 		targetOneOf,
-			// 	},
-			// 	PlanModifiers: []planmodifier.String{
-			// 		&orgScopedAttributePlanModifier{},
-			// 		stringplanmodifier.RequiresReplace(),
-			// 	},
-			// },
 		},
 	}
 }
@@ -158,44 +139,37 @@ func (r *resourceLBACRuleItem) Create(ctx context.Context, req resource.CreateRe
 		resp.Diagnostics.AddError("Failed to get role assignments", err.Error())
 		return
 	}
-	lbacRules := getResp.Payload
+	existingLBACRules := getResp.Payload
 
+	lbacRules := make([]*models.TeamLBACRule, 0)
 	assignmentType := ""
 	resourceID := ""
 	switch {
 	case !data.TeamID.IsNull():
 		_, teamIDStr := SplitOrgResourceID(data.TeamID.ValueString())
-		teamID, err := strconv.ParseInt(teamIDStr, 10, 64)
-		if err != nil {
-			resp.Diagnostics.AddError("Failed to parse team ID", err.Error())
-			return
+		for _, teamLBACRules := range existingLBACRules {
+			for _, team := range teamLBACRules.Rules {
+				if team.TeamID == teamIDStr {
+					rules := make([]string, 0, len(data.Rules.Elements()))
+					for _, r := range data.Rules.Elements() {
+						rules = append(rules, r.(types.String).ValueString())
+					}
+					lbacRules = append(lbacRules, &models.TeamLBACRule{
+						TeamID: teamIDStr,
+						Rules:  rules,
+					})
+				}
+			}
 		}
-		lbacRules.Teams = append(lbacRules.Teams, teamID)
 		assignmentType = "team"
 		resourceID = teamIDStr
-		// case !data.UserID.IsNull():
-		// 	userID, err := strconv.ParseInt(data.UserID.ValueString(), 10, 64)
-		// 	if err != nil {
-		// 		resp.Diagnostics.AddError("Failed to parse user ID", err.Error())
-		// 		return
-		// 	}
-		// 	lbacRules.Users = append(lbacRules.Users, userID)
-		// 	assignmentType = "user"
-		// 	resourceID = data.UserID.ValueString()
-		// case !data.ServiceAccountID.IsNull():
-		// 	_, serviceAccountIDStr := SplitOrgResourceID(data.ServiceAccountID.ValueString())
-		// 	serviceAccountID, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
-		// 	if err != nil {
-		// 		resp.Diagnostics.AddError("Failed to parse service account ID", err.Error())
-		// 		return
-		// 	}
-		// 	lbacRules.ServiceAccounts = append(lbacRules.ServiceAccounts, serviceAccountID)
-		// 	assignmentType = "service_account"
-		// 	resourceID = serviceAccountIDStr
 	}
 
-	_, err = client.Enterprise.UpdateTeamLBACRulesAPI(data.DatasourceUID.ValueString(), &models.UpdateTeamLBACRulesCommand{
-		LBACRules: lbacRules,
+	// update
+	_, err = client.Enterprise.UpdateTeamLBACRulesAPI(&enterprise.UpdateTeamLBACRulesAPIParams{
+		UID:     data.DatasourceUID.ValueString(),
+		Context: ctx,
+		Body:    &models.UpdateTeamLBACCommand{Rules: lbacRules},
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to set lbac rules", err.Error())
@@ -203,8 +177,8 @@ func (r *resourceLBACRuleItem) Create(ctx context.Context, req resource.CreateRe
 	}
 
 	// Save data into Terraform state
-	data.ID = types.StringValue(resourceRoleAssignmentItemID.Make(orgID, data.RoleUID.ValueString(), assignmentType, resourceID))
-	data.OrgID = types.StringValue(strconv.FormatInt(orgID, 10))
+	data.ID = types.StringValue(resourceRoleAssignmentItemID.Make(orgID, data.DatasourceUID.ValueString(), assignmentType, resourceID))
+	data.OrgID = types.Int64Value(orgID)
 	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
 
@@ -217,6 +191,7 @@ func (r *resourceLBACRuleItem) read(id string) (*resourceLBACRuleItemModel, diag
 
 	// Try to get the datasource lbac rules
 	getResp, err := client.Enterprise.GetTeamLBACRulesAPI(datasourceUID)
+
 	if err != nil {
 		if common.IsNotFoundError(err) {
 			return nil, nil
@@ -230,28 +205,20 @@ func (r *resourceLBACRuleItem) read(id string) (*resourceLBACRuleItemModel, diag
 	}
 	switch assignmentType {
 	case "team":
-		for team, rules := range getResp.Payload.LBACRules {
-			if teamIDStr := strconv.FormatInt(team, 10); teamIDStr == identifier {
-				data.TeamID = types.StringValue(teamIDStr)
-				teamRules, _ := types.ListValue(types.StringType, rules)
-				data.Rules = teamRules
-				break
+		for _, teamLBACRules := range getResp.Payload {
+			for _, team := range teamLBACRules.Rules {
+				if team.TeamID == identifier {
+					data.TeamID = types.StringValue(team.TeamID)
+					rules, diags := types.ListValueFrom(context.TODO(), types.StringType, team.Rules)
+					if diags.HasError() {
+						return nil, diags
+					}
+					data.Rules = rules
+					break
+				}
 			}
 		}
-	// case "user":
-	// 	for _, user := range getResp.Payload.Users {
-	// 		if userIDStr := strconv.FormatInt(user, 10); userIDStr == identifier {
-	// 			data.UserID = types.StringValue(userIDStr)
-	// 			break
-	// 		}
-	// 	}
-	// case "service_account":
-	// 	for _, serviceAccount := range getResp.Payload.ServiceAccounts {
-	// 		if saIDStr := strconv.FormatInt(serviceAccount, 10); saIDStr == identifier {
-	// 			data.ServiceAccountID = types.StringValue(saIDStr)
-	// 			break
-	// 		}
-	// 	}
+	// TODO: add user and service account support
 	default:
 		// Should never happen due to the schema validation, but include for completeness
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid assignment type", assignmentType)}
@@ -286,10 +253,102 @@ func (r *resourceLBACRuleItem) Read(ctx context.Context, req resource.ReadReques
 	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
 }
 
-//	return response.JSON(http.StatusOK, util.DynMap{
-//		"message":   "Data source LBAC rules updated",
-//		"id":        dsUpdated.ID,
-//		"uid":       dsUpdated.UID,
-//		"name":      dsUpdated.Name,
-//		"lbacRules": teamLBACRulesUpdated,
-//	})
+func (r *resourceLBACRuleItem) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data resourceLBACRuleItemModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	client, orgID, idFields, err := r.clientFromExistingOrgResource(resourceLBACRuleID, data.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get client", err.Error())
+		return
+	}
+	datasourceUID := idFields[0].(string)
+
+	// Get existing lbacRules
+	getResp, err := client.Enterprise.GetTeamLBACRulesAPI(datasourceUID)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get LBAC rules", err.Error())
+		return
+	}
+
+	// Update the rules for the specific team
+	updatedRules := make([]*models.TeamLBACRule, 0)
+	for _, rule := range getResp.Payload {
+		// FIXME: this to be removed on new API
+		for _, team := range rule.Rules {
+			if team.TeamID == data.TeamID.ValueString() {
+				rules := make([]string, 0, len(data.Rules.Elements()))
+				for _, r := range data.Rules.Elements() {
+					rules = append(rules, r.(types.String).ValueString())
+				}
+				updatedRules = append(updatedRules, &models.TeamLBACRule{
+					TeamID: data.TeamID.ValueString(),
+					Rules:  rules,
+				})
+			}
+		}
+	}
+
+	// Update LBAC rules
+	_, err = client.Enterprise.UpdateTeamLBACRulesAPI(&enterprise.UpdateTeamLBACRulesAPIParams{
+		UID:     data.DatasourceUID.ValueString(),
+		Context: ctx,
+		Body:    &models.UpdateTeamLBACCommand{Rules: updatedRules},
+	})
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to update LBAC rules", err.Error())
+		return
+	}
+
+	// Save updated data into Terraform state
+	data.ID = types.StringValue(resourceLBACRuleID.Make(orgID, data.DatasourceUID.ValueString(), "team", data.TeamID.ValueString()))
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *resourceLBACRuleItem) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data resourceLBACRuleItemModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	client, _, err := r.clientFromNewOrgResource(data.OrgID.String())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get client", err.Error())
+		return
+	}
+
+	// Get existing lbacRules
+	getResp, err := client.Enterprise.GetTeamLBACRulesAPI(data.DatasourceUID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get LBAC rules", err.Error())
+		return
+	}
+
+	// Remove the rule for the specific team
+	updatedRules := make([]*models.TeamLBACRule, 0)
+	for _, teamLBACRules := range getResp.Payload {
+		for _, team := range teamLBACRules.Rules {
+			if team.TeamID != data.TeamID.ValueString() {
+				updatedRules = append(updatedRules, &models.TeamLBACRule{
+					TeamID: team.TeamID,
+					Rules:  team.Rules,
+				})
+			}
+		}
+	}
+
+	// Update LBAC rules
+	_, err = client.Enterprise.UpdateTeamLBACRulesAPI(&enterprise.UpdateTeamLBACRulesAPIParams{
+		UID:     data.DatasourceUID.ValueString(),
+		Context: ctx,
+		Body:    &models.UpdateTeamLBACCommand{Rules: updatedRules},
+	})
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to delete LBAC rule", err.Error())
+		return
+	}
+}
