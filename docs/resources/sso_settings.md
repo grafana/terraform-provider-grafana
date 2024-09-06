@@ -3,13 +3,13 @@
 page_title: "grafana_sso_settings Resource - terraform-provider-grafana"
 subcategory: "Grafana OSS"
 description: |-
-  Manages Grafana SSO Settings for OAuth2 and SAML. Support for SAML is currently in preview, it will be available in Grafana Enterprise starting with v11.1.
+  Manages Grafana SSO Settings for OAuth2, SAML and LDAP. Support for LDAP is currently in preview, it will be available in Grafana starting with v11.3.
   Official documentation https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/HTTP API https://grafana.com/docs/grafana/latest/developers/http_api/sso-settings/
 ---
 
 # grafana_sso_settings (Resource)
 
-Manages Grafana SSO Settings for OAuth2 and SAML. Support for SAML is currently in preview, it will be available in Grafana Enterprise starting with v11.1.
+Manages Grafana SSO Settings for OAuth2, SAML and LDAP. Support for LDAP is currently in preview, it will be available in Grafana starting with v11.3.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/sso-settings/)
@@ -72,16 +72,86 @@ resource "grafana_sso_settings" "saml_sso_settings" {
 
 ### Required
 
-- `provider_name` (String) The name of the SSO provider. Supported values: github, gitlab, google, azuread, okta, generic_oauth, saml.
+- `provider_name` (String) The name of the SSO provider. Supported values: github, gitlab, google, azuread, okta, generic_oauth, saml, ldap.
 
 ### Optional
 
+- `ldap_settings` (Block Set, Max: 1) The LDAP settings set. Required for the ldap provider. (see [below for nested schema](#nestedblock--ldap_settings))
 - `oauth2_settings` (Block Set, Max: 1) The OAuth2 settings set. Required for github, gitlab, google, azuread, okta, generic_oauth providers. (see [below for nested schema](#nestedblock--oauth2_settings))
 - `saml_settings` (Block Set, Max: 1) The SAML settings set. Required for the saml provider. (see [below for nested schema](#nestedblock--saml_settings))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+<a id="nestedblock--ldap_settings"></a>
+### Nested Schema for `ldap_settings`
+
+Required:
+
+- `config` (Block List, Min: 1, Max: 1) The LDAP configuration. (see [below for nested schema](#nestedblock--ldap_settings--config))
+
+Optional:
+
+- `allow_sign_up` (Boolean) Whether to allow new Grafana user creation through LDAP login. If set to false, then only existing Grafana users can log in with LDAP.
+- `enabled` (Boolean) Define whether this configuration is enabled for LDAP. Defaults to `true`.
+- `skip_org_role_sync` (Boolean) Prevent synchronizing users’ organization roles from LDAP.
+
+<a id="nestedblock--ldap_settings--config"></a>
+### Nested Schema for `ldap_settings.config`
+
+Required:
+
+- `servers` (Block List, Min: 1) The LDAP servers configuration. (see [below for nested schema](#nestedblock--ldap_settings--config--servers))
+
+<a id="nestedblock--ldap_settings--config--servers"></a>
+### Nested Schema for `ldap_settings.config.servers`
+
+Required:
+
+- `host` (String) The LDAP server host.
+- `search_base_dns` (List of String) An array of base DNs to search through.
+- `search_filter` (String) The user search filter, for example "(cn=%s)" or "(sAMAccountName=%s)" or "(uid=%s)".
+
+Optional:
+
+- `attributes` (Map of String) The LDAP server attributes. The following attributes can be configured: email, member_of, name, surname, username.
+- `bind_dn` (String) The search user bind DN.
+- `bind_password` (String, Sensitive) The search user bind password.
+- `client_cert` (String) The path to the client certificate.
+- `client_cert_value` (String) The Base64 encoded value of the client certificate.
+- `client_key` (String, Sensitive) The path to the client private key.
+- `client_key_value` (String, Sensitive) The Base64 encoded value of the client private key.
+- `group_mappings` (Block List) For mapping an LDAP group to a Grafana organization and role. (see [below for nested schema](#nestedblock--ldap_settings--config--servers--group_mappings))
+- `group_search_base_dns` (List of String) An array of the base DNs to search through for groups. Typically uses ou=groups.
+- `group_search_filter` (String) Group search filter, to retrieve the groups of which the user is a member (only set if memberOf attribute is not available).
+- `group_search_filter_user_attribute` (String) The %s in the search filter will be replaced with the attribute defined in this field.
+- `min_tls_version` (String) Minimum TLS version allowed. Accepted values are: TLS1.2, TLS1.3.
+- `port` (Number) The LDAP server port.
+- `root_ca_cert` (String) The path to the root CA certificate.
+- `root_ca_cert_value` (List of String) The Base64 encoded values of the root CA certificates.
+- `ssl_skip_verify` (Boolean) If set to true, the SSL cert validation will be skipped.
+- `start_tls` (Boolean) If set to true, use LDAP with STARTTLS instead of LDAPS.
+- `timeout` (Number) The timeout in seconds for connecting to the LDAP host.
+- `tls_ciphers` (List of String) Accepted TLS ciphers. For a complete list of supported ciphers, refer to: https://go.dev/src/crypto/tls/cipher_suites.go.
+- `use_ssl` (Boolean) Set to true if LDAP server should use an encrypted TLS connection (either with STARTTLS or LDAPS).
+
+<a id="nestedblock--ldap_settings--config--servers--group_mappings"></a>
+### Nested Schema for `ldap_settings.config.servers.group_mappings`
+
+Required:
+
+- `group_dn` (String) LDAP distinguished name (DN) of LDAP group. If you want to match all (or no LDAP groups) then you can use wildcard ("*").
+- `org_role` (String) Assign users of group_dn the organization role Admin, Editor, or Viewer.
+
+Optional:
+
+- `grafana_admin` (Boolean) If set to true, it makes the user of group_dn Grafana server admin.
+- `org_id` (Number) The Grafana organization database id.
+
+
+
+
 
 <a id="nestedblock--oauth2_settings"></a>
 ### Nested Schema for `oauth2_settings`

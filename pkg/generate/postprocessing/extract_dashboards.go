@@ -1,6 +1,7 @@
 package postprocessing
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,11 +9,12 @@ import (
 
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
+	tfjson "github.com/hashicorp/terraform-json"
 )
 
-func AbstractDashboards(fpath string) error {
+func ExtractDashboards(fpath string, plannedState *tfjson.Plan) error {
 	fDir := filepath.Dir(fpath)
-	outPath := filepath.Join(fDir, "files")
+	outPath := filepath.Join(fDir, "dashboards")
 
 	return postprocessFile(fpath, func(file *hclwrite.File) error {
 		dashboardJsons := map[string][]byte{}
@@ -22,20 +24,25 @@ func AbstractDashboards(fpath string) error {
 				continue
 			}
 
-			dashboard, err := attributeToJSON(block.Body().GetAttribute("config_json"))
-			if err != nil {
-				return err
+			var dashboardValue string
+			for _, r := range plannedState.PlannedValues.RootModule.Resources {
+				if r.Type != "grafana_dashboard" {
+					continue
+				}
+				if r.Name != labels[1] {
+					continue
+				}
+				dashboardValue = r.AttributeValues["config_json"].(string)
 			}
 
-			if dashboard == nil {
+			// Skip dashboards that have 10 or fewer attributes (counted by commas)
+			// They are fine as inline JSON
+			if strings.Count(dashboardValue, ",") <= 10 {
 				continue
 			}
 
 			writeTo := filepath.Join(outPath, fmt.Sprintf("%s.json", block.Labels()[1]))
-
-			// Replace $${ with ${ in the json. No need to escape in the json file
-			dashboard = []byte(strings.ReplaceAll(string(dashboard), "$${", "${"))
-			dashboardJsons[writeTo] = dashboard
+			dashboardJsons[writeTo] = []byte(dashboardValue)
 
 			// Hacky relative path with interpolation
 			relativePath := strings.ReplaceAll(writeTo, fDir, "")
@@ -58,12 +65,30 @@ func AbstractDashboards(fpath string) error {
 			return nil
 		}
 
-		if err := os.Mkdir(outPath, 0755); err != nil {
+		if err := os.MkdirAll(outPath, 0755); err != nil {
 			return err
 		}
 		for writeTo, dashboard := range dashboardJsons {
-			err := os.WriteFile(writeTo, dashboard, 0600)
+			dashboardFile, err := os.Create(writeTo)
 			if err != nil {
+				return err
+			}
+
+			// Parse the JSON to format it nicely
+			var dashboardInterface interface{}
+			if err := json.Unmarshal(dashboard, &dashboardInterface); err != nil {
+				return err
+			}
+			dashboard, err := json.MarshalIndent(dashboardInterface, "", "    ")
+			if err != nil {
+				return err
+			}
+
+			if _, err := dashboardFile.Write(dashboard); err != nil {
+				return err
+			}
+
+			if err := dashboardFile.Close(); err != nil {
 				return err
 			}
 		}

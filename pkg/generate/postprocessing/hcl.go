@@ -48,20 +48,6 @@ func attributeToMap(attr *hclwrite.Attribute) (map[string]interface{}, error) {
 	return dashboardMap, nil
 }
 
-func attributeToJSON(attr *hclwrite.Attribute) ([]byte, error) {
-	jsonMap, err := attributeToMap(attr)
-	if err != nil || jsonMap == nil {
-		return nil, err
-	}
-
-	jsonMarshalled, err := json.MarshalIndent(jsonMap, "", "\t")
-	if err != nil {
-		return nil, err
-	}
-
-	return jsonMarshalled, nil
-}
-
 func extractJSONEncode(value string) (string, error) {
 	if !strings.HasPrefix(value, "jsonencode(") {
 		return "", nil

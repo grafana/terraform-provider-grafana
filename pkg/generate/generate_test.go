@@ -108,6 +108,29 @@ func TestAccGenerate(t *testing.T) {
 			},
 		},
 		{
+			name: "large-dashboards-exported-to-files",
+			config: func() string {
+				absPath, err := filepath.Abs("testdata/generate/dashboard-large/resources.tf")
+				require.NoError(t, err)
+				content, err := os.ReadFile(absPath)
+				require.NoError(t, err)
+				config := strings.ReplaceAll(string(content), "${path.module}", filepath.Dir(absPath))
+				return config
+			}(),
+			generateConfig: func(cfg *generate.Config) {
+				cfg.IncludeResources = []string{
+					"grafana_dashboard.*",
+					"grafana_folder.*",
+				}
+			},
+			check: func(t *testing.T, tempDir string) {
+				assertFiles(t, tempDir, "testdata/generate/dashboard-large", []string{
+					".terraform",
+					".terraform.lock.hcl",
+				})
+			},
+		},
+		{
 			name:   "dashboard-json",
 			config: testutils.TestAccExample(t, "resources/grafana_dashboard/resource.tf"),
 			generateConfig: func(cfg *generate.Config) {
@@ -333,7 +356,7 @@ func TestAccGenerate_RestrictedPermissions(t *testing.T) {
 func TestAccGenerate_SMCheck(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	randomString := acctest.RandString(10)
+	randomString := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	var smCheckID string
 	tc := generateTestCase{
@@ -376,7 +399,7 @@ func TestAccGenerate_SMCheck(t *testing.T) {
 func TestAccGenerate_OnCall(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	randomString := acctest.RandString(10)
+	randomString := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 
 	tfConfig := fmt.Sprintf(`
 	resource "grafana_oncall_integration" "test" {

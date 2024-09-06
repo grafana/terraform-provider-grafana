@@ -204,7 +204,9 @@ Required access policy scopes:
 		"grafana_cloud_stack",
 		resourceStackID,
 		schema,
-	).WithLister(cloudListerFunction(listStacks))
+	).
+		WithLister(cloudListerFunction(listStacks)).
+		WithPreferredResourceNameField("name")
 }
 
 func listStacks(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]string, error) {

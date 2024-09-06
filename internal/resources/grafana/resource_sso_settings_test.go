@@ -134,6 +134,70 @@ func TestSSOSettings_basic_saml(t *testing.T) {
 	})
 }
 
+func TestSSOSettings_basic_ldap(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=11.3")
+
+	provider := "ldap"
+
+	api := grafanaTestClient()
+
+	defaultSettings, err := api.SsoSettings.GetProviderSettings(provider)
+	if err != nil {
+		t.Fatalf("failed to fetch the default settings for provider %s: %v", provider, err)
+	}
+
+	resourceName := "grafana_sso_settings.ldap_sso_settings"
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             checkSsoSettingsReset(api, provider, defaultSettings.Payload),
+		Steps: []resource.TestStep{
+			{
+				Config: testConfigForLdapProvider,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.host", "127.0.0.1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.search_filter", "(cn=%s)"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.search_base_dns.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.search_base_dns.0", "dc=grafana,dc=org"),
+				),
+			},
+			{
+				Config: testConfigForLdapProviderUpdated,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.host", "127.0.0.5"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.bind_password", "password"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.search_filter", "(cn=%s)"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.search_base_dns.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.search_base_dns.0", "dc=grafana,dc=org"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.attributes.email", "email"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.attributes.name", "name"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.group_mappings.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.group_mappings.0.group_dn", "cn=superadmins,dc=grafana,dc=org"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.group_mappings.0.org_role", "Admin"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.group_mappings.0.org_id", "1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.group_mappings.0.grafana_admin", "true"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.group_mappings.1.group_dn", "cn=users,dc=grafana,dc=org"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.group_mappings.1.org_role", "Editor"),
+				),
+			},
+			{
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"ldap_settings.0.config.0.servers.0.bind_password"},
+			},
+		},
+	})
+}
+
 func TestSSOSettings_customFields(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Fix the tests to run on local instances
 
@@ -412,6 +476,51 @@ const testConfigForSAMLProviderWithAzureAD = `resource "grafana_sso_settings" "s
 		token_url                 = "https://myidp.com/oauth/token"
 		force_use_graph_api       = true
 	}
+}`
+
+const testConfigForLdapProvider = `resource "grafana_sso_settings" "ldap_sso_settings" {
+  provider_name = "ldap"
+  ldap_settings {
+    config {
+      servers {
+        host = "127.0.0.1"
+        search_filter = "(cn=%s)"
+        search_base_dns = [
+          "dc=grafana,dc=org",
+        ]
+      }
+    }
+  }
+}`
+
+const testConfigForLdapProviderUpdated = `resource "grafana_sso_settings" "ldap_sso_settings" {
+  provider_name = "ldap"
+  ldap_settings {
+    config {
+      servers {
+        host = "127.0.0.5"
+        search_filter = "(cn=%s)"
+		bind_password = "password"
+        search_base_dns = [
+          "dc=grafana,dc=org",
+        ]
+		attributes = {
+          email = "email"
+          name = "name"
+        }
+        group_mappings {
+          group_dn = "cn=superadmins,dc=grafana,dc=org"
+          org_role = "Admin"
+          org_id = 1
+          grafana_admin = true
+        }
+        group_mappings {
+          group_dn = "cn=users,dc=grafana,dc=org"
+          org_role = "Editor"
+        }
+      }
+    }
+  }
 }`
 
 const testConfigWithCustomFields = `resource "grafana_sso_settings" "sso_settings" {

@@ -249,7 +249,9 @@ func resourceReport() *common.Resource {
 		"grafana_report",
 		orgResourceIDInt("id"),
 		schema,
-	).WithLister(listerFunctionOrgResource(listReports))
+	).
+		WithLister(listerFunctionOrgResource(listReports)).
+		WithPreferredResourceNameField("name")
 }
 
 func listReports(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
