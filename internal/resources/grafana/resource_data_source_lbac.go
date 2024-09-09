@@ -2,6 +2,8 @@ package grafana
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 
 	"github.com/grafana/grafana-openapi-client-go/client/enterprise"
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -68,8 +70,34 @@ The required arguments for this resource vary depending on the type of data
 source selected (via the 'type' argument).
 
 Example usage:
+
 resource "grafana_data_source_lbac_rule" "team_rule" {
-  uid = "some-unique-datasource-uid"
+  datasource_uid = "some-unique-datasource-uid"
+  team_id        = "team1"
+  rules          = [
+    "{ foo != \"bar\", foo !~ \"baz\" }",
+    "{ foo = \"qux\", bar ~ \"quux\" }"
+  ]
+}
+
+
+resource "grafana_data_source_lbac_rule" "lbac_rule" {
+  datasource_uid = "some-unique-datasource-uid"
+  rules = [
+		{
+			"teamid1" = [
+				"{ foo != \"bar\", foo !~ \"baz\" }",
+				"{ foo = \"qux\", bar ~ \"quux\" }"
+			]
+		},
+		{
+			"teamid2" = [
+				"{ foo != \"bar\", foo !~ \"baz\" }",
+				"{ foo = \"qux\", bar ~ \"quux\" }"
+			]
+		}
+  ]
+}
   team_id        = "team1"
   rules          = [
     "{ foo != \"bar\", foo !~ \"baz\" }",
@@ -79,7 +107,7 @@ resource "grafana_data_source_lbac_rule" "team_rule" {
 `,
 		Attributes: map[string]schema.Attribute{
 			"org_id": pluginFrameworkOrgIDAttribute(),
-			"uid": schema.StringAttribute{
+			"datasource_uid": schema.StringAttribute{
 				Required:    true,
 				Description: "the datasource UID onto which to assign an actor",
 				PlanModifiers: []planmodifier.String{
@@ -107,6 +135,7 @@ resource "grafana_data_source_lbac_rule" "team_rule" {
 }
 
 func (r *resourceLBACRuleItem) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resp.Diagnostics.AddWarning("ImportState found", fmt.Sprintf("ImportState found: %s", req.ID))
 	data, diags := r.read(req.ID)
 	if diags != nil {
 		resp.Diagnostics = diags
@@ -127,7 +156,8 @@ func (r *resourceLBACRuleItem) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	client, orgID, err := r.clientFromNewOrgResource(string(data.OrgID.ValueInt64()))
+	strValue := strconv.FormatInt(data.OrgID.ValueInt64(), 10)
+	client, orgID, err := r.clientFromNewOrgResource(strValue)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to get client", err.Error())
 		return

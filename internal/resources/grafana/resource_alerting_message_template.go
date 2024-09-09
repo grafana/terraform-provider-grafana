@@ -145,7 +145,9 @@ func putMessageTemplate(ctx context.Context, data *schema.ResourceData, meta int
 func deleteMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	_, err := client.Provisioning.DeleteTemplate(name)
+	// TODO: check if this is correct DO NOT COMMIT
+	params := provisioning.NewDeleteTemplateParams().WithName(name)
+	_, err := client.Provisioning.DeleteTemplate(params)
 	diag, _ := common.CheckReadError("message template", data, err)
 	return diag
 }
