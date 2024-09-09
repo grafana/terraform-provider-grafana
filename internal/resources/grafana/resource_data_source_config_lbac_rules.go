@@ -2,11 +2,13 @@ package grafana
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/enterprise"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -14,12 +16,23 @@ import (
 )
 
 var (
-	resourceDataSourceConfigLBACRulesName = "grafana_data_source_config_lbac_rules"
-	resourceDataSourceConfigLBACRulesID   = common.NewResourceID(common.StringIDField("datasourceUID"))
+	// Check interface
+	_ resource.ResourceWithImportState = (*resourceDataSourceConfigLBACRules)(nil)
 )
 
-func NewDataSourceConfigLBACRulesResource() resource.Resource {
-	return &resourceDataSourceConfigLBACRules{}
+var (
+	resourceDataSourceConfigLBACRulesName = "grafana_data_source_config_lbac_rules"
+	resourceDataSourceConfigLBACRulesID   = common.NewResourceID(common.StringIDField("datasource_uid"))
+)
+
+func makeResourceDataSourceConfigLBACRules() *common.Resource {
+	resourceStruct := &resourceDataSourceConfigLBACRules{}
+	return common.NewResource(
+		common.CategoryGrafanaEnterprise,
+		resourceDatasourcePermissionItemName,
+		resourceDatasourcePermissionItemID,
+		resourceStruct,
+	)
 }
 
 type resourceDataSourceConfigLBACRulesModel struct {
@@ -85,14 +98,18 @@ func (r *resourceDataSourceConfigLBACRules) Read(ctx context.Context, req resour
 
 	rules := make(map[string]types.List)
 	for teamID, teamRules := range getResp.Payload.Rules {
-		stringRules := make([]types.String, len(teamRules.Rules))
+		stringRules := make([]attr.Value, len(teamRules.Rules))
 		for i, rule := range teamRules.Rules {
 			stringRules[i] = types.StringValue(rule)
 		}
-		rules[string(teamID)] = types.ListValueMust(types.StringType, stringRules)
+		rules[strconv.Itoa(int(teamID))] = types.ListValueMust(types.StringType, stringRules)
 	}
 
-	data.Rules = types.MapValueMust(types.ListType{ElemType: types.StringType}, rules)
+	rulesAttr := make(map[string]attr.Value)
+	for k, v := range rules {
+		rulesAttr[k] = v
+	}
+	data.Rules = types.MapValueMust(types.ListType{ElemType: types.StringType}, rulesAttr)
 	data.ID = data.DatasourceUID
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
