@@ -22,7 +22,7 @@
     },
     {
       "id": "1",
-      "to": "grafana_user._1"
+      "to": "grafana_user.admin"
     }
   ]
 }
