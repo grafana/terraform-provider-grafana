@@ -55,25 +55,25 @@ resource "grafana_sso_settings" "ldap_sso_settings" {
     enabled = "true"
     config {
       servers {
-        host = "127.0.0.1"
-        port = 389
+        host          = "127.0.0.1"
+        port          = 389
         search_filter = "(cn=%s)"
-        bind_dn = "cn=admin,dc=grafana,dc=org"
+        bind_dn       = "cn=admin,dc=grafana,dc=org"
         bind_password = "grafana"
         search_base_dns = [
           "dc=grafana,dc=org",
         ]
         attributes = {
-          name = "givenName"
-          surname = "sn"
-          username = "cn"
+          name      = "givenName"
+          surname   = "sn"
+          username  = "cn"
           member_of = "memberOf"
-          email =  "email"
+          email     = "email"
         }
         group_mappings {
-          group_dn = "cn=superadmins,dc=grafana,dc=org"
-          org_role = "Admin"
-          org_id = 1
+          group_dn      = "cn=superadmins,dc=grafana,dc=org"
+          org_role      = "Admin"
+          org_id        = 1
           grafana_admin = true
         }
         group_mappings {
