@@ -323,8 +323,11 @@ func resourceSloRead(ctx context.Context, d *schema.ResourceData, client *slo.AP
 	sloID := d.Id()
 
 	req := client.DefaultAPI.V1SloIdGet(ctx, sloID)
-	slo, _, err := req.Execute()
+	slo, r, err := req.Execute()
 	if err != nil {
+		if r != nil && r.StatusCode == 404 {
+			return common.WarnMissing("SLO", d)
+		}
 		return apiError("Unable to read SLO - API", err)
 	}
 
