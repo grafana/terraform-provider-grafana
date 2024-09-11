@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -220,7 +221,7 @@ func convertScrapeJobClientModelToTFModel(ctx context.Context, stackID string, s
 		DisabledReason:       types.StringValue(scrapeJobData.DisabledReason),
 	}
 
-	regions, diags := types.SetValueFrom(ctx, basetypes.StringType{}, &scrapeJobData.Regions)
+	regions, diags := types.SetValueFrom(ctx, basetypes.StringType{}, scrapeJobData.Regions)
 	conversionDiags.Append(diags...)
 	if conversionDiags.HasError() {
 		return nil, conversionDiags
@@ -238,7 +239,7 @@ func convertScrapeJobClientModelToTFModel(ctx context.Context, stackID string, s
 			metricsData[j] = awsCWScrapeJobMetricTFModel{
 				Name: types.StringValue(metricData.Name),
 			}
-			statistics, diags := types.SetValueFrom(ctx, basetypes.StringType{}, &scrapeJobData.Services[i].Metrics[j].Statistics)
+			statistics, diags := types.SetValueFrom(ctx, basetypes.StringType{}, scrapeJobData.Services[i].Metrics[j].Statistics)
 			conversionDiags.Append(diags...)
 			if conversionDiags.HasError() {
 				return nil, conversionDiags
@@ -256,7 +257,10 @@ func convertScrapeJobClientModelToTFModel(ctx context.Context, stackID string, s
 		}
 		service.ResourceDiscoveryTagFilters = tagFiltersData
 
-		tagsToAdd, diags := types.SetValueFrom(ctx, basetypes.StringType{}, &scrapeJobData.Services[i].TagsToAddToMetrics)
+		tagsToAdd, diags := types.SetValueFrom(ctx, basetypes.StringType{}, scrapeJobData.Services[i].TagsToAddToMetrics)
+		if tagsToAdd.IsNull() {
+			tagsToAdd = types.SetValueMust(basetypes.StringType{}, []attr.Value{})
+		}
 		conversionDiags.Append(diags...)
 		if conversionDiags.HasError() {
 			return nil, conversionDiags
@@ -277,7 +281,7 @@ func convertScrapeJobClientModelToTFModel(ctx context.Context, stackID string, s
 			metricsData[j] = awsCWScrapeJobMetricTFModel{
 				Name: types.StringValue(metricData.Name),
 			}
-			statistics, diags := types.SetValueFrom(ctx, basetypes.StringType{}, &scrapeJobData.CustomNamespaces[i].Metrics[j].Statistics)
+			statistics, diags := types.SetValueFrom(ctx, basetypes.StringType{}, scrapeJobData.CustomNamespaces[i].Metrics[j].Statistics)
 			conversionDiags.Append(diags...)
 			if conversionDiags.HasError() {
 				return nil, conversionDiags

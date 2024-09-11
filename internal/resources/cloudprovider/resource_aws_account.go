@@ -69,6 +69,8 @@ func (r *resourceAWSAccount) Schema(ctx context.Context, req resource.SchemaRequ
 				Description: "The Terraform Resource ID. This has the format \"{{ stack_id }}:{{ resource_id }}\".",
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
+					// See https://developer.hashicorp.com/terraform/plugin/framework/resources/plan-modification#usestateforunknown
+					// for details on how this works.
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
@@ -82,6 +84,11 @@ func (r *resourceAWSAccount) Schema(ctx context.Context, req resource.SchemaRequ
 			"resource_id": schema.StringAttribute{
 				Description: "The ID given by the Grafana Cloud Provider API to this AWS Account resource.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					// See https://developer.hashicorp.com/terraform/plugin/framework/resources/plan-modification#usestateforunknown
+					// for details on how this works.
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"role_arn": schema.StringAttribute{
 				Description: "An IAM Role ARN string to represent with this AWS Account resource.",
@@ -197,30 +204,24 @@ func (r *resourceAWSAccount) Read(ctx context.Context, req resource.ReadRequest,
 }
 
 func (r *resourceAWSAccount) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var stateData resourceAWSAccountModel
-	diags := req.State.Get(ctx, &stateData)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	var configData resourceAWSAccountModel
-	diags = req.Config.Get(ctx, &configData)
+	var planData resourceAWSAccountModel
+	diags := req.Plan.Get(ctx, &planData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	accountData := cloudproviderapi.AWSAccount{}
-	accountData.RoleARN = configData.RoleARN.ValueString()
-	diags = configData.Regions.ElementsAs(ctx, &accountData.Regions, false)
+	accountData.RoleARN = planData.RoleARN.ValueString()
+	diags = planData.Regions.ElementsAs(ctx, &accountData.Regions, false)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 	account, err := r.client.UpdateAWSAccount(
 		ctx,
-		stateData.StackID.ValueString(),
-		stateData.ResourceID.ValueString(),
+		planData.StackID.ValueString(),
+		planData.ResourceID.ValueString(),
 		accountData,
 	)
 	if err != nil {
