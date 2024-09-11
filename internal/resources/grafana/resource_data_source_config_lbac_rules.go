@@ -55,7 +55,8 @@ func (r *resourceDataSourceConfigLBACRules) Metadata(_ context.Context, req reso
 	resp.TypeName = resourceDataSourceConfigLBACRulesName
 }
 
-func (r *resourceDataSourceConfigLBACRules) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *resourceDataSourceConfigLBACRules) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	tflog.Info(ctx, "Creating LBAC rules Schema")
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages LBAC rules for a data source.",
 		Attributes: map[string]schema.Attribute{
@@ -106,6 +107,9 @@ func (r *resourceDataSourceConfigLBACRules) Create(ctx context.Context, req reso
 			Rules:  rules,
 		})
 	}
+
+	tflog.Info(ctx, "Creating LBAC rules with the new rulesmaps", map[string]interface{}{"rulesmaps": fmt.Sprintf("%+v", apiRules)})
+
 	_, err = r.client.GrafanaAPI.Enterprise.UpdateTeamLBACRulesAPI(&enterprise.UpdateTeamLBACRulesAPIParams{
 		UID:     data.DatasourceUID.ValueString(),
 		Context: ctx,
@@ -118,6 +122,14 @@ func (r *resourceDataSourceConfigLBACRules) Create(ctx context.Context, req reso
 
 	tflog.Info(ctx, "LBAC rules created successfully", map[string]interface{}{"datasource_uid": data.DatasourceUID.ValueString()})
 
+	// TODO:
+	// fix teamid setting.
+	// fix id setting, id of the resource
+	// fix the lifecycle of the jsondata within grafana
+	// - make sure you cannot set teamhttpheaders from the json api (updateDatasource), ONLY through lbac/team api
+	// - magic diffsuprressfunc to ignore changes on json_data_encoded for the specific field teamHttpHeaders
+	// improvements:
+	// - make the api "for terraforM" not a json but a struct, to enfore types and schema
 	data.ID = data.DatasourceUID
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -139,9 +151,8 @@ func (r *resourceDataSourceConfigLBACRules) Read(ctx context.Context, req resour
 	}
 
 	rulesMap := make(map[string][]string)
-	for teamID, teamRules := range getResp.Payload.Rules {
-		strTeamID := strconv.FormatInt(int64(teamID), 10)
-		rulesMap[strTeamID] = teamRules.Rules
+	for _, rule := range getResp.Payload.Rules {
+		rulesMap[rule.TeamID] = rule.Rules
 	}
 
 	rulesJSON, err := json.Marshal(rulesMap)
@@ -187,6 +198,7 @@ func (r *resourceDataSourceConfigLBACRules) Update(ctx context.Context, req reso
 			Rules:  rules,
 		})
 	}
+	tflog.Info(ctx, "Updating LBAC rules with the new rulesmaps", map[string]interface{}{"rulesmaps": fmt.Sprintf("%v+", apiRules)})
 
 	_, err = r.client.GrafanaAPI.Enterprise.UpdateTeamLBACRulesAPI(&enterprise.UpdateTeamLBACRulesAPIParams{
 		UID:     data.DatasourceUID.ValueString(),

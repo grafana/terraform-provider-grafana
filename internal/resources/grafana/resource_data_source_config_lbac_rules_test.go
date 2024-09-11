@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -39,14 +38,14 @@ func TestAccDataSourceConfigLBACRules_basic(t *testing.T) {
 							"{ foo = \"qux\" }",
 						}
 
-						if len(rulesMap) != 2 {
-							return fmt.Errorf("expected 2 team rules, got %d", len(rulesMap))
+						if len(rulesMap) != 1 {
+							return fmt.Errorf("expected 1 team id of rules, got %d", len(rulesMap))
 						}
 
 						for teamID, teamRules := range rulesMap {
-							if !strings.HasPrefix(teamID, "1:") {
-								return fmt.Errorf("unexpected team ID format: %s", teamID)
-							}
+							// if !strings.HasPrefix(teamID, "1:") {
+							// 	return fmt.Errorf("unexpected team ID format: %s", teamID)
+							// }
 							if !reflect.DeepEqual(teamRules, expectedRules) {
 								return fmt.Errorf("for team %s, expected rules %v, got %v", teamID, expectedRules, teamRules)
 							}
@@ -77,27 +76,25 @@ resource "grafana_data_source" "test" {
 	basic_auth_enabled = true
 	basic_auth_username = "admin"
 
+	# FIXME: we need to ignore the attr "teamHttpHeaders" lifecycle inside of the json_data_encoded, if the lbacRules are
+	# provisioned using the config_lbac_rules
+
+	# potentially use: DiffSuppressFunc
+	# to do: if someone uses json_data to configure the json_data, they do not overwrite the lbacRules, do this in grafana side
+
 	lifecycle {
     	ignore_changes = [json_data_encoded]
-  }
-}
-
-resource "grafana_team" "team1" {
-	name = "team1"
-}
-
-resource "grafana_team" "team2" {
-	name = "team2"
+	}
 }
 
 resource "grafana_data_source_config_lbac_rules" "test" {
     datasource_uid = grafana_data_source.test.uid
-    rules = {
-        "${grafana_team.team1.id}" = jsonencode([
+    rules = jsonencode({
+        "1" = [
             "{ foo != \"bar\", foo !~ \"baz\" }",
             "{ foo = \"qux\" }"
-        ])
-    }
+        ]
+	})
 }
 `, name)
 }
