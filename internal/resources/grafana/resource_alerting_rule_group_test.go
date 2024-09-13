@@ -676,7 +676,7 @@ func TestAccAlertRule_NotificationSettings(t *testing.T) {
 }
 
 func TestAccRecordingRule(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Use 11.2 when released
+	testutils.CheckOSSTestsEnabled(t, ">=11.2.0")
 
 	var group models.AlertRuleGroup
 	var name = acctest.RandString(10)
