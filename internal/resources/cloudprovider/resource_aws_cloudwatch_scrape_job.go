@@ -310,7 +310,8 @@ func (r *resourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req resource.
 }
 
 func (r *resourceAWSCloudWatchScrapeJob) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	var stateData awsCWScrapeJobTFModel
+	// This must be a pointer because ModifyPlan is called even on resource creation, when no state exists yet.
+	var stateData *awsCWScrapeJobTFModel
 	diags := req.State.Get(ctx, &stateData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -327,10 +328,10 @@ func (r *resourceAWSCloudWatchScrapeJob) ModifyPlan(ctx context.Context, req res
 	// This helps reduce the occurrences of Unknown states for the disabled_reason attribute
 	// by tying it to how the enabled attribute will change.
 	switch {
-	case !stateData.Enabled.ValueBool() && planData.Enabled.ValueBool():
-		resp.Plan.SetAttribute(ctx, path.Root("disabled_reason"), basetypes.NewStringValue(""))
-	case stateData.Enabled.ValueBool() && !planData.Enabled.ValueBool():
+	case (stateData == nil || stateData.Enabled.ValueBool()) && !planData.Enabled.ValueBool():
 		resp.Plan.SetAttribute(ctx, path.Root("disabled_reason"), basetypes.NewStringUnknown())
+	case (stateData == nil || !stateData.Enabled.ValueBool()) && planData.Enabled.ValueBool():
+		resp.Plan.SetAttribute(ctx, path.Root("disabled_reason"), basetypes.NewStringValue(""))
 	default:
 		resp.Plan.SetAttribute(ctx, path.Root("disabled_reason"), basetypes.NewStringValue(stateData.DisabledReason.ValueString()))
 	}
