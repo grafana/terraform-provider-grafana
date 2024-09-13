@@ -790,7 +790,9 @@ multiple checks for a single endpoint to check different capabilities.
 		"grafana_synthetic_monitoring_check",
 		resourceCheckID,
 		schema,
-	).WithLister(listChecks)
+	).
+		WithLister(listChecks).
+		WithPreferredResourceNameField("job")
 }
 
 func listChecks(ctx context.Context, client *common.Client, data any) ([]string, error) {

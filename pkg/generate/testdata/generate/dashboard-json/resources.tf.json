@@ -1,7 +1,7 @@
 {
   "resource": {
     "grafana_contact_point": {
-      "_1_email_receiver": [
+      "email_receiver": [
         {
           "disable_provenance": true,
           "email": [
@@ -18,15 +18,15 @@
       ]
     },
     "grafana_dashboard": {
-      "_1_my-dashboard-uid": [
+      "my-dashboard-uid": [
         {
           "config_json": "${jsonencode({\n    title = \"My Dashboard\"\n    uid   = \"my-dashboard-uid\"\n  })}",
-          "folder": "${grafana_folder._1_my-folder-uid.uid}"
+          "folder": "${grafana_folder.my-folder-uid.uid}"
         }
       ]
     },
     "grafana_folder": {
-      "_1_my-folder-uid": [
+      "my-folder-uid": [
         {
           "title": "My Folder",
           "uid": "my-folder-uid"
@@ -34,7 +34,7 @@
       ]
     },
     "grafana_notification_policy": {
-      "_1_policy": [
+      "policy": [
         {
           "contact_point": "grafana-default-email",
           "disable_provenance": true,
@@ -51,7 +51,7 @@
       ]
     },
     "grafana_user": {
-      "_1": [
+      "admin": [
         {
           "email": "admin@localhost",
           "is_admin": true,

@@ -115,7 +115,9 @@ Grafana Synthetic Monitoring Agent.
 		"grafana_synthetic_monitoring_probe",
 		resourceProbeID,
 		schema,
-	).WithLister(listProbes)
+	).
+		WithLister(listProbes).
+		WithPreferredResourceNameField("name")
 }
 
 func listProbes(ctx context.Context, client *common.Client, data any) ([]string, error) {

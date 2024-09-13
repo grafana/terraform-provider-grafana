@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	gcom "github.com/grafana/grafana-com-public-clients/go"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -204,7 +204,9 @@ Required access policy scopes:
 		"grafana_cloud_stack",
 		resourceStackID,
 		schema,
-	).WithLister(cloudListerFunction(listStacks))
+	).
+		WithLister(cloudListerFunction(listStacks)).
+		WithPreferredResourceNameField("name")
 }
 
 func listStacks(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]string, error) {

@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	gcom "github.com/grafana/grafana-com-public-clients/go"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate/postprocessing"
@@ -83,9 +83,6 @@ func generateCloudResources(ctx context.Context, cfg *Config) ([]stack, Generati
 		return nil, failure(err)
 	}
 	if err := postprocessing.StripDefaults(filepath.Join(cfg.OutputDir, "cloud-resources.tf"), nil); err != nil {
-		return nil, failure(err)
-	}
-	if err := postprocessing.WrapJSONFieldsInFunction(filepath.Join(cfg.OutputDir, "cloud-resources.tf")); err != nil {
 		return nil, failure(err)
 	}
 	if err := postprocessing.ReplaceReferences(filepath.Join(cfg.OutputDir, "cloud-resources.tf"), plannedState, nil); err != nil {

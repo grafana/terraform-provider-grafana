@@ -40,6 +40,21 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet("grafana_oncall_escalation.test-acc-escalation-policy-team", "notify_to_team_members"),
 				),
 			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_oncall_escalation.test-acc-escalation",
+				ImportStateVerify: true,
+			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_oncall_escalation.test-acc-escalation-repeat",
+				ImportStateVerify: true,
+			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_oncall_escalation.test-acc-escalation-policy-team",
+				ImportStateVerify: true,
+			},
 		},
 	})
 }

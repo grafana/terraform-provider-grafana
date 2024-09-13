@@ -27,14 +27,8 @@ func CheckLister(terraformResource string) resource.TestCheckFunc {
 		id := rs.Primary.ID
 
 		// Find the resource info
-		var resource *common.Resource
-		for _, r := range provider.Resources() {
-			if r.Name == rs.Type {
-				resource = r
-				break
-			}
-		}
-		if resource == nil {
+		resource, ok := provider.ResourcesMap()[rs.Type]
+		if !ok {
 			return fmt.Errorf("resource type %s not found", rs.Type)
 		}
 
@@ -46,7 +40,7 @@ func CheckLister(terraformResource string) resource.TestCheckFunc {
 
 		// Get the list of IDs from the lister function
 		ctx := context.Background()
-		var listerData any = grafana.NewListerData(false)
+		var listerData any = grafana.NewListerData(false, false)
 		if resource.Category == common.CategoryCloud {
 			listerData = cloud.NewListerData(os.Getenv("GRAFANA_CLOUD_ORG"))
 		}

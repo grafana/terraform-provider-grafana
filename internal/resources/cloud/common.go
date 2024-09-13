@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	gcom "github.com/grafana/grafana-com-public-clients/go"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"

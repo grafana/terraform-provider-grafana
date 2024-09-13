@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	gcom "github.com/grafana/grafana-com-public-clients/go"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -135,7 +135,9 @@ Required access policy scopes:
 		"grafana_cloud_access_policy",
 		resourceAccessPolicyID,
 		schema,
-	).WithLister(cloudListerFunction(listAccessPolicies))
+	).
+		WithLister(cloudListerFunction(listAccessPolicies)).
+		WithPreferredResourceNameField("name")
 }
 
 func listAccessPolicies(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]string, error) {

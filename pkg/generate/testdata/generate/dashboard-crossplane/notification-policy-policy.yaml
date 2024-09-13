@@ -1,7 +1,7 @@
 apiVersion: alerting.grafana.crossplane.io/v1alpha1
 kind: NotificationPolicy
 metadata:
-  name: 1-policy
+  name: policy
   annotations:
     crossplane.io/external-name: 1:policy
 spec:

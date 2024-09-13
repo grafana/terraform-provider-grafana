@@ -25,6 +25,7 @@ func resourceUser() *common.Resource {
 This resource represents an instance-scoped resource and uses Grafana's admin APIs.
 It does not work with API tokens or service accounts which are org-scoped. 
 You must use basic auth.
+This resource is also not compatible with Grafana Cloud, as it does not allow basic auth.
 `,
 
 		CreateContext: CreateUser,
@@ -77,7 +78,9 @@ You must use basic auth.
 		"grafana_user",
 		resourceUserID,
 		schema,
-	).WithLister(listerFunction(listUsers))
+	).
+		WithLister(listerFunction(listUsers)).
+		WithPreferredResourceNameField("login")
 }
 
 func listUsers(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {

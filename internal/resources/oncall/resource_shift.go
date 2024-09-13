@@ -186,7 +186,9 @@ func resourceOnCallShift() *common.Resource {
 		"grafana_oncall_on_call_shift",
 		resourceID,
 		schema,
-	).WithLister(oncallListerFunction(listShifts))
+	).
+		WithLister(oncallListerFunction(listShifts)).
+		WithPreferredResourceNameField("name")
 }
 
 func listShifts(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {

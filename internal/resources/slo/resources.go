@@ -3,7 +3,7 @@ package slo
 import (
 	"context"
 
-	slo "github.com/grafana/slo-openapi-client/go"
+	"github.com/grafana/slo-openapi-client/go/slo"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"

@@ -108,7 +108,9 @@ func resourceOutgoingWebhook() *common.Resource {
 		"grafana_oncall_outgoing_webhook",
 		resourceID,
 		schema,
-	).WithLister(oncallListerFunction(listWebhooks))
+	).
+		WithLister(oncallListerFunction(listWebhooks)).
+		WithPreferredResourceNameField("name")
 }
 
 func listWebhooks(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {

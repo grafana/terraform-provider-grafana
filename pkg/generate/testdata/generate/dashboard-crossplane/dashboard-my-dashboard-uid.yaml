@@ -1,7 +1,7 @@
 apiVersion: oss.grafana.crossplane.io/v1alpha1
 kind: Dashboard
 metadata:
-  name: 1-my-dashboard-uid
+  name: my-dashboard-uid
   annotations:
     crossplane.io/external-name: 1:my-dashboard-uid
 spec:

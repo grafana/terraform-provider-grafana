@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -18,10 +17,6 @@ import (
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/zclconf/go-cty/cty"
-)
-
-var (
-	allowedTerraformChars = regexp.MustCompile(`[^a-zA-Z0-9_-]`)
 )
 
 // NonCriticalError is an error that is not critical to the generation process.
@@ -220,7 +215,7 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 			}
 
 			log.Printf("generating %s resources\n", resource.Name)
-			ids, err := lister(ctx, client, listerData)
+			listedIDs, err := lister(ctx, client, listerData)
 			if err != nil {
 				wg.Done()
 				results <- result{
@@ -228,6 +223,16 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 					err:      err,
 				}
 				return
+			}
+
+			// Make sure IDs are unique. If an API returns the same ID multiple times for any reason, we only want to import it once.
+			idMap := map[string]struct{}{}
+			for _, id := range listedIDs {
+				idMap[id] = struct{}{}
+			}
+			ids := []string{}
+			for id := range idMap {
+				ids = append(ids, id)
 			}
 			sort.Strings(ids)
 
@@ -238,12 +243,8 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 			// }
 			var blocks []*hclwrite.Block
 			for _, id := range ids {
-				cleanedID := allowedTerraformChars.ReplaceAllString(id, "_")
-				if provider != "cloud" {
-					cleanedID = strings.ReplaceAll(provider, "-", "_") + "_" + cleanedID
-				}
-
-				matched, err := filterResourceByName(resource.Name, cleanedID, cfg.IncludeResources)
+				id := id
+				matched, err := filterResourceByName(resource.Name, id, cfg.IncludeResources)
 				if err != nil {
 					wg.Done()
 					results <- result{
@@ -256,8 +257,13 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 					continue
 				}
 
+				if provider != "cloud" && provider != "" {
+					id = provider + "_" + id
+				}
+				resourceName := postprocessing.CleanResourceName(id)
+
 				b := hclwrite.NewBlock("import", nil)
-				b.Body().SetAttributeTraversal("to", traversal(resource.Name, cleanedID))
+				b.Body().SetAttributeTraversal("to", traversal(resource.Name, resourceName))
 				b.Body().SetAttributeValue("id", cty.StringVal(id))
 				if provider != "" {
 					b.Body().SetAttributeTraversal("provider", traversal("grafana", provider))
@@ -322,16 +328,16 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 		}
 	}
 
-	if err := postprocessing.ReplaceNullSensitiveAttributes(generatedFilename("resources.tf")); err != nil {
-		return failure(err)
-	}
-
-	if err := removeOrphanedImports(generatedFilename("imports.tf"), generatedFilename("resources.tf")); err != nil {
-		return failure(err)
-	}
-
-	if err := sortResourcesFile(generatedFilename("resources.tf")); err != nil {
-		return failure(err)
+	for _, err := range []error{
+		postprocessing.ReplaceNullSensitiveAttributes(generatedFilename("resources.tf")),
+		removeOrphanedImports(generatedFilename("imports.tf"), generatedFilename("resources.tf")),
+		postprocessing.UsePreferredResourceNames(generatedFilename("resources.tf"), generatedFilename("imports.tf")),
+		sortResourcesFile(generatedFilename("resources.tf")),
+		postprocessing.WrapJSONFieldsInFunction(generatedFilename("resources.tf")),
+	} {
+		if err != nil {
+			return failure(err)
+		}
 	}
 
 	return returnResult
@@ -402,13 +408,13 @@ func filterResources(resources []*common.Resource, includedResources []string) (
 	return filteredResources, nil
 }
 
-func filterResourceByName(resourceType, resourceName string, includedResources []string) (bool, error) {
+func filterResourceByName(resourceType, resourceID string, includedResources []string) (bool, error) {
 	if len(includedResources) == 0 {
 		return true, nil
 	}
 
 	for _, included := range includedResources {
-		matched, err := filepath.Match(included, resourceType+"."+resourceName)
+		matched, err := filepath.Match(included, resourceType+"."+resourceID)
 		if err != nil {
 			return false, err
 		}

@@ -10,33 +10,33 @@ require (
 	github.com/go-openapi/runtime v0.28.0
 	github.com/go-openapi/strfmt v0.23.0
 	github.com/grafana/amixr-api-go-client v0.0.12 // main branch
-	github.com/grafana/grafana-com-public-clients/go v0.0.0-20240731155007-d5af528b15e9
+	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240807172819-ac10800522a3
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20240723170622-ae2c94b7c9a3
-	github.com/grafana/machine-learning-go-client v0.8.0
-	github.com/grafana/slo-openapi-client/go v0.0.0-20240731123249-1327bbecc168
-	github.com/grafana/synthetic-monitoring-agent v0.25.0
+	github.com/grafana/machine-learning-go-client v0.8.1
+	github.com/grafana/slo-openapi-client/go/slo v0.0.0-20240807172758-1b7d00838fc7
+	github.com/grafana/synthetic-monitoring-agent v0.25.2
 	github.com/grafana/synthetic-monitoring-api-go-client v0.8.0
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.7.0
-	github.com/hashicorp/hc-install v0.7.0
-	github.com/hashicorp/hcl/v2 v2.21.0
+	github.com/hashicorp/hc-install v0.8.0
+	github.com/hashicorp/hcl/v2 v2.22.0
 	github.com/hashicorp/terraform-exec v0.21.0
 	github.com/hashicorp/terraform-json v0.22.1
 	github.com/hashicorp/terraform-plugin-docs v0.19.4
-	github.com/hashicorp/terraform-plugin-framework v1.10.0
+	github.com/hashicorp/terraform-plugin-framework v1.11.0
 	github.com/hashicorp/terraform-plugin-framework-validators v0.13.0
 	github.com/hashicorp/terraform-plugin-go v0.23.0
 	github.com/hashicorp/terraform-plugin-mux v0.16.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.34.0
 	github.com/prometheus/common v0.55.0
 	github.com/stretchr/testify v1.9.0
-	github.com/tmccombs/hcl2json v0.6.3
-	github.com/urfave/cli/v2 v2.27.3
+	github.com/tmccombs/hcl2json v0.6.4
+	github.com/urfave/cli/v2 v2.27.4
 	github.com/zclconf/go-cty v1.15.0
-	golang.org/x/exp v0.0.0-20240707233637-46b078467d37
-	golang.org/x/text v0.16.0
+	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
+	golang.org/x/text v0.17.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -83,7 +83,7 @@ require (
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/grafana/grafana-plugin-sdk-go v0.235.0 // indirect
 	github.com/grafana/otel-profiling-go v0.5.1 // indirect
-	github.com/grafana/pyroscope-go/godeltaprof v0.1.7 // indirect
+	github.com/grafana/pyroscope-go/godeltaprof v0.1.8 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.19.1 // indirect
@@ -104,7 +104,7 @@ require (
 	github.com/invopop/yaml v0.2.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.17.3 // indirect
+	github.com/klauspost/compress v1.17.8 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/magefile/mage v1.15.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
@@ -162,7 +162,7 @@ require (
 	golang.org/x/crypto v0.25.0 // indirect
 	golang.org/x/mod v0.19.0 // indirect
 	golang.org/x/net v0.27.0 // indirect
-	golang.org/x/sync v0.7.0 // indirect
+	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	golang.org/x/tools v0.23.0 // indirect

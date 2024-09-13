@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	gcom "github.com/grafana/grafana-com-public-clients/go"
+	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )

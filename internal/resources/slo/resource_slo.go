@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"regexp"
 
-	slo "github.com/grafana/slo-openapi-client/go"
+	"github.com/grafana/slo-openapi-client/go/slo"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -253,7 +253,9 @@ Resource manages Grafana SLOs.
 		"grafana_slo",
 		resourceSloID,
 		schema,
-	).WithLister(listSlos)
+	).
+		WithLister(listSlos).
+		WithPreferredResourceNameField("name")
 }
 
 var keyvalueSchema = &schema.Resource{
@@ -321,8 +323,11 @@ func resourceSloRead(ctx context.Context, d *schema.ResourceData, client *slo.AP
 	sloID := d.Id()
 
 	req := client.DefaultAPI.V1SloIdGet(ctx, sloID)
-	slo, _, err := req.Execute()
+	slo, r, err := req.Execute()
 	if err != nil {
+		if r != nil && r.StatusCode == 404 {
+			return common.WarnMissing("SLO", d)
+		}
 		return apiError("Unable to read SLO - API", err)
 	}
 

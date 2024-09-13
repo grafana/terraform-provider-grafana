@@ -3,18 +3,13 @@ package postprocessing
 import (
 	"log"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
 )
 
 func ReplaceNullSensitiveAttributes(fpath string) error {
-	providerResources := map[string]*common.Resource{}
-	for _, r := range provider.Resources() {
-		providerResources[r.Name] = r
-	}
-
+	providerResources := provider.ResourcesMap()
 	return postprocessFile(fpath, func(file *hclwrite.File) error {
 		for _, block := range file.Body().Blocks() {
 			if block.Type() != "resource" {

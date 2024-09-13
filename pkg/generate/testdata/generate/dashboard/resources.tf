@@ -1,8 +1,8 @@
 # __generated__ by Terraform
 # Please review these resources and move them into your main configuration files.
 
-# __generated__ by Terraform from "1:email receiver"
-resource "grafana_contact_point" "_1_email_receiver" {
+# __generated__ by Terraform from "email receiver"
+resource "grafana_contact_point" "email_receiver" {
   disable_provenance = true
   name               = "email receiver"
   email {
@@ -12,23 +12,23 @@ resource "grafana_contact_point" "_1_email_receiver" {
   }
 }
 
-# __generated__ by Terraform from "1:my-dashboard-uid"
-resource "grafana_dashboard" "_1_my-dashboard-uid" {
+# __generated__ by Terraform from "my-dashboard-uid"
+resource "grafana_dashboard" "my-dashboard-uid" {
   config_json = jsonencode({
     title = "My Dashboard"
     uid   = "my-dashboard-uid"
   })
-  folder = grafana_folder._1_my-folder-uid.uid
+  folder = grafana_folder.my-folder-uid.uid
 }
 
-# __generated__ by Terraform from "1:my-folder-uid"
-resource "grafana_folder" "_1_my-folder-uid" {
+# __generated__ by Terraform from "my-folder-uid"
+resource "grafana_folder" "my-folder-uid" {
   title = "My Folder"
   uid   = "my-folder-uid"
 }
 
-# __generated__ by Terraform from "1:policy"
-resource "grafana_notification_policy" "_1_policy" {
+# __generated__ by Terraform from "policy"
+resource "grafana_notification_policy" "policy" {
   contact_point      = "grafana-default-email"
   disable_provenance = true
   group_by           = ["grafana_folder", "alertname"]
@@ -39,7 +39,7 @@ resource "grafana_organization_preferences" "_1" {
 }
 
 # __generated__ by Terraform
-resource "grafana_user" "_1" {
+resource "grafana_user" "admin" {
   email    = "admin@localhost"
   is_admin = true
   login    = "admin"

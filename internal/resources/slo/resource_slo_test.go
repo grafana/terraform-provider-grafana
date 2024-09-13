@@ -6,12 +6,13 @@ import (
 	"regexp"
 	"testing"
 
-	slo "github.com/grafana/slo-openapi-client/go"
+	"github.com/grafana/slo-openapi-client/go/slo"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAccResourceSlo(t *testing.T) {
@@ -130,6 +131,68 @@ func TestAccResourceSlo(t *testing.T) {
 				ResourceName:      "grafana_slo.search_expression",
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+// Tests that recreating an out-of-band deleted SLO works without error.
+func TestAccSLO_recreate(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+	var slo slo.SloV00Slo
+	randomName := acctest.RandomWithPrefix("SLO Terraform Testing")
+	config := testutils.TestAccExampleWithReplace(t, "resources/grafana_slo/resource.tf", map[string]string{
+		"Terraform Testing": randomName,
+	})
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+
+		// Implicitly tests destroy
+		CheckDestroy: testAccSloCheckDestroy(&slo),
+		Steps: []resource.TestStep{
+			// Create
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.test", &slo),
+					resource.TestCheckResourceAttrSet("grafana_slo.test", "id"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "name", randomName),
+					resource.TestCheckResourceAttr("grafana_slo.test", "description", "Terraform Description"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "query.0.type", "freeform"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "query.0.freeform.0.query", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.value", "0.995"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.window", "30d"),
+					resource.TestCheckNoResourceAttr("grafana_slo.test", "folder_uid"),
+					testutils.CheckLister("grafana_slo.test"),
+				),
+			},
+			// Delete out-of-band
+			{
+				PreConfig: func() {
+					client := testutils.Provider.Meta().(*common.Client).SLOClient
+					req := client.DefaultAPI.V1SloIdDelete(context.Background(), slo.Uuid)
+					_, err := req.Execute()
+					require.NoError(t, err)
+				},
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+			// Re-create
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.test", &slo),
+					resource.TestCheckResourceAttrSet("grafana_slo.test", "id"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "name", randomName),
+					resource.TestCheckResourceAttr("grafana_slo.test", "description", "Terraform Description"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "query.0.type", "freeform"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "query.0.freeform.0.query", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.value", "0.995"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.window", "30d"),
+					resource.TestCheckNoResourceAttr("grafana_slo.test", "folder_uid"),
+					testutils.CheckLister("grafana_slo.test"),
+				),
 			},
 		},
 	})
