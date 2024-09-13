@@ -32,6 +32,15 @@ func withClientForResource(req resource.ConfigureRequest, resp *resource.Configu
 		return nil, fmt.Errorf("unexpected Resource Configure Type: %T, expected *common.Client", req.ProviderData)
 	}
 
+	if client.CloudProviderAPI == nil {
+		resp.Diagnostics.AddError(
+			"The Grafana Provider is missing a configuration for the Cloud Provider API.",
+			"Please ensure that cloud_provider_url and cloud_provider_access_token are set in the provider configuration.",
+		)
+
+		return nil, fmt.Errorf("CloudProviderAPI is nil")
+	}
+
 	return client.CloudProviderAPI, nil
 }
 
@@ -45,6 +54,15 @@ func withClientForDataSource(req datasource.ConfigureRequest, resp *datasource.C
 		)
 
 		return nil, fmt.Errorf("unexpected DataSource Configure Type: %T, expected *common.Client", req.ProviderData)
+	}
+
+	if client.CloudProviderAPI == nil {
+		resp.Diagnostics.AddError(
+			"The Grafana Provider is missing a configuration for the Cloud Provider API.",
+			"Please ensure that cloud_provider_url and cloud_provider_access_token are set in the provider configuration.",
+		)
+
+		return nil, fmt.Errorf("CloudProviderAPI is nil")
 	}
 
 	return client.CloudProviderAPI, nil
