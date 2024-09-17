@@ -7,28 +7,29 @@ import (
 	"time"
 
 	"github.com/go-openapi/runtime"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func ResourceMessageTemplate() *schema.Resource {
-	return &schema.Resource{
+func resourceMessageTemplate() *common.Resource {
+	schema := &schema.Resource{
 		Description: `
 Manages Grafana Alerting message templates.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/manage-notifications/template-notifications/create-notification-templates/)
-* [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#templates)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#templates)
 
 This resource requires Grafana 9.1.0 or later.
 `,
-		CreateContext: putMessageTemplate,
+		CreateContext: common.WithAlertingMutex[schema.CreateContextFunc](putMessageTemplate),
 		ReadContext:   readMessageTemplate,
-		UpdateContext: putMessageTemplate,
-		DeleteContext: deleteMessageTemplate,
+		UpdateContext: common.WithAlertingMutex[schema.UpdateContextFunc](putMessageTemplate),
+		DeleteContext: common.WithAlertingMutex[schema.DeleteContextFunc](deleteMessageTemplate),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -50,8 +51,46 @@ This resource requires Grafana 9.1.0 or later.
 					return strings.TrimSpace(v.(string))
 				},
 			},
+			"disable_provenance": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				ForceNew:    true, // TODO: The API doesn't return provenance, so we have to force new for now.
+				Description: "Allow modifying the message template from other sources than Terraform or the Grafana API.",
+			},
 		},
 	}
+
+	return common.NewLegacySDKResource(
+		common.CategoryAlerting,
+		"grafana_message_template",
+		orgResourceIDString("name"),
+		schema,
+	).WithLister(listerFunctionOrgResource(listMessageTemplate))
+}
+
+func listMessageTemplate(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	var ids []string
+	// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+	// The alertmanager is provisioned asynchronously when the org is created.
+	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		resp, err := client.Provisioning.GetTemplates()
+		if err != nil {
+			if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
+
+		for _, template := range resp.Payload {
+			ids = append(ids, MakeOrgResourceID(orgID, template.Name))
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return ids, nil
 }
 
 func readMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -71,9 +110,6 @@ func readMessageTemplate(ctx context.Context, data *schema.ResourceData, meta in
 }
 
 func putMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	lock.Lock()
-	defer lock.Unlock()
 	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
 	name := data.Get("name").(string)
@@ -87,6 +123,9 @@ func putMessageTemplate(ctx context.Context, data *schema.ResourceData, meta int
 			WithBody(&models.NotificationTemplateContent{
 				Template: content,
 			})
+		if v, ok := data.GetOk("disable_provenance"); ok && v.(bool) {
+			params.SetXDisableProvenance(&provenanceDisabled)
+		}
 		if _, err := client.Provisioning.PutTemplate(params); err != nil {
 			if orgID > 1 && err.(*runtime.APIError).IsCode(500) {
 				return retry.RetryableError(err)
@@ -104,9 +143,6 @@ func putMessageTemplate(ctx context.Context, data *schema.ResourceData, meta int
 }
 
 func deleteMessageTemplate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	lock := &meta.(*common.Client).AlertingMutex
-	lock.Lock()
-	defer lock.Unlock()
 	client, _, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	_, err := client.Provisioning.DeleteTemplate(name)
