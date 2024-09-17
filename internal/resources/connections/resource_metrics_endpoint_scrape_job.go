@@ -35,7 +35,7 @@ func makeResourceMetricsEndpointScrapeJob() *common.Resource {
 }
 
 func (r resourceMetricsEndpointScrapeJob) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	//TODO implement me
+	// TODO implement me
 	panic("implement me")
 }
 
@@ -114,21 +114,21 @@ func (r resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resour
 }
 
 func (r resourceMetricsEndpointScrapeJob) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	//TODO implement me
+	// TODO implement me
 	panic("implement me")
 }
 
 func (r resourceMetricsEndpointScrapeJob) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	//TODO implement me
+	// TODO implement me
 	panic("implement me")
 }
 
 func (r resourceMetricsEndpointScrapeJob) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	//TODO implement me
+	// TODO implement me
 	panic("implement me")
 }
 
 func (r resourceMetricsEndpointScrapeJob) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	//TODO implement me
+	// TODO implement me
 	panic("implement me")
 }
