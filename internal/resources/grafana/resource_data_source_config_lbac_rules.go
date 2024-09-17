@@ -23,7 +23,10 @@ var (
 
 var (
 	resourceDataSourceConfigLBACRulesName = "grafana_data_source_config_lbac_rules"
-	resourceDataSourceConfigLBACRulesID   = common.NewResourceID(common.StringIDField("datasource_uid"))
+	resourceDataSourceConfigLBACRulesID   = common.NewResourceID(
+		common.OptionalIntIDField("orgID"),
+		common.StringIDField("datasource_uid"),
+	)
 )
 
 func makeResourceDataSourceConfigLBACRules() *common.Resource {
@@ -43,6 +46,7 @@ type LBACRule struct {
 
 type resourceDataSourceConfigLBACRulesModel struct {
 	ID            types.String `tfsdk:"id"`
+	OrgID         types.String `tfsdk:"org_id"`
 	DatasourceUID types.String `tfsdk:"datasource_uid"`
 	Rules         types.String `tfsdk:"rules"`
 }
@@ -58,7 +62,16 @@ func (r *resourceDataSourceConfigLBACRules) Metadata(_ context.Context, req reso
 func (r *resourceDataSourceConfigLBACRules) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	tflog.Info(ctx, "Creating LBAC rules Schema")
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages LBAC rules for a data source.",
+		MarkdownDescription: `
+Manages LBAC rules for a data source.
+
+!> Warning: The resource is experimental and will be subject to change. This resource manages the entire LBAC rules tree, and will overwrite any existing rules.
+
+* [Official documentation](https://grafana.com/docs/grafana/latest/administration/data-source-management/teamlbac/)
+* [TODO: HTTP API](no api yet)
+
+This resource requires Grafana >=11.0.0.
+`,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
@@ -71,6 +84,7 @@ func (r *resourceDataSourceConfigLBACRules) Schema(ctx context.Context, _ resour
 				Required:    true,
 				Description: "JSON-encoded LBAC rules for the data source. Map of team IDs to lists of rule strings.",
 			},
+			"org_id": pluginFrameworkOrgIDAttribute(),
 		},
 	}
 }
@@ -110,7 +124,10 @@ func (r *resourceDataSourceConfigLBACRules) Create(ctx context.Context, req reso
 
 	tflog.Info(ctx, "Creating LBAC rules with the new rulesmaps", map[string]interface{}{"rulesmaps": fmt.Sprintf("%+v", apiRules)})
 
-	_, err = r.client.GrafanaAPI.Enterprise.UpdateTeamLBACRulesAPI(&enterprise.UpdateTeamLBACRulesAPIParams{
+	orgID, _ := strconv.ParseInt(data.OrgID.ValueString(), 10, 64)
+	client := r.client.GrafanaAPI.Clone().WithOrgID(orgID)
+
+	_, err = client.Enterprise.UpdateTeamLBACRulesAPI(&enterprise.UpdateTeamLBACRulesAPIParams{
 		UID:     data.DatasourceUID.ValueString(),
 		Context: ctx,
 		Body:    &models.UpdateTeamLBACCommand{Rules: apiRules},
@@ -122,29 +139,21 @@ func (r *resourceDataSourceConfigLBACRules) Create(ctx context.Context, req reso
 
 	tflog.Info(ctx, "LBAC rules created successfully", map[string]interface{}{"datasource_uid": data.DatasourceUID.ValueString()})
 
-	// TODO:
-	// fix teamid setting.
-	// fix id setting, id of the resource
-	// fix the lifecycle of the jsondata within grafana
-	// - make sure you cannot set teamhttpheaders from the json api (updateDatasource), ONLY through lbac/team api
-	// - magic diffsuprressfunc to ignore changes on json_data_encoded for the specific field teamHttpHeaders
-	// improvements:
-	// - make the api "for terraforM" not a json but a struct, to enfore types and schema
-	data.ID = data.DatasourceUID
+	data.ID = types.StringValue(MakeOrgResourceID(orgID, data.DatasourceUID.ValueString()))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *resourceDataSourceConfigLBACRules) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	tflog.Info(ctx, "Reading LBAC rules")
 	var data resourceDataSourceConfigLBACRulesModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	tflog.Info(ctx, "Reading LBAC rules", map[string]interface{}{"datasource_uid": data.DatasourceUID.ValueString()})
+	orgID, datasourceUID := SplitOrgResourceID(data.ID.ValueString())
+	client := r.client.GrafanaAPI.Clone().WithOrgID(orgID)
 
-	getResp, err := r.client.GrafanaAPI.Enterprise.GetTeamLBACRulesAPI(data.DatasourceUID.ValueString())
+	getResp, err := client.Enterprise.GetTeamLBACRulesAPI(datasourceUID)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to get LBAC rules", err.Error())
 		return
@@ -162,10 +171,6 @@ func (r *resourceDataSourceConfigLBACRules) Read(ctx context.Context, req resour
 	}
 
 	data.Rules = types.StringValue(string(rulesJSON))
-	data.ID = data.DatasourceUID
-
-	tflog.Info(ctx, "LBAC rules read successfully", map[string]interface{}{"datasource_uid": data.DatasourceUID.ValueString()})
-
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -200,8 +205,11 @@ func (r *resourceDataSourceConfigLBACRules) Update(ctx context.Context, req reso
 	}
 	tflog.Info(ctx, "Updating LBAC rules with the new rulesmaps", map[string]interface{}{"rulesmaps": fmt.Sprintf("%v+", apiRules)})
 
-	_, err = r.client.GrafanaAPI.Enterprise.UpdateTeamLBACRulesAPI(&enterprise.UpdateTeamLBACRulesAPIParams{
-		UID:     data.DatasourceUID.ValueString(),
+	orgID, datasourceUID := SplitOrgResourceID(data.ID.ValueString())
+	client := r.client.GrafanaAPI.Clone().WithOrgID(orgID)
+
+	_, err = client.Enterprise.UpdateTeamLBACRulesAPI(&enterprise.UpdateTeamLBACRulesAPIParams{
+		UID:     datasourceUID,
 		Context: ctx,
 		Body:    &models.UpdateTeamLBACCommand{Rules: apiRules},
 	})
@@ -212,7 +220,8 @@ func (r *resourceDataSourceConfigLBACRules) Update(ctx context.Context, req reso
 
 	tflog.Info(ctx, "LBAC rules updated successfully", map[string]interface{}{"datasource_uid": data.DatasourceUID.ValueString()})
 
-	data.ID = data.DatasourceUID
+	data.ID = types.StringValue(MakeOrgResourceID(orgID, datasourceUID))
+	data.DatasourceUID = types.StringValue(datasourceUID)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -222,6 +231,10 @@ func (r *resourceDataSourceConfigLBACRules) Delete(ctx context.Context, req reso
 }
 
 func (r *resourceDataSourceConfigLBACRules) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	tflog.Info(ctx, "Importing LBAC rules", map[string]interface{}{"datasource_uid": req.ID})
-	resource.ImportStatePassthroughID(ctx, path.Root("datasource_uid"), req, resp)
+	tflog.Info(ctx, "Importing LBAC rules", map[string]interface{}{"id": req.ID})
+
+	orgID, datasourceUID := SplitOrgResourceID(req.ID)
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), MakeOrgResourceID(orgID, datasourceUID))...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("datasource_uid"), datasourceUID)...)
 }

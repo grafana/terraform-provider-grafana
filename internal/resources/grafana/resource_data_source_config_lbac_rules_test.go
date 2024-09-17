@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -43,9 +44,10 @@ func TestAccDataSourceConfigLBACRules_basic(t *testing.T) {
 						}
 
 						for teamID, teamRules := range rulesMap {
-							// if !strings.HasPrefix(teamID, "1:") {
-							// 	return fmt.Errorf("unexpected team ID format: %s", teamID)
-							// }
+							t.Logf("teamID: %s", teamID)
+							if !strings.HasPrefix(teamID, "1:") {
+								return fmt.Errorf("unexpected team ID format: %s", teamID)
+							}
 							if !reflect.DeepEqual(teamRules, expectedRules) {
 								return fmt.Errorf("for team %s, expected rules %v, got %v", teamID, expectedRules, teamRules)
 							}
@@ -87,14 +89,19 @@ resource "grafana_data_source" "test" {
 	}
 }
 
+resource "grafana_team" "test" {
+	name = "test"
+}
+
 resource "grafana_data_source_config_lbac_rules" "test" {
     datasource_uid = grafana_data_source.test.uid
+	org_id = grafana_team.test.org_id
     rules = jsonencode({
-        "1" = [
+        "${grafana_team.test.id}" = [
             "{ foo != \"bar\", foo !~ \"baz\" }",
             "{ foo = \"qux\" }"
         ]
-	})
+    })
 }
 `, name)
 }
