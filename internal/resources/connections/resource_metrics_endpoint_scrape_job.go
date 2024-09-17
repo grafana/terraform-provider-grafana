@@ -30,7 +30,7 @@ var Resources = makeResourceMetricsEndpointScrapeJob()
 func makeResourceMetricsEndpointScrapeJob() *common.Resource {
 	return common.NewResource(
 		common.CategoryConnections,
-		"grafana_cloud_provider_aws_cloudwatch_scrape_job",
+		"grafana_metrics_endpoint_scrape_job",
 		resourceMetricsEndpointScrapeJobTerraformID,
 		&resourceMetricsEndpointScrapeJob{},
 	)
