@@ -21,7 +21,6 @@ var (
 )
 
 type resourceMetricsEndpointScrapeJob struct {
-	client any // TODO
 }
 
 var Resources = makeResourceMetricsEndpointScrapeJob()
@@ -36,18 +35,8 @@ func makeResourceMetricsEndpointScrapeJob() *common.Resource {
 }
 
 func (r resourceMetricsEndpointScrapeJob) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	// Configure is called multiple times (sometimes when ProviderData is not yet available), we only want to configure once
-	if req.ProviderData == nil || r.client != nil {
-		return
-	}
-
-	// TODO
-	//client, err := withClientForResource(req, resp)
-	//if err != nil {
-	//	return
-	//}
-	//
-	//r.client = client
+	//TODO implement me
+	panic("implement me")
 }
 
 func (r resourceMetricsEndpointScrapeJob) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
