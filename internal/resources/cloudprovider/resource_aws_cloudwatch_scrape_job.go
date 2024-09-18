@@ -290,7 +290,7 @@ func (r *resourceAWSCloudWatchScrapeJob) Create(ctx context.Context, req resourc
 }
 
 func (r *resourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data *awsCWScrapeJobTFModel
+	var data awsCWScrapeJobTFModel
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
