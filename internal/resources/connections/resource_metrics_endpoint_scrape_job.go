@@ -98,7 +98,7 @@ func (r resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resour
 				Optional:    true,
 			},
 			"url": schema.StringAttribute{
-				Description: "Scrape job url.",
+				Description: "The url to scrape metrics; a valid HTTPs URL is required.",
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(urlRegexp, ""),
 				},
