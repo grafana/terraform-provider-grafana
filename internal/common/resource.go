@@ -21,6 +21,7 @@ var (
 	CategoryOnCall              ResourceCategory = "OnCall"
 	CategorySLO                 ResourceCategory = "SLO"
 	CategorySyntheticMonitoring ResourceCategory = "Synthetic Monitoring"
+	CategoryConnections         ResourceCategory = "Connections"
 )
 
 type ResourceCommon struct {
