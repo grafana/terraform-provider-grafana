@@ -2,7 +2,6 @@ package connections
 
 import (
 	"context"
-	"regexp"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 
@@ -30,7 +29,7 @@ var Resources = makeResourceMetricsEndpointScrapeJob()
 func makeResourceMetricsEndpointScrapeJob() *common.Resource {
 	return common.NewResource(
 		common.CategoryConnections,
-		"grafana_metrics_endpoint_scrape_job",
+		resourceMetricsEndpointScrapeJobTerraformName,
 		resourceMetricsEndpointScrapeJobTerraformID,
 		&resourceMetricsEndpointScrapeJob{},
 	)
@@ -44,8 +43,6 @@ func (r resourceMetricsEndpointScrapeJob) Configure(ctx context.Context, req res
 func (r resourceMetricsEndpointScrapeJob) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = resourceMetricsEndpointScrapeJobTerraformName
 }
-
-var urlRegexp = regexp.MustCompile(`((([A-Za-z]{3,9}:(?:\/\/)?)(?:[-;:&=\+\$,\w]+@)?[A-Za-z0-9.-]+(:[0-9]+)?|(?:www.|[-;:&=\+\$,\w]+@)[A-Za-z0-9.-]+)((?:\/[\+~%\/.\w-_]*)?\??(?:[-\+=&;%@.\w_]*)#?(?:[\w]*))?)`)
 
 func (r resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
@@ -69,6 +66,9 @@ func (r resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resour
 			"name": schema.StringAttribute{
 				Description: "The name of the Metrics Endpoint Scrape Job. Part of the Terraform Resource ID.",
 				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"enabled": schema.BoolAttribute{
 				Description: "Whether the Metrics Endpoint Scrape Job is enabled or not.",
@@ -99,9 +99,7 @@ func (r resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resour
 			},
 			"url": schema.StringAttribute{
 				Description: "The url to scrape metrics; a valid HTTPs URL is required.",
-				Validators: []validator.String{
-					stringvalidator.RegexMatches(urlRegexp, ""),
-				},
+				//Validators: []validator.String{}, // TODO: Find a validator for urls
 				Required: true,
 			},
 			"scrape_interval_seconds": schema.Int64Attribute{
