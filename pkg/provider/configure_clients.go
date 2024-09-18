@@ -127,7 +127,6 @@ func createMLClient(client *common.Client, providerConfig ProviderConfig) error 
 		BasicAuth:   client.GrafanaAPIConfig.BasicAuth,
 		BearerToken: client.GrafanaAPIConfig.APIKey,
 		Client:      getRetryClient(providerConfig),
-		NumRetries:  client.GrafanaAPIConfig.NumRetries,
 	}
 	mlURL := client.GrafanaAPIURL
 	if !strings.HasSuffix(mlURL, "/") {
