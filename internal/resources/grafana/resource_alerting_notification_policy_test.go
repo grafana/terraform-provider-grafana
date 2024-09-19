@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 )
 
 func TestAccNotificationPolicy_basic(t *testing.T) {
@@ -65,6 +65,7 @@ func TestAccNotificationPolicy_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.1.matcher.0.match", "=~"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.1.matcher.0.value", "another value.*"),
 					resource.TestCheckResourceAttr("grafana_notification_policy.my_notification_policy", "policy.1.group_by.0", "..."),
+					testutils.CheckLister("grafana_notification_policy.my_notification_policy"),
 				),
 			},
 			// Test import.

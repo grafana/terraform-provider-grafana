@@ -8,9 +8,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/library_elements"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 )
+
+const libraryPanelKind int64 = 1
 
 func resourceLibraryPanel() *common.Resource {
 	schema := &schema.Resource{
@@ -108,10 +112,26 @@ Manages Grafana library panels.
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_library_panel",
 		orgResourceIDString("uid"),
 		schema,
-	)
+	).WithLister(listerFunctionOrgResource(listLibraryPanels))
+}
+
+func listLibraryPanels(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	var ids []string
+	params := library_elements.NewGetLibraryElementsParams().WithKind(common.Ref(libraryPanelKind))
+	resp, err := client.LibraryElements.GetLibraryElements(params)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, panel := range resp.Payload.Result.Elements {
+		ids = append(ids, MakeOrgResourceID(orgID, panel.UID))
+	}
+
+	return ids, nil
 }
 
 func createLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -184,7 +204,7 @@ func updateLibraryPanel(ctx context.Context, d *schema.ResourceData, meta interf
 	body := models.PatchLibraryElementCommand{
 		Name:    d.Get("name").(string),
 		Model:   panelJSON,
-		Kind:    1,
+		Kind:    libraryPanelKind,
 		Version: int64(d.Get("version").(int)),
 	}
 	_, body.FolderUID = SplitOrgResourceID(d.Get("folder_uid").(string))
@@ -213,7 +233,7 @@ func makeLibraryPanel(d *schema.ResourceData) models.CreateLibraryElementCommand
 		UID:   d.Get("uid").(string),
 		Name:  d.Get("name").(string),
 		Model: panelJSON,
-		Kind:  1,
+		Kind:  libraryPanelKind,
 	}
 	_, panel.FolderUID = SplitOrgResourceID(d.Get("folder_uid").(string))
 

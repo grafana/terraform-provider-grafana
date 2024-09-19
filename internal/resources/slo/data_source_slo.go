@@ -3,14 +3,14 @@ package slo
 import (
 	"context"
 
-	slo "github.com/grafana/slo-openapi-client/go"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/slo-openapi-client/go/slo"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceSlo() *schema.Resource {
-	return &schema.Resource{
+func datasourceSlo() *common.DataSource {
+	schema := &schema.Resource{
 		Description: `
 Datasource for retrieving all SLOs.
 		
@@ -36,6 +36,7 @@ Datasource for retrieving all SLOs.
 			},
 		},
 	}
+	return common.NewLegacySDKDataSource(common.CategorySLO, "grafana_slos", schema)
 }
 
 // Function sends a GET request to the SLO API Endpoint which returns a list of all SLOs
@@ -87,6 +88,7 @@ func convertDatasourceSlo(slo slo.SloV00Slo) map[string]interface{} {
 
 	retAlerting := unpackAlerting(slo.Alerting)
 	ret["alerting"] = retAlerting
+	ret["search_expression"] = slo.SearchExpression
 
 	return ret
 }
@@ -189,6 +191,10 @@ func unpackAlerting(alertData *slo.SloV00Alerting) []map[string]interface{} {
 		alertObject["slowburn"] = unpackAlertingMetadata(*alertData.SlowBurn)
 	}
 
+	if alertData.AdvancedOptions != nil {
+		alertObject["advanced_options"] = unpackAdvancedOptions(*alertData.AdvancedOptions)
+	}
+
 	retAlertData = append(retAlertData, alertObject)
 	return retAlertData
 }
@@ -209,6 +215,18 @@ func unpackAlertingMetadata(metaData slo.SloV00AlertingMetadata) []map[string]in
 
 	retAlertMetaData = append(retAlertMetaData, labelsAnnotsStruct)
 	return retAlertMetaData
+}
+
+func unpackAdvancedOptions(options slo.SloV00AdvancedOptions) []map[string]interface{} {
+	retAdvancedOptions := []map[string]interface{}{}
+	minFailuresStruct := make(map[string]interface{})
+
+	if options.MinFailures != nil {
+		minFailuresStruct["min_failures"] = int(*options.MinFailures)
+	}
+
+	retAdvancedOptions = append(retAdvancedOptions, minFailuresStruct)
+	return retAdvancedOptions
 }
 
 func unpackDestinationDatasource(destinationDatasource *slo.SloV00DestinationDatasource) []map[string]interface{} {

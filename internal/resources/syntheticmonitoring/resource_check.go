@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -14,7 +13,7 @@ import (
 
 	sm "github.com/grafana/synthetic-monitoring-agent/pkg/pb/synthetic_monitoring"
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 )
 
 const (
@@ -36,7 +35,7 @@ var (
 		Default:  "V4",
 	}
 
-	// HTTP and TCP checks can set TLS config.
+	// HTTP, TCP and gRPC Health checks can set TLS config.
 	syntheticMonitoringCheckTLSConfig = &schema.Schema{
 		Description: "TLS config.",
 		Type:        schema.TypeSet,
@@ -118,6 +117,30 @@ var (
 				Optional:    true,
 				MaxItems:    1,
 				Elem:        syntheticMonitoringCheckSettingsMultiHTTP,
+			},
+			"scripted": {
+				Description: "Settings for scripted check. See https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/checks/k6/.",
+				Type:        schema.TypeSet,
+				Optional:    true,
+				MaxItems:    1,
+				Elem:        syntheticMonitoringCheckSettingsScripted,
+			},
+			"grpc": {
+				Description: "Settings for gRPC Health check. The target must be of the form `<host>:<port>`, where the host portion must be a valid hostname or IP address.",
+				Type:        schema.TypeSet,
+				Optional:    true,
+				MaxItems:    1,
+				Elem:        syntheticMonitoringCheckSettingsGRPC,
+			},
+		},
+	}
+
+	syntheticMonitoringCheckSettingsScripted = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"script": {
+				Type:     schema.TypeString,
+				Optional: false,
+				Required: true,
 			},
 		},
 	}
@@ -624,12 +647,29 @@ var (
 		},
 	}
 
+	syntheticMonitoringCheckSettingsGRPC = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"ip_version": syntheticMonitoringCheckIPVersion,
+			"tls": {
+				Description: "Whether or not TLS is used when the connection is initiated.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+			},
+			"tls_config": syntheticMonitoringCheckTLSConfig,
+			"service": {
+				Description: "gRPC service.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+		},
+	}
+
 	resourceCheckID = common.NewResourceID(common.IntIDField("id"))
 )
 
 func resourceCheck() *common.Resource {
 	schema := &schema.Resource{
-
 		Description: `
 Synthetic Monitoring checks are tests that run on selected probes at defined
 intervals and report metrics and logs back to your Grafana Cloud account. The
@@ -687,7 +727,8 @@ multiple checks for a single endpoint to check different capabilities.
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					// Suppress diff if it's a multihttp check with a timeout of 5000 (default timeout for those)
 					// and it's being changed to 3000 (default timeout set here).
-					if d.Get("settings.0.multihttp.0") != nil &&
+					doSuppress := d.Get("settings.0.multihttp.0") != nil || d.Get("settings.0.scripted") != nil
+					if doSuppress &&
 						old == strconv.Itoa(checkMultiHTTPDefaultTimeout) &&
 						new == strconv.Itoa(checkDefaultTimeout) {
 						return true
@@ -745,31 +786,32 @@ multiple checks for a single endpoint to check different capabilities.
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategorySyntheticMonitoring,
 		"grafana_synthetic_monitoring_check",
 		resourceCheckID,
 		schema,
-	)
+	).
+		WithLister(listChecks).
+		WithPreferredResourceNameField("job")
 }
 
-// TODO: Fix lister
-// .WithLister(listChecks)
-// func listChecks(ctx context.Context, client *common.Client, data any) ([]string, error) {
-// 	smClient := client.SMAPI
-// 	if smClient == nil {
-// 		return nil, fmt.Errorf("client not configured for SM API")
-// 	}
+func listChecks(ctx context.Context, client *common.Client, data any) ([]string, error) {
+	smClient := client.SMAPI
+	if smClient == nil {
+		return nil, fmt.Errorf("client not configured for SM API")
+	}
 
-// 	checkList, err := smClient.ListChecks(ctx)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	checkList, err := smClient.ListChecks(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-// 	var ids []string
-// 	for _, check := range checkList {
-// 		ids = append(ids, strconv.FormatInt(check.Id, 10))
-// 	}
-// 	return ids, nil
-// }
+	var ids []string
+	for _, check := range checkList {
+		ids = append(ids, strconv.FormatInt(check.Id, 10))
+	}
+	return ids, nil
+}
 
 func resourceCheckCreate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	chk, err := makeCheck(d)
@@ -793,9 +835,7 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 	chk, err := c.GetCheck(ctx, id.(int64))
 	if err != nil {
 		if strings.Contains(err.Error(), "404 Not Found") {
-			log.Printf("[WARN] removing check %s from state because it no longer exists", d.Id())
-			d.SetId("")
-			return nil
+			return common.WarnMissing("check", d)
 		}
 		return diag.FromErr(err)
 	}
@@ -1078,6 +1118,31 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 		settings.Add(map[string]any{
 			"multihttp": multiHTTP,
 		})
+	case chk.Settings.Scripted != nil:
+		scripted := schema.NewSet(
+			schema.HashResource(syntheticMonitoringCheckSettingsScripted),
+			[]any{},
+		)
+		scripted.Add(map[string]any{
+			"script": string(chk.Settings.Scripted.Script),
+		})
+		settings.Add(map[string]any{
+			"scripted": scripted,
+		})
+	case chk.Settings.Grpc != nil:
+		grpc := schema.NewSet(
+			schema.HashResource(syntheticMonitoringCheckSettingsGRPC),
+			[]interface{}{},
+		)
+		grpc.Add(map[string]interface{}{
+			"ip_version": chk.Settings.Grpc.IpVersion.String(),
+			"tls_config": tlsConfig(chk.Settings.Grpc.TlsConfig),
+			"tls":        chk.Settings.Grpc.Tls,
+			"service":    chk.Settings.Grpc.Service,
+		})
+		settings.Add(map[string]interface{}{
+			"grpc": grpc,
+		})
 	}
 
 	d.Set("settings", settings)
@@ -1098,17 +1163,12 @@ func resourceCheckUpdate(ctx context.Context, d *schema.ResourceData, c *smapi.C
 }
 
 func resourceCheckDelete(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
-	var diags diag.Diagnostics
 	id, err := resourceCheckID.Single(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
 	}
 	err = c.DeleteCheck(ctx, id.(int64))
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId("")
-	return diags
+	return diag.FromErr(err)
 }
 
 // makeCheck populates an instance of sm.Check. We need this for create and
@@ -1138,7 +1198,7 @@ func makeCheck(d *schema.ResourceData) (*sm.Check, error) {
 	}
 
 	timeout := int64(d.Get("timeout").(int))
-	if timeout == checkDefaultTimeout && settings.Multihttp != nil {
+	if timeout == checkDefaultTimeout && (settings.Multihttp != nil || settings.Scripted != nil) {
 		timeout = checkMultiHTTPDefaultTimeout
 	}
 
@@ -1498,6 +1558,27 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 		}
 	}
 
+	scripted := settings["scripted"].(*schema.Set).List()
+	if len(scripted) > 0 {
+		s := scripted[0].(map[string]interface{})
+		cs.Scripted = &sm.ScriptedSettings{
+			Script: []byte(s["script"].(string)),
+		}
+	}
+
+	grpc := settings["grpc"].(*schema.Set).List()
+	if len(grpc) > 0 {
+		t := grpc[0].(map[string]interface{})
+		cs.Grpc = &sm.GrpcSettings{
+			Service:   t["service"].(string),
+			IpVersion: sm.IpVersion(sm.IpVersion_value[t["ip_version"].(string)]),
+			Tls:       t["tls"].(bool),
+		}
+		if t["tls_config"].(*schema.Set).Len() > 0 {
+			cs.Grpc.TlsConfig = tlsConfig(t["tls_config"].(*schema.Set))
+		}
+	}
+
 	return cs, nil
 }
 
@@ -1510,7 +1591,10 @@ func resourceCheckCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, 
 	if len(settingsList) == 0 {
 		return fmt.Errorf("at least one check setting must be defined")
 	}
-	settings := settingsList[0].(map[string]interface{})
+	settings, ok := settingsList[0].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("at least one check setting must be defined")
+	}
 
 	count := 0
 	for k := range syntheticMonitoringCheckSettings.Schema {

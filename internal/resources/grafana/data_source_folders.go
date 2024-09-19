@@ -5,13 +5,13 @@ import (
 
 	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceFolders() *schema.Resource {
-	return &schema.Resource{
+func datasourceFolders() *common.DataSource {
+	schema := &schema.Resource{
 		ReadContext: readFolders,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -55,6 +55,7 @@ func datasourceFolders() *schema.Resource {
 			},
 		},
 	}
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_folders", schema)
 }
 
 func readFolders(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

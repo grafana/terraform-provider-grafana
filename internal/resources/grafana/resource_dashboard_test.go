@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -51,6 +51,7 @@ func TestAccDashboard_basic(t *testing.T) {
 							resource.TestCheckResourceAttr(
 								"grafana_dashboard.test", "config_json", expectedInitialConfig,
 							),
+							testutils.CheckLister("grafana_dashboard.test"),
 						),
 					},
 					{
@@ -238,6 +239,7 @@ func TestAccDashboard_inOrg(t *testing.T) {
 					checkResourceIsInOrg("grafana_dashboard.test", "grafana_organization.test"),
 
 					testAccDashboardCheckExistsInFolder(&dashboard, &folder),
+					testutils.CheckLister("grafana_dashboard.test"),
 				),
 			},
 		},

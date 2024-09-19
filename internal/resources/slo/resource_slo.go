@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"regexp"
 
-	slo "github.com/grafana/slo-openapi-client/go"
+	"github.com/grafana/slo-openapi-client/go/slo"
 
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -221,24 +221,54 @@ Resource manages Grafana SLOs.
 								},
 							},
 						},
+						"advanced_options": {
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Advanced Options for Alert Rules",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"min_failures": {
+										Type:         schema.TypeInt,
+										Optional:     true,
+										Description:  "Minimum number of failed events to trigger an alert",
+										ValidateFunc: validation.IntAtLeast(0),
+									},
+								},
+							},
+						},
 					},
 				},
+			},
+			"search_expression": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The name of a search expression in Grafana Asserts. This is used in the SLO UI to open the Asserts RCA workbench and in alerts to link to the RCA workbench.",
 			},
 		},
 	}
 
-	return common.NewLegacySDKResource("grafana_slo", resourceSloID, schema).WithLister(listSlos)
+	return common.NewLegacySDKResource(
+		common.CategorySLO,
+		"grafana_slo",
+		resourceSloID,
+		schema,
+	).
+		WithLister(listSlos).
+		WithPreferredResourceNameField("name")
 }
 
 var keyvalueSchema = &schema.Resource{
 	Schema: map[string]*schema.Schema{
 		"key": {
-			Type:     schema.TypeString,
-			Required: true,
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: `Key for filtering and identification`,
 		},
 		"value": {
-			Type:     schema.TypeString,
-			Required: true,
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: `Templatable value`,
 		},
 	},
 }
@@ -251,13 +281,7 @@ func listSlos(ctx context.Context, client *common.Client, data any) ([]string, e
 
 	slolist, _, err := sloClient.DefaultAPI.V1SloGet(ctx).Execute()
 	if err != nil {
-		// // TODO: Uninitialized SLO plugin. This should be handled better
-		// cast, ok := err.(*slo.GenericOpenAPIError)
-		// if ok && strings.Contains(cast.Error(), "status: 500") {
-		// 	return nil, nil
-		// }
-
-		return nil, nil
+		return nil, err
 	}
 
 	var ids []string
@@ -299,9 +323,11 @@ func resourceSloRead(ctx context.Context, d *schema.ResourceData, client *slo.AP
 	sloID := d.Id()
 
 	req := client.DefaultAPI.V1SloIdGet(ctx, sloID)
-	slo, _, err := req.Execute()
-
+	slo, r, err := req.Execute()
 	if err != nil {
+		if r != nil && r.StatusCode == 404 {
+			return common.WarnMissing("SLO", d)
+		}
 		return apiError("Unable to read SLO - API", err)
 	}
 
@@ -380,6 +406,11 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 		DestinationDatasource: nil,
 	}
 
+	// Check the Optional Search Expression Field
+	if searchexpression, ok := d.GetOk("search_expression"); ok && searchexpression != "" {
+		req.SearchExpression = common.Ref(searchexpression.(string))
+	}
+
 	// Check the Optional Alerting Field
 	if alerting, ok := d.GetOk("alerting"); ok {
 		alertData, ok := alerting.([]interface{})
@@ -389,7 +420,6 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 				tfalerting = packAlerting(alert)
 			}
 		}
-
 		req.Alerting = &tfalerting
 	}
 
@@ -520,6 +550,7 @@ func packAlerting(tfAlerting map[string]interface{}) slo.SloV00Alerting {
 	var tfLabels []slo.SloV00Label
 	var tfFastBurn slo.SloV00AlertingMetadata
 	var tfSlowBurn slo.SloV00AlertingMetadata
+	var tfAdvancedOptions slo.SloV00AdvancedOptions
 
 	annots, ok := tfAlerting["annotation"].([]interface{})
 	if ok {
@@ -546,6 +577,22 @@ func packAlerting(tfAlerting map[string]interface{}) slo.SloV00Alerting {
 		Labels:      tfLabels,
 		FastBurn:    &tfFastBurn,
 		SlowBurn:    &tfSlowBurn,
+	}
+
+	// All options in advanced options will be optional
+	// Adding a second feature will need to make a better way of checking what is there
+	if failures := tfAlerting["advanced_options"]; failures != nil {
+		lf, ok := failures.([]interface{})
+		if ok && len(lf) > 0 {
+			lf2, ok := lf[0].(map[string]interface{})
+			if ok {
+				i64 := int64(lf2["min_failures"].(int))
+				tfAdvancedOptions = slo.SloV00AdvancedOptions{
+					MinFailures: &i64,
+				}
+				alerting.SetAdvancedOptions(tfAdvancedOptions)
+			}
+		}
 	}
 
 	return alerting
@@ -595,6 +642,7 @@ func setTerraformState(d *schema.ResourceData, slo slo.SloV00Slo) {
 
 	retAlerting := unpackAlerting(slo.Alerting)
 	d.Set("alerting", retAlerting)
+	d.Set("search_expression", slo.SearchExpression)
 }
 
 func apiError(action string, err error) diag.Diagnostics {

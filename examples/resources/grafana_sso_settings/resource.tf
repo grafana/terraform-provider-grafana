@@ -46,3 +46,45 @@ resource "grafana_sso_settings" "saml_sso_settings" {
     name_id_format            = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"
   }
 }
+
+# Configure SSO using LDAP
+resource "grafana_sso_settings" "ldap_sso_settings" {
+  provider_name = "ldap"
+
+  ldap_settings {
+    enabled = "true"
+    config {
+      servers {
+        host          = "127.0.0.1"
+        port          = 389
+        search_filter = "(cn=%s)"
+        bind_dn       = "cn=admin,dc=grafana,dc=org"
+        bind_password = "grafana"
+        search_base_dns = [
+          "dc=grafana,dc=org",
+        ]
+        attributes = {
+          name      = "givenName"
+          surname   = "sn"
+          username  = "cn"
+          member_of = "memberOf"
+          email     = "email"
+        }
+        group_mappings {
+          group_dn      = "cn=superadmins,dc=grafana,dc=org"
+          org_role      = "Admin"
+          org_id        = 1
+          grafana_admin = true
+        }
+        group_mappings {
+          group_dn = "cn=users,dc=grafana,dc=org"
+          org_role = "Editor"
+        }
+        group_mappings {
+          group_dn = "*"
+          org_role = "Viewer"
+        }
+      }
+    }
+  }
+}

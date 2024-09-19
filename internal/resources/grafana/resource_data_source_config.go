@@ -9,7 +9,7 @@ import (
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 
 	_ "embed"
 )
@@ -45,6 +45,7 @@ func resourceDataSourceConfig() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_data_source_config",
 		orgResourceIDString("uid"),
 		schema,

@@ -8,13 +8,14 @@ import (
 	"time"
 
 	"github.com/go-openapi/runtime"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 )
 
 var (
@@ -49,7 +50,7 @@ func resourceContactPoint() *common.Resource {
 		Description: `
 Manages Grafana Alerting contact points.
 
-* [Official documentation](https://grafana.com/docs/grafana/next/alerting/fundamentals/notifications/contact-points/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#contact-points)
 
 This resource requires Grafana 9.1.0 or later.
@@ -99,52 +100,55 @@ This resource requires Grafana 9.1.0 or later.
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryAlerting,
 		"grafana_contact_point",
 		orgResourceIDString("name"),
 		resource,
-	)
+	).WithLister(listerFunctionOrgResource(listContactPoints))
 }
 
-// TODO: Fix lister
-// .WithLister(listerFunction(listContactPoints))
-// func listContactPoints(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
-// 	orgIDs, err := data.OrgIDs(client)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+func listContactPoints(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	idMap := map[string]bool{}
+	// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+	// The alertmanager is provisioned asynchronously when the org is created.
+	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
+		if err != nil {
+			if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
 
-// 	idMap := map[string]bool{}
-// 	for _, orgID := range orgIDs {
-// 		client = client.Clone().WithOrgID(orgID)
+		for _, contactPoint := range resp.Payload {
+			idMap[MakeOrgResourceID(orgID, contactPoint.Name)] = true
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
 
-// 		resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
-// 		if err != nil {
-// 			return nil, err
-// 		}
+	var ids []string
+	for id := range idMap {
+		ids = append(ids, id)
+	}
 
-// 		for _, contactPoint := range resp.Payload {
-// 			idMap[MakeOrgResourceID(orgID, contactPoint.Name)] = true
-// 		}
-// 	}
-
-// 	var ids []string
-// 	for id := range idMap {
-// 		ids = append(ids, id)
-// 	}
-
-// 	return ids, nil
-// }
+	return ids, nil
+}
 
 func readContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	// First, try to fetch the contact point by name.
-	// If that fails, try to fetch it by the UID of its notifiers.
-	resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams().WithName(&name))
+	resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	points := resp.Payload
+	var points []*models.EmbeddedContactPoint
+	for _, p := range resp.Payload {
+		if p.Name == name {
+			points = append(points, p)
+		}
+	}
 	if len(points) == 0 {
 		return common.WarnMissing("contact point", data)
 	}

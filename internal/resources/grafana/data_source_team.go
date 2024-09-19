@@ -4,13 +4,13 @@ import (
 	"context"
 
 	"github.com/grafana/grafana-openapi-client-go/client/teams"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceTeam() *schema.Resource {
-	return &schema.Resource{
+func datasourceTeam() *common.DataSource {
+	schema := &schema.Resource{
 		Description: `
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/team-management/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/team/)
@@ -32,6 +32,7 @@ func datasourceTeam() *schema.Resource {
 			"ignore_externally_synced_members": nil,
 		}),
 	}
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_team", schema)
 }
 
 func dataSourceTeamRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

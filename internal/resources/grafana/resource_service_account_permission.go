@@ -3,7 +3,7 @@ package grafana
 import (
 	"strconv"
 
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -46,6 +46,7 @@ Manages the entire set of permissions for a service account. Permissions that ar
 	crudHelper.addCommonSchemaAttributes(schema.Schema)
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_service_account_permission",
 		orgResourceIDInt("serviceAccountID"),
 		schema,

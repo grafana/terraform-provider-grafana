@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -36,6 +36,7 @@ func TestAccResourceProbe(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "public", "false"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "labels.type", "mountain"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_probe.main", "disable_scripted_checks", "false"),
+					testutils.CheckLister("grafana_synthetic_monitoring_probe.main"),
 				),
 			},
 			{

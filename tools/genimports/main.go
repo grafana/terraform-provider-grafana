@@ -5,22 +5,20 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/grafana/terraform-provider-grafana/v2/pkg/provider"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
 )
 
 func main() {
-	p := provider.Provider("genimports") // Instantiate the provider so that all resources are registered
-	_ = p
-
-	if err := generateImportFiles(os.Args[1]); err != nil {
+	examplesPath := os.Args[1]
+	if err := generateImportFiles(examplesPath); err != nil {
 		panic(err)
 	}
 }
 
 // GenerateImportFiles generates import files for all resources that use a helper defined in this package
-func generateImportFiles(path string) error {
+func generateImportFiles(examplesPath string) error {
 	for _, r := range provider.Resources() {
-		resourcePath := filepath.Join(path, "resources", r.Name, "import.sh")
+		resourcePath := filepath.Join(examplesPath, "resources", r.Name, "import.sh")
 		if err := os.RemoveAll(resourcePath); err != nil { // Remove the file if it exists
 			return err
 		}

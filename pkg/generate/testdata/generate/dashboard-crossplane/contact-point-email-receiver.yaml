@@ -1,0 +1,17 @@
+apiVersion: alerting.grafana.crossplane.io/v1alpha1
+kind: ContactPoint
+metadata:
+  name: email-receiver
+  annotations:
+    crossplane.io/external-name: 1:email receiver
+spec:
+  forProvider:
+    disableProvenance: true
+    email:
+    - addresses:
+      - <example@email.com>
+      disable_resolve_message: false
+      single_email: false
+    name: email receiver
+  providerConfigRef:
+    name: grafana-provider

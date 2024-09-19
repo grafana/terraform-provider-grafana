@@ -11,7 +11,7 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
 
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -59,7 +59,7 @@ func resourceFolder() *common.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Prevent deletion of the folder if it is not empty (contains dashboards or alert rules).",
+				Description: "Prevent deletion of the folder if it is not empty (contains dashboards or alert rules). This feature requires Grafana 10.2 or later.",
 			},
 			"parent_folder_uid": {
 				Type:     schema.TypeString,
@@ -74,14 +74,15 @@ func resourceFolder() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_folder",
 		orgResourceIDString("uid"),
 		schema,
-	).WithLister(listerFunction(listFolders))
+	).WithLister(listerFunctionOrgResource(listFolders))
 }
 
-func listFolders(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
-	return listDashboardOrFolder(client, data, "dash-folder")
+func listFolders(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	return listDashboardOrFolder(client, orgID, "dash-folder")
 }
 
 func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -154,18 +155,17 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 	client, _, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 	deleteParams := folders.NewDeleteFolderParams().WithFolderUID(uid)
 	if d.Get("prevent_destroy_if_not_empty").(bool) {
-		searchType := "dash-db"
-		searchParams := search.NewSearchParams().WithFolderUIDs([]string{uid}).WithType(&searchType)
+		searchParams := search.NewSearchParams().WithFolderUIDs([]string{uid})
 		searchResp, err := client.Search.Search(searchParams)
 		if err != nil {
 			return diag.Errorf("failed to search for dashboards in folder: %s", err)
 		}
 		if len(searchResp.GetPayload()) > 0 {
-			var dashboardNames []string
+			var dashboardAndFolderNames []string
 			for _, dashboard := range searchResp.GetPayload() {
-				dashboardNames = append(dashboardNames, dashboard.Title)
+				dashboardAndFolderNames = append(dashboardAndFolderNames, dashboard.Title)
 			}
-			return diag.Errorf("folder %s is not empty and prevent_destroy_if_not_empty is set. It contains the following dashboards: %v", uid, dashboardNames)
+			return diag.Errorf("folder %s is not empty and prevent_destroy_if_not_empty is set. It contains the following dashboards and/or folders: %v", uid, dashboardAndFolderNames)
 		}
 	} else {
 		// If we're not preventing destroys, then we can force delete folders that have alert rules

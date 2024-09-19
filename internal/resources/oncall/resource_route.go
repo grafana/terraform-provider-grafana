@@ -3,14 +3,13 @@ package oncall
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -131,10 +130,22 @@ func resourceRoute() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryOnCall,
 		"grafana_oncall_route",
 		resourceID,
 		schema,
-	)
+	).WithLister(oncallListerFunction(listRoutes))
+}
+
+func listRoutes(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
+	resp, _, err := client.Routes.ListRoutes(&onCallAPI.ListRouteOptions{ListOptions: listOptions})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, i := range resp.Routes {
+		ids = append(ids, i.ID)
+	}
+	return ids, resp.Next, nil
 }
 
 func resourceRouteCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
@@ -173,9 +184,7 @@ func resourceRouteRead(ctx context.Context, d *schema.ResourceData, client *onCa
 	route, r, err := client.Routes.GetRoute(d.Id(), &onCallAPI.GetRouteOptions{})
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] removing route %s from state because it no longer exists", d.Id())
-			d.SetId("")
-			return nil
+			return common.WarnMissing("route", d)
 		}
 		return diag.FromErr(err)
 	}
@@ -234,11 +243,5 @@ func resourceRouteUpdate(ctx context.Context, d *schema.ResourceData, client *on
 
 func resourceRouteDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	_, err := client.Routes.DeleteRoute(d.Id(), &onCallAPI.DeleteRouteOptions{})
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return nil
+	return diag.FromErr(err)
 }

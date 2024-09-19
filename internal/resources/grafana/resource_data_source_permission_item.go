@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/grafana/grafana-openapi-client-go/client"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -26,7 +26,12 @@ func makeResourceDatasourcePermissionItem() *common.Resource {
 			resourceType: datasourcesPermissionsType,
 		},
 	}
-	return common.NewResource(resourceDatasourcePermissionItemName, resourceDatasourcePermissionItemID, resourceStruct)
+	return common.NewResource(
+		common.CategoryGrafanaEnterprise,
+		resourceDatasourcePermissionItemName,
+		resourceDatasourcePermissionItemID,
+		resourceStruct,
+	)
 }
 
 type resourceDatasourcePermissionItemModel struct {

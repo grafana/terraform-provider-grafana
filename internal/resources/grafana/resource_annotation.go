@@ -5,9 +5,10 @@ import (
 	"strconv"
 	"time"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/annotations"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -79,10 +80,25 @@ func resourceAnnotation() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_annotation",
 		orgResourceIDInt("id"),
 		schema,
-	)
+	).WithLister(listerFunctionOrgResource(listAnnotations))
+}
+
+func listAnnotations(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	var ids []string
+	resp, err := client.Annotations.GetAnnotations(annotations.NewGetAnnotationsParams())
+	if err != nil {
+		return nil, err
+	}
+
+	for _, annotation := range resp.Payload {
+		ids = append(ids, MakeOrgResourceID(orgID, annotation.ID))
+	}
+
+	return ids, nil
 }
 
 func CreateAnnotation(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

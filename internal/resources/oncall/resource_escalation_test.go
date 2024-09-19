@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -39,6 +39,21 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_oncall_escalation.test-acc-escalation-policy-team", "position", "2"),
 					resource.TestCheckResourceAttrSet("grafana_oncall_escalation.test-acc-escalation-policy-team", "notify_to_team_members"),
 				),
+			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_oncall_escalation.test-acc-escalation",
+				ImportStateVerify: true,
+			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_oncall_escalation.test-acc-escalation-repeat",
+				ImportStateVerify: true,
+			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_oncall_escalation.test-acc-escalation-policy-team",
+				ImportStateVerify: true,
 			},
 		},
 	})

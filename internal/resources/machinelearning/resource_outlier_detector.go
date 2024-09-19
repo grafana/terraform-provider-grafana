@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -117,7 +117,26 @@ Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/
 		},
 	}
 
-	return common.NewLegacySDKResource("grafana_machine_learning_outlier_detector", resourceOutlierDetectorID, schema)
+	return common.NewLegacySDKResource(
+		common.CategoryMachineLearning,
+		"grafana_machine_learning_outlier_detector",
+		resourceOutlierDetectorID,
+		schema,
+	).
+		WithLister(lister(listOutliers)).
+		WithPreferredResourceNameField("name")
+}
+
+func listOutliers(ctx context.Context, client *mlapi.Client) ([]string, error) {
+	outliers, err := client.OutlierDetectors(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, len(outliers))
+	for i, outlier := range outliers {
+		ids[i] = outlier.ID
+	}
+	return ids, nil
 }
 
 func resourceOutlierCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -169,11 +188,7 @@ func resourceOutlierUpdate(ctx context.Context, d *schema.ResourceData, meta int
 func resourceOutlierDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	err := c.DeleteOutlierDetector(ctx, d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId("")
-	return nil
+	return diag.FromErr(err)
 }
 
 func convertToSetStructure(al mlapi.OutlierAlgorithm) []interface{} {

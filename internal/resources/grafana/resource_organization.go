@@ -11,7 +11,7 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/orgs"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"golang.org/x/text/cases"
@@ -46,7 +46,8 @@ func resourceOrganization() *common.Resource {
 
 This resource represents an instance-scoped resource and uses Grafana's admin APIs.
 It does not work with API tokens or service accounts which are org-scoped.
-You must use basic auth.
+You must use basic auth. 
+This resource is also not compatible with Grafana Cloud, as it does not allow basic auth.
 `,
 
 		CreateContext: CreateOrganization,
@@ -145,10 +146,13 @@ set to true. This feature is only available in Grafana 10.2+.
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_organization",
 		common.NewResourceID(common.IntIDField("id")),
 		schema,
-	).WithLister(listerFunction(listOrganizations))
+	).
+		WithLister(listerFunction(listOrganizations)).
+		WithPreferredResourceNameField("name")
 }
 
 func listOrganizations(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {

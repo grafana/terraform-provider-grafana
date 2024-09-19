@@ -2,15 +2,18 @@ package syntheticmonitoring_test
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"testing"
 
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAccResourceCheck_dns(t *testing.T) {
@@ -40,6 +43,7 @@ func TestAccResourceCheck_dns(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "settings.0.dns.0.port", "53"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "settings.0.dns.0.record_type", "A"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "settings.0.dns.0.protocol", "UDP"),
+					testutils.CheckLister("grafana_synthetic_monitoring_check.dns"),
 				),
 			},
 			{
@@ -68,6 +72,11 @@ func TestAccResourceCheck_dns(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "settings.0.dns.0.validate_additional_rrs.0.fail_if_matches_regexp.0", ".+-bad-stuff*"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.dns", "settings.0.dns.0.validate_additional_rrs.0.fail_if_not_matches_regexp.0", ".+-good-stuff*"),
 				),
+			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.dns",
 			},
 		},
 	})
@@ -133,6 +142,11 @@ func TestAccResourceCheck_http(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_header_matches_regexp.0.allow_missing", "true"),
 				),
 			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.http",
+			},
 		},
 	})
 }
@@ -177,6 +191,11 @@ func TestAccResourceCheck_ping(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.ping", "settings.0.ping.0.payload_size", "20"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.ping", "settings.0.ping.0.dont_fragment", "true"),
 				),
+			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.ping",
 			},
 		},
 	})
@@ -229,6 +248,11 @@ func TestAccResourceCheck_tcp(t *testing.T) {
 					resource.TestMatchResourceAttr("grafana_synthetic_monitoring_check.tcp", "settings.0.tcp.0.tls_config.0.ca_cert", regexp.MustCompile((`^-{5}BEGIN CERTIFICATE`))),
 				),
 			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.tcp",
+			},
 		},
 	})
 }
@@ -275,6 +299,11 @@ func TestAccResourceCheck_traceroute(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "settings.0.traceroute.0.max_unknown_hops", "10"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.traceroute", "settings.0.traceroute.0.ptr_lookup", "false"),
 				),
+			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.traceroute",
 			},
 		},
 	})
@@ -360,6 +389,102 @@ func TestAccResourceCheck_multihttp(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.1.assertions.4.type", "JSON_PATH_ASSERTION"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.multihttp", "settings.0.multihttp.0.entries.1.assertions.4.expression", "$.slideshow.slides"),
 				),
+			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.multihttp",
+			},
+		},
+	})
+}
+
+func TestAccResourceCheck_scripted(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	// Find and replace the path.module since it's not available in the test environment
+	scriptFilepathAbs, err := filepath.Abs("../../../examples/resources/grafana_synthetic_monitoring_check")
+	require.NoError(t, err)
+	scriptFileContent, err := os.ReadFile(filepath.Join(scriptFilepathAbs, "script.js"))
+	require.NoError(t, err)
+
+	// Inject random job names to avoid conflicts with other tests
+	jobName := acctest.RandomWithPrefix("scripted")
+	nameReplaceMap := map[string]string{
+		`"Validate homepage"`: strconv.Quote(jobName),
+		"${path.module}":      scriptFilepathAbs,
+	}
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/scripted_basic.tf", nameReplaceMap),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.scripted", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.scripted", "tenant_id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "job", jobName),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "target", "https://grafana.com/"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "timeout", "5000"), // scripted has a default timeout of 5000
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.scripted", "probes.0"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "labels.environment", "production"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.scripted", "settings.0.scripted.0.script", string(scriptFileContent)),
+				),
+			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.scripted",
+			},
+		},
+	})
+}
+
+func TestAccResourceCheck_grpc(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	// Inject random job names to avoid conflicts with other tests
+	jobName := acctest.RandomWithPrefix("grpc")
+	nameReplaceMap := map[string]string{
+		`"gRPC Defaults"`: strconv.Quote(jobName),
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/grpc_basic.tf", nameReplaceMap),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.grpc", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.grpc", "tenant_id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "job", jobName),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "target", "host.docker.internal:50051"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.grpc", "probes.0"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "labels.foo", "bar"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "settings.0.grpc.0.ip_version", "V4"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "settings.0.grpc.0.tls", "false"),
+				),
+			},
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/grpc_complex.tf", nameReplaceMap),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.grpc", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.grpc", "tenant_id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "job", jobName),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "target", "host.docker.internal:50051"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.grpc", "probes.0"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.grpc", "probes.1"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "labels.foo", "baz"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "settings.0.grpc.0.service", "health-check-test"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "settings.0.grpc.0.ip_version", "V6"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "settings.0.grpc.0.tls", "true"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.grpc", "settings.0.grpc.0.tls_config.0.server_name", "grafana.com"),
+					resource.TestMatchResourceAttr("grafana_synthetic_monitoring_check.grpc", "settings.0.grpc.0.tls_config.0.ca_cert", regexp.MustCompile((`^-{5}BEGIN CERTIFICATE`))),
+				),
+			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.grpc",
 			},
 		},
 	})

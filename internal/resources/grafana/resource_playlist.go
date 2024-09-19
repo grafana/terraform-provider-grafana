@@ -6,8 +6,10 @@ import (
 	"sort"
 	"strconv"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/grafana-openapi-client-go/client/playlists"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -71,10 +73,27 @@ func resourcePlaylist() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_playlist",
 		orgResourceIDString("uid"),
 		schema,
-	)
+	).
+		WithLister(listerFunctionOrgResource(listPlaylists)).
+		WithPreferredResourceNameField("name")
+}
+
+func listPlaylists(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	var ids []string
+	resp, err := client.Playlists.SearchPlaylists(playlists.NewSearchPlaylistsParams())
+	if err != nil {
+		return nil, err
+	}
+
+	for _, playlist := range resp.Payload {
+		ids = append(ids, MakeOrgResourceID(orgID, playlist.UID))
+	}
+
+	return ids, nil
 }
 
 func CreatePlaylist(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

@@ -57,6 +57,7 @@ resource "grafana_cloud_stack" "test" {
 - `graphite_url` (String)
 - `graphite_user_id` (Number)
 - `id` (String) The stack id assigned to this stack by Grafana.
+- `influx_url` (String) Base URL of the InfluxDB instance configured for this stack. The username is the same as the metrics' (`prometheus_user_id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-influxdb/push-from-telegraf/ for docs on how to use this.
 - `logs_name` (String)
 - `logs_status` (String)
 - `logs_url` (String)
@@ -64,7 +65,7 @@ resource "grafana_cloud_stack" "test" {
 - `org_id` (Number) Organization id to assign to this stack.
 - `org_name` (String) Organization name to assign to this stack.
 - `org_slug` (String) Organization slug to assign to this stack.
-- `otlp_url` (String) Base URL of the OTLP instance configured for this stack. See https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/ for docs on how to use this.
+- `otlp_url` (String) Base URL of the OTLP instance configured for this stack. The username is the stack's ID (`id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/ for docs on how to use this.
 - `profiles_name` (String)
 - `profiles_status` (String)
 - `profiles_url` (String)

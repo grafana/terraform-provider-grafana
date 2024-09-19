@@ -3,12 +3,11 @@ package oncall
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -183,10 +182,24 @@ func resourceOnCallShift() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryOnCall,
 		"grafana_oncall_on_call_shift",
 		resourceID,
 		schema,
-	)
+	).
+		WithLister(oncallListerFunction(listShifts)).
+		WithPreferredResourceNameField("name")
+}
+
+func listShifts(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
+	resp, _, err := client.OnCallShifts.ListOnCallShifts(&onCallAPI.ListOnCallShiftOptions{ListOptions: listOptions})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, i := range resp.OnCallShifts {
+		ids = append(ids, i.ID)
+	}
+	return ids, resp.Next, nil
 }
 
 func resourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
@@ -281,6 +294,12 @@ func resourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, clie
 	rollingUsersData, rollingUsersOk := d.GetOk(rollingUsers)
 	if rollingUsersOk {
 		if typeData == rollingUsers {
+			listSet := rollingUsersData.([]interface{})
+			for _, set := range listSet {
+				if set == nil {
+					return diag.Errorf("`rolling_users` can not include an empty group")
+				}
+			}
 			rollingUsersDataSlice := common.ListOfSetsToStringSlice(rollingUsersData.([]interface{}))
 			createOptions.RollingUsers = &rollingUsersDataSlice
 		} else {
@@ -408,6 +427,12 @@ func resourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, clie
 	rollingUsersData, rollingUsersOk := d.GetOk(rollingUsers)
 	if rollingUsersOk {
 		if typeData == rollingUsers {
+			listSet := rollingUsersData.([]interface{})
+			for _, set := range listSet {
+				if set == nil {
+					return diag.Errorf("`rolling_users` can not include an empty group")
+				}
+			}
 			rollingUsersDataSlice := common.ListOfSetsToStringSlice(rollingUsersData.([]interface{}))
 			updateOptions.RollingUsers = &rollingUsersDataSlice
 		} else {
@@ -436,9 +461,7 @@ func resourceOnCallShiftRead(ctx context.Context, d *schema.ResourceData, client
 	onCallShift, r, err := client.OnCallShifts.GetOnCallShift(d.Id(), options)
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] removing on-call shift %s from state because it no longer exists", d.Id())
-			d.SetId("")
-			return nil
+			return common.WarnMissing("on-call shift", d)
 		}
 		return diag.FromErr(err)
 	}
@@ -466,11 +489,5 @@ func resourceOnCallShiftRead(ctx context.Context, d *schema.ResourceData, client
 func resourceOnCallShiftDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.DeleteOnCallShiftOptions{}
 	_, err := client.OnCallShifts.DeleteOnCallShift(d.Id(), options)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return nil
+	return diag.FromErr(err)
 }

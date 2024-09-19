@@ -2,6 +2,7 @@ package testutils
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/grafana/terraform-provider-grafana/v2/pkg/provider"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -50,7 +51,11 @@ var (
 			configureResp, err := server.ConfigureProvider(context.Background(), &tfprotov5.ConfigureProviderRequest{Config: &testDynamicValue})
 			if err != nil || len(configureResp.Diagnostics) > 0 {
 				if err == nil {
-					err = fmt.Errorf("provider configuration failed: %v", configureResp.Diagnostics)
+					errs := []error{}
+					for _, diag := range configureResp.Diagnostics {
+						errs = append(errs, fmt.Errorf("%s %s: %s", diag.Severity, diag.Summary, diag.Detail))
+					}
+					err = errors.Join(errs...)
 				}
 				return nil, fmt.Errorf("failed to configure provider: %v", err)
 			}

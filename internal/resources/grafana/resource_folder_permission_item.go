@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/grafana/grafana-openapi-client-go/client"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -26,7 +26,12 @@ func makeResourceFolderPermissionItem() *common.Resource {
 			resourceType: foldersPermissionsType,
 		},
 	}
-	return common.NewResource(resourceFolderPermissionItemName, resourceFolderPermissionItemID, resourceStruct)
+	return common.NewResource(
+		common.CategoryGrafanaOSS,
+		resourceFolderPermissionItemName,
+		resourceFolderPermissionItemID,
+		resourceStruct,
+	)
 }
 
 type resourceFolderPermissionItemModel struct {

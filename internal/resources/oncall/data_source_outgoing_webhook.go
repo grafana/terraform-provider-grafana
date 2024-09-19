@@ -7,10 +7,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 )
 
-func dataSourceOutgoingWebhook() *schema.Resource {
-	return &schema.Resource{
+func dataSourceOutgoingWebhook() *common.DataSource {
+	schema := &schema.Resource{
 		Description: `
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/outgoing_webhooks/)
 `,
@@ -23,6 +24,7 @@ func dataSourceOutgoingWebhook() *schema.Resource {
 			},
 		},
 	}
+	return common.NewLegacySDKDataSource(common.CategoryOnCall, "grafana_oncall_outgoing_webhook", schema)
 }
 
 func dataSourceOutgoingWebhookRead(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {

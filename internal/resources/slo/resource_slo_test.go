@@ -6,12 +6,13 @@ import (
 	"regexp"
 	"testing"
 
-	slo "github.com/grafana/slo-openapi-client/go"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
+	"github.com/grafana/slo-openapi-client/go/slo"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAccResourceSlo(t *testing.T) {
@@ -40,6 +41,7 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.value", "0.995"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.window", "30d"),
 					resource.TestCheckNoResourceAttr("grafana_slo.test", "folder_uid"),
+					testutils.CheckLister("grafana_slo.test"),
 				),
 			},
 			{
@@ -94,6 +96,104 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_slo.ratio", "query.0.ratio.0.group_by_labels.1", "instance"),
 				),
 			},
+			{
+				// Import test (this tests that all fields are read correctly)
+				ResourceName:      "grafana_slo.ratio",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				// Tests Advanced Options
+				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_ratio_advanced_options.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.ratio_options", &slo),
+					testAlertingExists(true, "grafana_slo.ratio_options", &slo),
+					testAdvancedOptionsExists(true, "grafana_slo.ratio_options", &slo),
+					resource.TestCheckResourceAttr("grafana_slo.ratio_options", "alerting.0.advanced_options.0.min_failures", "10"),
+				),
+			},
+			{
+				// Import test (this tests that all fields are read correctly)
+				ResourceName:      "grafana_slo.ratio_options",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				// Tests the Search Expression
+				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_search_expression.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.search_expression", &slo),
+					resource.TestCheckResourceAttr("grafana_slo.search_expression", "search_expression", "Entity Search for RCA Workbench"),
+				),
+			},
+			{
+				// Import test (this tests that all fields are read correctly)
+				ResourceName:      "grafana_slo.search_expression",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+// Tests that recreating an out-of-band deleted SLO works without error.
+func TestAccSLO_recreate(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+	var slo slo.SloV00Slo
+	randomName := acctest.RandomWithPrefix("SLO Terraform Testing")
+	config := testutils.TestAccExampleWithReplace(t, "resources/grafana_slo/resource.tf", map[string]string{
+		"Terraform Testing": randomName,
+	})
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+
+		// Implicitly tests destroy
+		CheckDestroy: testAccSloCheckDestroy(&slo),
+		Steps: []resource.TestStep{
+			// Create
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.test", &slo),
+					resource.TestCheckResourceAttrSet("grafana_slo.test", "id"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "name", randomName),
+					resource.TestCheckResourceAttr("grafana_slo.test", "description", "Terraform Description"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "query.0.type", "freeform"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "query.0.freeform.0.query", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.value", "0.995"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.window", "30d"),
+					resource.TestCheckNoResourceAttr("grafana_slo.test", "folder_uid"),
+					testutils.CheckLister("grafana_slo.test"),
+				),
+			},
+			// Delete out-of-band
+			{
+				PreConfig: func() {
+					client := testutils.Provider.Meta().(*common.Client).SLOClient
+					req := client.DefaultAPI.V1SloIdDelete(context.Background(), slo.Uuid)
+					_, err := req.Execute()
+					require.NoError(t, err)
+				},
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+			// Re-create
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.test", &slo),
+					resource.TestCheckResourceAttrSet("grafana_slo.test", "id"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "name", randomName),
+					resource.TestCheckResourceAttr("grafana_slo.test", "description", "Terraform Description"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "query.0.type", "freeform"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "query.0.freeform.0.query", "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.value", "0.995"),
+					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.window", "30d"),
+					resource.TestCheckNoResourceAttr("grafana_slo.test", "folder_uid"),
+					testutils.CheckLister("grafana_slo.test"),
+				),
+			},
 		},
 	})
 }
@@ -112,9 +212,12 @@ func testAccSloCheckExists(rn string, slo *slo.SloV00Slo) resource.TestCheckFunc
 		client := testutils.Provider.Meta().(*common.Client).SLOClient
 		req := client.DefaultAPI.V1SloIdGet(context.Background(), rs.Primary.ID)
 		gotSlo, _, err := req.Execute()
-
 		if err != nil {
 			return fmt.Errorf("error getting SLO: %s", err)
+		}
+
+		if *gotSlo.ReadOnly.Provenance != "terraform" {
+			return fmt.Errorf("provenance header missing - verify within the Grafana Terraform Provider that the 'Grafana-Terraform-Provider' request header is set to 'true'")
 		}
 
 		*slo = *gotSlo
@@ -147,6 +250,30 @@ func testAlertingExists(expectation bool, rn string, slo *slo.SloV00Slo) resourc
 	}
 }
 
+func testAdvancedOptionsExists(expectation bool, rn string, slo *slo.SloV00Slo) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs := s.RootModule().Resources[rn]
+		client := testutils.Provider.Meta().(*common.Client).SLOClient
+		req := client.DefaultAPI.V1SloIdGet(context.Background(), rs.Primary.ID)
+		gotSlo, _, err := req.Execute()
+
+		if err != nil {
+			return fmt.Errorf("error getting SLO: %s", err)
+		}
+		*slo = *gotSlo
+
+		if slo.Alerting.AdvancedOptions == nil && expectation == false {
+			return nil
+		}
+
+		if slo.Alerting.AdvancedOptions != nil && expectation == true {
+			return nil
+		}
+
+		return fmt.Errorf("SLO Advanced Options expectation mismatch")
+	}
+}
+
 func testAccSloCheckDestroy(slo *slo.SloV00Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).SLOClient
@@ -155,6 +282,7 @@ func testAccSloCheckDestroy(slo *slo.SloV00Slo) resource.TestCheckFunc {
 		if resp.StatusCode == 404 {
 			return nil
 		}
+
 		if gotSlo.ReadOnly.Status.Type == "deleting" {
 			return nil
 		}

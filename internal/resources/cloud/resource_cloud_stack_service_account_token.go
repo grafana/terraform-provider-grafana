@@ -3,12 +3,11 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"time"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -75,6 +74,7 @@ Required access policy scopes:
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryCloud,
 		"grafana_cloud_stack_service_account_token",
 		nil,
 		schema,
@@ -154,10 +154,7 @@ func stackServiceAccountTokenRead(ctx context.Context, d *schema.ResourceData, c
 		}
 	}
 
-	log.Printf("[WARN] removing service account token %d from state because it no longer exists in grafana", id)
-	d.SetId("")
-
-	return nil
+	return common.WarnMissing("stack service account token", d)
 }
 
 func stackServiceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, cloudClient *gcom.APIClient) diag.Diagnostics {

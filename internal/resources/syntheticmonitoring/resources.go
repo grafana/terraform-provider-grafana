@@ -4,7 +4,7 @@ import (
 	"context"
 
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -21,9 +21,9 @@ func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.R
 	}
 }
 
-var DatasourcesMap = map[string]*schema.Resource{
-	"grafana_synthetic_monitoring_probe":  dataSourceProbe(),
-	"grafana_synthetic_monitoring_probes": dataSourceProbes(),
+var DataSources = []*common.DataSource{
+	dataSourceProbe(),
+	dataSourceProbes(),
 }
 
 var Resources = []*common.Resource{

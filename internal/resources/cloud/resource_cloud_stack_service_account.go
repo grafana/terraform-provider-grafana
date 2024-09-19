@@ -9,7 +9,7 @@ import (
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -74,6 +74,7 @@ Required access policy scopes:
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryCloud,
 		"grafana_cloud_stack_service_account",
 		resourceStackServiceAccountID,
 		schema,
@@ -123,8 +124,7 @@ func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudC
 
 	resp, httpResp, err := cloudClient.InstancesAPI.GetInstanceServiceAccount(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).Execute()
 	if httpResp != nil && httpResp.StatusCode == 404 {
-		d.SetId("")
-		return nil
+		return common.WarnMissing("stack service account", d)
 	}
 	if err != nil {
 		return diag.FromErr(err)

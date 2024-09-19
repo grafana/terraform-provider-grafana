@@ -4,13 +4,13 @@ import (
 	"context"
 
 	"github.com/grafana/grafana-openapi-client-go/client/access_control"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceRole() *schema.Resource {
-	return &schema.Resource{
+func datasourceRole() *common.DataSource {
+	schema := &schema.Resource{
 		Description: `
 **Note:** This resource is available only with Grafana Enterprise 8.+.
 
@@ -27,6 +27,7 @@ func datasourceRole() *schema.Resource {
 			"auto_increment_version": nil,
 		}),
 	}
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaEnterprise, "grafana_role", schema)
 }
 
 func dataSourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

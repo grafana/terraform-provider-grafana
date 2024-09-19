@@ -7,13 +7,13 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceServiceAccount() *schema.Resource {
-	return &schema.Resource{
+func datasourceServiceAccount() *common.DataSource {
+	schema := &schema.Resource{
 		Description: `
 		* [Official documentation](https://grafana.com/docs/grafana/latest/administration/service-accounts/)
 		* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/serviceaccount/#service-account-api)
@@ -28,6 +28,7 @@ func datasourceServiceAccount() *schema.Resource {
 			},
 		}),
 	}
+	return common.NewLegacySDKDataSource(common.CategoryGrafanaOSS, "grafana_service_account", schema)
 }
 
 func datasourceServiceAccountRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

@@ -2,12 +2,11 @@ package grafana
 
 import (
 	"context"
-	"log"
 	"strconv"
 
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -63,6 +62,7 @@ func resourceServiceAccountToken() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_service_account_token",
 		nil,
 		schema,
@@ -137,10 +137,7 @@ func serviceAccountTokenRead(ctx context.Context, d *schema.ResourceData, m inte
 		}
 	}
 
-	log.Printf("[WARN] removing service account token%d from state because it no longer exists in grafana", id)
-	d.SetId("")
-
-	return nil
+	return common.WarnMissing("service account token", d)
 }
 
 func serviceAccountTokenDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

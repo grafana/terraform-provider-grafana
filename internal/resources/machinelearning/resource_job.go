@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 )
 
 var resourceJobID = common.NewResourceID(common.StringIDField("id"))
@@ -99,7 +99,26 @@ A job defines the queries and model parameters for a machine learning task.
 		},
 	}
 
-	return common.NewLegacySDKResource("grafana_machine_learning_job", resourceJobID, schema)
+	return common.NewLegacySDKResource(
+		common.CategoryMachineLearning,
+		"grafana_machine_learning_job",
+		resourceJobID,
+		schema,
+	).
+		WithLister(lister(listJobs)).
+		WithPreferredResourceNameField("name")
+}
+
+func listJobs(ctx context.Context, client *mlapi.Client) ([]string, error) {
+	jobs, err := client.Jobs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, len(jobs))
+	for i, job := range jobs {
+		ids[i] = job.ID
+	}
+	return ids, nil
 }
 
 func resourceJobCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -158,11 +177,7 @@ func resourceJobUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 func resourceJobDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	err := c.DeleteJob(ctx, d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId("")
-	return nil
+	return diag.FromErr(err)
 }
 
 func makeMLJob(d *schema.ResourceData, meta interface{}) (mlapi.Job, error) {

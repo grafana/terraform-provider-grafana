@@ -231,11 +231,11 @@ One, or many, of the following authentication settings must be set. Each authent
 ### `auth`
 
 This can be a Grafana API key, basic auth `username:password`, or a
-[Grafana Service Account token](https://grafana.com/docs/grafana/latest/developers/http_api/create-api-tokens-for-org/).
+[Grafana Service Account token](https://grafana.com/docs/grafana/latest/developers/http_api/examples/create-api-tokens-for-org/).
 
 ### `cloud_access_policy_token`
 
-An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/create-api-key/).
+An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/authorize-services/).
 
 ### `sm_access_token`
 

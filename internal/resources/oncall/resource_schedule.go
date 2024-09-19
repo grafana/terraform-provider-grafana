@@ -2,12 +2,12 @@ package oncall
 
 import (
 	"context"
-	"log"
 	"net/http"
+	"slices"
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -102,10 +102,27 @@ func resourceSchedule() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryOnCall,
 		"grafana_oncall_schedule",
 		resourceID,
 		schema,
-	)
+	).
+		WithLister(oncallListerFunction(listSchedules)).
+		WithPreferredResourceNameField("name")
+}
+
+func listSchedules(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
+	resp, _, err := client.Schedules.ListSchedules(&onCallAPI.ListScheduleOptions{ListOptions: listOptions})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, i := range resp.Schedules {
+		if !slices.Contains(scheduleTypeOptions, i.Type) {
+			continue
+		}
+		ids = append(ids, i.ID)
+	}
+	return ids, resp.Next, nil
 }
 
 func resourceScheduleCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
@@ -240,9 +257,7 @@ func resourceScheduleRead(ctx context.Context, d *schema.ResourceData, client *o
 	schedule, r, err := client.Schedules.GetSchedule(d.Id(), options)
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] removing schedule %s from state because it no longer exists", d.Get("name").(string))
-			d.SetId("")
-			return nil
+			return common.WarnMissing("schedule", d)
 		}
 		return diag.FromErr(err)
 	}
@@ -263,13 +278,7 @@ func resourceScheduleRead(ctx context.Context, d *schema.ResourceData, client *o
 func resourceScheduleDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.DeleteScheduleOptions{}
 	_, err := client.Schedules.DeleteSchedule(d.Id(), options)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return nil
+	return diag.FromErr(err)
 }
 
 func flattenScheduleSlack(in *onCallAPI.SlackSchedule) []map[string]interface{} {

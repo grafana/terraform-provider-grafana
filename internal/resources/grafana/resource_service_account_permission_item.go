@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/grafana/grafana-openapi-client-go/client"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -30,7 +30,12 @@ func makeResourceServiceAccountPermissionItem() *common.Resource {
 			resourceType: serviceAccountsPermissionsType,
 		},
 	}
-	return common.NewResource(resourceServiceAccountPermissionItemName, resourceServiceAccountPermissionItemID, resourceStruct)
+	return common.NewResource(
+		common.CategoryGrafanaOSS,
+		resourceServiceAccountPermissionItemName,
+		resourceServiceAccountPermissionItemID,
+		resourceStruct,
+	)
 }
 
 type resourceServiceAccountPermissionItemModel struct {

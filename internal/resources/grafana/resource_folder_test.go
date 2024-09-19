@@ -8,15 +8,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/grafana/grafana-openapi-client-go/models"
-
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/resources/grafana"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
+	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
+	"github.com/grafana/grafana-openapi-client-go/models"
+
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 )
 
 func TestAccFolder_basic(t *testing.T) {
@@ -46,6 +47,7 @@ func TestAccFolder_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "uid", "test-folder-uid"),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "title", "Terraform Test Folder With UID"),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "url", strings.TrimRight(os.Getenv("GRAFANA_URL"), "/")+"/dashboards/f/test-folder-uid/terraform-test-folder-with-uid"),
+					testutils.CheckLister("grafana_folder.test_folder_with_uid"),
 				),
 			},
 			{
@@ -170,7 +172,7 @@ resource grafana_folder child2 {
 }
 
 func TestAccFolder_PreventDeletion(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckOSSTestsEnabled(t, ">=10.2.0") // Searching by folder UID was added in 10.2.0
 
 	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 	var folder models.Folder
@@ -185,6 +187,7 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 				Config:  testAccFolderExample_PreventDeletion(name, true), // Create protected folder
 				Destroy: true,
 			},
+			// test with dashboard added to folder from outside Terraform:
 			{
 				Config: testAccFolderExample_PreventDeletion(name, true), // Create protected folder again
 				Check: resource.ComposeTestCheckFunc(
@@ -198,6 +201,50 @@ func TestAccFolder_PreventDeletion(t *testing.T) {
 								"uid":   name + "-dashboard",
 								"title": name + "-dashboard",
 							}})
+						return err
+					},
+				),
+			},
+			{
+				Config:  testAccFolderExample_PreventDeletion(name, true),
+				Destroy: true, // Try to delete the protected folder
+				ExpectError: regexp.MustCompile(
+					fmt.Sprintf(`.+folder %s is not empty and prevent_destroy_if_not_empty is set.+`, name),
+				), // Fail because it's protected
+			},
+			{
+				Config: testAccFolderExample_PreventDeletion(name, false), // Remove protected flag
+			},
+			{
+				Config:  testAccFolderExample_PreventDeletion(name, false),
+				Destroy: true, // No error if the folder is not protected
+			},
+		},
+	})
+}
+
+func TestAccFolder_PreventDeletionNested(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=10.2.0") // Searching by folder UID was added in 10.2.0
+
+	name := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+	var folder models.Folder
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			// test with a nested folder inside the folder:
+			{
+				Config: testAccFolderExample_PreventDeletion(name, true), // Create protected folder again
+				Check: resource.ComposeTestCheckFunc(
+					folderCheckExists.exists("grafana_folder.test_folder", &folder),
+					// Create a dashboard in the protected folder
+					func(s *terraform.State) error {
+						client := grafanaTestClient()
+						_, err := client.Folders.CreateFolder(&models.CreateFolderCommand{
+							Title:     "Inner folder",
+							ParentUID: name,
+							UID:       acctest.RandStringFromCharSet(10, acctest.CharSetAlpha),
+						})
 						return err
 					},
 				),
@@ -239,26 +286,40 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 	} {
 		t.Run(tc.role, func(t *testing.T) {
 			var folder models.Folder
-			var name = acctest.RandomWithPrefix(tc.role + "-key")
+			var saName = acctest.RandomWithPrefix(tc.role + "-sa")
+			var saTokenName = acctest.RandomWithPrefix(tc.role + "-token")
 
-			// Create an API key with the correct role and inject it in envvars. This auth will be used when the test runs
+			// Create a service account token with the correct role and inject it in envvars. This auth will be used when the test runs
 			client := grafanaTestClient()
-			resp, err := client.APIKeys.AddAPIkey(&models.AddAPIKeyCommand{
-				Name: name,
-				Role: tc.role,
-			})
+
+			sa, err := client.ServiceAccounts.CreateServiceAccount(
+				service_accounts.NewCreateServiceAccountParams().WithBody(&models.CreateServiceAccountForm{
+					Name: saName,
+					Role: tc.role,
+				}),
+			)
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer client.APIKeys.DeleteAPIkey(resp.Payload.ID)
+			defer client.ServiceAccounts.DeleteServiceAccount(sa.Payload.ID)
+
+			saToken, err := client.ServiceAccounts.CreateToken(
+				service_accounts.NewCreateTokenParams().WithBody(&models.AddServiceAccountTokenCommand{
+					Name: saTokenName,
+				}).WithServiceAccountID(sa.Payload.ID),
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+
 			oldValue := os.Getenv("GRAFANA_AUTH")
 			defer os.Setenv("GRAFANA_AUTH", oldValue)
-			os.Setenv("GRAFANA_AUTH", resp.Payload.Key)
+			os.Setenv("GRAFANA_AUTH", saToken.Payload.Key)
 
 			config := fmt.Sprintf(`
 		resource "grafana_folder" "bar" {
 			title    = "%[1]s"
-		}`, name)
+		}`, saName)
 
 			// Do not make parallel, fiddling with auth will break other tests that run in parallel
 			resource.Test(t, resource.TestCase{
@@ -272,7 +333,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 							folderCheckExists.exists("grafana_folder.bar", &folder),
 							resource.TestMatchResourceAttr("grafana_folder.bar", "id", defaultOrgIDRegexp),
 							resource.TestMatchResourceAttr("grafana_folder.bar", "uid", common.UIDRegexp),
-							resource.TestCheckResourceAttr("grafana_folder.bar", "title", name),
+							resource.TestCheckResourceAttr("grafana_folder.bar", "title", saName),
 						),
 					},
 				},

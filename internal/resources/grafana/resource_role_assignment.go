@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -74,6 +74,7 @@ Manages the entire set of assignments for a role. Assignments that aren't specif
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaEnterprise,
 		"grafana_role_assignment",
 		orgResourceIDString("roleUID"),
 		schema,

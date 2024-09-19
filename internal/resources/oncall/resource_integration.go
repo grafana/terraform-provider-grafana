@@ -3,12 +3,11 @@ package oncall
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -49,7 +48,7 @@ var integrationTypesVerbal = strings.Join(integrationTypes, ", ")
 func resourceIntegration() *common.Resource {
 	schema := &schema.Resource{
 		Description: `
-* [Official documentation](https://grafana.com/docs/oncall/latest/integrations/)
+* [Official documentation](https://grafana.com/docs/oncall/latest/configure/integrations/)
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/)
 `,
 
@@ -236,10 +235,24 @@ func resourceIntegration() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryOnCall,
 		"grafana_oncall_integration",
 		resourceID,
 		schema,
-	)
+	).
+		WithLister(oncallListerFunction(listIntegrations)).
+		WithPreferredResourceNameField("name")
+}
+
+func listIntegrations(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
+	resp, _, err := client.Integrations.ListIntegrations(&onCallAPI.ListIntegrationOptions{ListOptions: listOptions})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, i := range resp.Integrations {
+		ids = append(ids, i.ID)
+	}
+	return ids, resp.Next, nil
 }
 
 func onCallTemplate(description string, hasMessage, hasImage bool) *schema.Schema {
@@ -333,9 +346,7 @@ func resourceIntegrationRead(ctx context.Context, d *schema.ResourceData, client
 	integration, r, err := client.Integrations.GetIntegration(d.Id(), options)
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] removing integreation %s from state because it no longer exists", d.Get("name").(string))
-			d.SetId("")
-			return nil
+			return common.WarnMissing("integration", d)
 		}
 		return diag.FromErr(err)
 	}
@@ -353,13 +364,7 @@ func resourceIntegrationRead(ctx context.Context, d *schema.ResourceData, client
 func resourceIntegrationDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.DeleteIntegrationOptions{}
 	_, err := client.Integrations.DeleteIntegration(d.Id(), options)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return nil
+	return diag.FromErr(err)
 }
 
 func flattenRouteSlack(in *onCallAPI.SlackRoute) []map[string]interface{} {

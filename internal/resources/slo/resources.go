@@ -3,8 +3,8 @@ package slo
 import (
 	"context"
 
-	slo "github.com/grafana/slo-openapi-client/go"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/slo-openapi-client/go/slo"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -21,8 +21,8 @@ func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.R
 	}
 }
 
-var DatasourcesMap = map[string]*schema.Resource{
-	"grafana_slos": datasourceSlo(),
+var DataSources = []*common.DataSource{
+	datasourceSlo(),
 }
 
 var Resources = []*common.Resource{

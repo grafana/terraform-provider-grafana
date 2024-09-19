@@ -6,12 +6,13 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func datasourceIPs() *schema.Resource {
-	return &schema.Resource{
+func datasourceIPs() *common.DataSource {
+	schema := &schema.Resource{
 		Description: "Data source for retrieving sets of cloud IPs. See https://grafana.com/docs/grafana-cloud/reference/allow-list/ for more info",
 		ReadContext: datasourceIPsRead,
 		Schema: map[string]*schema.Schema{
@@ -57,6 +58,7 @@ func datasourceIPs() *schema.Resource {
 			},
 		},
 	}
+	return common.NewLegacySDKDataSource(common.CategoryCloud, "grafana_cloud_ips", schema)
 }
 
 func datasourceIPsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 )
 
 func TestAccServiceAccount_basic(t *testing.T) {
@@ -34,6 +34,7 @@ func TestAccServiceAccount_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_service_account.test", "role", "Editor"),
 					resource.TestCheckResourceAttr("grafana_service_account.test", "is_disabled", "false"),
 					resource.TestMatchResourceAttr("grafana_service_account.test", "id", defaultOrgIDRegexp),
+					testutils.CheckLister("grafana_service_account.test"),
 				),
 			},
 			// Change the name. Check that the ID stays the same.

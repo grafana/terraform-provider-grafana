@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -14,7 +13,7 @@ import (
 
 	sm "github.com/grafana/synthetic-monitoring-agent/pkg/pb/synthetic_monitoring"
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 )
 
 var resourceProbeID = common.NewResourceID(common.IntIDField("id"), common.OptionalStringIDField("authToken"))
@@ -112,10 +111,13 @@ Grafana Synthetic Monitoring Agent.
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategorySyntheticMonitoring,
 		"grafana_synthetic_monitoring_probe",
 		resourceProbeID,
 		schema,
-	).WithLister(listProbes)
+	).
+		WithLister(listProbes).
+		WithPreferredResourceNameField("name")
 }
 
 func listProbes(ctx context.Context, client *common.Client, data any) ([]string, error) {
@@ -159,9 +161,7 @@ func resourceProbeRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 	prb, err := c.GetProbe(ctx, id.(int64))
 	if err != nil {
 		if strings.Contains(err.Error(), "404 Not Found") {
-			log.Printf("[WARN] removing probe %s from state because it no longer exists", d.Id())
-			d.SetId("")
-			return nil
+			return common.WarnMissing("probe", d)
 		}
 		return diag.FromErr(err)
 	}
@@ -224,7 +224,6 @@ You must also taint the check, or assign a new probe to it before deleting this 
 		}
 	}
 
-	d.SetId("")
 	return diag.FromErr(c.DeleteProbe(ctx, id))
 }
 

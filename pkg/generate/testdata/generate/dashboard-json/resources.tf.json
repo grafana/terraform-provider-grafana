@@ -1,0 +1,64 @@
+{
+  "resource": {
+    "grafana_contact_point": {
+      "email_receiver": [
+        {
+          "disable_provenance": true,
+          "email": [
+            {
+              "addresses": [
+                "\u003cexample@email.com\u003e"
+              ],
+              "disable_resolve_message": false,
+              "single_email": false
+            }
+          ],
+          "name": "email receiver"
+        }
+      ]
+    },
+    "grafana_dashboard": {
+      "my-dashboard-uid": [
+        {
+          "config_json": "${jsonencode({\n    title = \"My Dashboard\"\n    uid   = \"my-dashboard-uid\"\n  })}",
+          "folder": "${grafana_folder.my-folder-uid.uid}"
+        }
+      ]
+    },
+    "grafana_folder": {
+      "my-folder-uid": [
+        {
+          "title": "My Folder",
+          "uid": "my-folder-uid"
+        }
+      ]
+    },
+    "grafana_notification_policy": {
+      "policy": [
+        {
+          "contact_point": "grafana-default-email",
+          "disable_provenance": true,
+          "group_by": [
+            "grafana_folder",
+            "alertname"
+          ]
+        }
+      ]
+    },
+    "grafana_organization_preferences": {
+      "_1": [
+        {}
+      ]
+    },
+    "grafana_user": {
+      "admin": [
+        {
+          "email": "admin@localhost",
+          "is_admin": true,
+          "login": "admin",
+          "password": "SENSITIVE_VALUE_TO_REPLACE"
+        }
+      ]
+    }
+  }
+}

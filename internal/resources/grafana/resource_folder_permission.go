@@ -3,7 +3,7 @@ package grafana
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 )
 
 func resourceFolderPermission() *common.Resource {
@@ -41,6 +41,7 @@ Manages the entire set of permissions for a folder. Permissions that aren't spec
 	crudHelper.addCommonSchemaAttributes(schema.Schema)
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_folder_permission",
 		orgResourceIDString("folderUID"),
 		schema,

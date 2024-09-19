@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 )
 
 var resourceHolidayID = common.NewResourceID(common.StringIDField("id"))
@@ -104,7 +104,26 @@ resource "grafana_machine_learning_job" "test_job" {
 		},
 	}
 
-	return common.NewLegacySDKResource("grafana_machine_learning_holiday", resourceHolidayID, schema)
+	return common.NewLegacySDKResource(
+		common.CategoryMachineLearning,
+		"grafana_machine_learning_holiday",
+		resourceHolidayID,
+		schema,
+	).
+		WithLister(lister(listHolidays)).
+		WithPreferredResourceNameField("name")
+}
+
+func listHolidays(ctx context.Context, client *mlapi.Client) ([]string, error) {
+	holidays, err := client.Holidays(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, len(holidays))
+	for i, holiday := range holidays {
+		ids[i] = holiday.ID
+	}
+	return ids, nil
 }
 
 func resourceHolidayCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -163,11 +182,7 @@ func resourceHolidayUpdate(ctx context.Context, d *schema.ResourceData, meta int
 func resourceHolidayDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	err := c.DeleteHoliday(ctx, d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId("")
-	return nil
+	return diag.FromErr(err)
 }
 
 func makeMLHoliday(d *schema.ResourceData) (mlapi.Holiday, error) {

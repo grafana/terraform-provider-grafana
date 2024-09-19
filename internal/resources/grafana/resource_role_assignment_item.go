@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -28,7 +28,12 @@ var (
 )
 
 func makeResourceRoleAssignmentItem() *common.Resource {
-	return common.NewResource(resourceRoleAssignmentItemName, resourceRoleAssignmentItemID, &resourceRoleAssignmentItem{})
+	return common.NewResource(
+		common.CategoryGrafanaEnterprise,
+		resourceRoleAssignmentItemName,
+		resourceRoleAssignmentItemID,
+		&resourceRoleAssignmentItem{},
+	)
 }
 
 type resourceRoleAssignmentItemModel struct {

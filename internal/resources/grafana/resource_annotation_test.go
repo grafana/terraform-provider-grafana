@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -31,6 +31,7 @@ func TestAccAnnotation_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					annotationsCheckExists.exists("grafana_annotation.test", &annotation),
 					resource.TestCheckResourceAttr("grafana_annotation.test", "text", testAccAnnotationInitialText),
+					testutils.CheckLister("grafana_annotation.test"),
 				),
 			},
 			{

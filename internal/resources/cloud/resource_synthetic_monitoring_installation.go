@@ -3,12 +3,11 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -72,6 +71,7 @@ Required access policy scopes:
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategorySyntheticMonitoring,
 		"grafana_synthetic_monitoring_installation",
 		nil,
 		schema,
@@ -113,8 +113,7 @@ func resourceInstallationRead(ctx context.Context, d *schema.ResourceData, meta 
 	apiURL := strings.Split(d.Id(), ";")[0]
 	tempClient := SMAPI.NewClient(apiURL, d.Get("sm_access_token").(string), nil)
 	if err := tempClient.ValidateToken(ctx); err != nil {
-		log.Printf("[WARN] removing SM installation from state because it is no longer valid")
-		d.SetId("")
+		return common.WarnMissing("synthetic monitoring installation", d)
 	}
 
 	return nil
@@ -123,9 +122,6 @@ func resourceInstallationRead(ctx context.Context, d *schema.ResourceData, meta 
 func resourceInstallationDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	apiURL := strings.Split(d.Id(), ";")[0]
 	tempClient := SMAPI.NewClient(apiURL, d.Get("sm_access_token").(string), nil)
-	if err := tempClient.DeleteToken(ctx); err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId("")
-	return nil
+	err := tempClient.DeleteToken(ctx)
+	return diag.FromErr(err)
 }

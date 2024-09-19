@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
-	"github.com/grafana/terraform-provider-grafana/v2/pkg/provider"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -29,8 +29,8 @@ func TestProviderConfigure(t *testing.T) {
 	// Helper for header tests
 	checkHeaders := func(t *testing.T, provider *schema.Provider) {
 		gotHeaders := provider.Meta().(*common.Client).GrafanaAPIConfig.HTTPHeaders
-		if len(gotHeaders) != 3 {
-			t.Errorf("expected 3 HTTP header, got %d", len(gotHeaders))
+		if len(gotHeaders) != 4 {
+			t.Errorf("expected 4 HTTP header, got %d", len(gotHeaders))
 		}
 		if gotHeaders["Authorization"] != "Bearer test" {
 			t.Errorf("expected HTTP header Authorization to be \"Bearer test\", got %q", gotHeaders["Authorization"])

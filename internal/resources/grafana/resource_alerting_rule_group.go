@@ -3,21 +3,24 @@ package grafana
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 )
 
 var resourceRuleGroupID = common.NewResourceID(
@@ -31,7 +34,7 @@ func resourceRuleGroup() *common.Resource {
 		Description: `
 Manages Grafana Alerting rule groups.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/alerting-rules/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#alert-rules)
 
 This resource requires Grafana 9.1.0 or later.
@@ -248,30 +251,32 @@ This resource requires Grafana 9.1.0 or later.
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryAlerting,
 		"grafana_rule_group",
 		resourceRuleGroupID,
 		schema,
-	).WithLister(listerFunction(listRuleGroups))
+	).WithLister(listerFunctionOrgResource(listRuleGroups))
 }
 
-func listRuleGroups(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
-	orgIDs, err := data.OrgIDs(client)
-	if err != nil {
-		return nil, err
-	}
-
+func listRuleGroups(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
 	idMap := map[string]bool{}
-	for _, orgID := range orgIDs {
-		client = client.Clone().WithOrgID(orgID)
-
+	// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+	// The alertmanager is provisioned asynchronously when the org is created.
+	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		resp, err := client.Provisioning.GetAlertRules()
 		if err != nil {
-			return nil, err
+			if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
 		}
 
 		for _, rule := range resp.Payload {
-			idMap[MakeOrgResourceID(orgID, resourceRuleGroupID.Make(rule.FolderUID, rule.RuleGroup))] = true
+			idMap[resourceRuleGroupID.Make(orgID, rule.FolderUID, rule.RuleGroup)] = true
 		}
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	var ids []string
@@ -285,11 +290,10 @@ func listRuleGroups(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *Lis
 func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID, idWithoutOrg := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	split, err := resourceRuleGroupID.Split(idWithoutOrg)
-	if err != nil {
-		return diag.FromErr(err)
+	folderUID, title, found := strings.Cut(idWithoutOrg, common.ResourceIDSeparator)
+	if !found {
+		return diag.Errorf("invalid ID %q", idWithoutOrg)
 	}
-	folderUID, title := split[0].(string), split[1].(string)
 
 	resp, err := client.Provisioning.GetAlertRuleGroup(title, folderUID)
 	if err, shouldReturn := common.CheckReadError("rule group", data, err); shouldReturn {
@@ -328,67 +332,96 @@ func readAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta int
 func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID := OAPIClientFromNewOrgResource(meta, data)
 
-	if data.IsNewResource() {
-		// Check if a rule group with the same name already exists. The API either:
-		// - returns a 500 error if it exists in a different folder, which is not very helpful.
-		// - overwrites the existing rule group if it exists in the same folder, which is not expected of a TF provider.
-		resp, err := client.Provisioning.GetAlertRules()
+	retryErr := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		respAlertRules, err := client.Provisioning.GetAlertRules()
 		if err != nil {
-			return diag.FromErr(err)
+			return retry.NonRetryableError(err)
 		}
 
-		for _, rule := range resp.Payload {
-			name := data.Get("name").(string)
-			if *rule.RuleGroup == name {
-				return diag.Errorf("rule group with name %q already exists", name)
+		if data.IsNewResource() {
+			// Check if a rule group with the same name already exists. The API either:
+			// - overwrites the existing rule group if it exists in the same folder, which is not expected of a TF provider.
+			for _, rule := range respAlertRules.Payload {
+				name := data.Get("name").(string)
+				folder := data.Get("folder_uid").(string)
+				if *rule.RuleGroup == name && *rule.FolderUID == folder {
+					return retry.NonRetryableError(fmt.Errorf("rule group with name %q already exists", name))
+				}
 			}
 		}
-	}
 
-	group := data.Get("name").(string)
-	folder := data.Get("folder_uid").(string)
-	interval := data.Get("interval_seconds").(int)
+		group := data.Get("name").(string)
+		folder := data.Get("folder_uid").(string)
+		interval := data.Get("interval_seconds").(int)
 
-	packedRules := data.Get("rule").([]interface{})
-	rules := make([]*models.ProvisionedAlertRule, 0, len(packedRules))
-	for i := range packedRules {
-		rule, err := unpackAlertRule(packedRules[i], group, folder, orgID)
-		if err != nil {
-			return diag.FromErr(err)
+		packedRules := data.Get("rule").([]interface{})
+		rules := make([]*models.ProvisionedAlertRule, 0, len(packedRules))
+
+		for i := range packedRules {
+			ruleToApply, err := unpackAlertRule(packedRules[i], group, folder, orgID)
+			if err != nil {
+				return retry.NonRetryableError(err)
+			}
+
+			// Check if a rule with the same name already exists within the same rule group
+			for _, r := range rules {
+				if *r.Title == *ruleToApply.Title {
+					return retry.NonRetryableError(fmt.Errorf("rule with name %q is defined more than once", *ruleToApply.Title))
+				}
+			}
+
+			// Check if a rule with the same name already exists within the same folder (changing the ordering is allowed within the same rule group)
+			for _, existingRule := range respAlertRules.Payload {
+				if *existingRule.Title == *ruleToApply.Title && *existingRule.FolderUID == *ruleToApply.FolderUID {
+					if *ruleToApply.RuleGroup == *existingRule.RuleGroup {
+						break
+					}
+
+					// Retry so that if the user is moving a rule from one group to another, it will pass on the next iteration.
+					return retry.RetryableError(fmt.Errorf("rule with name %q already exists in the folder", *ruleToApply.Title))
+				}
+			}
+
+			rules = append(rules, ruleToApply)
 		}
-		rules = append(rules, rule)
-	}
 
-	putParams := provisioning.NewPutAlertRuleGroupParams().
-		WithFolderUID(folder).
-		WithGroup(group).WithBody(&models.AlertRuleGroup{
-		Title:     group,
-		FolderUID: folder,
-		Rules:     rules,
-		Interval:  int64(interval),
+		putParams := provisioning.NewPutAlertRuleGroupParams().
+			WithFolderUID(folder).
+			WithGroup(group).WithBody(&models.AlertRuleGroup{
+			Title:     group,
+			FolderUID: folder,
+			Rules:     rules,
+			Interval:  int64(interval),
+		})
+
+		if data.Get("disable_provenance").(bool) {
+			putParams.SetXDisableProvenance(&provenanceDisabled)
+		}
+
+		resp, err := client.Provisioning.PutAlertRuleGroup(putParams)
+		if err != nil {
+			return retry.RetryableError(err)
+		}
+
+		data.SetId(resourceRuleGroupID.Make(orgID, resp.Payload.FolderUID, resp.Payload.Title))
+		return nil
 	})
 
-	if data.Get("disable_provenance").(bool) {
-		putParams.SetXDisableProvenance(&provenanceDisabled)
+	if retryErr != nil {
+		return diag.FromErr(retryErr)
 	}
 
-	resp, err := client.Provisioning.PutAlertRuleGroup(putParams)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	data.SetId(resourceRuleGroupID.Make(orgID, resp.Payload.FolderUID, resp.Payload.Title))
 	return readAlertRuleGroup(ctx, data, meta)
 }
 
 func deleteAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, idWithoutOrg := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	split, err := resourceRuleGroupID.Split(idWithoutOrg)
-	if err != nil {
-		return diag.FromErr(err)
+	folderUID, title, found := strings.Cut(idWithoutOrg, common.ResourceIDSeparator)
+	if !found {
+		return diag.Errorf("invalid ID %q", idWithoutOrg)
 	}
-	folderUID, title := split[0].(string), split[1].(string)
+
 	// TODO use DeleteAlertRuleGroup method instead (available since Grafana 11)
 	resp, err := client.Provisioning.GetAlertRuleGroup(title, folderUID)
 	if err != nil {

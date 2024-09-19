@@ -3,12 +3,11 @@ package oncall
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -221,10 +220,23 @@ func resourceEscalation() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryOnCall,
 		"grafana_oncall_escalation",
 		resourceID,
 		schema,
-	)
+	).
+		WithLister(oncallListerFunction(listEscalations))
+}
+
+func listEscalations(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
+	resp, _, err := client.Escalations.ListEscalations(&onCallAPI.ListEscalationOptions{ListOptions: listOptions})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, i := range resp.Escalations {
+		ids = append(ids, i.ID)
+	}
+	return ids, resp.Next, nil
 }
 
 func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
@@ -344,9 +356,7 @@ func resourceEscalationRead(ctx context.Context, d *schema.ResourceData, client 
 	escalation, r, err := client.Escalations.GetEscalation(d.Id(), &onCallAPI.GetEscalationOptions{})
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] removing escalation %s from state because it no longer exists", d.Id())
-			d.SetId("")
-			return nil
+			return common.WarnMissing("escalation", d)
 		}
 		return diag.FromErr(err)
 	}
@@ -354,16 +364,36 @@ func resourceEscalationRead(ctx context.Context, d *schema.ResourceData, client 
 	d.Set("escalation_chain_id", escalation.EscalationChainId)
 	d.Set("position", escalation.Position)
 	d.Set("type", escalation.Type)
-	d.Set("duration", escalation.Duration)
-	d.Set("notify_on_call_from_schedule", escalation.NotifyOnCallFromSchedule)
-	d.Set("persons_to_notify", escalation.PersonsToNotify)
-	d.Set("persons_to_notify_next_each_time", escalation.PersonsToNotifyEachTime)
-	d.Set("notify_to_team_members", escalation.TeamToNotify)
-	d.Set("group_to_notify", escalation.GroupToNotify)
-	d.Set("action_to_trigger", escalation.ActionToTrigger)
-	d.Set("important", escalation.Important)
-	d.Set("notify_if_time_from", escalation.NotifyIfTimeFrom)
-	d.Set("notify_if_time_to", escalation.NotifyIfTimeTo)
+	if escalation.Duration != nil {
+		d.Set("duration", escalation.Duration)
+	}
+	if escalation.NotifyOnCallFromSchedule != nil {
+		d.Set("notify_on_call_from_schedule", escalation.NotifyOnCallFromSchedule)
+	}
+	if escalation.PersonsToNotify != nil {
+		d.Set("persons_to_notify", escalation.PersonsToNotify)
+	}
+	if escalation.PersonsToNotifyEachTime != nil {
+		d.Set("persons_to_notify_next_each_time", escalation.PersonsToNotifyEachTime)
+	}
+	if escalation.TeamToNotify != nil {
+		d.Set("notify_to_team_members", escalation.TeamToNotify)
+	}
+	if escalation.GroupToNotify != nil {
+		d.Set("group_to_notify", escalation.GroupToNotify)
+	}
+	if escalation.ActionToTrigger != nil {
+		d.Set("action_to_trigger", escalation.ActionToTrigger)
+	}
+	if escalation.Important != nil {
+		d.Set("important", escalation.Important)
+	}
+	if escalation.NotifyIfTimeFrom != nil {
+		d.Set("notify_if_time_from", escalation.NotifyIfTimeFrom)
+	}
+	if escalation.NotifyIfTimeTo != nil {
+		d.Set("notify_if_time_to", escalation.NotifyIfTimeTo)
+	}
 
 	return nil
 }
@@ -461,11 +491,5 @@ func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, clien
 
 func resourceEscalationDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	_, err := client.Escalations.DeleteEscalation(d.Id(), &onCallAPI.DeleteEscalationOptions{})
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return nil
+	return diag.FromErr(err)
 }

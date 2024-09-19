@@ -36,7 +36,7 @@ resource "grafana_oncall_outgoing_webhook" "test-acc-outgoing_webhook" {
 - `headers` (String) Headers to add to the outgoing webhook request.
 - `http_method` (String) The HTTP method used in the request made by the outgoing webhook. Defaults to `POST`.
 - `integration_filter` (List of String) Restricts the outgoing webhook to only trigger if the event came from a selected integration. If no integrations are selected the outgoing webhook will trigger for any integration.
-- `is_webhook_enabled` (Boolean) Controls whether the outgoing webhook will trigger or is ignored. The default is `true`.
+- `is_webhook_enabled` (Boolean) Controls whether the outgoing webhook will trigger or is ignored. Defaults to `true`.
 - `password` (String, Sensitive) The auth data of the webhook. Used for Basic authentication
 - `team_id` (String) The ID of the OnCall team. To get one, create a team in Grafana, and navigate to the OnCall plugin (to sync the team with OnCall). You can then get the ID using the `grafana_oncall_team` datasource.
 - `trigger_template` (String) A template used to dynamically determine whether the webhook should execute based on the content of the payload.

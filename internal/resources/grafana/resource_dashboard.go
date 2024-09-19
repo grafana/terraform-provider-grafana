@@ -13,7 +13,7 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 )
 
 var (
@@ -95,34 +95,26 @@ Manages Grafana dashboards.
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_dashboard",
 		orgResourceIDString("uid"),
 		schema,
-	).WithLister(listerFunction(listDashboards))
+	).WithLister(listerFunctionOrgResource(listDashboards))
 }
 
-func listDashboards(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
-	return listDashboardOrFolder(client, data, "dash-db")
+func listDashboards(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	return listDashboardOrFolder(client, orgID, "dash-db")
 }
 
-func listDashboardOrFolder(client *goapi.GrafanaHTTPAPI, data *ListerData, searchType string) ([]string, error) {
-	orgIDs, err := data.OrgIDs(client)
+func listDashboardOrFolder(client *goapi.GrafanaHTTPAPI, orgID int64, searchType string) ([]string, error) {
+	uids := []string{}
+	resp, err := client.Search.Search(search.NewSearchParams().WithType(common.Ref(searchType)))
 	if err != nil {
 		return nil, err
 	}
 
-	uids := []string{}
-	for _, orgID := range orgIDs {
-		client = client.Clone().WithOrgID(orgID)
-
-		resp, err := client.Search.Search(search.NewSearchParams().WithType(common.Ref(searchType)))
-		if err != nil {
-			return nil, err
-		}
-
-		for _, item := range resp.Payload {
-			uids = append(uids, MakeOrgResourceID(orgID, item.UID))
-		}
+	for _, item := range resp.Payload {
+		uids = append(uids, MakeOrgResourceID(orgID, item.UID))
 	}
 
 	return uids, nil

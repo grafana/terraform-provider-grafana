@@ -5,13 +5,14 @@ import (
 	"flag"
 	"log"
 
-	"github.com/grafana/terraform-provider-grafana/v2/pkg/provider"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tf5server"
 )
 
 //go:generate go run ./tools/genimports examples
-//go:generate ./tools/generate-docs.sh
+//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+//go:generate go run ./tools/setcategories docs
 
 var (
 	// these will be set by the goreleaser configuration

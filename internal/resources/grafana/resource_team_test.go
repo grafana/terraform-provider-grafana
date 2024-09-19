@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
@@ -33,6 +33,7 @@ func TestAccTeam_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_team.test", "email", teamName+"@example.com"),
 					resource.TestMatchResourceAttr("grafana_team.test", "id", defaultOrgIDRegexp),
 					resource.TestCheckResourceAttr("grafana_team.test", "org_id", "1"),
+					testutils.CheckLister("grafana_team.test"),
 				),
 			},
 			{

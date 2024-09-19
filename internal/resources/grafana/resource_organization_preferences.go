@@ -4,8 +4,9 @@ import (
 	"context"
 	"strconv"
 
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -57,10 +58,17 @@ func resourceOrganizationPreferences() *common.Resource {
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryGrafanaOSS,
 		"grafana_organization_preferences",
 		common.NewResourceID(common.IntIDField("orgID")),
 		schema,
-	)
+	).WithLister(listerFunction(listOrganizationPreferences))
+}
+
+func listOrganizationPreferences(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
+	orgIDs, err := listOrganizations(ctx, client, data)
+	orgIDs = append(orgIDs, "1") // Default org. We can set preferences for it even if it can't be managed otherwise.
+	return orgIDs, err
 }
 
 func CreateOrganizationPreferences(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

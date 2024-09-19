@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/go-openapi/runtime"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -19,8 +22,8 @@ func resourceMuteTiming() *common.Resource {
 		Description: `
 Manages Grafana Alerting mute timings.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/configure-notifications/mute-timings/)
-* [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#mute-timings)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#mute-timings)
 
 This resource requires Grafana 9.1.0 or later.
 `,
@@ -126,30 +129,32 @@ This resource requires Grafana 9.1.0 or later.
 	}
 
 	return common.NewLegacySDKResource(
+		common.CategoryAlerting,
 		"grafana_mute_timing",
 		orgResourceIDString("name"),
 		schema,
-	).WithLister(listerFunction(listMuteTimings))
+	).WithLister(listerFunctionOrgResource(listMuteTimings))
 }
 
-func listMuteTimings(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
-	orgIDs, err := data.OrgIDs(client)
-	if err != nil {
-		return nil, err
-	}
-
+func listMuteTimings(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
 	var ids []string
-	for _, orgID := range orgIDs {
-		client = client.Clone().WithOrgID(orgID)
-
+	// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+	// The alertmanager is provisioned asynchronously when the org is created.
+	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		resp, err := client.Provisioning.GetMuteTimings()
 		if err != nil {
-			return nil, err
+			if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
 		}
 
 		for _, muteTiming := range resp.Payload {
 			ids = append(ids, MakeOrgResourceID(orgID, muteTiming.Name))
 		}
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	return ids, nil
@@ -185,10 +190,24 @@ func createMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 		params.SetXDisableProvenance(&provenanceDisabled)
 	}
 
-	resp, err := client.Provisioning.PostMuteTiming(params)
+	var resp *provisioning.PostMuteTimingCreated
+	err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		var postErr error
+		resp, postErr = client.Provisioning.PostMuteTiming(params)
+		if orgID > 1 && postErr != nil {
+			if apiError, ok := postErr.(*runtime.APIError); ok && (apiError.IsCode(500) || apiError.IsCode(404)) {
+				return retry.RetryableError(postErr)
+			}
+		}
+		if postErr != nil {
+			return retry.NonRetryableError(postErr)
+		}
+		return nil
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
 	data.SetId(MakeOrgResourceID(orgID, resp.Payload.Name))
 	return readMuteTiming(ctx, data, meta)
 }
@@ -218,9 +237,71 @@ func updateMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
-	_, err := client.Provisioning.DeleteMuteTiming(name)
+	// Remove the mute timing from all notification policies
+	policyResp, err := client.Provisioning.GetPolicyTree()
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	policy := policyResp.Payload
+	modified := false
+	policy, modified = removeMuteTimingFromRoute(name, policy)
+	if modified {
+		_, err = client.Provisioning.PutPolicyTree(provisioning.NewPutPolicyTreeParams().WithBody(policy))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	// Remove the mute timing from alert rules
+	ruleResp, err := client.Provisioning.GetAlertRules()
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	rules := ruleResp.Payload
+	for _, rule := range rules {
+		if rule.NotificationSettings == nil {
+			continue
+		}
+
+		var muteTimeIntervals []string
+		for _, m := range rule.NotificationSettings.MuteTimeIntervals {
+			if m != name {
+				muteTimeIntervals = append(muteTimeIntervals, m)
+			}
+		}
+		if len(muteTimeIntervals) != len(rule.NotificationSettings.MuteTimeIntervals) {
+			rule.NotificationSettings.MuteTimeIntervals = muteTimeIntervals
+			params := provisioning.NewPutAlertRuleParams().WithBody(rule).WithUID(rule.UID)
+			_, err = client.Provisioning.PutAlertRule(params)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	}
+
+	// Delete the mute timing
+	params := provisioning.NewDeleteMuteTimingParams().WithName(name)
+	_, err = client.Provisioning.DeleteMuteTiming(params)
 	diag, _ := common.CheckReadError("mute timing", data, err)
 	return diag
+}
+
+func removeMuteTimingFromRoute(name string, route *models.Route) (*models.Route, bool) {
+	modified := false
+	for i, m := range route.MuteTimeIntervals {
+		if m == name {
+			route.MuteTimeIntervals = append(route.MuteTimeIntervals[:i], route.MuteTimeIntervals[i+1:]...)
+			modified = true
+			break
+		}
+	}
+	for j, p := range route.Routes {
+		var subRouteModified bool
+		route.Routes[j], subRouteModified = removeMuteTimingFromRoute(name, p)
+		modified = modified || subRouteModified
+	}
+
+	return route, modified
 }
 
 func suppressMonthDiff(k, oldValue, newValue string, d *schema.ResourceData) bool {

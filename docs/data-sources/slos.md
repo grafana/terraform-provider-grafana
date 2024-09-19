@@ -87,6 +87,7 @@ Read-Only:
 - `name` (String)
 - `objectives` (List of Object) (see [below for nested schema](#nestedobjatt--slos--objectives))
 - `query` (List of Object) (see [below for nested schema](#nestedobjatt--slos--query))
+- `search_expression` (String)
 - `uuid` (String)
 
 <a id="nestedobjatt--slos--alerting"></a>
@@ -94,10 +95,19 @@ Read-Only:
 
 Read-Only:
 
+- `advanced_options` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--advanced_options))
 - `annotation` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--annotation))
 - `fastburn` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--fastburn))
 - `label` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--label))
 - `slowburn` (List of Object) (see [below for nested schema](#nestedobjatt--slos--alerting--slowburn))
+
+<a id="nestedobjatt--slos--alerting--advanced_options"></a>
+### Nested Schema for `slos.alerting.advanced_options`
+
+Read-Only:
+
+- `min_failures` (Number)
+
 
 <a id="nestedobjatt--slos--alerting--annotation"></a>
 ### Nested Schema for `slos.alerting.annotation`

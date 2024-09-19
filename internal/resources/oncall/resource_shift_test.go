@@ -2,11 +2,12 @@ package oncall_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v2/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -45,6 +46,17 @@ func TestAccOnCallOnCallShift_basic(t *testing.T) {
 					testAccCheckOnCallOnCallShiftResourceExists("grafana_oncall_on_call_shift.test-acc-on_call_shift"),
 					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "frequency", "hourly"),
 				),
+			},
+			{
+				Config: testAccOnCallOnCallShiftEmptyRollingUsers(scheduleName, shiftName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckOnCallOnCallShiftResourceExists("grafana_oncall_on_call_shift.test-acc-on_call_shift"),
+					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "rolling_users.#", "0"),
+				),
+			},
+			{
+				Config:      testAccOnCallOnCallShiftRollingUsersEmptyGroup(scheduleName, shiftName),
+				ExpectError: regexp.MustCompile("Error: `rolling_users` can not include an empty group"),
 			},
 			{
 				Config: testAccOnCallOnCallShiftConfigSingle(scheduleName, shiftName),
@@ -109,6 +121,52 @@ resource "grafana_oncall_on_call_shift" "test-acc-on_call_shift" {
 	level = 1
 	frequency = "hourly"
 	interval = 2
+}
+`, scheduleName, shiftName)
+}
+
+func testAccOnCallOnCallShiftEmptyRollingUsers(scheduleName, shiftName string) string {
+	return fmt.Sprintf(`
+resource "grafana_oncall_schedule" "test-acc-schedule" {
+	type = "calendar"
+	name = "%s"
+	time_zone = "UTC"
+}
+
+resource "grafana_oncall_on_call_shift" "test-acc-on_call_shift" {
+	name = "%s"
+	type = "rolling_users"
+	start = "2020-09-04T16:00:00"
+	duration = 3600
+	level = 1
+	frequency = "weekly"
+	week_start = "SU"
+	interval = 2
+	by_day = ["MO", "FR"]
+	rolling_users = []
+}
+`, scheduleName, shiftName)
+}
+
+func testAccOnCallOnCallShiftRollingUsersEmptyGroup(scheduleName, shiftName string) string {
+	return fmt.Sprintf(`
+resource "grafana_oncall_schedule" "test-acc-schedule" {
+	type = "calendar"
+	name = "%s"
+	time_zone = "UTC"
+}
+
+resource "grafana_oncall_on_call_shift" "test-acc-on_call_shift" {
+	name = "%s"
+	type = "rolling_users"
+	start = "2020-09-04T16:00:00"
+	duration = 3600
+	level = 1
+	frequency = "weekly"
+	week_start = "SU"
+	interval = 2
+	by_day = ["MO", "FR"]
+	rolling_users = [[]]
 }
 `, scheduleName, shiftName)
 }
