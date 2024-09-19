@@ -2,9 +2,10 @@ package provider
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
+
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
