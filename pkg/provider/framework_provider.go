@@ -204,7 +204,7 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 			},
 			"connections_url": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "An Grafana Connections API backend address. May alternatively be set via the `GRAFANA_CONNECTIONS_URL` environment variable.",
+				MarkdownDescription: "A Grafana Connections API backend address. May alternatively be set via the `GRAFANA_CONNECTIONS_URL` environment variable.",
 			},
 		},
 	}
