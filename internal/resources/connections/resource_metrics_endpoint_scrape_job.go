@@ -2,8 +2,7 @@ package connections
 
 import (
 	"context"
-
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -14,6 +13,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 )
 
 var (
@@ -22,6 +24,7 @@ var (
 )
 
 type resourceMetricsEndpointScrapeJob struct {
+	client *connectionsapi.Client
 }
 
 var Resources = makeResourceMetricsEndpointScrapeJob()
@@ -36,8 +39,41 @@ func makeResourceMetricsEndpointScrapeJob() *common.Resource {
 }
 
 func (r resourceMetricsEndpointScrapeJob) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	// TODO implement me
-	panic("implement me")
+	// Configure is called multiple times (sometimes when ProviderData is not yet available), we only want to configure once
+	if req.ProviderData == nil || r.client != nil {
+		return
+	}
+
+	client, err := withClientForResource(req, resp)
+	if err != nil {
+		return
+	}
+
+	r.client = client
+}
+
+func withClientForResource(req resource.ConfigureRequest, resp *resource.ConfigureResponse) (*connectionsapi.Client, error) {
+	client, ok := req.ProviderData.(*common.Client)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *common.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return nil, fmt.Errorf("unexpected Resource Configure Type: %T, expected *common.Client", req.ProviderData)
+	}
+
+	if client.ConnectionsAPI == nil {
+		resp.Diagnostics.AddError(
+			"The Grafana Provider is missing a configuration for the Metrics Endpoint API.",
+			"Please ensure that connections_url and connections_access_token are set in the provider configuration.",
+		)
+
+		return nil, fmt.Errorf("ConnectionsAPI is nil")
+	}
+
+	return client.ConnectionsAPI, nil
 }
 
 func (r resourceMetricsEndpointScrapeJob) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {

@@ -14,6 +14,8 @@ import (
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 )
 
 type Client struct {
@@ -27,6 +29,7 @@ type Client struct {
 	MLAPI           *mlapi.Client
 	OnCallClient    *onCallAPI.Client
 	SLOClient       *slo.APIClient
+	ConnectionsAPI  *connectionsapi.Client
 
 	alertingMutex sync.Mutex
 }

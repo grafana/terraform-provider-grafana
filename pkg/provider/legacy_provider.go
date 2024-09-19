@@ -2,10 +2,9 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
-
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -136,6 +135,18 @@ func Provider(version string) *schema.Provider {
 				Description:  "An Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable.",
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
+			"connections_access_token": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "A Grafana Connections API access token. May alternatively be set via the `GRAFANA_CONNECTIONS_ACCESS_TOKEN` environment variable.",
+			},
+			"connections_url": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "An Grafana Connections API backend address. May alternatively be set via the `GRAFANA_CONNECTIONS_URL` environment variable.",
+				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
+			},
 		},
 
 		ResourcesMap:   legacySDKResources(),
@@ -204,6 +215,8 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			SMURL:                  stringValueOrNull(d, "sm_url"),
 			OncallAccessToken:      stringValueOrNull(d, "oncall_access_token"),
 			OncallURL:              stringValueOrNull(d, "oncall_url"),
+			ConnectionsAccessToken: stringValueOrNull(d, "connections_access_token"),
+			ConnectionsURL:         stringValueOrNull(d, "connections_url"),
 			StoreDashboardSha256:   boolValueOrNull(d, "store_dashboard_sha256"),
 			HTTPHeaders:            headers,
 			Retries:                int64ValueOrNull(d, "retries"),
