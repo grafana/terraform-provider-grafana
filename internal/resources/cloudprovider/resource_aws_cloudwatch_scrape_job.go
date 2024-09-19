@@ -9,12 +9,14 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -79,6 +81,9 @@ func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resourc
 			"name": schema.StringAttribute{
 				Description: "The name of the CloudWatch Scrape Job. Part of the Terraform Resource ID.",
 				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"enabled": schema.BoolAttribute{
 				Description: "Whether the CloudWatch Scrape Job is enabled or not.",
@@ -131,7 +136,9 @@ func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resourc
 						"tags_to_add_to_metrics": schema.SetAttribute{
 							Description: "A set of tags to add to all metrics exported by this scrape job, for use in PromQL queries.",
 							Optional:    true,
+							Computed:    true,
 							ElementType: types.StringType,
+							Default:     setdefault.StaticValue(types.SetValueMust(types.StringType, []attr.Value{})),
 						},
 					},
 					Blocks: map[string]schema.Block{
@@ -318,10 +325,15 @@ func (r *resourceAWSCloudWatchScrapeJob) ModifyPlan(ctx context.Context, req res
 		return
 	}
 
-	var planData awsCWScrapeJobTFModel
+	var planData *awsCWScrapeJobTFModel
 	diags = req.Plan.Get(ctx, &planData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// resource is being deleted
+	if planData == nil {
 		return
 	}
 
