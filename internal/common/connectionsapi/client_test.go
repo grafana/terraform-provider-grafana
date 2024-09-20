@@ -1,0 +1,292 @@
+package connectionsapi
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestClient_sets_auth_token_and_content_type(t *testing.T) {
+	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "Bearer some token", r.Header.Get("Authorization"))
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+		_, _ = fmt.Fprintf(w, `{}`)
+	}))
+	defer svr.Close()
+
+	c, err := NewClient("some token", svr.URL, nil)
+	require.NoError(t, err)
+	_, err = c.CreateMetricsEndpointScrapeJob(context.Background(), "some stack id", MetricsEndpointScrapeJob{})
+	require.NoError(t, err)
+}
+
+func TestClient_CreateMetricsEndpointScrapeJob_sends_request_and_receives_response(t *testing.T) {
+	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/metrics-endpoint/stack/some-stack-id/jobs/test_job", r.URL.Path)
+		requestBody, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.JSONEq(t, `
+			{
+				"name":"test_job",
+				"enabled":true,
+				"authentication_method":"basic",
+				"basic_password":"my-password",
+				"basic_username":"my-username",
+				"url":"https://my-example-url.com:9000/metrics",
+				"scrape_interval_seconds":120
+			}`, string(requestBody))
+
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`
+			{
+				"status":"success",
+				"data":{
+					"test_job":{
+						"enabled":true,
+						"authentication_method":"basic",
+						"basic_username":"my-username",
+						"basic_password":"my-password",
+						"url":"https://my-example-url.com:9000/metrics",
+						"scrape_interval_seconds":120,
+						"flavor":"default"
+					}
+				}
+			}`))
+	}))
+	defer svr.Close()
+
+	c, err := NewClient("some token", svr.URL, nil)
+	require.NoError(t, err)
+	actualJob, err := c.CreateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", MetricsEndpointScrapeJob{
+		Name:                        "test_job",
+		Enabled:                     true,
+		AuthenticationMethod:        "basic",
+		AuthenticationBasicUsername: "my-username",
+		AuthenticationBasicPassword: "my-password",
+		URL:                         "https://my-example-url.com:9000/metrics",
+		ScrapeIntervalSeconds:       120,
+	})
+	assert.NoError(t, err)
+
+	assert.Equal(t, MetricsEndpointScrapeJob{
+		Enabled:                     true,
+		AuthenticationMethod:        "basic",
+		AuthenticationBasicUsername: "my-username",
+		AuthenticationBasicPassword: "my-password",
+		URL:                         "https://my-example-url.com:9000/metrics",
+		ScrapeIntervalSeconds:       120,
+	}, actualJob)
+}
+
+func TestClient_CreateMetricsEndpointScrapeJob_returns_error_when_connections_api_responds_500(t *testing.T) {
+	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte(`{"some error"}`))
+	}))
+	defer svr.Close()
+
+	clientWithoutRetries := &http.Client{}
+	c, err := NewClient("some token", svr.URL, clientWithoutRetries)
+	require.NoError(t, err)
+	_, err = c.CreateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", MetricsEndpointScrapeJob{})
+
+	assert.Error(t, err)
+	assert.Equal(t, `failed to create Metrics Endpoint scrape job: status: 500, body: {"some error"}`, err.Error())
+}
+
+func TestClient_GetMetricsEndpointScrapeJob_sends_request_and_receives_response(t *testing.T) {
+	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/metrics-endpoint/stack/some-stack-id/jobs/test_job", r.URL.Path)
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`
+			{
+				"status":"success",
+				"data":{
+					"test_job":{
+						"enabled":true,
+						"authentication_method":"basic",
+						"basic_username":"my-username",
+						"basic_password":"my-password",
+						"url":"https://my-example-url.com:9000/metrics",
+						"scrape_interval_seconds":120,
+						"flavor":"default"
+					}
+				}
+			}`))
+	}))
+	defer svr.Close()
+
+	c, err := NewClient("some token", svr.URL, nil)
+	require.NoError(t, err)
+	actualJob, err := c.GetMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "test_job")
+	assert.NoError(t, err)
+
+	assert.Equal(t, MetricsEndpointScrapeJob{
+		Enabled:                     true,
+		AuthenticationMethod:        "basic",
+		AuthenticationBasicUsername: "my-username",
+		AuthenticationBasicPassword: "my-password",
+		URL:                         "https://my-example-url.com:9000/metrics",
+		ScrapeIntervalSeconds:       120,
+	}, actualJob)
+}
+
+func TestClient_GetMetricsEndpointScrapeJob_returns_ErrorNotFound_when_connections_api_responds_404(t *testing.T) {
+	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+	}))
+	defer svr.Close()
+
+	clientWithoutRetries := &http.Client{}
+	c, err := NewClient("some token", svr.URL, clientWithoutRetries)
+	require.NoError(t, err)
+	_, err = c.GetMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrNotFound)
+	assert.Equal(t, `failed to get Metrics Endpoint scrape job: job not found`, err.Error())
+}
+
+func TestClient_GetMetricsEndpointScrapeJob_returns_error_when_connections_api_responds_500(t *testing.T) {
+	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte(`{"some error"}`))
+	}))
+	defer svr.Close()
+
+	clientWithoutRetries := &http.Client{}
+	c, err := NewClient("some token", svr.URL, clientWithoutRetries)
+	require.NoError(t, err)
+	_, err = c.GetMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
+
+	assert.Error(t, err)
+	assert.Equal(t, `failed to get Metrics Endpoint scrape job: status: 500, body: {"some error"}`, err.Error())
+}
+
+func TestClient_UpdateMetricsEndpointScrapeJob_sends_request_and_receives_response(t *testing.T) {
+	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPut, r.Method)
+		assert.Equal(t, "/metrics-endpoint/stack/some-stack-id/jobs/test_job", r.URL.Path)
+		requestBody, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.JSONEq(t, `
+			{
+				"name":"test_job",
+				"enabled":true,
+				"authentication_method":"bearer",
+				"bearer_token":"some token",
+				"url":"https://updated-url.com:9000/metrics",
+				"scrape_interval_seconds":120
+			}`, string(requestBody))
+
+		w.WriteHeader(http.StatusAccepted)
+		_, _ = w.Write([]byte(`
+			{
+				"status":"success",
+				"data":{
+					"test_job":{
+						"enabled":true,
+						"authentication_method":"bearer",
+						"bearer_token":"some token",
+						"url":"https://updated-url.com:9000/metrics",
+						"scrape_interval_seconds":120,
+						"flavor":"default"
+					}
+				}
+			}`))
+	}))
+	defer svr.Close()
+
+	c, err := NewClient("some token", svr.URL, nil)
+	require.NoError(t, err)
+	actualJob, err := c.UpdateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "test_job",
+		MetricsEndpointScrapeJob{
+			Name:                      "test_job",
+			Enabled:                   true,
+			AuthenticationMethod:      "bearer",
+			AuthenticationBearerToken: "some token",
+			URL:                       "https://updated-url.com:9000/metrics",
+			ScrapeIntervalSeconds:     120,
+		})
+	assert.NoError(t, err)
+
+	assert.Equal(t, MetricsEndpointScrapeJob{
+		Enabled:                   true,
+		AuthenticationMethod:      "bearer",
+		AuthenticationBearerToken: "some token",
+		URL:                       "https://updated-url.com:9000/metrics",
+		ScrapeIntervalSeconds:     120,
+	}, actualJob)
+}
+
+func TestClient_UpdateMetricsEndpointScrapeJob_returns_error_when_connections_api_responds_500(t *testing.T) {
+	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte(`{"some error"}`))
+	}))
+	defer svr.Close()
+
+	clientWithoutRetries := &http.Client{}
+	c, err := NewClient("some token", svr.URL, clientWithoutRetries)
+	require.NoError(t, err)
+	_, err = c.UpdateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name", MetricsEndpointScrapeJob{})
+
+	assert.Error(t, err)
+	assert.Equal(t, `failed to update Metrics Endpoint scrape job: status: 500, body: {"some error"}`, err.Error())
+}
+
+func TestClient_DeleteMetricsEndpointScrapeJob_sends_request_and_receives_response(t *testing.T) {
+	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/metrics-endpoint/stack/some-stack-id/jobs/test_job", r.URL.Path)
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer svr.Close()
+
+	c, err := NewClient("some token", svr.URL, nil)
+	require.NoError(t, err)
+	err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "test_job")
+
+	assert.NoError(t, err)
+}
+
+func TestClient_DeleteMetricsEndpointScrapeJob_returns_ErrorNotFound_when_connections_api_responds_404(t *testing.T) {
+	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+	}))
+	defer svr.Close()
+
+	clientWithoutRetries := &http.Client{}
+	c, err := NewClient("some token", svr.URL, clientWithoutRetries)
+	require.NoError(t, err)
+	err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
+
+	assert.Error(t, err)
+	assert.Equal(t, `failed to delete Metrics Endpoint scrape job: job not found`, err.Error())
+}
+
+func TestClient_DeleteMetricsEndpointScrapeJob_returns_error_when_connections_api_responds_500(t *testing.T) {
+	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte(`{"some error"}`))
+	}))
+	defer svr.Close()
+
+	clientWithoutRetries := &http.Client{}
+	c, err := NewClient("some token", svr.URL, clientWithoutRetries)
+	require.NoError(t, err)
+	err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
+
+	assert.Error(t, err)
+	assert.Equal(t, `failed to delete Metrics Endpoint scrape job: status: 500, body: {"some error"}`, err.Error())
+}

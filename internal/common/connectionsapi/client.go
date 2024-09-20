@@ -51,46 +51,46 @@ type apiResponseWrapper[T any] struct {
 type MetricsEndpointScrapeJob struct {
 	Name                        string `json:"name"`
 	Enabled                     bool   `json:"enabled"`
-	AuthenticationMethod        string `json:"authenticationMethod"`
-	AuthenticationBearerToken   string `json:"authenticationBearerToken"`
-	AuthenticationBasicUsername string `json:"authenticationBasicUsername"`
-	AuthenticationBasicPassword string `json:"authenticationBasicPassword"`
+	AuthenticationMethod        string `json:"authentication_method"`
+	AuthenticationBearerToken   string `json:"bearer_token,omitempty"`
+	AuthenticationBasicUsername string `json:"basic_username,omitempty"`
+	AuthenticationBasicPassword string `json:"basic_password,omitempty"`
 	URL                         string `json:"url"`
-	ScrapeIntervalSeconds       int64  `json:"scrapeIntervalSeconds"`
+	ScrapeIntervalSeconds       int64  `json:"scrape_interval_seconds"`
 }
 
-func (c *Client) CreateMetricsEndpointScrapeJob(ctx context.Context, stackID string, jobData MetricsEndpointScrapeJob) (*MetricsEndpointScrapeJob, error) {
-	path := fmt.Sprintf("TODO %s", stackID)
-	respData := apiResponseWrapper[MetricsEndpointScrapeJob]{}
+func (c *Client) CreateMetricsEndpointScrapeJob(ctx context.Context, stackID string, jobData MetricsEndpointScrapeJob) (MetricsEndpointScrapeJob, error) {
+	path := fmt.Sprintf("/metrics-endpoint/stack/%s/jobs/%s", stackID, jobData.Name)
+	respData := apiResponseWrapper[map[string]MetricsEndpointScrapeJob]{}
 	err := c.doAPIRequest(ctx, http.MethodPost, path, &jobData, &respData)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Metrics Endpoint scrape job: %w", err)
+		return MetricsEndpointScrapeJob{}, fmt.Errorf("failed to create Metrics Endpoint scrape job: %w", err)
 	}
-	return &respData.Data, nil
+	return respData.Data[jobData.Name], nil
 }
 
-func (c *Client) GetMetricsEndpointScrapeJob(ctx context.Context, stackID string, jobName string) (*MetricsEndpointScrapeJob, error) {
-	path := fmt.Sprintf("TODO %s %s", stackID, jobName)
-	respData := apiResponseWrapper[MetricsEndpointScrapeJob]{}
+func (c *Client) GetMetricsEndpointScrapeJob(ctx context.Context, stackID string, jobName string) (MetricsEndpointScrapeJob, error) {
+	path := fmt.Sprintf("/metrics-endpoint/stack/%s/jobs/%s", stackID, jobName)
+	respData := apiResponseWrapper[map[string]MetricsEndpointScrapeJob]{}
 	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &respData)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get Metrics Endpoint scrape job: %w", err)
+		return MetricsEndpointScrapeJob{}, fmt.Errorf("failed to get Metrics Endpoint scrape job: %w", err)
 	}
-	return &respData.Data, nil
+	return respData.Data[jobName], nil
 }
 
-func (c *Client) UpdateMetricsEndpointScrapeJob(ctx context.Context, stackID string, jobName string, jobData MetricsEndpointScrapeJob) (*MetricsEndpointScrapeJob, error) {
-	path := fmt.Sprintf("TODO %s %s", stackID, jobName)
-	respData := apiResponseWrapper[MetricsEndpointScrapeJob]{}
+func (c *Client) UpdateMetricsEndpointScrapeJob(ctx context.Context, stackID string, jobName string, jobData MetricsEndpointScrapeJob) (MetricsEndpointScrapeJob, error) {
+	path := fmt.Sprintf("/metrics-endpoint/stack/%s/jobs/%s", stackID, jobName)
+	respData := apiResponseWrapper[map[string]MetricsEndpointScrapeJob]{}
 	err := c.doAPIRequest(ctx, http.MethodPut, path, &jobData, &respData)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update Metrics Endpoint scrape job: %w", err)
+		return MetricsEndpointScrapeJob{}, fmt.Errorf("failed to update Metrics Endpoint scrape job: %w", err)
 	}
-	return &respData.Data, nil
+	return respData.Data[jobName], nil
 }
 
 func (c *Client) DeleteMetricsEndpointScrapeJob(ctx context.Context, stackID string, jobName string) error {
-	path := fmt.Sprintf("TODO %s %s", stackID, jobName)
+	path := fmt.Sprintf("/metrics-endpoint/stack/%s/jobs/%s", stackID, jobName)
 	err := c.doAPIRequest(ctx, http.MethodDelete, path, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to delete Metrics Endpoint scrape job: %w", err)
@@ -98,7 +98,7 @@ func (c *Client) DeleteMetricsEndpointScrapeJob(ctx context.Context, stackID str
 	return nil
 }
 
-var ErrNotFound = fmt.Errorf("metrics endpoint scrape job not found")
+var ErrNotFound = fmt.Errorf("job not found")
 
 func (c *Client) doAPIRequest(ctx context.Context, method string, path string, body any, responseData any) error {
 	var reqBodyBytes io.Reader
