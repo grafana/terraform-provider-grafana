@@ -146,8 +146,7 @@ func TestClient_GetMetricsEndpointScrapeJob_returns_ErrorNotFound_when_connectio
 	}))
 	defer svr.Close()
 
-	clientWithoutRetries := &http.Client{}
-	c, err := NewClient("some token", svr.URL, clientWithoutRetries)
+	c, err := NewClient("some token", svr.URL, nil)
 	require.NoError(t, err)
 	_, err = c.GetMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
 
@@ -266,8 +265,7 @@ func TestClient_DeleteMetricsEndpointScrapeJob_returns_ErrorNotFound_when_connec
 	}))
 	defer svr.Close()
 
-	clientWithoutRetries := &http.Client{}
-	c, err := NewClient("some token", svr.URL, clientWithoutRetries)
+	c, err := NewClient("some token", svr.URL, nil)
 	require.NoError(t, err)
 	err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
 
