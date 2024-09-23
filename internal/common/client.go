@@ -24,12 +24,12 @@ type Client struct {
 	GrafanaAPI          *goapi.GrafanaHTTPAPI
 	GrafanaAPIConfig    *goapi.TransportConfig
 
-	GrafanaCloudAPI *gcom.APIClient
-	SMAPI           *SMAPI.Client
-	MLAPI           *mlapi.Client
-	OnCallClient    *onCallAPI.Client
-	SLOClient       *slo.APIClient
-	ConnectionsAPIClient  *connectionsapi.Client
+	GrafanaCloudAPI      *gcom.APIClient
+	SMAPI                *SMAPI.Client
+	MLAPI                *mlapi.Client
+	OnCallClient         *onCallAPI.Client
+	SLOClient            *slo.APIClient
+	ConnectionsAPIClient *connectionsapi.Client
 
 	alertingMutex sync.Mutex
 }
