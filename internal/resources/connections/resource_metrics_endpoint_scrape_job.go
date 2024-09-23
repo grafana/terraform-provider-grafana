@@ -64,7 +64,7 @@ func withClientForResource(req resource.ConfigureRequest, resp *resource.Configu
 		return nil, fmt.Errorf("unexpected Resource Configure Type: %T, expected *common.Client", req.ProviderData)
 	}
 
-	if client.ConnectionsAPI == nil {
+	if client.ConnectionsAPIClient == nil {
 		resp.Diagnostics.AddError(
 			"The Grafana Provider is missing a configuration for the Metrics Endpoint API.",
 			"Please ensure that connections_url and connections_access_token are set in the provider configuration.",
@@ -73,7 +73,7 @@ func withClientForResource(req resource.ConfigureRequest, resp *resource.Configu
 		return nil, fmt.Errorf("ConnectionsAPI is nil")
 	}
 
-	return client.ConnectionsAPI, nil
+	return client.ConnectionsAPIClient, nil
 }
 
 func (r *resourceMetricsEndpointScrapeJob) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {

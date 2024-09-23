@@ -187,7 +187,7 @@ func createConnectionsClient(client *common.Client, providerConfig ProviderConfi
 	if err != nil {
 		return err
 	}
-	client.ConnectionsAPI = apiClient
+	client.ConnectionsAPIClient = apiClient
 	return nil
 }
 
