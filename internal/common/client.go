@@ -29,7 +29,7 @@ type Client struct {
 	MLAPI           *mlapi.Client
 	OnCallClient    *onCallAPI.Client
 	SLOClient       *slo.APIClient
-	ConnectionsAPI  *connectionsapi.Client
+	ConnectionsAPIClient  *connectionsapi.Client
 
 	alertingMutex sync.Mutex
 }
