@@ -64,7 +64,7 @@ func (c *Client) CreateMetricsEndpointScrapeJob(ctx context.Context, stackID str
 	respData := apiResponseWrapper[map[string]MetricsEndpointScrapeJob]{}
 	err := c.doAPIRequest(ctx, http.MethodPost, path, &jobData, &respData)
 	if err != nil {
-		return MetricsEndpointScrapeJob{}, fmt.Errorf("failed to create Metrics Endpoint scrape job: %w", err)
+		return MetricsEndpointScrapeJob{}, fmt.Errorf("failed to create metrics endpoint scrape job: %w", err)
 	}
 	return respData.Data[jobData.Name], nil
 }
