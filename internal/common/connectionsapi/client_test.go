@@ -1,4 +1,4 @@
-package connectionsapi
+package connectionsapi_test
 
 import (
 	"context"
