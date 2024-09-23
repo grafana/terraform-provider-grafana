@@ -27,7 +27,7 @@ const (
 func NewClient(authToken string, rawAPIURL string, client *http.Client) (*Client, error) {
 	parsedAPIURL, err := url.Parse(rawAPIURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse Metrics Endpoint API url: %w", err)
+		return nil, fmt.Errorf("failed to parse connections API url: %w", err)
 	}
 
 	if client == nil {
