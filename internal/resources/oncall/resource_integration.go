@@ -195,7 +195,8 @@ func resourceIntegration() *common.Resource {
 						"slack":           onCallTemplate("Templates for Slack.", true, true),
 						"web":             onCallTemplate("Templates for Web.", true, true),
 						"telegram":        onCallTemplate("Templates for Telegram.", true, true),
-						"microsoft_teams": onCallTemplate("Templates for Microsoft Teams.", true, true),
+						"microsoft_teams": onCallTemplate("Templates for Microsoft Teams. NOTE: Microsoft Teams templates are only available on Grafana Cloud.", true, true),
+						"mobile_app":      onCallTemplate("Templates for Mobile app push notifications.", true, false),
 						"phone_call":      onCallTemplate("Templates for Phone Call.", false, false),
 						"sms":             onCallTemplate("Templates for SMS.", false, false),
 						"email":           onCallTemplate("Templates for Email.", true, false),
@@ -538,6 +539,15 @@ func flattenTemplates(in *onCallAPI.Templates) []map[string]interface{} {
 			add = true
 		}
 	}
+
+	if in.MobileApp != nil {
+		flattenMobileAppTemplate := flattenTitleMessageTemplate(in.MobileApp)
+		if len(flattenMobileAppTemplate) > 0 {
+			out["mobile_app"] = flattenMobileAppTemplate
+			add = true
+		}
+	}
+
 	if add {
 		templates = append(templates, out)
 	}
@@ -677,6 +687,12 @@ func expandTemplates(input []interface{}) *onCallAPI.Templates {
 			templates.Email = nil
 		} else {
 			templates.Email = expandTitleMessageTemplate(inputMap["email"].([]interface{}))
+		}
+
+		if inputMap["mobile_app"] == nil {
+			templates.MobileApp = nil
+		} else {
+			templates.MobileApp = expandTitleMessageTemplate(inputMap["mobile_app"].([]interface{}))
 		}
 	}
 	return &templates
