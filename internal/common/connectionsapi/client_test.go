@@ -174,7 +174,7 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 	})
 }
 
-func TestClient_UpdateMetricsEndpointScrapeJob_sends_request_and_receives_response(t *testing.T) {
+func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 	t.Run("successfully sends request and receives response", func(t *testing.T) {
 		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, http.MethodPut, r.Method)
