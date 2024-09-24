@@ -194,7 +194,7 @@ func resourceIntegration() *common.Resource {
 						"slack":           onCallTemplate("Templates for Slack.", true, true),
 						"web":             onCallTemplate("Templates for Web.", true, true),
 						"telegram":        onCallTemplate("Templates for Telegram.", true, true),
-						"microsoft_teams": onCallTemplate("Templates for Microsoft Teams. NOTE: Microsoft Teams templates are only available on Grafana Cloud.", true, true),
+						"microsoft_teams": onCallTemplate("Templates for Microsoft Teams. **NOTE**: Microsoft Teams templates are only available on Grafana Cloud.", true, true),
 						"mobile_app":      onCallTemplate("Templates for Mobile app push notifications.", true, false),
 						"phone_call":      onCallTemplate("Templates for Phone Call.", false, false),
 						"sms":             onCallTemplate("Templates for SMS.", false, false),
