@@ -3,7 +3,10 @@ package connections
 import (
 	"context"
 	"fmt"
+	"net/url"
 
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -13,9 +16,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 )
 
 var (
@@ -135,8 +135,8 @@ func (r *resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resou
 			},
 			"url": schema.StringAttribute{
 				Description: "The url to scrape metrics; a valid HTTPs URL is required.",
-				//Validators: []validator.String{}, // TODO: Find a validator for urls
-				Required: true,
+				Validators:  []validator.String{HttpsURLValidator{}},
+				Required:    true,
 			},
 			"scrape_interval_seconds": schema.Int64Attribute{
 				Description: "Frequency for scraping the metrics endpoint: 30, 60, or 120 seconds.",
@@ -167,4 +167,52 @@ func (r *resourceMetricsEndpointScrapeJob) Update(ctx context.Context, req resou
 func (r *resourceMetricsEndpointScrapeJob) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// TODO implement me
 	panic("implement me")
+}
+
+type HttpsURLValidator struct{}
+
+func (v HttpsURLValidator) Description(ctx context.Context) string {
+	return v.MarkdownDescription(ctx)
+}
+
+func (v HttpsURLValidator) MarkdownDescription(_ context.Context) string {
+	return "value must be valid URL with HTTPS"
+}
+
+func (v HttpsURLValidator) ValidateString(ctx context.Context, request validator.StringRequest, response *validator.StringResponse) {
+	value := request.ConfigValue.ValueString()
+
+	if value == "" {
+		response.Diagnostics.AddAttributeError(
+			request.Path,
+			v.Description(ctx),
+			"A valid URL is required.\n\n"+
+				fmt.Sprintf("Given Value: %q\n", value),
+		)
+		return
+	}
+
+	u, err := url.Parse(value)
+	if err != nil {
+		response.Diagnostics.AddAttributeError(
+			request.Path,
+			v.Description(ctx),
+			"A string value was provided that is not a valid URL.\n\n"+
+				"Given Value: "+value+"\n"+
+				"Error: "+err.Error(),
+		)
+		return
+	}
+
+	if u.Scheme != "https" {
+		response.Diagnostics.AddAttributeError(
+			request.Path,
+			v.Description(ctx),
+			"A URL was provided, protocol must be HTTPS.\n\n"+
+				fmt.Sprintf("Given Value: %q\n", value),
+		)
+		return
+	}
+
+	return
 }
