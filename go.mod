@@ -9,7 +9,7 @@ require (
 	github.com/fatih/color v1.17.0
 	github.com/go-openapi/runtime v0.28.0
 	github.com/go-openapi/strfmt v0.23.0
-	github.com/grafana/amixr-api-go-client v0.0.12 // main branch
+	github.com/grafana/amixr-api-go-client v0.0.13 // main branch
 	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240807172819-ac10800522a3
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20240723170622-ae2c94b7c9a3
 	github.com/grafana/machine-learning-go-client v0.8.1
