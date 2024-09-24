@@ -32,6 +32,12 @@ The changelog for this provider can be found here: <https://github.com/grafana/t
 
 {{ .SchemaMarkdown | trimspace }}
 
+### Managing Cloud Provider
+
+{{ tffile "examples/resources/grafana_cloud_provider_aws_account/resource.tf" }}
+
+{{ tffile "examples/resources/grafana_cloud_provider_aws_cloudwatch_scrape_job/resource.tf" }}
+
 ## Authentication
 
 One, or many, of the following authentication settings must be set. Each authentication setting allows a subset of resources to be used

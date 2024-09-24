@@ -226,6 +226,83 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 - `tls_key` (String) Client TLS key (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.
 - `url` (String) The root URL of a Grafana server. May alternatively be set via the `GRAFANA_URL` environment variable.
 
+### Managing Cloud Provider
+
+```terraform
+data "grafana_cloud_stack" "test" {
+  slug = "gcloudstacktest"
+}
+
+data "aws_iam_role" "test" {
+  name = "my-role"
+}
+
+resource "grafana_cloud_provider_aws_account" "test" {
+  stack_id = data.grafana_cloud_stack.test.id
+  role_arn = data.aws_iam_role.test.arn
+  regions = [
+    "us-east-1",
+    "us-east-2",
+    "us-west-1"
+  ]
+}
+```
+
+```terraform
+data "grafana_cloud_stack" "test" {
+  slug = "gcloudstacktest"
+}
+
+data "aws_iam_role" "test" {
+  name = "my-role"
+}
+
+resource "grafana_cloud_provider_aws_account" "test" {
+  stack_id = data.grafana_cloud_stack.test.id
+  role_arn = data.aws_iam_role.test.arn
+  regions = [
+    "us-east-1",
+    "us-east-2",
+    "us-west-1"
+  ]
+}
+
+resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
+  stack_id                = data.grafana_cloud_stack.test.id
+  name                    = "my-cloudwatch-scrape-job"
+  aws_account_resource_id = grafana_cloud_provider_aws_account.test.resource_id
+  regions                 = grafana_cloud_provider_aws_account.test.regions
+  export_tags             = true
+
+  service {
+    name = "AWS/EC2"
+    metric {
+      name       = "CPUUtilization"
+      statistics = ["Average"]
+    }
+    metric {
+      name       = "StatusCheckFailed"
+      statistics = ["Maximum"]
+    }
+    scrape_interval_seconds = 300
+    resource_discovery_tag_filter {
+      key   = "k8s.io/cluster-autoscaler/enabled"
+      value = "true"
+    }
+    tags_to_add_to_metrics = ["eks:cluster-name"]
+  }
+
+  custom_namespace {
+    name = "CoolApp"
+    metric {
+      name       = "CoolMetric"
+      statistics = ["Maximum", "Sum"]
+    }
+    scrape_interval_seconds = 300
+  }
+}
+```
+
 ## Authentication
 
 One, or many, of the following authentication settings must be set. Each authentication setting allows a subset of resources to be used
