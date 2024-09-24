@@ -75,7 +75,7 @@ func Test_httpsURLValidator(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			res := validator.StringResponse{}
-			connections.HttpsURLValidator{}.ValidateString(
+			connections.HTTPSURLValidator{}.ValidateString(
 				context.Background(),
 				validator.StringRequest{
 					ConfigValue: tc.providedURL,

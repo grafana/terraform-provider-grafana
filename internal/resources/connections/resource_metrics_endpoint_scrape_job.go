@@ -135,7 +135,7 @@ func (r *resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resou
 			},
 			"url": schema.StringAttribute{
 				Description: "The url to scrape metrics; a valid HTTPs URL is required.",
-				Validators:  []validator.String{HttpsURLValidator{}},
+				Validators:  []validator.String{HTTPSURLValidator{}},
 				Required:    true,
 			},
 			"scrape_interval_seconds": schema.Int64Attribute{
@@ -169,17 +169,17 @@ func (r *resourceMetricsEndpointScrapeJob) Delete(ctx context.Context, req resou
 	panic("implement me")
 }
 
-type HttpsURLValidator struct{}
+type HTTPSURLValidator struct{}
 
-func (v HttpsURLValidator) Description(ctx context.Context) string {
+func (v HTTPSURLValidator) Description(ctx context.Context) string {
 	return v.MarkdownDescription(ctx)
 }
 
-func (v HttpsURLValidator) MarkdownDescription(_ context.Context) string {
+func (v HTTPSURLValidator) MarkdownDescription(_ context.Context) string {
 	return "value must be valid URL with HTTPS"
 }
 
-func (v HttpsURLValidator) ValidateString(ctx context.Context, request validator.StringRequest, response *validator.StringResponse) {
+func (v HTTPSURLValidator) ValidateString(ctx context.Context, request validator.StringRequest, response *validator.StringResponse) {
 	value := request.ConfigValue.ValueString()
 
 	if value == "" {
@@ -213,6 +213,4 @@ func (v HttpsURLValidator) ValidateString(ctx context.Context, request validator
 		)
 		return
 	}
-
-	return
 }
