@@ -2,6 +2,7 @@ package connectionsapi_test
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,14 +15,15 @@ import (
 )
 
 func TestClient_sets_auth_token_and_content_type(t *testing.T) {
-	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "Bearer some token", r.Header.Get("Authorization"))
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 		_, _ = fmt.Fprintf(w, `{}`)
 	}))
 	defer svr.Close()
 
-	c, err := connectionsapi.NewClient("some token", svr.URL, nil)
+	clientWithoutRetriesNorTLS := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+	c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
 	require.NoError(t, err)
 	_, err = c.CreateMetricsEndpointScrapeJob(context.Background(), "some stack id", connectionsapi.MetricsEndpointScrapeJob{})
 	require.NoError(t, err)
@@ -29,7 +31,7 @@ func TestClient_sets_auth_token_and_content_type(t *testing.T) {
 
 func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 	t.Run("successfully sends request and receives response", func(t *testing.T) {
-		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, http.MethodPost, r.Method)
 			assert.Equal(t, "/metrics-endpoint/stack/some-stack-id/jobs/test_job", r.URL.Path)
 			requestBody, err := io.ReadAll(r.Body)
@@ -64,7 +66,8 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, nil)
+		clientWithoutRetriesNorTLS := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
 		require.NoError(t, err)
 		actualJob, err := c.CreateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", connectionsapi.MetricsEndpointScrapeJob{
 			Name:                        "test_job",
@@ -88,14 +91,14 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 	})
 
 	t.Run("returns error when connections API responds 500", func(t *testing.T) {
-		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(500)
 			_, _ = w.Write([]byte(`{"some error"}`))
 		}))
 		defer svr.Close()
 
-		clientWithoutRetries := &http.Client{}
-		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetries)
+		clientWithoutRetriesNorTLS := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
 		require.NoError(t, err)
 		_, err = c.CreateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", connectionsapi.MetricsEndpointScrapeJob{})
 
@@ -106,7 +109,7 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 
 func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 	t.Run("successfully sends request and receives response", func(t *testing.T) {
-		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, http.MethodGet, r.Method)
 			assert.Equal(t, "/metrics-endpoint/stack/some-stack-id/jobs/test_job", r.URL.Path)
 
@@ -129,7 +132,8 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, nil)
+		clientWithoutRetriesNorTLS := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
 		require.NoError(t, err)
 		actualJob, err := c.GetMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "test_job")
 		assert.NoError(t, err)
@@ -145,12 +149,12 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 	})
 
 	t.Run("returns ErrorNotFound when connections API responds 404", func(t *testing.T) {
-		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(404)
 		}))
 		defer svr.Close()
-
-		c, err := connectionsapi.NewClient("some token", svr.URL, nil)
+		clientWithoutRetriesNorTLS := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
 		require.NoError(t, err)
 		_, err = c.GetMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
 
@@ -160,14 +164,14 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 	})
 
 	t.Run("returns error when connections API responds 500", func(t *testing.T) {
-		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(500)
 			_, _ = w.Write([]byte(`{"some error"}`))
 		}))
 		defer svr.Close()
 
-		clientWithoutRetries := &http.Client{}
-		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetries)
+		clientWithoutRetriesNorTLS := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
 		require.NoError(t, err)
 		_, err = c.GetMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
 
@@ -178,7 +182,7 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 
 func TestClient_UpdateMetricsEndpointScrapeJob_sends_request_and_receives_response(t *testing.T) {
 	t.Run("successfully sends request and receives response", func(t *testing.T) {
-		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, http.MethodPut, r.Method)
 			assert.Equal(t, "/metrics-endpoint/stack/some-stack-id/jobs/test_job", r.URL.Path)
 			requestBody, err := io.ReadAll(r.Body)
@@ -210,8 +214,8 @@ func TestClient_UpdateMetricsEndpointScrapeJob_sends_request_and_receives_respon
 			}`))
 		}))
 		defer svr.Close()
-
-		c, err := connectionsapi.NewClient("some token", svr.URL, nil)
+		clientWithoutRetriesNorTLS := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
 		require.NoError(t, err)
 		actualJob, err := c.UpdateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "test_job",
 			connectionsapi.MetricsEndpointScrapeJob{
@@ -234,14 +238,14 @@ func TestClient_UpdateMetricsEndpointScrapeJob_sends_request_and_receives_respon
 	})
 
 	t.Run("returns ErrorNotFound when connections API responds 404", func(t *testing.T) {
-		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(404)
 			_, _ = w.Write([]byte(`{"some error"}`))
 		}))
 		defer svr.Close()
 
-		clientWithoutRetries := &http.Client{}
-		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetries)
+		clientWithoutRetriesNorTLS := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
 		require.NoError(t, err)
 		_, err = c.UpdateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name", connectionsapi.MetricsEndpointScrapeJob{})
 
@@ -251,14 +255,14 @@ func TestClient_UpdateMetricsEndpointScrapeJob_sends_request_and_receives_respon
 	})
 
 	t.Run("returns error when connections API responds 500", func(t *testing.T) {
-		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(500)
 			_, _ = w.Write([]byte(`{"some error"}`))
 		}))
 		defer svr.Close()
 
-		clientWithoutRetries := &http.Client{}
-		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetries)
+		clientWithoutRetriesNorTLS := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
 		require.NoError(t, err)
 		_, err = c.UpdateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name", connectionsapi.MetricsEndpointScrapeJob{})
 
@@ -269,15 +273,15 @@ func TestClient_UpdateMetricsEndpointScrapeJob_sends_request_and_receives_respon
 
 func TestClient_DeleteMetricsEndpointScrapeJob_sends_request_and_receives_response(t *testing.T) {
 	t.Run("successfully sends request and receives response", func(t *testing.T) {
-		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, http.MethodDelete, r.Method)
 			assert.Equal(t, "/metrics-endpoint/stack/some-stack-id/jobs/test_job", r.URL.Path)
 
 			w.WriteHeader(http.StatusOK)
 		}))
 		defer svr.Close()
-
-		c, err := connectionsapi.NewClient("some token", svr.URL, nil)
+		clientWithoutRetriesNorTLS := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
 		require.NoError(t, err)
 		err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "test_job")
 
@@ -285,12 +289,12 @@ func TestClient_DeleteMetricsEndpointScrapeJob_sends_request_and_receives_respon
 	})
 
 	t.Run("returns ErrorNotFound when connections API responds 404", func(t *testing.T) {
-		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(404)
 		}))
 		defer svr.Close()
-
-		c, err := connectionsapi.NewClient("some token", svr.URL, nil)
+		clientWithoutRetriesNorTLS := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
 		require.NoError(t, err)
 		err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
 
@@ -300,14 +304,14 @@ func TestClient_DeleteMetricsEndpointScrapeJob_sends_request_and_receives_respon
 	})
 
 	t.Run("returns error when connections API responds 500", func(t *testing.T) {
-		svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(500)
 			_, _ = w.Write([]byte(`{"some error"}`))
 		}))
 		defer svr.Close()
 
-		clientWithoutRetries := &http.Client{}
-		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetries)
+		clientWithoutRetriesNorTLS := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
 		require.NoError(t, err)
 		err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
 
