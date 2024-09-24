@@ -40,6 +40,9 @@ type ProviderConfig struct {
 	OncallAccessToken types.String `tfsdk:"oncall_access_token"`
 	OncallURL         types.String `tfsdk:"oncall_url"`
 
+	ConnectionsAccessToken types.String `tfsdk:"connections_access_token"`
+	ConnectionsURL         types.String `tfsdk:"connections_url"`
+
 	UserAgent types.String `tfsdk:"-"`
 	Version   types.String `tfsdk:"-"`
 }
@@ -58,6 +61,8 @@ func (c *ProviderConfig) SetDefaults() error {
 	c.SMURL = envDefaultFuncString(c.SMURL, "GRAFANA_SM_URL", "https://synthetic-monitoring-api.grafana.net")
 	c.OncallAccessToken = envDefaultFuncString(c.OncallAccessToken, "GRAFANA_ONCALL_ACCESS_TOKEN")
 	c.OncallURL = envDefaultFuncString(c.OncallURL, "GRAFANA_ONCALL_URL", "https://oncall-prod-us-central-0.grafana.net/oncall")
+	c.ConnectionsAccessToken = envDefaultFuncString(c.ConnectionsAccessToken, "GRAFANA_CONNECTIONS_ACCESS_TOKEN")
+	c.ConnectionsURL = envDefaultFuncString(c.ConnectionsURL, "GRAFANA_CONNECTIONS_URL", "https://connections-api.grafana.net")
 	if c.StoreDashboardSha256, err = envDefaultFuncBool(c.StoreDashboardSha256, "GRAFANA_STORE_DASHBOARD_SHA256", false); err != nil {
 		return fmt.Errorf("failed to parse GRAFANA_STORE_DASHBOARD_SHA256: %w", err)
 	}
@@ -190,6 +195,16 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 			"oncall_url": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "An Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable.",
+			},
+
+			"connections_access_token": schema.StringAttribute{
+				Optional:            true,
+				Sensitive:           true,
+				MarkdownDescription: "A Grafana Connections API access token. May alternatively be set via the `GRAFANA_CONNECTIONS_ACCESS_TOKEN` environment variable.",
+			},
+			"connections_url": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "A Grafana Connections API backend address. May alternatively be set via the `GRAFANA_CONNECTIONS_URL` environment variable.",
 			},
 		},
 	}

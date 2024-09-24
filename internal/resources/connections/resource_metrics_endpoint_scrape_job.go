@@ -2,9 +2,11 @@ package connections
 
 import (
 	"context"
+	"fmt"
+	"net/url"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -22,6 +24,7 @@ var (
 )
 
 type resourceMetricsEndpointScrapeJob struct {
+	client *connectionsapi.Client
 }
 
 var Resources = makeResourceMetricsEndpointScrapeJob()
@@ -35,16 +38,49 @@ func makeResourceMetricsEndpointScrapeJob() *common.Resource {
 	)
 }
 
-func (r resourceMetricsEndpointScrapeJob) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	// TODO implement me
-	panic("implement me")
+func (r *resourceMetricsEndpointScrapeJob) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Configure is called multiple times (sometimes when ProviderData is not yet available), we only want to configure once
+	if req.ProviderData == nil || r.client != nil {
+		return
+	}
+
+	client, err := withClientForResource(req, resp)
+	if err != nil {
+		return
+	}
+
+	r.client = client
 }
 
-func (r resourceMetricsEndpointScrapeJob) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func withClientForResource(req resource.ConfigureRequest, resp *resource.ConfigureResponse) (*connectionsapi.Client, error) {
+	client, ok := req.ProviderData.(*common.Client)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *common.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return nil, fmt.Errorf("unexpected Resource Configure Type: %T, expected *common.Client", req.ProviderData)
+	}
+
+	if client.ConnectionsAPIClient == nil {
+		resp.Diagnostics.AddError(
+			"The Grafana Provider is missing a configuration for the Metrics Endpoint API.",
+			"Please ensure that connections_url and connections_access_token are set in the provider configuration.",
+		)
+
+		return nil, fmt.Errorf("ConnectionsAPI is nil")
+	}
+
+	return client.ConnectionsAPIClient, nil
+}
+
+func (r *resourceMetricsEndpointScrapeJob) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = resourceMetricsEndpointScrapeJobTerraformName
 }
 
-func (r resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -99,8 +135,8 @@ func (r resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resour
 			},
 			"url": schema.StringAttribute{
 				Description: "The url to scrape metrics; a valid HTTPs URL is required.",
-				//Validators: []validator.String{}, // TODO: Find a validator for urls
-				Required: true,
+				Validators:  []validator.String{HTTPSURLValidator{}},
+				Required:    true,
 			},
 			"scrape_interval_seconds": schema.Int64Attribute{
 				Description: "Frequency for scraping the metrics endpoint: 30, 60, or 120 seconds.",
@@ -113,22 +149,68 @@ func (r resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resour
 	}
 }
 
-func (r resourceMetricsEndpointScrapeJob) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r *resourceMetricsEndpointScrapeJob) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (r resourceMetricsEndpointScrapeJob) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (r *resourceMetricsEndpointScrapeJob) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (r resourceMetricsEndpointScrapeJob) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r *resourceMetricsEndpointScrapeJob) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (r resourceMetricsEndpointScrapeJob) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r *resourceMetricsEndpointScrapeJob) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// TODO implement me
 	panic("implement me")
+}
+
+type HTTPSURLValidator struct{}
+
+func (v HTTPSURLValidator) Description(ctx context.Context) string {
+	return v.MarkdownDescription(ctx)
+}
+
+func (v HTTPSURLValidator) MarkdownDescription(_ context.Context) string {
+	return "value must be valid URL with HTTPS"
+}
+
+func (v HTTPSURLValidator) ValidateString(ctx context.Context, request validator.StringRequest, response *validator.StringResponse) {
+	value := request.ConfigValue.ValueString()
+
+	if value == "" {
+		response.Diagnostics.AddAttributeError(
+			request.Path,
+			v.Description(ctx),
+			"A valid URL is required.\n\n"+
+				fmt.Sprintf("Given Value: %q\n", value),
+		)
+		return
+	}
+
+	u, err := url.Parse(value)
+	if err != nil {
+		response.Diagnostics.AddAttributeError(
+			request.Path,
+			v.Description(ctx),
+			"A string value was provided that is not a valid URL.\n\n"+
+				"Given Value: "+value+"\n"+
+				"Error: "+err.Error(),
+		)
+		return
+	}
+
+	if u.Scheme != "https" {
+		response.Diagnostics.AddAttributeError(
+			request.Path,
+			v.Description(ctx),
+			"A URL was provided, protocol must be HTTPS.\n\n"+
+				fmt.Sprintf("Given Value: %q\n", value),
+		)
+		return
+	}
 }

@@ -21,6 +21,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -57,6 +58,11 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 		}
 		onCallClient.UserAgent = providerConfig.UserAgent.ValueString()
 		c.OnCallClient = onCallClient
+	}
+	if !providerConfig.ConnectionsAccessToken.IsNull() {
+		if err := createConnectionsClient(c, providerConfig); err != nil {
+			return nil, err
+		}
 	}
 
 	grafana.StoreDashboardSHA256 = providerConfig.StoreDashboardSha256.ValueBool()
@@ -170,6 +176,19 @@ func createCloudClient(client *common.Client, providerConfig ProviderConfig) err
 
 func createOnCallClient(providerConfig ProviderConfig) (*onCallAPI.Client, error) {
 	return onCallAPI.New(providerConfig.OncallURL.ValueString(), providerConfig.OncallAccessToken.ValueString())
+}
+
+func createConnectionsClient(client *common.Client, providerConfig ProviderConfig) error {
+	apiClient, err := connectionsapi.NewClient(
+		providerConfig.ConnectionsAccessToken.ValueString(),
+		providerConfig.ConnectionsURL.ValueString(),
+		getRetryClient(providerConfig),
+	)
+	if err != nil {
+		return err
+	}
+	client.ConnectionsAPIClient = apiClient
+	return nil
 }
 
 // Sets a custom HTTP Header on all requests coming from the Grafana Terraform Provider to Grafana-Terraform-Provider: true
