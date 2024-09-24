@@ -21,8 +21,8 @@ func resourceMessageTemplate() *common.Resource {
 		Description: `
 Manages Grafana Alerting message templates.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/configure-notifications/template-notifications/create-notification-templates/)
-* [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#templates)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#templates)
 
 This resource requires Grafana 9.1.0 or later.
 `,
@@ -66,37 +66,28 @@ This resource requires Grafana 9.1.0 or later.
 		"grafana_message_template",
 		orgResourceIDString("name"),
 		schema,
-	).WithLister(listerFunction(listMessageTemplate))
+	).WithLister(listerFunctionOrgResource(listMessageTemplate))
 }
 
-func listMessageTemplate(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
-	orgIDs, err := data.OrgIDs(client)
-	if err != nil {
-		return nil, err
-	}
-
+func listMessageTemplate(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
 	var ids []string
-	for _, orgID := range orgIDs {
-		client = client.Clone().WithOrgID(orgID)
-
-		// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
-		// The alertmanager is provisioned asynchronously when the org is created.
-		if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-			resp, err := client.Provisioning.GetTemplates()
-			if err != nil {
-				if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
-					return retry.RetryableError(err)
-				}
-				return retry.NonRetryableError(err)
+	// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+	// The alertmanager is provisioned asynchronously when the org is created.
+	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		resp, err := client.Provisioning.GetTemplates()
+		if err != nil {
+			if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+				return retry.RetryableError(err)
 			}
-
-			for _, template := range resp.Payload {
-				ids = append(ids, MakeOrgResourceID(orgID, template.Name))
-			}
-			return nil
-		}); err != nil {
-			return nil, err
+			return retry.NonRetryableError(err)
 		}
+
+		for _, template := range resp.Payload {
+			ids = append(ids, MakeOrgResourceID(orgID, template.Name))
+		}
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	return ids, nil

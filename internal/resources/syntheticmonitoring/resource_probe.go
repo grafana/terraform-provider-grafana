@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -116,7 +115,9 @@ Grafana Synthetic Monitoring Agent.
 		"grafana_synthetic_monitoring_probe",
 		resourceProbeID,
 		schema,
-	).WithLister(listProbes)
+	).
+		WithLister(listProbes).
+		WithPreferredResourceNameField("name")
 }
 
 func listProbes(ctx context.Context, client *common.Client, data any) ([]string, error) {
@@ -160,9 +161,7 @@ func resourceProbeRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 	prb, err := c.GetProbe(ctx, id.(int64))
 	if err != nil {
 		if strings.Contains(err.Error(), "404 Not Found") {
-			log.Printf("[WARN] removing probe %s from state because it no longer exists", d.Id())
-			d.SetId("")
-			return nil
+			return common.WarnMissing("probe", d)
 		}
 		return diag.FromErr(err)
 	}
@@ -225,7 +224,6 @@ You must also taint the check, or assign a new probe to it before deleting this 
 		}
 	}
 
-	d.SetId("")
 	return diag.FromErr(c.DeleteProbe(ctx, id))
 }
 

@@ -3,7 +3,6 @@ package oncall
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
@@ -185,9 +184,7 @@ func resourceRouteRead(ctx context.Context, d *schema.ResourceData, client *onCa
 	route, r, err := client.Routes.GetRoute(d.Id(), &onCallAPI.GetRouteOptions{})
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] removing route %s from state because it no longer exists", d.Id())
-			d.SetId("")
-			return nil
+			return common.WarnMissing("route", d)
 		}
 		return diag.FromErr(err)
 	}
@@ -246,11 +243,5 @@ func resourceRouteUpdate(ctx context.Context, d *schema.ResourceData, client *on
 
 func resourceRouteDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	_, err := client.Routes.DeleteRoute(d.Id(), &onCallAPI.DeleteRouteOptions{})
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return nil
+	return diag.FromErr(err)
 }

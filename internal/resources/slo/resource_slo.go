@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"regexp"
 
-	slo "github.com/grafana/slo-openapi-client/go"
+	"github.com/grafana/slo-openapi-client/go/slo"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -240,6 +240,11 @@ Resource manages Grafana SLOs.
 					},
 				},
 			},
+			"search_expression": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The name of a search expression in Grafana Asserts. This is used in the SLO UI to open the Asserts RCA workbench and in alerts to link to the RCA workbench.",
+			},
 		},
 	}
 
@@ -248,18 +253,22 @@ Resource manages Grafana SLOs.
 		"grafana_slo",
 		resourceSloID,
 		schema,
-	).WithLister(listSlos)
+	).
+		WithLister(listSlos).
+		WithPreferredResourceNameField("name")
 }
 
 var keyvalueSchema = &schema.Resource{
 	Schema: map[string]*schema.Schema{
 		"key": {
-			Type:     schema.TypeString,
-			Required: true,
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: `Key for filtering and identification`,
 		},
 		"value": {
-			Type:     schema.TypeString,
-			Required: true,
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: `Templatable value`,
 		},
 	},
 }
@@ -272,13 +281,7 @@ func listSlos(ctx context.Context, client *common.Client, data any) ([]string, e
 
 	slolist, _, err := sloClient.DefaultAPI.V1SloGet(ctx).Execute()
 	if err != nil {
-		// // TODO: Uninitialized SLO plugin. This should be handled better
-		// cast, ok := err.(*slo.GenericOpenAPIError)
-		// if ok && strings.Contains(cast.Error(), "status: 500") {
-		// 	return nil, nil
-		// }
-
-		return nil, nil
+		return nil, err
 	}
 
 	var ids []string
@@ -320,8 +323,11 @@ func resourceSloRead(ctx context.Context, d *schema.ResourceData, client *slo.AP
 	sloID := d.Id()
 
 	req := client.DefaultAPI.V1SloIdGet(ctx, sloID)
-	slo, _, err := req.Execute()
+	slo, r, err := req.Execute()
 	if err != nil {
+		if r != nil && r.StatusCode == 404 {
+			return common.WarnMissing("SLO", d)
+		}
 		return apiError("Unable to read SLO - API", err)
 	}
 
@@ -398,6 +404,11 @@ func packSloResource(d *schema.ResourceData) (slo.SloV00Slo, error) {
 		Alerting:              nil,
 		Labels:                tflabels,
 		DestinationDatasource: nil,
+	}
+
+	// Check the Optional Search Expression Field
+	if searchexpression, ok := d.GetOk("search_expression"); ok && searchexpression != "" {
+		req.SearchExpression = common.Ref(searchexpression.(string))
 	}
 
 	// Check the Optional Alerting Field
@@ -631,6 +642,7 @@ func setTerraformState(d *schema.ResourceData, slo slo.SloV00Slo) {
 
 	retAlerting := unpackAlerting(slo.Alerting)
 	d.Set("alerting", retAlerting)
+	d.Set("search_expression", slo.SearchExpression)
 }
 
 func apiError(action string, err error) diag.Diagnostics {

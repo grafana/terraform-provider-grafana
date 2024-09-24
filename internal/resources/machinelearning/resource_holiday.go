@@ -109,7 +109,9 @@ resource "grafana_machine_learning_job" "test_job" {
 		"grafana_machine_learning_holiday",
 		resourceHolidayID,
 		schema,
-	).WithLister(lister(listHolidays))
+	).
+		WithLister(lister(listHolidays)).
+		WithPreferredResourceNameField("name")
 }
 
 func listHolidays(ctx context.Context, client *mlapi.Client) ([]string, error) {
@@ -180,11 +182,7 @@ func resourceHolidayUpdate(ctx context.Context, d *schema.ResourceData, meta int
 func resourceHolidayDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(*common.Client).MLAPI
 	err := c.DeleteHoliday(ctx, d.Id())
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId("")
-	return nil
+	return diag.FromErr(err)
 }
 
 func makeMLHoliday(d *schema.ResourceData) (mlapi.Holiday, error) {

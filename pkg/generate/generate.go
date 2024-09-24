@@ -6,42 +6,98 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 	"sync"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate/postprocessing"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate/utils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/zclconf/go-cty/cty"
 )
 
-var (
-	allowedTerraformChars = regexp.MustCompile(`[^a-zA-Z0-9_-]`)
-)
+// NonCriticalError is an error that is not critical to the generation process.
+// It can be handled differently by the caller.
+type NonCriticalError interface {
+	NonCriticalError()
+}
 
-func Generate(ctx context.Context, cfg *Config) error {
+// ResourceError is an error that occurred while generating a resource.
+type ResourceError struct {
+	Resource *common.Resource
+	Err      error
+}
+
+func (e ResourceError) Error() string {
+	return fmt.Sprintf("resource %s: %v", e.Resource.Name, e.Err)
+}
+
+func (ResourceError) NonCriticalError() {}
+
+type NonCriticalGenerationFailure struct{ error }
+
+func (f NonCriticalGenerationFailure) NonCriticalError() {}
+
+type GenerationSuccess struct {
+	Resource *common.Resource
+	Blocks   int
+}
+
+type GenerationResult struct {
+	Success []GenerationSuccess
+	Errors  []error
+}
+
+func (r GenerationResult) Blocks() int {
+	blocks := 0
+	for _, s := range r.Success {
+		blocks += s.Blocks
+	}
+	return blocks
+}
+
+func failure(err error) GenerationResult {
+	return GenerationResult{
+		Errors: []error{err},
+	}
+}
+
+func failuref(format string, args ...any) GenerationResult {
+	return failure(fmt.Errorf(format, args...))
+}
+
+func Generate(ctx context.Context, cfg *Config) GenerationResult {
 	var err error
 	if !filepath.IsAbs(cfg.OutputDir) {
 		if cfg.OutputDir, err = filepath.Abs(cfg.OutputDir); err != nil {
-			return fmt.Errorf("failed to get absolute path for %s: %w", cfg.OutputDir, err)
+			return failuref("failed to get absolute path for %s: %w", cfg.OutputDir, err)
 		}
 	}
 
 	if _, err := os.Stat(cfg.OutputDir); err == nil && cfg.Clobber {
 		log.Printf("Deleting all files in %s", cfg.OutputDir)
 		if err := os.RemoveAll(cfg.OutputDir); err != nil {
-			return fmt.Errorf("failed to delete %s: %s", cfg.OutputDir, err)
+			return failuref("failed to delete %s: %s", cfg.OutputDir, err)
 		}
 	} else if err == nil && !cfg.Clobber {
-		return fmt.Errorf("output dir %q already exists. Use the clobber option to delete it", cfg.OutputDir)
+		return failuref("output dir %q already exists. Use the clobber option to delete it", cfg.OutputDir)
 	}
 
 	log.Printf("Generating resources to %s", cfg.OutputDir)
 	if err := os.MkdirAll(cfg.OutputDir, 0755); err != nil {
-		return fmt.Errorf("failed to create output directory %s: %s", cfg.OutputDir, err)
+		return failuref("failed to create output directory %s: %s", cfg.OutputDir, err)
 	}
+
+	// Enable "unsensitive" mode for the provider
+	os.Setenv(provider.EnableGenerateEnvVar, "true")
+	defer os.Unsetenv(provider.EnableGenerateEnvVar)
+	if err := os.WriteFile(filepath.Join(cfg.OutputDir, provider.EnableGenerateMarkerFile), []byte("unsensitive!"), 0600); err != nil {
+		return failuref("failed to write marker file: %w", err)
+	}
+	defer os.Remove(filepath.Join(cfg.OutputDir, provider.EnableGenerateMarkerFile))
 
 	// Generate provider installation block
 	providerBlock := hclwrite.NewBlock("terraform", nil)
@@ -52,27 +108,27 @@ func Generate(ctx context.Context, cfg *Config) error {
 	}))
 	providerBlock.Body().AppendBlock(requiredProvidersBlock)
 	if err := writeBlocks(filepath.Join(cfg.OutputDir, "provider.tf"), providerBlock); err != nil {
-		log.Fatal(err)
+		return failure(err)
 	}
 
 	tf, err := setupTerraform(cfg)
 	// Terraform init to download the provider
 	if err != nil {
-		return fmt.Errorf("failed to run terraform init: %w", err)
+		return failuref("failed to run terraform init: %w", err)
 	}
 	cfg.Terraform = tf
 
+	var returnResult GenerationResult
 	if cfg.Cloud != nil {
-		stacks, err := generateCloudResources(ctx, cfg)
-		if err != nil {
-			return err
-		}
+		log.Printf("Generating cloud resources")
+		var stacks []stack
+		stacks, returnResult = generateCloudResources(ctx, cfg)
 
 		for _, stack := range stacks {
 			stack.name = "stack-" + stack.slug
-			if err := generateGrafanaResources(ctx, cfg, stack, false); err != nil {
-				return err
-			}
+			stackResult := generateGrafanaResources(ctx, cfg, stack, false)
+			returnResult.Success = append(returnResult.Success, stackResult.Success...)
+			returnResult.Errors = append(returnResult.Errors, stackResult.Errors...)
 		}
 	}
 
@@ -86,22 +142,43 @@ func Generate(ctx context.Context, cfg *Config) error {
 			onCallToken:   cfg.Grafana.OnCallAccessToken,
 			onCallURL:     cfg.Grafana.OnCallURL,
 		}
-		if err := generateGrafanaResources(ctx, cfg, stack, true); err != nil {
-			return err
+		log.Printf("Generating Grafana resources")
+		returnResult = generateGrafanaResources(ctx, cfg, stack, true)
+	}
+
+	if !cfg.OutputCredentials && cfg.Format != OutputFormatCrossplane {
+		if err := postprocessing.RedactCredentials(cfg.OutputDir); err != nil {
+			return failuref("failed to redact credentials: %w", err)
 		}
 	}
 
-	if cfg.Format == OutputFormatJSON {
-		return convertToTFJSON(cfg.OutputDir)
-	}
-	if cfg.Format == OutputFormatCrossplane {
-		return convertToCrossplane(cfg)
+	if returnResult.Blocks() == 0 {
+		if err := os.WriteFile(filepath.Join(cfg.OutputDir, "resources.tf"), []byte("# No resources were found\n"), 0600); err != nil {
+			return failure(err)
+		}
+		if err := os.WriteFile(filepath.Join(cfg.OutputDir, "imports.tf"), []byte("# No resources were found\n"), 0600); err != nil {
+			return failure(err)
+		}
+		return returnResult
 	}
 
-	return nil
+	if cfg.Format == OutputFormatCrossplane {
+		if err := convertToCrossplane(cfg); err != nil {
+			return failure(err)
+		}
+		return returnResult
+	}
+
+	if cfg.Format == OutputFormatJSON {
+		if err := convertToTFJSON(cfg.OutputDir); err != nil {
+			return failure(err)
+		}
+	}
+
+	return returnResult
 }
 
-func generateImportBlocks(ctx context.Context, client *common.Client, listerData any, resources []*common.Resource, cfg *Config, provider string) error {
+func generateImportBlocks(ctx context.Context, client *common.Client, listerData any, resources []*common.Resource, cfg *Config, provider string) GenerationResult {
 	generatedFilename := func(suffix string) string {
 		if provider == "" {
 			return filepath.Join(cfg.OutputDir, suffix)
@@ -112,7 +189,7 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 
 	resources, err := filterResources(resources, cfg.IncludeResources)
 	if err != nil {
-		return err
+		return failure(err)
 	}
 
 	// Generate HCL blocks in parallel with a wait group
@@ -138,7 +215,7 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 			}
 
 			log.Printf("generating %s resources\n", resource.Name)
-			ids, err := lister(ctx, client, listerData)
+			listedIDs, err := lister(ctx, client, listerData)
 			if err != nil {
 				wg.Done()
 				results <- result{
@@ -146,6 +223,16 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 					err:      err,
 				}
 				return
+			}
+
+			// Make sure IDs are unique. If an API returns the same ID multiple times for any reason, we only want to import it once.
+			idMap := map[string]struct{}{}
+			for _, id := range listedIDs {
+				idMap[id] = struct{}{}
+			}
+			ids := []string{}
+			for id := range idMap {
+				ids = append(ids, id)
 			}
 			sort.Strings(ids)
 
@@ -156,12 +243,8 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 			// }
 			var blocks []*hclwrite.Block
 			for _, id := range ids {
-				cleanedID := allowedTerraformChars.ReplaceAllString(id, "_")
-				if provider != "cloud" {
-					cleanedID = strings.ReplaceAll(provider, "-", "_") + "_" + cleanedID
-				}
-
-				matched, err := filterResourceByName(resource.Name, cleanedID, cfg.IncludeResources)
+				id := id
+				matched, err := filterResourceByName(resource.Name, id, cfg.IncludeResources)
 				if err != nil {
 					wg.Done()
 					results <- result{
@@ -174,8 +257,13 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 					continue
 				}
 
+				if provider != "cloud" && provider != "" {
+					id = provider + "_" + id
+				}
+				resourceName := postprocessing.CleanResourceName(id)
+
 				b := hclwrite.NewBlock("import", nil)
-				b.Body().SetAttributeTraversal("to", traversal(resource.Name, cleanedID))
+				b.Body().SetAttributeTraversal("to", traversal(resource.Name, resourceName))
 				b.Body().SetAttributeValue("id", cty.StringVal(id))
 				if provider != "" {
 					b.Body().SetAttributeTraversal("provider", traversal("grafana", provider))
@@ -197,12 +285,21 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 	wg.Wait()
 	close(results)
 
+	returnResult := GenerationResult{}
 	resultsSlice := []result{}
 	for r := range results {
 		if r.err != nil {
-			return fmt.Errorf("failed to generate %s resources: %w", r.resource.Name, r.err)
+			returnResult.Errors = append(returnResult.Errors, ResourceError{
+				Resource: r.resource,
+				Err:      r.err,
+			})
+		} else {
+			resultsSlice = append(resultsSlice, r)
+			returnResult.Success = append(returnResult.Success, GenerationSuccess{
+				Resource: r.resource,
+				Blocks:   len(r.blocks),
+			})
 		}
-		resultsSlice = append(resultsSlice, r)
 	}
 	sort.Slice(resultsSlice, func(i, j int) bool {
 		return resultsSlice[i].resource.Name < resultsSlice[j].resource.Name
@@ -215,23 +312,71 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 	}
 
 	if len(allBlocks) == 0 {
-		if err := os.WriteFile(generatedFilename("resources.tf"), []byte("# No resources were found\n"), 0600); err != nil {
-			return err
-		}
-		if err := os.WriteFile(generatedFilename("imports.tf"), []byte("# No resources were found\n"), 0600); err != nil {
-			return err
-		}
-		return nil
+		return returnResult
 	}
 
 	if err := writeBlocks(generatedFilename("imports.tf"), allBlocks...); err != nil {
-		return err
+		return failure(err)
 	}
 	_, err = cfg.Terraform.Plan(ctx, tfexec.GenerateConfigOut(generatedFilename("resources.tf")))
-	if err != nil {
-		return fmt.Errorf("failed to generate resources: %w", err)
+	if err != nil && !strings.Contains(err.Error(), "Missing required argument") {
+		// If resources.tf was created and is not empty, return the error as a "non-critical" error
+		if stat, statErr := os.Stat(generatedFilename("resources.tf")); statErr == nil && stat.Size() > 0 {
+			returnResult.Errors = append(returnResult.Errors, NonCriticalGenerationFailure{err})
+		} else {
+			return failuref("failed to generate resources: %w", err)
+		}
 	}
-	return sortResourcesFile(generatedFilename("resources.tf"))
+
+	for _, err := range []error{
+		postprocessing.ReplaceNullSensitiveAttributes(generatedFilename("resources.tf")),
+		removeOrphanedImports(generatedFilename("imports.tf"), generatedFilename("resources.tf")),
+		postprocessing.UsePreferredResourceNames(generatedFilename("resources.tf"), generatedFilename("imports.tf")),
+		sortResourcesFile(generatedFilename("resources.tf")),
+		postprocessing.WrapJSONFieldsInFunction(generatedFilename("resources.tf")),
+	} {
+		if err != nil {
+			return failure(err)
+		}
+	}
+
+	return returnResult
+}
+
+// removeOrphanedImports removes import blocks that do not have a corresponding resource block in the resources file.
+// These happen when the Terraform plan command has failed for some resources.
+func removeOrphanedImports(importsFile, resourcesFile string) error {
+	imports, err := utils.ReadHCLFile(importsFile)
+	if err != nil {
+		return err
+	}
+
+	resources, err := utils.ReadHCLFile(resourcesFile)
+	if err != nil {
+		return err
+	}
+
+	resourcesMap := map[string]struct{}{}
+	for _, block := range resources.Body().Blocks() {
+		if block.Type() != "resource" {
+			continue
+		}
+
+		resourcesMap[strings.Join(block.Labels(), ".")] = struct{}{}
+	}
+
+	for _, block := range imports.Body().Blocks() {
+		if block.Type() != "import" {
+			continue
+		}
+
+		importTo := strings.TrimSpace(string(block.Body().GetAttribute("to").Expr().BuildTokens(nil).Bytes()))
+		if _, ok := resourcesMap[importTo]; !ok {
+			imports.Body().RemoveBlock(block)
+		}
+	}
+
+	return writeBlocksFile(importsFile, true, imports.Body().Blocks()...)
 }
 
 func filterResources(resources []*common.Resource, includedResources []string) ([]*common.Resource, error) {
@@ -263,13 +408,13 @@ func filterResources(resources []*common.Resource, includedResources []string) (
 	return filteredResources, nil
 }
 
-func filterResourceByName(resourceType, resourceName string, includedResources []string) (bool, error) {
+func filterResourceByName(resourceType, resourceID string, includedResources []string) (bool, error) {
 	if len(includedResources) == 0 {
 		return true, nil
 	}
 
 	for _, included := range includedResources {
-		matched, err := filepath.Match(included, resourceType+"."+resourceName)
+		matched, err := filepath.Match(included, resourceType+"."+resourceID)
 		if err != nil {
 			return false, err
 		}

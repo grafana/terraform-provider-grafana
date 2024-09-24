@@ -29,8 +29,8 @@ func TestProviderConfigure(t *testing.T) {
 	// Helper for header tests
 	checkHeaders := func(t *testing.T, provider *schema.Provider) {
 		gotHeaders := provider.Meta().(*common.Client).GrafanaAPIConfig.HTTPHeaders
-		if len(gotHeaders) != 3 {
-			t.Errorf("expected 3 HTTP header, got %d", len(gotHeaders))
+		if len(gotHeaders) != 4 {
+			t.Errorf("expected 4 HTTP header, got %d", len(gotHeaders))
 		}
 		if gotHeaders["Authorization"] != "Bearer test" {
 			t.Errorf("expected HTTP header Authorization to be \"Bearer test\", got %q", gotHeaders["Authorization"])

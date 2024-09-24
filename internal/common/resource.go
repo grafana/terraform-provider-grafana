@@ -66,8 +66,11 @@ type ResourceListIDsFunc func(ctx context.Context, client *Client, data any) ([]
 type Resource struct {
 	ResourceCommon
 	IDType                *ResourceID
-	ListIDsFunc           ResourceListIDsFunc
 	PluginFrameworkSchema resource.ResourceWithConfigure
+
+	// Generation configuration
+	ListIDsFunc                ResourceListIDsFunc
+	PreferredResourceNameField string // This field will be used as the resource name instead of the ID. This is useful if the ID is not ideal for humans (ex: UUID or numeric). The field value should uniquely identify the resource.
 }
 
 func NewLegacySDKResource(category ResourceCategory, name string, idType *ResourceID, schema *schema.Resource) *Resource {
@@ -96,6 +99,11 @@ func NewResource(category ResourceCategory, name string, idType *ResourceID, sch
 
 func (r *Resource) WithLister(lister ResourceListIDsFunc) *Resource {
 	r.ListIDsFunc = lister
+	return r
+}
+
+func (r *Resource) WithPreferredResourceNameField(fieldName string) *Resource {
+	r.PreferredResourceNameField = fieldName
 	return r
 }
 

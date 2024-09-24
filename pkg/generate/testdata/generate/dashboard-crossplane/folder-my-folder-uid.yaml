@@ -1,7 +1,7 @@
 apiVersion: oss.grafana.crossplane.io/v1alpha1
 kind: Folder
 metadata:
-  name: 1-my-folder-uid
+  name: my-folder-uid
   annotations:
     crossplane.io/external-name: 1:my-folder-uid
 spec:

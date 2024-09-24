@@ -44,10 +44,16 @@ func datasourceDatasourceRead(ctx context.Context, d *schema.ResourceData, meta 
 		resp, err = client.Datasources.GetDataSourceByName(name.(string))
 	} else if uid, ok := d.GetOk("uid"); ok {
 		resp, err = client.Datasources.GetDataSourceByUID(uid.(string))
+	} else {
+		return diag.Errorf("name or uid must be set")
 	}
 
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if resp == nil {
+		return diag.Errorf("unexpected state, API response is nil")
 	}
 
 	return datasourceToState(d, resp.GetPayload())

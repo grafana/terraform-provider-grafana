@@ -108,10 +108,91 @@ func TestSSOSettings_basic_saml(t *testing.T) {
 				),
 			},
 			{
+				Config: testConfigForSAMLProviderWithAzureAD,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.certificate_path", "devenv/docker/blocks/auth/saml-enterprise/cert.crt"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.private_key_path", "devenv/docker/blocks/auth/saml-enterprise/key.pem"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.idp_metadata_url", "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.signature_algorithm", "rsa-sha256"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.metadata_valid_duration", "24h"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.assertion_attribute_email", "email"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.client_id", "client_id"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.client_secret", "client_secret"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.token_url", "https://myidp.com/oauth/token"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.force_use_graph_api", "true"),
+				),
+			},
+			{
 				ResourceName:            resourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"saml_settings.0.private_key_path", "saml_settings.0.certificate_path"},
+				ImportStateVerifyIgnore: []string{"saml_settings.0.private_key_path", "saml_settings.0.certificate_path", "saml_settings.0.client_secret", "saml_settings.0.token_url"},
+			},
+		},
+	})
+}
+
+func TestSSOSettings_basic_ldap(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=11.3")
+
+	provider := "ldap"
+
+	api := grafanaTestClient()
+
+	defaultSettings, err := api.SsoSettings.GetProviderSettings(provider)
+	if err != nil {
+		t.Fatalf("failed to fetch the default settings for provider %s: %v", provider, err)
+	}
+
+	resourceName := "grafana_sso_settings.ldap_sso_settings"
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             checkSsoSettingsReset(api, provider, defaultSettings.Payload),
+		Steps: []resource.TestStep{
+			{
+				Config: testConfigForLdapProvider,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.host", "127.0.0.1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.search_filter", "(cn=%s)"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.search_base_dns.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.search_base_dns.0", "dc=grafana,dc=org"),
+				),
+			},
+			{
+				Config: testConfigForLdapProviderUpdated,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.host", "127.0.0.5"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.bind_password", "password"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.search_filter", "(cn=%s)"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.search_base_dns.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.search_base_dns.0", "dc=grafana,dc=org"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.attributes.email", "email"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.attributes.name", "name"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.group_mappings.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.group_mappings.0.group_dn", "cn=superadmins,dc=grafana,dc=org"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.group_mappings.0.org_role", "Admin"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.group_mappings.0.org_id", "1"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.group_mappings.0.grafana_admin", "true"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.group_mappings.1.group_dn", "cn=users,dc=grafana,dc=org"),
+					resource.TestCheckResourceAttr(resourceName, "ldap_settings.0.config.0.servers.0.group_mappings.1.org_role", "Editor"),
+				),
+			},
+			{
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"ldap_settings.0.config.0.servers.0.bind_password"},
 			},
 		},
 	})
@@ -381,6 +462,67 @@ const testConfigForSamlProviderUpdated = `resource "grafana_sso_settings" "saml_
   }
 }`
 
+const testConfigForSAMLProviderWithAzureAD = `resource "grafana_sso_settings" "saml_sso_settings" {
+	provider_name = "saml"
+	saml_settings {
+		certificate_path          = "devenv/docker/blocks/auth/saml-enterprise/cert.crt"
+		private_key_path          = "devenv/docker/blocks/auth/saml-enterprise/key.pem"
+		idp_metadata_url          = "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"
+		signature_algorithm       = "rsa-sha256"
+		metadata_valid_duration   = "24h"
+		assertion_attribute_email = "email"
+		client_id                 = "client_id"
+		client_secret             = "client_secret"
+		token_url                 = "https://myidp.com/oauth/token"
+		force_use_graph_api       = true
+	}
+}`
+
+const testConfigForLdapProvider = `resource "grafana_sso_settings" "ldap_sso_settings" {
+  provider_name = "ldap"
+  ldap_settings {
+    config {
+      servers {
+        host = "127.0.0.1"
+        search_filter = "(cn=%s)"
+        search_base_dns = [
+          "dc=grafana,dc=org",
+        ]
+      }
+    }
+  }
+}`
+
+const testConfigForLdapProviderUpdated = `resource "grafana_sso_settings" "ldap_sso_settings" {
+  provider_name = "ldap"
+  ldap_settings {
+    config {
+      servers {
+        host = "127.0.0.5"
+        search_filter = "(cn=%s)"
+		bind_password = "password"
+        search_base_dns = [
+          "dc=grafana,dc=org",
+        ]
+		attributes = {
+          email = "email"
+          name = "name"
+        }
+        group_mappings {
+          group_dn = "cn=superadmins,dc=grafana,dc=org"
+          org_role = "Admin"
+          org_id = 1
+          grafana_admin = true
+        }
+        group_mappings {
+          group_dn = "cn=users,dc=grafana,dc=org"
+          org_role = "Editor"
+        }
+      }
+    }
+  }
+}`
+
 const testConfigWithCustomFields = `resource "grafana_sso_settings" "sso_settings" {
   provider_name = "github"
   oauth2_settings {
@@ -533,11 +675,10 @@ var testConfigsWithValidationErrors = []string{
     api_url  = "https://login.microsoftonline.com/12345/oauth2/v2.0/userinfo"
   }
 }`,
-	// certificate and certificate_path are both configured for saml
+	// mixed path and value are configured for saml for certificate and private_key
 	`resource "grafana_sso_settings" "saml_sso_settings" {
   provider_name = "saml"
   saml_settings {
-    certificate = "this-is-a-valid-certificate"
     certificate_path = "/valid/certificate/path"
     private_key = "this-is-a-valid-private-key"
     idp_metadata_path = "/path/to/metadata"
@@ -551,4 +692,48 @@ var testConfigsWithValidationErrors = []string{
     private_key = "this-is-a-valid-private-key"
   }
 }`,
+	// missing value for client_secret
+	`resource "grafana_sso_settings" "saml_sso_settings" {
+	provider_name = "saml"
+	saml_settings {
+		certificate = "this-is-a-valid-certificate"
+		private_key = "this-is-a-valid-private-key"
+		idp_metadata_path = "/path/to/metadata"
+		client_id = "client_id"
+		client_secret = ""
+		token_url = "https://myidp.com/oauth/token"
+	}
+}`,
+	// org_attribute_path is not empty for AzureAD
+	`resource "grafana_sso_settings" "azure_sso_settings" {
+		provider_name = "azuread"
+		oauth2_settings {
+			client_id = "client_id"
+			auth_url  = "https://login.microsoftonline.com/12345/oauth2/v2.0/authorize"
+			token_url = "https://login.microsoftonline.com/12345/oauth2/v2.0/token"
+			org_attribute_path = "org"
+		}
+	}`,
+	// org_mapping is configured but org_attribute_path is missing for Okta
+	`resource "grafana_sso_settings" "okta_sso_settings" {
+  		provider_name = "okta"
+  		oauth2_settings {
+    		client_id = "client_id"
+    		auth_url  = "https://tenantid123.okta.com/oauth2/v1/auth"
+    		token_url = "https://tenantid123.okta.com/oauth2/v1/token"
+			api_url = "https://tenantid123.okta.com/oauth2/v1/userinfo"
+			org_mapping = "[\"Group A:1:Editor\",\"Group A:2:Admin\"]"
+  		}
+	}`,
+	// org_attribute_path is configured but org_mapping is missing for Generic OAuth
+	`resource "grafana_sso_settings" "generic_oauth_sso_settings" {
+		provider_name = "generic_oauth"
+		oauth2_settings {
+		  client_id = "client_id"
+		  auth_url  = "https://tenantid123.okta.com/oauth2/v1/auth"
+		  token_url = "https://tenantid123.okta.com/oauth2/v1/token"
+		  api_url = "https://tenantid123.okta.com/oauth2/v1/userinfo"
+		  org_attribute_path = "groups"
+		}
+  }`,
 }

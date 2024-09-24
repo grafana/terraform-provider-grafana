@@ -8,15 +8,16 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
+	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/models"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccFolder_basic(t *testing.T) {
@@ -46,6 +47,7 @@ func TestAccFolder_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "uid", "test-folder-uid"),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "title", "Terraform Test Folder With UID"),
 					resource.TestCheckResourceAttr("grafana_folder.test_folder_with_uid", "url", strings.TrimRight(os.Getenv("GRAFANA_URL"), "/")+"/dashboards/f/test-folder-uid/terraform-test-folder-with-uid"),
+					testutils.CheckLister("grafana_folder.test_folder_with_uid"),
 				),
 			},
 			{
@@ -284,26 +286,40 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 	} {
 		t.Run(tc.role, func(t *testing.T) {
 			var folder models.Folder
-			var name = acctest.RandomWithPrefix(tc.role + "-key")
+			var saName = acctest.RandomWithPrefix(tc.role + "-sa")
+			var saTokenName = acctest.RandomWithPrefix(tc.role + "-token")
 
-			// Create an API key with the correct role and inject it in envvars. This auth will be used when the test runs
+			// Create a service account token with the correct role and inject it in envvars. This auth will be used when the test runs
 			client := grafanaTestClient()
-			resp, err := client.APIKeys.AddAPIkey(&models.AddAPIKeyCommand{
-				Name: name,
-				Role: tc.role,
-			})
+
+			sa, err := client.ServiceAccounts.CreateServiceAccount(
+				service_accounts.NewCreateServiceAccountParams().WithBody(&models.CreateServiceAccountForm{
+					Name: saName,
+					Role: tc.role,
+				}),
+			)
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer client.APIKeys.DeleteAPIkey(resp.Payload.ID)
+			defer client.ServiceAccounts.DeleteServiceAccount(sa.Payload.ID)
+
+			saToken, err := client.ServiceAccounts.CreateToken(
+				service_accounts.NewCreateTokenParams().WithBody(&models.AddServiceAccountTokenCommand{
+					Name: saTokenName,
+				}).WithServiceAccountID(sa.Payload.ID),
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+
 			oldValue := os.Getenv("GRAFANA_AUTH")
 			defer os.Setenv("GRAFANA_AUTH", oldValue)
-			os.Setenv("GRAFANA_AUTH", resp.Payload.Key)
+			os.Setenv("GRAFANA_AUTH", saToken.Payload.Key)
 
 			config := fmt.Sprintf(`
 		resource "grafana_folder" "bar" {
 			title    = "%[1]s"
-		}`, name)
+		}`, saName)
 
 			// Do not make parallel, fiddling with auth will break other tests that run in parallel
 			resource.Test(t, resource.TestCase{
@@ -317,7 +333,7 @@ func TestAccFolder_createFromDifferentRoles(t *testing.T) {
 							folderCheckExists.exists("grafana_folder.bar", &folder),
 							resource.TestMatchResourceAttr("grafana_folder.bar", "id", defaultOrgIDRegexp),
 							resource.TestMatchResourceAttr("grafana_folder.bar", "uid", common.UIDRegexp),
-							resource.TestCheckResourceAttr("grafana_folder.bar", "title", name),
+							resource.TestCheckResourceAttr("grafana_folder.bar", "title", saName),
 						),
 					},
 				},

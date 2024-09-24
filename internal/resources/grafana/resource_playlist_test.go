@@ -39,6 +39,7 @@ func TestAccPlaylist_basic(t *testing.T) {
 						"order": "2",
 						"title": "Terraform Dashboard By ID",
 					}),
+					testutils.CheckLister(paylistResource),
 				),
 			},
 			{

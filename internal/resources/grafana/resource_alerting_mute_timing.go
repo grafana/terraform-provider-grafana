@@ -22,8 +22,8 @@ func resourceMuteTiming() *common.Resource {
 		Description: `
 Manages Grafana Alerting mute timings.
 
-* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/configure-notifications/mute-timings/)
-* [HTTP API](https://grafana.com/docs/grafana/next/developers/http_api/alerting_provisioning/#mute-timings)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#mute-timings)
 
 This resource requires Grafana 9.1.0 or later.
 `,
@@ -133,37 +133,28 @@ This resource requires Grafana 9.1.0 or later.
 		"grafana_mute_timing",
 		orgResourceIDString("name"),
 		schema,
-	).WithLister(listerFunction(listMuteTimings))
+	).WithLister(listerFunctionOrgResource(listMuteTimings))
 }
 
-func listMuteTimings(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
-	orgIDs, err := data.OrgIDs(client)
-	if err != nil {
-		return nil, err
-	}
-
+func listMuteTimings(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
 	var ids []string
-	for _, orgID := range orgIDs {
-		client = client.Clone().WithOrgID(orgID)
-
-		// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
-		// The alertmanager is provisioned asynchronously when the org is created.
-		if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-			resp, err := client.Provisioning.GetMuteTimings()
-			if err != nil {
-				if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
-					return retry.RetryableError(err)
-				}
-				return retry.NonRetryableError(err)
+	// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+	// The alertmanager is provisioned asynchronously when the org is created.
+	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		resp, err := client.Provisioning.GetMuteTimings()
+		if err != nil {
+			if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+				return retry.RetryableError(err)
 			}
-
-			for _, muteTiming := range resp.Payload {
-				ids = append(ids, MakeOrgResourceID(orgID, muteTiming.Name))
-			}
-			return nil
-		}); err != nil {
-			return nil, err
+			return retry.NonRetryableError(err)
 		}
+
+		for _, muteTiming := range resp.Payload {
+			ids = append(ids, MakeOrgResourceID(orgID, muteTiming.Name))
+		}
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	return ids, nil
@@ -261,7 +252,36 @@ func deleteMuteTiming(ctx context.Context, data *schema.ResourceData, meta inter
 		}
 	}
 
-	_, err = client.Provisioning.DeleteMuteTiming(name)
+	// Remove the mute timing from alert rules
+	ruleResp, err := client.Provisioning.GetAlertRules()
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	rules := ruleResp.Payload
+	for _, rule := range rules {
+		if rule.NotificationSettings == nil {
+			continue
+		}
+
+		var muteTimeIntervals []string
+		for _, m := range rule.NotificationSettings.MuteTimeIntervals {
+			if m != name {
+				muteTimeIntervals = append(muteTimeIntervals, m)
+			}
+		}
+		if len(muteTimeIntervals) != len(rule.NotificationSettings.MuteTimeIntervals) {
+			rule.NotificationSettings.MuteTimeIntervals = muteTimeIntervals
+			params := provisioning.NewPutAlertRuleParams().WithBody(rule).WithUID(rule.UID)
+			_, err = client.Provisioning.PutAlertRule(params)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	}
+
+	// Delete the mute timing
+	params := provisioning.NewDeleteMuteTimingParams().WithName(name)
+	_, err = client.Provisioning.DeleteMuteTiming(params)
 	diag, _ := common.CheckReadError("mute timing", data, err)
 	return diag
 }

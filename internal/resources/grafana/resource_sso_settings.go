@@ -18,6 +18,7 @@ const (
 	providerKey       = "provider_name"
 	oauth2SettingsKey = "oauth2_settings"
 	samlSettingsKey   = "saml_settings"
+	ldapSettingsKey   = "ldap_settings"
 	customFieldsKey   = "custom"
 )
 
@@ -25,7 +26,7 @@ func resourceSSOSettings() *common.Resource {
 	schema := &schema.Resource{
 
 		Description: `
-Manages Grafana SSO Settings for OAuth2 and SAML. Support for SAML is currently in preview, it will be available in Grafana Enterprise starting with v11.1.
+Manages Grafana SSO Settings for OAuth2, SAML and LDAP. Support for LDAP is currently in preview, it will be available in Grafana starting with v11.3.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/sso-settings/)
@@ -43,8 +44,8 @@ Manages Grafana SSO Settings for OAuth2 and SAML. Support for SAML is currently 
 			providerKey: {
 				Type:         schema.TypeString,
 				Required:     true,
-				Description:  "The name of the SSO provider. Supported values: github, gitlab, google, azuread, okta, generic_oauth, saml.",
-				ValidateFunc: validation.StringInSlice([]string{"github", "gitlab", "google", "azuread", "okta", "generic_oauth", "saml"}, false),
+				Description:  "The name of the SSO provider. Supported values: github, gitlab, google, azuread, okta, generic_oauth, saml, ldap.",
+				ValidateFunc: validation.StringInSlice([]string{"github", "gitlab", "google", "azuread", "okta", "generic_oauth", "saml", "ldap"}, false),
 			},
 			oauth2SettingsKey: {
 				Type:          schema.TypeSet,
@@ -53,7 +54,7 @@ Manages Grafana SSO Settings for OAuth2 and SAML. Support for SAML is currently 
 				MinItems:      0,
 				Description:   "The OAuth2 settings set. Required for github, gitlab, google, azuread, okta, generic_oauth providers.",
 				Elem:          oauth2SettingsSchema,
-				ConflictsWith: []string{samlSettingsKey},
+				ConflictsWith: []string{samlSettingsKey, ldapSettingsKey},
 			},
 			samlSettingsKey: {
 				Type:          schema.TypeSet,
@@ -62,7 +63,16 @@ Manages Grafana SSO Settings for OAuth2 and SAML. Support for SAML is currently 
 				MinItems:      0,
 				Description:   "The SAML settings set. Required for the saml provider.",
 				Elem:          samlSettingsSchema,
-				ConflictsWith: []string{oauth2SettingsKey},
+				ConflictsWith: []string{oauth2SettingsKey, ldapSettingsKey},
+			},
+			ldapSettingsKey: {
+				Type:          schema.TypeSet,
+				Optional:      true,
+				MaxItems:      1,
+				MinItems:      0,
+				Description:   "The LDAP settings set. Required for the ldap provider.",
+				Elem:          ldapSettingsSchema,
+				ConflictsWith: []string{oauth2SettingsKey, samlSettingsKey},
 			},
 		},
 	}
@@ -203,6 +213,16 @@ var oauth2SettingsSchema = &schema.Resource{
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "Prevent synchronizing users’ organization roles from your IdP.",
+		},
+		"org_mapping": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "List of comma- or space-separated Organization:OrgIdOrOrgName:Role mappings. Organization can be * meaning “All users”. Role is optional and can have the following values: None, Viewer, Editor or Admin.",
+		},
+		"org_attribute_path": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: `JMESPath expression to use for the organization mapping lookup from the user ID token. The extracted list will be used for the organization mapping (to match "Organization" in the "org_mapping"). Only applicable to Generic OAuth and Okta.`,
 		},
 		"define_allowed_groups": {
 			Type:        schema.TypeBool,
@@ -440,6 +460,227 @@ var samlSettingsSchema = &schema.Resource{
 			Optional:    true,
 			Description: "Prevent synchronizing users’ organization roles from your IdP.",
 		},
+		"client_id": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "The client Id of your OAuth2 app.",
+		},
+		"client_secret": {
+			Type:     schema.TypeString,
+			Optional: true,
+			// Sensitive:   true,
+			Description: "The client secret of your OAuth2 app.",
+		},
+		"token_url": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "The token endpoint of your OAuth2 provider. Required for Azure AD providers.",
+		},
+		"force_use_graph_api": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "If enabled, Grafana will fetch groups from Microsoft Graph API instead of using the groups claim from the ID token.",
+		},
+	},
+}
+
+var ldapSettingsSchema = &schema.Resource{
+	Schema: map[string]*schema.Schema{
+		"enabled": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Default:     true,
+			Description: "Define whether this configuration is enabled for LDAP.",
+		},
+		"allow_sign_up": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "Whether to allow new Grafana user creation through LDAP login. If set to false, then only existing Grafana users can log in with LDAP.",
+		},
+		"skip_org_role_sync": {
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "Prevent synchronizing users’ organization roles from LDAP.",
+		},
+		"config": {
+			Type:        schema.TypeList,
+			Required:    true,
+			MaxItems:    1,
+			MinItems:    1,
+			Description: "The LDAP configuration.",
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"servers": {
+						Type:        schema.TypeList,
+						Required:    true,
+						MinItems:    1,
+						Description: "The LDAP servers configuration.",
+						Elem: &schema.Resource{
+							Schema: map[string]*schema.Schema{
+								"host": {
+									Type:        schema.TypeString,
+									Required:    true,
+									Description: "The LDAP server host.",
+								},
+								"port": {
+									Type:        schema.TypeInt,
+									Optional:    true,
+									Description: "The LDAP server port.",
+								},
+								"use_ssl": {
+									Type:        schema.TypeBool,
+									Optional:    true,
+									Description: "Set to true if LDAP server should use an encrypted TLS connection (either with STARTTLS or LDAPS).",
+								},
+								"start_tls": {
+									Type:        schema.TypeBool,
+									Optional:    true,
+									Description: "If set to true, use LDAP with STARTTLS instead of LDAPS.",
+								},
+								"tls_ciphers": {
+									Type:        schema.TypeList,
+									Optional:    true,
+									Description: "Accepted TLS ciphers. For a complete list of supported ciphers, refer to: https://go.dev/src/crypto/tls/cipher_suites.go.",
+									Elem: &schema.Schema{
+										Type: schema.TypeString,
+									},
+								},
+								"min_tls_version": {
+									Type:        schema.TypeString,
+									Optional:    true,
+									Description: "Minimum TLS version allowed. Accepted values are: TLS1.2, TLS1.3.",
+								},
+								"ssl_skip_verify": {
+									Type:        schema.TypeBool,
+									Optional:    true,
+									Description: "If set to true, the SSL cert validation will be skipped.",
+								},
+								"root_ca_cert": {
+									Type:        schema.TypeString,
+									Optional:    true,
+									Description: "The path to the root CA certificate.",
+								},
+								"root_ca_cert_value": {
+									Type:        schema.TypeList,
+									Optional:    true,
+									Description: "The Base64 encoded values of the root CA certificates.",
+									Elem: &schema.Schema{
+										Type: schema.TypeString,
+									},
+								},
+								"client_cert": {
+									Type:        schema.TypeString,
+									Optional:    true,
+									Description: "The path to the client certificate.",
+								},
+								"client_cert_value": {
+									Type:        schema.TypeString,
+									Optional:    true,
+									Description: "The Base64 encoded value of the client certificate.",
+								},
+								"client_key": {
+									Type:        schema.TypeString,
+									Optional:    true,
+									Sensitive:   true,
+									Description: "The path to the client private key.",
+								},
+								"client_key_value": {
+									Type:        schema.TypeString,
+									Optional:    true,
+									Sensitive:   true,
+									Description: "The Base64 encoded value of the client private key.",
+								},
+								"bind_dn": {
+									Type:        schema.TypeString,
+									Optional:    true,
+									Description: "The search user bind DN.",
+								},
+								"bind_password": {
+									Type:        schema.TypeString,
+									Optional:    true,
+									Sensitive:   true,
+									Description: "The search user bind password.",
+								},
+								"timeout": {
+									Type:        schema.TypeInt,
+									Optional:    true,
+									Description: "The timeout in seconds for connecting to the LDAP host.",
+								},
+								"search_filter": {
+									Type:        schema.TypeString,
+									Required:    true,
+									Description: "The user search filter, for example \"(cn=%s)\" or \"(sAMAccountName=%s)\" or \"(uid=%s)\".",
+								},
+								"search_base_dns": {
+									Type:        schema.TypeList,
+									Required:    true,
+									MinItems:    1,
+									Description: "An array of base DNs to search through.",
+									Elem: &schema.Schema{
+										Type: schema.TypeString,
+									},
+								},
+								"group_search_filter": {
+									Type:        schema.TypeString,
+									Optional:    true,
+									Description: "Group search filter, to retrieve the groups of which the user is a member (only set if memberOf attribute is not available).",
+								},
+								"group_search_base_dns": {
+									Type:        schema.TypeList,
+									Optional:    true,
+									Description: "An array of the base DNs to search through for groups. Typically uses ou=groups.",
+									Elem: &schema.Schema{
+										Type: schema.TypeString,
+									},
+								},
+								"group_search_filter_user_attribute": {
+									Type:        schema.TypeString,
+									Optional:    true,
+									Description: "The %s in the search filter will be replaced with the attribute defined in this field.",
+								},
+								"attributes": {
+									Type:        schema.TypeMap,
+									Optional:    true,
+									Description: "The LDAP server attributes. The following attributes can be configured: email, member_of, name, surname, username.",
+									Elem: &schema.Schema{
+										Type: schema.TypeString,
+									},
+								},
+								"group_mappings": {
+									Type:        schema.TypeList,
+									Optional:    true,
+									Description: "For mapping an LDAP group to a Grafana organization and role.",
+									Elem: &schema.Resource{
+										Schema: map[string]*schema.Schema{
+											"group_dn": {
+												Type:        schema.TypeString,
+												Required:    true,
+												Description: "LDAP distinguished name (DN) of LDAP group. If you want to match all (or no LDAP groups) then you can use wildcard (\"*\").",
+											},
+											"org_role": {
+												Type:        schema.TypeString,
+												Required:    true,
+												Description: "Assign users of group_dn the organization role Admin, Editor, or Viewer.",
+											},
+											"org_id": {
+												Type:        schema.TypeInt,
+												Optional:    true,
+												Description: "The Grafana organization database id.",
+											},
+											"grafana_admin": {
+												Type:        schema.TypeBool,
+												Optional:    true,
+												Description: "If set to true, it makes the user of group_dn Grafana server admin.",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	},
 }
 
@@ -464,6 +705,11 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 
 	payload := resp.GetPayload()
 
+	settingsFromAPI, err := getSettingsForTF(payload)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	var settingsFromTfState map[string]any
 	settingsFromTfStateList := d.Get(settingsKey).(*schema.Set).List()
 	if len(settingsFromTfStateList) > 0 {
@@ -483,7 +729,7 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 		}
 	}
 
-	for k, v := range payload.Settings.(map[string]any) {
+	for k, v := range settingsFromAPI {
 		key := toSnake(k)
 
 		if _, ok := settingsSchema.Schema[key]; ok {
@@ -493,10 +739,14 @@ func ReadSSOSettings(ctx context.Context, d *schema.ResourceData, meta interface
 			// importing existing sso settings into terraform. Otherwise, the API response may return fields
 			// that don't exist in the terraform state. We ignore them because they are not managed by terraform.
 			if ok || len(settingsFromTfState) == 0 {
-				if isSecret(key) {
+				switch {
+				case provider == "ldap" && key == "config":
+					// special case for LDAP as the settings are nested
+					settingsSnake[key] = getSettingsWithSecretsForLdap(val, v)
+				case isSecret(key):
 					// secrets are not exposed by the SSO Settings API, we get them from the terraform state
 					settingsSnake[key] = val
-				} else if !isIgnored(provider, key) {
+				case !isIgnored(provider, key):
 					// some fields are returned by the API, but they are read only, so we ignore them
 					settingsSnake[key] = v
 				}
@@ -534,6 +784,8 @@ func UpdateSSOSettings(ctx context.Context, d *schema.ResourceData, meta interfa
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	settings = getSettingsForAPI(provider, settings)
 
 	if isOAuth2Provider(provider) {
 		diags := validateOAuth2CustomFields(settings)
@@ -588,12 +840,19 @@ func isSamlProvider(provider string) bool {
 	return provider == "saml"
 }
 
+func isLdapProvider(provider string) bool {
+	return provider == "ldap"
+}
+
 func getSettingsKey(provider string) (string, error) {
 	if isOAuth2Provider(provider) {
 		return oauth2SettingsKey, nil
 	}
 	if isSamlProvider(provider) {
 		return samlSettingsKey, nil
+	}
+	if isLdapProvider(provider) {
+		return ldapSettingsKey, nil
 	}
 
 	return "", fmt.Errorf("no settings key found for provider %s", provider)
@@ -605,6 +864,9 @@ func getSettingsSchema(provider string) (*schema.Resource, error) {
 	}
 	if isSamlProvider(provider) {
 		return samlSettingsSchema, nil
+	}
+	if isLdapProvider(provider) {
+		return ldapSettingsSchema, nil
 	}
 
 	return nil, fmt.Errorf("no settings schema found for provider %s", provider)
@@ -624,6 +886,77 @@ func getSettingOk(key string, settings map[string]any) (any, bool) {
 	return val, ok
 }
 
+func getSettingsWithSecretsForLdap(state any, config any) any {
+	secretFields := []string{"client_key", "client_key_value", "bind_password"}
+
+	stateSlice, ok := state.([]any)
+	if !ok {
+		return config
+	}
+
+	configSlice, ok := config.([]any)
+	if !ok {
+		return config
+	}
+
+	if len(stateSlice) == 0 || len(configSlice) == 0 {
+		return config
+	}
+
+	stateServers, ok := stateSlice[0].(map[string]any)["servers"].([]any)
+	if !ok {
+		return config
+	}
+
+	configServers, ok := configSlice[0].(map[string]any)["servers"].([]any)
+	if !ok {
+		return config
+	}
+
+	for i, serverRaw := range configServers {
+		server := serverRaw.(map[string]any)
+		for _, field := range secretFields {
+			if len(stateServers) < i+1 {
+				continue
+			}
+
+			secret, ok := stateServers[i].(map[string]any)[field].(string)
+			if ok {
+				server[field] = secret
+			}
+		}
+	}
+
+	return config
+}
+
+func getSettingsForTF(payload *models.GetProviderSettingsOKBody) (map[string]any, error) {
+	settings, ok := payload.Settings.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("invalid settings format: %v", payload.Settings)
+	}
+
+	if payload.Provider == "ldap" {
+		// config is represented as an array in terraform
+		settings["config"] = []any{settings["config"]}
+	}
+
+	return settings, nil
+}
+
+func getSettingsForAPI(provider string, settings map[string]any) map[string]any {
+	if provider == "ldap" {
+		config := settings["config"].([]any)
+
+		if len(config) > 0 {
+			// config is an object in API
+			settings["config"] = config[0]
+		}
+	}
+
+	return settings
+}
+
 func getSettingsFromResourceData(d *schema.ResourceData, settingsKey string) (map[string]any, error) {
 	settingsList := d.Get(settingsKey).(*schema.Set).List()
 
@@ -638,12 +971,18 @@ func getSettingsFromResourceData(d *schema.ResourceData, settingsKey string) (ma
 	// sometimes the settings set contains some empty items that we want to ignore
 	// we are only interested in the settings that have one of the following:
 	// - the client_id set because the client_id is a required field for OAuth2 providers
+	// - a non-empty config for LDAP
 	// - the private_key or private_key_path set because those are required fields for SAML
 	for _, item := range settingsList {
 		settings := item.(map[string]any)
 
 		clientID, ok := settings["client_id"]
 		if ok && clientID != "" {
+			return settings, nil
+		}
+
+		config, okConfig := settings["config"].([]any)
+		if okConfig && len(config) > 0 {
 			return settings, nil
 		}
 
@@ -664,6 +1003,7 @@ var validationsByProvider = map[string][]validateFunc{
 		ssoValidateNotEmpty("auth_url"),
 		ssoValidateNotEmpty("token_url"),
 		ssoValidateEmpty("api_url"),
+		ssoValidateEmpty("org_attribute_path"),
 		ssoValidateURL("auth_url"),
 		ssoValidateURL("token_url"),
 	},
@@ -674,6 +1014,7 @@ var validationsByProvider = map[string][]validateFunc{
 		ssoValidateURL("auth_url"),
 		ssoValidateURL("token_url"),
 		ssoValidateURL("api_url"),
+		ssoValidateInterdependencyXOR("org_attribute_path", "org_mapping"),
 	},
 	"okta": {
 		ssoValidateNotEmpty("auth_url"),
@@ -682,28 +1023,36 @@ var validationsByProvider = map[string][]validateFunc{
 		ssoValidateURL("auth_url"),
 		ssoValidateURL("token_url"),
 		ssoValidateURL("api_url"),
+		ssoValidateInterdependencyXOR("org_attribute_path", "org_mapping"),
 	},
 	"github": {
 		ssoValidateEmpty("auth_url"),
 		ssoValidateEmpty("token_url"),
 		ssoValidateEmpty("api_url"),
+		ssoValidateEmpty("org_attribute_path"),
 	},
 	"gitlab": {
 		ssoValidateEmpty("auth_url"),
 		ssoValidateEmpty("token_url"),
 		ssoValidateEmpty("api_url"),
+		ssoValidateEmpty("org_attribute_path"),
 	},
 	"google": {
 		ssoValidateEmpty("auth_url"),
 		ssoValidateEmpty("token_url"),
 		ssoValidateEmpty("api_url"),
+		ssoValidateEmpty("org_attribute_path"),
 	},
 	"saml": {
-		ssoValidateOnlyOneOf("certificate", "certificate_path"),
-		ssoValidateOnlyOneOf("private_key", "private_key_path"),
+		ssoValidateInterdependencyXOR("certificate", "private_key"),
+		ssoValidateInterdependencyXOR("certificate_path", "private_key_path"),
 		ssoValidateOnlyOneOf("idp_metadata", "idp_metadata_path", "idp_metadata_url"),
 		ssoValidateURL("idp_metadata_url"),
+		ssoValidateInterdependencyXOR("client_id", "client_secret", "token_url"),
+		ssoValidateURL("token_url"),
 	},
+	// no client side validations for LDAP because the settings are nested
+	"ldap": {},
 }
 
 func validateSSOSettings(provider string, settings map[string]any) error {
@@ -865,6 +1214,28 @@ func ssoValidateOnlyOneOf(keys ...string) validateFunc {
 
 		if configuredKeys != 1 {
 			return fmt.Errorf("exactly one of %v must be configured for provider %s", keys, provider)
+		}
+
+		return nil
+	}
+}
+
+// XOR validation of variables
+func ssoValidateInterdependencyXOR(keys ...string) validateFunc {
+	return func(settingsMap map[string]any, provider string) error {
+		configuredKeys := 0
+		nonConfiguredKeys := 0
+
+		for _, key := range keys {
+			if settingsMap[key].(string) != "" {
+				configuredKeys++
+			} else {
+				nonConfiguredKeys++
+			}
+		}
+
+		if configuredKeys != len(keys) && nonConfiguredKeys != len(keys) {
+			return fmt.Errorf("all variables in %v must be configured or empty for provider %s", keys, provider)
 		}
 
 		return nil

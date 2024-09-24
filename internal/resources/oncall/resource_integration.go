@@ -3,7 +3,6 @@ package oncall
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
@@ -49,7 +48,7 @@ var integrationTypesVerbal = strings.Join(integrationTypes, ", ")
 func resourceIntegration() *common.Resource {
 	schema := &schema.Resource{
 		Description: `
-* [Official documentation](https://grafana.com/docs/oncall/latest/integrations/)
+* [Official documentation](https://grafana.com/docs/oncall/latest/configure/integrations/)
 * [HTTP API](https://grafana.com/docs/oncall/latest/oncall-api-reference/)
 `,
 
@@ -241,7 +240,9 @@ func resourceIntegration() *common.Resource {
 		"grafana_oncall_integration",
 		resourceID,
 		schema,
-	).WithLister(oncallListerFunction(listIntegrations))
+	).
+		WithLister(oncallListerFunction(listIntegrations)).
+		WithPreferredResourceNameField("name")
 }
 
 func listIntegrations(client *onCallAPI.Client, listOptions onCallAPI.ListOptions) (ids []string, nextPage *string, err error) {
@@ -346,9 +347,7 @@ func resourceIntegrationRead(ctx context.Context, d *schema.ResourceData, client
 	integration, r, err := client.Integrations.GetIntegration(d.Id(), options)
 	if err != nil {
 		if r != nil && r.StatusCode == http.StatusNotFound {
-			log.Printf("[WARN] removing integreation %s from state because it no longer exists", d.Get("name").(string))
-			d.SetId("")
-			return nil
+			return common.WarnMissing("integration", d)
 		}
 		return diag.FromErr(err)
 	}
@@ -366,13 +365,7 @@ func resourceIntegrationRead(ctx context.Context, d *schema.ResourceData, client
 func resourceIntegrationDelete(ctx context.Context, d *schema.ResourceData, client *onCallAPI.Client) diag.Diagnostics {
 	options := &onCallAPI.DeleteIntegrationOptions{}
 	_, err := client.Integrations.DeleteIntegration(d.Id(), options)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId("")
-
-	return nil
+	return diag.FromErr(err)
 }
 
 func flattenRouteSlack(in *onCallAPI.SlackRoute) []map[string]interface{} {

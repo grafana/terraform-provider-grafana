@@ -249,30 +249,23 @@ func resourceReport() *common.Resource {
 		"grafana_report",
 		orgResourceIDInt("id"),
 		schema,
-	).WithLister(listerFunction(listReports))
+	).
+		WithLister(listerFunctionOrgResource(listReports)).
+		WithPreferredResourceNameField("name")
 }
 
-func listReports(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
-	orgIDs, err := data.OrgIDs(client)
+func listReports(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	var ids []string
+	resp, err := client.Reports.GetReports()
+	if err != nil && common.IsNotFoundError(err) {
+		return nil, nil // Reports are not available in the current Grafana version (Probably OSS)
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	var ids []string
-	for _, orgID := range orgIDs {
-		client = client.Clone().WithOrgID(orgID)
-
-		resp, err := client.Reports.GetReports()
-		if err != nil && common.IsNotFoundError(err) {
-			return nil, nil // Reports are not available in the current Grafana version (Probably OSS)
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		for _, report := range resp.Payload {
-			ids = append(ids, MakeOrgResourceID(orgID, report.ID))
-		}
+	for _, report := range resp.Payload {
+		ids = append(ids, MakeOrgResourceID(orgID, report.ID))
 	}
 
 	return ids, nil
@@ -400,10 +393,10 @@ func DeleteReport(ctx context.Context, d *schema.ResourceData, meta interface{})
 	return diag
 }
 
-func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReportConfig, error) {
+func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReport, error) {
 	frequency := d.Get("schedule.0.frequency").(string)
 	timezone := d.Get("schedule.0.timezone").(string)
-	report := models.CreateOrUpdateReportConfig{
+	report := models.CreateOrUpdateReport{
 		Name:               d.Get("name").(string),
 		Recipients:         strings.Join(common.ListToStringSlice(d.Get("recipients").([]interface{})), ","),
 		ReplyTo:            d.Get("reply_to").(string),
@@ -433,7 +426,7 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReportConfig, 
 
 	location, err := time.LoadLocation(timezone)
 	if err != nil {
-		return models.CreateOrUpdateReportConfig{}, err
+		return models.CreateOrUpdateReport{}, err
 	}
 
 	// Set schedule start time
@@ -441,7 +434,7 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReportConfig, 
 		if startTimeStr := d.Get("schedule.0.start_time").(string); startTimeStr != "" {
 			date, err := formatDate(startTimeStr, location)
 			if err != nil {
-				return models.CreateOrUpdateReportConfig{}, err
+				return models.CreateOrUpdateReport{}, err
 			}
 			report.Schedule.StartDate = date
 		}
@@ -452,7 +445,7 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReportConfig, 
 		if endTimeStr := d.Get("schedule.0.end_time").(string); endTimeStr != "" {
 			date, err := formatDate(endTimeStr, location)
 			if err != nil {
-				return models.CreateOrUpdateReportConfig{}, err
+				return models.CreateOrUpdateReport{}, err
 			}
 			report.Schedule.EndDate = date
 		}
@@ -471,7 +464,7 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReportConfig, 
 		customInterval := d.Get("schedule.0.custom_interval").(string)
 		amount, unit, err := parseCustomReportInterval(customInterval)
 		if err != nil {
-			return models.CreateOrUpdateReportConfig{}, err
+			return models.CreateOrUpdateReport{}, err
 		}
 		report.Schedule.IntervalAmount = int64(amount)
 		report.Schedule.IntervalFrequency = unit
@@ -480,7 +473,7 @@ func schemaToReport(d *schema.ResourceData) (models.CreateOrUpdateReportConfig, 
 	return report, nil
 }
 
-func setDashboards(report models.CreateOrUpdateReportConfig, d *schema.ResourceData) models.CreateOrUpdateReportConfig {
+func setDashboards(report models.CreateOrUpdateReport, d *schema.ResourceData) models.CreateOrUpdateReport {
 	dashboards := d.Get("dashboards").([]interface{})
 	for _, dashboard := range dashboards {
 		dash := dashboard.(map[string]interface{})

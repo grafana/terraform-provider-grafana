@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
@@ -12,14 +13,16 @@ import (
 
 // ListerData is used as the data arg in "ListIDs" functions. It allows getting data common to multiple resources.
 type ListerData struct {
-	singleOrg bool
-	orgIDs    []int64
-	orgsInit  sync.Once
+	omitSingleOrgID bool
+	singleOrg       bool
+	orgIDs          []int64
+	orgsInit        sync.Once
 }
 
-func NewListerData(singleOrg bool) *ListerData {
+func NewListerData(singleOrg, omitSingleOrgID bool) *ListerData {
 	return &ListerData{
-		singleOrg: singleOrg,
+		singleOrg:       singleOrg,
+		omitSingleOrgID: omitSingleOrgID,
 	}
 }
 
@@ -54,8 +57,11 @@ func (ld *ListerData) OrgIDs(client *goapi.GrafanaHTTPAPI) ([]int64, error) {
 	return ld.orgIDs, nil
 }
 
+type grafanaListerFunc func(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error)
+type grafanaOrgResourceListerFunc func(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error)
+
 // listerFunction is a helper function that wraps a lister function be used more easily in grafana resources.
-func listerFunction(listerFunc func(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error)) common.ResourceListIDsFunc {
+func listerFunction(listerFunc grafanaListerFunc) common.ResourceListIDsFunc {
 	return func(ctx context.Context, client *common.Client, data any) ([]string, error) {
 		lm, ok := data.(*ListerData)
 		if !ok {
@@ -66,4 +72,32 @@ func listerFunction(listerFunc func(ctx context.Context, client *goapi.GrafanaHT
 		}
 		return listerFunc(ctx, client.GrafanaAPI, lm)
 	}
+}
+
+func listerFunctionOrgResource(listerFunc grafanaOrgResourceListerFunc) common.ResourceListIDsFunc {
+	return listerFunction(func(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
+		orgIDs, err := data.OrgIDs(client)
+		if err != nil {
+			return nil, err
+		}
+
+		var ids []string
+		for _, orgID := range orgIDs {
+			idsInOrg, err := listerFunc(ctx, client.Clone().WithOrgID(orgID), orgID)
+			if err != nil {
+				return nil, err
+			}
+
+			// Trim org ID from IDs if there is only one org and it's the default org
+			if len(orgIDs) == 1 && (orgID <= 1) && data.omitSingleOrgID {
+				for _, id := range idsInOrg {
+					ids = append(ids, strings.TrimPrefix(id, fmt.Sprintf("%d:", orgID)))
+				}
+			} else {
+				ids = append(ids, idsInOrg...)
+			}
+		}
+
+		return ids, nil
+	})
 }

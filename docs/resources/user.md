@@ -7,6 +7,7 @@ description: |-
   This resource represents an instance-scoped resource and uses Grafana's admin APIs.
   It does not work with API tokens or service accounts which are org-scoped.
   You must use basic auth.
+  This resource is also not compatible with Grafana Cloud, as it does not allow basic auth.
 ---
 
 # grafana_user (Resource)
@@ -17,6 +18,7 @@ description: |-
 This resource represents an instance-scoped resource and uses Grafana's admin APIs.
 It does not work with API tokens or service accounts which are org-scoped. 
 You must use basic auth.
+This resource is also not compatible with Grafana Cloud, as it does not allow basic auth.
 
 ## Example Usage
 

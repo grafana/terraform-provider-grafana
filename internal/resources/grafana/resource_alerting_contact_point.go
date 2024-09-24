@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/runtime"
+	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -49,7 +50,7 @@ func resourceContactPoint() *common.Resource {
 		Description: `
 Manages Grafana Alerting contact points.
 
-* [Official documentation](https://grafana.com/docs/grafana/next/alerting/fundamentals/notifications/contact-points/)
+* [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#contact-points)
 
 This resource requires Grafana 9.1.0 or later.
@@ -103,48 +104,37 @@ This resource requires Grafana 9.1.0 or later.
 		"grafana_contact_point",
 		orgResourceIDString("name"),
 		resource,
-	)
+	).WithLister(listerFunctionOrgResource(listContactPoints))
 }
 
-// TODO: Fix contact points lister. Terraform doesn't read any of the sensitive fields (or their container)
-// It outputs an empty `email {}` block for example, which is not valid.
-// func listContactPoints(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
-// 	orgIDs, err := data.OrgIDs(client)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+func listContactPoints(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	idMap := map[string]bool{}
+	// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+	// The alertmanager is provisioned asynchronously when the org is created.
+	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
+		if err != nil {
+			if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
 
-// 	idMap := map[string]bool{}
-// 	for _, orgID := range orgIDs {
-// 		client = client.Clone().WithOrgID(orgID)
+		for _, contactPoint := range resp.Payload {
+			idMap[MakeOrgResourceID(orgID, contactPoint.Name)] = true
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
 
-// 		// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
-// 		// The alertmanager is provisioned asynchronously when the org is created.
-// 		if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
-// 			resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams())
-// 			if err != nil {
-// 				if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
-// 					return retry.RetryableError(err)
-// 				}
-// 				return retry.NonRetryableError(err)
-// 			}
+	var ids []string
+	for id := range idMap {
+		ids = append(ids, id)
+	}
 
-// 			for _, contactPoint := range resp.Payload {
-// 				idMap[MakeOrgResourceID(orgID, contactPoint.Name)] = true
-// 			}
-// 			return nil
-// 		}); err != nil {
-// 			return nil, err
-// 		}
-// 	}
-
-// 	var ids []string
-// 	for id := range idMap {
-// 		ids = append(ids, id)
-// 	}
-
-// 	return ids, nil
-// }
+	return ids, nil
+}
 
 func readContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, orgID, name := OAPIClientFromExistingOrgResource(meta, data.Id())

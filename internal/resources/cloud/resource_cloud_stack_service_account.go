@@ -124,8 +124,7 @@ func readStackServiceAccount(ctx context.Context, d *schema.ResourceData, cloudC
 
 	resp, httpResp, err := cloudClient.InstancesAPI.GetInstanceServiceAccount(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).Execute()
 	if httpResp != nil && httpResp.StatusCode == 404 {
-		d.SetId("")
-		return nil
+		return common.WarnMissing("stack service account", d)
 	}
 	if err != nil {
 		return diag.FromErr(err)

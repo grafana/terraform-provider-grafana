@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -205,7 +204,9 @@ Required access policy scopes:
 		"grafana_cloud_stack",
 		resourceStackID,
 		schema,
-	).WithLister(cloudListerFunction(listStacks))
+	).
+		WithLister(cloudListerFunction(listStacks)).
+		WithPreferredResourceNameField("name")
 }
 
 func listStacks(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]string, error) {
@@ -338,9 +339,7 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 	}
 
 	if stack.Status == "deleted" {
-		log.Printf("[WARN] removing stack %s from state because it was deleted outside of Terraform", stack.Name)
-		d.SetId("")
-		return nil
+		return common.WarnMissing("stack", d)
 	}
 
 	connectionsReq := client.InstancesAPI.GetConnections(ctx, id.(string))
@@ -448,25 +447,37 @@ func waitForStackReadiness(ctx context.Context, timeout time.Duration, stackURL 
 		return diag.FromErr(joinErr)
 	}
 	err := retry.RetryContext(ctx, timeout, func() *retry.RetryError {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL, nil)
+		// Query the instance URL directly. This makes the stack wake-up if it has been paused.
+		// The health endpoint is helpful to check that the stack is ready, but it doesn't wake up the stack.
+		stackReq, err := http.NewRequestWithContext(ctx, http.MethodGet, stackURL, nil)
 		if err != nil {
 			return retry.NonRetryableError(err)
 		}
-		resp, err := http.DefaultClient.Do(req)
+		stackResp, err := http.DefaultClient.Do(stackReq)
 		if err != nil {
 			return retry.RetryableError(err)
 		}
-		defer resp.Body.Close()
-		if resp.StatusCode != 200 {
+		defer stackResp.Body.Close()
+
+		healthReq, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL, nil)
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+		healthResp, err := http.DefaultClient.Do(healthReq)
+		if err != nil {
+			return retry.RetryableError(err)
+		}
+		defer healthResp.Body.Close()
+		if healthResp.StatusCode != 200 {
 			buf := new(bytes.Buffer)
 			body := ""
-			_, err = buf.ReadFrom(resp.Body)
+			_, err = buf.ReadFrom(healthResp.Body)
 			if err != nil {
 				body = "unable to read response body, error: " + err.Error()
 			} else {
 				body = buf.String()
 			}
-			return retry.RetryableError(fmt.Errorf("stack was not ready in %s. Status code: %d, Body: %s", timeout, resp.StatusCode, body))
+			return retry.RetryableError(fmt.Errorf("stack was not ready in %s. Status code: %d, Body: %s", timeout, healthResp.StatusCode, body))
 		}
 
 		return nil

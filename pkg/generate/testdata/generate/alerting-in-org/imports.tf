@@ -1,4 +1,19 @@
 import {
+  to = grafana_contact_point._1_email_receiver
+  id = "1:email receiver"
+}
+
+import {
+  to = grafana_contact_point._2_email_receiver
+  id = "2:email receiver"
+}
+
+import {
+  to = grafana_contact_point._2_my-contact-point
+  id = "2:my-contact-point"
+}
+
+import {
   to = grafana_folder._2_alert-rule-folder
   id = "2:alert-rule-folder"
 }
@@ -24,7 +39,7 @@ import {
 }
 
 import {
-  to = grafana_organization._2
+  to = grafana_organization.alerting-org
   id = "2"
 }
 

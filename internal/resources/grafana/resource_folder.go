@@ -78,11 +78,11 @@ func resourceFolder() *common.Resource {
 		"grafana_folder",
 		orgResourceIDString("uid"),
 		schema,
-	).WithLister(listerFunction(listFolders))
+	).WithLister(listerFunctionOrgResource(listFolders))
 }
 
-func listFolders(ctx context.Context, client *goapi.GrafanaHTTPAPI, data *ListerData) ([]string, error) {
-	return listDashboardOrFolder(client, data, "dash-folder")
+func listFolders(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
+	return listDashboardOrFolder(client, orgID, "dash-folder")
 }
 
 func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

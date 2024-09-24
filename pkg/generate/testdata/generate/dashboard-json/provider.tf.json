@@ -2,7 +2,7 @@
   "provider": {
     "grafana": [
       {
-        "auth": "admin:admin",
+        "auth": "REDACTED",
         "url": "http://localhost:3000"
       }
     ]
@@ -13,7 +13,7 @@
         {
           "grafana": {
             "source": "grafana/grafana",
-            "version": "3.0.0"
+            "version": "999.999.999"
           }
         }
       ]

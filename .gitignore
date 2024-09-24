@@ -29,6 +29,7 @@ website/vendor
 testdata/*.crt
 testdata/*.key
 testdata/integration/*
+testdata/plugins
 !testdata/integration/main.tf
 !testdata/integration/test.sh
 

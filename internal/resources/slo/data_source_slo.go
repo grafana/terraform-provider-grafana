@@ -3,7 +3,7 @@ package slo
 import (
 	"context"
 
-	slo "github.com/grafana/slo-openapi-client/go"
+	"github.com/grafana/slo-openapi-client/go/slo"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -88,6 +88,7 @@ func convertDatasourceSlo(slo slo.SloV00Slo) map[string]interface{} {
 
 	retAlerting := unpackAlerting(slo.Alerting)
 	ret["alerting"] = retAlerting
+	ret["search_expression"] = slo.SearchExpression
 
 	return ret
 }
