@@ -2,7 +2,6 @@ package connectionsapi_test
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,8 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var clientWithoutRetriesNorTLS = &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}} //nolint:gosec
-
 func TestClient_sets_auth_token_and_content_type(t *testing.T) {
 	svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "Bearer some token", r.Header.Get("Authorization"))
@@ -24,7 +21,7 @@ func TestClient_sets_auth_token_and_content_type(t *testing.T) {
 	}))
 	defer svr.Close()
 
-	c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
+	c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client())
 	require.NoError(t, err)
 	_, err = c.CreateMetricsEndpointScrapeJob(context.Background(), "some stack id", connectionsapi.MetricsEndpointScrapeJob{})
 	require.NoError(t, err)
@@ -67,7 +64,7 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client())
 		require.NoError(t, err)
 		actualJob, err := c.CreateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", connectionsapi.MetricsEndpointScrapeJob{
 			Name:                        "test_job",
@@ -97,7 +94,7 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client())
 		require.NoError(t, err)
 		_, err = c.CreateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", connectionsapi.MetricsEndpointScrapeJob{})
 
@@ -131,7 +128,7 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client())
 		require.NoError(t, err)
 		actualJob, err := c.GetMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "test_job")
 		assert.NoError(t, err)
@@ -152,7 +149,7 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client())
 		require.NoError(t, err)
 		_, err = c.GetMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
 
@@ -168,7 +165,7 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client())
 		require.NoError(t, err)
 		_, err = c.GetMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
 
@@ -212,7 +209,7 @@ func TestClient_UpdateMetricsEndpointScrapeJob_sends_request_and_receives_respon
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client())
 		require.NoError(t, err)
 		actualJob, err := c.UpdateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "test_job",
 			connectionsapi.MetricsEndpointScrapeJob{
@@ -241,7 +238,7 @@ func TestClient_UpdateMetricsEndpointScrapeJob_sends_request_and_receives_respon
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client())
 		require.NoError(t, err)
 		_, err = c.UpdateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name", connectionsapi.MetricsEndpointScrapeJob{})
 
@@ -257,7 +254,7 @@ func TestClient_UpdateMetricsEndpointScrapeJob_sends_request_and_receives_respon
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client())
 		require.NoError(t, err)
 		_, err = c.UpdateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name", connectionsapi.MetricsEndpointScrapeJob{})
 
@@ -276,7 +273,7 @@ func TestClient_DeleteMetricsEndpointScrapeJob_sends_request_and_receives_respon
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client())
 		require.NoError(t, err)
 		err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "test_job")
 
@@ -289,7 +286,7 @@ func TestClient_DeleteMetricsEndpointScrapeJob_sends_request_and_receives_respon
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client())
 		require.NoError(t, err)
 		err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
 
@@ -305,7 +302,7 @@ func TestClient_DeleteMetricsEndpointScrapeJob_sends_request_and_receives_respon
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, clientWithoutRetriesNorTLS)
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client())
 		require.NoError(t, err)
 		err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
 
