@@ -22,8 +22,7 @@ type metricsEndpointScrapeJobTFModel struct {
 // A special converter is needed because the TFModel uses special Terraform types that build upon their underlying Go types for
 // supporting Terraform's state management/dependency analysis of the resource and its data.
 func convertJobTFModelToClientModel(tfData metricsEndpointScrapeJobTFModel) connectionsapi.MetricsEndpointScrapeJob {
-
-	converted := connectionsapi.MetricsEndpointScrapeJob{
+	return connectionsapi.MetricsEndpointScrapeJob{
 		Name:                        tfData.Name.ValueString(),
 		Enabled:                     tfData.Enabled.ValueBool(),
 		AuthenticationMethod:        tfData.AuthenticationMethod.ValueString(),
@@ -33,16 +32,13 @@ func convertJobTFModelToClientModel(tfData metricsEndpointScrapeJobTFModel) conn
 		URL:                         tfData.URL.ValueString(),
 		ScrapeIntervalSeconds:       tfData.ScrapeIntervalSeconds.ValueInt64(),
 	}
-
-	// TODO: I didn't think this needed to be a pointer
-	return converted
 }
 
 // convertClientModelToTFModel converts a connectionsapi.MetricsEndpointScrapeJob instance to a metricsEndpointScrapeJobTFModel instance.
 // A special converter is needed because the TFModel uses special Terraform types that build upon their underlying Go types for
 // supporting Terraform's state management/dependency analysis of the resource and its data.
-func convertClientModelToTFModel(stackID string, scrapeJobData connectionsapi.MetricsEndpointScrapeJob) *metricsEndpointScrapeJobTFModel {
-	converted := &metricsEndpointScrapeJobTFModel{
+func convertClientModelToTFModel(stackID string, scrapeJobData connectionsapi.MetricsEndpointScrapeJob) metricsEndpointScrapeJobTFModel {
+	return metricsEndpointScrapeJobTFModel{
 		ID:                          types.StringValue(resourceMetricsEndpointScrapeJobTerraformID.Make(stackID, scrapeJobData.Name)),
 		StackID:                     types.StringValue(stackID),
 		Name:                        types.StringValue(scrapeJobData.Name),
@@ -54,6 +50,4 @@ func convertClientModelToTFModel(stackID string, scrapeJobData connectionsapi.Me
 		URL:                         types.StringValue(scrapeJobData.URL),
 		ScrapeIntervalSeconds:       types.Int64Value(scrapeJobData.ScrapeIntervalSeconds),
 	}
-
-	return converted
 }

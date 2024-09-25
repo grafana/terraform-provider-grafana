@@ -160,7 +160,7 @@ func (r *resourceMetricsEndpointScrapeJob) Create(ctx context.Context, req resou
 	jobClientModel, err := r.client.CreateMetricsEndpointScrapeJob(ctx, dataTF.StackID.ValueString(),
 		convertJobTFModelToClientModel(dataTF))
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to create Metrics Endpoint scrape job", err.Error())
+		resp.Diagnostics.AddError("Failed to create metrics endpoint scrape job", err.Error())
 		return
 	}
 
@@ -181,7 +181,7 @@ func (r *resourceMetricsEndpointScrapeJob) Read(ctx context.Context, req resourc
 		dataTF.Name.ValueString(),
 	)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get Metrics Endpoint scrape job", err.Error())
+		resp.Diagnostics.AddError("Failed to get metrics endpoint scrape job", err.Error())
 		return
 	}
 
@@ -201,7 +201,7 @@ func (r *resourceMetricsEndpointScrapeJob) Update(ctx context.Context, req resou
 	jobClientModel, err := r.client.UpdateMetricsEndpointScrapeJob(ctx, dataTF.StackID.ValueString(), dataTF.Name.ValueString(),
 		convertJobTFModelToClientModel(dataTF))
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to update Metrics Endpoint scrape job", err.Error())
+		resp.Diagnostics.AddError("Failed to update metrics endpoint scrape job", err.Error())
 		return
 	}
 
@@ -222,7 +222,7 @@ func (r *resourceMetricsEndpointScrapeJob) Delete(ctx context.Context, req resou
 		dataTF.Name.ValueString(),
 	)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to delete Metrics Endpoint scrape job", err.Error())
+		resp.Diagnostics.AddError("Failed to delete metrics endpoint scrape job", err.Error())
 		return
 	}
 
