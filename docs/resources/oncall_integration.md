@@ -113,7 +113,8 @@ Optional:
 - `acknowledge_signal` (String) Template for sending a signal to acknowledge the Incident.
 - `email` (Block List, Max: 1) Templates for Email. (see [below for nested schema](#nestedblock--templates--email))
 - `grouping_key` (String) Template for the key by which alerts are grouped.
-- `microsoft_teams` (Block List, Max: 1) Templates for Microsoft Teams. (see [below for nested schema](#nestedblock--templates--microsoft_teams))
+- `microsoft_teams` (Block List, Max: 1) Templates for Microsoft Teams. **NOTE**: Microsoft Teams templates are only available on Grafana Cloud. (see [below for nested schema](#nestedblock--templates--microsoft_teams))
+- `mobile_app` (Block List, Max: 1) Templates for Mobile app push notifications. (see [below for nested schema](#nestedblock--templates--mobile_app))
 - `phone_call` (Block List, Max: 1) Templates for Phone Call. (see [below for nested schema](#nestedblock--templates--phone_call))
 - `resolve_signal` (String) Template for sending a signal to resolve the Incident.
 - `slack` (Block List, Max: 1) Templates for Slack. (see [below for nested schema](#nestedblock--templates--slack))
@@ -137,6 +138,15 @@ Optional:
 Optional:
 
 - `image_url` (String) Template for Alert image url.
+- `message` (String) Template for Alert message.
+- `title` (String) Template for Alert title.
+
+
+<a id="nestedblock--templates--mobile_app"></a>
+### Nested Schema for `templates.mobile_app`
+
+Optional:
+
 - `message` (String) Template for Alert message.
 - `title` (String) Template for Alert title.
 
