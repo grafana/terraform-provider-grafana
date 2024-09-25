@@ -30,7 +30,7 @@ func TestAccResourceJobAlert(t *testing.T) {
 		),
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_alert/resource.tf", map[string]string{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_alert/forecast_alert.tf", map[string]string{
 					"Test Job":   randomJobName,
 					"Test Alert": randomAlertName,
 				}),
@@ -46,7 +46,7 @@ func TestAccResourceJobAlert(t *testing.T) {
 			},
 			// Update the alert with a new anomaly condition.
 			{
-				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_alert/resource.tf", map[string]string{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_alert/forecast_alert.tf", map[string]string{
 					"Test Job":   randomJobName,
 					"Test Alert": randomAlertName,
 					"\"any\"":    "\"low\"",
