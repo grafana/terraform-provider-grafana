@@ -1465,6 +1465,7 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 			NoFollowRedirects:          h["no_follow_redirects"].(bool),
 			BearerToken:                h["bearer_token"].(string),
 			ProxyURL:                   h["proxy_url"].(string),
+			ProxyConnectHeaders:        common.SetToStringSlice(h["proxy_connect_headers"].(*schema.Set)),
 			FailIfSSL:                  h["fail_if_ssl"].(bool),
 			FailIfNotSSL:               h["fail_if_not_ssl"].(bool),
 			ValidHTTPVersions:          common.SetToStringSlice(h["valid_http_versions"].(*schema.Set)),
