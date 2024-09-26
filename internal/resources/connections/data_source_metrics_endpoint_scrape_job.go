@@ -65,13 +65,16 @@ func (r *datasourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req dat
 			"authentication_bearer_token": schema.StringAttribute{
 				Description: "Token for authentication bearer.",
 				Sensitive:   true,
+				Optional:    true,
 			},
 			"authentication_basic_username": schema.StringAttribute{
 				Description: "Username for basic authentication.",
+				Optional:    true,
 			},
-			"authentication_basic_password": schema.StringAttribute{ // TODO: is this something we want in the data source resource?
+			"authentication_basic_password": schema.StringAttribute{
 				Description: "Password for basic authentication.",
 				Sensitive:   true,
+				Optional:    true,
 			},
 			"url": schema.StringAttribute{
 				Description: "The url to scrape metrics.",
