@@ -228,7 +228,9 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 
 ### Managing Cloud Provider
 
-Before using the cloud provider, you need to create an access policy token on the Grafana Cloud Portal. This token is used to authenticate the provider to Grafana's Cloud Provider API.
+#### Obtaining Cloud Provider access token
+
+Before using the Terraform Provider to manage Grafana Cloud Provider Observability resources, such as AWS CloudWatch scrape jobs, you need to create an access policy token on the Grafana Cloud Portal. This token is used to authenticate the provider to the Grafana Cloud Provider API.
 [These docs](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/authorize-services/#create-an-access-policy-for-a-stack) will guide you on how to create 
 an access policy. The required permissions, or scopes, are `integration-management:read`, `integration-management:write` and `stacks:read`.
 
@@ -242,10 +244,12 @@ Also, by default the Access Policies UI will not show those scopes, to find name
 Having created an Access Policy, you can now create a token that will be used to authenticate the provider to the Cloud Provider API. You can do so just after creating the access policy, following
 the in-screen instructions, of following [this guide](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/authorize-services/#create-one-or-more-access-policy-tokens).
 
+#### Obtaining Cloud Provider API hostname
+
 Having created the token, we can find the correct Cloud Provider API hostname by running the following script, that requires `curl` and [`jq`](https://jqlang.github.io/jq/) installed:
 
 ```bash
-curl -sH "Authorization: Bearer token" "https://grafana.com/api/instances" | \
+curl -sH "Authorization: Bearer <Access Token from previous step>" "https://grafana.com/api/instances" | \
   jq '[.items[]|{stackName: .slug, clusterName:.clusterSlug, cloudProviderAPIURL: "https://cloud-provider-api-\(.clusterSlug).grafana.net"}]'
 ```
 
@@ -262,13 +266,15 @@ For example, in the following response, the correct hostname for the `herokublog
 ]
 ```
 
+#### Configuring Provider
+
 Once you have the token and Cloud Provider API hostanme, you can configure the provider as follows:
 
 ```hcl
 provider "grafana" {
   // ...
-  cloud_provider_url = "https://cloud-provider-api-url.com"
-  cloud_provider_access_token = "token"
+  cloud_provider_url = <Cloud Provider API URL from previous step>
+  cloud_provider_access_token = <Access Token from previous step>
 }
 ```
 
@@ -371,3 +377,8 @@ You can use the `grafana_synthetic_monitoring_installation` resource as shown ab
 
 [Grafana OnCall](https://grafana.com/docs/oncall/latest/oncall-api-reference/)
 uses API keys to allow access to the API. You can request a new OnCall API key in OnCall -> Settings page.
+
+### `cloud_provider_access_token`
+
+An access policy token created to manage [Grafana Cloud Provider Observability](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/).
+To create one, follow the instructions in the [manging cloud provider section](##obtaining-cloud-provider-access-token).
