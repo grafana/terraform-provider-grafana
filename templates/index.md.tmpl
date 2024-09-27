@@ -51,7 +51,7 @@ the in-screen instructions, of following [this guide](https://grafana.com/docs/g
 Having created the token, we can find the correct Cloud Provider API hostname by running the following script, that requires `curl` and [`jq`](https://jqlang.github.io/jq/) installed:
 
 ```bash
-curl -sH "Authorization: Bearer token" "https://grafana.com/api/instances" | \
+curl -sH "Authorization: Bearer <Access Token from previous step>" "https://grafana.com/api/instances" | \
   jq '[.items[]|{stackName: .slug, clusterName:.clusterSlug, cloudProviderAPIURL: "https://cloud-provider-api-\(.clusterSlug).grafana.net"}]'
 ```
 
