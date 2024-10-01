@@ -31,7 +31,7 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 	t.Run("successfully sends request and receives response", func(t *testing.T) {
 		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, http.MethodPost, r.Method)
-			assert.Equal(t, "/metrics-endpoint/stack/some-stack-id/jobs/test_job", r.URL.Path)
+			assert.Equal(t, "/api/v1/metrics-endpoint/stack/some-stack-id/jobs/test_job", r.URL.Path)
 			requestBody, err := io.ReadAll(r.Body)
 			require.NoError(t, err)
 			assert.JSONEq(t, `
@@ -107,7 +107,7 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 	t.Run("successfully sends request and receives response", func(t *testing.T) {
 		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, http.MethodGet, r.Method)
-			assert.Equal(t, "/metrics-endpoint/stack/some-stack-id/jobs/test_job", r.URL.Path)
+			assert.Equal(t, "/api/v1/metrics-endpoint/stack/some-stack-id/jobs/test_job", r.URL.Path)
 
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`
@@ -178,7 +178,7 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 	t.Run("successfully sends request and receives response", func(t *testing.T) {
 		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, http.MethodPut, r.Method)
-			assert.Equal(t, "/metrics-endpoint/stack/some-stack-id/jobs/test_job", r.URL.Path)
+			assert.Equal(t, "/api/v1/metrics-endpoint/stack/some-stack-id/jobs/test_job", r.URL.Path)
 			requestBody, err := io.ReadAll(r.Body)
 			require.NoError(t, err)
 			assert.JSONEq(t, `
@@ -267,7 +267,7 @@ func TestClient_DeleteMetricsEndpointScrapeJob(t *testing.T) {
 	t.Run("successfully sends request and receives response", func(t *testing.T) {
 		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, http.MethodDelete, r.Method)
-			assert.Equal(t, "/metrics-endpoint/stack/some-stack-id/jobs/test_job", r.URL.Path)
+			assert.Equal(t, "/api/v1/metrics-endpoint/stack/some-stack-id/jobs/test_job", r.URL.Path)
 
 			w.WriteHeader(http.StatusOK)
 		}))

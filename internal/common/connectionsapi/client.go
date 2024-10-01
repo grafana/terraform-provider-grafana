@@ -22,7 +22,7 @@ type Client struct {
 const (
 	defaultRetries = 3
 	defaultTimeout = 90 * time.Second
-	pathPrefix     = "/metrics-endpoint/stack"
+	pathPrefix     = "/api/v1/metrics-endpoint/stacks"
 )
 
 func NewClient(authToken string, rawURL string, client *http.Client) (*Client, error) {
