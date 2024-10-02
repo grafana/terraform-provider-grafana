@@ -105,6 +105,12 @@ func resourceOnCallShift() *common.Resource {
 					"interval",
 				},
 			},
+			"until": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringIsNotEmpty,
+				Description:  "The end time of recurrent on-call shifts (endless if null). This parameter takes a date format as yyyy-MM-dd'T'HH:mm:ss (for example \"2020-09-05T08:00:00\")",
+			},
 			"users": {
 				Type: schema.TypeSet,
 				Elem: &schema.Schema{
@@ -307,6 +313,16 @@ func resourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, clie
 		}
 	}
 
+	untilData, untilOk := d.GetOk("until")
+	if untilOk {
+	    if typeData == singleEvent {
+			return diag.Errorf("`until` can not be set with type: %s", typeData)
+		} else {
+			u := untilData.(string)
+			createOptions.Until = &u
+		}
+	}
+
 	timeZoneData, timeZoneOk := d.GetOk("time_zone")
 	if timeZoneOk {
 		tz := timeZoneData.(string)
@@ -418,6 +434,16 @@ func resourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, clie
 		}
 	}
 
+    untilData, untilOk := d.GetOk("until")
+	if untilOk {
+	    if typeData == singleEvent {
+			return diag.Errorf("`until` can not be set with type: %s", typeData)
+		} else {
+			u := untilData.(string)
+			updateOptions.Until = &u
+		}
+	}
+
 	timeZoneData, timeZoneOk := d.GetOk("time_zone")
 	if timeZoneOk {
 		tz := timeZoneData.(string)
@@ -471,6 +497,7 @@ func resourceOnCallShiftRead(ctx context.Context, d *schema.ResourceData, client
 	d.Set("type", onCallShift.Type)
 	d.Set("level", onCallShift.Level)
 	d.Set("start", onCallShift.Start)
+	d.Set("until", onCallShift.Until)
 	d.Set("duration", onCallShift.Duration)
 	d.Set("frequency", onCallShift.Frequency)
 	d.Set("week_start", onCallShift.WeekStart)
