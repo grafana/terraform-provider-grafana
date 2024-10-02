@@ -25,7 +25,7 @@ const (
 	defaultTimeout = 90 * time.Second
 )
 
-func NewClient(authToken string, rawAPIURL string, client *http.Client, defualtHeaders map[string]string) (*Client, error) {
+func NewClient(authToken string, rawAPIURL string, client *http.Client, defaultHeaders map[string]string) (*Client, error) {
 	parsedAPIURL, err := url.Parse(rawAPIURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse Cloud Provider API url: %w", err)
@@ -42,7 +42,7 @@ func NewClient(authToken string, rawAPIURL string, client *http.Client, defualtH
 		authToken:      authToken,
 		apiURL:         *parsedAPIURL,
 		client:         client,
-		defaultHeaders: defualtHeaders,
+		defaultHeaders: defaultHeaders,
 	}, nil
 }
 
