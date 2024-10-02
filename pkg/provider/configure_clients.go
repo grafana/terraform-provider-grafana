@@ -179,10 +179,16 @@ func createOnCallClient(providerConfig ProviderConfig) (*onCallAPI.Client, error
 }
 
 func createCloudProviderClient(client *common.Client, providerConfig ProviderConfig) error {
+	providerHeaders, err := getHTTPHeadersMap(providerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
+	}
+
 	apiClient, err := cloudproviderapi.NewClient(
 		providerConfig.CloudProviderAccessToken.ValueString(),
 		providerConfig.CloudProviderURL.ValueString(),
 		getRetryClient(providerConfig),
+		providerHeaders,
 	)
 	if err != nil {
 		return err

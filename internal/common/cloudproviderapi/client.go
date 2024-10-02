@@ -14,9 +14,10 @@ import (
 )
 
 type Client struct {
-	authToken string
-	apiURL    url.URL
-	client    *http.Client
+	authToken      string
+	apiURL         url.URL
+	client         *http.Client
+	defaultHeaders map[string]string
 }
 
 const (
@@ -24,7 +25,7 @@ const (
 	defaultTimeout = 90 * time.Second
 )
 
-func NewClient(authToken string, rawAPIURL string, client *http.Client) (*Client, error) {
+func NewClient(authToken string, rawAPIURL string, client *http.Client, defualtHeaders map[string]string) (*Client, error) {
 	parsedAPIURL, err := url.Parse(rawAPIURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse Cloud Provider API url: %w", err)
@@ -38,9 +39,10 @@ func NewClient(authToken string, rawAPIURL string, client *http.Client) (*Client
 	}
 
 	return &Client{
-		authToken: authToken,
-		apiURL:    *parsedAPIURL,
-		client:    client,
+		authToken:      authToken,
+		apiURL:         *parsedAPIURL,
+		client:         client,
+		defaultHeaders: defualtHeaders,
 	}, nil
 }
 
@@ -195,6 +197,9 @@ func (c *Client) doAPIRequest(ctx context.Context, method string, path string, b
 	}
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
 	req.Header.Add("Content-Type", "application/json")
+	for k, v := range c.defaultHeaders {
+		req.Header.Add(k, v)
+	}
 
 	resp, err = c.client.Do(req)
 	if err != nil {
