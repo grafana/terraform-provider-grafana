@@ -54,7 +54,7 @@ type apiResponseWrapper[T any] struct {
 }
 
 type MetricsEndpointScrapeJob struct {
-	Name                        string `json:"name"`
+	Name                        string `json:"-"`
 	Enabled                     bool   `json:"enabled"`
 	AuthenticationMethod        string `json:"authentication_method"`
 	AuthenticationBearerToken   string `json:"bearer_token,omitempty"`
