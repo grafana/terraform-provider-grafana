@@ -148,7 +148,7 @@ data "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
 - `enabled` (Boolean) Whether the CloudWatch Scrape Job is enabled or not.
 - `export_tags` (Boolean) When enabled, AWS resource tags are exported as Prometheus labels to metrics formatted as `aws_<service_name>_info`.
 - `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ name }}".
-- `regions` (Set of String) A set of AWS region names that this CloudWatch Scrape Job applies to.
+- `regions` (Set of String) A set of AWS region names that this CloudWatch Scrape Job applies to. This must be a subset of the regions that are configured in the associated AWS Account resource.
 - `service` (Block List) One or more configuration blocks to dictate what this CloudWatch Scrape Job should scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service))
 
 <a id="nestedblock--custom_namespace"></a>
