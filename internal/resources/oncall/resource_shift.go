@@ -315,7 +315,7 @@ func resourceOnCallShiftCreate(ctx context.Context, d *schema.ResourceData, clie
 
 	untilData, untilOk := d.GetOk("until")
 	if untilOk {
-	    if typeData == singleEvent {
+		if typeData == singleEvent {
 			return diag.Errorf("`until` can not be set with type: %s", typeData)
 		} else {
 			u := untilData.(string)
@@ -434,9 +434,9 @@ func resourceOnCallShiftUpdate(ctx context.Context, d *schema.ResourceData, clie
 		}
 	}
 
-    untilData, untilOk := d.GetOk("until")
+	untilData, untilOk := d.GetOk("until")
 	if untilOk {
-	    if typeData == singleEvent {
+		if typeData == singleEvent {
 			return diag.Errorf("`until` can not be set with type: %s", typeData)
 		} else {
 			u := untilData.(string)
