@@ -208,7 +208,7 @@ resource "grafana_oncall_on_call_shift" "test-acc-on_call_shift" {
 	name = "%s"
 	type = "recurrent_event"
 	start = "2020-09-04T16:00:00"
-	start = "2020-10-04T16:00:00"
+	until = "2020-10-04T16:00:00"
 	duration = 3600
 	level = 1
 	frequency = "weekly"
