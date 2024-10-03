@@ -49,15 +49,13 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 			{
 				"status":"success",
 				"data":{
-					"test_job":{
-						"enabled":true,
-						"authentication_method":"basic",
-						"basic_username":"my-username",
-						"basic_password":"my-password",
-						"url":"https://my-example-url.com:9000/metrics",
-						"scrape_interval_seconds":120,
-						"flavor":"default"
-					}
+					"enabled":true,
+					"authentication_method":"basic",
+					"basic_username":"my-username",
+					"basic_password":"my-password",
+					"url":"https://my-example-url.com:9000/metrics",
+					"scrape_interval_seconds":120,
+					"flavor":"default"
 				}
 			}`))
 		}))
@@ -113,15 +111,13 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 			{
 				"status":"success",
 				"data":{
-					"test_job":{
-						"enabled":true,
-						"authentication_method":"basic",
-						"basic_username":"my-username",
-						"basic_password":"my-password",
-						"url":"https://my-example-url.com:9000/metrics",
-						"scrape_interval_seconds":120,
-						"flavor":"default"
-					}
+					"enabled":true,
+					"authentication_method":"basic",
+					"basic_username":"my-username",
+					"basic_password":"my-password",
+					"url":"https://my-example-url.com:9000/metrics",
+					"scrape_interval_seconds":120,
+					"flavor":"default"
 				}
 			}`))
 		}))
@@ -194,14 +190,12 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 			{
 				"status":"success",
 				"data":{
-					"test_job":{
-						"enabled":true,
-						"authentication_method":"bearer",
-						"bearer_token":"some token",
-						"url":"https://updated-url.com:9000/metrics",
-						"scrape_interval_seconds":120,
-						"flavor":"default"
-					}
+					"enabled":true,
+					"authentication_method":"bearer",
+					"bearer_token":"some token",
+					"url":"https://updated-url.com:9000/metrics",
+					"scrape_interval_seconds":120,
+					"flavor":"default"
 				}
 			}`))
 		}))

@@ -66,32 +66,32 @@ type MetricsEndpointScrapeJob struct {
 
 func (c *Client) CreateMetricsEndpointScrapeJob(ctx context.Context, stackID string, jobData MetricsEndpointScrapeJob) (MetricsEndpointScrapeJob, error) {
 	path := fmt.Sprintf("%s/%s/jobs/%s", pathPrefix, stackID, jobData.Name)
-	respData := apiResponseWrapper[map[string]MetricsEndpointScrapeJob]{}
+	respData := apiResponseWrapper[MetricsEndpointScrapeJob]{}
 	err := c.doAPIRequest(ctx, http.MethodPost, path, &jobData, &respData)
 	if err != nil {
 		return MetricsEndpointScrapeJob{}, fmt.Errorf("failed to create metrics endpoint scrape job: %w", err)
 	}
-	return respData.Data[jobData.Name], nil
+	return respData.Data, nil
 }
 
 func (c *Client) GetMetricsEndpointScrapeJob(ctx context.Context, stackID string, jobName string) (MetricsEndpointScrapeJob, error) {
 	path := fmt.Sprintf("%s/%s/jobs/%s", pathPrefix, stackID, jobName)
-	respData := apiResponseWrapper[map[string]MetricsEndpointScrapeJob]{}
+	respData := apiResponseWrapper[MetricsEndpointScrapeJob]{}
 	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &respData)
 	if err != nil {
 		return MetricsEndpointScrapeJob{}, fmt.Errorf("failed to get metrics endpoint scrape job: %w", err)
 	}
-	return respData.Data[jobName], nil
+	return respData.Data, nil
 }
 
 func (c *Client) UpdateMetricsEndpointScrapeJob(ctx context.Context, stackID string, jobName string, jobData MetricsEndpointScrapeJob) (MetricsEndpointScrapeJob, error) {
 	path := fmt.Sprintf("%s/%s/jobs/%s", pathPrefix, stackID, jobName)
-	respData := apiResponseWrapper[map[string]MetricsEndpointScrapeJob]{}
+	respData := apiResponseWrapper[MetricsEndpointScrapeJob]{}
 	err := c.doAPIRequest(ctx, http.MethodPut, path, &jobData, &respData)
 	if err != nil {
 		return MetricsEndpointScrapeJob{}, fmt.Errorf("failed to update metrics endpoint scrape job: %w", err)
 	}
-	return respData.Data[jobName], nil
+	return respData.Data, nil
 }
 
 func (c *Client) DeleteMetricsEndpointScrapeJob(ctx context.Context, stackID string, jobName string) error {
