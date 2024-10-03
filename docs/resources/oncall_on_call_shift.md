@@ -113,6 +113,7 @@ output "emea_weekday__rolling_users" {
 - `users` (Set of String) The list of on-call users (for single_event and recurrent_event event type).
 - `week_start` (String) Start day of the week in iCal format. Can be MO, TU, WE, TH, FR, SA, SU
 - `until` (String) The end time of recurrent on-call shifts (endless if null). This parameter takes a date format as yyyy-MM-dd'T'HH:mm:ss (for example \"2020-09-05T08:00:00\")"
+ 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
