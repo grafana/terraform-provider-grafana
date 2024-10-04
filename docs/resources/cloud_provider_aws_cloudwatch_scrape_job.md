@@ -74,7 +74,7 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
 
 - `aws_account_resource_id` (String) The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this CloudWatch Scrape Job.
 - `name` (String) The name of the CloudWatch Scrape Job. Part of the Terraform Resource ID.
-- `regions` (Set of String) A set of AWS region names that this CloudWatch Scrape Job applies to.
+- `regions` (Set of String) A set of AWS region names that this CloudWatch Scrape Job applies to. This must be a subset of the regions that are configured in the associated AWS Account resource.
 - `stack_id` (String) The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.
 
 ### Optional

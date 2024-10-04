@@ -96,7 +96,7 @@ func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resourc
 				Required:    true,
 			},
 			"regions": schema.SetAttribute{
-				Description: "A set of AWS region names that this CloudWatch Scrape Job applies to.",
+				Description: "A set of AWS region names that this CloudWatch Scrape Job applies to. This must be a subset of the regions that are configured in the associated AWS Account resource.",
 				Required:    true,
 				Validators: []validator.Set{
 					setvalidator.SizeAtLeast(1),
