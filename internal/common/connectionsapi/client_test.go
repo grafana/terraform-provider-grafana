@@ -36,6 +36,7 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 			require.NoError(t, err)
 			assert.JSONEq(t, `
 			{
+				"name":"test_job",
 				"enabled":true,
 				"authentication_method":"basic",
 				"basic_password":"my-password",
@@ -49,6 +50,7 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 			{
 				"status":"success",
 				"data":{
+					"name":"test_job",
 					"enabled":true,
 					"authentication_method":"basic",
 					"basic_username":"my-username",
@@ -75,6 +77,7 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.Equal(t, connectionsapi.MetricsEndpointScrapeJob{
+			Name:                        "test_job",
 			Enabled:                     true,
 			AuthenticationMethod:        "basic",
 			AuthenticationBasicUsername: "my-username",
@@ -111,6 +114,7 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 			{
 				"status":"success",
 				"data":{
+					"name":"test_job",
 					"enabled":true,
 					"authentication_method":"basic",
 					"basic_username":"my-username",
@@ -129,6 +133,7 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.Equal(t, connectionsapi.MetricsEndpointScrapeJob{
+			Name:                        "test_job",
 			Enabled:                     true,
 			AuthenticationMethod:        "basic",
 			AuthenticationBasicUsername: "my-username",
@@ -150,7 +155,7 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, connectionsapi.ErrNotFound)
-		assert.Equal(t, `failed to get metrics endpoint scrape job: job not found`, err.Error())
+		assert.Equal(t, `failed to get metrics endpoint scrape job: not found`, err.Error())
 	})
 
 	t.Run("returns error when connections API responds 500", func(t *testing.T) {
@@ -178,6 +183,7 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 			require.NoError(t, err)
 			assert.JSONEq(t, `
 			{
+				"name":"test_job",
 				"enabled":true,
 				"authentication_method":"bearer",
 				"bearer_token":"some token",
@@ -190,6 +196,7 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 			{
 				"status":"success",
 				"data":{
+					"name":"test_job",
 					"enabled":true,
 					"authentication_method":"bearer",
 					"bearer_token":"some token",
@@ -215,6 +222,7 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.Equal(t, connectionsapi.MetricsEndpointScrapeJob{
+			Name:                      "test_job",
 			Enabled:                   true,
 			AuthenticationMethod:      "bearer",
 			AuthenticationBearerToken: "some token",
@@ -236,7 +244,7 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, connectionsapi.ErrNotFound)
-		assert.Equal(t, `failed to update metrics endpoint scrape job: job not found`, err.Error())
+		assert.Equal(t, `failed to update metrics endpoint scrape job: not found`, err.Error())
 	})
 
 	t.Run("returns error when connections API responds 500", func(t *testing.T) {
@@ -284,7 +292,7 @@ func TestClient_DeleteMetricsEndpointScrapeJob(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, connectionsapi.ErrNotFound)
-		assert.Equal(t, `failed to delete metrics endpoint scrape job: job not found`, err.Error())
+		assert.Equal(t, `failed to delete metrics endpoint scrape job: not found`, err.Error())
 	})
 
 	t.Run("returns error when connections API responds 500", func(t *testing.T) {

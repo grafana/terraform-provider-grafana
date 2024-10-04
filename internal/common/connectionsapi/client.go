@@ -54,7 +54,7 @@ type apiResponseWrapper[T any] struct {
 }
 
 type MetricsEndpointScrapeJob struct {
-	Name                        string `json:"-"`
+	Name                        string `json:"name"`
 	Enabled                     bool   `json:"enabled"`
 	AuthenticationMethod        string `json:"authentication_method"`
 	AuthenticationBearerToken   string `json:"bearer_token,omitempty"`
@@ -103,7 +103,7 @@ func (c *Client) DeleteMetricsEndpointScrapeJob(ctx context.Context, stackID str
 	return nil
 }
 
-var ErrNotFound = fmt.Errorf("job not found")
+var ErrNotFound = fmt.Errorf("not found")
 
 func (c *Client) doAPIRequest(ctx context.Context, method string, path string, body any, responseData any) error {
 	var reqBodyBytes io.Reader
