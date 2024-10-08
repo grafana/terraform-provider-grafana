@@ -74,7 +74,7 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 - `notify_to_team_members` (String) The ID of a Team for a notify_team_members type step.
 - `persons_to_notify` (Set of String) The list of ID's of users for notify_persons type step.
 - `persons_to_notify_next_each_time` (Set of String) The list of ID's of users for notify_person_next_each_time type step.
-- `severity` (String) The severity of the incident to be declared via declare_incident step.
+- `severity` (String) The severity of the incident for declare_incident type step.
 
 ### Read-Only
 
