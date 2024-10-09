@@ -20,7 +20,7 @@ import (
 )
 
 func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
-	//t.Skip("will be enabled after Connections API is available in prod")
+	// t.Skip("will be enabled after Connections API is available in prod")
 	// testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
