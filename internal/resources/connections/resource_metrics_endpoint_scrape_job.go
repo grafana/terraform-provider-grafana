@@ -9,6 +9,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -100,14 +101,14 @@ func (r *resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resou
 				},
 			},
 			"name": schema.StringAttribute{
-				Description: "The name of the Metrics Endpoint Scrape Job. Part of the Terraform Resource ID.",
+				Description: "The name of the metrics endpoint scrape job. Part of the Terraform Resource ID.",
 				Required:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"enabled": schema.BoolAttribute{
-				Description: "Whether the Metrics Endpoint Scrape Job is enabled or not.",
+				Description: "Whether the metrics endpoint scrape job is enabled or not.",
 				Optional:    true,
 				Computed:    true,
 				Default:     booldefault.StaticBool(true),
@@ -187,7 +188,13 @@ func (r *resourceMetricsEndpointScrapeJob) Read(ctx context.Context, req resourc
 
 	jobTF := convertClientModelToTFModel(dataTF.StackID.ValueString(), jobClientModel)
 
-	resp.State.Set(ctx, jobTF)
+	// Set only non-sensitive attributes
+	resp.State.SetAttribute(ctx, path.Root("stack_id"), jobTF.StackID)
+	resp.State.SetAttribute(ctx, path.Root("name"), jobTF.Name)
+	resp.State.SetAttribute(ctx, path.Root("enabled"), jobTF.Enabled)
+	resp.State.SetAttribute(ctx, path.Root("authentication_method"), jobTF.AuthenticationMethod)
+	resp.State.SetAttribute(ctx, path.Root("url"), jobTF.URL)
+	resp.State.SetAttribute(ctx, path.Root("scrape_interval_seconds"), jobTF.ScrapeIntervalSeconds)
 }
 
 func (r *resourceMetricsEndpointScrapeJob) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {

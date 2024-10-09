@@ -38,16 +38,29 @@ func convertJobTFModelToClientModel(tfData metricsEndpointScrapeJobTFModel) conn
 // A special converter is needed because the TFModel uses special Terraform types that build upon their underlying Go types for
 // supporting Terraform's state management/dependency analysis of the resource and its data.
 func convertClientModelToTFModel(stackID string, scrapeJobData connectionsapi.MetricsEndpointScrapeJob) metricsEndpointScrapeJobTFModel {
-	return metricsEndpointScrapeJobTFModel{
-		ID:                          types.StringValue(resourceMetricsEndpointScrapeJobTerraformID.Make(stackID, scrapeJobData.Name)),
-		StackID:                     types.StringValue(stackID),
-		Name:                        types.StringValue(scrapeJobData.Name),
-		Enabled:                     types.BoolValue(scrapeJobData.Enabled),
-		AuthenticationMethod:        types.StringValue(scrapeJobData.AuthenticationMethod),
-		AuthenticationBearerToken:   types.StringValue(scrapeJobData.AuthenticationBearerToken),
-		AuthenticationBasicUsername: types.StringValue(scrapeJobData.AuthenticationBasicUsername),
-		AuthenticationBasicPassword: types.StringValue(scrapeJobData.AuthenticationBasicPassword),
-		URL:                         types.StringValue(scrapeJobData.URL),
-		ScrapeIntervalSeconds:       types.Int64Value(scrapeJobData.ScrapeIntervalSeconds),
+	resp := metricsEndpointScrapeJobTFModel{
+		ID:                    types.StringValue(resourceMetricsEndpointScrapeJobTerraformID.Make(stackID, scrapeJobData.Name)),
+		StackID:               types.StringValue(stackID),
+		Name:                  types.StringValue(scrapeJobData.Name),
+		Enabled:               types.BoolValue(scrapeJobData.Enabled),
+		AuthenticationMethod:  types.StringValue(scrapeJobData.AuthenticationMethod),
+		URL:                   types.StringValue(scrapeJobData.URL),
+		ScrapeIntervalSeconds: types.Int64Value(scrapeJobData.ScrapeIntervalSeconds),
+	}
+
+	resp.fillOptionalFieldsIfNotEmpty(scrapeJobData)
+
+	return resp
+}
+
+func (m *metricsEndpointScrapeJobTFModel) fillOptionalFieldsIfNotEmpty(scrapeJobData connectionsapi.MetricsEndpointScrapeJob) {
+	if scrapeJobData.AuthenticationBearerToken != "" {
+		m.AuthenticationBearerToken = types.StringValue(scrapeJobData.AuthenticationBearerToken)
+	}
+	if scrapeJobData.AuthenticationBasicUsername != "" {
+		m.AuthenticationBasicUsername = types.StringValue(scrapeJobData.AuthenticationBasicUsername)
+	}
+	if scrapeJobData.AuthenticationBasicPassword != "" {
+		m.AuthenticationBasicPassword = types.StringValue(scrapeJobData.AuthenticationBasicPassword)
 	}
 }
