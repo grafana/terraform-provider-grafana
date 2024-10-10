@@ -63,7 +63,7 @@ resource "grafana_oncall_integration" "test-acc-integration" {
 }
 
 resource "grafana_oncall_escalation_chain" "test-acc-escalation-chain"{
-	name = "acc-test"
+	name = "acc-test-%s"
 }
 
 resource "grafana_oncall_route" "test-acc-route" {
@@ -78,7 +78,7 @@ resource "grafana_oncall_route" "test-acc-route" {
         enabled = false
     }
 }
-`, riName, rrRegex)
+`, riName, riName, rrRegex)
 }
 
 func testAccCheckOnCallRouteResourceExists(name string) resource.TestCheckFunc {

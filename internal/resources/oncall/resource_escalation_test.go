@@ -88,11 +88,11 @@ resource "grafana_oncall_integration" "test-acc-integration" {
 }
 
 resource "grafana_oncall_escalation_chain" "test-acc-escalation-chain"{
-	name = "acc-test"
+	name = "acc-test-%s"
 }
 
 resource "grafana_team" "test-acc-team" {
-	name = "acc-escalation-test"
+	name = "acc-escalation-test-%s"
 }
 
 resource "grafana_oncall_escalation" "test-acc-escalation" {
@@ -125,7 +125,7 @@ resource "grafana_oncall_escalation" "test-acc-escalation-policy-declare-inciden
 	severity = "critical"
 	position = 3
 }
-`, riName, reType, reDuration)
+`, riName, riName, riName, reType, reDuration)
 }
 
 func testAccCheckOnCallEscalationResourceExists(name string) resource.TestCheckFunc {
