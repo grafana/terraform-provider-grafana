@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
@@ -17,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
@@ -57,6 +61,43 @@ func testAccMetricsEndpointCheckDestroy(stackID string, jobName string) resource
 
 		return fmt.Errorf("metrics endpoint job should return ErrNotFound but returned no error")
 	}
+}
+
+func Test_fluffles(t *testing.T) {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/api/v1/metrics-endpoint/stacks/1/jobs/scrape-job-name", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte(`{"some error"}`))
+	})
+
+	server := httptest.NewTLSServer(mux)
+	defer server.Close()
+
+	require.NoError(t, os.Setenv("TF_ACC", "1"))
+	require.NoError(t, os.Setenv("GRAFANA_CONNECTIONS_ACCESS_TOKEN", "whatever"))
+	require.NoError(t, os.Setenv("GRAFANA_CONNECTIONS_URL", server.URL))
+	require.NoError(t, os.Setenv("GRAFANA_INSECURE_SKIP_VERIFY", "true"))
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccMetricsEndpointCheckDestroy("1", "scrape-job-name"),
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_connections_metrics_endpoint_scrape_job/resource.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "stack_id", "1"),
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "name", "scrape-job-name"),
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "enabled", "true"),
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "authentication_method", "basic"),
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "authentication_basic_username", "my-username"),
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "authentication_basic_password", "my-password"),
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "url", "https://dev.my-metrics-endpoint-url.com:9000/metrics"),
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "scrape_interval_seconds", "60"),
+				),
+			},
+		},
+	})
 }
 
 func Test_httpsURLValidator(t *testing.T) {

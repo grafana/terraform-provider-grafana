@@ -3,6 +3,7 @@ package connectionsapi
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -25,7 +26,7 @@ const (
 	pathPrefix     = "/api/v1/metrics-endpoint/stacks"
 )
 
-func NewClient(authToken string, rawURL string, client *http.Client) (*Client, error) {
+func NewClient(authToken string, rawURL string, client *http.Client, insecureSkipVerify bool) (*Client, error) {
 	parsedURL, err := url.Parse(rawURL)
 	if parsedURL.Scheme != "https" {
 		return nil, fmt.Errorf("https URL scheme expected, provided %q", parsedURL.Scheme)
@@ -40,6 +41,14 @@ func NewClient(authToken string, rawURL string, client *http.Client) (*Client, e
 		retryClient.RetryMax = defaultRetries
 		client = retryClient.StandardClient()
 		client.Timeout = defaultTimeout
+	}
+
+	if insecureSkipVerify { // not sure if I need to do this check
+		client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: insecureSkipVerify,
+			},
+		}
 	}
 
 	return &Client{

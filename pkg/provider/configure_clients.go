@@ -183,6 +183,7 @@ func createConnectionsClient(client *common.Client, providerConfig ProviderConfi
 		providerConfig.ConnectionsAccessToken.ValueString(),
 		providerConfig.ConnectionsURL.ValueString(),
 		getRetryClient(providerConfig),
+		providerConfig.InsecureSkipVerify.ValueBool(),
 	)
 	if err != nil {
 		return err
