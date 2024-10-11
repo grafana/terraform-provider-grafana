@@ -110,6 +110,7 @@ output "emea_weekday__rolling_users" {
 - `start_rotation_from_user_index` (Number) The index of the list of users in rolling_users, from which on-call rotation starts.
 - `team_id` (String) The ID of the OnCall team. To get one, create a team in Grafana, and navigate to the OnCall plugin (to sync the team with OnCall). You can then get the ID using the `grafana_oncall_team` datasource.
 - `time_zone` (String) The shift's timezone.  Overrides schedule's timezone.
+- `until` (String) The end time of recurrent on-call shifts (endless if null). This parameter takes a date format as yyyy-MM-dd'T'HH:mm:ss (for example "2020-09-05T08:00:00")
 - `users` (Set of String) The list of on-call users (for single_event and recurrent_event event type).
 - `week_start` (String) Start day of the week in iCal format. Can be MO, TU, WE, TH, FR, SA, SU
 

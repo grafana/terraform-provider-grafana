@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -941,6 +942,10 @@ func getSettingsForTF(payload *models.GetProviderSettingsOKBody) (map[string]any
 		settings["config"] = []any{settings["config"]}
 	}
 
+	if payload.Provider == "saml" {
+		settings = convertNumericDurationsToStrings(settings)
+	}
+
 	return settings, nil
 }
 
@@ -1121,6 +1126,39 @@ func isSecret(fieldName string) bool {
 	secretFieldPatterns := []string{"secret", "certificate", "private"}
 
 	for _, v := range secretFieldPatterns {
+		if strings.Contains(strings.ToLower(fieldName), strings.ToLower(v)) {
+			return true
+		}
+	}
+	return false
+}
+
+func convertNumericDurationsToStrings(settings map[string]any) map[string]any {
+	newSettings := make(map[string]any)
+
+	for key, value := range settings {
+		if isDuration(key) {
+			switch value := value.(type) {
+			case float64:
+				newSettings[key] = strconv.FormatFloat(value, 'f', -1, 64)
+			default:
+				newSettings[key] = value
+			}
+		} else {
+			newSettings[key] = value
+		}
+	}
+
+	return newSettings
+}
+
+func isDuration(fieldName string) bool {
+	durationFieldPatterns := []string{
+		"max_issue_delay", "maxIssueDelay",
+		"metadata_valid_duration", "metadataValidDuration",
+	}
+
+	for _, v := range durationFieldPatterns {
 		if strings.Contains(strings.ToLower(fieldName), strings.ToLower(v)) {
 			return true
 		}
