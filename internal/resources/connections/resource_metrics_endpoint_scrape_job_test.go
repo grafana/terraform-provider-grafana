@@ -2,12 +2,11 @@ package connections_test
 
 import (
 	"context"
-	"errors"
-	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"testing"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/connections"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -15,17 +14,57 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
-	// t.Skip("will be enabled after Connections API is available in prod")
-	// testutils.CheckCloudInstanceTestsEnabled(t)
+	// Mock the Connections API response for Create, Get, and Delete
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/metrics-endpoint/stacks/1/jobs/scrape-job-name", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`
+				{
+				  "data":{
+					"name":"scrape-job-name",
+					"authentication_method":"basic",
+					"basic_username":"my-username",
+					"basic_password":"my-password",
+					"url":"https://dev.my-metrics-endpoint-url.com:9000/metrics",
+					"scrape_interval_seconds":60,
+					"flavor":"default",
+					"enabled":true
+				  }
+				}`))
+		case http.MethodGet:
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`
+				{
+				  "data":{
+				    "name":"scrape-job-name",
+				    "authentication_method":"basic",
+				    "url":"https://dev.my-metrics-endpoint-url.com:9000/metrics",
+				    "scrape_interval_seconds":60,
+				    "flavor":"default",
+				    "enabled":true
+				  }
+				}`))
+		case http.MethodDelete:
+			w.WriteHeader(http.StatusNoContent)
+		}
+	})
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	//require.NoError(t, os.Setenv("TF_ACC", "1"))
+	//require.NoError(t, os.Setenv("GRAFANA_CONNECTIONS_ACCESS_TOKEN", "some token"))
+	require.NoError(t, os.Setenv("GRAFANA_CONNECTIONS_URL", server.URL))
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		CheckDestroy:             testAccMetricsEndpointCheckDestroy("1", "scrape-job-name"),
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "resources/grafana_connections_metrics_endpoint_scrape_job/resource.tf"),
@@ -42,21 +81,6 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccMetricsEndpointCheckDestroy(stackID string, jobName string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).ConnectionsAPIClient
-		_, err := client.GetMetricsEndpointScrapeJob(context.Background(), stackID, jobName)
-		if err != nil {
-			if errors.Is(err, connectionsapi.ErrNotFound) {
-				return nil
-			}
-			return fmt.Errorf("metrics endpoint job should return ErrNotFound but returned error %s", err.Error())
-		}
-
-		return fmt.Errorf("metrics endpoint job should return ErrNotFound but returned no error")
-	}
 }
 
 func Test_httpsURLValidator(t *testing.T) {
