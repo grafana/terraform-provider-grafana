@@ -18,17 +18,6 @@ type metricsEndpointScrapeJobTFModel struct {
 	ScrapeIntervalSeconds       types.Int64  `tfsdk:"scrape_interval_seconds"`
 }
 
-type metricsEndpointScrapeJobTFDataSourceModel struct {
-	ID                        types.String `tfsdk:"id"`
-	StackID                   types.String `tfsdk:"stack_id"`
-	Name                      types.String `tfsdk:"name"`
-	Enabled                   types.Bool   `tfsdk:"enabled"`
-	AuthenticationMethod      types.String `tfsdk:"authentication_method"`
-	AuthenticationBearerToken types.String `tfsdk:"authentication_bearer_token"`
-	URL                       types.String `tfsdk:"url"`
-	ScrapeIntervalSeconds     types.Int64  `tfsdk:"scrape_interval_seconds"`
-}
-
 // convertJobTFModelToClientModel converts a metricsEndpointScrapeJobTFModel instance to a connectionsapi.MetricsEndpointScrapeJob instance.
 // A special converter is needed because the TFModel uses special Terraform types that build upon their underlying Go types for
 // supporting Terraform's state management/dependency analysis of the resource and its data.
@@ -43,23 +32,6 @@ func convertJobTFModelToClientModel(tfData metricsEndpointScrapeJobTFModel) conn
 		URL:                         tfData.URL.ValueString(),
 		ScrapeIntervalSeconds:       tfData.ScrapeIntervalSeconds.ValueInt64(),
 	}
-}
-
-// convertClientModelToTFModel converts a connectionsapi.MetricsEndpointScrapeJob instance to a metricsEndpointScrapeJobTFModel instance.
-// A special converter is needed because the TFModel uses special Terraform types that build upon their underlying Go types for
-// supporting Terraform's state management/dependency analysis of the resource and its data.
-func convertClientModelToTFDataSourceModel(stackID string, scrapeJobData connectionsapi.MetricsEndpointScrapeJob) metricsEndpointScrapeJobTFDataSourceModel {
-	resp := metricsEndpointScrapeJobTFDataSourceModel{
-		ID:                    types.StringValue(resourceMetricsEndpointScrapeJobTerraformID.Make(stackID, scrapeJobData.Name)),
-		StackID:               types.StringValue(stackID),
-		Name:                  types.StringValue(scrapeJobData.Name),
-		Enabled:               types.BoolValue(scrapeJobData.Enabled),
-		AuthenticationMethod:  types.StringValue(scrapeJobData.AuthenticationMethod),
-		URL:                   types.StringValue(scrapeJobData.URL),
-		ScrapeIntervalSeconds: types.Int64Value(scrapeJobData.ScrapeIntervalSeconds),
-	}
-
-	return resp
 }
 
 // convertClientModelToTFModel converts a connectionsapi.MetricsEndpointScrapeJob instance to a metricsEndpointScrapeJobTFModel instance.
