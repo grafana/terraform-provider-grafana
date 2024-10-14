@@ -162,7 +162,9 @@ func (r *resourceMetricsEndpointScrapeJob) Read(ctx context.Context, req resourc
 
 	jobTF := convertClientModelToTFModel(dataTF.StackID.ValueString(), jobClientModel)
 
-	// Set only non-sensitive attributes
+	//resp.State.Set(ctx, jobTF)
+
+	//Set only non-sensitive attributes
 	resp.State.SetAttribute(ctx, path.Root("stack_id"), jobTF.StackID)
 	resp.State.SetAttribute(ctx, path.Root("name"), jobTF.Name)
 	resp.State.SetAttribute(ctx, path.Root("enabled"), jobTF.Enabled)

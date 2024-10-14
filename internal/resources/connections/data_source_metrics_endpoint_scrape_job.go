@@ -96,7 +96,7 @@ func (r *datasourceMetricsEndpointScrapeJob) Read(ctx context.Context, req datas
 		return
 	}
 
-	job, err := r.client.GetMetricsEndpointScrapeJob(
+	jobClientModel, err := r.client.GetMetricsEndpointScrapeJob(
 		ctx,
 		dataTF.StackID.ValueString(),
 		dataTF.Name.ValueString(),
@@ -106,5 +106,5 @@ func (r *datasourceMetricsEndpointScrapeJob) Read(ctx context.Context, req datas
 		return
 	}
 
-	resp.State.Set(ctx, convertClientModelToTFModel(dataTF.StackID.ValueString(), job))
+	resp.State.Set(ctx, convertClientModelToTFModel(dataTF.StackID.ValueString(), jobClientModel))
 }
