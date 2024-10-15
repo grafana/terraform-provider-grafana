@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -107,12 +106,6 @@ func (r *resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resou
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"enabled": schema.BoolAttribute{
-				Description: "Whether the metrics endpoint scrape job is enabled or not.",
-				Optional:    true,
-				Computed:    true,
-				Default:     booldefault.StaticBool(true),
-			},
 			"authentication_method": schema.StringAttribute{
 				Description: "Method to pass authentication credentials: basic or bearer.",
 				Validators: []validator.String{
@@ -191,7 +184,6 @@ func (r *resourceMetricsEndpointScrapeJob) Read(ctx context.Context, req resourc
 	// Set only non-sensitive attributes
 	resp.State.SetAttribute(ctx, path.Root("stack_id"), jobTF.StackID)
 	resp.State.SetAttribute(ctx, path.Root("name"), jobTF.Name)
-	resp.State.SetAttribute(ctx, path.Root("enabled"), jobTF.Enabled)
 	resp.State.SetAttribute(ctx, path.Root("authentication_method"), jobTF.AuthenticationMethod)
 	resp.State.SetAttribute(ctx, path.Root("url"), jobTF.URL)
 	resp.State.SetAttribute(ctx, path.Root("scrape_interval_seconds"), jobTF.ScrapeIntervalSeconds)
