@@ -675,6 +675,34 @@ func TestAccAlertRule_NotificationSettings(t *testing.T) {
 	})
 }
 
+func TestAccRecordingRule(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=11.2.0")
+
+	var group models.AlertRuleGroup
+	var name = acctest.RandString(10)
+	var metric = acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             alertingRuleGroupCheckExists.destroyed(&group, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRecordingRule(name, metric, "A"),
+				Check: resource.ComposeTestCheckFunc(
+					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_rule_group", &group),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "name", name),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.#", "1"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.name", "My Random Walk Alert"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.for", "2m0s"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.data.0.model", "{\"hide\":false,\"refId\":\"A\"}"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.data.0.record.metric", metric),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.data.0.record.from", "A"),
+				),
+			},
+		},
+	})
+}
+
 func testAccAlertRuleGroupInOrgConfig(name string, interval int, disableProvenance bool) string {
 	return fmt.Sprintf(`
 resource "grafana_organization" "test" {
@@ -824,4 +852,49 @@ resource "grafana_rule_group" "my_rule_group" {
 		}
 	}
 }`, name, gr)
+}
+
+func testAccRecordingRule(name string, metric string, refID string) string {
+	return fmt.Sprintf(`
+resource "grafana_folder" "rule_folder" {
+	title = "%[1]s"
+}
+
+resource "grafana_data_source" "testdata_datasource" {
+	name = "%[1]s"
+	type = "grafana-testdata-datasource"
+	url  = "http://localhost:3333"
+}
+
+resource "grafana_rule_group" "my_rule_group" {
+	name             = "%[1]s"
+	folder_uid       = grafana_folder.rule_folder.uid
+	interval_seconds = 60
+	org_id           = 1
+
+	rule {
+		name      = "My Random Walk Alert"
+		condition = "C"
+		for       = "2m"
+
+		// Query the datasource.
+		data {
+			ref_id = "A"
+			relative_time_range {
+				from = 600
+				to   = 0
+			}
+			datasource_uid = grafana_data_source.testdata_datasource.uid
+			model = jsonencode({
+				intervalMs    = 1000
+				maxDataPoints = 43200
+				refId         = "A"
+			})
+		}
+		record {
+			metric = "%[2]s"
+			from   = "%[3]s"
+		}
+	}
+}`, name, metric, refID)
 }
