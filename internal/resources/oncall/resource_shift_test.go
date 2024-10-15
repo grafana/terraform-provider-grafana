@@ -38,7 +38,7 @@ func TestAccOnCallOnCallShift_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "by_day.#", "2"),
 					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "by_day.0", "FR"),
 					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "by_day.1", "MO"),
-					resource.TestCheckNoResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "until"),
+					resource.TestCheckResourceAttr("grafana_oncall_on_call_shift.test-acc-on_call_shift", "until", ""),
 				),
 			},
 			{
