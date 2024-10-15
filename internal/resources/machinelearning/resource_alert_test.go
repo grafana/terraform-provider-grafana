@@ -42,6 +42,7 @@ func TestAccResourceJobAlert(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_job_alert", "anomaly_condition", "any"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_job_alert", "threshold", ">0.8"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_job_alert", "window", "15m"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_job_alert", "no_data_state", "OK"),
 				),
 			},
 			// Update the alert with a new anomaly condition.
@@ -59,6 +60,7 @@ func TestAccResourceJobAlert(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_job_alert", "anomaly_condition", "low"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_job_alert", "threshold", ">0.8"),
 					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_job_alert", "window", "15m"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_alert.test_job_alert", "no_data_state", "OK"),
 				),
 			},
 			{
