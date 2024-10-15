@@ -20,7 +20,6 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
   stack_id                = data.grafana_cloud_stack.test.id
   name                    = "my-cloudwatch-scrape-job"
   aws_account_resource_id = grafana_cloud_provider_aws_account.test.resource_id
-  regions                 = grafana_cloud_provider_aws_account.test.regions
   export_tags             = true
 
   service {
