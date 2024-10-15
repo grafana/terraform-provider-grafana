@@ -35,7 +35,6 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
   stack_id                = data.grafana_cloud_stack.test.id
   name                    = "my-cloudwatch-scrape-job"
   aws_account_resource_id = grafana_cloud_provider_aws_account.test.resource_id
-  regions                 = grafana_cloud_provider_aws_account.test.regions
   export_tags             = true
 
   service {
@@ -74,7 +73,6 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
 
 - `aws_account_resource_id` (String) The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this CloudWatch Scrape Job.
 - `name` (String) The name of the CloudWatch Scrape Job. Part of the Terraform Resource ID.
-- `regions` (Set of String) A set of AWS region names that this CloudWatch Scrape Job applies to. This must be a subset of the regions that are configured in the associated AWS Account resource.
 - `stack_id` (String) The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.
 
 ### Optional
@@ -82,6 +80,7 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
 - `custom_namespace` (Block List) Zero or more configuration blocks to configure custom namespaces for the CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--custom_namespace))
 - `enabled` (Boolean) Whether the CloudWatch Scrape Job is enabled or not.
 - `export_tags` (Boolean) When enabled, AWS resource tags are exported as Prometheus labels to metrics formatted as `aws_<service_name>_info`.
+- `regions_subset_override` (Set of String) A subset of the regions that are configured in the associated AWS Account resource to apply to this scrape job. If not set or empty, all of the Account resource's regions are scraped.
 - `service` (Block List) One or more configuration blocks to configure AWS services for the CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service))
 
 ### Read-Only

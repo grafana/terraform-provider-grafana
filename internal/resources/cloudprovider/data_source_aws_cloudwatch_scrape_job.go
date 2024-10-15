@@ -35,10 +35,18 @@ var (
 				Description: "The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this CloudWatch Scrape Job.",
 				Computed:    true,
 			},
+			"role_arn": schema.StringAttribute{
+				Description: "The AWS ARN of the IAM role associated with the AWS Account resource that is being used by this CloudWatch Scrape Job.",
+				Computed:    true,
+			},
 			"regions": schema.SetAttribute{
-				Description: "A set of AWS region names that this CloudWatch Scrape Job applies to. This must be a subset of the regions that are configured in the associated AWS Account resource.",
+				Description: "The set of AWS region names that this CloudWatch Scrape Job is configured to scrape.",
 				Computed:    true,
 				ElementType: types.StringType,
+			},
+			"regions_subset_override_used": schema.BoolAttribute{
+				Description: "Whether or not this CloudWatch Scrape Job is using a subset override of the associated account's regions set for scraping, as configured by the resource's `regions_subset_override` attribute. When true, the `regions` attribute will be the set of regions configured in the override. When false, the `regions` attribute will be the set of regions belonging to the AWS Account resource that is associated with this CloudWatch Scrape Job.",
+				Computed:    true,
 			},
 			"export_tags": schema.BoolAttribute{
 				Description: "When enabled, AWS resource tags are exported as Prometheus labels to metrics formatted as `aws_<service_name>_info`.",
@@ -175,14 +183,14 @@ func (r *datasourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req datas
 }
 
 func (r *datasourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data awsCWScrapeJobTFModel
+	var data awsCWScrapeJobTFDataSourceModel
 	diags := req.Config.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	job, err := r.client.GetAWSCloudWatchScrapeJob(
+	jobResp, err := r.client.GetAWSCloudWatchScrapeJob(
 		ctx,
 		data.StackID.ValueString(),
 		data.Name.ValueString(),
@@ -192,11 +200,11 @@ func (r *datasourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req datasou
 		return
 	}
 
-	converted, diags := convertScrapeJobClientModelToTFModel(ctx, data.StackID.ValueString(), *job)
+	jobTF, diags := generateCloudWatchScrapeJobDataSourceTFModel(ctx, data.StackID.ValueString(), jobResp)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.State.Set(ctx, converted)
+	resp.State.Set(ctx, jobTF)
 }
