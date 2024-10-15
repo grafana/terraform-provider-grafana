@@ -21,57 +21,8 @@ Resource manages Grafana SLOs.
 
 ```terraform
 resource "grafana_slo" "test" {
-  name        = "Terraform Testing"
-  description = "Terraform Description"
-  query {
-    freeform {
-      query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
-    }
-    type = "freeform"
-  }
-  objectives {
-    value  = 0.995
-    window = "30d"
-  }
-  destination_datasource {
-    uid = "grafanacloud-prom"
-  }
-  label {
-    key   = "slo"
-    value = "terraform"
-  }
-  alerting {
-    fastburn {
-      annotation {
-        key   = "name"
-        value = "SLO Burn Rate Very High"
-      }
-      annotation {
-        key   = "description"
-        value = "Error budget is burning too fast"
-      }
-    }
-
-    slowburn {
-      annotation {
-        key   = "name"
-        value = "SLO Burn Rate High"
-      }
-      annotation {
-        key   = "description"
-        value = "Error budget is burning too fast"
-      }
-    }
-  }
-}
-```
-
-### Advanced
-
-```terraform
-resource "grafana_slo" "test" {
-  name        = "Complex Resource - Terraform Ratio Query Example"
-  description = "Complex Resource - Terraform Ratio Query Description"
+  name        = "Terraform Ratio Query Example"
+  description = "Terraform Ratio Query Description"
   query {
     ratio {
       success_metric  = "kubelet_http_requests_total{status!~\"5..\"}"
@@ -88,8 +39,43 @@ resource "grafana_slo" "test" {
     uid = "grafanacloud-prom"
   }
   label {
-    key   = "slo"
-    value = "terraform"
+    key   = "team_name"
+    value = "k8s-platform"
+  }
+  label {
+    key   = "service_name"
+    value = "kubelet"
+  }
+}
+```
+
+
+### Advanced
+
+```terraform
+resource "grafana_slo" "test" {
+  name        = "Terraform Advanced (freeform) Example"
+  description = "Terraform Advanced (freeform) Description"
+  query {
+    freeform {
+      query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+    }
+    type = "freeform"
+  }
+  objectives {
+    value  = 0.995
+    window = "30d"
+  }
+  destination_datasource {
+    uid = "grafanacloud-prom"
+  }
+  label {
+    key   = "team_name"
+    value = "k8s-platform"
+  }
+  label {
+    key   = "service_name"
+    value = "apiserver"
   }
   alerting {
     fastburn {
@@ -101,10 +87,6 @@ resource "grafana_slo" "test" {
         key   = "description"
         value = "Error budget is burning too fast"
       }
-      label {
-        key   = "type"
-        value = "slo"
-      }
     }
 
     slowburn {
@@ -115,10 +97,6 @@ resource "grafana_slo" "test" {
       annotation {
         key   = "description"
         value = "Error budget is burning too fast"
-      }
-      label {
-        key   = "type"
-        value = "slo"
       }
     }
   }
