@@ -2,15 +2,84 @@ package connections_test
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/connections"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
+	// Mock the Connections API response for Create, Get, and Delete
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/metrics-endpoint/stacks/1/jobs/scrape-job-name", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`
+				{
+				  "data":{
+					"name":"scrape-job-name",
+					"authentication_method":"basic",
+					"basic_username":"my-username",
+					"basic_password":"my-password",
+					"url":"https://dev.my-metrics-endpoint-url.com:9000/metrics",
+					"scrape_interval_seconds":120,
+					"flavor":"default",
+					"enabled":true
+				  }
+				}`))
+		case http.MethodGet:
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`
+				{
+				  "data":{
+				    "name":"scrape-job-name",
+				    "authentication_method":"basic",
+				    "url":"https://dev.my-metrics-endpoint-url.com:9000/metrics",
+				    "scrape_interval_seconds":120,
+				    "flavor":"default",
+				    "enabled":true
+				  }
+				}`))
+		case http.MethodDelete:
+			w.WriteHeader(http.StatusNoContent)
+		}
+	})
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	require.NoError(t, os.Setenv("GRAFANA_CONNECTIONS_ACCESS_TOKEN", "some token"))
+	require.NoError(t, os.Setenv("GRAFANA_CONNECTIONS_URL", server.URL))
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_connections_metrics_endpoint_scrape_job/resource.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "stack_id", "1"),
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "name", "scrape-job-name"),
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "authentication_method", "basic"),
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "authentication_basic_username", "my-username"),
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "authentication_basic_password", "my-password"),
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "url", "https://dev.my-metrics-endpoint-url.com:9000/metrics"),
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "scrape_interval_seconds", "120"),
+				),
+			},
+		},
+	})
+}
 
 func Test_httpsURLValidator(t *testing.T) {
 	t.Parallel()

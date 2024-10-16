@@ -9,9 +9,9 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -66,7 +66,7 @@ func withClientForResource(req resource.ConfigureRequest, resp *resource.Configu
 
 	if client.ConnectionsAPIClient == nil {
 		resp.Diagnostics.AddError(
-			"The Grafana Provider is missing a configuration for the Metrics Endpoint API.",
+			"The Grafana Provider is missing a configuration for the Connections API.",
 			"Please ensure that connections_url and connections_access_token are set in the provider configuration.",
 		)
 
@@ -100,17 +100,11 @@ func (r *resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resou
 				},
 			},
 			"name": schema.StringAttribute{
-				Description: "The name of the Metrics Endpoint Scrape Job. Part of the Terraform Resource ID.",
+				Description: "The name of the metrics endpoint scrape job. Part of the Terraform Resource ID.",
 				Required:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
-			},
-			"enabled": schema.BoolAttribute{
-				Description: "Whether the Metrics Endpoint Scrape Job is enabled or not.",
-				Optional:    true,
-				Computed:    true,
-				Default:     booldefault.StaticBool(true),
 			},
 			"authentication_method": schema.StringAttribute{
 				Description: "Method to pass authentication credentials: basic or bearer.",
@@ -150,23 +144,88 @@ func (r *resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resou
 }
 
 func (r *resourceMetricsEndpointScrapeJob) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	// TODO implement me
-	panic("implement me")
+	var dataTF metricsEndpointScrapeJobTFModel
+	diags := req.Plan.Get(ctx, &dataTF)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	jobClientModel, err := r.client.CreateMetricsEndpointScrapeJob(ctx, dataTF.StackID.ValueString(),
+		convertJobTFModelToClientModel(dataTF))
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create metrics endpoint scrape job", err.Error())
+		return
+	}
+
+	resp.State.Set(ctx, convertClientModelToTFModel(dataTF.StackID.ValueString(), jobClientModel))
 }
 
 func (r *resourceMetricsEndpointScrapeJob) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	// TODO implement me
-	panic("implement me")
+	var dataTF metricsEndpointScrapeJobTFModel
+	diags := req.State.Get(ctx, &dataTF)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	jobClientModel, err := r.client.GetMetricsEndpointScrapeJob(
+		ctx,
+		dataTF.StackID.ValueString(),
+		dataTF.Name.ValueString(),
+	)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get metrics endpoint scrape job", err.Error())
+		return
+	}
+
+	jobTF := convertClientModelToTFModel(dataTF.StackID.ValueString(), jobClientModel)
+
+	// Set only non-sensitive attributes
+	resp.State.SetAttribute(ctx, path.Root("stack_id"), jobTF.StackID)
+	resp.State.SetAttribute(ctx, path.Root("name"), jobTF.Name)
+	resp.State.SetAttribute(ctx, path.Root("authentication_method"), jobTF.AuthenticationMethod)
+	resp.State.SetAttribute(ctx, path.Root("url"), jobTF.URL)
+	resp.State.SetAttribute(ctx, path.Root("scrape_interval_seconds"), jobTF.ScrapeIntervalSeconds)
 }
 
 func (r *resourceMetricsEndpointScrapeJob) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// TODO implement me
-	panic("implement me")
+	var dataTF metricsEndpointScrapeJobTFModel
+	diags := req.Plan.Get(ctx, &dataTF)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	jobClientModel, err := r.client.UpdateMetricsEndpointScrapeJob(ctx, dataTF.StackID.ValueString(), dataTF.Name.ValueString(),
+		convertJobTFModelToClientModel(dataTF))
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to update metrics endpoint scrape job", err.Error())
+		return
+	}
+
+	resp.State.Set(ctx, convertClientModelToTFModel(dataTF.StackID.ValueString(), jobClientModel))
 }
 
 func (r *resourceMetricsEndpointScrapeJob) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	// TODO implement me
-	panic("implement me")
+	var dataTF metricsEndpointScrapeJobTFModel
+	diags := req.State.Get(ctx, &dataTF)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	err := r.client.DeleteMetricsEndpointScrapeJob(
+		ctx,
+		dataTF.StackID.ValueString(),
+		dataTF.Name.ValueString(),
+	)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to delete metrics endpoint scrape job", err.Error())
+		return
+	}
+
+	resp.State.Set(ctx, nil)
 }
 
 type HTTPSURLValidator struct{}

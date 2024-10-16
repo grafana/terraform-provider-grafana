@@ -27,9 +27,6 @@ const (
 
 func NewClient(authToken string, rawURL string, client *http.Client) (*Client, error) {
 	parsedURL, err := url.Parse(rawURL)
-	if parsedURL.Scheme != "https" {
-		return nil, fmt.Errorf("https URL scheme expected, provided %q", parsedURL.Scheme)
-	}
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse connections API url: %w", err)
