@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Tests both managed resource and data source
 func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 	// Mock the Connections API response for Create, Get, and Delete
 	mux := http.NewServeMux()
@@ -33,7 +34,7 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 					"basic_username":"my-username",
 					"basic_password":"my-password",
 					"url":"https://dev.my-metrics-endpoint-url.com:9000/metrics",
-					"scrape_interval_seconds":60,
+					"scrape_interval_seconds":120,
 					"flavor":"default",
 					"enabled":true
 				  }
@@ -46,7 +47,7 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 				    "name":"scrape-job-name",
 				    "authentication_method":"basic",
 				    "url":"https://dev.my-metrics-endpoint-url.com:9000/metrics",
-				    "scrape_interval_seconds":60,
+				    "scrape_interval_seconds":120,
 				    "flavor":"default",
 				    "enabled":true
 				  }
@@ -66,7 +67,7 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				// Creates a resource
+				// Creates a managed resource
 				Config: testutils.TestAccExample(t, "resources/grafana_connections_metrics_endpoint_scrape_job/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "stack_id", "1"),
@@ -75,7 +76,7 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "authentication_basic_username", "my-username"),
 					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "authentication_basic_password", "my-password"),
 					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "url", "https://dev.my-metrics-endpoint-url.com:9000/metrics"),
-					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "scrape_interval_seconds", "60"),
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "scrape_interval_seconds", "120"),
 				),
 			},
 			{
@@ -84,12 +85,11 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "stack_id", "1"),
 					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "name", "scrape-job-name"),
-					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "enabled", "true"),
 					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "authentication_method", "basic"),
 					resource.TestCheckNoResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "authentication_basic_username"),
 					resource.TestCheckNoResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "authentication_basic_password"),
 					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "url", "https://dev.my-metrics-endpoint-url.com:9000/metrics"),
-					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "scrape_interval_seconds", "60"),
+					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "scrape_interval_seconds", "120"),
 				),
 			},
 		},

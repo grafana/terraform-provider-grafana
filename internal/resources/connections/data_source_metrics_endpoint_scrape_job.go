@@ -54,10 +54,6 @@ func (r *datasourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req dat
 				Description: "The name of the Metrics Endpoint Scrape Job. Part of the Terraform Resource ID.",
 				Required:    true,
 			},
-			"enabled": schema.BoolAttribute{
-				Description: "Whether the Metrics Endpoint Scrape Job is enabled or not.",
-				Computed:    true,
-			},
 			"authentication_method": schema.StringAttribute{
 				Description: "Method to pass authentication credentials: basic or bearer.",
 				Required:    true,
