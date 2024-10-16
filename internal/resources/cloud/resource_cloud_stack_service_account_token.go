@@ -94,7 +94,7 @@ func stackServiceAccountTokenCreate(ctx context.Context, d *schema.ResourceData,
 
 	req := gcom.PostInstanceServiceAccountTokensRequest{
 		Name:          d.Get("name").(string),
-		SecondsToLive: common.Ref(d.Get("seconds_to_live").(int32)),
+		SecondsToLive: common.Ref(int32(d.Get("seconds_to_live").(int))), //nolint:gosec
 	}
 
 	resp, _, err := cloudClient.InstancesAPI.PostInstanceServiceAccountTokens(ctx, stackSlug, strconv.FormatInt(serviceAccountID, 10)).

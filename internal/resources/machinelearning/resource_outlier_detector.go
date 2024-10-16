@@ -239,7 +239,7 @@ func makeMLOutlier(d *schema.ResourceData, meta interface{}) (mlapi.OutlierDetec
 		DatasourceUID:  d.Get("datasource_uid").(string),
 		DatasourceType: d.Get("datasource_type").(string),
 		QueryParams:    d.Get("query_params").(map[string]interface{}),
-		Interval:       d.Get("interval").(uint),
+		Interval:       uint(d.Get("interval").(int)), //nolint:gosec
 		Algorithm:      algorithm,
 	}, nil
 }
