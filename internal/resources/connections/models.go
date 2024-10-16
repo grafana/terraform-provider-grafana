@@ -9,7 +9,6 @@ type metricsEndpointScrapeJobTFModel struct {
 	ID                          types.String `tfsdk:"id"`
 	StackID                     types.String `tfsdk:"stack_id"`
 	Name                        types.String `tfsdk:"name"`
-	Enabled                     types.Bool   `tfsdk:"enabled"`
 	AuthenticationMethod        types.String `tfsdk:"authentication_method"`
 	AuthenticationBearerToken   types.String `tfsdk:"authentication_bearer_token"`
 	AuthenticationBasicUsername types.String `tfsdk:"authentication_basic_username"`
@@ -24,7 +23,6 @@ type metricsEndpointScrapeJobTFModel struct {
 func convertJobTFModelToClientModel(tfData metricsEndpointScrapeJobTFModel) connectionsapi.MetricsEndpointScrapeJob {
 	return connectionsapi.MetricsEndpointScrapeJob{
 		Name:                        tfData.Name.ValueString(),
-		Enabled:                     tfData.Enabled.ValueBool(),
 		AuthenticationMethod:        tfData.AuthenticationMethod.ValueString(),
 		AuthenticationBearerToken:   tfData.AuthenticationBearerToken.ValueString(),
 		AuthenticationBasicUsername: tfData.AuthenticationBasicUsername.ValueString(),
@@ -42,7 +40,6 @@ func convertClientModelToTFModel(stackID string, scrapeJobData connectionsapi.Me
 		ID:                    types.StringValue(resourceMetricsEndpointScrapeJobTerraformID.Make(stackID, scrapeJobData.Name)),
 		StackID:               types.StringValue(stackID),
 		Name:                  types.StringValue(scrapeJobData.Name),
-		Enabled:               types.BoolValue(scrapeJobData.Enabled),
 		AuthenticationMethod:  types.StringValue(scrapeJobData.AuthenticationMethod),
 		URL:                   types.StringValue(scrapeJobData.URL),
 		ScrapeIntervalSeconds: types.Int64Value(scrapeJobData.ScrapeIntervalSeconds),

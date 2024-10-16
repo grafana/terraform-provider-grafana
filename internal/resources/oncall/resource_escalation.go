@@ -25,6 +25,7 @@ var escalationOptions = []string{
 	"notify_if_time_from_to",
 	"repeat_escalation",
 	"notify_team_members",
+	"declare_incident",
 }
 
 var escalationOptionsVerbal = strings.Join(escalationOptions, ", ")
@@ -216,6 +217,21 @@ func resourceEscalation() *common.Resource {
 				},
 				Description: "The end of the time interval for notify_if_time_from_to type step in UTC (for example 18:00:00Z).",
 			},
+			"severity": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ConflictsWith: []string{
+					"duration",
+					"notify_on_call_from_schedule",
+					"persons_to_notify",
+					"persons_to_notify_next_each_time",
+					"notify_to_team_members",
+					"notify_if_time_from",
+					"notify_if_time_to",
+					"action_to_trigger",
+				},
+				Description: "The severity of the incident for declare_incident type step.",
+			},
 		},
 	}
 
@@ -278,6 +294,15 @@ func resourceEscalationCreate(ctx context.Context, d *schema.ResourceData, clien
 			createOptions.TeamToNotify = teamToNotifyData.(string)
 		} else {
 			return diag.Errorf("notify_to_team_members can not be set with type: %s", typeData)
+		}
+	}
+
+	severityData, severityDataOk := d.GetOk("severity")
+	if severityDataOk {
+		if typeData == "declare_incident" {
+			createOptions.Severity = severityData.(string)
+		} else {
+			return diag.Errorf("severity can not be set with type: %s", typeData)
 		}
 	}
 
@@ -379,6 +404,9 @@ func resourceEscalationRead(ctx context.Context, d *schema.ResourceData, client 
 	if escalation.TeamToNotify != nil {
 		d.Set("notify_to_team_members", escalation.TeamToNotify)
 	}
+	if escalation.Severity != nil {
+		d.Set("severity", escalation.Severity)
+	}
 	if escalation.GroupToNotify != nil {
 		d.Set("group_to_notify", escalation.GroupToNotify)
 	}
@@ -428,6 +456,13 @@ func resourceEscalationUpdate(ctx context.Context, d *schema.ResourceData, clien
 	if teamToNotifyDataOk {
 		if typeData == "notify_team_members" {
 			updateOptions.TeamToNotify = teamToNotifyData.(string)
+		}
+	}
+
+	severityData, severityDataOk := d.GetOk("severity")
+	if severityDataOk {
+		if typeData == "declare_incident" {
+			updateOptions.Severity = severityData.(string)
 		}
 	}
 
