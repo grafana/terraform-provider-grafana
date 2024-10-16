@@ -33,7 +33,7 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 					"basic_username":"my-username",
 					"basic_password":"my-password",
 					"url":"https://dev.my-metrics-endpoint-url.com:9000/metrics",
-					"scrape_interval_seconds":60,
+					"scrape_interval_seconds":120,
 					"flavor":"default",
 					"enabled":true
 				  }
@@ -46,7 +46,7 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 				    "name":"scrape-job-name",
 				    "authentication_method":"basic",
 				    "url":"https://dev.my-metrics-endpoint-url.com:9000/metrics",
-				    "scrape_interval_seconds":60,
+				    "scrape_interval_seconds":120,
 				    "flavor":"default",
 				    "enabled":true
 				  }
@@ -74,7 +74,7 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "authentication_basic_username", "my-username"),
 					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "authentication_basic_password", "my-password"),
 					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "url", "https://dev.my-metrics-endpoint-url.com:9000/metrics"),
-					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "scrape_interval_seconds", "60"),
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "scrape_interval_seconds", "120"),
 				),
 			},
 		},
