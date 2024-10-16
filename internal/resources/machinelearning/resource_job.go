@@ -190,11 +190,11 @@ func makeMLJob(d *schema.ResourceData, meta interface{}) (mlapi.Job, error) {
 		DatasourceUID:     d.Get("datasource_uid").(string),
 		DatasourceType:    d.Get("datasource_type").(string),
 		QueryParams:       d.Get("query_params").(map[string]interface{}),
-		Interval:          uint(d.Get("interval").(int)),
+		Interval:          d.Get("interval").(uint),
 		Algorithm:         "grafana_prophet_1_0_1",
 		HyperParams:       d.Get("hyper_params").(map[string]interface{}),
 		CustomLabels:      d.Get("custom_labels").(map[string]interface{}),
-		TrainingWindow:    uint(d.Get("training_window").(int)),
+		TrainingWindow:    d.Get("training_window").(uint),
 		TrainingFrequency: uint(24 * time.Hour / time.Second),
 		Holidays:          common.ListToStringSlice(d.Get("holidays").([]interface{})),
 	}, nil
