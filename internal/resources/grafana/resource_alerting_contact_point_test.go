@@ -399,6 +399,36 @@ func TestAccContactPoint_notifiers10_3(t *testing.T) {
 	})
 }
 
+func TestAccContactPoint_notifiers11_3(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t) // Use 11.3 when released
+
+	var points models.ContactPoints
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
+		Steps: []resource.TestStep{
+			// Test creation.
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_receiver_types_10_3.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.receiver_types", &points, 1),
+					// mqtt
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.broker_url", "*broker_url"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.topic", "*topic"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.client_id", "client_id"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.message_format", "json"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.username", "username"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.password", "password"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.insecure_skip_verify", "true"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccContactPoint_sensitiveData(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
