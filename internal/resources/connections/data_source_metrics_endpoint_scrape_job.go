@@ -56,25 +56,25 @@ func (r *datasourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req dat
 			},
 			"authentication_method": schema.StringAttribute{
 				Description: "Method to pass authentication credentials: basic or bearer.",
-				Optional:    true,
+				Computed:    true,
 			},
 			"authentication_bearer_token": schema.StringAttribute{
 				Description: "Token for authentication bearer.",
 				Sensitive:   true,
-				Optional:    true,
+				Computed:    true,
 			},
 			"authentication_basic_username": schema.StringAttribute{
 				Description: "Username for basic authentication.",
-				Optional:    true,
+				Computed:    true,
 			},
 			"authentication_basic_password": schema.StringAttribute{
 				Description: "Password for basic authentication.",
 				Sensitive:   true,
-				Optional:    true,
+				Computed:    true,
 			},
 			"url": schema.StringAttribute{
 				Description: "The url to scrape metrics.",
-				Optional:    true,
+				Computed:    true,
 			},
 			"scrape_interval_seconds": schema.Int64Attribute{
 				Description: "Frequency for scraping the metrics endpoint: 30, 60, or 120 seconds.",
