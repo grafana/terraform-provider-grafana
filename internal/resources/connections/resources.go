@@ -59,7 +59,7 @@ func withClientForDataSource(req datasource.ConfigureRequest, resp *datasource.C
 			"Please ensure that connections_api_url and connections_access_token are set in the provider configuration.",
 		)
 
-		return nil, fmt.Errorf("CloudProviderAPI is nil")
+		return nil, fmt.Errorf("ConnectionsAPI is nil")
 	}
 
 	return client.ConnectionsAPIClient, nil
