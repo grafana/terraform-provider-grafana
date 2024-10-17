@@ -55,7 +55,7 @@ func withClientForDataSource(req datasource.ConfigureRequest, resp *datasource.C
 
 	if client.ConnectionsAPIClient == nil {
 		resp.Diagnostics.AddError(
-			"The Grafana Provider is missing a configuration for the Cloud Provider API.",
+			"The Grafana Provider is missing a configuration for the Connections API.",
 			"Please ensure that connections_api_url and connections_access_token are set in the provider configuration.",
 		)
 
