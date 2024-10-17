@@ -27,8 +27,6 @@ type resourceMetricsEndpointScrapeJob struct {
 	client *connectionsapi.Client
 }
 
-var Resources = makeResourceMetricsEndpointScrapeJob()
-
 func makeResourceMetricsEndpointScrapeJob() *common.Resource {
 	return common.NewResource(
 		common.CategoryConnections,
@@ -50,30 +48,6 @@ func (r *resourceMetricsEndpointScrapeJob) Configure(ctx context.Context, req re
 	}
 
 	r.client = client
-}
-
-func withClientForResource(req resource.ConfigureRequest, resp *resource.ConfigureResponse) (*connectionsapi.Client, error) {
-	client, ok := req.ProviderData.(*common.Client)
-
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *common.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-
-		return nil, fmt.Errorf("unexpected Resource Configure Type: %T, expected *common.Client", req.ProviderData)
-	}
-
-	if client.ConnectionsAPIClient == nil {
-		resp.Diagnostics.AddError(
-			"The Grafana Provider is missing a configuration for the Connections API.",
-			"Please ensure that connections_url and connections_access_token are set in the provider configuration.",
-		)
-
-		return nil, fmt.Errorf("ConnectionsAPI is nil")
-	}
-
-	return client.ConnectionsAPIClient, nil
 }
 
 func (r *resourceMetricsEndpointScrapeJob) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
