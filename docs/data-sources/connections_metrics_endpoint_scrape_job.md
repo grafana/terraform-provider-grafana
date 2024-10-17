@@ -14,10 +14,8 @@ description: |-
 
 ```terraform
 data "grafana_connections_metrics_endpoint_scrape_job" "ds_test" {
-  stack_id              = "1"
-  name                  = "scrape-job-name"
-  authentication_method = ""
-  url                   = ""
+  stack_id = "1"
+  name     = "scrape-job-name"
 }
 ```
 
@@ -26,19 +24,15 @@ data "grafana_connections_metrics_endpoint_scrape_job" "ds_test" {
 
 ### Required
 
-- `authentication_method` (String) Method to pass authentication credentials: basic or bearer.
 - `name` (String) The name of the Metrics Endpoint Scrape Job. Part of the Terraform Resource ID.
 - `stack_id` (String) The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.
-- `url` (String) The url to scrape metrics.
 
-### Optional
+### Read-Only
 
 - `authentication_basic_password` (String, Sensitive) Password for basic authentication.
 - `authentication_basic_username` (String) Username for basic authentication.
 - `authentication_bearer_token` (String, Sensitive) Token for authentication bearer.
-
-### Read-Only
-
-- `enabled` (Boolean) Whether the Metrics Endpoint Scrape Job is enabled or not.
+- `authentication_method` (String) Method to pass authentication credentials: basic or bearer.
 - `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ name }}".
 - `scrape_interval_seconds` (Number) Frequency for scraping the metrics endpoint: 30, 60, or 120 seconds.
+- `url` (String) The url to scrape metrics.
