@@ -42,14 +42,14 @@ var (
 		func(t *models.NotificationTemplate) string { return t.Name },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.NotificationTemplate, error) {
 			resp, err := client.Provisioning.GetTemplate(id)
-			return payloadOrError(resp, err)
+			return payloadOrError[models.NotificationTemplate](resp, err)
 		},
 	)
 	alertingMuteTimingCheckExists = newCheckExistsHelper(
 		func(t *models.MuteTimeInterval) string { return t.Name },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.MuteTimeInterval, error) {
 			resp, err := client.Provisioning.GetMuteTiming(id)
-			return payloadOrError(resp, err)
+			return payloadOrError[models.MuteTimeInterval](resp, err)
 		},
 	)
 	alertingNotificationPolicyCheckExists = newCheckExistsHelper(
@@ -71,7 +71,7 @@ var (
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.AlertRuleGroup, error) {
 			folder, title, _ := strings.Cut(id, ":")
 			resp, err := client.Provisioning.GetAlertRuleGroup(title, folder)
-			return payloadOrError(resp, err)
+			return payloadOrError[models.AlertRuleGroup](resp, err)
 		},
 	)
 	annotationsCheckExists = newCheckExistsHelper(
@@ -98,7 +98,7 @@ var (
 		},
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.DashboardFullWithMeta, error) {
 			resp, err := client.Dashboards.GetDashboardByUID(id)
-			return payloadOrError(resp, err)
+			return payloadOrError[models.DashboardFullWithMeta](resp, err)
 		},
 	)
 	dashboardPublicCheckExists = newCheckExistsHelper(
@@ -106,14 +106,14 @@ var (
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.PublicDashboard, error) {
 			dashboardUID, _, _ := strings.Cut(id, ":")
 			resp, err := client.DashboardPublic.GetPublicDashboard(dashboardUID)
-			return payloadOrError(resp, err)
+			return payloadOrError[models.PublicDashboard](resp, err)
 		},
 	)
 	datasourceCheckExists = newCheckExistsHelper(
 		func(d *models.DataSource) string { return d.UID },
 		func(client *goapi.GrafanaHTTPAPI, uid string) (*models.DataSource, error) {
 			resp, err := client.Datasources.GetDataSourceByUID(uid)
-			return payloadOrError(resp, err)
+			return payloadOrError[models.DataSource](resp, err)
 		},
 	)
 	datasourcePermissionsCheckExists = newCheckExistsHelper(
@@ -144,14 +144,14 @@ var (
 		func(f *models.Folder) string { return f.UID },
 		func(client *goapi.GrafanaHTTPAPI, uid string) (*models.Folder, error) {
 			resp, err := client.Folders.GetFolderByUID(uid)
-			return payloadOrError(resp, err)
+			return payloadOrError[models.Folder](resp, err)
 		},
 	)
 	libraryPanelCheckExists = newCheckExistsHelper(
 		func(t *models.LibraryElementResponse) string { return t.Result.UID },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.LibraryElementResponse, error) {
 			resp, err := client.LibraryElements.GetLibraryElementByUID(id)
-			return payloadOrError(resp, err)
+			return payloadOrError[models.LibraryElementResponse](resp, err)
 		},
 	)
 	orgCheckExists = newCheckExistsHelper(
@@ -161,7 +161,7 @@ var (
 			if err, ok := err.(runtime.ClientResponseStatus); ok && err.IsCode(403) {
 				return nil, &runtime.APIError{Code: 404, Response: "forbidden. The org either does not exist or the user does not have access to it"}
 			}
-			return payloadOrError(resp, err)
+			return payloadOrError[models.OrgDetailsDTO](resp, err)
 		},
 	)
 	playlistCheckExists = newCheckExistsHelper(
@@ -173,14 +173,14 @@ var (
 		},
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Playlist, error) {
 			resp, err := client.Playlists.GetPlaylist(id)
-			return payloadOrError(resp, err)
+			return payloadOrError[models.Playlist](resp, err)
 		},
 	)
 	roleCheckExists = newCheckExistsHelper(
 		func(r *models.RoleDTO) string { return r.UID },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.RoleDTO, error) {
 			resp, err := client.AccessControl.GetRole(id)
-			return payloadOrError(resp, err)
+			return payloadOrError[models.RoleDTO](resp, err)
 		},
 	)
 	roleAssignmentCheckExists = newCheckExistsHelper(
@@ -205,7 +205,7 @@ var (
 		func(t *models.ServiceAccountDTO) string { return strconv.FormatInt(t.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.ServiceAccountDTO, error) {
 			resp, err := client.ServiceAccounts.RetrieveServiceAccount(mustParseInt64(id))
-			return payloadOrError(resp, err)
+			return payloadOrError[models.ServiceAccountDTO](resp, err)
 		},
 	)
 	serviceAccountPermissionsCheckExists = newCheckExistsHelper(
@@ -236,14 +236,14 @@ var (
 		func(t *models.TeamDTO) string { return strconv.FormatInt(t.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.TeamDTO, error) {
 			resp, err := client.Teams.GetTeamByID(id)
-			return payloadOrError(resp, err)
+			return payloadOrError[models.TeamDTO](resp, err)
 		},
 	)
 	userCheckExists = newCheckExistsHelper(
 		func(u *models.UserProfileDTO) string { return strconv.FormatInt(u.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.UserProfileDTO, error) {
 			resp, err := client.Users.GetUserByID(mustParseInt64(id))
-			return payloadOrError(resp, err)
+			return payloadOrError[models.UserProfileDTO](resp, err)
 		},
 	)
 
@@ -251,7 +251,22 @@ var (
 		func(u *models.Report) string { return strconv.FormatInt(u.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Report, error) {
 			resp, err := client.Reports.GetReport(mustParseInt64(id))
-			return payloadOrError(resp, err)
+			return payloadOrError[models.Report](resp, err)
+		},
+	)
+	groupAttrMappingCheckExists = newCheckExistsHelper(
+		func(g *models.Group) string { return g.GroupID },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Group, error) {
+			resp, err := client.GroupAttributeSync.GetMappedGroups()
+			if err != nil {
+				return nil, err
+			}
+			for _, group := range resp.Payload.Groups {
+				if group.GroupID == id {
+					return group, nil
+				}
+			}
+			return nil, &runtime.APIError{Code: 404, Response: "mapping not found"}
 		},
 	)
 )
