@@ -22,7 +22,7 @@ import (
 func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 	// Mock the Connections API response for Create, Get, and Delete
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/metrics-endpoint/stacks/1/jobs/scrape-job-name", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/v1/stacks/1/metrics-endpoint/jobs/scrape-job-name", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost:
 			w.WriteHeader(http.StatusCreated)
