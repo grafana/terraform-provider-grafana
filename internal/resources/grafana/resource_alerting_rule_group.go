@@ -497,6 +497,12 @@ func packAlertRule(r *models.ProvisionedAlertRule) (interface{}, error) {
 	if ns != nil {
 		json["notification_settings"] = ns
 	}
+
+	record := packRecord(r.Record)
+	if record != nil {
+		json["record"] = record
+	}
+
 	return json, nil
 }
 
@@ -536,6 +542,7 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		Annotations:          unpackMap(json["annotations"]),
 		IsPaused:             json["is_paused"].(bool),
 		NotificationSettings: ns,
+		Record:               unpackRecord(json["record"]),
 	}
 
 	return &rule, nil
@@ -725,4 +732,37 @@ func unpackNotificationSettings(p interface{}) (*models.AlertRuleNotificationSet
 		result.RepeatInterval = v.(string)
 	}
 	return &result, nil
+}
+
+func packRecord(r *models.Record) interface{} {
+	if r == nil {
+		return nil
+	}
+	res := map[string]interface{}{}
+	if r.Metric != nil {
+		res["metric"] = *r.Metric
+	}
+	if r.From != nil {
+		res["from"] = *r.From
+	}
+	return []interface{}{res}
+}
+
+func unpackRecord(p interface{}) *models.Record {
+	if p == nil {
+		return nil
+	}
+	list := p.([]interface{})
+	if len(list) == 0 {
+		return nil
+	}
+	jsonData := list[0].(map[string]interface{})
+	res := &models.Record{}
+	if v, ok := jsonData["metric"]; ok && v != nil {
+		res.Metric = common.Ref(v.(string))
+	}
+	if v, ok := jsonData["from"]; ok && v != nil {
+		res.From = common.Ref(v.(string))
+	}
+	return res
 }
