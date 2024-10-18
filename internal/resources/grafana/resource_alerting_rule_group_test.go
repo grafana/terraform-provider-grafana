@@ -680,7 +680,7 @@ func TestAccRecordingRule(t *testing.T) {
 
 	var group models.AlertRuleGroup
 	var name = acctest.RandString(10)
-	var metric = acctest.RandString(10)
+	var metric = "valid_metric"
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
