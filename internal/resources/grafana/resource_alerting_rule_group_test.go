@@ -676,7 +676,7 @@ func TestAccAlertRule_NotificationSettings(t *testing.T) {
 }
 
 func TestAccRecordingRule(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=11.2.0")
+	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: change to 11.3.1 when available
 
 	var group models.AlertRuleGroup
 	var name = acctest.RandString(10)
@@ -693,7 +693,6 @@ func TestAccRecordingRule(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "name", name),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.#", "1"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.name", "My Random Walk Alert"),
-					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.for", "2m0s"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.data.0.model", "{\"hide\":false,\"refId\":\"A\"}"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.data.0.record.metric", metric),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.data.0.record.from", "A"),
@@ -870,12 +869,10 @@ resource "grafana_rule_group" "my_rule_group" {
 	name             = "%[1]s"
 	folder_uid       = grafana_folder.rule_folder.uid
 	interval_seconds = 60
-	org_id           = 1
 
 	rule {
 		name      = "My Random Walk Alert"
 		condition = "C"
-		for       = "2m"
 
 		// Query the datasource.
 		data {
