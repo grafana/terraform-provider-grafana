@@ -14,4 +14,5 @@ resource "grafana_machine_learning_alert" "test_job_alert" {
   anomaly_condition = "any"
   threshold         = ">0.8"
   window            = "15m"
+  no_data_state     = "OK"
 }
