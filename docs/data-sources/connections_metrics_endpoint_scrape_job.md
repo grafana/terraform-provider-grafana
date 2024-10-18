@@ -33,6 +33,7 @@ data "grafana_connections_metrics_endpoint_scrape_job" "ds_test" {
 - `authentication_basic_username` (String) Username for basic authentication.
 - `authentication_bearer_token` (String, Sensitive) Token for authentication bearer.
 - `authentication_method` (String) Method to pass authentication credentials: basic or bearer.
+- `enabled` (Boolean) Whether the metrics endpoint scrape job is enabled or not.
 - `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ name }}".
 - `scrape_interval_seconds` (Number) Frequency for scraping the metrics endpoint: 30, 60, or 120 seconds.
 - `url` (String) The url to scrape metrics.

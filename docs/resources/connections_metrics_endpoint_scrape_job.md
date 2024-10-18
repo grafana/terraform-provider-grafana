@@ -16,6 +16,7 @@ description: |-
 resource "grafana_connections_metrics_endpoint_scrape_job" "test" {
   stack_id                      = "1"
   name                          = "scrape-job-name"
+  enabled                       = true
   authentication_method         = "basic"
   authentication_basic_username = "my-username"
   authentication_basic_password = "my-password"
@@ -39,6 +40,7 @@ resource "grafana_connections_metrics_endpoint_scrape_job" "test" {
 - `authentication_basic_password` (String, Sensitive) Password for basic authentication.
 - `authentication_basic_username` (String) Username for basic authentication.
 - `authentication_bearer_token` (String, Sensitive) Token for authentication bearer.
+- `enabled` (Boolean) Whether the metrics endpoint scrape job is enabled or not.
 - `scrape_interval_seconds` (Number) Frequency for scraping the metrics endpoint: 30, 60, or 120 seconds.
 
 ### Read-Only
