@@ -79,8 +79,8 @@ Resource manages Grafana SLOs.
 					Schema: map[string]*schema.Schema{
 						"type": {
 							Type:         schema.TypeString,
-							Description:  `Query type must be one of: "freeform", "query", "ratio", or "threshold"`,
-							ValidateFunc: validation.StringInSlice([]string{"freeform", "query", "ratio", "threshold"}, false),
+							Description:  `Query type must be one of: "freeform", "query", "ratio", "failure_ratio", or "threshold"`,
+							ValidateFunc: validation.StringInSlice([]string{"freeform", "query", "ratio", "failure_ratio", "threshold"}, false),
 							Required:     true,
 						},
 						"freeform": {
@@ -106,6 +106,33 @@ Resource manages Grafana SLOs.
 									"success_metric": {
 										Type:        schema.TypeString,
 										Description: `Counter metric for success events (numerator)`,
+										Required:    true,
+									},
+									"total_metric": {
+										Type:        schema.TypeString,
+										Description: `Metric for total events (denominator)`,
+										Required:    true,
+									},
+									"group_by_labels": {
+										Type:        schema.TypeList,
+										Description: `Defines Group By Labels used for per-label alerting. These appear as variables on SLO dashboards to enable filtering and aggregation. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$"`,
+										Optional:    true,
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+								},
+							},
+						},
+						"failure_ratio": {
+							Type:     schema.TypeList,
+							MaxItems: 1,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"failure_metric": {
+										Type:        schema.TypeString,
+										Description: `Counter metric for failure events (numerator)`,
 										Required:    true,
 									},
 									"total_metric": {
