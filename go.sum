@@ -142,6 +142,8 @@ github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240807172819-ac10
 github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240807172819-ac10800522a3/go.mod h1:u9d0BESoKlztYm93CpoRleQjMbYBcZ+JOLHHP2nN6Wg=
 github.com/grafana/grafana-openapi-client-go v0.0.0-20240723170622-ae2c94b7c9a3 h1:W35ScJIkeyLuDlOo3F+u1JSRRvmoIYYf/ghA/17Y18Q=
 github.com/grafana/grafana-openapi-client-go v0.0.0-20240723170622-ae2c94b7c9a3/go.mod h1:hiZnMmXc9KXNUlvkV2BKFsiWuIFF/fF4wGgYWEjBitI=
+github.com/grafana/grafana-openapi-client-go v0.0.0-20241018134006-9d96c2007bd8 h1:fRwRuI/kDT0feopB1jrcA2Jpn/s4elfidFl+v9Y8qpo=
+github.com/grafana/grafana-openapi-client-go v0.0.0-20241018134006-9d96c2007bd8/go.mod h1:hiZnMmXc9KXNUlvkV2BKFsiWuIFF/fF4wGgYWEjBitI=
 github.com/grafana/grafana-plugin-sdk-go v0.250.0 h1:9EBucp9jLqMx2b8NTlOXH+4OuQWUh6L85c6EJUN8Jdo=
 github.com/grafana/grafana-plugin-sdk-go v0.250.0/go.mod h1:gCGN9kHY3KeX4qyni3+Kead38Q+85pYOrsDcxZp6AIk=
 github.com/grafana/machine-learning-go-client v0.8.2 h1:TvU4e+Kgg4GhwBNYTMjBUNq4tbhcxe0L8w1eo/UfV2M=
