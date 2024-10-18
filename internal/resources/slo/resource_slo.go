@@ -14,10 +14,11 @@ import (
 )
 
 const (
-	QueryTypeFreeform  string = "freeform"
-	QueryTypeHistogram string = "histogram"
-	QueryTypeRatio     string = "ratio"
-	QueryTypeThreshold string = "threshold"
+	QueryTypeFreeform     string = "freeform"
+	QueryTypeHistogram    string = "histogram"
+	QueryTypeRatio        string = "ratio"
+	QueryTypeFailureRatio string = "failureRatio"
+	QueryTypeThreshold    string = "threshold"
 )
 
 var resourceSloID = common.NewResourceID(common.StringIDField("uuid"))
@@ -533,6 +534,38 @@ func packQuery(query map[string]interface{}) (slo.SloV00Query, error) {
 				GroupByLabels: labels,
 			},
 			Type: QueryTypeRatio,
+		}
+
+		return sloQuery, nil
+	}
+
+	if query["type"] == "failure_ratio" {
+		ratioquery := query["failure_ratio"].([]interface{})[0].(map[string]interface{})
+		failureMetric := ratioquery["failure_metric"].(string)
+		totalMetric := ratioquery["total_metric"].(string)
+		groupByLabels := ratioquery["group_by_labels"].([]interface{})
+
+		var labels []string
+
+		for ind := range groupByLabels {
+			if groupByLabels[ind] == nil {
+				labels = append(labels, "")
+				continue
+			}
+			labels = append(labels, groupByLabels[ind].(string))
+		}
+
+		sloQuery := slo.SloV00Query{
+			FailureRatio: &slo.SloV00FailureRatioQuery{
+				FailureMetric: slo.SloV00MetricDef{
+					PrometheusMetric: failureMetric,
+				},
+				TotalMetric: slo.SloV00MetricDef{
+					PrometheusMetric: totalMetric,
+				},
+				GroupByLabels: labels,
+			},
+			Type: QueryTypeFailureRatio,
 		}
 
 		return sloQuery, nil

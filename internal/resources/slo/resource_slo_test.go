@@ -97,6 +97,21 @@ func TestAccResourceSlo(t *testing.T) {
 				),
 			},
 			{
+				// Tests Create Failure Ratio
+				Config: testutils.TestAccExample(t, "resources/grafana_slo/resource_failure_ratio.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.ratio", &slo),
+					resource.TestCheckResourceAttrSet("grafana_slo.ratio", "id"),
+					resource.TestCheckResourceAttr("grafana_slo.ratio", "name", "Terraform Testing - FailureRatio Query"),
+					resource.TestCheckResourceAttr("grafana_slo.ratio", "description", "Terraform Description - FailureRatio Query"),
+					resource.TestCheckResourceAttr("grafana_slo.ratio", "query.0.type", "failure_ratio"),
+					resource.TestCheckResourceAttr("grafana_slo.ratio", "query.0.ratio.0.failure_metric", "kubelet_http_requests_total{status=~\"5..\"}"),
+					resource.TestCheckResourceAttr("grafana_slo.ratio", "query.0.ratio.0.total_metric", "kubelet_http_requests_total"),
+					resource.TestCheckResourceAttr("grafana_slo.ratio", "query.0.ratio.0.group_by_labels.0", "job"),
+					resource.TestCheckResourceAttr("grafana_slo.ratio", "query.0.ratio.0.group_by_labels.1", "instance"),
+				),
+			},
+			{
 				// Import test (this tests that all fields are read correctly)
 				ResourceName:      "grafana_slo.ratio",
 				ImportState:       true,
