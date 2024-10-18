@@ -696,6 +696,11 @@ func TestAccRecordingRule(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.data.0.model", "{\"refId\":\"A\"}"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.record.0.metric", metric),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.record.0.from", "A"),
+					// ensure fields are cleared as expected
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.for", "0"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.condition", ""),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.no_data_state", ""),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.exec_err_state", ""),
 				),
 			},
 		},
@@ -872,7 +877,11 @@ resource "grafana_rule_group" "my_rule_group" {
 
 	rule {
 		name      = "My Random Walk Alert"
-		condition = "C"
+		// following should be cleared by Grafana
+		condition = "A"
+		no_data_state  = "NoData"
+		exec_err_state = "Alerting"
+		for = "2m"
 
 		// Query the datasource.
 		data {
