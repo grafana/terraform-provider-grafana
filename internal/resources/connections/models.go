@@ -10,6 +10,7 @@ type metricsEndpointScrapeJobTFModel struct {
 	StackID                     types.String `tfsdk:"stack_id"`
 	Name                        types.String `tfsdk:"name"`
 	Enabled                     types.Bool   `tfsdk:"enabled"`
+	DisabledReason              types.String `tfsdk:"disabled_reason"`
 	AuthenticationMethod        types.String `tfsdk:"authentication_method"`
 	AuthenticationBearerToken   types.String `tfsdk:"authentication_bearer_token"`
 	AuthenticationBasicUsername types.String `tfsdk:"authentication_basic_username"`
@@ -62,5 +63,8 @@ func (m *metricsEndpointScrapeJobTFModel) fillOptionalFieldsIfNotEmpty(scrapeJob
 	}
 	if scrapeJobData.AuthenticationBasicPassword != "" {
 		m.AuthenticationBasicPassword = types.StringValue(scrapeJobData.AuthenticationBasicPassword)
+	}
+	if scrapeJobData.DisabledReason != "" {
+		m.DisabledReason = types.StringValue(scrapeJobData.DisabledReason)
 	}
 }

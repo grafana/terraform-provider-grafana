@@ -184,7 +184,7 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 			assert.JSONEq(t, `
 			{
 				"name":"test_job",
-				"enabled":true,
+				"enabled":false,
 				"authentication_method":"bearer",
 				"bearer_token":"some token",
 				"url":"https://updated-url.com:9000/metrics",
@@ -197,7 +197,8 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 				"status":"success",
 				"data":{
 					"name":"test_job",
-					"enabled":true,
+					"enabled":false,
+					"disabled_reason":"some reason",
 					"authentication_method":"bearer",
 					"bearer_token":"some token",
 					"url":"https://updated-url.com:9000/metrics",
@@ -213,7 +214,7 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 		actualJob, err := c.UpdateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "test_job",
 			connectionsapi.MetricsEndpointScrapeJob{
 				Name:                      "test_job",
-				Enabled:                   true,
+				Enabled:                   false,
 				AuthenticationMethod:      "bearer",
 				AuthenticationBearerToken: "some token",
 				URL:                       "https://updated-url.com:9000/metrics",
@@ -223,7 +224,8 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 
 		assert.Equal(t, connectionsapi.MetricsEndpointScrapeJob{
 			Name:                      "test_job",
-			Enabled:                   true,
+			Enabled:                   false,
+			DisabledReason:            "some reason",
 			AuthenticationMethod:      "bearer",
 			AuthenticationBearerToken: "some token",
 			URL:                       "https://updated-url.com:9000/metrics",

@@ -58,6 +58,10 @@ func (r *datasourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req dat
 				Description: "Whether the metrics endpoint scrape job is enabled or not.",
 				Computed:    true,
 			},
+			"disabled_reason": schema.StringAttribute{
+				Description: "When the metrics endpoint scrape job is disabled, this will show the reason that it is in that state.",
+				Computed:    true,
+			},
 			"authentication_method": schema.StringAttribute{
 				Description: "Method to pass authentication credentials: basic or bearer.",
 				Computed:    true,

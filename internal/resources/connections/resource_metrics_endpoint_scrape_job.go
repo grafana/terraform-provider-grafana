@@ -87,6 +87,10 @@ func (r *resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resou
 				Computed:    true,
 				Default:     booldefault.StaticBool(true),
 			},
+			"disabled_reason": schema.StringAttribute{
+				Description: "When the metrics endpoint scrape job is disabled, this will show the reason that it is in that state.",
+				Computed:    true,
+			},
 			"authentication_method": schema.StringAttribute{
 				Description: "Method to pass authentication credentials: basic or bearer.",
 				Validators: []validator.String{
@@ -166,6 +170,7 @@ func (r *resourceMetricsEndpointScrapeJob) Read(ctx context.Context, req resourc
 	resp.State.SetAttribute(ctx, path.Root("stack_id"), jobTF.StackID)
 	resp.State.SetAttribute(ctx, path.Root("name"), jobTF.Name)
 	resp.State.SetAttribute(ctx, path.Root("enabled"), jobTF.Enabled)
+	resp.State.SetAttribute(ctx, path.Root("disabled_reason"), jobTF.DisabledReason)
 	resp.State.SetAttribute(ctx, path.Root("authentication_method"), jobTF.AuthenticationMethod)
 	resp.State.SetAttribute(ctx, path.Root("url"), jobTF.URL)
 	resp.State.SetAttribute(ctx, path.Root("scrape_interval_seconds"), jobTF.ScrapeIntervalSeconds)

@@ -36,7 +36,8 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 					"url":"https://dev.my-metrics-endpoint-url.com:9000/metrics",
 					"scrape_interval_seconds":120,
 					"flavor":"default",
-					"enabled":true
+					"enabled":true,
+					"disabled_reason":"some reason"
 				  }
 				}`))
 		case http.MethodGet:
@@ -49,7 +50,8 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 				    "url":"https://dev.my-metrics-endpoint-url.com:9000/metrics",
 				    "scrape_interval_seconds":120,
 				    "flavor":"default",
-				    "enabled":true
+				    "enabled":true,
+					"disabled_reason":"some reason"
 				  }
 				}`))
 		case http.MethodDelete:
@@ -73,6 +75,7 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "stack_id", "1"),
 					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "name", "scrape-job-name"),
 					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "enabled", "true"),
+					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "disabled_reason", "some reason"),
 					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "authentication_method", "basic"),
 					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "authentication_basic_username", "my-username"),
 					resource.TestCheckResourceAttr("grafana_connections_metrics_endpoint_scrape_job.test", "authentication_basic_password", "my-password"),
@@ -87,6 +90,7 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "stack_id", "1"),
 					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "name", "scrape-job-name"),
 					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "enabled", "true"),
+					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "disabled_reason", "some reason"),
 					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "authentication_method", "basic"),
 					resource.TestCheckNoResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "authentication_basic_username"),
 					resource.TestCheckNoResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "authentication_basic_password"),
