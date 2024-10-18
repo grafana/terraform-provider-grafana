@@ -86,6 +86,7 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "stack_id", "1"),
 					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "name", "scrape-job-name"),
+					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "enabled", "true"),
 					resource.TestCheckResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "authentication_method", "basic"),
 					resource.TestCheckNoResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "authentication_basic_username"),
 					resource.TestCheckNoResourceAttr("data.grafana_connections_metrics_endpoint_scrape_job.ds_test", "authentication_basic_password"),
