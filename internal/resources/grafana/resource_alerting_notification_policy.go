@@ -298,14 +298,14 @@ func packSpecificPolicy(p *models.Route, depth uint) interface{} {
 		result["group_by"] = p.GroupBy
 	}
 
-	if p.ObjectMatchers != nil && len(p.ObjectMatchers) > 0 {
+	if len(p.ObjectMatchers) > 0 {
 		matchers := make([]interface{}, 0, len(p.ObjectMatchers))
 		for _, m := range p.ObjectMatchers {
 			matchers = append(matchers, packPolicyMatcher(m))
 		}
 		result["matcher"] = matchers
 	}
-	if p.MuteTimeIntervals != nil && len(p.MuteTimeIntervals) > 0 {
+	if len(p.MuteTimeIntervals) > 0 {
 		result["mute_timings"] = p.MuteTimeIntervals
 	}
 	if p.GroupWait != "" {
