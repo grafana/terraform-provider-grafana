@@ -78,7 +78,6 @@ var knownReferences = []string{
 	"grafana_oncall_route.escalation_chain_id=grafana_oncall_escalation_chain.id",
 	"grafana_oncall_route.integration_id=grafana_oncall_integration.id",
 	"grafana_organization.org_id=grafana_organization.id",
-	"grafana_organization.org_id=grafana_organization.org_id",
 	"grafana_organization_preferences.home_dashboard_uid=grafana_dashboard.uid",
 	"grafana_organization_preferences.org_id=grafana_organization.id",
 	"grafana_playlist.org_id=grafana_organization.id",
