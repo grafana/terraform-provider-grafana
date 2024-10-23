@@ -65,7 +65,7 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 ### Optional
 
 - `action_to_trigger` (String) The ID of an Action for trigger_webhook type step.
-- `duration` (Number) The duration of delay for wait type step.
+- `duration` (Number) The duration of delay for wait type step in seconds (60-86400).
 - `group_to_notify` (String) The ID of a User Group for notify_user_group type step.
 - `important` (Boolean) Will activate "important" personal notification rules. Actual for steps: notify_persons, notify_on_call_from_schedule and notify_user_group,notify_team_members
 - `notify_if_time_from` (String) The beginning of the time interval for notify_if_time_from_to type step in UTC (for example 08:00:00Z).
