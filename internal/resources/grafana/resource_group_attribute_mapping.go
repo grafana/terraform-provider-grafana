@@ -140,7 +140,8 @@ func (r *resourceGroupAttributeMapping) read(id string) (*resourceGroupAttribute
 	if err != nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Failed to get group mappings", err.Error())}
 	}
-	if resp.Payload == nil || len(resp.Payload) == 0 {
+	// No roles are returned if no mappings are found.
+	if len(resp.Payload) == 0 {
 		return nil, nil
 	}
 
