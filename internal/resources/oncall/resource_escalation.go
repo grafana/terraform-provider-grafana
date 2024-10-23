@@ -81,7 +81,7 @@ func resourceEscalation() *common.Resource {
 					"notify_if_time_to",
 				},
 				ValidateFunc: validation.IntBetween(60, 86400),
-				Description:  "The duration of delay for wait type step.",
+				Description:  "The duration of delay for wait type step. (60-86400) seconds",
 			},
 			"notify_on_call_from_schedule": {
 				Type:     schema.TypeString,
