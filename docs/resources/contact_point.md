@@ -50,6 +50,7 @@ resource "grafana_contact_point" "my_contact_point" {
 - `googlechat` (Block Set) A contact point that sends notifications to Google Chat. (see [below for nested schema](#nestedblock--googlechat))
 - `kafka` (Block Set) A contact point that publishes notifications to Apache Kafka topics. (see [below for nested schema](#nestedblock--kafka))
 - `line` (Block Set) A contact point that sends notifications to LINE.me. (see [below for nested schema](#nestedblock--line))
+- `mqtt` (Block Set) A contact point that sends notifications to an MQTT broker. (see [below for nested schema](#nestedblock--mqtt))
 - `oncall` (Block Set) A contact point that sends notifications to Grafana On-Call. (see [below for nested schema](#nestedblock--oncall))
 - `opsgenie` (Block Set) A contact point that sends notifications to OpsGenie. (see [below for nested schema](#nestedblock--opsgenie))
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
@@ -206,6 +207,29 @@ Optional:
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
 - `title` (String) The templated title of the message.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--mqtt"></a>
+### Nested Schema for `mqtt`
+
+Required:
+
+- `broker_url` (String) The URL of the MQTT broker.
+- `topic` (String) The topic to publish messages to.
+
+Optional:
+
+- `client_id` (String) The client ID to use when connecting to the broker.
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `insecure_skip_verify` (Boolean) Whether to skip verification of the server's certificate chain and host name. Defaults to `false`.
+- `message_format` (String) The format of the message to send. Supported values are `json` and `text`.
+- `password` (String, Sensitive) The password to use when connecting to the broker.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `username` (String) The username to use when connecting to the broker.
 
 Read-Only:
 
