@@ -423,6 +423,8 @@ func removeHeadersFromJSONData(input map[string]interface{}) (map[string]interfa
 			jsonData[dataName] = dataValue
 		}
 	}
+	// for teamhttpheaders, we do not set it in the state and we do not want to return it in the diff
+	delete(jsonData, "teamHttpHeaders")
 
 	return jsonData, headers
 }
