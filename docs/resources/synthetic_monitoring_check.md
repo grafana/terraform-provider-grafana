@@ -519,7 +519,7 @@ Optional:
 Optional:
 
 - `basic_auth` (Block Set, Max: 1) Basic auth settings. (see [below for nested schema](#nestedblock--settings--http--basic_auth))
-- `bearer_token` (String) Token for use with bearer authorization header.
+- `bearer_token` (String, Sensitive) Token for use with bearer authorization header.
 - `body` (String) The body of the HTTP request used in probe.
 - `cache_busting_query_param_name` (String) The name of the query parameter used to prevent the server from using a cached response. Each probe will assign a random value to this parameter each time a request is made.
 - `fail_if_body_matches_regexp` (Set of String) List of regexes. If any match the response body, the check will fail.
@@ -543,7 +543,7 @@ Optional:
 
 Required:
 
-- `password` (String) Basic auth password.
+- `password` (String, Sensitive) Basic auth password.
 - `username` (String) Basic auth username.
 
 
