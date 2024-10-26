@@ -75,6 +75,13 @@ var (
 			return payloadOrError(resp, err)
 		},
 	)
+	alertingRuleCheckExists = newCheckExistsHelper(
+		func(r *models.ProvisionedAlertRule) string { return r.UID },
+		func(client *goapi.GrafanaHTTPAPI, id string) (*models.ProvisionedAlertRule, error) {
+			resp, err := client.Provisioning.GetAlertRule(id)
+			return payloadOrError(resp, err)
+		},
+	)
 	annotationsCheckExists = newCheckExistsHelper(
 		func(a *models.Annotation) string { return strconv.FormatInt(a.ID, 10) },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Annotation, error) {
