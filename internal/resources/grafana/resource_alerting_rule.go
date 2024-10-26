@@ -269,13 +269,23 @@ This resource requires Grafana 9.1.0 or later.
 
 func listRules(ctx context.Context, client *goapi.GrafanaHTTPAPI, orgID int64) ([]string, error) {
 	uids := []string{}
-	resp, err := client.Provisioning.GetAlertRules()
-	if err != nil {
-		return nil, err
-	}
+	// Retry if the API returns 500 because it may be that the alertmanager is not ready in the org yet.
+	// The alertmanager is provisioned asynchronously when the org is created.
+	if err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+		resp, err := client.Provisioning.GetAlertRules()
+		if err != nil {
+			if orgID > 1 && (err.(*runtime.APIError).IsCode(500) || err.(*runtime.APIError).IsCode(403)) {
+				return retry.RetryableError(err)
+			}
+			return retry.NonRetryableError(err)
+		}
 
-	for _, item := range resp.Payload {
-		uids = append(uids, MakeOrgResourceID(orgID, item.UID))
+		for _, rule := range resp.Payload {
+			uids = append(uids, MakeOrgResourceID(orgID, rule.UID))
+		}
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	return uids, nil
