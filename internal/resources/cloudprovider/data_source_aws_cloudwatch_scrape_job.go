@@ -45,7 +45,7 @@ var (
 				ElementType: types.StringType,
 			},
 			"regions_subset_override_used": schema.BoolAttribute{
-				Description: "Whether or not this CloudWatch Scrape Job is using a subset override of the associated account's regions set for scraping, as configured by the resource's `regions_subset_override` attribute. When true, the `regions` attribute will be the set of regions configured in the override. When false, the `regions` attribute will be the set of regions belonging to the AWS Account resource that is associated with this CloudWatch Scrape Job.",
+				Description: "When true, the `regions` attribute will be the set of regions configured in the override. When false, the `regions` attribute will be the set of regions belonging to the AWS Account resource that is associated with this CloudWatch Scrape Job.",
 				Computed:    true,
 			},
 			"export_tags": schema.BoolAttribute{

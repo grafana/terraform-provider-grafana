@@ -47,11 +47,11 @@ func (r *datasourceAWSCloudWatchScrapeJobs) Configure(ctx context.Context, req d
 	r.client = client
 }
 
-func (r *datasourceAWSCloudWatchScrapeJobs) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (r datasourceAWSCloudWatchScrapeJobs) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = datasourceAWSCloudWatchScrapeJobsTerraformName
 }
 
-func (r *datasourceAWSCloudWatchScrapeJobs) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (r datasourceAWSCloudWatchScrapeJobs) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -89,7 +89,7 @@ func (r *datasourceAWSCloudWatchScrapeJobs) Schema(ctx context.Context, req data
 	}
 }
 
-func (r *datasourceAWSCloudWatchScrapeJobs) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (r datasourceAWSCloudWatchScrapeJobs) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var data datasourceAWSCloudWatchScrapeJobsModel
 	diags := req.Config.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)

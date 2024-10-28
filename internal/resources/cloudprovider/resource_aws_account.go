@@ -58,11 +58,11 @@ func (r *resourceAWSAccount) Configure(ctx context.Context, req resource.Configu
 	r.client = client
 }
 
-func (r *resourceAWSAccount) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r resourceAWSAccount) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = resourceAWSAccountTerraformName
 }
 
-func (r *resourceAWSAccount) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r resourceAWSAccount) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -106,7 +106,7 @@ func (r *resourceAWSAccount) Schema(ctx context.Context, req resource.SchemaRequ
 	}
 }
 
-func (r *resourceAWSAccount) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r resourceAWSAccount) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	parts := strings.SplitN(req.ID, ":", 2)
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
 		resp.Diagnostics.AddError("Invalid ID", fmt.Sprintf("Invalid ID: %s", req.ID))
@@ -139,7 +139,7 @@ func (r *resourceAWSAccount) ImportState(ctx context.Context, req resource.Impor
 	})
 }
 
-func (r *resourceAWSAccount) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r resourceAWSAccount) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data resourceAWSAccountModel
 	diags := req.Plan.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
@@ -173,7 +173,7 @@ func (r *resourceAWSAccount) Create(ctx context.Context, req resource.CreateRequ
 	})
 }
 
-func (r *resourceAWSAccount) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (r resourceAWSAccount) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data resourceAWSAccountModel
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
@@ -241,7 +241,7 @@ func (r *resourceAWSAccount) Update(ctx context.Context, req resource.UpdateRequ
 	}
 }
 
-func (r *resourceAWSAccount) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r resourceAWSAccount) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var data resourceAWSAccountModel
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)

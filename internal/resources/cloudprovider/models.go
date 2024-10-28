@@ -147,7 +147,7 @@ func (v awsCWScrapeJobNoDuplicateMetricNamesValidator) ValidateList(ctx context.
 }
 
 // toClientModel converts a awsCWScrapeJobTFModel instance to a cloudproviderapi.AWSCloudWatchScrapeJobRequest instance.
-func (tfData *awsCWScrapeJobTFResourceModel) toClientModel(ctx context.Context) (cloudproviderapi.AWSCloudWatchScrapeJobRequest, diag.Diagnostics) {
+func (tfData awsCWScrapeJobTFResourceModel) toClientModel(ctx context.Context) (cloudproviderapi.AWSCloudWatchScrapeJobRequest, diag.Diagnostics) {
 	conversionDiags := diag.Diagnostics{}
 	converted := cloudproviderapi.AWSCloudWatchScrapeJobRequest{
 		Name:                 tfData.Name.ValueString(),
