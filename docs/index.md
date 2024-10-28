@@ -261,7 +261,7 @@ For example, in the following response, the correct hostname for the `herokublog
   {
     "stackName": "herokublogpost",
     "clusterName": "prod-us-central-0",
-    "cloudProviderAPIURL": "https://cloud-provider-api-prod-us-central-0.grafana.net"
+    "connectionsAPIURL": "https://connections-api-prod-us-central-0.grafana.net"
   }
 ]
 ```
