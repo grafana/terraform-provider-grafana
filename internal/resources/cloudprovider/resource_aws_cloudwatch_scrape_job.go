@@ -55,11 +55,11 @@ func (r *resourceAWSCloudWatchScrapeJob) Configure(ctx context.Context, req reso
 	r.client = client
 }
 
-func (r *resourceAWSCloudWatchScrapeJob) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r resourceAWSCloudWatchScrapeJob) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = resourceAWSCloudWatchScrapeJobTerraformName
 }
 
-func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -95,13 +95,12 @@ func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resourc
 				Description: "The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this CloudWatch Scrape Job.",
 				Required:    true,
 			},
-			"regions": schema.SetAttribute{
-				Description: "A set of AWS region names that this CloudWatch Scrape Job applies to. This must be a subset of the regions that are configured in the associated AWS Account resource.",
-				Required:    true,
-				Validators: []validator.Set{
-					setvalidator.SizeAtLeast(1),
-				},
+			"regions_subset_override": schema.SetAttribute{
+				Description: "A subset of the regions that are configured in the associated AWS Account resource to apply to this scrape job. If not set or empty, all of the Account resource's regions are scraped.",
+				Optional:    true,
+				Computed:    true,
 				ElementType: types.StringType,
+				Default:     setdefault.StaticValue(types.SetValueMust(types.StringType, []attr.Value{})),
 			},
 			"export_tags": schema.BoolAttribute{
 				Description: "When enabled, AWS resource tags are exported as Prometheus labels to metrics formatted as `aws_<service_name>_info`.",
@@ -232,7 +231,7 @@ func (r *resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resourc
 	}
 }
 
-func (r *resourceAWSCloudWatchScrapeJob) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r resourceAWSCloudWatchScrapeJob) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	parts := strings.SplitN(req.ID, ":", 2)
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
 		resp.Diagnostics.AddError("Invalid ID", fmt.Sprintf("Invalid ID: %s", req.ID))
@@ -241,7 +240,7 @@ func (r *resourceAWSCloudWatchScrapeJob) ImportState(ctx context.Context, req re
 	stackID := parts[0]
 	jobName := parts[1]
 
-	job, err := r.client.GetAWSCloudWatchScrapeJob(
+	jobResp, err := r.client.GetAWSCloudWatchScrapeJob(
 		ctx,
 		stackID,
 		jobName,
@@ -251,7 +250,7 @@ func (r *resourceAWSCloudWatchScrapeJob) ImportState(ctx context.Context, req re
 		return
 	}
 
-	jobTF, diags := convertScrapeJobClientModelToTFModel(ctx, stackID, *job)
+	jobTF, diags := generateCloudWatchScrapeJobTFResourceModel(ctx, stackID, jobResp)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -260,44 +259,44 @@ func (r *resourceAWSCloudWatchScrapeJob) ImportState(ctx context.Context, req re
 	resp.State.Set(ctx, jobTF)
 }
 
-func (r *resourceAWSCloudWatchScrapeJob) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data awsCWScrapeJobTFModel
+func (r resourceAWSCloudWatchScrapeJob) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data awsCWScrapeJobTFResourceModel
 	diags := req.Plan.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	jobData, diags := convertScrapeJobTFModelToClientModel(ctx, data)
+	jobReq, diags := data.toClientModel(ctx)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	job, err := r.client.CreateAWSCloudWatchScrapeJob(ctx, data.StackID.ValueString(), *jobData)
+	jobResp, err := r.client.CreateAWSCloudWatchScrapeJob(ctx, data.StackID.ValueString(), jobReq)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create AWS CloudWatch scrape job", err.Error())
 		return
 	}
 
-	jobTF, diags := convertScrapeJobClientModelToTFModel(ctx, data.StackID.ValueString(), *job)
+	jobTF, diags := generateCloudWatchScrapeJobTFResourceModel(ctx, data.StackID.ValueString(), jobResp)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.State.Set(ctx, jobTF)
+	resp.State.Set(ctx, &jobTF)
 }
 
-func (r *resourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data awsCWScrapeJobTFModel
+func (r resourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data awsCWScrapeJobTFResourceModel
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	job, err := r.client.GetAWSCloudWatchScrapeJob(
+	jobResp, err := r.client.GetAWSCloudWatchScrapeJob(
 		ctx,
 		data.StackID.ValueString(),
 		data.Name.ValueString(),
@@ -307,7 +306,7 @@ func (r *resourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req resource.
 		return
 	}
 
-	jobTF, diags := convertScrapeJobClientModelToTFModel(ctx, data.StackID.ValueString(), *job)
+	jobTF, diags := generateCloudWatchScrapeJobTFResourceModel(ctx, data.StackID.ValueString(), jobResp)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -316,16 +315,16 @@ func (r *resourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req resource.
 	resp.State.Set(ctx, jobTF)
 }
 
-func (r *resourceAWSCloudWatchScrapeJob) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+func (r resourceAWSCloudWatchScrapeJob) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	// This must be a pointer because ModifyPlan is called even on resource creation, when no state exists yet.
-	var stateData *awsCWScrapeJobTFModel
+	var stateData *awsCWScrapeJobTFResourceModel
 	diags := req.State.Get(ctx, &stateData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	var planData *awsCWScrapeJobTFModel
+	var planData *awsCWScrapeJobTFResourceModel
 	diags = req.Plan.Get(ctx, &planData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -349,27 +348,27 @@ func (r *resourceAWSCloudWatchScrapeJob) ModifyPlan(ctx context.Context, req res
 	}
 }
 
-func (r *resourceAWSCloudWatchScrapeJob) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var planData awsCWScrapeJobTFModel
+func (r resourceAWSCloudWatchScrapeJob) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var planData awsCWScrapeJobTFResourceModel
 	diags := req.Plan.Get(ctx, &planData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	jobData, diags := convertScrapeJobTFModelToClientModel(ctx, planData)
+	jobReq, diags := planData.toClientModel(ctx)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	job, err := r.client.UpdateAWSCloudWatchScrapeJob(ctx, planData.StackID.ValueString(), planData.Name.ValueString(), *jobData)
+	jobResp, err := r.client.UpdateAWSCloudWatchScrapeJob(ctx, planData.StackID.ValueString(), planData.Name.ValueString(), jobReq)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update AWS CloudWatch scrape job", err.Error())
 		return
 	}
 
-	jobTF, diags := convertScrapeJobClientModelToTFModel(ctx, planData.StackID.ValueString(), *job)
+	jobTF, diags := generateCloudWatchScrapeJobTFResourceModel(ctx, planData.StackID.ValueString(), jobResp)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -378,8 +377,8 @@ func (r *resourceAWSCloudWatchScrapeJob) Update(ctx context.Context, req resourc
 	resp.State.Set(ctx, jobTF)
 }
 
-func (r *resourceAWSCloudWatchScrapeJob) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data awsCWScrapeJobTFModel
+func (r resourceAWSCloudWatchScrapeJob) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data awsCWScrapeJobTFResourceModel
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {

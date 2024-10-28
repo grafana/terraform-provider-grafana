@@ -16,9 +16,9 @@ var (
 )
 
 type datasourceAWSCloudWatchScrapeJobsModel struct {
-	ID         types.String            `tfsdk:"id"`
-	StackID    types.String            `tfsdk:"stack_id"`
-	ScrapeJobs []awsCWScrapeJobTFModel `tfsdk:"scrape_job"`
+	ID         types.String                      `tfsdk:"id"`
+	StackID    types.String                      `tfsdk:"stack_id"`
+	ScrapeJobs []awsCWScrapeJobTFDataSourceModel `tfsdk:"scrape_job"`
 }
 
 type datasourceAWSCloudWatchScrapeJobs struct {
@@ -47,11 +47,11 @@ func (r *datasourceAWSCloudWatchScrapeJobs) Configure(ctx context.Context, req d
 	r.client = client
 }
 
-func (r *datasourceAWSCloudWatchScrapeJobs) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (r datasourceAWSCloudWatchScrapeJobs) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = datasourceAWSCloudWatchScrapeJobsTerraformName
 }
 
-func (r *datasourceAWSCloudWatchScrapeJobs) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (r datasourceAWSCloudWatchScrapeJobs) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -89,7 +89,7 @@ func (r *datasourceAWSCloudWatchScrapeJobs) Schema(ctx context.Context, req data
 	}
 }
 
-func (r *datasourceAWSCloudWatchScrapeJobs) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (r datasourceAWSCloudWatchScrapeJobs) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var data datasourceAWSCloudWatchScrapeJobsModel
 	diags := req.Config.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
@@ -106,14 +106,14 @@ func (r *datasourceAWSCloudWatchScrapeJobs) Read(ctx context.Context, req dataso
 		return
 	}
 
-	scrapeJobs := make([]awsCWScrapeJobTFModel, len(jobs))
-	for i, scrapeJobData := range jobs {
-		scrapeJob, diags := convertScrapeJobClientModelToTFModel(ctx, data.StackID.ValueString(), scrapeJobData)
+	scrapeJobs := make([]awsCWScrapeJobTFDataSourceModel, len(jobs))
+	for i, jobResp := range jobs {
+		jobTF, diags := generateCloudWatchScrapeJobDataSourceTFModel(ctx, data.StackID.ValueString(), jobResp)
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		scrapeJobs[i] = *scrapeJob
+		scrapeJobs[i] = jobTF
 	}
 
 	resp.State.Set(ctx, &datasourceAWSCloudWatchScrapeJobsModel{

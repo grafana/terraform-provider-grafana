@@ -37,11 +37,11 @@ func (r *datasourceAWSAccount) Configure(ctx context.Context, req datasource.Con
 	r.client = client
 }
 
-func (r *datasourceAWSAccount) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (r datasourceAWSAccount) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = resourceAWSAccountTerraformName
 }
 
-func (r *datasourceAWSAccount) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (r datasourceAWSAccount) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -69,7 +69,7 @@ func (r *datasourceAWSAccount) Schema(ctx context.Context, req datasource.Schema
 	}
 }
 
-func (r *datasourceAWSAccount) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (r datasourceAWSAccount) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var data resourceAWSAccountModel
 	diags := req.Config.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)

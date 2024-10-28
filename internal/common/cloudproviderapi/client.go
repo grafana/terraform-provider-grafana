@@ -61,34 +61,34 @@ type AWSAccount struct {
 	Regions []string `json:"regions"`
 }
 
-func (c *Client) CreateAWSAccount(ctx context.Context, stackID string, accountData AWSAccount) (*AWSAccount, error) {
+func (c *Client) CreateAWSAccount(ctx context.Context, stackID string, accountData AWSAccount) (AWSAccount, error) {
 	path := fmt.Sprintf("/api/v2/stacks/%s/aws/accounts", stackID)
 	respData := apiResponseWrapper[AWSAccount]{}
 	err := c.doAPIRequest(ctx, http.MethodPost, path, &accountData, &respData)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create AWS account: %w", err)
+		return AWSAccount{}, fmt.Errorf("failed to create AWS account: %w", err)
 	}
-	return &respData.Data, nil
+	return respData.Data, nil
 }
 
-func (c *Client) GetAWSAccount(ctx context.Context, stackID string, accountID string) (*AWSAccount, error) {
+func (c *Client) GetAWSAccount(ctx context.Context, stackID string, accountID string) (AWSAccount, error) {
 	path := fmt.Sprintf("/api/v2/stacks/%s/aws/accounts/%s", stackID, accountID)
 	respData := apiResponseWrapper[AWSAccount]{}
 	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &respData)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get AWS account: %w", err)
+		return AWSAccount{}, fmt.Errorf("failed to get AWS account: %w", err)
 	}
-	return &respData.Data, nil
+	return respData.Data, nil
 }
 
-func (c *Client) UpdateAWSAccount(ctx context.Context, stackID string, accountID string, accountData AWSAccount) (*AWSAccount, error) {
+func (c *Client) UpdateAWSAccount(ctx context.Context, stackID string, accountID string, accountData AWSAccount) (AWSAccount, error) {
 	path := fmt.Sprintf("/api/v2/stacks/%s/aws/accounts/%s", stackID, accountID)
 	respData := apiResponseWrapper[AWSAccount]{}
 	err := c.doAPIRequest(ctx, http.MethodPut, path, &accountData, &respData)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update AWS account: %w", err)
+		return AWSAccount{}, fmt.Errorf("failed to update AWS account: %w", err)
 	}
-	return &respData.Data, nil
+	return respData.Data, nil
 }
 
 func (c *Client) DeleteAWSAccount(ctx context.Context, stackID string, accountID string) error {
@@ -100,15 +100,28 @@ func (c *Client) DeleteAWSAccount(ctx context.Context, stackID string, accountID
 	return nil
 }
 
-type AWSCloudWatchScrapeJob struct {
+type AWSCloudWatchScrapeJobRequest struct {
+	Name                  string                         `json:"name"`
+	Enabled               bool                           `json:"enabled"`
+	AWSAccountResourceID  string                         `json:"awsAccountResourceID"`
+	RegionsSubsetOverride []string                       `json:"regionsSubsetOverride"`
+	ExportTags            bool                           `json:"exportTags"`
+	Services              []AWSCloudWatchService         `json:"services"`
+	CustomNamespaces      []AWSCloudWatchCustomNamespace `json:"customNamespaces"`
+}
+type AWSCloudWatchScrapeJobResponse struct {
 	Name                 string                         `json:"name"`
 	Enabled              bool                           `json:"enabled"`
 	AWSAccountResourceID string                         `json:"awsAccountResourceID"`
-	Regions              []string                       `json:"regions"`
 	ExportTags           bool                           `json:"exportTags"`
-	DisabledReason       string                         `json:"disabledReason"`
 	Services             []AWSCloudWatchService         `json:"services"`
 	CustomNamespaces     []AWSCloudWatchCustomNamespace `json:"customNamespaces"`
+	// computed fields beyond the original request
+	RoleARN                   string   `json:"roleARN"`
+	Regions                   []string `json:"regions"`
+	RegionsSubsetOverrideUsed bool     `json:"regionsSubsetOverrideUsed"`
+	DisabledReason            string   `json:"disabledReason"`
+	Provenance                string   `json:"provenance"`
 }
 type AWSCloudWatchService struct {
 	Name                        string                   `json:"name"`
@@ -131,29 +144,29 @@ type AWSCloudWatchTagFilter struct {
 	Value string `json:"value"`
 }
 
-func (c *Client) CreateAWSCloudWatchScrapeJob(ctx context.Context, stackID string, jobData AWSCloudWatchScrapeJob) (*AWSCloudWatchScrapeJob, error) {
+func (c *Client) CreateAWSCloudWatchScrapeJob(ctx context.Context, stackID string, jobData AWSCloudWatchScrapeJobRequest) (AWSCloudWatchScrapeJobResponse, error) {
 	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/cloudwatch", stackID)
-	respData := apiResponseWrapper[AWSCloudWatchScrapeJob]{}
+	respData := apiResponseWrapper[AWSCloudWatchScrapeJobResponse]{}
 	err := c.doAPIRequest(ctx, http.MethodPost, path, &jobData, &respData)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create AWS CloudWatch scrape job: %w", err)
+		return AWSCloudWatchScrapeJobResponse{}, fmt.Errorf("failed to create AWS CloudWatch scrape job: %w", err)
 	}
-	return &respData.Data, nil
+	return respData.Data, nil
 }
 
-func (c *Client) GetAWSCloudWatchScrapeJob(ctx context.Context, stackID string, jobName string) (*AWSCloudWatchScrapeJob, error) {
+func (c *Client) GetAWSCloudWatchScrapeJob(ctx context.Context, stackID string, jobName string) (AWSCloudWatchScrapeJobResponse, error) {
 	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/cloudwatch/%s", stackID, jobName)
-	respData := apiResponseWrapper[AWSCloudWatchScrapeJob]{}
+	respData := apiResponseWrapper[AWSCloudWatchScrapeJobResponse]{}
 	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &respData)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get AWS CloudWatch scrape job: %w", err)
+		return AWSCloudWatchScrapeJobResponse{}, fmt.Errorf("failed to get AWS CloudWatch scrape job: %w", err)
 	}
-	return &respData.Data, nil
+	return respData.Data, nil
 }
 
-func (c *Client) ListAWSCloudWatchScrapeJobs(ctx context.Context, stackID string) ([]AWSCloudWatchScrapeJob, error) {
+func (c *Client) ListAWSCloudWatchScrapeJobs(ctx context.Context, stackID string) ([]AWSCloudWatchScrapeJobResponse, error) {
 	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/cloudwatch", stackID)
-	respData := apiResponseWrapper[[]AWSCloudWatchScrapeJob]{}
+	respData := apiResponseWrapper[[]AWSCloudWatchScrapeJobResponse]{}
 	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &respData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get AWS CloudWatch scrape job: %w", err)
@@ -161,14 +174,14 @@ func (c *Client) ListAWSCloudWatchScrapeJobs(ctx context.Context, stackID string
 	return respData.Data, nil
 }
 
-func (c *Client) UpdateAWSCloudWatchScrapeJob(ctx context.Context, stackID string, jobName string, jobData AWSCloudWatchScrapeJob) (*AWSCloudWatchScrapeJob, error) {
+func (c *Client) UpdateAWSCloudWatchScrapeJob(ctx context.Context, stackID string, jobName string, jobData AWSCloudWatchScrapeJobRequest) (AWSCloudWatchScrapeJobResponse, error) {
 	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/cloudwatch/%s", stackID, jobName)
-	respData := apiResponseWrapper[AWSCloudWatchScrapeJob]{}
+	respData := apiResponseWrapper[AWSCloudWatchScrapeJobResponse]{}
 	err := c.doAPIRequest(ctx, http.MethodPut, path, &jobData, &respData)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update AWS CloudWatch scrape job: %w", err)
+		return AWSCloudWatchScrapeJobResponse{}, fmt.Errorf("failed to update AWS CloudWatch scrape job: %w", err)
 	}
-	return &respData.Data, nil
+	return respData.Data, nil
 }
 
 func (c *Client) DeleteAWSCloudWatchScrapeJob(ctx context.Context, stackID string, jobName string) error {
