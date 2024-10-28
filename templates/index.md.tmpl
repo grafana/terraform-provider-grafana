@@ -52,29 +52,29 @@ the in-screen instructions, of following [this guide](https://grafana.com/docs/g
 
 #### Obtaining Connections API hostname
 
-Having created the token, we can find the correct Cloud Provider API hostname by running the following script, that requires `curl` and [`jq`](https://jqlang.github.io/jq/) installed:
+Having created the token, we can find the correct Connections API hostname by running the following script, that requires `curl` and [`jq`](https://jqlang.github.io/jq/) installed:
 
 ```bash
 curl -sH "Authorization: Bearer <Access Token from previous step>" "https://grafana.com/api/instances" | \
-  jq '[.items[]|{stackName: .slug, clusterName:.clusterSlug, cloudProviderAPIURL: "https://connections-api-\(.clusterSlug).grafana.net"}]'
+  jq '[.items[]|{stackName: .slug, clusterName:.clusterSlug, connectionsAPIURL: "https://connections-api-\(.clusterSlug).grafana.net"}]'
 ```
 
 This script will return a list of all the Grafana Cloud stacks you own, with the Connections API hostname for each one. Choose the correct hostname for the stack you want to manage.
-For example, in the following response, the correct hostname for the `herokublogpost` stack is `https://connections-api-prod-us-central-0.grafana.net`.
+For example, in the following response, the correct hostname for the `examplestackname` stack is `https://connections-api-prod-eu-west-0.grafana.net`.
 
 ```json
 [
   {
-    "stackName": "herokublogpost",
-    "clusterName": "prod-us-central-0",
-    "connectionsAPIURL": "https://connections-api-prod-us-central-0.grafana.net"
+    "stackName": "examplestackname",
+    "clusterName": "prod-eu-west-0",
+    "connectionsAPIURL": "https://connections-api-prod-eu-west-0.grafana.net"
   }
 ]
 ```
 
 #### Configuring Provider
 
-Once you have the token and Cloud Provider API hostname, you can configure the provider as follows:
+Once you have the token and Connections API hostname, you can configure the provider as follows:
 
 ```hcl
 provider "grafana" {
