@@ -30,14 +30,6 @@ var escalationOptions = []string{
 
 var escalationOptionsVerbal = strings.Join(escalationOptions, ", ")
 
-var durationOptions = []int{
-	60,
-	300,
-	900,
-	1800,
-	3600,
-}
-
 func resourceEscalation() *common.Resource {
 	schema := &schema.Resource{
 		Description: `
@@ -88,8 +80,8 @@ func resourceEscalation() *common.Resource {
 					"notify_if_time_from",
 					"notify_if_time_to",
 				},
-				ValidateFunc: validation.IntInSlice(durationOptions),
-				Description:  "The duration of delay for wait type step.",
+				ValidateFunc: validation.IntBetween(60, 86400),
+				Description:  "The duration of delay for wait type step. (60-86400) seconds",
 			},
 			"notify_on_call_from_schedule": {
 				Type:     schema.TypeString,
