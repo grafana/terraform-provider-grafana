@@ -6,9 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 // This test makes sure all resources and datasources have examples and they are all valid.
@@ -85,7 +86,10 @@ func TestAccExamples(t *testing.T) {
 		{
 			category: "Connections",
 			testCheck: func(t *testing.T, filename string) {
-				t.Skip() // TODO: Make all examples work
+				// This satisfies the CI requirement to have this category present.
+				// The examples in Connections metrics endpoint cannot be tested remotely because the metrics scrape url
+				// is for demonstrative purposes only; it's not a real metrics scrape-able endpoint.
+				t.Skip()
 			},
 		},
 	} {
