@@ -109,7 +109,7 @@ func (r *resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resou
 				Optional:    true,
 			},
 			"url": schema.StringAttribute{
-				Description: "The url to scrape metrics; a valid HTTPs URL is required.",
+				Description: "The url to scrape metrics from; a valid HTTPs URL is required.",
 				Validators:  []validator.String{HTTPSURLValidator{}},
 				Required:    true,
 			},
