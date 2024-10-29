@@ -100,7 +100,7 @@ func (r *resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resou
 				Optional:    true,
 			},
 			"authentication_basic_username": schema.StringAttribute{
-				Description: "Username for basic authentication.",
+				Description: "Username for basic authentication, use if scrape job is using basic authentication method",
 				Optional:    true,
 			},
 			"authentication_basic_password": schema.StringAttribute{
