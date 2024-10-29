@@ -14,11 +14,20 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 )
 
-func Test_NewClient_returns_error_for_invalid_url(t *testing.T) {
-	_, err := connectionsapi.NewClient("some token", " https://leading.space", &http.Client{}, "some-user-agent")
+func Test_NewClient(t *testing.T) {
+	t.Run("successfully creates a new client", func(t *testing.T) {
+		client, err := connectionsapi.NewClient("some token", "https://valid.url", &http.Client{}, "some-user-agent")
 
-	assert.Error(t, err)
-	assert.Equal(t, `failed to parse connections API url: parse " https://leading.space": first path segment in URL cannot contain colon`, err.Error())
+		assert.NotNil(t, client)
+		assert.NoError(t, err)
+	})
+
+	t.Run("returns error for invalid url", func(t *testing.T) {
+		_, err := connectionsapi.NewClient("some token", " https://leading.space", &http.Client{}, "some-user-agent")
+
+		assert.Error(t, err)
+		assert.Equal(t, `failed to parse connections API url: parse " https://leading.space": first path segment in URL cannot contain colon`, err.Error())
+	})
 }
 
 func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
@@ -106,6 +115,15 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 		assert.Error(t, err)
 		assert.Equal(t, `failed to create metrics endpoint scrape job "test_job": status: 500, body: {"some error"}`, err.Error())
 	})
+
+	t.Run("returns error when client fails to Do request", func(t *testing.T) {
+		c, err := connectionsapi.NewClient("some token", "some random url", &http.Client{}, "some-user-agent")
+		require.NoError(t, err)
+		_, err = c.CreateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name", connectionsapi.MetricsEndpointScrapeJob{})
+
+		assert.Error(t, err)
+		assert.Equal(t, `failed to create metrics endpoint scrape job "job-name": failed to do request: Post "some%20random%20url/api/v1/stacks/some-stack-id/metrics-endpoint/jobs/job-name": unsupported protocol scheme ""`, err.Error())
+	})
 }
 
 func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
@@ -190,6 +208,15 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Equal(t, `failed to get metrics endpoint scrape job "job-name": status: 500, body: {"some error"}`, err.Error())
+	})
+
+	t.Run("returns error when client fails to Do request", func(t *testing.T) {
+		c, err := connectionsapi.NewClient("some token", "some random url", &http.Client{}, "some-user-agent")
+		require.NoError(t, err)
+		_, err = c.GetMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
+
+		assert.Error(t, err)
+		assert.Equal(t, `failed to get metrics endpoint scrape job "job-name": failed to do request: Get "some%20random%20url/api/v1/stacks/some-stack-id/metrics-endpoint/jobs/job-name": unsupported protocol scheme ""`, err.Error())
 	})
 }
 
@@ -291,6 +318,15 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 		assert.Error(t, err)
 		assert.Equal(t, `failed to update metrics endpoint scrape job "job-name": status: 500, body: {"some error"}`, err.Error())
 	})
+
+	t.Run("returns error when client fails to Do request", func(t *testing.T) {
+		c, err := connectionsapi.NewClient("some token", "some random url", &http.Client{}, "some-user-agent")
+		require.NoError(t, err)
+		_, err = c.UpdateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name", connectionsapi.MetricsEndpointScrapeJob{})
+
+		assert.Error(t, err)
+		assert.Equal(t, `failed to update metrics endpoint scrape job "job-name": failed to do request: Put "some%20random%20url/api/v1/stacks/some-stack-id/metrics-endpoint/jobs/job-name": unsupported protocol scheme ""`, err.Error())
+	})
 }
 
 func TestClient_DeleteMetricsEndpointScrapeJob(t *testing.T) {
@@ -353,5 +389,14 @@ func TestClient_DeleteMetricsEndpointScrapeJob(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Equal(t, `failed to delete metrics endpoint scrape job "job-name": status: 500, body: {"some error"}`, err.Error())
+	})
+
+	t.Run("returns error when client fails to Do request", func(t *testing.T) {
+		c, err := connectionsapi.NewClient("some token", "some random url", &http.Client{}, "some-user-agent")
+		require.NoError(t, err)
+		err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
+
+		assert.Error(t, err)
+		assert.Equal(t, `failed to delete metrics endpoint scrape job "job-name": failed to do request: Delete "some%20random%20url/api/v1/stacks/some-stack-id/metrics-endpoint/jobs/job-name": unsupported protocol scheme ""`, err.Error())
 	})
 }
