@@ -145,7 +145,7 @@ func Provider(version string) *schema.Provider {
 			"connections_url": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Description:  "A Grafana Connections API backend address. May alternatively be set via the `GRAFANA_CONNECTIONS_URL` environment variable.",
+				Description:  "A Grafana Connections API address. May alternatively be set via the `GRAFANA_CONNECTIONS_URL` environment variable.",
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
 		},
