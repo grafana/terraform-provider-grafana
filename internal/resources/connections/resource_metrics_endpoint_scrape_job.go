@@ -95,7 +95,7 @@ func (r *resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resou
 				Required: true,
 			},
 			"authentication_bearer_token": schema.StringAttribute{
-				Description: "Token for authentication bearer.",
+				Description: "Bearer token used for authentication, use if scrape job is using bearer authentication method",
 				Sensitive:   true,
 				Optional:    true,
 			},
