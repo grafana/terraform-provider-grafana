@@ -20,12 +20,13 @@ import (
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
 )
 
 func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
@@ -183,6 +184,7 @@ func createConnectionsClient(client *common.Client, providerConfig ProviderConfi
 		providerConfig.ConnectionsAccessToken.ValueString(),
 		providerConfig.ConnectionsURL.ValueString(),
 		getRetryClient(providerConfig),
+		providerConfig.UserAgent.ValueString(),
 	)
 	if err != nil {
 		return err
