@@ -14,18 +14,11 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 )
 
-func TestClient_sets_auth_token_and_content_type(t *testing.T) {
-	svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "Bearer some token", r.Header.Get("Authorization"))
-		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-		_, _ = fmt.Fprintf(w, `{}`)
-	}))
-	defer svr.Close()
+func Test_NewClient_returns_error_for_invalid_url(t *testing.T) {
+	_, err := connectionsapi.NewClient("some token", " https://leading.space", &http.Client{}, "some-user-agent")
 
-	c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
-	require.NoError(t, err)
-	_, err = c.CreateMetricsEndpointScrapeJob(context.Background(), "some stack id", "test_job", connectionsapi.MetricsEndpointScrapeJob{})
-	require.NoError(t, err)
+	assert.Error(t, err)
+	assert.Equal(t, `failed to parse connections API url: parse " https://leading.space": first path segment in URL cannot contain colon`, err.Error())
 }
 
 func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
@@ -84,6 +77,21 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 		}, actualJob)
 	})
 
+	t.Run("sets auth token, content type, user agent", func(t *testing.T) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "Bearer some token", r.Header.Get("Authorization"))
+			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+			assert.Equal(t, "some-user-agent", r.Header.Get("User-Agent"))
+			_, _ = fmt.Fprintf(w, `{}`)
+		}))
+		defer svr.Close()
+
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
+		require.NoError(t, err)
+		_, err = c.CreateMetricsEndpointScrapeJob(context.Background(), "some stack id", "test_job", connectionsapi.MetricsEndpointScrapeJob{})
+		require.NoError(t, err)
+	})
+
 	t.Run("returns error when connections API responds 500", func(t *testing.T) {
 		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(500)
@@ -137,6 +145,21 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 			URL:                         "https://my-example-url.com:9000/metrics",
 			ScrapeIntervalSeconds:       120,
 		}, actualJob)
+	})
+
+	t.Run("sets auth token, content type, user agent", func(t *testing.T) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "Bearer some token", r.Header.Get("Authorization"))
+			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+			assert.Equal(t, "some-user-agent", r.Header.Get("User-Agent"))
+			_, _ = fmt.Fprintf(w, `{}`)
+		}))
+		defer svr.Close()
+
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
+		require.NoError(t, err)
+		_, err = c.GetMetricsEndpointScrapeJob(context.Background(), "some stack id", "test_job")
+		require.NoError(t, err)
 	})
 
 	t.Run("returns ErrorNotFound when connections API responds 404", func(t *testing.T) {
@@ -223,6 +246,21 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 		}, actualJob)
 	})
 
+	t.Run("sets auth token, content type, user agent", func(t *testing.T) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "Bearer some token", r.Header.Get("Authorization"))
+			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+			assert.Equal(t, "some-user-agent", r.Header.Get("User-Agent"))
+			_, _ = fmt.Fprintf(w, `{}`)
+		}))
+		defer svr.Close()
+
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
+		require.NoError(t, err)
+		_, err = c.UpdateMetricsEndpointScrapeJob(context.Background(), "some stack id", "test_job", connectionsapi.MetricsEndpointScrapeJob{})
+		require.NoError(t, err)
+	})
+
 	t.Run("returns ErrorNotFound when connections API responds 404", func(t *testing.T) {
 		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(404)
@@ -270,6 +308,21 @@ func TestClient_DeleteMetricsEndpointScrapeJob(t *testing.T) {
 		err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "test_job")
 
 		assert.NoError(t, err)
+	})
+
+	t.Run("sets auth token, content type, user agent", func(t *testing.T) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "Bearer some token", r.Header.Get("Authorization"))
+			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+			assert.Equal(t, "some-user-agent", r.Header.Get("User-Agent"))
+			_, _ = fmt.Fprintf(w, `{}`)
+		}))
+		defer svr.Close()
+
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
+		require.NoError(t, err)
+		err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some stack id", "test_job")
+		require.NoError(t, err)
 	})
 
 	t.Run("returns ErrorNotFound when connections API responds 404", func(t *testing.T) {
