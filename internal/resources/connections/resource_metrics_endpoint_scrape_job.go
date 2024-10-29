@@ -182,7 +182,7 @@ func (r *resourceMetricsEndpointScrapeJob) Update(ctx context.Context, req resou
 	jobClientModel, err := r.client.UpdateMetricsEndpointScrapeJob(ctx, dataTF.StackID.ValueString(), dataTF.Name.ValueString(),
 		convertJobTFModelToClientModel(dataTF))
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to update metrics endpoint scrape job", err.Error())
+		resp.Diagnostics.AddError("failed to update metrics endpoint scrape job", err.Error())
 		return
 	}
 
