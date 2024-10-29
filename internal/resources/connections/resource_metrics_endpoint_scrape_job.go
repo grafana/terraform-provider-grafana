@@ -135,7 +135,7 @@ func (r *resourceMetricsEndpointScrapeJob) Create(ctx context.Context, req resou
 	jobClientModel, err := r.client.CreateMetricsEndpointScrapeJob(ctx, dataTF.StackID.ValueString(),
 		convertJobTFModelToClientModel(dataTF))
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to create metrics endpoint scrape job", err.Error())
+		resp.Diagnostics.AddError("failed to create metrics endpoint scrape job", err.Error())
 		return
 	}
 
