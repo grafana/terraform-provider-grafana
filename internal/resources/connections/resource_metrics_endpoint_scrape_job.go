@@ -156,7 +156,7 @@ func (r *resourceMetricsEndpointScrapeJob) Read(ctx context.Context, req resourc
 		dataTF.Name.ValueString(),
 	)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get metrics endpoint scrape job", err.Error())
+		resp.Diagnostics.AddError("failed to get metrics endpoint scrape job", err.Error())
 		return
 	}
 
