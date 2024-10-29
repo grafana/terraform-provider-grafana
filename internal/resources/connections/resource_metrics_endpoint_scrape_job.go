@@ -2,8 +2,6 @@ package connections
 
 import (
 	"context"
-	"fmt"
-	"net/url"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -209,50 +207,4 @@ func (r *resourceMetricsEndpointScrapeJob) Delete(ctx context.Context, req resou
 	}
 
 	resp.State.Set(ctx, nil)
-}
-
-type HTTPSURLValidator struct{}
-
-func (v HTTPSURLValidator) Description(ctx context.Context) string {
-	return v.MarkdownDescription(ctx)
-}
-
-func (v HTTPSURLValidator) MarkdownDescription(_ context.Context) string {
-	return "value must be valid URL with HTTPS"
-}
-
-func (v HTTPSURLValidator) ValidateString(ctx context.Context, request validator.StringRequest, response *validator.StringResponse) {
-	value := request.ConfigValue.ValueString()
-
-	if value == "" {
-		response.Diagnostics.AddAttributeError(
-			request.Path,
-			v.Description(ctx),
-			"A valid URL is required.\n\n"+
-				fmt.Sprintf("Given Value: %q\n", value),
-		)
-		return
-	}
-
-	u, err := url.Parse(value)
-	if err != nil {
-		response.Diagnostics.AddAttributeError(
-			request.Path,
-			v.Description(ctx),
-			"A string value was provided that is not a valid URL.\n\n"+
-				"Given Value: "+value+"\n"+
-				"Error: "+err.Error(),
-		)
-		return
-	}
-
-	if u.Scheme != "https" {
-		response.Diagnostics.AddAttributeError(
-			request.Path,
-			v.Description(ctx),
-			"A URL was provided, protocol must be HTTPS.\n\n"+
-				fmt.Sprintf("Given Value: %q\n", value),
-		)
-		return
-	}
 }
