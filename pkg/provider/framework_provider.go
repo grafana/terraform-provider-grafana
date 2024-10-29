@@ -200,11 +200,11 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 			"connections_api_access_token": schema.StringAttribute{
 				Optional:            true,
 				Sensitive:           true,
-				MarkdownDescription: "A Grafana Connections API access token. May alternatively be set via the `GRAFANA_CONNECTIONS_ACCESS_TOKEN` environment variable.",
+				MarkdownDescription: "A Grafana Connections API access token. May alternatively be set via the `GRAFANA_CONNECTIONS_API_ACCESS_TOKEN` environment variable.",
 			},
 			"connections_api_url": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "A Grafana Connections API address. May alternatively be set via the `GRAFANA_CONNECTIONS_URL` environment variable.",
+				MarkdownDescription: "A Grafana Connections API address. May alternatively be set via the `GRAFANA_CONNECTIONS_API_URL` environment variable.",
 			},
 		},
 	}

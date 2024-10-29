@@ -82,7 +82,7 @@ func withClientForResource(req resource.ConfigureRequest, resp *resource.Configu
 	if client.ConnectionsAPIClient == nil {
 		resp.Diagnostics.AddError(
 			"The Grafana Provider is missing a configuration for the Connections API.",
-			"Please ensure that connections_url and connections_access_token are set in the provider configuration.",
+			"Please ensure that connections_api_url and connections_api_access_token are set in the provider configuration.",
 		)
 
 		return nil, fmt.Errorf("ConnectionsAPI is nil")
