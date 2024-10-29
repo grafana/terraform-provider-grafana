@@ -203,7 +203,7 @@ func (r *resourceMetricsEndpointScrapeJob) Delete(ctx context.Context, req resou
 		dataTF.Name.ValueString(),
 	)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to delete metrics endpoint scrape job", err.Error())
+		resp.Diagnostics.AddError("failed to delete metrics endpoint scrape job", err.Error())
 		return
 	}
 
