@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -17,6 +15,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 )
 
 var (
@@ -132,14 +133,14 @@ func (r *resourceMetricsEndpointScrapeJob) Create(ctx context.Context, req resou
 		return
 	}
 
-	jobClientModel, err := r.client.CreateMetricsEndpointScrapeJob(ctx, dataTF.StackID.ValueString(),
+	jobClientModel, err := r.client.CreateMetricsEndpointScrapeJob(ctx, dataTF.StackID.ValueString(), dataTF.Name.ValueString(),
 		convertJobTFModelToClientModel(dataTF))
 	if err != nil {
 		resp.Diagnostics.AddError("failed to create metrics endpoint scrape job", err.Error())
 		return
 	}
 
-	resp.State.Set(ctx, convertClientModelToTFModel(dataTF.StackID.ValueString(), jobClientModel))
+	resp.State.Set(ctx, convertClientModelToTFModel(dataTF.StackID.ValueString(), dataTF.Name.ValueString(), jobClientModel))
 }
 
 func (r *resourceMetricsEndpointScrapeJob) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -160,7 +161,7 @@ func (r *resourceMetricsEndpointScrapeJob) Read(ctx context.Context, req resourc
 		return
 	}
 
-	jobTF := convertClientModelToTFModel(dataTF.StackID.ValueString(), jobClientModel)
+	jobTF := convertClientModelToTFModel(dataTF.StackID.ValueString(), dataTF.Name.ValueString(), jobClientModel)
 
 	// Set only non-sensitive attributes
 	resp.State.SetAttribute(ctx, path.Root("stack_id"), jobTF.StackID)
@@ -186,7 +187,7 @@ func (r *resourceMetricsEndpointScrapeJob) Update(ctx context.Context, req resou
 		return
 	}
 
-	resp.State.Set(ctx, convertClientModelToTFModel(dataTF.StackID.ValueString(), jobClientModel))
+	resp.State.Set(ctx, convertClientModelToTFModel(dataTF.StackID.ValueString(), dataTF.Name.ValueString(), jobClientModel))
 }
 
 func (r *resourceMetricsEndpointScrapeJob) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

@@ -1,8 +1,9 @@
 package connections
 
 import (
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 )
 
 type metricsEndpointScrapeJobTFModel struct {
@@ -23,7 +24,6 @@ type metricsEndpointScrapeJobTFModel struct {
 // supporting Terraform's state management/dependency analysis of the resource and its data.
 func convertJobTFModelToClientModel(tfData metricsEndpointScrapeJobTFModel) connectionsapi.MetricsEndpointScrapeJob {
 	return connectionsapi.MetricsEndpointScrapeJob{
-		Name:                        tfData.Name.ValueString(),
 		Enabled:                     tfData.Enabled.ValueBool(),
 		AuthenticationMethod:        tfData.AuthenticationMethod.ValueString(),
 		AuthenticationBearerToken:   tfData.AuthenticationBearerToken.ValueString(),
@@ -37,11 +37,11 @@ func convertJobTFModelToClientModel(tfData metricsEndpointScrapeJobTFModel) conn
 // convertClientModelToTFModel converts a connectionsapi.MetricsEndpointScrapeJob instance to a metricsEndpointScrapeJobTFModel instance.
 // A special converter is needed because the TFModel uses special Terraform types that build upon their underlying Go types for
 // supporting Terraform's state management/dependency analysis of the resource and its data.
-func convertClientModelToTFModel(stackID string, scrapeJobData connectionsapi.MetricsEndpointScrapeJob) metricsEndpointScrapeJobTFModel {
+func convertClientModelToTFModel(stackID, jobName string, scrapeJobData connectionsapi.MetricsEndpointScrapeJob) metricsEndpointScrapeJobTFModel {
 	resp := metricsEndpointScrapeJobTFModel{
-		ID:                    types.StringValue(resourceMetricsEndpointScrapeJobTerraformID.Make(stackID, scrapeJobData.Name)),
+		ID:                    types.StringValue(resourceMetricsEndpointScrapeJobTerraformID.Make(stackID, jobName)),
 		StackID:               types.StringValue(stackID),
-		Name:                  types.StringValue(scrapeJobData.Name),
+		Name:                  types.StringValue(jobName),
 		Enabled:               types.BoolValue(scrapeJobData.Enabled),
 		AuthenticationMethod:  types.StringValue(scrapeJobData.AuthenticationMethod),
 		URL:                   types.StringValue(scrapeJobData.URL),

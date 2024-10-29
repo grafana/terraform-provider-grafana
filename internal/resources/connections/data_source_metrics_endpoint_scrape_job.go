@@ -3,10 +3,11 @@ package connections
 import (
 	"context"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 )
 
 type datasourceMetricsEndpointScrapeJob struct {
@@ -106,5 +107,5 @@ func (r *datasourceMetricsEndpointScrapeJob) Read(ctx context.Context, req datas
 		return
 	}
 
-	resp.State.Set(ctx, convertClientModelToTFModel(dataTF.StackID.ValueString(), jobClientModel))
+	resp.State.Set(ctx, convertClientModelToTFModel(dataTF.StackID.ValueString(), dataTF.Name.ValueString(), jobClientModel))
 }

@@ -2,10 +2,9 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
-
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -136,13 +135,13 @@ func Provider(version string) *schema.Provider {
 				Description:  "An Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable.",
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
-			"connections_access_token": {
+			"connections_api_access_token": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Sensitive:   true,
 				Description: "A Grafana Connections API access token. May alternatively be set via the `GRAFANA_CONNECTIONS_ACCESS_TOKEN` environment variable.",
 			},
-			"connections_url": {
+			"connections_api_url": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Description:  "A Grafana Connections API address. May alternatively be set via the `GRAFANA_CONNECTIONS_URL` environment variable.",
@@ -204,27 +203,27 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		}
 
 		cfg := ProviderConfig{
-			Auth:                   stringValueOrNull(d, "auth"),
-			URL:                    stringValueOrNull(d, "url"),
-			TLSKey:                 stringValueOrNull(d, "tls_key"),
-			TLSCert:                stringValueOrNull(d, "tls_cert"),
-			CACert:                 stringValueOrNull(d, "ca_cert"),
-			InsecureSkipVerify:     boolValueOrNull(d, "insecure_skip_verify"),
-			CloudAccessPolicyToken: stringValueOrNull(d, "cloud_access_policy_token"),
-			CloudAPIURL:            stringValueOrNull(d, "cloud_api_url"),
-			SMAccessToken:          stringValueOrNull(d, "sm_access_token"),
-			SMURL:                  stringValueOrNull(d, "sm_url"),
-			OncallAccessToken:      stringValueOrNull(d, "oncall_access_token"),
-			OncallURL:              stringValueOrNull(d, "oncall_url"),
-			ConnectionsAccessToken: stringValueOrNull(d, "connections_access_token"),
-			ConnectionsURL:         stringValueOrNull(d, "connections_url"),
-			StoreDashboardSha256:   boolValueOrNull(d, "store_dashboard_sha256"),
-			HTTPHeaders:            headers,
-			Retries:                int64ValueOrNull(d, "retries"),
-			RetryStatusCodes:       statusCodes,
-			RetryWait:              types.Int64Value(int64(d.Get("retry_wait").(int))),
-			UserAgent:              types.StringValue(p.UserAgent("terraform-provider-grafana", version)),
-			Version:                types.StringValue(version),
+			Auth:                      stringValueOrNull(d, "auth"),
+			URL:                       stringValueOrNull(d, "url"),
+			TLSKey:                    stringValueOrNull(d, "tls_key"),
+			TLSCert:                   stringValueOrNull(d, "tls_cert"),
+			CACert:                    stringValueOrNull(d, "ca_cert"),
+			InsecureSkipVerify:        boolValueOrNull(d, "insecure_skip_verify"),
+			CloudAccessPolicyToken:    stringValueOrNull(d, "cloud_access_policy_token"),
+			CloudAPIURL:               stringValueOrNull(d, "cloud_api_url"),
+			SMAccessToken:             stringValueOrNull(d, "sm_access_token"),
+			SMURL:                     stringValueOrNull(d, "sm_url"),
+			OncallAccessToken:         stringValueOrNull(d, "oncall_access_token"),
+			OncallURL:                 stringValueOrNull(d, "oncall_url"),
+			ConnectionsAPIAccessToken: stringValueOrNull(d, "connections_access_token"),
+			ConnectionsAPIURL:         stringValueOrNull(d, "connections_url"),
+			StoreDashboardSha256:      boolValueOrNull(d, "store_dashboard_sha256"),
+			HTTPHeaders:               headers,
+			Retries:                   int64ValueOrNull(d, "retries"),
+			RetryStatusCodes:          statusCodes,
+			RetryWait:                 types.Int64Value(int64(d.Get("retry_wait").(int))),
+			UserAgent:                 types.StringValue(p.UserAgent("terraform-provider-grafana", version)),
+			Version:                   types.StringValue(version),
 		}
 		if err := cfg.SetDefaults(); err != nil {
 			return nil, diag.FromErr(err)

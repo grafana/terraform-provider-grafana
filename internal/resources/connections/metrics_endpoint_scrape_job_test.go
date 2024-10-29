@@ -61,8 +61,8 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	require.NoError(t, os.Setenv("GRAFANA_CONNECTIONS_ACCESS_TOKEN", "some token"))
-	require.NoError(t, os.Setenv("GRAFANA_CONNECTIONS_URL", server.URL))
+	require.NoError(t, os.Setenv("GRAFANA_CONNECTIONS_API_ACCESS_TOKEN", "some token"))
+	require.NoError(t, os.Setenv("GRAFANA_CONNECTIONS_API_URL", server.URL))
 
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,

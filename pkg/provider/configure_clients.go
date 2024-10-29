@@ -60,7 +60,7 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 		onCallClient.UserAgent = providerConfig.UserAgent.ValueString()
 		c.OnCallClient = onCallClient
 	}
-	if !providerConfig.ConnectionsAccessToken.IsNull() {
+	if !providerConfig.ConnectionsAPIAccessToken.IsNull() {
 		if err := createConnectionsClient(c, providerConfig); err != nil {
 			return nil, err
 		}
@@ -181,8 +181,8 @@ func createOnCallClient(providerConfig ProviderConfig) (*onCallAPI.Client, error
 
 func createConnectionsClient(client *common.Client, providerConfig ProviderConfig) error {
 	apiClient, err := connectionsapi.NewClient(
-		providerConfig.ConnectionsAccessToken.ValueString(),
-		providerConfig.ConnectionsURL.ValueString(),
+		providerConfig.ConnectionsAPIAccessToken.ValueString(),
+		providerConfig.ConnectionsAPIURL.ValueString(),
 		getRetryClient(providerConfig),
 		providerConfig.UserAgent.ValueString(),
 	)
