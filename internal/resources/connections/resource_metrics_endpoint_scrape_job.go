@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -120,6 +121,23 @@ func (r *resourceMetricsEndpointScrapeJob) Schema(ctx context.Context, req resou
 				Optional:    true,
 			},
 		},
+	}
+}
+
+func (r *resourceMetricsEndpointScrapeJob) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.Conflicting(
+			path.MatchRoot("authentication_bearer_token"),
+			path.MatchRoot("authentication_basic_username"),
+		),
+		resourcevalidator.Conflicting(
+			path.MatchRoot("authentication_bearer_token"),
+			path.MatchRoot("authentication_basic_password"),
+		),
+		resourcevalidator.RequiredTogether(
+			path.MatchRoot("authentication_basic_username"),
+			path.MatchRoot("authentication_basic_password"),
+		),
 	}
 }
 
