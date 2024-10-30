@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -61,6 +62,18 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
+				Config:       invalidScrapeJobBothAuthTypesUsed,
+				PlanOnly:     true,
+				RefreshState: false,
+				ExpectError:  regexp.MustCompile(`These attributes cannot be configured together`),
+			},
+			{
+				Config:       invalidScrapeJobMissingBasicPassword,
+				PlanOnly:     true,
+				RefreshState: false,
+				ExpectError:  regexp.MustCompile(`These attributes must be configured together`),
+			},
+			{
 				// Creates a managed resource
 				Config: testutils.TestAccExample(t, "resources/grafana_connections_metrics_endpoint_scrape_job/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
@@ -91,3 +104,29 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 		},
 	})
 }
+
+var invalidScrapeJobMissingBasicPassword = `
+resource "grafana_connections_metrics_endpoint_scrape_job" "test" {
+  stack_id                      = "1"
+  name                          = "my-scrape-job"
+  enabled                       = true
+  authentication_method         = "basic"
+  authentication_basic_username = "my-username"
+  url                           = "https://grafana.com/metrics"
+  scrape_interval_seconds       = 120
+}
+`
+
+var invalidScrapeJobBothAuthTypesUsed = `
+resource "grafana_connections_metrics_endpoint_scrape_job" "test" {
+  stack_id                      = "1"
+  name                          = "my-scrape-job"
+  enabled                       = true
+  authentication_method         = "basic"
+  authentication_basic_username = "my-username"
+  authentication_basic_password = "my-password"
+  authentication_bearer_token   = "my-token"
+  url                           = "https://grafana.com/metrics"
+  scrape_interval_seconds       = 120
+}
+`
