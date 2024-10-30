@@ -236,7 +236,7 @@ an access policy. The required permissions, or scopes, are `integration-manageme
 
 Also, by default the Access Policies UI will not show those scopes, to find name you need to use the `Add Scope` textbox, as shown in the following image:
 
-<img src="https://grafana.com/media/docs/grafana-cloud/aws/cloud-provider-terraform-access-policy-creation.png" width="700"/>
+<img src="https://grafana.com/media/docs/grafana-cloud/connections/connections-terraform-access-policy-create.png" width="700"/>
 
 1. Use the `Add Scope` textbox (1) to search for the permissions you need to add to the access policy.
 1. Make sure that you configure the three required scopes. Once done, you'll see the selected scopes as in (2).
