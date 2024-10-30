@@ -299,3 +299,8 @@ You can use the `grafana_synthetic_monitoring_installation` resource as shown ab
 
 [Grafana OnCall](https://grafana.com/docs/oncall/latest/oncall-api-reference/)
 uses API keys to allow access to the API. You can request a new OnCall API key in OnCall -> Settings page.
+
+### `connections_api_access_token`
+An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/authorize-services/) to manage
+connections resources, such as Metrics Endpoint jobs.
+For guidance on creating one, see section [obtaining connections access token](#obtaining-connections-access-token)
