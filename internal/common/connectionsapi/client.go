@@ -14,10 +14,11 @@ import (
 )
 
 type Client struct {
-	authToken string
-	apiURL    url.URL
-	client    *http.Client
-	userAgent string
+	authToken      string
+	apiURL         url.URL
+	client         *http.Client
+	userAgent      string
+	defaultHeaders map[string]string
 }
 
 const (
@@ -26,7 +27,7 @@ const (
 	pathPrefix     = "/api/v1/stacks"
 )
 
-func NewClient(authToken string, rawURL string, client *http.Client, userAgent string) (*Client, error) {
+func NewClient(authToken string, rawURL string, client *http.Client, userAgent string, defaultHeaders map[string]string) (*Client, error) {
 	parsedURL, err := url.Parse(rawURL)
 
 	if err != nil {
@@ -41,10 +42,11 @@ func NewClient(authToken string, rawURL string, client *http.Client, userAgent s
 	}
 
 	return &Client{
-		authToken: authToken,
-		apiURL:    *parsedURL,
-		client:    client,
-		userAgent: userAgent,
+		authToken:      authToken,
+		apiURL:         *parsedURL,
+		client:         client,
+		userAgent:      userAgent,
+		defaultHeaders: defaultHeaders,
 	}, nil
 }
 
@@ -117,6 +119,11 @@ func (c *Client) doAPIRequest(ctx context.Context, method string, path string, b
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
+
+	for k, v := range c.defaultHeaders {
+		req.Header.Add(k, v)
+	}
+
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("User-Agent", c.userAgent)

@@ -180,11 +180,17 @@ func createOnCallClient(providerConfig ProviderConfig) (*onCallAPI.Client, error
 }
 
 func createConnectionsClient(client *common.Client, providerConfig ProviderConfig) error {
+	providerHeaders, err := getHTTPHeadersMap(providerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
+	}
+
 	apiClient, err := connectionsapi.NewClient(
 		providerConfig.ConnectionsAPIAccessToken.ValueString(),
 		providerConfig.ConnectionsAPIURL.ValueString(),
 		getRetryClient(providerConfig),
 		providerConfig.UserAgent.ValueString(),
+		providerHeaders,
 	)
 	if err != nil {
 		return err

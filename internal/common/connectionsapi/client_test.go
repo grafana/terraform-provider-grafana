@@ -15,15 +15,17 @@ import (
 )
 
 func Test_NewClient(t *testing.T) {
+	defaultHeaders := map[string]string{}
+
 	t.Run("successfully creates a new client", func(t *testing.T) {
-		client, err := connectionsapi.NewClient("some token", "https://valid.url", &http.Client{}, "some-user-agent")
+		client, err := connectionsapi.NewClient("some token", "https://valid.url", &http.Client{}, "some-user-agent", defaultHeaders)
 
 		assert.NotNil(t, client)
 		assert.NoError(t, err)
 	})
 
 	t.Run("returns error for invalid url", func(t *testing.T) {
-		_, err := connectionsapi.NewClient("some token", " https://leading.space", &http.Client{}, "some-user-agent")
+		_, err := connectionsapi.NewClient("some token", " https://leading.space", &http.Client{}, "some-user-agent", defaultHeaders)
 
 		assert.Error(t, err)
 		assert.Equal(t, `failed to parse connections API url: parse " https://leading.space": first path segment in URL cannot contain colon`, err.Error())
@@ -31,9 +33,11 @@ func Test_NewClient(t *testing.T) {
 }
 
 func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
+	defaultHeaders := map[string]string{"Grafana-Terraform-Provider": "True"}
 	t.Run("successfully sends request and receives response", func(t *testing.T) {
 		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, http.MethodPost, r.Method)
+			assert.Equal(t, "True", r.Header.Get("Grafana-Terraform-Provider"))
 			assert.Equal(t, "/api/v1/stacks/some-stack-id/metrics-endpoint/jobs/test_job", r.URL.Path)
 			requestBody, err := io.ReadAll(r.Body)
 			require.NoError(t, err)
@@ -64,7 +68,7 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		actualJob, err := c.CreateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "test_job", connectionsapi.MetricsEndpointScrapeJob{
 			Enabled:                     true,
@@ -95,7 +99,7 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.CreateMetricsEndpointScrapeJob(context.Background(), "some stack id", "test_job", connectionsapi.MetricsEndpointScrapeJob{})
 		require.NoError(t, err)
@@ -108,7 +112,7 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.CreateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "test_job", connectionsapi.MetricsEndpointScrapeJob{})
 
@@ -117,7 +121,7 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 	})
 
 	t.Run("returns error when client fails to Do request", func(t *testing.T) {
-		c, err := connectionsapi.NewClient("some token", "some random url", &http.Client{}, "some-user-agent")
+		c, err := connectionsapi.NewClient("some token", "some random url", &http.Client{}, "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.CreateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name", connectionsapi.MetricsEndpointScrapeJob{})
 
@@ -127,9 +131,11 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 }
 
 func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
+	defaultHeaders := map[string]string{"Grafana-Terraform-Provider": "True"}
 	t.Run("successfully sends request and receives response", func(t *testing.T) {
 		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, http.MethodGet, r.Method)
+			assert.Equal(t, "True", r.Header.Get("Grafana-Terraform-Provider"))
 			assert.Equal(t, "/api/v1/stacks/some-stack-id/metrics-endpoint/jobs/test_job", r.URL.Path)
 
 			w.WriteHeader(http.StatusOK)
@@ -150,7 +156,7 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		actualJob, err := c.GetMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "test_job")
 		assert.NoError(t, err)
@@ -174,7 +180,7 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.GetMetricsEndpointScrapeJob(context.Background(), "some stack id", "test_job")
 		require.NoError(t, err)
@@ -186,7 +192,7 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.GetMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
 
@@ -202,7 +208,7 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.GetMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
 
@@ -211,7 +217,7 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 	})
 
 	t.Run("returns error when client fails to Do request", func(t *testing.T) {
-		c, err := connectionsapi.NewClient("some token", "some random url", &http.Client{}, "some-user-agent")
+		c, err := connectionsapi.NewClient("some token", "some random url", &http.Client{}, "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.GetMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
 
@@ -221,9 +227,11 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 }
 
 func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
+	defaultHeaders := map[string]string{"Grafana-Terraform-Provider": "True"}
 	t.Run("successfully sends request and receives response", func(t *testing.T) {
 		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, http.MethodPut, r.Method)
+			assert.Equal(t, "True", r.Header.Get("Grafana-Terraform-Provider"))
 			assert.Equal(t, "/api/v1/stacks/some-stack-id/metrics-endpoint/jobs/test_job", r.URL.Path)
 			requestBody, err := io.ReadAll(r.Body)
 			require.NoError(t, err)
@@ -252,7 +260,7 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		actualJob, err := c.UpdateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "test_job",
 			connectionsapi.MetricsEndpointScrapeJob{
@@ -282,7 +290,7 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.UpdateMetricsEndpointScrapeJob(context.Background(), "some stack id", "test_job", connectionsapi.MetricsEndpointScrapeJob{})
 		require.NoError(t, err)
@@ -295,7 +303,7 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.UpdateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name", connectionsapi.MetricsEndpointScrapeJob{})
 
@@ -311,7 +319,7 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.UpdateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name", connectionsapi.MetricsEndpointScrapeJob{})
 
@@ -320,7 +328,7 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 	})
 
 	t.Run("returns error when client fails to Do request", func(t *testing.T) {
-		c, err := connectionsapi.NewClient("some token", "some random url", &http.Client{}, "some-user-agent")
+		c, err := connectionsapi.NewClient("some token", "some random url", &http.Client{}, "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		_, err = c.UpdateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name", connectionsapi.MetricsEndpointScrapeJob{})
 
@@ -330,16 +338,19 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 }
 
 func TestClient_DeleteMetricsEndpointScrapeJob(t *testing.T) {
+	defaultHeaders := map[string]string{"Grafana-Terraform-Provider": "True"}
 	t.Run("successfully sends request and receives response", func(t *testing.T) {
 		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, http.MethodDelete, r.Method)
 			assert.Equal(t, "/api/v1/stacks/some-stack-id/metrics-endpoint/jobs/test_job", r.URL.Path)
 
+			assert.Equal(t, "True", r.Header.Get("Grafana-Terraform-Provider"))
+
 			w.WriteHeader(http.StatusOK)
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "test_job")
 
@@ -355,7 +366,7 @@ func TestClient_DeleteMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some stack id", "test_job")
 		require.NoError(t, err)
@@ -367,7 +378,7 @@ func TestClient_DeleteMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
 
@@ -383,7 +394,7 @@ func TestClient_DeleteMetricsEndpointScrapeJob(t *testing.T) {
 		}))
 		defer svr.Close()
 
-		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent")
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
 
@@ -392,7 +403,7 @@ func TestClient_DeleteMetricsEndpointScrapeJob(t *testing.T) {
 	})
 
 	t.Run("returns error when client fails to Do request", func(t *testing.T) {
-		c, err := connectionsapi.NewClient("some token", "some random url", &http.Client{}, "some-user-agent")
+		c, err := connectionsapi.NewClient("some token", "some random url", &http.Client{}, "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
 		err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
 
