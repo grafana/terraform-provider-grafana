@@ -148,7 +148,7 @@ func (c *Client) doAPIRequest(ctx context.Context, method string, path string, b
 		if resp.StatusCode == 401 {
 			return ErrUnauthorized
 		}
-		return fmt.Errorf("status: %d, body: %v", resp.StatusCode, string(bodyContents))
+		return fmt.Errorf("status: %d", resp.StatusCode)
 	}
 	if responseData != nil && resp.StatusCode != http.StatusNoContent {
 		err = json.Unmarshal(bodyContents, &responseData)

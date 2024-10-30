@@ -118,7 +118,7 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 		_, err = c.CreateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "test_job", connectionsapi.MetricsEndpointScrapeJob{})
 
 		assert.Error(t, err)
-		assert.Equal(t, `failed to create metrics endpoint scrape job "test_job": status: 500, body: {"some error"}`, err.Error())
+		assert.Equal(t, `failed to create metrics endpoint scrape job "test_job": status: 500`, err.Error())
 	})
 
 	t.Run("returns ErrUnauthorized when connections API responds 401", func(t *testing.T) {
@@ -245,7 +245,7 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 		_, err = c.GetMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
 
 		assert.Error(t, err)
-		assert.Equal(t, `failed to get metrics endpoint scrape job "job-name": status: 500, body: {"some error"}`, err.Error())
+		assert.Equal(t, `failed to get metrics endpoint scrape job "job-name": status: 500`, err.Error())
 	})
 
 	t.Run("returns error when client fails to Do request", func(t *testing.T) {
@@ -372,7 +372,7 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 		_, err = c.UpdateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name", connectionsapi.MetricsEndpointScrapeJob{})
 
 		assert.Error(t, err)
-		assert.Equal(t, `failed to update metrics endpoint scrape job "job-name": status: 500, body: {"some error"}`, err.Error())
+		assert.Equal(t, `failed to update metrics endpoint scrape job "job-name": status: 500`, err.Error())
 	})
 
 	t.Run("returns error when client fails to Do request", func(t *testing.T) {
@@ -462,7 +462,7 @@ func TestClient_DeleteMetricsEndpointScrapeJob(t *testing.T) {
 		err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
 
 		assert.Error(t, err)
-		assert.Equal(t, `failed to delete metrics endpoint scrape job "job-name": status: 500, body: {"some error"}`, err.Error())
+		assert.Equal(t, `failed to delete metrics endpoint scrape job "job-name": status: 500`, err.Error())
 	})
 
 	t.Run("returns error when client fails to Do request", func(t *testing.T) {
