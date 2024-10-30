@@ -103,7 +103,10 @@ func (c *Client) DeleteMetricsEndpointScrapeJob(ctx context.Context, stackID, jo
 	return nil
 }
 
-var ErrNotFound = fmt.Errorf("not found")
+var (
+	ErrNotFound     = fmt.Errorf("not found")
+	ErrUnauthorized = fmt.Errorf("request not authorized for stack")
+)
 
 func (c *Client) doAPIRequest(ctx context.Context, method string, path string, body any, responseData any) error {
 	var reqBodyBytes io.Reader
@@ -141,6 +144,9 @@ func (c *Client) doAPIRequest(ctx context.Context, method string, path string, b
 	if !(resp.StatusCode >= 200 && resp.StatusCode <= 299) {
 		if resp.StatusCode == 404 {
 			return ErrNotFound
+		}
+		if resp.StatusCode == 401 {
+			return ErrUnauthorized
 		}
 		return fmt.Errorf("status: %d, body: %v", resp.StatusCode, string(bodyContents))
 	}

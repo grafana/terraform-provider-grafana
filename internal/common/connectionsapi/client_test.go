@@ -2,6 +2,7 @@ package connectionsapi_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -120,6 +121,22 @@ func TestClient_CreateMetricsEndpointScrapeJob(t *testing.T) {
 		assert.Equal(t, `failed to create metrics endpoint scrape job "test_job": status: 500, body: {"some error"}`, err.Error())
 	})
 
+	t.Run("returns ErrUnauthorized when connections API responds 401", func(t *testing.T) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(401)
+			_, _ = w.Write([]byte(`{"some error"}`))
+		}))
+		defer svr.Close()
+
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
+		require.NoError(t, err)
+		_, err = c.CreateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "test_job", connectionsapi.MetricsEndpointScrapeJob{})
+
+		assert.Error(t, err)
+		assert.Equal(t, `failed to create metrics endpoint scrape job "test_job": request not authorized for stack`, err.Error())
+		assert.True(t, errors.Is(err, connectionsapi.ErrUnauthorized))
+	})
+
 	t.Run("returns error when client fails to Do request", func(t *testing.T) {
 		c, err := connectionsapi.NewClient("some token", "some random url", &http.Client{}, "some-user-agent", defaultHeaders)
 		require.NoError(t, err)
@@ -199,6 +216,21 @@ func TestClient_GetMetricsEndpointScrapeJob(t *testing.T) {
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, connectionsapi.ErrNotFound)
 		assert.Equal(t, `failed to get metrics endpoint scrape job "job-name": not found`, err.Error())
+	})
+
+	t.Run("returns ErrUnauthorized when connections API responds 401", func(t *testing.T) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(401)
+		}))
+		defer svr.Close()
+
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
+		require.NoError(t, err)
+		_, err = c.GetMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
+
+		assert.Error(t, err)
+		assert.Equal(t, `failed to get metrics endpoint scrape job "job-name": request not authorized for stack`, err.Error())
+		assert.True(t, errors.Is(err, connectionsapi.ErrUnauthorized))
 	})
 
 	t.Run("returns error when connections API responds 500", func(t *testing.T) {
@@ -312,6 +344,22 @@ func TestClient_UpdateMetricsEndpointScrapeJob(t *testing.T) {
 		assert.Equal(t, `failed to update metrics endpoint scrape job "job-name": not found`, err.Error())
 	})
 
+	t.Run("returns Unauthorized when connections API responds 401", func(t *testing.T) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(401)
+			_, _ = w.Write([]byte(`{"some error"}`))
+		}))
+		defer svr.Close()
+
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
+		require.NoError(t, err)
+		_, err = c.UpdateMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name", connectionsapi.MetricsEndpointScrapeJob{})
+
+		assert.Error(t, err)
+		assert.Equal(t, `failed to update metrics endpoint scrape job "job-name": request not authorized for stack`, err.Error())
+		assert.True(t, errors.Is(err, connectionsapi.ErrUnauthorized))
+	})
+
 	t.Run("returns error when connections API responds 500", func(t *testing.T) {
 		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(500)
@@ -385,6 +433,21 @@ func TestClient_DeleteMetricsEndpointScrapeJob(t *testing.T) {
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, connectionsapi.ErrNotFound)
 		assert.Equal(t, `failed to delete metrics endpoint scrape job "job-name": not found`, err.Error())
+	})
+
+	t.Run("returns ErrUnauthorized when connections API responds 401", func(t *testing.T) {
+		svr := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(401)
+		}))
+		defer svr.Close()
+
+		c, err := connectionsapi.NewClient("some token", svr.URL, svr.Client(), "some-user-agent", defaultHeaders)
+		require.NoError(t, err)
+		err = c.DeleteMetricsEndpointScrapeJob(context.Background(), "some-stack-id", "job-name")
+
+		assert.Error(t, err)
+		assert.Equal(t, `failed to delete metrics endpoint scrape job "job-name": request not authorized for stack`, err.Error())
+		assert.True(t, errors.Is(err, connectionsapi.ErrUnauthorized))
 	})
 
 	t.Run("returns error when connections API responds 500", func(t *testing.T) {
