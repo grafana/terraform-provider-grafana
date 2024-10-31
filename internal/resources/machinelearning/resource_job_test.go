@@ -17,6 +17,8 @@ import (
 func TestAccResourceJob(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
+	t.Skip("skipping test because it errors with addDataSourceConflict {'message':'data source with the same name already exists'}'}")
+
 	randomName := acctest.RandomWithPrefix("Test Job")
 
 	var job mlapi.Job
