@@ -23,12 +23,13 @@ func TestAccResourceAWSAccount(t *testing.T) {
 	require.NotEmpty(t, roleARN, "GRAFANA_CLOUD_PROVIDER_AWS_ROLE_ARN must be set")
 
 	stackID := os.Getenv("GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID")
-	require.NotEmpty(t, roleARN, "GRAFANA_CLOUD_PROVIDER_TEST_STACK_IDmust be set")
+	require.NotEmpty(t, roleARN, "GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID must be set")
 
 	account := cloudproviderapi.AWSAccount{
 		RoleARN: roleARN,
 		Regions: []string{"us-east-1", "us-east-2", "us-west-1"},
 	}
+	var gotAccount cloudproviderapi.AWSAccount
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
@@ -36,7 +37,7 @@ func TestAccResourceAWSAccount(t *testing.T) {
 			{
 				Config: awsAccountResourceData(stackID, account),
 				Check: resource.ComposeTestCheckFunc(
-					checkAWSAccountResourceExists("grafana_cloud_provider_aws_account.test", stackID, &account),
+					checkAWSAccountResourceExists("grafana_cloud_provider_aws_account.test", stackID, &gotAccount),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_account.test", "stack_id", stackID),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_account.test", "role_arn", account.RoleARN),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_account.test", "regions.#", strconv.Itoa(len(account.Regions))),
@@ -51,7 +52,7 @@ func TestAccResourceAWSAccount(t *testing.T) {
 				ImportStateVerify: true,
 			},
 		},
-		CheckDestroy: checkAWSAccountResourceDestroy(stackID, &account),
+		CheckDestroy: checkAWSAccountResourceDestroy(stackID, &gotAccount),
 	})
 }
 
