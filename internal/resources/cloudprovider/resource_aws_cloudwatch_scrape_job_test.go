@@ -16,9 +16,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testAWSCloudWatchScrapeJobData = cloudproviderapi.AWSCloudWatchScrapeJobRequest{
-	RegionsSubsetOverride: []string{"eu-west-1", "us-east-1", "us-east-2"},
-	ExportTags:            true,
+var testAWSCloudWatchScrapeJobData = cloudproviderapi.AWSCloudWatchScrapeJobResponse{
+	Regions:    []string{"us-east-1", "us-east-2", "us-west-1"},
+	ExportTags: true,
 	Services: []cloudproviderapi.AWSCloudWatchService{
 		{
 			Name:                  "AWS/EC2",
@@ -59,7 +59,7 @@ var testAWSCloudWatchScrapeJobData = cloudproviderapi.AWSCloudWatchScrapeJobRequ
 func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	// Uses a pre-existing account resource so that we don't need to create a new one for every test run.
+	// Uses a pre-existing account resource so that we don't need to create a new one for every test run
 	accountID := os.Getenv("GRAFANA_CLOUD_PROVIDER_TEST_AWS_ACCOUNT_RESOURCE_ID")
 	require.NotEmpty(t, accountID, "GRAFANA_CLOUD_PROVIDER_TEST_AWS_ACCOUNT_RESOURCE_ID must be set")
 
@@ -87,7 +87,7 @@ func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
 					jobName,
 					false,
 					accountID,
-					regionsString(testAWSCloudWatchScrapeJobData.RegionsSubsetOverride),
+					regionsString([]string{testAWSCloudWatchScrapeJobData.Regions[0], testAWSCloudWatchScrapeJobData.Regions[1]}),
 					servicesString(testAWSCloudWatchScrapeJobData.Services),
 					customNamespacesString(testAWSCloudWatchScrapeJobData.CustomNamespaces),
 				),
@@ -98,10 +98,9 @@ func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "enabled", "false"),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "disabled_reason", "disabled_by_user"),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "aws_account_resource_id", accountID),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions_subset_override.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.RegionsSubsetOverride))),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions_subset_override.0", testAWSCloudWatchScrapeJobData.RegionsSubsetOverride[0]),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions_subset_override.1", testAWSCloudWatchScrapeJobData.RegionsSubsetOverride[1]),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions_subset_override.2", testAWSCloudWatchScrapeJobData.RegionsSubsetOverride[2]),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions_subset_override.#", "2"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions_subset_override.0", testAWSCloudWatchScrapeJobData.Regions[0]),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions_subset_override.1", testAWSCloudWatchScrapeJobData.Regions[1]),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "export_tags", fmt.Sprintf("%t", testAWSCloudWatchScrapeJobData.ExportTags)),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.Services))),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.name", testAWSCloudWatchScrapeJobData.Services[0].Name),
@@ -124,13 +123,27 @@ func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.scrape_interval_seconds", fmt.Sprintf("%d", testAWSCloudWatchScrapeJobData.CustomNamespaces[0].ScrapeIntervalSeconds)),
 				),
 			},
+			// update to remove regions_subset_override so that the account's regions are used instead
+			{
+				Config: awsCloudWatchScrapeJobResourceData(stackID,
+					jobName,
+					false,
+					accountID,
+					"",
+					servicesString(testAWSCloudWatchScrapeJobData.Services),
+					customNamespacesString(testAWSCloudWatchScrapeJobData.CustomNamespaces),
+				),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions_subset_override.#", "0"),
+				),
+			},
 			// update to enable the job
 			{
 				Config: awsCloudWatchScrapeJobResourceData(stackID,
 					jobName,
 					true,
 					accountID,
-					regionsString(testAWSCloudWatchScrapeJobData.RegionsSubsetOverride),
+					"",
 					servicesString(testAWSCloudWatchScrapeJobData.Services),
 					customNamespacesString(testAWSCloudWatchScrapeJobData.CustomNamespaces),
 				),
@@ -147,7 +160,7 @@ func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
 					jobName,
 					false,
 					accountID,
-					regionsString(testAWSCloudWatchScrapeJobData.RegionsSubsetOverride),
+					"",
 					servicesString(testAWSCloudWatchScrapeJobData.Services),
 					customNamespacesString(testAWSCloudWatchScrapeJobData.CustomNamespaces),
 				),
@@ -164,13 +177,13 @@ func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
 					jobName,
 					false,
 					accountID,
-					regionsString(testAWSCloudWatchScrapeJobData.RegionsSubsetOverride),
+					"",
 					"",
 					customNamespacesString(testAWSCloudWatchScrapeJobData.CustomNamespaces),
 				),
 				Check: resource.ComposeTestCheckFunc(
 					// expect this to be stored in the state as an empty list, not null
-					resource.TestCheckResourceAttrSet("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service"),
+					resource.TestCheckResourceAttrSet("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service%"),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.#", "0"),
 				),
 			},
@@ -180,13 +193,13 @@ func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
 					jobName,
 					false,
 					testAWSCloudWatchScrapeJobData.AWSAccountResourceID,
-					regionsString(testAWSCloudWatchScrapeJobData.RegionsSubsetOverride),
+					"",
 					servicesString(testAWSCloudWatchScrapeJobData.Services),
 					"",
 				),
 				Check: resource.ComposeTestCheckFunc(
 					// expect this to be stored in the state as an empty list, not null
-					resource.TestCheckResourceAttrSet("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace"),
+					resource.TestCheckResourceAttrSet("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.%"),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.#", "0"),
 
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.Services))),
@@ -209,7 +222,7 @@ func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
 					jobName,
 					false,
 					accountID,
-					regionsString(testAWSCloudWatchScrapeJobData.RegionsSubsetOverride),
+					"",
 					func() string {
 						svc := testAWSCloudWatchScrapeJobData.Services[0]
 						svc.TagsToAddToMetrics = []string{}

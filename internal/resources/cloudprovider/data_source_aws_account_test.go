@@ -17,7 +17,7 @@ import (
 func TestAccDataSourceAWSAccount(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	// Uses a pre-existing account resource so that we don't need to create a new one for every test run.
+	// Uses a pre-existing account resource so that we don't need to create a new one for every test run
 	accountID := os.Getenv("GRAFANA_CLOUD_PROVIDER_TEST_AWS_ACCOUNT_RESOURCE_ID")
 	require.NotEmpty(t, accountID, "GRAFANA_CLOUD_PROVIDER_TEST_AWS_ACCOUNT_RESOURCE_ID must be set")
 

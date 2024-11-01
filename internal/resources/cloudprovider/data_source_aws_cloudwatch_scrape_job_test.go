@@ -17,7 +17,7 @@ import (
 func TestAccDataSourceAWSCloudWatchScrapeJob(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	// Uses a pre-existing account resource so that we don't need to create a new account resource for every test run.
+	// Uses a pre-existing account resource so that we don't need to create a new account resource for every test run
 	accountID := os.Getenv("GRAFANA_CLOUD_PROVIDER_TEST_AWS_ACCOUNT_RESOURCE_ID")
 	require.NotEmpty(t, accountID, "GRAFANA_CLOUD_PROVIDER_TEST_AWS_ACCOUNT_RESOURCE_ID must be set")
 
@@ -45,7 +45,7 @@ func TestAccDataSourceAWSCloudWatchScrapeJob(t *testing.T) {
 					jobName,
 					false,
 					accountID,
-					regionsString(testAWSCloudWatchScrapeJobData.RegionsSubsetOverride),
+					regionsString([]string{testAWSCloudWatchScrapeJobData.Regions[0], testAWSCloudWatchScrapeJobData.Regions[1]}),
 					servicesString(testAWSCloudWatchScrapeJobData.Services),
 					customNamespacesString(testAWSCloudWatchScrapeJobData.CustomNamespaces),
 				) + awsCloudWatchScrapeJobDataSourceData(stackID, jobName),
@@ -56,12 +56,11 @@ func TestAccDataSourceAWSCloudWatchScrapeJob(t *testing.T) {
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "enabled", "false"),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "disabled_reason", "disabled_by_user"),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "aws_account_resource_id", accountID),
-					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.RegionsSubsetOverride))),
-					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.0", testAWSCloudWatchScrapeJobData.RegionsSubsetOverride[0]),
-					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.1", testAWSCloudWatchScrapeJobData.RegionsSubsetOverride[1]),
-					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.2", testAWSCloudWatchScrapeJobData.RegionsSubsetOverride[2]),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.#", "2"),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.0", testAWSCloudWatchScrapeJobData.Regions[0]),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.1", testAWSCloudWatchScrapeJobData.Regions[1]),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions_subset_override_used", "true"),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "export_tags", fmt.Sprintf("%t", testAWSCloudWatchScrapeJobData.ExportTags)),
-					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "disabled_reason", ""),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.Services))),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.name", testAWSCloudWatchScrapeJobData.Services[0].Name),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.metric.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.Services[0].Metrics))),
@@ -81,6 +80,27 @@ func TestAccDataSourceAWSCloudWatchScrapeJob(t *testing.T) {
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.metric.0.statistics.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.CustomNamespaces[0].Metrics[0].Statistics))),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.metric.0.statistics.0", testAWSCloudWatchScrapeJobData.CustomNamespaces[0].Metrics[0].Statistics[0]),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.scrape_interval_seconds", fmt.Sprintf("%d", testAWSCloudWatchScrapeJobData.CustomNamespaces[0].ScrapeIntervalSeconds)),
+				),
+			},
+			// update to remove regions_subset_override so that the account's regions are used instead
+			{
+				Config: awsCloudWatchScrapeJobResourceData(stackID,
+					jobName,
+					false,
+					accountID,
+					"",
+					servicesString(testAWSCloudWatchScrapeJobData.Services),
+					customNamespacesString(testAWSCloudWatchScrapeJobData.CustomNamespaces),
+				) + awsCloudWatchScrapeJobDataSourceData(stackID, jobName),
+				Check: resource.ComposeTestCheckFunc(
+					checkAWSCloudWatchScrapeJobResourceExists("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", stackID, &gotJob),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "stack_id", stackID),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "name", jobName),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.Regions))),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.0", testAWSCloudWatchScrapeJobData.Regions[0]),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.1", testAWSCloudWatchScrapeJobData.Regions[1]),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.2", testAWSCloudWatchScrapeJobData.Regions[2]),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions_subset_override_used", "false"),
 				),
 			},
 		},
