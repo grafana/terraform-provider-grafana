@@ -94,6 +94,7 @@ func awsCloudWatchScrapeJobsDataSourceData(stackID string) string {
 	data := fmt.Sprintf(`
 data "grafana_cloud_provider_aws_cloudwatch_scrape_jobs" "test" {
 	stack_id = "%[1]s"
+	depends_on = [grafana_cloud_provider_aws_cloudwatch_scrape_job.test]
 }
 `,
 		stackID,

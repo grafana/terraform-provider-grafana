@@ -112,7 +112,7 @@ func awsCloudWatchScrapeJobDataSourceData(stackID string, jobName string) string
 	data := fmt.Sprintf(`
 data "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
 	stack_id = "%[1]s"
-	name = "%[2]s"
+	name = grafana_cloud_provider_aws_cloudwatch_scrape_job.test.name
 }
 `,
 		stackID,
