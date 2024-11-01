@@ -10,14 +10,11 @@ import (
 )
 
 func TestAccDataSourceAWSCloudWatchScrapeJobs(t *testing.T) {
-	// TODO(tristan): switch to CloudInstanceTestsEnabled
-	// as part of https://github.com/grafana/grafana-aws-app/issues/381
-	t.Skip("not yet implemented. see TODO comment.")
-	// testutils.CheckCloudInstanceTestsEnabled(t)
+	t.Skip("Skipping test until we have a valid test case")
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		// TODO(tristan): actually check for resource existence
 		CheckDestroy: func() resource.TestCheckFunc {
 			return func(s *terraform.State) error {
 				return nil

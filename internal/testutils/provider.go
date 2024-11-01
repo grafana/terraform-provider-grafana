@@ -190,11 +190,10 @@ func CheckCloudInstanceTestsEnabled(t *testing.T) {
 		"GRAFANA_AUTH",
 		"GRAFANA_SM_ACCESS_TOKEN",
 		"GRAFANA_ONCALL_ACCESS_TOKEN",
-		// TODO(tristan): uncomment as part of implementing
-		// cloud acceptance tests.
-		// See https://github.com/grafana/grafana-aws-app/issues/381
-		// "GRAFANA_CLOUD_PROVIDER_URL",
-		// "GRAFANA_CLOUD_PROVIDER_ACCESS_TOKEN",
+		"GRAFANA_CLOUD_PROVIDER_URL",
+		"GRAFANA_CLOUD_PROVIDER_ACCESS_TOKEN",
+		"GRAFANA_CLOUD_PROVIDER_AWS_ROLE_ARN",
+		"GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID",
 	)
 }
 

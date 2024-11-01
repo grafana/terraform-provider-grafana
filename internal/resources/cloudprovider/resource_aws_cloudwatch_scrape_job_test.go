@@ -1,7 +1,6 @@
 package cloudprovider_test
 
 import (
-	"bytes"
 	"fmt"
 	"testing"
 
@@ -16,7 +15,6 @@ const testStackID = "1"
 var testAWSCloudWatchScrapeJobData = cloudproviderapi.AWSCloudWatchScrapeJobRequest{
 	Name:                  "test-scrape-job",
 	Enabled:               true,
-	AWSAccountResourceID:  "2",
 	RegionsSubsetOverride: []string{"eu-west-1", "us-east-1", "us-east-2"},
 	ExportTags:            true,
 	Services: []cloudproviderapi.AWSCloudWatchService{
@@ -57,15 +55,11 @@ var testAWSCloudWatchScrapeJobData = cloudproviderapi.AWSCloudWatchScrapeJobRequ
 }
 
 func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
-	// TODO(tristan): switch to CloudInstanceTestsEnabled
-	// as part of https://github.com/grafana/grafana-aws-app/issues/381
-	t.Skip("not yet implemented. see TODO comment.")
-	// testutils.CheckCloudInstanceTestsEnabled(t)
+	t.Skip("Skipping test until we have a valid test case")
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	// TODO(tristan) import an existing account resource and stack to plug into the scrape job for tests
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		// TODO(tristan): actually check for resource existence
 		CheckDestroy: func() resource.TestCheckFunc {
 			return func(s *terraform.State) error {
 				return nil
@@ -241,114 +235,4 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
 	)
 
 	return data
-}
-
-func servicesString(svcs []cloudproviderapi.AWSCloudWatchService) string {
-	if len(svcs) == 0 {
-		return ""
-	}
-	b := new(bytes.Buffer)
-	for _, svc := range svcs {
-		fmt.Fprintf(b, "\n\t\t")
-		fmt.Fprintf(b, `{
-			name = "%[1]s",
-			metrics = [%[2]s],
-			scrape_interval_seconds = %[3]d,
-			resource_discovery_tag_filters = [%[4]s],
-			tags_to_add_to_metrics = [%[5]s],
-		},`,
-			svc.Name,
-			metricsString(svc.Metrics),
-			svc.ScrapeIntervalSeconds,
-			tagFiltersString(svc.ResourceDiscoveryTagFilters),
-			tagsString(svc.TagsToAddToMetrics),
-		)
-	}
-	fmt.Fprintf(b, "\n\t\t")
-	return b.String()
-}
-
-func customNamespacesString(customNamespaces []cloudproviderapi.AWSCloudWatchCustomNamespace) string {
-	if len(customNamespaces) == 0 {
-		return ""
-	}
-	b := new(bytes.Buffer)
-	for _, customNamespace := range customNamespaces {
-		fmt.Fprintf(b, "\n\t\t")
-		fmt.Fprintf(b, `{
-			name = "%[1]s",
-			metrics = [%[2]s],
-			scrape_interval_seconds = %[3]d,
-		},`,
-			customNamespace.Name,
-			metricsString(customNamespace.Metrics),
-			customNamespace.ScrapeIntervalSeconds,
-		)
-	}
-	fmt.Fprintf(b, "\n\t\t")
-	return b.String()
-}
-
-func metricsString(metrics []cloudproviderapi.AWSCloudWatchMetric) string {
-	if len(metrics) == 0 {
-		return ""
-	}
-	b := new(bytes.Buffer)
-	for _, metric := range metrics {
-		fmt.Fprintf(b, "\n\t\t\t")
-		fmt.Fprintf(b, `{
-				name = "%[1]s",
-				statistics = [%[2]s],
-			},`,
-			metric.Name,
-			statisticsString(metric.Statistics),
-		)
-	}
-	fmt.Fprintf(b, "\n\t\t\t")
-	return b.String()
-}
-
-func statisticsString(stats []string) string {
-	if len(stats) == 0 {
-		return ""
-	}
-	b := new(bytes.Buffer)
-	fmt.Fprintf(b, "\n\t\t\t\t\t")
-	for _, stat := range stats {
-		fmt.Fprintf(b, "\"%s\",", stat)
-	}
-	fmt.Fprintf(b, "\n\t\t\t\t")
-	return b.String()
-}
-
-func tagFiltersString(filters []cloudproviderapi.AWSCloudWatchTagFilter) string {
-	if len(filters) == 0 {
-		return ""
-	}
-	b := new(bytes.Buffer)
-	fmt.Fprintf(b, "\n\t\t\t")
-	for _, filter := range filters {
-		fmt.Fprintf(b, `{
-				key = "%[1]s",
-				value = "%[2]s",
-			},`,
-			filter.Key,
-			filter.Value,
-		)
-	}
-	fmt.Fprintf(b, "\n\t\t\t")
-	return b.String()
-}
-
-func tagsString(tags []string) string {
-	if len(tags) == 0 {
-		return ""
-	}
-	b := new(bytes.Buffer)
-	fmt.Fprintf(b, "\n\t\t\t\t")
-	for _, tag := range tags {
-		fmt.Fprintf(b, "\"%s\",", tag)
-	}
-	fmt.Fprintf(b, "\n\t\t\t")
-	return b.String()
 }
