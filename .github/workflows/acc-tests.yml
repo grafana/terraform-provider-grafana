@@ -43,10 +43,10 @@ jobs:
             GRAFANA_SM_ACCESS_TOKEN=cloud-instance-tests:sm-token
             GRAFANA_SM_URL=cloud-instance-tests:sm-url
             GRAFANA_URL=cloud-instance-tests:url
-            GRAFANA_CLOUD_PROVIDER_URL=cloud-instance-tests:cloud-provider-url
-            GRAFANA_CLOUD_PROVIDER_ACCESS_TOKEN=cloud-instance-tests:cloud-provider-access-token
-            GRAFANA_CLOUD_PROVIDER_AWS_ROLE_ARN=cloud-instance-tests:cloud-provider-aws-role-arn
-            GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID=cloud-instance-tests:cloud-provider-test-stack-id
+            GRAFANA_CLOUD_PROVIDER_URL=cloudprovider-tests:url
+            GRAFANA_CLOUD_PROVIDER_ACCESS_TOKEN=cloudprovider-tests:access-token
+            GRAFANA_CLOUD_PROVIDER_AWS_ROLE_ARN=cloudprovider-tests:aws-role-arn
+            GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID=cloudprovider-tests:test-stack-id
       - uses: iFaxity/wait-on-action@a7d13170ec542bdca4ef8ac4b15e9c6aa00a6866 # v1.2.1
         with:
           resource: ${{ env.GRAFANA_URL }}
