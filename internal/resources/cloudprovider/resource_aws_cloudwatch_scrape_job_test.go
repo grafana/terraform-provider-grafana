@@ -183,8 +183,16 @@ func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
 				),
 				Check: resource.ComposeTestCheckFunc(
 					// expect this to be stored in the state as an empty list, not null
-					resource.TestCheckResourceAttrSet("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service%"),
+					resource.TestCheckResourceAttrSet("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.#"),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.#", "0"),
+
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.CustomNamespaces))),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.name", testAWSCloudWatchScrapeJobData.CustomNamespaces[0].Name),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.metric.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.CustomNamespaces[0].Metrics))),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.metric.0.name", testAWSCloudWatchScrapeJobData.CustomNamespaces[0].Metrics[0].Name),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.metric.0.statistics.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.CustomNamespaces[0].Metrics[0].Statistics))),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.metric.0.statistics.0", testAWSCloudWatchScrapeJobData.CustomNamespaces[0].Metrics[0].Statistics[0]),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.scrape_interval_seconds", fmt.Sprintf("%d", testAWSCloudWatchScrapeJobData.CustomNamespaces[0].ScrapeIntervalSeconds)),
 				),
 			},
 			// update to re-add services but unset optional custom namespaces field
@@ -192,14 +200,14 @@ func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
 				Config: awsCloudWatchScrapeJobResourceData(stackID,
 					jobName,
 					false,
-					testAWSCloudWatchScrapeJobData.AWSAccountResourceID,
+					accountID,
 					"",
 					servicesString(testAWSCloudWatchScrapeJobData.Services),
 					"",
 				),
 				Check: resource.ComposeTestCheckFunc(
 					// expect this to be stored in the state as an empty list, not null
-					resource.TestCheckResourceAttrSet("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.%"),
+					resource.TestCheckResourceAttrSet("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.#"),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.#", "0"),
 
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.Services))),
@@ -234,7 +242,7 @@ func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.Services))),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.name", testAWSCloudWatchScrapeJobData.Services[0].Name),
 					// expect this to be stored in the state as an empty list, not null
-					resource.TestCheckResourceAttrSet("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.tags_to_add_to_metrics"),
+					resource.TestCheckResourceAttrSet("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.tags_to_add_to_metrics.#"),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.tags_to_add_to_metrics.#", "0"),
 				),
 			},
