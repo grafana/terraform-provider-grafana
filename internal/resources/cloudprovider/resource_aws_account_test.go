@@ -3,7 +3,6 @@ package cloudprovider_test
 import (
 	"context"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -13,20 +12,15 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAccResourceAWSAccount(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	roleARN := os.Getenv("GRAFANA_CLOUD_PROVIDER_AWS_ROLE_ARN")
-	require.NotEmpty(t, roleARN, "GRAFANA_CLOUD_PROVIDER_AWS_ROLE_ARN must be set")
-
-	stackID := os.Getenv("GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID")
-	require.NotEmpty(t, roleARN, "GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID must be set")
+	testCfg := makeTestConfig(t)
 
 	account := cloudproviderapi.AWSAccount{
-		RoleARN: roleARN,
+		RoleARN: testCfg.roleARN,
 		Regions: []string{"us-east-1", "us-east-2", "us-west-1"},
 	}
 	var gotAccount cloudproviderapi.AWSAccount
@@ -35,10 +29,10 @@ func TestAccResourceAWSAccount(t *testing.T) {
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: awsAccountResourceData(stackID, account),
+				Config: awsAccountResourceData(testCfg.stackID, account),
 				Check: resource.ComposeTestCheckFunc(
-					checkAWSAccountResourceExists("grafana_cloud_provider_aws_account.test", stackID, &gotAccount),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_account.test", "stack_id", stackID),
+					checkAWSAccountResourceExists("grafana_cloud_provider_aws_account.test", testCfg.stackID, &gotAccount),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_account.test", "stack_id", testCfg.stackID),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_account.test", "role_arn", account.RoleARN),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_account.test", "regions.#", strconv.Itoa(len(account.Regions))),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_account.test", "regions.0", account.Regions[0]),
@@ -52,7 +46,7 @@ func TestAccResourceAWSAccount(t *testing.T) {
 				ImportStateVerify: true,
 			},
 		},
-		CheckDestroy: checkAWSAccountResourceDestroy(stackID, &gotAccount),
+		CheckDestroy: checkAWSAccountResourceDestroy(testCfg.stackID, &gotAccount),
 	})
 }
 

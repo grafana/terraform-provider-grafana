@@ -2,10 +2,45 @@ package cloudprovider_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"os"
 
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/stretchr/testify/require"
 )
+
+type testConfig struct {
+	stackID   string
+	accountID string
+	roleARN   string
+}
+
+func makeTestConfig(t require.TestingT) testConfig {
+	// Uses a pre-existing account resource so that we don't need to create a new one for every test run
+	accountID := os.Getenv("GRAFANA_CLOUD_PROVIDER_TEST_AWS_ACCOUNT_RESOURCE_ID")
+	require.NotEmpty(t, accountID, "GRAFANA_CLOUD_PROVIDER_TEST_AWS_ACCOUNT_RESOURCE_ID must be set")
+
+	roleARN := os.Getenv("GRAFANA_CLOUD_PROVIDER_AWS_ROLE_ARN")
+	require.NotEmpty(t, roleARN, "GRAFANA_CLOUD_PROVIDER_AWS_ROLE_ARN must be set")
+
+	stackID := os.Getenv("GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID")
+	require.NotEmpty(t, stackID, "GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID must be set")
+
+	// Make sure the account exists and matches the role ARN we expect for testing
+	client := testutils.Provider.Meta().(*common.Client).CloudProviderAPI
+	gotAccount, err := client.GetAWSAccount(context.Background(), stackID, accountID)
+	require.NoError(t, err)
+	require.Equal(t, roleARN, gotAccount.RoleARN)
+
+	return testConfig{
+		stackID:   stackID,
+		accountID: accountID,
+		roleARN:   roleARN,
+	}
+}
 
 func regionsString(regions []string) string {
 	b := new(bytes.Buffer)
