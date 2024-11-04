@@ -20,12 +20,14 @@ import (
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
 )
 
 func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
@@ -61,6 +63,11 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	}
 	if !providerConfig.CloudProviderAccessToken.IsNull() {
 		if err := createCloudProviderClient(c, providerConfig); err != nil {
+			return nil, err
+		}
+	}
+	if !providerConfig.ConnectionsAPIAccessToken.IsNull() {
+		if err := createConnectionsClient(c, providerConfig); err != nil {
 			return nil, err
 		}
 	}
@@ -194,6 +201,26 @@ func createCloudProviderClient(client *common.Client, providerConfig ProviderCon
 		return err
 	}
 	client.CloudProviderAPI = apiClient
+	return nil
+}
+
+func createConnectionsClient(client *common.Client, providerConfig ProviderConfig) error {
+	providerHeaders, err := getHTTPHeadersMap(providerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
+	}
+
+	apiClient, err := connectionsapi.NewClient(
+		providerConfig.ConnectionsAPIAccessToken.ValueString(),
+		providerConfig.ConnectionsAPIURL.ValueString(),
+		getRetryClient(providerConfig),
+		providerConfig.UserAgent.ValueString(),
+		providerHeaders,
+	)
+	if err != nil {
+		return err
+	}
+	client.ConnectionsAPIClient = apiClient
 	return nil
 }
 
