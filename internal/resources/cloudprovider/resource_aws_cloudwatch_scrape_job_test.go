@@ -255,7 +255,16 @@ func checkAWSCloudWatchScrapeJobResourceExists(rn string, stackID string, job *c
 		if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
 			return fmt.Errorf("Invalid ID: %s", rs.Primary.ID)
 		}
+		gotStackID := parts[0]
 		jobName := parts[1]
+
+		if gotStackID == "" {
+			return fmt.Errorf("stack id not set")
+		}
+
+		if gotStackID != stackID {
+			return fmt.Errorf("stack id mismatch, expected %s, but %s was in the TF state", stackID, gotStackID)
+		}
 
 		if jobName == "" {
 			return fmt.Errorf("jobName not set")
