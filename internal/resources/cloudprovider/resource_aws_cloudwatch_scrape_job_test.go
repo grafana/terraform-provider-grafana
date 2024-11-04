@@ -305,10 +305,10 @@ func awsCloudWatchScrapeJobResourceData(stackID string, jobName string, enabled 
 resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
   stack_id = "%[1]s"
   name = "%[2]s"
-	enabled = %[3]t
+  enabled = %[3]t
   aws_account_resource_id = "%[4]s"
   regions_subset_override = [%[5]s]
-	export_tags = true
+  export_tags = true
   dynamic "service" {
     for_each = [%[6]s]
     content {
