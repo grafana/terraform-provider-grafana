@@ -4,38 +4,45 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccDataSourceAWSCloudWatchScrapeJob(t *testing.T) {
-	// TODO(tristan): switch to CloudInstanceTestsEnabled
-	// as part of https://github.com/grafana/grafana-aws-app/issues/381
-	t.Skip("not yet implemented. see TODO comment.")
-	// testutils.CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	testCfg := makeTestConfig(t)
+
+	var gotJob cloudproviderapi.AWSCloudWatchScrapeJobResponse
+
+	jobName := "test-job" + acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		// TODO(tristan): actually check for resource existence
-		CheckDestroy: func() resource.TestCheckFunc {
-			return func(s *terraform.State) error {
-				return nil
-			}
-		}(),
 		Steps: []resource.TestStep{
 			{
-				Config: awsCloudWatchScrapeJobDataSourceData(),
+				Config: awsCloudWatchScrapeJobResourceData(testCfg.stackID,
+					jobName,
+					false,
+					testCfg.accountID,
+					regionsString([]string{testAWSCloudWatchScrapeJobData.Regions[0], testAWSCloudWatchScrapeJobData.Regions[1]}),
+					servicesString(testAWSCloudWatchScrapeJobData.Services),
+					customNamespacesString(testAWSCloudWatchScrapeJobData.CustomNamespaces),
+				) + awsCloudWatchScrapeJobDataSourceData(testCfg.stackID, jobName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "stack_id", testStackID),
-					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "name", testAWSCloudWatchScrapeJobData.Name),
-					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "aws_account_resource_id", testAWSCloudWatchScrapeJobData.AWSAccountResourceID),
-					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.RegionsSubsetOverride))),
-					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.0", testAWSCloudWatchScrapeJobData.RegionsSubsetOverride[0]),
-					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.1", testAWSCloudWatchScrapeJobData.RegionsSubsetOverride[1]),
-					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.2", testAWSCloudWatchScrapeJobData.RegionsSubsetOverride[2]),
+					checkAWSCloudWatchScrapeJobResourceExists("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", testCfg.stackID, &gotJob),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "stack_id", testCfg.stackID),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "name", jobName),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "enabled", "false"),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "disabled_reason", "disabled_by_user"),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "aws_account_resource_id", testCfg.accountID),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.#", "2"),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.0", testAWSCloudWatchScrapeJobData.Regions[0]),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.1", testAWSCloudWatchScrapeJobData.Regions[1]),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions_subset_override_used", "true"),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "export_tags", fmt.Sprintf("%t", testAWSCloudWatchScrapeJobData.ExportTags)),
-					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "disabled_reason", ""),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.Services))),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.name", testAWSCloudWatchScrapeJobData.Services[0].Name),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "service.0.metric.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.Services[0].Metrics))),
@@ -57,19 +64,41 @@ func TestAccDataSourceAWSCloudWatchScrapeJob(t *testing.T) {
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.scrape_interval_seconds", fmt.Sprintf("%d", testAWSCloudWatchScrapeJobData.CustomNamespaces[0].ScrapeIntervalSeconds)),
 				),
 			},
+			// update to remove regions_subset_override so that the account's regions are used instead
+			{
+				Config: awsCloudWatchScrapeJobResourceData(testCfg.stackID,
+					jobName,
+					false,
+					testCfg.accountID,
+					"",
+					servicesString(testAWSCloudWatchScrapeJobData.Services),
+					customNamespacesString(testAWSCloudWatchScrapeJobData.CustomNamespaces),
+				) + awsCloudWatchScrapeJobDataSourceData(testCfg.stackID, jobName),
+				Check: resource.ComposeTestCheckFunc(
+					checkAWSCloudWatchScrapeJobResourceExists("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", testCfg.stackID, &gotJob),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "stack_id", testCfg.stackID),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "name", jobName),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.Regions))),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.0", testAWSCloudWatchScrapeJobData.Regions[0]),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.1", testAWSCloudWatchScrapeJobData.Regions[1]),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions.2", testAWSCloudWatchScrapeJobData.Regions[2]),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "regions_subset_override_used", "false"),
+				),
+			},
 		},
+		CheckDestroy: checkAWSCloudWatchScrapeJobResourceDestroy(testCfg.stackID, &gotJob),
 	})
 }
 
-func awsCloudWatchScrapeJobDataSourceData() string {
+func awsCloudWatchScrapeJobDataSourceData(stackID string, jobName string) string {
 	data := fmt.Sprintf(`
 data "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
 	stack_id = "%[1]s"
-	name = "%[2]s"
+	name = grafana_cloud_provider_aws_cloudwatch_scrape_job.test.name
 }
 `,
-		testStackID,
-		testAWSCloudWatchScrapeJobData.Name,
+		stackID,
+		jobName,
 	)
 
 	return data
