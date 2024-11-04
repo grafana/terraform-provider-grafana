@@ -234,7 +234,7 @@ Before using the Terraform Provider to manage Grafana Connections resources, suc
 [These docs](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/authorize-services/#create-an-access-policy-for-a-stack) will guide you on how to create
 an access policy. The required permissions, or scopes, are `integration-management:read`, `integration-management:write` and `stacks:read`.
 
-Also, by default the Access Policies UI will not show those scopes, to find name you need to use the `Add Scope` textbox, as shown in the following image:
+Also, by default the Access Policies UI will not show those scopes, instead, search for it using the `Add Scope` textbox, as shown in the following image:
 
 <img src="https://grafana.com/media/docs/grafana-cloud/connections/connections-terraform-access-policy-create.png" width="700"/>
 
