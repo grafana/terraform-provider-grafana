@@ -140,16 +140,19 @@ func updateCloudAccessPolicyToken(ctx context.Context, d *schema.ResourceData, c
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	region, id := split[0], split[1]
+	id := split[1].(string)
+	region := d.Get("region").(string)
 
 	displayName := d.Get("display_name").(string)
 	if displayName == "" {
 		displayName = d.Get("name").(string)
 	}
 
-	req := client.TokensAPI.PostToken(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).PostTokenRequest(gcom.PostTokenRequest{
+	tokenInput := gcom.PostTokenRequest{
 		DisplayName: &displayName,
-	})
+	}
+
+	req := client.TokensAPI.PostToken(ctx, id).Region(region).XRequestId(ClientRequestID()).PostTokenRequest(tokenInput)
 	if _, _, err := req.Execute(); err != nil {
 		return apiError(err)
 	}
