@@ -32,7 +32,7 @@ var (
 				Computed:    true,
 			},
 			"aws_account_resource_id": schema.StringAttribute{
-				Description: "The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this CloudWatch Scrape Job.",
+				Description: "The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this CloudWatch Scrape Job. This can be provided by the `id` attribute of the `grafana_cloud_provider_aws_account` resource.",
 				Computed:    true,
 			},
 			"role_arn": schema.StringAttribute{

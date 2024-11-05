@@ -71,7 +71,7 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
 
 ### Required
 
-- `aws_account_resource_id` (String) The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this CloudWatch Scrape Job.
+- `aws_account_resource_id` (String) The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this CloudWatch Scrape Job. This can be provided by the `id` attribute of the `grafana_cloud_provider_aws_account` resource.
 - `name` (String) The name of the CloudWatch Scrape Job. Part of the Terraform Resource ID.
 - `stack_id` (String) The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.
 
