@@ -154,9 +154,9 @@ resource "grafana_slo" "test" {
 <a id="nestedblock--destination_datasource"></a>
 ### Nested Schema for `destination_datasource`
 
-Optional:
+Required:
 
-- `uid` (String) UID for the Mimir Datasource
+- `uid` (String) UID for the Datasource
 
 
 <a id="nestedblock--objectives"></a>

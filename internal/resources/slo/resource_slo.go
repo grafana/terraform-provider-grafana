@@ -65,8 +65,8 @@ Resource manages Grafana SLOs.
 					Schema: map[string]*schema.Schema{
 						"uid": {
 							Type:        schema.TypeString,
-							Description: `UID for the Mimir Datasource`,
-							Optional:    true,
+							Description: `UID for the Datasource`,
+							Required:    true,
 						},
 					},
 				},
