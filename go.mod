@@ -23,13 +23,13 @@ require (
 	github.com/hashicorp/hc-install v0.9.0
 	github.com/hashicorp/hcl/v2 v2.22.0
 	github.com/hashicorp/terraform-exec v0.21.0
-	github.com/hashicorp/terraform-json v0.22.1
+	github.com/hashicorp/terraform-json v0.23.0
 	github.com/hashicorp/terraform-plugin-docs v0.19.4
-	github.com/hashicorp/terraform-plugin-framework v1.12.0
-	github.com/hashicorp/terraform-plugin-framework-validators v0.14.0
-	github.com/hashicorp/terraform-plugin-go v0.24.0
-	github.com/hashicorp/terraform-plugin-mux v0.16.0
-	github.com/hashicorp/terraform-plugin-sdk/v2 v2.34.0
+	github.com/hashicorp/terraform-plugin-framework v1.13.0
+	github.com/hashicorp/terraform-plugin-framework-validators v0.15.0
+	github.com/hashicorp/terraform-plugin-go v0.25.0
+	github.com/hashicorp/terraform-plugin-mux v0.17.0
+	github.com/hashicorp/terraform-plugin-sdk/v2 v2.35.0
 	github.com/prometheus/common v0.60.1
 	github.com/stretchr/testify v1.9.0
 	github.com/tmccombs/hcl2json v0.6.4
@@ -93,7 +93,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.6.3 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/go-plugin v1.6.1 // indirect
+	github.com/hashicorp/go-plugin v1.6.2 // indirect
 	github.com/hashicorp/logutils v1.0.0 // indirect
 	github.com/hashicorp/terraform-plugin-log v0.9.0 // indirect
 	github.com/hashicorp/terraform-registry-address v0.2.3 // indirect
@@ -171,7 +171,7 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20240822170219-fc7c04adadcd // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
 	google.golang.org/grpc v1.67.1 // indirect
-	google.golang.org/protobuf v1.34.2 // indirect
+	google.golang.org/protobuf v1.35.1 // indirect
 	gopkg.in/fsnotify/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/validator.v2 v2.0.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
