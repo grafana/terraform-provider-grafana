@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
 )
@@ -59,6 +60,11 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 		}
 		onCallClient.UserAgent = providerConfig.UserAgent.ValueString()
 		c.OnCallClient = onCallClient
+	}
+	if !providerConfig.CloudProviderAccessToken.IsNull() {
+		if err := createCloudProviderClient(c, providerConfig); err != nil {
+			return nil, err
+		}
 	}
 	if !providerConfig.ConnectionsAPIAccessToken.IsNull() {
 		if err := createConnectionsClient(c, providerConfig); err != nil {
@@ -160,7 +166,7 @@ func createCloudClient(client *common.Client, providerConfig ProviderConfig) err
 		return err
 	}
 	openAPIConfig.Host = parsedURL.Host
-	openAPIConfig.Scheme = "https"
+	openAPIConfig.Scheme = parsedURL.Scheme
 	openAPIConfig.HTTPClient = getRetryClient(providerConfig)
 	openAPIConfig.DefaultHeader["Authorization"] = "Bearer " + providerConfig.CloudAccessPolicyToken.ValueString()
 	httpHeaders, err := getHTTPHeadersMap(providerConfig)
@@ -177,6 +183,25 @@ func createCloudClient(client *common.Client, providerConfig ProviderConfig) err
 
 func createOnCallClient(providerConfig ProviderConfig) (*onCallAPI.Client, error) {
 	return onCallAPI.New(providerConfig.OncallURL.ValueString(), providerConfig.OncallAccessToken.ValueString())
+}
+
+func createCloudProviderClient(client *common.Client, providerConfig ProviderConfig) error {
+	providerHeaders, err := getHTTPHeadersMap(providerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
+	}
+
+	apiClient, err := cloudproviderapi.NewClient(
+		providerConfig.CloudProviderAccessToken.ValueString(),
+		providerConfig.CloudProviderURL.ValueString(),
+		getRetryClient(providerConfig),
+		providerHeaders,
+	)
+	if err != nil {
+		return err
+	}
+	client.CloudProviderAPI = apiClient
+	return nil
 }
 
 func createConnectionsClient(client *common.Client, providerConfig ProviderConfig) error {

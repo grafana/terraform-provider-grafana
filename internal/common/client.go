@@ -12,6 +12,7 @@ import (
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/slo-openapi-client/go/slo"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -29,6 +30,7 @@ type Client struct {
 	MLAPI                *mlapi.Client
 	OnCallClient         *onCallAPI.Client
 	SLOClient            *slo.APIClient
+	CloudProviderAPI     *cloudproviderapi.Client
 	ConnectionsAPIClient *connectionsapi.Client
 
 	alertingMutex sync.Mutex

@@ -135,6 +135,19 @@ func Provider(version string) *schema.Provider {
 				Description:  "An Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable.",
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
+
+			"cloud_provider_access_token": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "A Grafana Cloud Provider access token. May alternatively be set via the `GRAFANA_CLOUD_PROVIDER_ACCESS_TOKEN` environment variable.",
+			},
+			"cloud_provider_url": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A Grafana Cloud Provider backend address. May alternatively be set via the `GRAFANA_CLOUD_PROVIDER_URL` environment variable.",
+			},
+
 			"connections_api_access_token": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -215,6 +228,8 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			SMURL:                     stringValueOrNull(d, "sm_url"),
 			OncallAccessToken:         stringValueOrNull(d, "oncall_access_token"),
 			OncallURL:                 stringValueOrNull(d, "oncall_url"),
+			CloudProviderAccessToken:  stringValueOrNull(d, "cloud_provider_access_token"),
+			CloudProviderURL:          stringValueOrNull(d, "cloud_provider_url"),
 			ConnectionsAPIAccessToken: stringValueOrNull(d, "connections_api_access_token"),
 			ConnectionsAPIURL:         stringValueOrNull(d, "connections_api_url"),
 			StoreDashboardSha256:      boolValueOrNull(d, "store_dashboard_sha256"),
