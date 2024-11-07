@@ -1,6 +1,5 @@
 name: Feature Request
 description: Suggest an idea for this provider
-title: ""
 type: "enhancement"
 projects: ["grafana/513"] # Platform Monitoring
 body:
