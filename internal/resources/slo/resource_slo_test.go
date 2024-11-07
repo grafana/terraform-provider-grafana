@@ -311,6 +311,23 @@ resource  "grafana_slo" "invalid" {
 }
 `
 
+const sloMissingDestinationDatasource = `
+resource  "grafana_slo" "invalid" {
+  name            = "Test SLO"
+  description     = "Description Test SLO"
+  query {
+	freeform {
+		query = "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))"
+	}
+    type = "freeform"
+  }
+  objectives {
+	value  = 1.5
+    window = "1m"
+  }
+}
+`
+
 func emptyAlert(name string) string {
 	return fmt.Sprintf(`
 	resource "grafana_slo" "empty_alert" {
@@ -365,6 +382,10 @@ func TestAccResourceInvalidSlo(t *testing.T) {
 			{
 				Config:      sloObjectivesInvalid,
 				ExpectError: regexp.MustCompile("Error:"),
+			},
+			{
+				Config:      sloMissingDestinationDatasource,
+				ExpectError: regexp.MustCompile("Error: Insufficient destination_datasource blocks"),
 			},
 		},
 	})
