@@ -1,8 +1,8 @@
 name: Feature Request
 description: Suggest an idea for this provider
-title: "[Feature Request]: "
-labels: ["enhancement"]
-projects: ["grafana/513"] # Platform Client Administration Tooling
+title: ""
+type: "enhancement"
+projects: ["grafana/513"] # Platform Monitoring
 body:
   - type: textarea
     id: request

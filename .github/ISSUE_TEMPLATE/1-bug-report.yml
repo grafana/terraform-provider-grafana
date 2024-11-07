@@ -1,8 +1,8 @@
 name: Bug Report
 description: File a bug report
-title: "[Bug]: "
-labels: ["bug"]
-projects: ["grafana/513"] # Platform Client Administration Tooling
+title: ""
+type: "bug"
+projects: ["grafana/513"] # Platform Monitoring
 body:
   - type: input
     id: terraform_version
