@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
 
 	"github.com/grafana/grafana-openapi-client-go/client/enterprise"
 	"github.com/grafana/grafana-openapi-client-go/models"
@@ -39,8 +38,9 @@ func makeResourceDataSourceConfigLBACRules() *common.Resource {
 }
 
 type LBACRule struct {
-	TeamID types.String   `tfsdk:"team_id"`
-	Rules  []types.String `tfsdk:"rules"`
+	TeamID  types.String   `tfsdk:"team_id"`
+	TeamUID types.String   `tfsdk:"team_uid"`
+	Rules   []types.String `tfsdk:"rules"`
 }
 
 type resourceDataSourceConfigLBACRulesModel struct {
@@ -104,7 +104,7 @@ func (r *resourceDataSourceConfigLBACRules) Create(ctx context.Context, req reso
 
 	tflog.Info(ctx, "Creating LBAC rules", map[string]interface{}{"datasource_uid": data.DatasourceUID.ValueString()})
 
-	var rulesMap map[string][]string
+	rulesMap := make(map[string][]string)
 	err := json.Unmarshal([]byte(data.Rules.ValueString()), &rulesMap)
 	if err != nil {
 		resp.Diagnostics.AddError("Invalid rules JSON", fmt.Sprintf("Failed to parse rules: %v", err))
@@ -112,10 +112,11 @@ func (r *resourceDataSourceConfigLBACRules) Create(ctx context.Context, req reso
 	}
 
 	apiRules := make([]*models.TeamLBACRule, 0, len(rulesMap))
-	for teamID, rules := range rulesMap {
+	for teamUID, rules := range rulesMap {
 		apiRules = append(apiRules, &models.TeamLBACRule{
-			TeamID: teamID,
-			Rules:  rules,
+			TeamID:  "",
+			TeamUID: teamUID,
+			Rules:   rules,
 		})
 	}
 
@@ -157,7 +158,7 @@ func (r *resourceDataSourceConfigLBACRules) Read(ctx context.Context, req resour
 
 	rulesMap := make(map[string][]string)
 	for _, rule := range getResp.Payload.Rules {
-		rulesMap[rule.TeamID] = rule.Rules
+		rulesMap[rule.TeamUID] = rule.Rules
 	}
 
 	rulesJSON, err := json.Marshal(rulesMap)
@@ -188,15 +189,11 @@ func (r *resourceDataSourceConfigLBACRules) Update(ctx context.Context, req reso
 	}
 
 	apiRules := make([]*models.TeamLBACRule, 0, len(rulesMap))
-	for teamID, rules := range rulesMap {
-		_, err := strconv.ParseInt(teamID, 10, 64)
-		if err != nil {
-			resp.Diagnostics.AddError("Invalid team ID", fmt.Sprintf("Team ID %s is not a valid integer", teamID))
-			return
-		}
+	for teamUID, rules := range rulesMap {
 		apiRules = append(apiRules, &models.TeamLBACRule{
-			TeamID: teamID,
-			Rules:  rules,
+			TeamID:  "",
+			TeamUID: teamUID,
+			Rules:   rules,
 		})
 	}
 	tflog.Info(ctx, "Updating LBAC rules with the new rulesmaps", map[string]interface{}{"rulesmaps": fmt.Sprintf("%v+", apiRules)})
