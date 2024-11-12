@@ -41,6 +41,7 @@ var integrationTypes = []string{
 	"inbound_email",
 	"direct_paging",
 	"jira",
+	"zendesk",
 }
 
 var integrationTypesVerbal = strings.Join(integrationTypes, ", ")
