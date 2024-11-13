@@ -265,6 +265,7 @@ Optional:
 - `client_id` (String) The client Id of your OAuth2 app.
 - `client_secret` (String) The client secret of your OAuth2 app.
 - `enabled` (Boolean) Define whether this configuration is enabled for SAML. Defaults to `true`.
+- `entity_id` (String) The entity ID is a globally unique identifier for the service provider. It is used to identify the service provider to the identity provider. Defaults to the URL of the Grafana instance if not set.
 - `force_use_graph_api` (Boolean) If enabled, Grafana will fetch groups from Microsoft Graph API instead of using the groups claim from the ID token.
 - `idp_metadata` (String) Base64-encoded string for the IdP SAML metadata XML.
 - `idp_metadata_path` (String) Path for the IdP SAML metadata XML.
