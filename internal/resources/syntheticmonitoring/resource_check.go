@@ -270,6 +270,7 @@ var (
 				Description: "Token for use with bearer authorization header.",
 				Type:        schema.TypeString,
 				Optional:    true,
+				Sensitive:   true,
 			},
 			"proxy_url": {
 				Description: "Proxy URL.",
@@ -359,6 +360,7 @@ var (
 				Description: "Basic auth password.",
 				Type:        schema.TypeString,
 				Required:    true,
+				Sensitive:   true,
 			},
 		},
 	}
@@ -1430,7 +1432,7 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 			IpVersion:       sm.IpVersion(sm.IpVersion_value[d["ip_version"].(string)]),
 			SourceIpAddress: d["source_ip_address"].(string),
 			Server:          d["server"].(string),
-			Port:            int32(d["port"].(int)),
+			Port:            int32(d["port"].(int)), //nolint:gosec
 			RecordType:      sm.DnsRecordType(sm.DnsRecordType_value[d["record_type"].(string)]),
 			Protocol:        sm.DnsProtocol(sm.DnsProtocol_value[d["protocol"].(string)]),
 			ValidRCodes:     common.SetToStringSlice(d["valid_r_codes"].(*schema.Set)),
@@ -1485,7 +1487,7 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 		}
 		if h["valid_status_codes"].(*schema.Set).Len() > 0 {
 			for _, v := range h["valid_status_codes"].(*schema.Set).List() {
-				cs.Http.ValidStatusCodes = append(cs.Http.ValidStatusCodes, int32(v.(int)))
+				cs.Http.ValidStatusCodes = append(cs.Http.ValidStatusCodes, int32(v.(int))) //nolint:gosec
 			}
 		}
 		headerMatch := func(hms *schema.Set) []sm.HeaderMatch {

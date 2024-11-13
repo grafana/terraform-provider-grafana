@@ -155,6 +155,11 @@ func datasourceJSONDataAttribute() *schema.Schema {
 					errors.New("httpHeaderName{num} is a reserved key and cannot be used in JSON data. Use the http_headers attribute instead"),
 				}
 			}
+			if strings.Contains(i.(string), "teamHttpHeaders") {
+				return nil, []error{
+					errors.New("teamHttpHeaders is a reserved key and cannot be used in JSON data. Use the data_source_config_lbac_rules resource instead"),
+				}
+			}
 			return validation.StringIsJSON(i, s)
 		},
 		StateFunc: func(v interface{}) string {
@@ -418,6 +423,8 @@ func removeHeadersFromJSONData(input map[string]interface{}) (map[string]interfa
 			jsonData[dataName] = dataValue
 		}
 	}
+	// for teamhttpheaders, we do not set it in the state and we do not want to return it in the diff
+	delete(jsonData, "teamHttpHeaders")
 
 	return jsonData, headers
 }
