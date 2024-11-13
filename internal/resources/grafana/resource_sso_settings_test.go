@@ -91,6 +91,7 @@ func TestSSOSettings_basic_saml(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.idp_metadata_url", "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.signature_algorithm", "rsa-sha256"),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.metadata_valid_duration", "24h"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.entity_id", "https://custom-entity-id.com"),
 				),
 			},
 			{
@@ -446,6 +447,7 @@ const testConfigForSamlProvider = `resource "grafana_sso_settings" "saml_sso_set
     idp_metadata_url        = "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"
     signature_algorithm     = "rsa-sha256"
     metadata_valid_duration = "24h"
+	entity_id               = "https://custom-entity-id.com"
   }
 }`
 

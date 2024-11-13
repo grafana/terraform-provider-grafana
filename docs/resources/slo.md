@@ -131,6 +131,7 @@ resource "grafana_slo" "test" {
 ### Required
 
 - `description` (String) Description is a free-text field that can provide more context to an SLO.
+- `destination_datasource` (Block List, Min: 1, Max: 1) Destination Datasource sets the datasource defined for an SLO (see [below for nested schema](#nestedblock--destination_datasource))
 - `name` (String) Name should be a short description of your indicator. Consider names like "API Availability"
 - `objectives` (Block List, Min: 1) Over each rolling time window, the remaining error budget will be calculated, and separate alerts can be generated for each time window based on the SLO burn rate or remaining error budget. (see [below for nested schema](#nestedblock--objectives))
 - `query` (Block List, Min: 1) Query describes the indicator that will be measured against the objective. Freeform Query types are currently supported. (see [below for nested schema](#nestedblock--query))
@@ -142,7 +143,6 @@ resource "grafana_slo" "test" {
 				alerts when the short-term error budget burn is very high, the
 				long-term error budget burn rate is high, or when the remaining
 				error budget is below a certain threshold. Annotations and Labels support templating. (see [below for nested schema](#nestedblock--alerting))
-- `destination_datasource` (Block List, Max: 1) Destination Datasource sets the datasource defined for an SLO (see [below for nested schema](#nestedblock--destination_datasource))
 - `folder_uid` (String) UID for the SLO folder
 - `label` (Block List) Additional labels that will be attached to all metrics generated from the query. These labels are useful for grouping SLOs in dashboard views that you create by hand. Labels must adhere to Prometheus label name schema - "^[a-zA-Z_][a-zA-Z0-9_]*$" (see [below for nested schema](#nestedblock--label))
 - `search_expression` (String) The name of a search expression in Grafana Asserts. This is used in the SLO UI to open the Asserts RCA workbench and in alerts to link to the RCA workbench.
@@ -150,6 +150,14 @@ resource "grafana_slo" "test" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+<a id="nestedblock--destination_datasource"></a>
+### Nested Schema for `destination_datasource`
+
+Required:
+
+- `uid` (String) UID for the Datasource
+
 
 <a id="nestedblock--objectives"></a>
 ### Nested Schema for `objectives`
@@ -284,14 +292,6 @@ Required:
 - `value` (String) Templatable value
 
 
-
-
-<a id="nestedblock--destination_datasource"></a>
-### Nested Schema for `destination_datasource`
-
-Optional:
-
-- `uid` (String) UID for the Mimir Datasource
 
 
 <a id="nestedblock--label"></a>

@@ -59,14 +59,14 @@ Resource manages Grafana SLOs.
 			"destination_datasource": {
 				Type:        schema.TypeList,
 				MaxItems:    1,
-				Optional:    true,
+				Required:    true,
 				Description: `Destination Datasource sets the datasource defined for an SLO`,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"uid": {
 							Type:        schema.TypeString,
-							Description: `UID for the Mimir Datasource`,
-							Optional:    true,
+							Description: `UID for the Datasource`,
+							Required:    true,
 						},
 					},
 				},

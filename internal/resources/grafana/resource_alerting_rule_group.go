@@ -187,7 +187,7 @@ This resource requires Grafana 9.1.0 or later.
 							Type:        schema.TypeMap,
 							Optional:    true,
 							Default:     map[string]interface{}{},
-							Description: "Key-value pairs of metadata to attach to the alert rule that may add user-defined context, but cannot be used for matching, grouping, or routing.",
+							Description: "Key-value pairs of metadata to attach to the alert rule. They add additional information, such as a `summary` or `runbook_url`, to help identify and investigate alerts. The `dashboardUId` and `panelId` annotations, which link alerts to a panel, must be set together.",
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},

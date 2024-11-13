@@ -107,8 +107,7 @@ func (r *resourceDataSourceConfigLBACRules) Create(ctx context.Context, req reso
 	rulesMap := make(map[string][]string)
 	err := json.Unmarshal([]byte(data.Rules.ValueString()), &rulesMap)
 	if err != nil {
-		resp.Diagnostics.AddError("Invalid rules JSON", fmt.Sprintf("Failed to parse rules: %v", err))
-		return
+		resp.Diagnostics.AddError("Invalid rules JSON", fmt.Sprintf("Failed to parse rule s: %v", err))
 	}
 
 	apiRules := make([]*models.TeamLBACRule, 0, len(rulesMap))
@@ -124,11 +123,13 @@ func (r *resourceDataSourceConfigLBACRules) Create(ctx context.Context, req reso
 
 	client := r.client.GrafanaAPI
 
-	_, err = client.Enterprise.UpdateTeamLBACRulesAPI(&enterprise.UpdateTeamLBACRulesAPIParams{
-		UID:     data.DatasourceUID.ValueString(),
+	params := &enterprise.UpdateTeamLBACRulesAPIParams{
 		Context: ctx,
+		UID:     data.DatasourceUID.ValueString(),
 		Body:    &models.UpdateTeamLBACCommand{Rules: apiRules},
-	})
+	}
+
+	_, err = client.Enterprise.UpdateTeamLBACRulesAPI(params)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create LBAC rules", err.Error())
 		return
@@ -147,7 +148,7 @@ func (r *resourceDataSourceConfigLBACRules) Read(ctx context.Context, req resour
 		return
 	}
 
-	datasourceUID := data.ID.ValueString()
+	datasourceUID := data.DatasourceUID.ValueString()
 	client := r.client.GrafanaAPI
 
 	getResp, err := client.Enterprise.GetTeamLBACRulesAPI(datasourceUID)
@@ -167,7 +168,12 @@ func (r *resourceDataSourceConfigLBACRules) Read(ctx context.Context, req resour
 		return
 	}
 
-	data.Rules = types.StringValue(string(rulesJSON))
+	data = resourceDataSourceConfigLBACRulesModel{
+		ID:            types.StringValue(datasourceUID),
+		DatasourceUID: types.StringValue(datasourceUID),
+		Rules:         types.StringValue(string(rulesJSON)),
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -198,14 +204,16 @@ func (r *resourceDataSourceConfigLBACRules) Update(ctx context.Context, req reso
 	}
 	tflog.Info(ctx, "Updating LBAC rules with the new rulesmaps", map[string]interface{}{"rulesmaps": fmt.Sprintf("%v+", apiRules)})
 
-	datasourceUID := data.ID.ValueString()
+	datasourceUID := data.DatasourceUID.ValueString()
 	client := r.client.GrafanaAPI
 
-	_, err = client.Enterprise.UpdateTeamLBACRulesAPI(&enterprise.UpdateTeamLBACRulesAPIParams{
-		UID:     datasourceUID,
+	params := &enterprise.UpdateTeamLBACRulesAPIParams{
 		Context: ctx,
+		UID:     datasourceUID,
 		Body:    &models.UpdateTeamLBACCommand{Rules: apiRules},
-	})
+	}
+
+	_, err = client.Enterprise.UpdateTeamLBACRulesAPI(params)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update LBAC rules", err.Error())
 		return
