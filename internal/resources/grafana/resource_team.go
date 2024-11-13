@@ -55,6 +55,11 @@ func resourceTeam() *common.Resource {
 				Computed:    true,
 				Description: "The team id assigned to this team by Grafana.",
 			},
+			"team_uid": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The team uid assigned to this team by Grafana.",
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -234,6 +239,7 @@ func readTeamFromID(client *goapi.GrafanaHTTPAPI, teamID int64, d *schema.Resour
 
 	d.SetId(MakeOrgResourceID(team.OrgID, teamID))
 	d.Set("team_id", teamID)
+	d.Set("team_uid", team.UID)
 	d.Set("name", team.Name)
 	d.Set("org_id", strconv.FormatInt(team.OrgID, 10))
 	if team.Email != "" {
