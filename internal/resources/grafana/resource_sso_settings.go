@@ -309,6 +309,11 @@ var samlSettingsSchema = &schema.Resource{
 			Optional:    true,
 			Description: "Name used to refer to the SAML authentication.",
 		},
+		"entity_id": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "The entity ID is a globally unique identifier for the service provider. It is used to identify the service provider to the identity provider. Defaults to the URL of the Grafana instance if not set.",
+		},
 		"single_logout": {
 			Type:        schema.TypeBool,
 			Optional:    true,
