@@ -55,6 +55,7 @@ to the team. Note: users specified here must already exist in Grafana.
 
 - `id` (String) The ID of this resource.
 - `team_id` (Number) The team id assigned to this team by Grafana.
+- `team_uid` (String) The team uid assigned to this team by Grafana.
 
 <a id="nestedblock--preferences"></a>
 ### Nested Schema for `preferences`
