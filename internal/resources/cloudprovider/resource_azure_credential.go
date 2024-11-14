@@ -13,6 +13,7 @@ import (
 )
 
 var (
+	//nolint:gosec
 	resourceAzureCredentialTerraformName = "grafana_cloud_provider_azure_credential"
 	resourceAzureCredentialTerraformID   = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("resource_id"))
 )
