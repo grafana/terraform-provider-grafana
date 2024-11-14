@@ -752,8 +752,8 @@ func unpackRecord(p interface{}) *models.Record {
 	if p == nil {
 		return nil
 	}
-	list := p.([]interface{})
-	if len(list) == 0 {
+	list, ok := p.([]interface{})
+	if !ok || len(list) == 0 {
 		return nil
 	}
 	jsonData := list[0].(map[string]interface{})
