@@ -13,11 +13,13 @@ var DataSources = []*common.DataSource{
 	makeDataSourceAWSAccount(),
 	makeDatasourceAWSCloudWatchScrapeJob(),
 	makeDatasourceAWSCloudWatchScrapeJobs(),
+	makeDataSourceAzureCredential(),
 }
 
 var Resources = []*common.Resource{
 	makeResourceAWSAccount(),
 	makeResourceAWSCloudWatchScrapeJob(),
+	makeResourceAzureCredential(),
 }
 
 func withClientForResource(req resource.ConfigureRequest, resp *resource.ConfigureResponse) (*cloudproviderapi.Client, error) {
