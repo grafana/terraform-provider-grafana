@@ -56,6 +56,10 @@ func TestAcc_AzureCredential(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
+	defer os.Setenv("GRAFANA_CLOUD_PROVIDER_URL", os.Getenv("GRAFANA_CLOUD_PROVIDER_URL"))
+	defer os.Setenv("GRAFANA_CLOUD_PROVIDER_ACCESS_TOKEN", os.Getenv("GRAFANA_CLOUD_PROVIDER_ACCESS_TOKEN"))
+
+	// set this to use the mock server
 	_ = os.Setenv("GRAFANA_CLOUD_PROVIDER_URL", server.URL)
 	_ = os.Setenv("GRAFANA_CLOUD_PROVIDER_ACCESS_TOKEN", "some_token")
 
