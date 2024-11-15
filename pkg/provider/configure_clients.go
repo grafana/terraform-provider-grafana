@@ -123,6 +123,11 @@ func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig
 	if cfg.HTTPHeaders, err = getHTTPHeadersMap(providerConfig); err != nil {
 		return err
 	}
+
+	cfg.Client = &http.Client{
+		Transport: newRoundTripper(http.DefaultTransport),
+	}
+
 	client.GrafanaAPI = goapi.NewHTTPClientWithConfig(strfmt.Default, &cfg)
 	client.GrafanaAPIConfig = &cfg
 
