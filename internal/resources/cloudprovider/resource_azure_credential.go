@@ -2,6 +2,8 @@ package cloudprovider
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
@@ -107,6 +109,36 @@ func (r *resourceAzureCredential) Schema(ctx context.Context, req resource.Schem
 			},
 		},
 	}
+}
+
+func (r *resourceAzureCredential) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	parts := strings.SplitN(req.ID, ":", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		resp.Diagnostics.AddError("Invalid ID", fmt.Sprintf("Invalid ID: %s", req.ID))
+		return
+	}
+	stackID := parts[0]
+	resourceID := parts[1]
+
+	credentials, err := r.client.GetAzureCredential(
+		ctx,
+		stackID,
+		resourceID,
+	)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get Azure credential", err.Error())
+		return
+	}
+
+	resp.State.Set(ctx, &resourceAzureCredentialModel{
+		ID:           types.StringValue(req.ID),
+		Name:         types.StringValue(credentials.Name),
+		TenantID:     types.StringValue(credentials.TenantID),
+		ClientID:     types.StringValue(credentials.ClientID),
+		StackID:      types.StringValue(stackID),
+		ResourceID:   types.StringValue(resourceID),
+		ClientSecret: types.StringValue(""), // We don't import the client secret
+	})
 }
 
 func (r *resourceAzureCredential) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
