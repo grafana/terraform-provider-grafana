@@ -75,9 +75,10 @@ func TestAccResourceCheck_dns(t *testing.T) {
 				),
 			},
 			{
-				ImportState:       true,
-				ImportStateVerify: true,
-				ResourceName:      "grafana_synthetic_monitoring_check.dns",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ResourceName:            "grafana_synthetic_monitoring_check.dns",
+				ImportStateVerifyIgnore: []string{"select_probes_count"},
 			},
 		},
 	})
@@ -144,9 +145,10 @@ func TestAccResourceCheck_http(t *testing.T) {
 				),
 			},
 			{
-				ImportState:       true,
-				ImportStateVerify: true,
-				ResourceName:      "grafana_synthetic_monitoring_check.http",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ResourceName:            "grafana_synthetic_monitoring_check.http",
+				ImportStateVerifyIgnore: []string{"select_probes_count"},
 			},
 		},
 	})
@@ -272,9 +274,10 @@ func TestAccResourceCheck_ping(t *testing.T) {
 				),
 			},
 			{
-				ImportState:       true,
-				ImportStateVerify: true,
-				ResourceName:      "grafana_synthetic_monitoring_check.ping",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ResourceName:            "grafana_synthetic_monitoring_check.ping",
+				ImportStateVerifyIgnore: []string{"select_probes_count"},
 			},
 		},
 	})
@@ -328,9 +331,10 @@ func TestAccResourceCheck_tcp(t *testing.T) {
 				),
 			},
 			{
-				ImportState:       true,
-				ImportStateVerify: true,
-				ResourceName:      "grafana_synthetic_monitoring_check.tcp",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ResourceName:            "grafana_synthetic_monitoring_check.tcp",
+				ImportStateVerifyIgnore: []string{"select_probes_count"},
 			},
 		},
 	})
@@ -380,9 +384,10 @@ func TestAccResourceCheck_traceroute(t *testing.T) {
 				),
 			},
 			{
-				ImportState:       true,
-				ImportStateVerify: true,
-				ResourceName:      "grafana_synthetic_monitoring_check.traceroute",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ResourceName:            "grafana_synthetic_monitoring_check.traceroute",
+				ImportStateVerifyIgnore: []string{"select_probes_count"},
 			},
 		},
 	})
@@ -470,9 +475,10 @@ func TestAccResourceCheck_multihttp(t *testing.T) {
 				),
 			},
 			{
-				ImportState:       true,
-				ImportStateVerify: true,
-				ResourceName:      "grafana_synthetic_monitoring_check.multihttp",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ResourceName:            "grafana_synthetic_monitoring_check.multihttp",
+				ImportStateVerifyIgnore: []string{"select_probes_count"},
 			},
 		},
 	})
@@ -510,9 +516,10 @@ func TestAccResourceCheck_scripted(t *testing.T) {
 				),
 			},
 			{
-				ImportState:       true,
-				ImportStateVerify: true,
-				ResourceName:      "grafana_synthetic_monitoring_check.scripted",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ResourceName:            "grafana_synthetic_monitoring_check.scripted",
+				ImportStateVerifyIgnore: []string{"select_probes_count"},
 			},
 		},
 	})
@@ -561,9 +568,10 @@ func TestAccResourceCheck_grpc(t *testing.T) {
 				),
 			},
 			{
-				ImportState:       true,
-				ImportStateVerify: true,
-				ResourceName:      "grafana_synthetic_monitoring_check.grpc",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ResourceName:            "grafana_synthetic_monitoring_check.grpc",
+				ImportStateVerifyIgnore: []string{"select_probes_count"},
 			},
 		},
 	})

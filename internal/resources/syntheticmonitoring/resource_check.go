@@ -1193,7 +1193,7 @@ func makeCheck(ctx context.Context, c *smapi.Client, d *schema.ResourceData) (*s
 	}
 
 	var probes []int64
-	if probeCount := d.Get("select_probes_count").(int); probeCount > 0 {
+	if probeCount := d.Get("select_probes_count").(int); probeCount > 0 && !d.HasChange("probes") {
 		smProbes, err := c.ListProbes(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to list probes: %w", err)
@@ -1657,7 +1657,7 @@ func resourceCheckCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, 
 	}
 
 	// If the user changed `select_probes_count`, the probes list will be rebuilt.
-	if diff.HasChange("select_probes_count") {
+	if diff.HasChange("select_probes_count") && !diff.HasChange("probes") {
 		diff.SetNewComputed("probes")
 	}
 

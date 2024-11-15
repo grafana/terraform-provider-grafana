@@ -1,12 +1,8 @@
-data "grafana_synthetic_monitoring_probes" "main" {}
-
 resource "grafana_synthetic_monitoring_check" "scripted" {
-  job     = "Validate homepage"
-  target  = "https://grafana.com/"
-  enabled = true
-  probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Paris,
-  ]
+  job                 = "Validate homepage"
+  target              = "https://grafana.com/"
+  enabled             = true
+  select_probes_count = 1
   labels = {
     environment = "production"
   }
