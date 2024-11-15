@@ -11,16 +11,39 @@ resource "grafana_synthetic_monitoring_check" "{{ .Job }}" {
   labels = {
     foo = "bar"
   }
-  probes  = [7]
-  target  = "https://grafana.com"
+  probes  = [8, 22]
+  target  = "https://grafana.org"
   timeout = 3000
   settings {
     http {
-      fail_if_not_ssl     = false
-      fail_if_ssl         = false
-      ip_version          = "V4"
-      method              = "GET"
-      no_follow_redirects = false
+      bearer_token                    = "asdfjkl;"
+      body                            = "and spirit"
+      cache_busting_query_param_name  = "pineapple"
+      fail_if_body_matches_regexp     = [".*bad stuff.*"]
+      fail_if_body_not_matches_regexp = [".*good stuff.*"]
+      fail_if_not_ssl                 = true
+      fail_if_ssl                     = true
+      headers                         = ["Content-Type: multipart/form-data; boundary=something"]
+      ip_version                      = "V6"
+      method                          = "TRACE"
+      no_follow_redirects             = true
+      proxy_url                       = "https://almost-there"
+      valid_http_versions             = ["HTTP/1.0", "HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes              = [200, 201]
+      basic_auth {
+        password = "sesame"
+        username = "open"
+      }
+      fail_if_header_matches_regexp {
+        allow_missing = true
+        header        = "Content-Type"
+        regexp        = "application/soap*"
+      }
+      tls_config {
+        client_cert          = "-----BEGIN CERTIFICATE-----\nMIIEljCCAn4CCQCKJPUQQxeO0zANBgkqhkiG9w0BAQsFADANMQswCQYDVQQGEwJT\nRTAeFw0yMTA1MjkxOTIyNTdaFw0yNDAzMTgxOTIyNTdaMA0xCzAJBgNVBAYTAlNF\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAnmbazDNUT0rSI4BpGZK+\n0AJ+9FDkIYWJUtRLJoxw8CF+AobMFploYA2L2Myt80cTA1w8FrewjC8qlqdnrPWr\nh1ely2zsUljgi1/niH0ndjFzliL7UkinXQiAsTtYOrOQmzyd/o5PNdu7dz0m7stD\nBN/Sz5TlXZnA1/eJbqV/kqMau6b1MaBx8SbRfUG9+cSmUobFJwuktDrPuwJhcEkl\niDmhEqu1GuZzmKvzPacLTVia1vSlmCTCu89NiHI8iGiiLtqNrapup7f8j5m3a3SL\na+vXhplFj2piNl7Nc0dfuVgtEliTI+qUL2/+4A7gzRWZpHy21/LxMMXmBhdJW9En\nFWkev97VZLgb5TR3+qpSWmXcodjPy4dibvwsOMpdd+Q4AYulwvlDw5idRPVgGvk7\nqq03+w9ppZ5Fugws9k2CD9F/75JX2mCbRpkuPe8XXZ7bqrMaQgQMLOrs68HuiiCk\nFTklglq4DMKxnf/Y/T/MgIa9Q1o28YSevh6A7FnfPGARj2H2T4rToi+bC1Vf7qNB\nZ18bDpz99tRUTbyiRUSBMWLCGhU6c4HAqUrfrkpperOKFBQ3i38a79838oFdXHBW\n6rx1t5cC3XwtEoUyeBKAygez8G1LDXbN3607MxVhAjhHKtPkYvuBfysSNU6JrR0z\nUV1IURJANt2UMuKgSEkG/IMCAwEAATANBgkqhkiG9w0BAQsFAAOCAgEAcipMhp/w\nyzfPy61faVAw9SPaMNRlnW9FCDC3N9CGOjo2knjXpObPzyzsJiUURTjrA9eFMpRA\ne2Rgn2j+nvm2XdLAlC4Kh8jqv/wCL0X6BTQMdN5aOhXdSiXtpXOMvXYY/dQ4ebRZ\nXeRCVWQD79JbV6/uyx0nCV3FVcU7L1P4UjxroefVr0soLPMirgxHmOxLnkoVgdcB\ntqufP5kJx9CIeJXPx3QQsk1XfEtxtUvuw4ZaZkQnNUqvGl7V+AZpur5Eqfv3zBi8\nQxxL7qGkARNssNWH2Ju+tqpM/UZRnjlFrDR4SXUgT0coTduBalUY6qHkciHmRpiP\ntf3SgpDeiCSOV2iVFGdaR1mz3muWoAYWFstcWN3a3HjjVugIi23yLN8Gv8CNeoH4\nprulinFCLrFgAh8SLAF8mOAZanT06LH8jOIFYrdUxH+ZeRBR0rLoFjUF+JB7UKD9\n5TA+B4EBzQ1tMbGFU1DX79MjAejq0IV0Nzq+GMfBvLHxEf4+Oz8nqhDXQcJ6TdtY\nl3Lyw5zBvOL80SBK+Mr0UP7d9U3VXgbGHCYVJU6Ot1TwiGwahtWALRALA3TWeGkq\n7kyD1H+nm+9lfKhuyBRQnRGBVyze2lAp7oxwshJuhBwEXosXFxq1Cy6QhPN77r6N\nvuhxvtppolNnyOgGxwG4zquqq2V5/+vKjKY=\n-----END CERTIFICATE-----\n"
+        insecure_skip_verify = false
+        server_name          = "grafana.org"
+      }
     }
   }
 }
