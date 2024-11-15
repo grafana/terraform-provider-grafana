@@ -2,6 +2,7 @@ package syntheticmonitoring_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -146,6 +147,84 @@ func TestAccResourceCheck_http(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ResourceName:      "grafana_synthetic_monitoring_check.http",
+			},
+		},
+	})
+}
+
+func TestAccResourceCheck_selectProbes(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	// Inject random job names to avoid conflicts with other tests
+	jobName := acctest.RandomWithPrefix("sm-random")
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// There aren't 10000 probes, so this should fail
+				Config:      testAccResourceCheck_randomProbes(jobName, 10000),
+				ExpectError: regexp.MustCompile(`.*not enough probes available, requested: 10000, available: \d+.*`),
+			},
+			{
+				Config: testAccResourceCheck_randomProbes(jobName, 5),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "tenant_id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "job", jobName),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "target", "https://"+jobName+".com"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "probes.#", "5"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "select_probes_count", "5"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "labels.foo", "bar"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.ip_version", "V4"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.method", "GET"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.no_follow_redirects", "false"),
+				),
+			},
+			// Increase the number of probes
+			{
+				Config: testAccResourceCheck_randomProbes(jobName, 7),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "tenant_id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "job", jobName),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "target", "https://"+jobName+".com"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "probes.#", "7"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "select_probes_count", "7"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "labels.foo", "bar"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.ip_version", "V4"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.method", "GET"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.no_follow_redirects", "false"),
+				),
+			},
+			// Decrease the number of probes
+			{
+				Config: testAccResourceCheck_randomProbes(jobName, 3),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.http", "tenant_id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "job", jobName),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "target", "https://"+jobName+".com"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "probes.#", "3"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "select_probes_count", "3"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "labels.foo", "bar"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.ip_version", "V4"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.method", "GET"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.no_follow_redirects", "false"),
+				),
+			},
+
+			// Importing should also work, the diff will be against the number of probes in the check
+			{
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ResourceName:            "grafana_synthetic_monitoring_check.http",
+				ImportStateVerifyIgnore: []string{"select_probes_count"},
+			},
+			// Should be an empty plan
+			{
+				Config:   testAccResourceCheck_randomProbes(jobName, 3),
+				PlanOnly: true,
 			},
 		},
 	})
@@ -558,6 +637,22 @@ func TestAccResourceCheck_multiple(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccResourceCheck_randomProbes(name string, count int) string {
+	return fmt.Sprintf(`
+resource "grafana_synthetic_monitoring_check" "http" {
+  job     = "%s"
+  target  = "https://%s.com"
+  enabled = false
+  select_probes_count = %d
+  labels = {
+    foo = "bar"
+  }
+  settings {
+    http {}
+  }
+}`, name, name, count)
 }
 
 const testAccResourceCheck_noSettings = `

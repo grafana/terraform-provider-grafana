@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"strconv"
 	"strings"
 
@@ -22,7 +23,6 @@ const (
 )
 
 var (
-
 	// Set variables for schemas used in multiple fields and/or used to transform
 	// API client types back to schemas.
 
@@ -761,10 +761,21 @@ multiple checks for a single endpoint to check different capabilities.
 			"probes": {
 				Description: "List of probe location IDs where this target will be checked from.",
 				Type:        schema.TypeSet,
-				Required:    true,
+				Optional:    true,
+				Computed:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeInt,
 				},
+			},
+			"select_probes_count": {
+				Description: `Number of probes to use for this check. 
+On creation and updates, an attempt will be made to use a selection of geographically dispersed probes.
+On imports, the current selection of probes will be used, and a diff will be generated if the number of probes is different.
+To select specific probes, use the "probes" attribute.
+`,
+				Type:          schema.TypeInt,
+				Optional:      true,
+				ConflictsWith: []string{"probes"},
 			},
 			"labels": {
 				Description: "Custom labels to be included with collected metrics and logs. " +
@@ -816,7 +827,7 @@ func listChecks(ctx context.Context, client *common.Client, data any) ([]string,
 }
 
 func resourceCheckCreate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
-	chk, err := makeCheck(d)
+	chk, err := makeCheck(ctx, c, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -1153,7 +1164,7 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 }
 
 func resourceCheckUpdate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
-	chk, err := makeCheck(d)
+	chk, err := makeCheck(ctx, c, d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -1175,15 +1186,52 @@ func resourceCheckDelete(ctx context.Context, d *schema.ResourceData, c *smapi.C
 
 // makeCheck populates an instance of sm.Check. We need this for create and
 // update calls with the SM API client.
-func makeCheck(d *schema.ResourceData) (*sm.Check, error) {
+func makeCheck(ctx context.Context, c *smapi.Client, d *schema.ResourceData) (*sm.Check, error) {
 	var id int64
 	if d.Id() != "" {
 		id, _ = strconv.ParseInt(d.Id(), 10, 64)
 	}
 
 	var probes []int64
-	for _, p := range d.Get("probes").(*schema.Set).List() {
-		probes = append(probes, int64(p.(int)))
+	if probeCount := d.Get("select_probes_count").(int); probeCount > 0 {
+		smProbes, err := c.ListProbes(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list probes: %w", err)
+		}
+		byRegion := make(map[string][]int64)
+		for _, p := range smProbes {
+			if !p.Deprecated {
+				byRegion[p.Region] = append(byRegion[p.Region], p.Id)
+			}
+		}
+		// Shuffle lists so the provider doesn't always pick the same probes.
+		for _, probes := range byRegion {
+			rand.Shuffle(len(probes), func(i, j int) {
+				probes[i], probes[j] = probes[j], probes[i]
+			})
+		}
+		// Add probes from each region until we have enough.
+		for len(probes) < probeCount {
+			for region, regionProbes := range byRegion {
+				if len(regionProbes) == 0 {
+					delete(byRegion, region)
+					continue
+				}
+				if len(probes) >= probeCount {
+					break
+				}
+				probes = append(probes, regionProbes[0])
+				byRegion[region] = regionProbes[1:]
+				break
+			}
+			if len(byRegion) == 0 {
+				return nil, fmt.Errorf("not enough probes available, requested: %d, available: %d", probeCount, len(probes))
+			}
+		}
+	} else {
+		for _, p := range d.Get("probes").(*schema.Set).List() {
+			probes = append(probes, int64(p.(int)))
+		}
 	}
 
 	var labels []sm.Label
@@ -1606,6 +1654,11 @@ func resourceCheckCustomizeDiff(ctx context.Context, diff *schema.ResourceDiff, 
 
 	if count != 1 {
 		return fmt.Errorf("exactly one check setting must be defined, got %d", count)
+	}
+
+	// If the user changed `select_probes_count`, the probes list will be rebuilt.
+	if diff.HasChange("select_probes_count") {
+		diff.SetNewComputed("probes")
 	}
 
 	return nil
