@@ -1213,16 +1213,14 @@ func makeCheck(ctx context.Context, c *smapi.Client, d *schema.ResourceData) (*s
 		// Add probes from each region until we have enough.
 		for len(probes) < probeCount {
 			for region, regionProbes := range byRegion {
-				if len(regionProbes) == 0 {
-					delete(byRegion, region)
-					continue
-				}
 				if len(probes) >= probeCount {
 					break
 				}
 				probes = append(probes, regionProbes[0])
 				byRegion[region] = regionProbes[1:]
-				break
+				if len(byRegion[region]) == 0 {
+					delete(byRegion, region)
+				}
 			}
 			if len(byRegion) == 0 {
 				return nil, fmt.Errorf("not enough probes available, requested: %d, available: %d", probeCount, len(probes))
