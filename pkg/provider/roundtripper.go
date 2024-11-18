@@ -9,11 +9,17 @@ import (
 )
 
 type roundTripper struct {
-	originalTransport http.RoundTripper
+	originalClientTransport runtime.ClientTransport
+	originalTransport       http.RoundTripper
 }
 
-func newRoundTripper(originalTransport runtime.ClientTransport) http.RoundTripper {
-	return &roundTripper{originalTransport: originalTransport.(*httptransport.Runtime).Transport}
+func newRoundTripper(originalClientTransport runtime.ClientTransport) runtime.ClientTransport {
+	return &roundTripper{originalClientTransport: originalClientTransport, originalTransport: originalClientTransport.(*httptransport.Runtime).Transport}
+}
+
+func (c *roundTripper) Submit(operation *runtime.ClientOperation) (interface{}, error) {
+	operation.Client.Transport = c
+	return c.originalClientTransport.Submit(operation)
 }
 
 func (c *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -24,5 +30,6 @@ func (c *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	mid := middleware.NegotiateContentType(req, []string{"application/json", "application/text"}, "application/json")
 	resp.Header.Set("Content-Type", mid)
+
 	return resp, nil
 }
