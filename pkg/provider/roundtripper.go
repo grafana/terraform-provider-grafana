@@ -3,6 +3,8 @@ package provider
 import (
 	"net/http"
 
+	"github.com/go-openapi/runtime"
+	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/runtime/middleware"
 )
 
@@ -10,8 +12,8 @@ type roundTripper struct {
 	originalTransport http.RoundTripper
 }
 
-func newRoundTripper(originalTransport http.RoundTripper) http.RoundTripper {
-	return &roundTripper{originalTransport: originalTransport}
+func newRoundTripper(originalTransport runtime.ClientTransport) http.RoundTripper {
+	return &roundTripper{originalTransport: originalTransport.(*httptransport.Runtime).Transport}
 }
 
 func (c *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
