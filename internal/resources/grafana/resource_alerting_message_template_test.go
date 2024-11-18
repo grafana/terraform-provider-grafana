@@ -11,7 +11,7 @@ import (
 )
 
 func TestAccMessageTemplate_basic(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
+	testutils.CheckOSSTestsEnabled(t, ">=10.0.0") // Deletion fails in 9.5.18 since it tries to set body into a 204, and it isn't properly handled.
 
 	var tmpl models.NotificationTemplate
 
