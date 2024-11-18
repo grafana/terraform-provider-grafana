@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	httptransport "github.com/go-openapi/runtime/client"
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
@@ -125,7 +126,7 @@ func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig
 	}
 
 	newClient := goapi.NewHTTPClientWithConfig(strfmt.Default, &cfg)
-	newClient.Transport = newRoundTripper(newClient.Transport)
+	newClient.Transport.(*httptransport.Runtime).Transport = newRoundTripper(newClient.Transport)
 
 	client.GrafanaAPI = newClient
 	client.GrafanaAPIConfig = &cfg

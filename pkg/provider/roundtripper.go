@@ -9,17 +9,11 @@ import (
 )
 
 type roundTripper struct {
-	originalClientTransport runtime.ClientTransport
-	originalTransport       http.RoundTripper
+	originalTransport http.RoundTripper
 }
 
-func newRoundTripper(originalClientTransport runtime.ClientTransport) runtime.ClientTransport {
-	return &roundTripper{originalClientTransport: originalClientTransport, originalTransport: originalClientTransport.(*httptransport.Runtime).Transport}
-}
-
-func (c *roundTripper) Submit(operation *runtime.ClientOperation) (interface{}, error) {
-	operation.Client.Transport = c
-	return c.originalClientTransport.Submit(operation)
+func newRoundTripper(originalClientTransport runtime.ClientTransport) http.RoundTripper {
+	return &roundTripper{originalClientTransport.(*httptransport.Runtime).Transport}
 }
 
 func (c *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
