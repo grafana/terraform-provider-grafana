@@ -80,7 +80,7 @@ EOT`,
 }
 
 func TestAccMessageTemplate_inOrg(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=9.0.0")
+	testutils.CheckOSSTestsEnabled(t, ">=10.0.0")
 
 	name := acctest.RandString(10)
 	var tmpl models.NotificationTemplate
