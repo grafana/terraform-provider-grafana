@@ -2,13 +2,11 @@ package grafana
 
 import (
 	"context"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/runtime/middleware"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
