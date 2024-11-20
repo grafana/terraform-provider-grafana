@@ -50,7 +50,7 @@ var (
 		func(t *models.MuteTimeInterval) string { return t.Name },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.MuteTimeInterval, error) {
 			resp, err := client.Provisioning.GetMuteTiming(id)
-			return payloadOrError[models.MuteTimeInterval](resp, err)
+			return payloadOrError(resp, err)
 		},
 	)
 	alertingNotificationPolicyCheckExists = newCheckExistsHelper(
@@ -72,7 +72,7 @@ var (
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.AlertRuleGroup, error) {
 			folder, title, _ := strings.Cut(id, ":")
 			resp, err := client.Provisioning.GetAlertRuleGroup(title, folder)
-			return payloadOrError[models.AlertRuleGroup](resp, err)
+			return payloadOrError(resp, err)
 		},
 	)
 	annotationsCheckExists = newCheckExistsHelper(
@@ -99,7 +99,7 @@ var (
 		},
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.DashboardFullWithMeta, error) {
 			resp, err := client.Dashboards.GetDashboardByUID(id)
-			return payloadOrError[models.DashboardFullWithMeta](resp, err)
+			return payloadOrError(resp, err)
 		},
 	)
 	dashboardPublicCheckExists = newCheckExistsHelper(
@@ -107,14 +107,14 @@ var (
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.PublicDashboard, error) {
 			dashboardUID, _, _ := strings.Cut(id, ":")
 			resp, err := client.DashboardPublic.GetPublicDashboard(dashboardUID)
-			return payloadOrError[models.PublicDashboard](resp, err)
+			return payloadOrError(resp, err)
 		},
 	)
 	datasourceCheckExists = newCheckExistsHelper(
 		func(d *models.DataSource) string { return d.UID },
 		func(client *goapi.GrafanaHTTPAPI, uid string) (*models.DataSource, error) {
 			resp, err := client.Datasources.GetDataSourceByUID(uid)
-			return payloadOrError[models.DataSource](resp, err)
+			return payloadOrError(resp, err)
 		},
 	)
 	datasourcePermissionsCheckExists = newCheckExistsHelper(
