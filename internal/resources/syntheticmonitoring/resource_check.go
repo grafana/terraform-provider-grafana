@@ -270,6 +270,7 @@ var (
 				Description: "Token for use with bearer authorization header.",
 				Type:        schema.TypeString,
 				Optional:    true,
+				Sensitive:   true,
 			},
 			"proxy_url": {
 				Description: "Proxy URL.",
@@ -359,6 +360,7 @@ var (
 				Description: "Basic auth password.",
 				Type:        schema.TypeString,
 				Required:    true,
+				Sensitive:   true,
 			},
 		},
 	}

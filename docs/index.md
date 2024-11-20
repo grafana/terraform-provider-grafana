@@ -210,6 +210,10 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 - `ca_cert` (String) Certificate CA bundle (file path or literal value) to use to verify the Grafana server's certificate. May alternatively be set via the `GRAFANA_CA_CERT` environment variable.
 - `cloud_access_policy_token` (String, Sensitive) Access Policy Token for Grafana Cloud. May alternatively be set via the `GRAFANA_CLOUD_ACCESS_POLICY_TOKEN` environment variable.
 - `cloud_api_url` (String) Grafana Cloud's API URL. May alternatively be set via the `GRAFANA_CLOUD_API_URL` environment variable.
+- `cloud_provider_access_token` (String, Sensitive) A Grafana Cloud Provider access token. May alternatively be set via the `GRAFANA_CLOUD_PROVIDER_ACCESS_TOKEN` environment variable.
+- `cloud_provider_url` (String) A Grafana Cloud Provider backend address. May alternatively be set via the `GRAFANA_CLOUD_PROVIDER_URL` environment variable.
+- `connections_api_access_token` (String, Sensitive) A Grafana Connections API access token. May alternatively be set via the `GRAFANA_CONNECTIONS_API_ACCESS_TOKEN` environment variable.
+- `connections_api_url` (String) A Grafana Connections API address. May alternatively be set via the `GRAFANA_CONNECTIONS_API_URL` environment variable.
 - `http_headers` (Map of String, Sensitive) Optional. HTTP headers mapping keys to values used for accessing the Grafana and Grafana Cloud APIs. May alternatively be set via the `GRAFANA_HTTP_HEADERS` environment variable in JSON format.
 - `insecure_skip_verify` (Boolean) Skip TLS certificate verification. May alternatively be set via the `GRAFANA_INSECURE_SKIP_VERIFY` environment variable.
 - `oncall_access_token` (String, Sensitive) A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable.
@@ -223,6 +227,182 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 - `tls_cert` (String) Client TLS certificate (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_CERT` environment variable.
 - `tls_key` (String) Client TLS key (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.
 - `url` (String) The root URL of a Grafana server. May alternatively be set via the `GRAFANA_URL` environment variable.
+
+### Managing Cloud Provider
+
+#### Obtaining Cloud Provider access token
+
+Before using the Terraform Provider to manage Grafana Cloud Provider Observability resources, such as AWS CloudWatch scrape jobs, you need to create an access policy token on the Grafana Cloud Portal. This token is used to authenticate the provider to the Grafana Cloud Provider API.
+[These docs](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/authorize-services/#create-an-access-policy-for-a-stack) will guide you on how to create
+an access policy. The required permissions, or scopes, are `integration-management:read`, `integration-management:write` and `stacks:read`.
+
+Also, by default the Access Policies UI will not show those scopes, to find name you need to use the `Add Scope` textbox, as shown in the following image:
+
+<img src="https://grafana.com/media/docs/grafana-cloud/aws/cloud-provider-terraform-access-policy-creation.png" width="700"/>
+
+Having created an Access Policy, you can now create a token that will be used to authenticate the provider to the Cloud Provider API. You can do so just after creating the access policy, following
+the in-screen instructions, of following [this guide](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/authorize-services/#create-one-or-more-access-policy-tokens).
+
+#### Obtaining Cloud Provider API hostname
+
+Having created the token, we can find the correct Cloud Provider API hostname by running the following script, that requires `curl` and [`jq`](https://jqlang.github.io/jq/) installed:
+
+```bash
+curl -sH "Authorization: Bearer <Access Token from previous step>" "https://grafana.com/api/instances" | \
+  jq '[.items[]|{stackName: .slug, clusterName:.clusterSlug, cloudProviderAPIURL: "https://cloud-provider-api-\(.clusterSlug).grafana.net"}]'
+```
+
+This script will return a list of all the Grafana Cloud stacks you own, with the Cloud Provider API hostname for each one. Choose the correct hostname for the stack you want to manage.
+For example, in the following response, the correct hostname for the `herokublogpost` stack is `https://cloud-provider-api-prod-us-central-0.grafana.net`.
+
+```json
+[
+  {
+    "stackName": "herokublogpost",
+    "clusterName": "prod-us-central-0",
+    "cloudProviderAPIURL": "https://cloud-provider-api-prod-us-central-0.grafana.net"
+  }
+]
+```
+
+#### Configuring the Provider to use the Cloud Provider API
+
+Once you have the token and Cloud Provider API hostanme, you can configure the provider as follows:
+
+```hcl
+provider "grafana" {
+  // ...
+  cloud_provider_url = <Cloud Provider API URL from previous step>
+  cloud_provider_access_token = <Access Token from previous step>
+}
+```
+
+The following are examples on how the *Account* and *Scrape Job* resources can be configured:
+
+```terraform
+data "grafana_cloud_stack" "test" {
+  slug = "gcloudstacktest"
+}
+
+data "aws_iam_role" "test" {
+  name = "my-role"
+}
+
+resource "grafana_cloud_provider_aws_account" "test" {
+  stack_id = data.grafana_cloud_stack.test.id
+  role_arn = data.aws_iam_role.test.arn
+  regions = [
+    "us-east-1",
+    "us-east-2",
+    "us-west-1"
+  ]
+}
+```
+
+```terraform
+data "grafana_cloud_stack" "test" {
+  slug = "gcloudstacktest"
+}
+
+data "aws_iam_role" "test" {
+  name = "my-role"
+}
+
+resource "grafana_cloud_provider_aws_account" "test" {
+  stack_id = data.grafana_cloud_stack.test.id
+  role_arn = data.aws_iam_role.test.arn
+  regions = [
+    "us-east-1",
+    "us-east-2",
+    "us-west-1"
+  ]
+}
+
+resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
+  stack_id                = data.grafana_cloud_stack.test.id
+  name                    = "my-cloudwatch-scrape-job"
+  aws_account_resource_id = grafana_cloud_provider_aws_account.test.resource_id
+  export_tags             = true
+
+  service {
+    name = "AWS/EC2"
+    metric {
+      name       = "CPUUtilization"
+      statistics = ["Average"]
+    }
+    metric {
+      name       = "StatusCheckFailed"
+      statistics = ["Maximum"]
+    }
+    scrape_interval_seconds = 300
+    resource_discovery_tag_filter {
+      key   = "k8s.io/cluster-autoscaler/enabled"
+      value = "true"
+    }
+    tags_to_add_to_metrics = ["eks:cluster-name"]
+  }
+
+  custom_namespace {
+    name = "CoolApp"
+    metric {
+      name       = "CoolMetric"
+      statistics = ["Maximum", "Sum"]
+    }
+    scrape_interval_seconds = 300
+  }
+}
+```
+
+### Managing Connections
+
+#### Obtaining Connections access token
+
+Before using the Terraform Provider to manage Grafana Connections resources, such as metrics endpoint scrape jobs, you need to create an access policy token on the Grafana Cloud Portal. This token is used to authenticate the provider to the Grafana Connections API.
+[These docs](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/authorize-services/#create-an-access-policy-for-a-stack) will guide you on how to create
+an access policy. The required permissions, or scopes, are `integration-management:read`, `integration-management:write` and `stacks:read`.
+
+Also, by default the Access Policies UI will not show those scopes, instead, search for it using the `Add Scope` textbox, as shown in the following image:
+
+<img src="https://grafana.com/media/docs/grafana-cloud/connections/connections-terraform-access-policy-create.png" width="700"/>
+
+1. Use the `Add Scope` textbox to search for the permissions you need to add to the access policy: `integration-management:read`, `integration-management:write` and `stacks:read`.
+1. Once done, you should see the scopes selected with checkboxes.
+
+Having created an Access Policy, you can now create a token that will be used to authenticate the provider to the Connections API. You can do so just after creating the access policy, following
+the in-screen instructions, of following [this guide](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/authorize-services/#create-one-or-more-access-policy-tokens).
+
+#### Obtaining Connections API hostname
+
+Having created the token, we can find the correct Connections API hostname by running the following script, that requires `curl` and [`jq`](https://jqlang.github.io/jq/) installed:
+
+```bash
+curl -sH "Authorization: Bearer <Access Token from previous step>" "https://grafana.com/api/instances" | \
+  jq '[.items[]|{stackName: .slug, clusterName:.clusterSlug, connectionsAPIURL: "https://connections-api-\(.clusterSlug).grafana.net"}]'
+```
+
+This script will return a list of all the Grafana Cloud stacks you own, with the Connections API hostname for each one. Choose the correct hostname for the stack you want to manage.
+For example, in the following response, the correct hostname for the `examplestackname` stack is `https://connections-api-prod-eu-west-0.grafana.net`.
+
+```json
+[
+  {
+    "stackName": "examplestackname",
+    "clusterName": "prod-eu-west-0",
+    "connectionsAPIURL": "https://connections-api-prod-eu-west-0.grafana.net"
+  }
+]
+```
+
+#### Configuring the Provider to use the Connections API
+
+Once you have the token and Connections API hostname, you can configure the provider as follows:
+
+```hcl
+provider "grafana" {
+  connections_api_url          = "<Connections API URL from previous step>"
+  connections_api_access_token = "<Access Token from previous step>"
+}
+```
 
 ## Authentication
 
@@ -239,10 +419,21 @@ An access policy token created on the [Grafana Cloud Portal](https://grafana.com
 
 ### `sm_access_token`
 
-[Grafana Synthetic Monitoring](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/) uses distinct tokens for API access. 
+[Grafana Synthetic Monitoring](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/) uses distinct tokens for API access.
 You can use the `grafana_synthetic_monitoring_installation` resource as shown above or you can request a new Synthetic Monitoring API key in Synthetics -> Config page.
 
 ### `oncall_access_token`
 
 [Grafana OnCall](https://grafana.com/docs/oncall/latest/oncall-api-reference/)
 uses API keys to allow access to the API. You can request a new OnCall API key in OnCall -> Settings page.
+
+### `cloud_provider_access_token`
+
+An access policy token created to manage [Grafana Cloud Provider Observability](https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/).
+To create one, follow the instructions in the [obtaining cloud provider access token section](#obtaining-cloud-provider-access-token).
+
+### `connections_api_access_token`
+
+An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/authorize-services/) to manage
+connections resources, such as Metrics Endpoint jobs.
+For guidance on creating one, see section [obtaining connections access token](#obtaining-connections-access-token).

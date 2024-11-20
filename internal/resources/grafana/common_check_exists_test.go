@@ -2,6 +2,7 @@ package grafana_test
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -41,8 +42,8 @@ var (
 	alertingMessageTemplateCheckExists = newCheckExistsHelper(
 		func(t *models.NotificationTemplate) string { return t.Name },
 		func(client *goapi.GrafanaHTTPAPI, id string) (*models.NotificationTemplate, error) {
-			resp, err := client.Provisioning.GetTemplate(id)
-			return payloadOrError[models.NotificationTemplate](resp, err)
+			resp, err := client.Provisioning.GetTemplate(id, grafana.ContentTypeNegotiator(http.DefaultTransport))
+			return payloadOrError(resp, err)
 		},
 	)
 	alertingMuteTimingCheckExists = newCheckExistsHelper(

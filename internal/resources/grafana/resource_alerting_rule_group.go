@@ -187,7 +187,7 @@ This resource requires Grafana 9.1.0 or later.
 							Type:        schema.TypeMap,
 							Optional:    true,
 							Default:     map[string]interface{}{},
-							Description: "Key-value pairs of metadata to attach to the alert rule that may add user-defined context, but cannot be used for matching, grouping, or routing.",
+							Description: "Key-value pairs of metadata to attach to the alert rule. They add additional information, such as a `summary` or `runbook_url`, to help identify and investigate alerts. The `dashboardUId` and `panelId` annotations, which link alerts to a panel, must be set together.",
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
@@ -202,7 +202,7 @@ This resource requires Grafana 9.1.0 or later.
 							Type:        schema.TypeList,
 							MaxItems:    1,
 							Optional:    true,
-							Description: "Notification settings for the rule. If specified, it overrides the notification policies. Available since Grafana 10.4, requires feature flag 'alertingSimplifiedRouting' enabled.",
+							Description: "Notification settings for the rule. If specified, it overrides the notification policies. Available since Grafana 10.4, requires feature flag 'alertingSimplifiedRouting' to be enabled.",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"contact_point": {
@@ -240,6 +240,26 @@ This resource requires Grafana 9.1.0 or later.
 										Type:        schema.TypeString,
 										Optional:    true,
 										Description: "Minimum time interval for re-sending a notification if an alert is still firing. Default is 4 hours.",
+									},
+								},
+							},
+						},
+						"record": {
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Settings for a recording rule. Available since Grafana 11.2, requires feature flag 'grafanaManagedRecordingRules' to be enabled.",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"metric": {
+										Type:        schema.TypeString,
+										Required:    true,
+										Description: "The name of the metric to write to.",
+									},
+									"from": {
+										Type:        schema.TypeString,
+										Required:    true,
+										Description: "The ref id of the query node in the data field to use as the source of the metric.",
 									},
 								},
 							},
@@ -477,6 +497,12 @@ func packAlertRule(r *models.ProvisionedAlertRule) (interface{}, error) {
 	if ns != nil {
 		json["notification_settings"] = ns
 	}
+
+	record := packRecord(r.Record)
+	if record != nil {
+		json["record"] = record
+	}
+
 	return json, nil
 }
 
@@ -516,6 +542,7 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		Annotations:          unpackMap(json["annotations"]),
 		IsPaused:             json["is_paused"].(bool),
 		NotificationSettings: ns,
+		Record:               unpackRecord(json["record"]),
 	}
 
 	return &rule, nil
@@ -705,4 +732,37 @@ func unpackNotificationSettings(p interface{}) (*models.AlertRuleNotificationSet
 		result.RepeatInterval = v.(string)
 	}
 	return &result, nil
+}
+
+func packRecord(r *models.Record) interface{} {
+	if r == nil {
+		return nil
+	}
+	res := map[string]interface{}{}
+	if r.Metric != nil {
+		res["metric"] = *r.Metric
+	}
+	if r.From != nil {
+		res["from"] = *r.From
+	}
+	return []interface{}{res}
+}
+
+func unpackRecord(p interface{}) *models.Record {
+	if p == nil {
+		return nil
+	}
+	list, ok := p.([]interface{})
+	if !ok || len(list) == 0 {
+		return nil
+	}
+	jsonData := list[0].(map[string]interface{})
+	res := &models.Record{}
+	if v, ok := jsonData["metric"]; ok && v != nil {
+		res.Metric = common.Ref(v.(string))
+	}
+	if v, ok := jsonData["from"]; ok && v != nil {
+		res.From = common.Ref(v.(string))
+	}
+	return res
 }

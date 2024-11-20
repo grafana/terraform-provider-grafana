@@ -16,8 +16,8 @@ jobs:
   integration:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
-      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
         with: 
           go-version-file: go.mod
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
@@ -29,8 +29,8 @@ jobs:
       cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
-      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
         with: 
           go-version-file: go.mod
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
@@ -43,6 +43,11 @@ jobs:
             GRAFANA_SM_ACCESS_TOKEN=cloud-instance-tests:sm-token
             GRAFANA_SM_URL=cloud-instance-tests:sm-url
             GRAFANA_URL=cloud-instance-tests:url
+            GRAFANA_CLOUD_PROVIDER_URL=cloudprovider-tests:url
+            GRAFANA_CLOUD_PROVIDER_TEST_AWS_ACCOUNT_RESOURCE_ID=cloudprovider-tests:test-aws-account-resource-id
+            GRAFANA_CLOUD_PROVIDER_ACCESS_TOKEN=cloudprovider-tests:access-token
+            GRAFANA_CLOUD_PROVIDER_AWS_ROLE_ARN=cloudprovider-tests:aws-role-arn
+            GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID=cloudprovider-tests:test-stack-id
       - uses: iFaxity/wait-on-action@a7d13170ec542bdca4ef8ac4b15e9c6aa00a6866 # v1.2.1
         with:
           resource: ${{ env.GRAFANA_URL }}
@@ -97,8 +102,8 @@ jobs:
     name: ${{ matrix.version }} - ${{ matrix.type }} - ${{ matrix.subset }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
-      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
         with: 
           go-version-file: go.mod
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
