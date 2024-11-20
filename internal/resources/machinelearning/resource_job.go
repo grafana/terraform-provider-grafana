@@ -18,7 +18,9 @@ func resourceJob() *common.Resource {
 
 		Description: `
 A job defines the queries and model parameters for a machine learning task.
-`,
+
+See [the Grafana Cloud docs](https://grafana.com/docs/grafana-cloud/alerting-and-irm/machine-learning/forecasts/models/) for more information
+on available hyperparameters for use in the ` + "`hyper_params`" + ` field.`,
 
 		CreateContext: checkClient(resourceJobCreate),
 		ReadContext:   checkClient(resourceJobRead),
@@ -77,7 +79,7 @@ A job defines the queries and model parameters for a machine learning task.
 				Default:     300,
 			},
 			"hyper_params": {
-				Description: "The hyperparameters used to fine tune the algorithm. See https://grafana.com/docs/grafana-cloud/machine-learning/models/ for the full list of available hyperparameters.",
+				Description: "The hyperparameters used to fine tune the algorithm. See https://grafana.com/docs/grafana-cloud/alerting-and-irm/machine-learning/forecasts/models/ for the full list of available hyperparameters.",
 				Type:        schema.TypeMap,
 				Optional:    true,
 				Default:     map[string]interface{}{},
