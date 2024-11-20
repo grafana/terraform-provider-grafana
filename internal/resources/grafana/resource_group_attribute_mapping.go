@@ -6,14 +6,13 @@ import (
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 )
 
 var (
@@ -33,10 +32,10 @@ func makeResourceGroupAttributeMapping() *common.Resource {
 }
 
 type resourceGroupAttributeMappingModel struct {
-	ID       types.String   `tfsdk:"id"`
-	OrgID    types.String   `tfsdk:"org_id"`
-	GroupID  types.String   `tfsdk:"group_id"`
-	RoleUIDs []types.String `tfsdk:"role_uids"`
+	ID       types.String `tfsdk:"id"`
+	OrgID    types.String `tfsdk:"org_id"`
+	GroupID  types.String `tfsdk:"group_id"`
+	RoleUIDs types.Set    `tfsdk:"role_uids"`
 }
 
 type resourceGroupAttributeMapping struct {
@@ -93,9 +92,9 @@ func (r *resourceGroupAttributeMapping) Create(ctx context.Context, req resource
 		return
 	}
 
-	roles := make([]string, 0, len(data.RoleUIDs))
-	for _, roleUID := range data.RoleUIDs {
-		roles = append(roles, roleUID.ValueString())
+	roles := make([]string, 0, len(data.RoleUIDs.Elements()))
+	for _, roleUID := range data.RoleUIDs.Elements() {
+		roles = append(roles, roleUID.String())
 	}
 
 	_, err = client.GroupAttributeSync.CreateGroupMappings(data.GroupID.ValueString(), &models.GroupAttributes{Roles: roles})
@@ -116,7 +115,7 @@ func (r *resourceGroupAttributeMapping) Read(ctx context.Context, req resource.R
 		return
 	}
 
-	readData, diags := r.read(data.ID.ValueString())
+	readData, diags := r.read(ctx, data.ID.ValueString())
 	if diags != nil {
 		resp.Diagnostics = diags
 		return
@@ -129,7 +128,7 @@ func (r *resourceGroupAttributeMapping) Read(ctx context.Context, req resource.R
 	resp.Diagnostics.Append(resp.State.Set(ctx, readData)...)
 }
 
-func (r *resourceGroupAttributeMapping) read(id string) (*resourceGroupAttributeMappingModel, diag.Diagnostics) {
+func (r *resourceGroupAttributeMapping) read(ctx context.Context, id string) (*resourceGroupAttributeMappingModel, diag.Diagnostics) {
 	client, orgID, idFields, err := r.clientFromExistingOrgResource(resourceGroupAttributeMappingID, id)
 	if err != nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Failed to get client", err.Error())}
@@ -156,7 +155,12 @@ func (r *resourceGroupAttributeMapping) read(id string) (*resourceGroupAttribute
 		uids = append(uids, types.StringValue(role.UID))
 	}
 
-	data.RoleUIDs = uids
+	roleUIDs, diags := types.SetValueFrom(ctx, types.StringType, uids)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	data.RoleUIDs = roleUIDs
 	return data, nil
 }
 
@@ -173,9 +177,9 @@ func (r *resourceGroupAttributeMapping) Update(ctx context.Context, req resource
 		return
 	}
 
-	roles := make([]string, 0, len(data.RoleUIDs))
-	for _, roleUID := range data.RoleUIDs {
-		roles = append(roles, roleUID.ValueString())
+	roles := make([]string, 0, len(data.RoleUIDs.Elements()))
+	for _, roleUID := range data.RoleUIDs.Elements() {
+		roles = append(roles, roleUID.String())
 	}
 
 	_, err = client.GroupAttributeSync.UpdateGroupMappings(data.GroupID.ValueString(), &models.GroupAttributes{Roles: roles})
@@ -205,7 +209,7 @@ func (r *resourceGroupAttributeMapping) Delete(ctx context.Context, req resource
 }
 
 func (r *resourceGroupAttributeMapping) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	data, diags := r.read(req.ID)
+	data, diags := r.read(ctx, req.ID)
 	if diags != nil {
 		resp.Diagnostics = diags
 		return
