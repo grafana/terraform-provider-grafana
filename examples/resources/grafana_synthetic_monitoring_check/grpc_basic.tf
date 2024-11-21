@@ -1,12 +1,8 @@
-data "grafana_synthetic_monitoring_probes" "main" {}
-
 resource "grafana_synthetic_monitoring_check" "grpc" {
-  job     = "gRPC Defaults"
-  target  = "host.docker.internal:50051"
-  enabled = false
-  probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
-  ]
+  job                 = "gRPC Defaults"
+  target              = "host.docker.internal:50051"
+  enabled             = false
+  select_probes_count = 1
   labels = {
     foo = "bar"
   }

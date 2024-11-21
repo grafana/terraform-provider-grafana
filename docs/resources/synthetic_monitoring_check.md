@@ -26,15 +26,11 @@ multiple checks for a single endpoint to check different capabilities.
 ### DNS Basic
 
 ```terraform
-data "grafana_synthetic_monitoring_probes" "main" {}
-
 resource "grafana_synthetic_monitoring_check" "dns" {
-  job     = "DNS Defaults"
-  target  = "grafana.com"
-  enabled = false
-  probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
-  ]
+  job                 = "DNS Defaults"
+  target              = "grafana.com"
+  enabled             = false
+  select_probes_count = 1
   labels = {
     foo = "bar"
   }
@@ -103,15 +99,11 @@ resource "grafana_synthetic_monitoring_check" "dns" {
 ### HTTP Basic
 
 ```terraform
-data "grafana_synthetic_monitoring_probes" "main" {}
-
 resource "grafana_synthetic_monitoring_check" "http" {
-  job     = "HTTP Defaults"
-  target  = "https://grafana.com"
-  enabled = false
-  probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
-  ]
+  job                 = "HTTP Defaults"
+  target              = "https://grafana.com"
+  enabled             = false
+  select_probes_count = 1
   labels = {
     foo = "bar"
   }
@@ -223,15 +215,11 @@ EOS
 ### Ping Basic
 
 ```terraform
-data "grafana_synthetic_monitoring_probes" "main" {}
-
 resource "grafana_synthetic_monitoring_check" "ping" {
-  job     = "Ping Defaults"
-  target  = "grafana.com"
-  enabled = false
-  probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
-  ]
+  job                 = "Ping Defaults"
+  target              = "grafana.com"
+  enabled             = false
+  select_probes_count = 1
   labels = {
     foo = "bar"
   }
@@ -270,15 +258,11 @@ resource "grafana_synthetic_monitoring_check" "ping" {
 ### TCP Basic
 
 ```terraform
-data "grafana_synthetic_monitoring_probes" "main" {}
-
 resource "grafana_synthetic_monitoring_check" "tcp" {
-  job     = "TCP Defaults"
-  target  = "grafana.com:80"
-  enabled = false
-  probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
-  ]
+  job                 = "TCP Defaults"
+  target              = "grafana.com:80"
+  enabled             = false
+  select_probes_count = 1
   labels = {
     foo = "bar"
   }
@@ -360,17 +344,13 @@ EOS
 ### Traceroute Basic
 
 ```terraform
-data "grafana_synthetic_monitoring_probes" "main" {}
-
 resource "grafana_synthetic_monitoring_check" "traceroute" {
-  job       = "Traceroute defaults"
-  target    = "grafana.com"
-  enabled   = false
-  frequency = 120000
-  timeout   = 30000
-  probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
-  ]
+  job                 = "Traceroute defaults"
+  target              = "grafana.com"
+  enabled             = false
+  frequency           = 120000
+  timeout             = 30000
+  select_probes_count = 1
   labels = {
     foo = "bar"
   }
@@ -414,7 +394,6 @@ resource "grafana_synthetic_monitoring_check" "traceroute" {
 ### Required
 
 - `job` (String) Name used for job label.
-- `probes` (Set of Number) List of probe location IDs where this target will be checked from.
 - `settings` (Block Set, Min: 1, Max: 1) Check settings. Should contain exactly one nested block. (see [below for nested schema](#nestedblock--settings))
 - `target` (String) Hostname to ping.
 
@@ -425,6 +404,11 @@ resource "grafana_synthetic_monitoring_check" "traceroute" {
 - `enabled` (Boolean) Whether to enable the check. Defaults to `true`.
 - `frequency` (Number) How often the check runs in milliseconds (the value is not truly a "frequency" but a "period"). The minimum acceptable value is 1 second (1000 ms), and the maximum is 1 hour (3600000 ms). Defaults to `60000`.
 - `labels` (Map of String) Custom labels to be included with collected metrics and logs. The maximum number of labels that can be specified per check is 5. These are applied, along with the probe-specific labels, to the outgoing metrics. The names and values of the labels cannot be empty, and the maximum length is 32 bytes.
+- `probes` (Set of Number) List of probe location IDs where this target will be checked from.
+- `select_probes_count` (Number) Number of probes to use for this check. 
+On creation and updates, an attempt will be made to use a selection of geographically dispersed probes.
+On imports, the current selection of probes will be used, and a diff will be generated if the number of probes is different.
+To select specific probes, use the "probes" attribute.
 - `timeout` (Number) Specifies the maximum running time for the check in milliseconds. The minimum acceptable value is 1 second (1000 ms), and the maximum 10 seconds (10000 ms). Defaults to `3000`.
 
 ### Read-Only
@@ -744,15 +728,11 @@ Optional:
 ### MultiHTTP Basic
 
 ```terraform
-data "grafana_synthetic_monitoring_probes" "main" {}
-
 resource "grafana_synthetic_monitoring_check" "multihttp" {
-  job     = "multihttp basic"
-  target  = "https://www.grafana-dev.com"
-  enabled = false
-  probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Amsterdam,
-  ]
+  job                 = "multihttp basic"
+  target              = "https://www.grafana-dev.com"
+  enabled             = false
+  select_probes_count = 1
   labels = {
     foo = "bar"
   }
@@ -860,15 +840,11 @@ resource "grafana_synthetic_monitoring_check" "multihttp" {
 ### Scripted Basic
 
 ```terraform
-data "grafana_synthetic_monitoring_probes" "main" {}
-
 resource "grafana_synthetic_monitoring_check" "scripted" {
-  job     = "Validate homepage"
-  target  = "https://grafana.com/"
-  enabled = true
-  probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Paris,
-  ]
+  job                 = "Validate homepage"
+  target              = "https://grafana.com/"
+  enabled             = true
+  select_probes_count = 1
   labels = {
     environment = "production"
   }
@@ -885,15 +861,11 @@ resource "grafana_synthetic_monitoring_check" "scripted" {
 ### gRPC Health Check Basic
 
 ```terraform
-data "grafana_synthetic_monitoring_probes" "main" {}
-
 resource "grafana_synthetic_monitoring_check" "grpc" {
-  job     = "gRPC Defaults"
-  target  = "host.docker.internal:50051"
-  enabled = false
-  probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
-  ]
+  job                 = "gRPC Defaults"
+  target              = "host.docker.internal:50051"
+  enabled             = false
+  select_probes_count = 1
   labels = {
     foo = "bar"
   }

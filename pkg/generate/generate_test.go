@@ -361,7 +361,7 @@ func TestAccGenerate_SMCheck(t *testing.T) {
 	var smCheckID string
 	tc := generateTestCase{
 		name: "sm-check",
-		config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/http_basic.tf", map[string]string{
+		config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/http_complex.tf", map[string]string{
 			`"HTTP Defaults"`: strconv.Quote(randomString),
 		}),
 		stateCheck: func(s *terraform.State) error {
