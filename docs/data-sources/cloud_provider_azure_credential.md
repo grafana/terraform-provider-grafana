@@ -20,7 +20,7 @@ resource "grafana_cloud_provider_azure_credential" "test" {
   client_secret = "my-client-secret"
   tenant_id     = "my-tenant-id"
 
-  resource_tag_filter    {
+  resource_tag_filter {
     key   = "key-1"
     value = "value-1"
   }
@@ -45,8 +45,8 @@ data "grafana_cloud_provider_azure_credential" "test" {
   }
 
   resource_tag_filter {
-      key   = grafana_cloud_provider_azure_credential.test.resource_tag_filter[1].key
-      value = grafana_cloud_provider_azure_credential.test.resource_tag_filter[1].value
+    key   = grafana_cloud_provider_azure_credential.test.resource_tag_filter[1].key
+    value = grafana_cloud_provider_azure_credential.test.resource_tag_filter[1].value
   }
 }
 ```
