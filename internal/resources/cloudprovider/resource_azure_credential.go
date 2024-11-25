@@ -21,14 +21,20 @@ var (
 	resourceAzureCredentialTerraformID   = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("resource_id"))
 )
 
+type TagFilter struct {
+	Key   types.String `tfsdk:"key"`
+	Value types.String `tfsdk:"value"`
+}
+
 type resourceAzureCredentialModel struct {
-	ID           types.String `tfsdk:"id"`
-	Name         types.String `tfsdk:"name"`
-	TenantID     types.String `tfsdk:"tenant_id"`
-	ClientID     types.String `tfsdk:"client_id"`
-	StackID      types.String `tfsdk:"stack_id"`
-	ClientSecret types.String `tfsdk:"client_secret"`
-	ResourceID   types.String `tfsdk:"resource_id"`
+	ID                 types.String `tfsdk:"id"`
+	Name               types.String `tfsdk:"name"`
+	TenantID           types.String `tfsdk:"tenant_id"`
+	ClientID           types.String `tfsdk:"client_id"`
+	StackID            types.String `tfsdk:"stack_id"`
+	ClientSecret       types.String `tfsdk:"client_secret"`
+	ResourceID         types.String `tfsdk:"resource_id"`
+	ResourceTagFilters []TagFilter  `tfsdk:"resource_tag_filter"`
 }
 
 type resourceAzureCredential struct {
@@ -108,6 +114,23 @@ func (r *resourceAzureCredential) Schema(ctx context.Context, req resource.Schem
 				Sensitive:   true,
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"resource_tag_filter": schema.ListNestedBlock{
+				Description: "The list of tag filters to apply to resources.",
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"key": schema.StringAttribute{
+							Description: "The key of the tag filter.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "The value of the tag filter.",
+							Required:    true,
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -131,13 +154,14 @@ func (r *resourceAzureCredential) ImportState(ctx context.Context, req resource.
 	}
 
 	resp.State.Set(ctx, &resourceAzureCredentialModel{
-		ID:           types.StringValue(req.ID),
-		Name:         types.StringValue(credentials.Name),
-		TenantID:     types.StringValue(credentials.TenantID),
-		ClientID:     types.StringValue(credentials.ClientID),
-		StackID:      types.StringValue(stackID),
-		ResourceID:   types.StringValue(resourceID),
-		ClientSecret: types.StringValue(""), // We don't import the client secret
+		ID:                 types.StringValue(req.ID),
+		Name:               types.StringValue(credentials.Name),
+		TenantID:           types.StringValue(credentials.TenantID),
+		ClientID:           types.StringValue(credentials.ClientID),
+		StackID:            types.StringValue(stackID),
+		ResourceID:         types.StringValue(resourceID),
+		ClientSecret:       types.StringValue(""), // We don't import the client secret
+		ResourceTagFilters: r.convertTagFilters(credentials.ResourceTagFilters),
 	})
 }
 
@@ -149,11 +173,20 @@ func (r *resourceAzureCredential) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
+	var requestTagFilters []cloudproviderapi.TagFilter
+	for _, tagFilter := range data.ResourceTagFilters {
+		requestTagFilters = append(requestTagFilters, cloudproviderapi.TagFilter{
+			Key:   tagFilter.Key.ValueString(),
+			Value: tagFilter.Value.ValueString(),
+		})
+	}
+
 	azureCredential := cloudproviderapi.AzureCredential{
-		Name:         data.Name.ValueString(),
-		TenantID:     data.TenantID.ValueString(),
-		ClientID:     data.ClientID.ValueString(),
-		ClientSecret: data.ClientSecret.ValueString(),
+		Name:               data.Name.ValueString(),
+		TenantID:           data.TenantID.ValueString(),
+		ClientID:           data.ClientID.ValueString(),
+		ClientSecret:       data.ClientSecret.ValueString(),
+		ResourceTagFilters: requestTagFilters,
 	}
 
 	credential, err := r.client.CreateAzureCredential(
@@ -167,14 +200,26 @@ func (r *resourceAzureCredential) Create(ctx context.Context, req resource.Creat
 	}
 
 	resp.State.Set(ctx, &resourceAzureCredentialModel{
-		ID:           types.StringValue(resourceAzureCredentialTerraformID.Make(data.StackID.ValueString(), credential.ID)),
-		Name:         data.Name,
-		TenantID:     data.TenantID,
-		ClientID:     data.ClientID,
-		StackID:      data.StackID,
-		ClientSecret: data.ClientSecret,
-		ResourceID:   types.StringValue(credential.ID),
+		ID:                 types.StringValue(resourceAzureCredentialTerraformID.Make(data.StackID.ValueString(), credential.ID)),
+		Name:               data.Name,
+		TenantID:           data.TenantID,
+		ClientID:           data.ClientID,
+		StackID:            data.StackID,
+		ClientSecret:       data.ClientSecret,
+		ResourceID:         types.StringValue(credential.ID),
+		ResourceTagFilters: data.ResourceTagFilters,
 	})
+}
+
+func (r *resourceAzureCredential) convertTagFilters(apiTagFilters []cloudproviderapi.TagFilter) []TagFilter {
+	var tagFilters []TagFilter
+	for _, apiTagFilter := range apiTagFilters {
+		tagFilters = append(tagFilters, TagFilter{
+			Key:   types.StringValue(apiTagFilter.Key),
+			Value: types.StringValue(apiTagFilter.Value),
+		})
+	}
+	return tagFilters
 }
 
 func (r *resourceAzureCredential) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -212,6 +257,12 @@ func (r *resourceAzureCredential) Read(ctx context.Context, req resource.ReadReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	diags = resp.State.SetAttribute(ctx, path.Root("resource_tag_filter"), r.convertTagFilters(credential.ResourceTagFilters))
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
 func (r *resourceAzureCredential) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -227,6 +278,13 @@ func (r *resourceAzureCredential) Update(ctx context.Context, req resource.Updat
 	credential.TenantID = planData.TenantID.ValueString()
 	credential.ClientID = planData.ClientID.ValueString()
 	credential.ClientSecret = planData.ClientSecret.ValueString()
+	credential.ResourceTagFilters = make([]cloudproviderapi.TagFilter, len(planData.ResourceTagFilters))
+	for i, tagFilter := range planData.ResourceTagFilters {
+		credential.ResourceTagFilters[i] = cloudproviderapi.TagFilter{
+			Key:   tagFilter.Key.ValueString(),
+			Value: tagFilter.Value.ValueString(),
+		}
+	}
 
 	credentialResponse, err := r.client.UpdateAzureCredential(
 		ctx,
@@ -258,6 +316,12 @@ func (r *resourceAzureCredential) Update(ctx context.Context, req resource.Updat
 	}
 
 	diags = resp.State.SetAttribute(ctx, path.Root("client_secret"), planData.ClientSecret)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	diags = resp.State.SetAttribute(ctx, path.Root("resource_tag_filter"), r.convertTagFilters(credential.ResourceTagFilters))
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

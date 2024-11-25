@@ -19,7 +19,17 @@ resource "grafana_cloud_provider_azure_credential" "test" {
   client_id     = "my-client-id"
   client_secret = "my-client-secret"
   tenant_id     = "my-tenant-id"
+
+  resource_tag_filter    {
+    key   = "key-1"
+    value = "value-1"
+  }
+  resource_tag_filter {
+    key   = "key-2"
+    value = "value-2"
+  }
 }
+
 
 data "grafana_cloud_provider_azure_credential" "test" {
   stack_id      = grafana_cloud_provider_azure_credential.test.stack_id
@@ -28,6 +38,16 @@ data "grafana_cloud_provider_azure_credential" "test" {
   client_secret = grafana_cloud_provider_azure_credential.test.client_secret
   tenant_id     = grafana_cloud_provider_azure_credential.test.tenant_id
   resource_id   = grafana_cloud_provider_azure_credential.test.resource_id
+
+  resource_tag_filter {
+    key   = grafana_cloud_provider_azure_credential.test.resource_tag_filter[0].key
+    value = grafana_cloud_provider_azure_credential.test.resource_tag_filter[0].value
+  }
+
+  resource_tag_filter {
+      key   = grafana_cloud_provider_azure_credential.test.resource_tag_filter[1].key
+      value = grafana_cloud_provider_azure_credential.test.resource_tag_filter[1].value
+  }
 }
 ```
 
@@ -43,6 +63,18 @@ data "grafana_cloud_provider_azure_credential" "test" {
 - `stack_id` (String) The StackID of the Grafana Cloud instance. Part of the Terraform Resource ID.
 - `tenant_id` (String) The tenant ID of the Azure Credential.
 
+### Optional
+
+- `resource_tag_filter` (Block List) The list of tag filters to apply to resources. (see [below for nested schema](#nestedblock--resource_tag_filter))
+
 ### Read-Only
 
 - `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ resource_id }}".
+
+<a id="nestedblock--resource_tag_filter"></a>
+### Nested Schema for `resource_tag_filter`
+
+Required:
+
+- `key` (String) The key of the tag filter.
+- `value` (String) The value of the tag filter.

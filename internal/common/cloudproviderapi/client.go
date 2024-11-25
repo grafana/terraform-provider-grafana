@@ -211,6 +211,14 @@ type AzureCredential struct {
 
 	// StackID is the unique identifier for the stack in our systems.
 	StackID string `json:"stack_id"`
+
+	// ResourceTagFilters is the list of Azure resource tag filters.
+	ResourceTagFilters []TagFilter `json:"resource_tag_filters"`
+}
+
+type TagFilter struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
 func (c *Client) CreateAzureCredential(ctx context.Context, stackID string, credentialData AzureCredential) (AzureCredential, error) {

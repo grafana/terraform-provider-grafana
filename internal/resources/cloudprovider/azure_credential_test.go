@@ -20,16 +20,27 @@ func TestAcc_AzureCredential(t *testing.T) {
 		if r.Method == http.MethodPost {
 			w.WriteHeader(http.StatusCreated)
 			_, _ = w.Write([]byte(fmt.Sprintf(`
-			{
-			  "data": {
-				"id": "%s",
-				"name": "test-name",
-				"tenant_id": "my_tenant_id",
-				"client_id": "my_client_id",
-				"client_secret": "",
-				"stack_id":"1"
-			  }
-			}`, resourceID)))
+{
+  "data": {
+    "id": "%s",
+    "name": "test-name",
+    "tenant_id": "my_tenant_id",
+    "client_id": "my_client_id",
+    "client_secret": "",
+    "stack_id":"1",
+    "resource_tag_filters": [
+      {
+        "key": "key-1",
+        "value": "value-1"
+      },
+      {
+        "key": "key-2",
+        "value": "value-2"
+      }
+
+    ]
+  }
+}`, resourceID)))
 		}
 	})
 
@@ -38,16 +49,52 @@ func TestAcc_AzureCredential(t *testing.T) {
 		case http.MethodGet:
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(fmt.Sprintf(`
-			{
-			  "data": {
-				"id": "%s",
-				"name": "test-name",
-				"tenant_id": "my-tenant-id",
-				"client_id": "my-client-id",
-				"client_secret": "",
-				"stack_id":"1"
-			  }
-			}`, resourceID)))
+{
+  "data": {
+    "id": "%s",
+    "name": "test-name",
+    "tenant_id": "my-tenant-id",
+    "client_id": "my-client-id",
+    "client_secret": "",
+    "stack_id":"1",
+    "resource_tag_filters": [
+      {
+        "key": "key-1",
+        "value": "value-1"
+      },
+      {
+        "key": "key-2",
+        "value": "value-2"
+      }
+
+    ]
+  }
+}`, resourceID)))
+		case http.MethodPut:
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(fmt.Sprintf(`
+{
+  "data": {
+    "id": "%s",
+    "name": "test-name",
+    "tenant_id": "my-tenant-id",
+    "client_id": "my-client-id",
+    "client_secret": "",
+    "stack_id":"1",
+    "resource_tag_filters": [
+      {
+        "key": "key-1",
+        "value": "value-1"
+      },
+      {
+        "key": "key-2",
+        "value": "value-2"
+      }
+
+    ]
+  }
+}`, resourceID)))
+
 		case http.MethodDelete:
 			w.WriteHeader(http.StatusNoContent)
 		}
@@ -76,6 +123,10 @@ func TestAcc_AzureCredential(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "tenant_id", "my-tenant-id"),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "client_id", "my-client-id"),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "client_secret", "my-client-secret"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "resource_tag_filter.0.key", "key-1"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "resource_tag_filter.1.key", "key-2"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "resource_tag_filter.0.value", "value-1"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "resource_tag_filter.1.value", "value-2"),
 				),
 			},
 			{
@@ -89,6 +140,10 @@ func TestAcc_AzureCredential(t *testing.T) {
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "client_id", "my-client-id"),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "client_secret", ""),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "resource_id", resourceID),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "resource_tag_filter.0.key", "key-1"),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "resource_tag_filter.1.key", "key-2"),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "resource_tag_filter.0.value", "value-1"),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "resource_tag_filter.1.value", "value-2"),
 				),
 			},
 		},
