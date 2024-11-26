@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -58,7 +57,6 @@ func (r *resourceDataSourceConfigLBACRules) Metadata(_ context.Context, req reso
 }
 
 func (r *resourceDataSourceConfigLBACRules) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	tflog.Info(ctx, "Creating LBAC rules Schema")
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `
 Manages LBAC rules for a data source.
@@ -87,7 +85,6 @@ This resource requires Grafana >=11.0.0.
 }
 
 func (r *resourceDataSourceConfigLBACRules) Configure(ctx context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
-	tflog.Info(ctx, "Configuring LBAC rules")
 	if req.ProviderData == nil {
 		return
 	}
@@ -95,14 +92,11 @@ func (r *resourceDataSourceConfigLBACRules) Configure(ctx context.Context, req r
 }
 
 func (r *resourceDataSourceConfigLBACRules) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	tflog.Info(ctx, "Creating LBAC rules")
 	var data resourceDataSourceConfigLBACRulesModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	tflog.Info(ctx, "Creating LBAC rules", map[string]interface{}{"datasource_uid": data.DatasourceUID.ValueString()})
 
 	rulesMap := make(map[string][]string)
 	err := json.Unmarshal([]byte(data.Rules.ValueString()), &rulesMap)
@@ -119,8 +113,6 @@ func (r *resourceDataSourceConfigLBACRules) Create(ctx context.Context, req reso
 		})
 	}
 
-	tflog.Info(ctx, "Creating LBAC rules with the new rulesmaps", map[string]interface{}{"rulesmaps": fmt.Sprintf("%+v", apiRules)})
-
 	client := r.client.GrafanaAPI
 
 	params := &enterprise.UpdateTeamLBACRulesAPIParams{
@@ -134,8 +126,6 @@ func (r *resourceDataSourceConfigLBACRules) Create(ctx context.Context, req reso
 		resp.Diagnostics.AddError("Failed to create LBAC rules", err.Error())
 		return
 	}
-
-	tflog.Info(ctx, "LBAC rules created successfully", map[string]interface{}{"datasource_uid": data.DatasourceUID.ValueString()})
 
 	data.ID = types.StringValue(data.DatasourceUID.ValueString())
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -178,14 +168,11 @@ func (r *resourceDataSourceConfigLBACRules) Read(ctx context.Context, req resour
 }
 
 func (r *resourceDataSourceConfigLBACRules) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	tflog.Info(ctx, "Updating LBAC rules")
 	var data resourceDataSourceConfigLBACRulesModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	tflog.Info(ctx, "Updating LBAC rules", map[string]interface{}{"datasource_uid": data.DatasourceUID.ValueString()})
 
 	rulesMap := make(map[string][]string)
 	err := json.Unmarshal([]byte(data.Rules.ValueString()), &rulesMap)
@@ -202,8 +189,6 @@ func (r *resourceDataSourceConfigLBACRules) Update(ctx context.Context, req reso
 			Rules:   rules,
 		})
 	}
-	tflog.Info(ctx, "Updating LBAC rules with the new rulesmaps", map[string]interface{}{"rulesmaps": fmt.Sprintf("%v+", apiRules)})
-
 	datasourceUID := data.DatasourceUID.ValueString()
 	client := r.client.GrafanaAPI
 
@@ -219,21 +204,16 @@ func (r *resourceDataSourceConfigLBACRules) Update(ctx context.Context, req reso
 		return
 	}
 
-	tflog.Info(ctx, "LBAC rules updated successfully", map[string]interface{}{"datasource_uid": data.DatasourceUID.ValueString()})
-
 	data.ID = types.StringValue(datasourceUID)
 	data.DatasourceUID = types.StringValue(datasourceUID)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *resourceDataSourceConfigLBACRules) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	tflog.Warn(ctx, "Delete operation not supported for LBAC rules")
 	resp.Diagnostics.AddWarning("Operation not supported", "Delete operation is not supported for LBAC rules")
 }
 
 func (r *resourceDataSourceConfigLBACRules) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	tflog.Info(ctx, "Importing LBAC rules", map[string]interface{}{"id": req.ID})
-
 	datasourceUID := req.ID
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), datasourceUID)...)
