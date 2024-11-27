@@ -24,8 +24,8 @@ type awsCWScrapeJobTFResourceModel struct {
 	// TODO(tristan): if the grafana provider is updated to use the Terraform v6 plugin protocol,
 	// we can consider adding additional support to use Set Nested Attributes, instead of Blocks.
 	// See https://developer.hashicorp.com/terraform/plugin/framework/handling-data/attributes#nested-attribute-types
-	Services         []awsCWScrapeJobServiceTFModel         `tfsdk:"service"`
-	CustomNamespaces []awsCWScrapeJobCustomNamespaceTFModel `tfsdk:"custom_namespace"`
+	Services         types.List `tfsdk:"service"`
+	CustomNamespaces types.List `tfsdk:"custom_namespace"`
 }
 type awsCWScrapeJobTFDataSourceModel struct {
 	ID                        types.String `tfsdk:"id"`
@@ -41,20 +41,21 @@ type awsCWScrapeJobTFDataSourceModel struct {
 	// TODO(tristan): if the grafana provider is updated to use the Terraform v6 plugin protocol,
 	// we can consider adding additional support to use Set Nested Attributes, instead of Blocks.
 	// See https://developer.hashicorp.com/terraform/plugin/framework/handling-data/attributes#nested-attribute-types
-	Services         []awsCWScrapeJobServiceTFModel         `tfsdk:"service"`
-	CustomNamespaces []awsCWScrapeJobCustomNamespaceTFModel `tfsdk:"custom_namespace"`
+	Services         types.List `tfsdk:"service"`
+	CustomNamespaces types.List `tfsdk:"custom_namespace"`
 }
 type awsCWScrapeJobServiceTFModel struct {
-	Name                        types.String                     `tfsdk:"name"`
-	Metrics                     []awsCWScrapeJobMetricTFModel    `tfsdk:"metric"`
-	ScrapeIntervalSeconds       types.Int64                      `tfsdk:"scrape_interval_seconds"`
-	ResourceDiscoveryTagFilters []awsCWScrapeJobTagFilterTFModel `tfsdk:"resource_discovery_tag_filter"`
-	TagsToAddToMetrics          types.Set                        `tfsdk:"tags_to_add_to_metrics"`
+	Name                        types.String `tfsdk:"name"`
+	Metrics                     types.List   `tfsdk:"metric"`
+	ScrapeIntervalSeconds       types.Int64  `tfsdk:"scrape_interval_seconds"`
+	ResourceDiscoveryTagFilters types.List   `tfsdk:"resource_discovery_tag_filter"`
+	TagsToAddToMetrics          types.Set    `tfsdk:"tags_to_add_to_metrics"`
 }
+
 type awsCWScrapeJobCustomNamespaceTFModel struct {
-	Name                  types.String                  `tfsdk:"name"`
-	Metrics               []awsCWScrapeJobMetricTFModel `tfsdk:"metric"`
-	ScrapeIntervalSeconds types.Int64                   `tfsdk:"scrape_interval_seconds"`
+	Name                  types.String `tfsdk:"name"`
+	Metrics               types.List   `tfsdk:"metric"`
+	ScrapeIntervalSeconds types.Int64  `tfsdk:"scrape_interval_seconds"`
 }
 type awsCWScrapeJobMetricTFModel struct {
 	Name       types.String `tfsdk:"name"`
@@ -162,8 +163,14 @@ func (tfData awsCWScrapeJobTFResourceModel) toClientModel(ctx context.Context) (
 		return cloudproviderapi.AWSCloudWatchScrapeJobRequest{}, conversionDiags
 	}
 
-	converted.Services = make([]cloudproviderapi.AWSCloudWatchService, len(tfData.Services))
-	for i, service := range tfData.Services {
+	var services []awsCWScrapeJobServiceTFModel
+	diags = tfData.Services.ElementsAs(ctx, &services, false)
+	conversionDiags.Append(diags...)
+	if conversionDiags.HasError() {
+		return cloudproviderapi.AWSCloudWatchScrapeJobRequest{}, conversionDiags
+	}
+	converted.Services = make([]cloudproviderapi.AWSCloudWatchService, len(services))
+	for i, service := range services {
 		converted.Services[i] = cloudproviderapi.AWSCloudWatchService{
 			Name:                  service.Name.ValueString(),
 			ScrapeIntervalSeconds: service.ScrapeIntervalSeconds.ValueInt64(),
@@ -175,8 +182,14 @@ func (tfData awsCWScrapeJobTFResourceModel) toClientModel(ctx context.Context) (
 			return cloudproviderapi.AWSCloudWatchScrapeJobRequest{}, conversionDiags
 		}
 
-		converted.Services[i].Metrics = make([]cloudproviderapi.AWSCloudWatchMetric, len(service.Metrics))
-		for j, metric := range service.Metrics {
+		var metrics []awsCWScrapeJobMetricTFModel
+		diags = service.Metrics.ElementsAs(ctx, &metrics, false)
+		conversionDiags.Append(diags...)
+		if conversionDiags.HasError() {
+			return cloudproviderapi.AWSCloudWatchScrapeJobRequest{}, conversionDiags
+		}
+		converted.Services[i].Metrics = make([]cloudproviderapi.AWSCloudWatchMetric, len(metrics))
+		for j, metric := range metrics {
 			converted.Services[i].Metrics[j] = cloudproviderapi.AWSCloudWatchMetric{
 				Name: metric.Name.ValueString(),
 			}
@@ -188,8 +201,14 @@ func (tfData awsCWScrapeJobTFResourceModel) toClientModel(ctx context.Context) (
 			}
 		}
 
-		converted.Services[i].ResourceDiscoveryTagFilters = make([]cloudproviderapi.AWSCloudWatchTagFilter, len(service.ResourceDiscoveryTagFilters))
-		for j, tagFilter := range service.ResourceDiscoveryTagFilters {
+		var tagFilters []awsCWScrapeJobTagFilterTFModel
+		diags = service.Metrics.ElementsAs(ctx, &tagFilters, false)
+		conversionDiags.Append(diags...)
+		if conversionDiags.HasError() {
+			return cloudproviderapi.AWSCloudWatchScrapeJobRequest{}, conversionDiags
+		}
+		converted.Services[i].ResourceDiscoveryTagFilters = make([]cloudproviderapi.AWSCloudWatchTagFilter, len(tagFilters))
+		for j, tagFilter := range tagFilters {
 			converted.Services[i].ResourceDiscoveryTagFilters[j] = cloudproviderapi.AWSCloudWatchTagFilter{
 				Key:   tagFilter.Key.ValueString(),
 				Value: tagFilter.Value.ValueString(),
@@ -197,15 +216,27 @@ func (tfData awsCWScrapeJobTFResourceModel) toClientModel(ctx context.Context) (
 		}
 	}
 
-	converted.CustomNamespaces = make([]cloudproviderapi.AWSCloudWatchCustomNamespace, len(tfData.CustomNamespaces))
-	for i, customNamespace := range tfData.CustomNamespaces {
+	var customNamepsaces []awsCWScrapeJobCustomNamespaceTFModel
+	diags = tfData.CustomNamespaces.ElementsAs(ctx, &customNamepsaces, false)
+	conversionDiags.Append(diags...)
+	if conversionDiags.HasError() {
+		return cloudproviderapi.AWSCloudWatchScrapeJobRequest{}, conversionDiags
+	}
+	converted.CustomNamespaces = make([]cloudproviderapi.AWSCloudWatchCustomNamespace, len(customNamepsaces))
+	for i, customNamespace := range customNamepsaces {
 		converted.CustomNamespaces[i] = cloudproviderapi.AWSCloudWatchCustomNamespace{
 			Name:                  customNamespace.Name.ValueString(),
 			ScrapeIntervalSeconds: customNamespace.ScrapeIntervalSeconds.ValueInt64(),
 		}
 
-		converted.CustomNamespaces[i].Metrics = make([]cloudproviderapi.AWSCloudWatchMetric, len(customNamespace.Metrics))
-		for j, metric := range customNamespace.Metrics {
+		var metrics []awsCWScrapeJobMetricTFModel
+		diags = customNamespace.Metrics.ElementsAs(ctx, &metrics, false)
+		conversionDiags.Append(diags...)
+		if conversionDiags.HasError() {
+			return cloudproviderapi.AWSCloudWatchScrapeJobRequest{}, conversionDiags
+		}
+		converted.CustomNamespaces[i].Metrics = make([]cloudproviderapi.AWSCloudWatchMetric, len(metrics))
+		for j, metric := range metrics {
 			converted.CustomNamespaces[i].Metrics[j] = cloudproviderapi.AWSCloudWatchMetric{
 				Name: metric.Name.ValueString(),
 			}
