@@ -31,7 +31,7 @@ func TestAccDataSourceConfigLBACRules_basic(t *testing.T) {
 						}
 
 						expectedRules := []string{
-							"{ foo != \"bar\", foo !~ \"baz\" }",
+							"{ cluster = \"dev-us-central-0\", namespace = \"hosted-grafana\" }",
 							"{ foo = \"qux\" }",
 						}
 
@@ -68,7 +68,7 @@ func TestAccDataSourceConfigLBACRules_basic(t *testing.T) {
 
 func testAccDataSourceConfigLBACRules(name string) string {
 	return fmt.Sprintf(`
-resource "grafana_team" "test" {
+resource "grafana_team" "team" {
 	name = "%[1]s-team"
 }
 
@@ -86,15 +86,15 @@ resource "grafana_data_source" "test" {
 
 resource "grafana_data_source_config_lbac_rules" "test" {
     datasource_uid = grafana_data_source.test.uid
-    rules = jsonencode({
-        "${grafana_team.test.team_uid}" = [
-            "{ foo != \"bar\", foo !~ \"baz\" }",
-            "{ foo = \"qux\" }"
-        ]
-    })
+	rules = jsonencode({
+		"${grafana_team.team.team_uid}" = [
+		"{ cluster = \"dev-us-central-0\", namespace = \"hosted-grafana\" }",
+		"{ foo = \"qux\" }"
+		]
+	})
 
     depends_on = [
-        grafana_team.test,
+        grafana_team.team,
         grafana_data_source.test
     ]
 }
