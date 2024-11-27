@@ -12,7 +12,7 @@ import (
 )
 
 func TestAccDataSourceConfigLBACRules_basic(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=11.0.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=11.4.0")
 
 	name := acctest.RandString(10)
 

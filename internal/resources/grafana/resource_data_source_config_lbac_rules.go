@@ -66,7 +66,7 @@ Manages LBAC rules for a data source.
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/data-source-management/teamlbac/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/datasource_lbac_rules/)
 
-This resource requires Grafana >=11.0.0.
+This resource requires Grafana >=11.4.0.
 `,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
