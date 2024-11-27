@@ -1482,7 +1482,7 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 			CacheBustingQueryParamName: h["cache_busting_query_param_name"].(string),
 		}
 		compression, ok := h["compression"].(string)
-		if ok {
+		if ok && compression != "" {
 			cs.Http.Compression = sm.CompressionAlgorithm(sm.CompressionAlgorithm_value[compression])
 		}
 		if h["tls_config"].(*schema.Set).Len() > 0 {
