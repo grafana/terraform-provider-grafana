@@ -341,6 +341,11 @@ var (
 				Optional:    true,
 				Elem:        syntheticMonitoringCheckSettingsHTTPHeaderMatch,
 			},
+			"compression": {
+				Description: "Check fails if the response body is not compressed using this compression algorithm. One of `none`, `identity`, `br`, `gzip`, `deflate`.",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
 			"cache_busting_query_param_name": {
 				Description: "The name of the query parameter used to prevent the server from using a cached response. Each probe will assign a random value to this parameter each time a request is made.",
 				Type:        schema.TypeString,
@@ -969,6 +974,7 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 			"fail_if_body_not_matches_regexp":   common.StringSliceToSet(chk.Settings.Http.FailIfBodyNotMatchesRegexp),
 			"fail_if_header_matches_regexp":     headerMatch(chk.Settings.Http.FailIfHeaderMatchesRegexp),
 			"fail_if_header_not_matches_regexp": headerMatch(chk.Settings.Http.FailIfHeaderNotMatchesRegexp),
+			"compression":                       chk.Settings.Http.Compression.String(),
 			"cache_busting_query_param_name":    chk.Settings.Http.CacheBustingQueryParamName,
 		})
 
@@ -1473,6 +1479,7 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 			ValidHTTPVersions:          common.SetToStringSlice(h["valid_http_versions"].(*schema.Set)),
 			FailIfBodyMatchesRegexp:    common.SetToStringSlice(h["fail_if_body_matches_regexp"].(*schema.Set)),
 			FailIfBodyNotMatchesRegexp: common.SetToStringSlice(h["fail_if_body_not_matches_regexp"].(*schema.Set)),
+			Compression:                sm.CompressionAlgorithm(sm.CompressionAlgorithm_value[h["compression"].(string)]),
 			CacheBustingQueryParamName: h["cache_busting_query_param_name"].(string),
 		}
 		if h["tls_config"].(*schema.Set).Len() > 0 {
