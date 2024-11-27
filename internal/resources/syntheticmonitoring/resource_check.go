@@ -1479,8 +1479,11 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 			ValidHTTPVersions:          common.SetToStringSlice(h["valid_http_versions"].(*schema.Set)),
 			FailIfBodyMatchesRegexp:    common.SetToStringSlice(h["fail_if_body_matches_regexp"].(*schema.Set)),
 			FailIfBodyNotMatchesRegexp: common.SetToStringSlice(h["fail_if_body_not_matches_regexp"].(*schema.Set)),
-			Compression:                sm.CompressionAlgorithm(sm.CompressionAlgorithm_value[h["compression"].(string)]),
 			CacheBustingQueryParamName: h["cache_busting_query_param_name"].(string),
+		}
+		compression, ok := h["compression"].(string)
+		if ok {
+			cs.Http.Compression = sm.CompressionAlgorithm(sm.CompressionAlgorithm_value[compression])
 		}
 		if h["tls_config"].(*schema.Set).Len() > 0 {
 			cs.Http.TlsConfig = tlsConfig(h["tls_config"].(*schema.Set))
