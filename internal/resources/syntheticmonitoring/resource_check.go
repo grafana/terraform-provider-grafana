@@ -344,9 +344,9 @@ var (
 				Elem:        syntheticMonitoringCheckSettingsHTTPHeaderMatch,
 			},
 			"compression": {
-				Description: "Check fails if the response body is not compressed using this compression algorithm. One of `none`, `identity`, `br`, `gzip`, `deflate`.",
-				Type:        schema.TypeString,
-				Optional:    true,
+				Description:  "Check fails if the response body is not compressed using this compression algorithm. One of `none`, `identity`, `br`, `gzip`, `deflate`.",
+				Type:         schema.TypeString,
+				Optional:     true,
 				ValidateFunc: validation.StringInSlice(slices.Collect(maps.Keys(sm.CompressionAlgorithm_value)), false),
 			},
 			"cache_busting_query_param_name": {
