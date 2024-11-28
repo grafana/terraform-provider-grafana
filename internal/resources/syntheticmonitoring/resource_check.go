@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -345,6 +347,7 @@ var (
 				Description: "Check fails if the response body is not compressed using this compression algorithm. One of `none`, `identity`, `br`, `gzip`, `deflate`.",
 				Type:        schema.TypeString,
 				Optional:    true,
+				ValidateFunc: validation.StringInSlice(slices.Collect(maps.Keys(sm.CompressionAlgorithm_value)), false),
 			},
 			"cache_busting_query_param_name": {
 				Description: "The name of the query parameter used to prevent the server from using a cached response. Each probe will assign a random value to this parameter each time a request is made.",
