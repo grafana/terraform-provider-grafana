@@ -1188,7 +1188,6 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 		settings.Add(map[string]any{
 			"browser": browser,
 		})
-
 	}
 
 	d.Set("settings", settings)

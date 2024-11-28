@@ -452,8 +452,8 @@ func TestAccResourceCheck_browser(t *testing.T) {
 	// Inject random job names to avoid conflicts with other tests
 	jobName := acctest.RandomWithPrefix("browser")
 	nameReplaceMap := map[string]string{
-		`"Validate homepage"`: strconv.Quote(jobName),
-		"${path.module}":      scriptFilepathAbs,
+		`"Validate login"`: strconv.Quote(jobName),
+		"${path.module}":   scriptFilepathAbs,
 	}
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
@@ -479,7 +479,6 @@ func TestAccResourceCheck_browser(t *testing.T) {
 		},
 	})
 }
-
 
 func TestAccResourceCheck_grpc(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
