@@ -944,10 +944,6 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 				},
 			)
 		}
-		var compression string
-		if chk.Settings.Http.Compression != sm.CompressionAlgorithm_none {
-			compression = chk.Settings.Http.Compression.String()
-		}
 		headerMatch := func(hms []sm.HeaderMatch) *schema.Set {
 			hmSet := schema.NewSet(
 				schema.HashResource(syntheticMonitoringCheckSettingsTCPQueryResponse),
@@ -981,9 +977,14 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 			"fail_if_body_not_matches_regexp":   common.StringSliceToSet(chk.Settings.Http.FailIfBodyNotMatchesRegexp),
 			"fail_if_header_matches_regexp":     headerMatch(chk.Settings.Http.FailIfHeaderMatchesRegexp),
 			"fail_if_header_not_matches_regexp": headerMatch(chk.Settings.Http.FailIfHeaderNotMatchesRegexp),
-			"compression":                       compression,
 			"cache_busting_query_param_name":    chk.Settings.Http.CacheBustingQueryParamName,
 		})
+
+		if chk.Settings.Http.Compression != nil {
+			http.Add(map[string]interface{}{
+				"compression": chk.Settings.Http.Compression.String(),
+			})
+		}
 
 		settings.Add(map[string]interface{}{
 			"http": http,
@@ -1489,7 +1490,7 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 			CacheBustingQueryParamName: h["cache_busting_query_param_name"].(string),
 		}
 		compression, ok := h["compression"].(string)
-		if ok && compression != "" {
+		if ok {
 			cs.Http.Compression = sm.CompressionAlgorithm(sm.CompressionAlgorithm_value[compression])
 		}
 		if h["tls_config"].(*schema.Set).Len() > 0 {
