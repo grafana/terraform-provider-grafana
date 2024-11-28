@@ -980,7 +980,9 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 			"cache_busting_query_param_name":    chk.Settings.Http.CacheBustingQueryParamName,
 		})
 
-		if chk.Settings.Http.Compression != nil {
+		// The default compression "none" is the same as omitting the value.
+		// Since this value is usually not explicitly set, omit when set to "none"
+		if chk.Settings.Http.Compression != sm.CompressionAlgorithm_none {
 			http.Add(map[string]interface{}{
 				"compression": chk.Settings.Http.Compression.String(),
 			})
