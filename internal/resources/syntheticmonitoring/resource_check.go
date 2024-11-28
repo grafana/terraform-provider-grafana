@@ -134,10 +134,27 @@ var (
 				MaxItems:    1,
 				Elem:        syntheticMonitoringCheckSettingsGRPC,
 			},
+			"browser": {
+				Description: "Settings for browser check. See https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/checks/k6-browser/.",
+				Type:        schema.TypeSet,
+				Optional:    true,
+				MaxItems:    1,
+				Elem:        syntheticMonitoringCheckSettingsBrowser,
+			},
 		},
 	}
 
 	syntheticMonitoringCheckSettingsScripted = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"script": {
+				Type:     schema.TypeString,
+				Optional: false,
+				Required: true,
+			},
+		},
+	}
+
+	syntheticMonitoringCheckSettingsBrowser = &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"script": {
 				Type:     schema.TypeString,
@@ -737,7 +754,7 @@ multiple checks for a single endpoint to check different capabilities.
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					// Suppress diff if it's a multihttp check with a timeout of 5000 (default timeout for those)
 					// and it's being changed to 3000 (default timeout set here).
-					doSuppress := d.Get("settings.0.multihttp.0") != nil || d.Get("settings.0.scripted") != nil
+					doSuppress := d.Get("settings.0.multihttp.0") != nil || d.Get("settings.0.scripted") != nil || d.Get("settings.0.browser") != nil
 					if doSuppress &&
 						old == strconv.Itoa(checkMultiHTTPDefaultTimeout) &&
 						new == strconv.Itoa(checkDefaultTimeout) {
@@ -1160,6 +1177,18 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 		settings.Add(map[string]interface{}{
 			"grpc": grpc,
 		})
+	case chk.Settings.Browser != nil:
+		browser := schema.NewSet(
+			schema.HashResource(syntheticMonitoringCheckSettingsBrowser),
+			[]any{},
+		)
+		browser.Add(map[string]any{
+			"script": string(chk.Settings.Browser.Script),
+		})
+		settings.Add(map[string]any{
+			"browser": browser,
+		})
+
 	}
 
 	d.Set("settings", settings)
@@ -1215,7 +1244,7 @@ func makeCheck(d *schema.ResourceData) (*sm.Check, error) {
 	}
 
 	timeout := int64(d.Get("timeout").(int))
-	if timeout == checkDefaultTimeout && (settings.Multihttp != nil || settings.Scripted != nil) {
+	if timeout == checkDefaultTimeout && (settings.Multihttp != nil || settings.Scripted != nil || settings.Browser != nil) {
 		timeout = checkMultiHTTPDefaultTimeout
 	}
 
@@ -1598,6 +1627,14 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 		}
 		if t["tls_config"].(*schema.Set).Len() > 0 {
 			cs.Grpc.TlsConfig = tlsConfig(t["tls_config"].(*schema.Set))
+		}
+	}
+
+	browser := settings["browser"].(*schema.Set).List()
+	if len(browser) > 0 {
+		s := browser[0].(map[string]interface{})
+		cs.Browser = &sm.BrowserSettings{
+			Script: []byte(s["script"].(string)),
 		}
 	}
 

@@ -438,6 +438,7 @@ resource "grafana_synthetic_monitoring_check" "traceroute" {
 
 Optional:
 
+- `browser` (Block Set, Max: 1) Settings for browser check. See https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/checks/k6-browser/. (see [below for nested schema](#nestedblock--settings--browser))
 - `dns` (Block Set, Max: 1) Settings for DNS check. The target must be a valid hostname (or IP address for `PTR` records). (see [below for nested schema](#nestedblock--settings--dns))
 - `grpc` (Block Set, Max: 1) Settings for gRPC Health check. The target must be of the form `<host>:<port>`, where the host portion must be a valid hostname or IP address. (see [below for nested schema](#nestedblock--settings--grpc))
 - `http` (Block Set, Max: 1) Settings for HTTP check. The target must be a URL (http or https). (see [below for nested schema](#nestedblock--settings--http))
@@ -446,6 +447,14 @@ Optional:
 - `scripted` (Block Set, Max: 1) Settings for scripted check. See https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/checks/k6/. (see [below for nested schema](#nestedblock--settings--scripted))
 - `tcp` (Block Set, Max: 1) Settings for TCP check. The target must be of the form `<host>:<port>`, where the host portion must be a valid hostname or IP address. (see [below for nested schema](#nestedblock--settings--tcp))
 - `traceroute` (Block Set, Max: 1) Settings for traceroute check. The target must be a valid hostname or IP address (see [below for nested schema](#nestedblock--settings--traceroute))
+
+<a id="nestedblock--settings--browser"></a>
+### Nested Schema for `settings.browser`
+
+Required:
+
+- `script` (String)
+
 
 <a id="nestedblock--settings--dns"></a>
 ### Nested Schema for `settings.dns`
@@ -879,6 +888,31 @@ resource "grafana_synthetic_monitoring_check" "scripted" {
       // `script.js` is a file in the same directory as this file and contains the
       // script to be executed.
       script = file("${path.module}/script.js")
+    }
+  }
+}
+```
+
+### Browser Basic
+
+```terraform
+data "grafana_synthetic_monitoring_probes" "main" {}
+
+resource "grafana_synthetic_monitoring_check" "browser" {
+  job     = "Validate login"
+  target  = "https://test.k6.io"
+  enabled = true
+  probes = [
+    data.grafana_synthetic_monitoring_probes.main.probes.Paris,
+  ]
+  labels = {
+    environment = "production"
+  }
+  settings {
+    scripted {
+      // `script.js` is a file in the same directory as this file and contains the
+      // script to be executed.
+      script = file("${path.module}/browser_script.js")
     }
   }
 }
