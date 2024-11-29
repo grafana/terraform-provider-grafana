@@ -854,6 +854,7 @@ func resourceCheckCreate(ctx context.Context, d *schema.ResourceData, c *smapi.C
 	return resourceCheckRead(ctx, d, c)
 }
 
+//nolint:gocyclo
 func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	id, err := resourceCheckID.Single(d.Id())
 	if err != nil {
