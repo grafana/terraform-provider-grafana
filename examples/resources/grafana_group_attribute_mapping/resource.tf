@@ -11,7 +11,7 @@ resource "grafana_role" "report_admin_role" {
   }
 }
 
-resource "grafana_group_attribute_mapping" "report_admin_mapping" {
-  group_id  = "business_dev_group_id"
-  role_uids = [grafana_role.report_admin_role.uid]
-}
+# resource "grafana_group_attribute_mapping" "report_admin_mapping" {
+#   group_id  = "business_dev_group_id"
+#   role_uids = [grafana_role.report_admin_role.uid]
+# }
