@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/grafana/slo-openapi-client/go/slo"
@@ -278,16 +279,28 @@ func testAccSloCheckDestroy(slo *slo.SloV00Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).SLOClient
 		req := client.DefaultAPI.V1SloIdGet(context.Background(), slo.Uuid)
-		gotSlo, resp, _ := req.Execute()
+		gotSlo, resp, err := req.Execute()
+		if err != nil {
+			return fmt.Errorf("error getting SLO: %s", err)
+		}
+
 		if resp.StatusCode == 404 {
 			return nil
 		}
 
-		if gotSlo.ReadOnly.Status.Type == "deleting" {
+		sloType := gotSlo.ReadOnly.Status.Type
+		message := gotSlo.ReadOnly.Status.GetMessage()
+
+		if sloType == "deleting" {
 			return nil
 		}
 
-		return fmt.Errorf("Grafana SLO still exists: %+v, status: %+v", gotSlo, gotSlo.ReadOnly.Status)
+		// Rule group is limited in the instance, and sometimes it makes Cloud tests to fail...
+		if sloType == "error" && strings.Contains(message, "rule group limit exceeded") {
+			return nil
+		}
+
+		return fmt.Errorf("grafana SLO still exists: %+v, status type: %+v, status message: %s", gotSlo, gotSlo.ReadOnly.Status.GetType(), gotSlo.ReadOnly.Status.GetMessage())
 	}
 }
 
