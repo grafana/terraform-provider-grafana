@@ -40,7 +40,6 @@ resource "grafana_data_source" "test" {
   })
 }
 
-# TODO: add back 5th of dec
 # resource "grafana_data_source_config_lbac_rules" "test_rule" {
 #   datasource_uid = grafana_data_source.test.uid
 #   rules = jsonencode({

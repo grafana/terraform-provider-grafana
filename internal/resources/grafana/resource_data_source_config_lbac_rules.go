@@ -14,6 +14,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+// Note: The LBAC Rules API only supports GET and UPDATE operations.
+// There is no CREATE or DELETE API endpoint. The UPDATE operation is used
+// for all modifications (create/update/delete) by sending the complete desired
+// state. Deleting rules is done by sending an empty rules list.
+
 var (
 	// Check interface
 	_ resource.ResourceWithImportState = (*resourceDataSourceConfigLBACRules)(nil)
@@ -91,6 +96,29 @@ func (r *resourceDataSourceConfigLBACRules) Configure(ctx context.Context, req r
 	r.client = req.ProviderData.(*common.Client)
 }
 
+// Add this helper function to handle the common update logic
+func (r *resourceDataSourceConfigLBACRules) updateRules(ctx context.Context, data *resourceDataSourceConfigLBACRulesModel, rules map[string][]string) error {
+	apiRules := make([]*models.TeamLBACRule, 0, len(rules))
+	for teamUID, ruleList := range rules {
+		apiRules = append(apiRules, &models.TeamLBACRule{
+			TeamUID: teamUID,
+			Rules:   ruleList,
+		})
+	}
+
+	params := &enterprise.UpdateTeamLBACRulesAPIParams{
+		Context: ctx,
+		UID:     data.DatasourceUID.ValueString(),
+		Body:    &models.UpdateTeamLBACCommand{Rules: apiRules},
+	}
+
+	_, err := r.client.GrafanaAPI.Enterprise.UpdateTeamLBACRulesAPI(params)
+	if err != nil {
+		return fmt.Errorf("failed to update LBAC rules for datasource %q: %w", data.DatasourceUID.ValueString(), err)
+	}
+	return nil
+}
+
 func (r *resourceDataSourceConfigLBACRules) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data resourceDataSourceConfigLBACRulesModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -99,30 +127,15 @@ func (r *resourceDataSourceConfigLBACRules) Create(ctx context.Context, req reso
 	}
 
 	rulesMap := make(map[string][]string)
-	err := json.Unmarshal([]byte(data.Rules.ValueString()), &rulesMap)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid rules JSON", fmt.Sprintf("Failed to parse rule s: %v", err))
+	if err := json.Unmarshal([]byte(data.Rules.ValueString()), &rulesMap); err != nil {
+		resp.Diagnostics.AddError(
+			"Invalid rules JSON",
+			fmt.Sprintf("Failed to parse rules for datasource %q: %v. Please ensure the rules are valid JSON.", data.DatasourceUID.ValueString(), err),
+		)
+		return
 	}
 
-	apiRules := make([]*models.TeamLBACRule, 0, len(rulesMap))
-	for teamUID, rules := range rulesMap {
-		apiRules = append(apiRules, &models.TeamLBACRule{
-			TeamID:  "",
-			TeamUID: teamUID,
-			Rules:   rules,
-		})
-	}
-
-	client := r.client.GrafanaAPI
-
-	params := &enterprise.UpdateTeamLBACRulesAPIParams{
-		Context: ctx,
-		UID:     data.DatasourceUID.ValueString(),
-		Body:    &models.UpdateTeamLBACCommand{Rules: apiRules},
-	}
-
-	_, err = client.Enterprise.UpdateTeamLBACRulesAPI(params)
-	if err != nil {
+	if err := r.updateRules(ctx, &data, rulesMap); err != nil {
 		resp.Diagnostics.AddError("Failed to create LBAC rules", err.Error())
 		return
 	}
@@ -143,7 +156,10 @@ func (r *resourceDataSourceConfigLBACRules) Read(ctx context.Context, req resour
 
 	getResp, err := client.Enterprise.GetTeamLBACRulesAPI(datasourceUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get LBAC rules", err.Error())
+		resp.Diagnostics.AddError(
+			"Failed to get LBAC rules",
+			fmt.Sprintf("Could not read LBAC rules for datasource %q: %v", datasourceUID, err),
+		)
 		return
 	}
 
@@ -154,7 +170,11 @@ func (r *resourceDataSourceConfigLBACRules) Read(ctx context.Context, req resour
 
 	rulesJSON, err := json.Marshal(rulesMap)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to encode rules", err.Error())
+		// Marshal error should never happen for a valid map
+		resp.Diagnostics.AddError(
+			"Failed to encode rules",
+			fmt.Sprintf("Could not encode LBAC rules for datasource %q: %v. This is an internal error, please report it.", datasourceUID, err),
+		)
 		return
 	}
 
@@ -175,42 +195,38 @@ func (r *resourceDataSourceConfigLBACRules) Update(ctx context.Context, req reso
 	}
 
 	rulesMap := make(map[string][]string)
-	err := json.Unmarshal([]byte(data.Rules.ValueString()), &rulesMap)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid rules JSON", fmt.Sprintf("Failed to parse rules: %v", err))
+	if err := json.Unmarshal([]byte(data.Rules.ValueString()), &rulesMap); err != nil {
+		resp.Diagnostics.AddError(
+			"Invalid rules JSON",
+			fmt.Sprintf("Failed to parse updated rules for datasource %q: %v. Please ensure the rules are valid JSON.", data.DatasourceUID.ValueString(), err),
+		)
 		return
 	}
 
-	apiRules := make([]*models.TeamLBACRule, 0, len(rulesMap))
-	for teamUID, rules := range rulesMap {
-		apiRules = append(apiRules, &models.TeamLBACRule{
-			TeamID:  "",
-			TeamUID: teamUID,
-			Rules:   rules,
-		})
-	}
-	datasourceUID := data.DatasourceUID.ValueString()
-	client := r.client.GrafanaAPI
-
-	params := &enterprise.UpdateTeamLBACRulesAPIParams{
-		Context: ctx,
-		UID:     datasourceUID,
-		Body:    &models.UpdateTeamLBACCommand{Rules: apiRules},
-	}
-
-	_, err = client.Enterprise.UpdateTeamLBACRulesAPI(params)
-	if err != nil {
+	if err := r.updateRules(ctx, &data, rulesMap); err != nil {
 		resp.Diagnostics.AddError("Failed to update LBAC rules", err.Error())
 		return
 	}
 
-	data.ID = types.StringValue(datasourceUID)
-	data.DatasourceUID = types.StringValue(datasourceUID)
+	data.ID = types.StringValue(data.DatasourceUID.ValueString())
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *resourceDataSourceConfigLBACRules) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	resp.Diagnostics.AddWarning("Operation not supported", "Delete operation is not supported for LBAC rules")
+	var state resourceDataSourceConfigLBACRulesModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Pass empty rules map to clear all rules
+	if err := r.updateRules(ctx, &state, make(map[string][]string)); err != nil {
+		resp.Diagnostics.AddError(
+			"Failed to delete LBAC rules",
+			fmt.Sprintf("Could not delete LBAC rules for datasource %q: %v", state.DatasourceUID.ValueString(), err),
+		)
+		return
+	}
 }
 
 func (r *resourceDataSourceConfigLBACRules) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
