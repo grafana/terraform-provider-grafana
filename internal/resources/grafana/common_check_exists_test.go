@@ -255,21 +255,21 @@ var (
 			return payloadOrError(resp, err)
 		},
 	)
-	groupAttrMappingCheckExists = newCheckExistsHelper(
-		func(g *models.Group) string { return g.GroupID },
-		func(client *goapi.GrafanaHTTPAPI, id string) (*models.Group, error) {
-			resp, err := client.GroupAttributeSync.GetMappedGroups()
-			if err != nil {
-				return nil, err
-			}
-			for _, group := range resp.Payload.Groups {
-				if group.GroupID == id {
-					return group, nil
-				}
-			}
-			return nil, &runtime.APIError{Code: 404, Response: "mapping not found"}
-		},
-	)
+	//groupAttrMappingCheckExists = newCheckExistsHelper(
+	//	func(g *models.Group) string { return g.GroupID },
+	//	func(client *goapi.GrafanaHTTPAPI, id string) (*models.Group, error) {
+	//		resp, err := client.GroupAttributeSync.GetMappedGroups()
+	//		if err != nil {
+	//			return nil, err
+	//		}
+	//		for _, group := range resp.Payload.Groups {
+	//			if group.GroupID == id {
+	//				return group, nil
+	//			}
+	//		}
+	//		return nil, &runtime.APIError{Code: 404, Response: "mapping not found"}
+	//	},
+	//)
 )
 
 type checkExistsGetResourceFunc[T interface{}] func(client *goapi.GrafanaHTTPAPI, id string) (*T, error)
