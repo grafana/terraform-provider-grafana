@@ -909,8 +909,8 @@ resource "grafana_synthetic_monitoring_check" "browser" {
     environment = "production"
   }
   settings {
-    scripted {
-      // `script.js` is a file in the same directory as this file and contains the
+    browser {
+      // `browser_script.js` is a file in the same directory as this file and contains the
       // script to be executed.
       script = file("${path.module}/browser_script.js")
     }
