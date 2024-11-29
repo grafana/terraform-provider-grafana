@@ -63,6 +63,7 @@ var knownReferences = []string{
 	"grafana_folder_permission_item.team=grafana_team.id",
 	"grafana_folder_permission_item.user=grafana_service_account.id",
 	"grafana_folder_permission_item.user=grafana_user.id",
+	"grafana_group_attribute_mapping.role_uids=grafana_role.uid",
 	"grafana_library_panel.folder_uid=grafana_folder.uid",
 	"grafana_library_panel.org_id=grafana_organization.id",
 	"grafana_machine_learning_alert.job_id=grafana_machine_learning_job.id",
