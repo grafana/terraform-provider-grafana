@@ -147,6 +147,7 @@ resource "grafana_synthetic_monitoring_check" "http" {
       proxy_url                      = "https://almost-there"
       fail_if_ssl                    = true
       fail_if_not_ssl                = true
+      compression                    = "deflate"
       cache_busting_query_param_name = "pineapple"
 
       tls_config {
@@ -522,6 +523,7 @@ Optional:
 - `bearer_token` (String, Sensitive) Token for use with bearer authorization header.
 - `body` (String) The body of the HTTP request used in probe.
 - `cache_busting_query_param_name` (String) The name of the query parameter used to prevent the server from using a cached response. Each probe will assign a random value to this parameter each time a request is made.
+- `compression` (String) Check fails if the response body is not compressed using this compression algorithm. One of `none`, `identity`, `br`, `gzip`, `deflate`.
 - `fail_if_body_matches_regexp` (Set of String) List of regexes. If any match the response body, the check will fail.
 - `fail_if_body_not_matches_regexp` (Set of String) List of regexes. If any do not match the response body, the check will fail.
 - `fail_if_header_matches_regexp` (Block Set) Check fails if headers match. (see [below for nested schema](#nestedblock--settings--http--fail_if_header_matches_regexp))
