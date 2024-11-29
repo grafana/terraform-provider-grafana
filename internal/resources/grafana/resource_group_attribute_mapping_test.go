@@ -10,7 +10,7 @@ import (
 )
 
 func TestAccGroupAttributeSync_basic(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=11.4.0")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=11.5.0")
 
 	var groupMapping models.Group
 	var role models.RoleDTO

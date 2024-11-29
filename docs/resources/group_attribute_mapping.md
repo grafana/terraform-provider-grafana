@@ -5,7 +5,7 @@ subcategory: "Grafana Enterprise"
 description: |-
   Group attribute mapping is used to map groups from an external identity provider to Grafana attributes. This resource maps groups to fixed and custom role-based access control roles.
   !> Warning: The resource is experimental and will be subject to change. To use the resource, you need to enable groupAttributeSync feature flag.
-  This resource requires Grafana Enterprise or Cloud >=11.4.0.
+  This resource requires Grafana Enterprise or Cloud >=11.5.0.
 ---
 
 # grafana_group_attribute_mapping (Resource)
@@ -14,7 +14,7 @@ Group attribute mapping is used to map groups from an external identity provider
 
 !> Warning: The resource is experimental and will be subject to change. To use the resource, you need to enable groupAttributeSync feature flag.
 
-This resource requires Grafana Enterprise or Cloud >=11.4.0.
+This resource requires Grafana Enterprise or Cloud >=11.5.0.
 
 ## Example Usage
 

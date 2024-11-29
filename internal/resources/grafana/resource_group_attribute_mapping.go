@@ -53,7 +53,7 @@ Group attribute mapping is used to map groups from an external identity provider
 
 !> Warning: The resource is experimental and will be subject to change. To use the resource, you need to enable groupAttributeSync feature flag.
 
-This resource requires Grafana Enterprise or Cloud >=11.4.0.
+This resource requires Grafana Enterprise or Cloud >=11.5.0.
 `,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
