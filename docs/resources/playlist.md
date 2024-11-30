@@ -29,9 +29,9 @@ resource "grafana_playlist" "test" {
 
   item {
     order = 1
-    title = "Terraform Dashboard By ID"
-    type  = "dashboard_by_id"
-    value = "3"
+    title = "Terraform Dashboard By UID"
+    type  = "dashboard_by_uid"
+    value = "cIBgcSjkk"
   }
 }
 ```
