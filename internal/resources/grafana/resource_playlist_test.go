@@ -87,13 +87,13 @@ func TestAccPlaylist_update(t *testing.T) {
 						"order": "1",
 						"title": "Terraform Dashboard By UID",
 						"type":  "dashboard_by_uid",
-						"value": "3",
+						"value": "uid-3",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "2",
 						"title": "other",
 						"type":  "dashboard_by_uid",
-						"value": "uid-other",
+						"value": "uid-1",
 					}),
 				),
 			},
@@ -108,13 +108,13 @@ func TestAccPlaylist_update(t *testing.T) {
 						"order": "1",
 						"title": "Terraform Dashboard By UID",
 						"type":  "dashboard_by_uid",
-						"value": "4",
+						"value": "uid-4",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(paylistResource, "item.*", map[string]string{
 						"order": "2",
 						"title": "other",
 						"type":  "dashboard_by_uid",
-						"value": "uid-other",
+						"value": "uid-1",
 					}),
 				),
 			},
@@ -262,7 +262,7 @@ resource "grafana_playlist" "test" {
 		order = 2
 		title = "other"
 		type = "dashboard_by_uid"
-		value = "uid-other"
+		value = "uid-1"
 	}
 	
 	item {
