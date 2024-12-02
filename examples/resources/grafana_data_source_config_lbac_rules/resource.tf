@@ -10,8 +10,8 @@ resource "grafana_data_source" "test" {
   basic_auth_username = "username"
 
   json_data_encoded = jsonencode({
-    authType = "default"
-    ## basicAuthPassword = "<>"
+    authType          = "default"
+    basicAuthPassword = "password"
   })
 }
 

@@ -41,12 +41,6 @@ func makeResourceDataSourceConfigLBACRules() *common.Resource {
 	)
 }
 
-type LBACRule struct {
-	TeamID  types.String   `tfsdk:"team_id"`
-	TeamUID types.String   `tfsdk:"team_uid"`
-	Rules   []types.String `tfsdk:"rules"`
-}
-
 type resourceDataSourceConfigLBACRulesModel struct {
 	ID            types.String `tfsdk:"id"`
 	DatasourceUID types.String `tfsdk:"datasource_uid"`
@@ -71,7 +65,7 @@ Manages LBAC rules for a data source.
 * [Official documentation](https://grafana.com/docs/grafana/latest/administration/data-source-management/teamlbac/)
 * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/datasource_lbac_rules/)
 
-This resource requires Grafana >=11.4.0.
+This resource requires Grafana >=11.5.0.
 `,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -83,7 +77,7 @@ This resource requires Grafana >=11.4.0.
 			},
 			"rules": schema.StringAttribute{
 				Required:    true,
-				Description: "JSON-encoded LBAC rules for the data source. Map of team IDs to lists of rule strings.",
+				Description: "JSON-encoded LBAC rules for the data source. Map of team UIDs to lists of rule strings.",
 			},
 		},
 	}
