@@ -105,6 +105,7 @@ var Resources = addValidationToResources(
 	makeResourceFolderPermissionItem(),
 	makeResourceDashboardPermissionItem(),
 	makeResourceDatasourcePermissionItem(),
+	makeResourceDataSourceConfigLBACRules(),
 	makeResourceRoleAssignmentItem(),
 	makeResourceServiceAccountPermissionItem(),
 	resourceAnnotation(),
