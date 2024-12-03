@@ -31,7 +31,7 @@ require (
 	github.com/hashicorp/terraform-plugin-mux v0.17.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.35.0
 	github.com/prometheus/common v0.60.1
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/tmccombs/hcl2json v0.6.4
 	github.com/urfave/cli/v2 v2.27.5
 	github.com/zclconf/go-cty v1.15.0
