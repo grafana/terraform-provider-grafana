@@ -2,6 +2,7 @@ package slo_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -275,12 +276,17 @@ func testAdvancedOptionsExists(expectation bool, rn string, slo *slo.SloV00Slo) 
 	}
 }
 
-func testAccSloCheckDestroy(slo *slo.SloV00Slo) resource.TestCheckFunc {
+func testAccSloCheckDestroy(sloObj *slo.SloV00Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testutils.Provider.Meta().(*common.Client).SLOClient
-		req := client.DefaultAPI.V1SloIdGet(context.Background(), slo.Uuid)
+		req := client.DefaultAPI.V1SloIdGet(context.Background(), sloObj.Uuid)
 		gotSlo, resp, err := req.Execute()
 		if err != nil {
+			var oapiErr slo.GenericOpenAPIError
+			if errors.As(err, &oapiErr) && strings.Contains(oapiErr.Error(), "404 Not Found") {
+				return nil
+			}
+
 			return fmt.Errorf("error getting SLO: %s", err)
 		}
 
