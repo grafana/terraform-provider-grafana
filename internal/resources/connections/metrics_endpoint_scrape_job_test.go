@@ -74,13 +74,13 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 				ExpectError:  regexp.MustCompile(`These attributes must be configured together`),
 			},
 			{
-				Config:             resourceWithForEachValidUrl,
+				Config:             resourceWithForEachValidURL,
 				PlanOnly:           true,
 				RefreshState:       false,
 				ExpectNonEmptyPlan: true,
 			},
 			{
-				Config:       resourceWithForEachInvalidUrl,
+				Config:       resourceWithForEachInvalidURL,
 				PlanOnly:     true,
 				RefreshState: false,
 				ExpectError:  regexp.MustCompile(`A valid URL is required`),
@@ -143,7 +143,7 @@ resource "grafana_connections_metrics_endpoint_scrape_job" "test" {
 }
 `
 
-var resourceWithForEachValidUrl = `
+var resourceWithForEachValidURL = `
 locals {
   jobs = [
     { name = "test", url = "https://google.com" }
@@ -161,7 +161,7 @@ resource "grafana_connections_metrics_endpoint_scrape_job" "valid_url" {
 }
 `
 
-var resourceWithForEachInvalidUrl = `
+var resourceWithForEachInvalidURL = `
 locals {
   jobs = [
     { name = "test", url = "" }
