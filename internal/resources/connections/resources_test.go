@@ -23,6 +23,14 @@ func Test_httpsURLValidator(t *testing.T) {
 			providedURL:   types.StringValue("https://dev.my-metrics-endpoint-url.com:9000/metrics"),
 			expectedDiags: nil,
 		},
+		"null is considered valid": {
+			providedURL:   types.StringNull(),
+			expectedDiags: diag.Diagnostics(nil),
+		},
+		"unknown is considered valid": {
+			providedURL:   types.StringUnknown(),
+			expectedDiags: diag.Diagnostics(nil),
+		},
 		"invalid empty string": {
 			providedURL: types.StringValue(""),
 			expectedDiags: diag.Diagnostics{diag.NewAttributeErrorDiagnostic(
@@ -31,22 +39,7 @@ func Test_httpsURLValidator(t *testing.T) {
 				"A valid URL is required.\n\nGiven Value: \"\"\n",
 			)},
 		},
-		"invalid null": {
-			providedURL: types.StringNull(),
-			expectedDiags: diag.Diagnostics{diag.NewAttributeErrorDiagnostic(
-				path.Root("test"),
-				"value must be valid URL with HTTPS",
-				"A valid URL is required.\n\nGiven Value: \"\"\n",
-			)},
-		},
-		"invalid unknown": {
-			providedURL: types.StringUnknown(),
-			expectedDiags: diag.Diagnostics{diag.NewAttributeErrorDiagnostic(
-				path.Root("test"),
-				"value must be valid URL with HTTPS",
-				"A valid URL is required.\n\nGiven Value: \"\"\n",
-			)},
-		},
+
 		"invalid not a url": {
 			providedURL: types.StringValue("this is not a url"),
 			expectedDiags: diag.Diagnostics{diag.NewAttributeErrorDiagnostic(

@@ -32,6 +32,10 @@ func (v HTTPSURLValidator) MarkdownDescription(_ context.Context) string {
 }
 
 func (v HTTPSURLValidator) ValidateString(ctx context.Context, request validator.StringRequest, response *validator.StringResponse) {
+	if request.ConfigValue.IsNull() || request.ConfigValue.IsUnknown() {
+		return
+	}
+
 	value := request.ConfigValue.ValueString()
 
 	if value == "" {
