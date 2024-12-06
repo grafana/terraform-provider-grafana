@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/grafana/slo-openapi-client/go/slo"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
@@ -23,7 +24,7 @@ func TestAccResourceSlo(t *testing.T) {
 	randomName := acctest.RandomWithPrefix("SLO Terraform Testing")
 
 	var slo slo.SloV00Slo
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		// Implicitly tests destroy
 		CheckDestroy: testAccSloCheckDestroy(&slo),
@@ -146,7 +147,7 @@ func TestAccSLO_recreate(t *testing.T) {
 	config := testutils.TestAccExampleWithReplace(t, "resources/grafana_slo/resource.tf", map[string]string{
 		"Terraform Testing": randomName,
 	})
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 
 		// Implicitly tests destroy
@@ -175,6 +176,8 @@ func TestAccSLO_recreate(t *testing.T) {
 					req := client.DefaultAPI.V1SloIdDelete(context.Background(), slo.Uuid)
 					_, err := req.Execute()
 					require.NoError(t, err)
+					// A short delay while background tasks clean up the SLO. After this, the plan should be non-empty again.
+					time.Sleep(5 * time.Second)
 				},
 				Config:             config,
 				PlanOnly:           true,
@@ -395,7 +398,7 @@ resource "grafana_slo" "no_alert" {
 func TestAccResourceInvalidSlo(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
-	resource.ParallelTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
