@@ -43,11 +43,11 @@ resource "grafana_folder" "_2_alert-rule-folder" {
   uid    = "alert-rule-folder"
 }
 
-# __generated__ by Terraform from "2:My Reusable Template"
-resource "grafana_message_template" "_2_My_Reusable_Template" {
-  name     = "My Reusable Template"
+# __generated__ by Terraform from "2:My Notification Template Group"
+resource "grafana_message_template" "_2_My_Notification_Template_Group" {
+  name     = "My Notification Template Group"
   org_id   = grafana_organization.alerting-org.id
-  template = "{{define \"My Reusable Template\" }}\n template content\n{{ end }}"
+  template = "{{define \"custom.message\" }}\n template content\n{{ end }}"
 }
 
 # __generated__ by Terraform from "2:My Mute Timing"
