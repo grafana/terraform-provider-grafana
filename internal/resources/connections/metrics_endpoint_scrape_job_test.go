@@ -74,6 +74,12 @@ func TestAcc_MetricsEndpointScrapeJob(t *testing.T) {
 				ExpectError:  regexp.MustCompile(`These attributes must be configured together`),
 			},
 			{
+				Config:             resourceWithForEach,
+				PlanOnly:           true,
+				RefreshState:       false,
+				ExpectNonEmptyPlan: true,
+			},
+			{
 				// Creates a managed resource
 				Config: testutils.TestAccExample(t, "resources/grafana_connections_metrics_endpoint_scrape_job/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
@@ -128,5 +134,23 @@ resource "grafana_connections_metrics_endpoint_scrape_job" "test" {
   authentication_bearer_token   = "my-token"
   url                           = "https://grafana.com/metrics"
   scrape_interval_seconds       = 120
+}
+`
+
+var resourceWithForEach = `
+locals {
+  jobs = [
+    { name = "test", url = "https://google.com" }
+  ]
+}
+
+resource "grafana_connections_metrics_endpoint_scrape_job" "this" {
+  for_each = { for j in local.jobs : j.name => j.url }
+  stack_id = "......"
+  name = each.key
+  enabled = false
+  authentication_method = "bearer"
+  authentication_bearer_token = "test"
+  url = each.value
 }
 `
