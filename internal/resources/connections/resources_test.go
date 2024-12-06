@@ -39,7 +39,6 @@ func Test_httpsURLValidator(t *testing.T) {
 				"A valid URL is required.\n\nGiven Value: \"\"\n",
 			)},
 		},
-
 		"invalid not a url": {
 			providedURL: types.StringValue("this is not a url"),
 			expectedDiags: diag.Diagnostics{diag.NewAttributeErrorDiagnostic(
