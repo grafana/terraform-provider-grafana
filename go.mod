@@ -34,7 +34,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/tmccombs/hcl2json v0.6.4
 	github.com/urfave/cli/v2 v2.27.5
-	github.com/zclconf/go-cty v1.15.0
+	github.com/zclconf/go-cty v1.15.1
 	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
 	golang.org/x/text v0.21.0
 	gopkg.in/yaml.v2 v2.4.0
