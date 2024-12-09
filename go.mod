@@ -14,7 +14,7 @@ require (
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20241113095943-9cb2bbfeb8a3
 	github.com/grafana/machine-learning-go-client v0.8.2
 	github.com/grafana/slo-openapi-client/go/slo v0.0.0-20240807172758-1b7d00838fc7
-	github.com/grafana/synthetic-monitoring-agent v0.29.8
+	github.com/grafana/synthetic-monitoring-agent v0.29.9
 	github.com/grafana/synthetic-monitoring-api-go-client v0.9.1
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/go-retryablehttp v0.7.7
@@ -35,7 +35,7 @@ require (
 	github.com/tmccombs/hcl2json v0.6.4
 	github.com/urfave/cli/v2 v2.27.5
 	github.com/zclconf/go-cty v1.15.1
-	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
+	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f
 	golang.org/x/text v0.21.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -160,12 +160,12 @@ require (
 	go.opentelemetry.io/otel/trace v1.29.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
 	golang.org/x/crypto v0.30.0 // indirect
-	golang.org/x/mod v0.21.0 // indirect
+	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/net v0.32.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
-	golang.org/x/tools v0.26.0 // indirect
+	golang.org/x/tools v0.27.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240903143218-8af14fe29dc1 // indirect
