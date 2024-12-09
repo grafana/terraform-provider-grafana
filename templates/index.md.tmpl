@@ -30,6 +30,11 @@ The changelog for this provider can be found here: <https://github.com/grafana/t
 
 {{ tffile "examples/provider/provider-oncall.tf" }}
 
+Alternatively, you can also configure the provider block by setting `url`
+to your Grafana URL and `auth` to a service account token:
+
+{{ tffile "examples/provider/provider-oncall-sa.tf" }}
+
 {{ .SchemaMarkdown | trimspace }}
 
 ### Managing Cloud Provider
