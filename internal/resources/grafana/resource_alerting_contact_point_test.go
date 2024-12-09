@@ -399,6 +399,40 @@ func TestAccContactPoint_notifiers10_3(t *testing.T) {
 	})
 }
 
+func TestAccContactPoint_notifiers11_3(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=11.3.0")
+
+	var points models.ContactPoints
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
+		Steps: []resource.TestStep{
+			// Test creation.
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_receiver_types_11_3.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.receiver_types", &points, 1),
+					// mqtt
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.#", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.broker_url", "tcp://localhost:1883"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.topic", "grafana/alerts"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.client_id", "grafana"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.message_format", "json"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.username", "user"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.password", "password123"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.qos", "1"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.tls_config.insecure_skip_verify", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.tls_config.ca_certificate", "ca_cer"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.tls_config.client_certificate", "client_cert"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.tls_config.client_key", "client_key"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccContactPoint_sensitiveData(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 

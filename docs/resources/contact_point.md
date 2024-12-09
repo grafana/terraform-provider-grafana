@@ -50,6 +50,7 @@ resource "grafana_contact_point" "my_contact_point" {
 - `googlechat` (Block Set) A contact point that sends notifications to Google Chat. (see [below for nested schema](#nestedblock--googlechat))
 - `kafka` (Block Set) A contact point that publishes notifications to Apache Kafka topics. (see [below for nested schema](#nestedblock--kafka))
 - `line` (Block Set) A contact point that sends notifications to LINE.me. (see [below for nested schema](#nestedblock--line))
+- `mqtt` (Block Set) A contact point that sends notifications to an MQTT broker. (see [below for nested schema](#nestedblock--mqtt))
 - `oncall` (Block Set) A contact point that sends notifications to Grafana On-Call. (see [below for nested schema](#nestedblock--oncall))
 - `opsgenie` (Block Set) A contact point that sends notifications to OpsGenie. (see [below for nested schema](#nestedblock--opsgenie))
 - `org_id` (String) The Organization ID. If not set, the Org ID defined in the provider block will be used.
@@ -210,6 +211,42 @@ Optional:
 Read-Only:
 
 - `uid` (String) The UID of the contact point.
+
+
+<a id="nestedblock--mqtt"></a>
+### Nested Schema for `mqtt`
+
+Required:
+
+- `broker_url` (String) The URL of the MQTT broker.
+- `topic` (String) The topic to publish messages to.
+
+Optional:
+
+- `client_id` (String) The client ID to use when connecting to the broker.
+- `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
+- `message_format` (String) The format of the message to send. Supported values are `json` and `text`.
+- `password` (String, Sensitive) The password to use when connecting to the broker.
+- `qos` (Number) The quality of service to use when sending messages. Supported values are 0, 1, and 2. Defaults to `0`.
+- `retain` (Boolean) Whether to retain messages on the broker. Defaults to `false`.
+- `settings` (Map of String, Sensitive) Additional custom properties to attach to the notifier. Defaults to `map[]`.
+- `tls_config` (Block Set) TLS configuration for the connection. (see [below for nested schema](#nestedblock--mqtt--tls_config))
+- `username` (String) The username to use when connecting to the broker.
+
+Read-Only:
+
+- `uid` (String) The UID of the contact point.
+
+<a id="nestedblock--mqtt--tls_config"></a>
+### Nested Schema for `mqtt.tls_config`
+
+Optional:
+
+- `ca_certificate` (String, Sensitive) The CA certificate to use when verifying the server's certificate.
+- `client_certificate` (String, Sensitive) The client certificate to use when connecting to the server.
+- `client_key` (String, Sensitive) The client key to use when connecting to the server.
+- `insecure_skip_verify` (Boolean) Whether to skip verification of the server's certificate chain and host name. Defaults to `false`.
+
 
 
 <a id="nestedblock--oncall"></a>
