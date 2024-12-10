@@ -34,6 +34,8 @@ resource "grafana_cloud_stack_service_account" "cloud_sa" {
 }
 
 resource "grafana_cloud_stack_service_account_token" "foo" {
+  stack_slug = "<your stack slug>"
+
   name               = "key_foo"
   service_account_id = grafana_cloud_stack_service_account.cloud_sa.id
 }
