@@ -14,7 +14,6 @@ import (
 // Tests both managed resource and data source
 func TestAcc_AzureCredential(t *testing.T) {
 	resourceID := "3"
-	// Mock the Connections API response for Create, Get, and Delete
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v2/stacks/1/azure/credentials", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
