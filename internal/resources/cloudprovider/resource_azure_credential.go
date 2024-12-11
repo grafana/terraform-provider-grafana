@@ -34,7 +34,7 @@ type resourceAzureCredentialModel struct {
 	StackID            types.String `tfsdk:"stack_id"`
 	ClientSecret       types.String `tfsdk:"client_secret"`
 	ResourceID         types.String `tfsdk:"resource_id"`
-	ResourceTagFilters []TagFilter  `tfsdk:"resource_tag_filter"`
+	ResourceTagFilters []TagFilter  `tfsdk:"resource_discovery_tag_filter"`
 }
 
 type resourceAzureCredential struct {
@@ -115,7 +115,7 @@ func (r *resourceAzureCredential) Schema(ctx context.Context, req resource.Schem
 			},
 		},
 		Blocks: map[string]schema.Block{
-			"resource_tag_filter": schema.ListNestedBlock{
+			"resource_discovery_tag_filter": schema.ListNestedBlock{
 				Description: "The list of tag filters to apply to resources.",
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
@@ -258,7 +258,7 @@ func (r *resourceAzureCredential) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	diags = resp.State.SetAttribute(ctx, path.Root("resource_tag_filter"), r.convertTagFilters(credential.ResourceTagFilters))
+	diags = resp.State.SetAttribute(ctx, path.Root("resource_discovery_tag_filter"), r.convertTagFilters(credential.ResourceTagFilters))
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -321,7 +321,7 @@ func (r *resourceAzureCredential) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	diags = resp.State.SetAttribute(ctx, path.Root("resource_tag_filter"), r.convertTagFilters(credential.ResourceTagFilters))
+	diags = resp.State.SetAttribute(ctx, path.Root("resource_discovery_tag_filter"), r.convertTagFilters(credential.ResourceTagFilters))
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

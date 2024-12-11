@@ -20,12 +20,12 @@ resource "grafana_cloud_provider_azure_credential" "test" {
   client_secret = "my-client-secret"
   tenant_id     = "my-tenant-id"
 
-  resource_tag_filter {
+  resource_discovery_tag_filter {
     key   = "key-1"
     value = "value-1"
   }
 
-  resource_tag_filter {
+  resource_discovery_tag_filter {
     key   = "key-2"
     value = "value-2"
   }
@@ -45,15 +45,15 @@ resource "grafana_cloud_provider_azure_credential" "test" {
 
 ### Optional
 
-- `resource_tag_filter` (Block List) The list of tag filters to apply to resources. (see [below for nested schema](#nestedblock--resource_tag_filter))
+- `resource_discovery_tag_filter` (Block List) The list of tag filters to apply to resources. (see [below for nested schema](#nestedblock--resource_discovery_tag_filter))
 
 ### Read-Only
 
 - `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ resource_id }}".
 - `resource_id` (String) The ID given by the Grafana Cloud Provider API to this AWS Account resource.
 
-<a id="nestedblock--resource_tag_filter"></a>
-### Nested Schema for `resource_tag_filter`
+<a id="nestedblock--resource_discovery_tag_filter"></a>
+### Nested Schema for `resource_discovery_tag_filter`
 
 Required:
 

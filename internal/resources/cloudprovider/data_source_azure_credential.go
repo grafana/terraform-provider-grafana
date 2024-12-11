@@ -75,7 +75,7 @@ func (r *datasourceAzureCredential) Schema(ctx context.Context, req datasource.S
 			},
 		},
 		Blocks: map[string]schema.Block{
-			"resource_tag_filter": schema.ListNestedBlock{
+			"resource_discovery_tag_filter": schema.ListNestedBlock{
 				Description: "The list of tag filters to apply to resources.",
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{

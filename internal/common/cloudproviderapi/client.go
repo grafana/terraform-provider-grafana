@@ -213,7 +213,7 @@ type AzureCredential struct {
 	StackID string `json:"stack_id"`
 
 	// ResourceTagFilters is the list of Azure resource tag filters.
-	ResourceTagFilters []TagFilter `json:"resource_tag_filters"`
+	ResourceTagFilters []TagFilter `json:"resource_discovery_tag_filters"`
 }
 
 type TagFilter struct {
