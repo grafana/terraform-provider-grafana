@@ -5,11 +5,13 @@ go 1.23
 toolchain go1.23.2
 
 require (
+	connectrpc.com/connect v1.16.1
 	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/fatih/color v1.18.0
 	github.com/go-openapi/runtime v0.28.0
 	github.com/go-openapi/strfmt v0.23.0
 	github.com/grafana/amixr-api-go-client v0.0.19 // main branch
+	github.com/grafana/fleet-management-api v0.1.1
 	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240807172819-ac10800522a3
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20241113095943-9cb2bbfeb8a3
 	github.com/grafana/machine-learning-go-client v0.8.2
