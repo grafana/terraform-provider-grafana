@@ -129,15 +129,15 @@ func (v awsCWScrapeJobNoDuplicateServiceNamesValidator) MarkdownDescription(ctx 
 }
 
 func (v awsCWScrapeJobNoDuplicateServiceNamesValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
-	seen := map[string]struct{}{}
-	elems := make([]awsCWScrapeJobServiceTFModel, len(req.ConfigValue.Elements()))
-	diags := req.ConfigValue.ElementsAs(ctx, &elems, false)
+	var services []awsCWScrapeJobServiceTFModel
+	diags := req.ConfigValue.ElementsAs(ctx, &services, true)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
-	for _, elem := range elems {
-		name := elem.Name.ValueString()
+	seen := map[string]struct{}{}
+	for _, service := range services {
+		name := service.Name.ValueString()
 		if _, ok := seen[name]; ok {
 			resp.Diagnostics.AddError("Duplicate service name", fmt.Sprintf("Service name %q is duplicated.", name))
 		}
@@ -156,15 +156,15 @@ func (v awsCWScrapeJobNoDuplicateCustomNamespaceNamesValidator) MarkdownDescript
 }
 
 func (v awsCWScrapeJobNoDuplicateCustomNamespaceNamesValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
-	seen := map[string]struct{}{}
-	elems := make([]awsCWScrapeJobCustomNamespaceTFModel, len(req.ConfigValue.Elements()))
-	diags := req.ConfigValue.ElementsAs(ctx, &elems, false)
+	var customNamespaces []awsCWScrapeJobCustomNamespaceTFModel
+	diags := req.ConfigValue.ElementsAs(ctx, &customNamespaces, true)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
-	for _, elem := range elems {
-		name := elem.Name.ValueString()
+	seen := map[string]struct{}{}
+	for _, customNamespace := range customNamespaces {
+		name := customNamespace.Name.ValueString()
 		if _, ok := seen[name]; ok {
 			resp.Diagnostics.AddError("Duplicate custom namespace name", fmt.Sprintf("Custom namespace name %q is duplicated.", name))
 		}
