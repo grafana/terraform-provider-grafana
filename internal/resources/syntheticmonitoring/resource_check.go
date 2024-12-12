@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -132,10 +134,27 @@ var (
 				MaxItems:    1,
 				Elem:        syntheticMonitoringCheckSettingsGRPC,
 			},
+			"browser": {
+				Description: "Settings for browser check. See https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/checks/k6-browser/.",
+				Type:        schema.TypeSet,
+				Optional:    true,
+				MaxItems:    1,
+				Elem:        syntheticMonitoringCheckSettingsBrowser,
+			},
 		},
 	}
 
 	syntheticMonitoringCheckSettingsScripted = &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"script": {
+				Type:     schema.TypeString,
+				Optional: false,
+				Required: true,
+			},
+		},
+	}
+
+	syntheticMonitoringCheckSettingsBrowser = &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"script": {
 				Type:     schema.TypeString,
@@ -340,6 +359,12 @@ var (
 				Type:        schema.TypeSet,
 				Optional:    true,
 				Elem:        syntheticMonitoringCheckSettingsHTTPHeaderMatch,
+			},
+			"compression": {
+				Description:  "Check fails if the response body is not compressed using this compression algorithm. One of `none`, `identity`, `br`, `gzip`, `deflate`.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice(slices.Collect(maps.Keys(sm.CompressionAlgorithm_value)), false),
 			},
 			"cache_busting_query_param_name": {
 				Description: "The name of the query parameter used to prevent the server from using a cached response. Each probe will assign a random value to this parameter each time a request is made.",
@@ -729,7 +754,7 @@ multiple checks for a single endpoint to check different capabilities.
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					// Suppress diff if it's a multihttp check with a timeout of 5000 (default timeout for those)
 					// and it's being changed to 3000 (default timeout set here).
-					doSuppress := d.Get("settings.0.multihttp.0") != nil || d.Get("settings.0.scripted") != nil
+					doSuppress := d.Get("settings.0.multihttp.0") != nil || d.Get("settings.0.scripted") != nil || d.Get("settings.0.browser") != nil
 					if doSuppress &&
 						old == strconv.Itoa(checkMultiHTTPDefaultTimeout) &&
 						new == strconv.Itoa(checkDefaultTimeout) {
@@ -829,6 +854,7 @@ func resourceCheckCreate(ctx context.Context, d *schema.ResourceData, c *smapi.C
 	return resourceCheckRead(ctx, d, c)
 }
 
+//nolint:gocyclo
 func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	id, err := resourceCheckID.Single(d.Id())
 	if err != nil {
@@ -936,6 +962,12 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 				},
 			)
 		}
+		// The default compression "none" is the same as omitting the value.
+		// Since this value is usually not explicitly set, omit when set to "none"
+		var compression string
+		if chk.Settings.Http.Compression != sm.CompressionAlgorithm_none {
+			compression = chk.Settings.Http.Compression.String()
+		}
 		headerMatch := func(hms []sm.HeaderMatch) *schema.Set {
 			hmSet := schema.NewSet(
 				schema.HashResource(syntheticMonitoringCheckSettingsTCPQueryResponse),
@@ -969,6 +1001,7 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 			"fail_if_body_not_matches_regexp":   common.StringSliceToSet(chk.Settings.Http.FailIfBodyNotMatchesRegexp),
 			"fail_if_header_matches_regexp":     headerMatch(chk.Settings.Http.FailIfHeaderMatchesRegexp),
 			"fail_if_header_not_matches_regexp": headerMatch(chk.Settings.Http.FailIfHeaderNotMatchesRegexp),
+			"compression":                       compression,
 			"cache_busting_query_param_name":    chk.Settings.Http.CacheBustingQueryParamName,
 		})
 
@@ -1145,6 +1178,17 @@ func resourceCheckRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 		settings.Add(map[string]interface{}{
 			"grpc": grpc,
 		})
+	case chk.Settings.Browser != nil:
+		browser := schema.NewSet(
+			schema.HashResource(syntheticMonitoringCheckSettingsBrowser),
+			[]any{},
+		)
+		browser.Add(map[string]any{
+			"script": string(chk.Settings.Browser.Script),
+		})
+		settings.Add(map[string]any{
+			"browser": browser,
+		})
 	}
 
 	d.Set("settings", settings)
@@ -1200,7 +1244,7 @@ func makeCheck(d *schema.ResourceData) (*sm.Check, error) {
 	}
 
 	timeout := int64(d.Get("timeout").(int))
-	if timeout == checkDefaultTimeout && (settings.Multihttp != nil || settings.Scripted != nil) {
+	if timeout == checkDefaultTimeout && (settings.Multihttp != nil || settings.Scripted != nil || settings.Browser != nil) {
 		timeout = checkMultiHTTPDefaultTimeout
 	}
 
@@ -1475,6 +1519,10 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 			FailIfBodyNotMatchesRegexp: common.SetToStringSlice(h["fail_if_body_not_matches_regexp"].(*schema.Set)),
 			CacheBustingQueryParamName: h["cache_busting_query_param_name"].(string),
 		}
+		compression, ok := h["compression"].(string)
+		if ok {
+			cs.Http.Compression = sm.CompressionAlgorithm(sm.CompressionAlgorithm_value[compression])
+		}
 		if h["tls_config"].(*schema.Set).Len() > 0 {
 			cs.Http.TlsConfig = tlsConfig(h["tls_config"].(*schema.Set))
 		}
@@ -1579,6 +1627,14 @@ func makeCheckSettings(settings map[string]interface{}) (sm.CheckSettings, error
 		}
 		if t["tls_config"].(*schema.Set).Len() > 0 {
 			cs.Grpc.TlsConfig = tlsConfig(t["tls_config"].(*schema.Set))
+		}
+	}
+
+	browser := settings["browser"].(*schema.Set).List()
+	if len(browser) > 0 {
+		s := browser[0].(map[string]interface{})
+		cs.Browser = &sm.BrowserSettings{
+			Script: []byte(s["script"].(string)),
 		}
 	}
 

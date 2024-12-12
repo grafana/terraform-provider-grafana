@@ -147,6 +147,7 @@ resource "grafana_synthetic_monitoring_check" "http" {
       proxy_url                      = "https://almost-there"
       fail_if_ssl                    = true
       fail_if_not_ssl                = true
+      compression                    = "deflate"
       cache_busting_query_param_name = "pineapple"
 
       tls_config {
@@ -437,6 +438,7 @@ resource "grafana_synthetic_monitoring_check" "traceroute" {
 
 Optional:
 
+- `browser` (Block Set, Max: 1) Settings for browser check. See https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/checks/k6-browser/. (see [below for nested schema](#nestedblock--settings--browser))
 - `dns` (Block Set, Max: 1) Settings for DNS check. The target must be a valid hostname (or IP address for `PTR` records). (see [below for nested schema](#nestedblock--settings--dns))
 - `grpc` (Block Set, Max: 1) Settings for gRPC Health check. The target must be of the form `<host>:<port>`, where the host portion must be a valid hostname or IP address. (see [below for nested schema](#nestedblock--settings--grpc))
 - `http` (Block Set, Max: 1) Settings for HTTP check. The target must be a URL (http or https). (see [below for nested schema](#nestedblock--settings--http))
@@ -445,6 +447,14 @@ Optional:
 - `scripted` (Block Set, Max: 1) Settings for scripted check. See https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/create-checks/checks/k6/. (see [below for nested schema](#nestedblock--settings--scripted))
 - `tcp` (Block Set, Max: 1) Settings for TCP check. The target must be of the form `<host>:<port>`, where the host portion must be a valid hostname or IP address. (see [below for nested schema](#nestedblock--settings--tcp))
 - `traceroute` (Block Set, Max: 1) Settings for traceroute check. The target must be a valid hostname or IP address (see [below for nested schema](#nestedblock--settings--traceroute))
+
+<a id="nestedblock--settings--browser"></a>
+### Nested Schema for `settings.browser`
+
+Required:
+
+- `script` (String)
+
 
 <a id="nestedblock--settings--dns"></a>
 ### Nested Schema for `settings.dns`
@@ -522,6 +532,7 @@ Optional:
 - `bearer_token` (String, Sensitive) Token for use with bearer authorization header.
 - `body` (String) The body of the HTTP request used in probe.
 - `cache_busting_query_param_name` (String) The name of the query parameter used to prevent the server from using a cached response. Each probe will assign a random value to this parameter each time a request is made.
+- `compression` (String) Check fails if the response body is not compressed using this compression algorithm. One of `none`, `identity`, `br`, `gzip`, `deflate`.
 - `fail_if_body_matches_regexp` (Set of String) List of regexes. If any match the response body, the check will fail.
 - `fail_if_body_not_matches_regexp` (Set of String) List of regexes. If any do not match the response body, the check will fail.
 - `fail_if_header_matches_regexp` (Block Set) Check fails if headers match. (see [below for nested schema](#nestedblock--settings--http--fail_if_header_matches_regexp))
@@ -877,6 +888,31 @@ resource "grafana_synthetic_monitoring_check" "scripted" {
       // `script.js` is a file in the same directory as this file and contains the
       // script to be executed.
       script = file("${path.module}/script.js")
+    }
+  }
+}
+```
+
+### Browser Basic
+
+```terraform
+data "grafana_synthetic_monitoring_probes" "main" {}
+
+resource "grafana_synthetic_monitoring_check" "browser" {
+  job     = "Validate login"
+  target  = "https://test.k6.io"
+  enabled = true
+  probes = [
+    data.grafana_synthetic_monitoring_probes.main.probes.Paris,
+  ]
+  labels = {
+    environment = "production"
+  }
+  settings {
+    browser {
+      // `browser_script.js` is a file in the same directory as this file and contains the
+      // script to be executed.
+      script = file("${path.module}/browser_script.js")
     }
   }
 }

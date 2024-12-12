@@ -44,6 +44,7 @@ var knownReferences = []string{
 	"grafana_data_source.org_id=grafana_organization.id",
 	"grafana_data_source_config.datasourceUid=grafana_data_source.uid",
 	"grafana_data_source_config.uid=grafana_data_source.uid",
+	"grafana_data_source_config_lbac_rules.datasource_uid=grafana_data_source.uid",
 	"grafana_data_source_permission.datasource_uid=grafana_data_source.uid",
 	"grafana_data_source_permission.team_id=grafana_team.id",
 	"grafana_data_source_permission.user_id=grafana_service_account.id",

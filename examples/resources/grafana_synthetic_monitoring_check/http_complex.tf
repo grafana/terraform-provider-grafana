@@ -21,6 +21,7 @@ resource "grafana_synthetic_monitoring_check" "http" {
       proxy_url                      = "https://almost-there"
       fail_if_ssl                    = true
       fail_if_not_ssl                = true
+      compression                    = "deflate"
       cache_busting_query_param_name = "pineapple"
 
       tls_config {

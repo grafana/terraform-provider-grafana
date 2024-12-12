@@ -124,6 +124,7 @@ func TestAccResourceCheck_http(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.bearer_token", "asdfjkl;"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.proxy_url", "https://almost-there"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.fail_if_ssl", "true"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.compression", "deflate"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.cache_busting_query_param_name", "pineapple"),
 					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.tls_config.0.server_name", "grafana.org"),
 					resource.TestMatchResourceAttr("grafana_synthetic_monitoring_check.http", "settings.0.http.0.tls_config.0.client_cert", regexp.MustCompile((`^-{5}BEGIN CERTIFICATE`))),
@@ -434,6 +435,46 @@ func TestAccResourceCheck_scripted(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ResourceName:      "grafana_synthetic_monitoring_check.scripted",
+			},
+		},
+	})
+}
+
+func TestAccResourceCheck_browser(t *testing.T) {
+	testutils.CheckCloudInstanceTestsEnabled(t)
+
+	// Find and replace the path.module since it's not available in the test environment
+	scriptFilepathAbs, err := filepath.Abs("../../../examples/resources/grafana_synthetic_monitoring_check")
+	require.NoError(t, err)
+	scriptFileContent, err := os.ReadFile(filepath.Join(scriptFilepathAbs, "browser_script.js"))
+	require.NoError(t, err)
+
+	// Inject random job names to avoid conflicts with other tests
+	jobName := acctest.RandomWithPrefix("browser")
+	nameReplaceMap := map[string]string{
+		`"Validate login"`: strconv.Quote(jobName),
+		"${path.module}":   scriptFilepathAbs,
+	}
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_synthetic_monitoring_check/browser_basic.tf", nameReplaceMap),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.browser", "id"),
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.browser", "tenant_id"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.browser", "job", jobName),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.browser", "target", "https://test.k6.io"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.browser", "timeout", "5000"), // browser has a default timeout of 5000
+					resource.TestCheckResourceAttrSet("grafana_synthetic_monitoring_check.browser", "probes.0"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.browser", "labels.environment", "production"),
+					resource.TestCheckResourceAttr("grafana_synthetic_monitoring_check.browser", "settings.0.browser.0.script", string(scriptFileContent)),
+				),
+			},
+			{
+				ImportState:       true,
+				ImportStateVerify: true,
+				ResourceName:      "grafana_synthetic_monitoring_check.browser",
 			},
 		},
 	})
