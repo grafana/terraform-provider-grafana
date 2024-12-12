@@ -27,6 +27,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/fleetmanagementapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
 )
 
@@ -68,6 +69,11 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	}
 	if !providerConfig.ConnectionsAPIAccessToken.IsNull() {
 		if err := createConnectionsClient(c, providerConfig); err != nil {
+			return nil, err
+		}
+	}
+	if !providerConfig.FleetManagementAuth.IsNull() {
+		if err := createFleetManagementClient(c, providerConfig); err != nil {
 			return nil, err
 		}
 	}
@@ -226,6 +232,23 @@ func createConnectionsClient(client *common.Client, providerConfig ProviderConfi
 		return err
 	}
 	client.ConnectionsAPIClient = apiClient
+	return nil
+}
+
+func createFleetManagementClient(client *common.Client, providerConfig ProviderConfig) error {
+	providerHeaders, err := getHTTPHeadersMap(providerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
+	}
+
+	client.FleetManagementClient = fleetmanagementapi.NewClient(
+		providerConfig.FleetManagementAuth.ValueString(),
+		providerConfig.FleetManagementURL.ValueString(),
+		getRetryClient(providerConfig),
+		providerConfig.UserAgent.ValueString(),
+		providerHeaders,
+	)
+
 	return nil
 }
 
