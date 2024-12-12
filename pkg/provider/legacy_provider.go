@@ -160,6 +160,18 @@ func Provider(version string) *schema.Provider {
 				Description:  "A Grafana Connections API address. May alternatively be set via the `GRAFANA_CONNECTIONS_API_URL` environment variable.",
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
+
+			"fleet_management_auth": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "A Grafana Fleet Management basic auth in the `username:password` format. May alternatively be set via the `GRAFANA_FLEET_MANAGEMENT_AUTH` environment variable.",
+			},
+			"fleet_management_url": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A Grafana Fleet Management API address. May alternatively be set via the `GRAFANA_FLEET_MANAGEMENT_URL` environment variable.",
+			},
 		},
 
 		ResourcesMap:   legacySDKResources(),
@@ -232,6 +244,8 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			CloudProviderURL:          stringValueOrNull(d, "cloud_provider_url"),
 			ConnectionsAPIAccessToken: stringValueOrNull(d, "connections_api_access_token"),
 			ConnectionsAPIURL:         stringValueOrNull(d, "connections_api_url"),
+			FleetManagementAuth:       stringValueOrNull(d, "fleet_management_auth"),
+			FleetManagementURL:        stringValueOrNull(d, "fleet_management_url"),
 			StoreDashboardSha256:      boolValueOrNull(d, "store_dashboard_sha256"),
 			HTTPHeaders:               headers,
 			Retries:                   int64ValueOrNull(d, "retries"),
