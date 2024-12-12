@@ -58,19 +58,19 @@ func (r *datasourceAzureCredential) Schema(ctx context.Context, req datasource.S
 			},
 			"name": schema.StringAttribute{
 				Description: "The name of the Azure Credential.",
-				Required:    true,
+				Computed:    true,
 			},
 			"client_id": schema.StringAttribute{
 				Description: "The client ID of the Azure Credential.",
-				Required:    true,
+				Computed:    true,
 			},
 			"tenant_id": schema.StringAttribute{
 				Description: "The tenant ID of the Azure Credential.",
-				Required:    true,
+				Computed:    true,
 			},
 			"client_secret": schema.StringAttribute{
 				Description: "The client secret of the Azure Credential.",
-				Required:    true,
+				Computed:    true,
 				Sensitive:   true,
 			},
 		},
