@@ -5,14 +5,17 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 )
 
 var (
@@ -26,6 +29,13 @@ type TagFilter struct {
 	Value types.String `tfsdk:"value"`
 }
 
+func (tf TagFilter) attrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"key":   types.StringType,
+		"value": types.StringType,
+	}
+}
+
 type resourceAzureCredentialModel struct {
 	ID                 types.String `tfsdk:"id"`
 	Name               types.String `tfsdk:"name"`
@@ -34,7 +44,7 @@ type resourceAzureCredentialModel struct {
 	StackID            types.String `tfsdk:"stack_id"`
 	ClientSecret       types.String `tfsdk:"client_secret"`
 	ResourceID         types.String `tfsdk:"resource_id"`
-	ResourceTagFilters []TagFilter  `tfsdk:"resource_discovery_tag_filter"`
+	ResourceTagFilters types.List   `tfsdk:"resource_discovery_tag_filter"`
 }
 
 type resourceAzureCredential struct {
@@ -153,6 +163,12 @@ func (r *resourceAzureCredential) ImportState(ctx context.Context, req resource.
 		return
 	}
 
+	tagFilters, diags := r.convertTagFilters(ctx, credentials.ResourceTagFilters)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	resp.State.Set(ctx, &resourceAzureCredentialModel{
 		ID:                 types.StringValue(req.ID),
 		Name:               types.StringValue(credentials.Name),
@@ -161,7 +177,7 @@ func (r *resourceAzureCredential) ImportState(ctx context.Context, req resource.
 		StackID:            types.StringValue(stackID),
 		ResourceID:         types.StringValue(resourceID),
 		ClientSecret:       types.StringValue(""), // We don't import the client secret
-		ResourceTagFilters: r.convertTagFilters(credentials.ResourceTagFilters),
+		ResourceTagFilters: tagFilters,
 	})
 }
 
@@ -174,7 +190,15 @@ func (r *resourceAzureCredential) Create(ctx context.Context, req resource.Creat
 	}
 
 	var requestTagFilters []cloudproviderapi.TagFilter
-	for _, tagFilter := range data.ResourceTagFilters {
+
+	var tagFilters []TagFilter
+	diags = data.ResourceTagFilters.ElementsAs(ctx, &tagFilters, false)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	for _, tagFilter := range tagFilters {
 		requestTagFilters = append(requestTagFilters, cloudproviderapi.TagFilter{
 			Key:   tagFilter.Key.ValueString(),
 			Value: tagFilter.Value.ValueString(),
@@ -211,15 +235,24 @@ func (r *resourceAzureCredential) Create(ctx context.Context, req resource.Creat
 	})
 }
 
-func (r *resourceAzureCredential) convertTagFilters(apiTagFilters []cloudproviderapi.TagFilter) []TagFilter {
-	var tagFilters []TagFilter
-	for _, apiTagFilter := range apiTagFilters {
-		tagFilters = append(tagFilters, TagFilter{
+func (r *resourceAzureCredential) convertTagFilters(ctx context.Context, apiTagFilters []cloudproviderapi.TagFilter) (types.List, diag.Diagnostics) {
+	tagFiltersTF := make([]TagFilter, len(apiTagFilters))
+	conversionDiags := diag.Diagnostics{}
+	tagFilterListObjType := types.ObjectType{AttrTypes: TagFilter{}.attrTypes()}
+
+	for i, apiTagFilter := range apiTagFilters {
+		tagFiltersTF[i] = TagFilter{
 			Key:   types.StringValue(apiTagFilter.Key),
 			Value: types.StringValue(apiTagFilter.Value),
-		})
+		}
 	}
-	return tagFilters
+
+	tagFiltersTFList, diags := types.ListValueFrom(ctx, tagFilterListObjType, tagFiltersTF)
+	conversionDiags.Append(diags...)
+	if conversionDiags.HasError() {
+		return types.ListNull(tagFilterListObjType), conversionDiags
+	}
+	return tagFiltersTFList, conversionDiags
 }
 
 func (r *resourceAzureCredential) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -258,7 +291,9 @@ func (r *resourceAzureCredential) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	diags = resp.State.SetAttribute(ctx, path.Root("resource_discovery_tag_filter"), r.convertTagFilters(credential.ResourceTagFilters))
+	tagFilters, diags := r.convertTagFilters(ctx, credential.ResourceTagFilters)
+	resp.Diagnostics.Append(diags...)
+	diags = resp.State.SetAttribute(ctx, path.Root("resource_discovery_tag_filter"), tagFilters)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -278,8 +313,16 @@ func (r *resourceAzureCredential) Update(ctx context.Context, req resource.Updat
 	credential.TenantID = planData.TenantID.ValueString()
 	credential.ClientID = planData.ClientID.ValueString()
 	credential.ClientSecret = planData.ClientSecret.ValueString()
-	credential.ResourceTagFilters = make([]cloudproviderapi.TagFilter, len(planData.ResourceTagFilters))
-	for i, tagFilter := range planData.ResourceTagFilters {
+
+	var tagFilters []TagFilter
+	diags = planData.ResourceTagFilters.ElementsAs(ctx, &tagFilters, false)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	credential.ResourceTagFilters = make([]cloudproviderapi.TagFilter, len(tagFilters))
+	for i, tagFilter := range tagFilters {
 		credential.ResourceTagFilters[i] = cloudproviderapi.TagFilter{
 			Key:   tagFilter.Key.ValueString(),
 			Value: tagFilter.Value.ValueString(),
@@ -321,7 +364,14 @@ func (r *resourceAzureCredential) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	diags = resp.State.SetAttribute(ctx, path.Root("resource_discovery_tag_filter"), r.convertTagFilters(credential.ResourceTagFilters))
+	convertedTagFilters, diags := r.convertTagFilters(ctx, credential.ResourceTagFilters)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	diags = resp.State.SetAttribute(ctx, path.Root("resource_discovery_tag_filter"), convertedTagFilters)
+	resp.Diagnostics.Append(diags...)
+
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
