@@ -120,7 +120,6 @@ func TestCreateClients(t *testing.T) {
 				assert.NotNil(t, c.GrafanaAPI)
 				assert.NotNil(t, c.MLAPI)
 				assert.NotNil(t, c.SLOClient)
-				assert.Nil(t, c.OnCallClient)
 			},
 		},
 		{
@@ -132,31 +131,6 @@ func TestCreateClients(t *testing.T) {
 			expected: func(c *common.Client, err error) {
 				assert.Nil(t, err)
 				assert.NotNil(t, c.GrafanaAPI)
-			},
-		},
-		{
-			name: "OnCall client using original config (not setting Grafana URL)",
-			config: ProviderConfig{
-				OncallAccessToken: types.StringValue("oncall-token"),
-				OncallURL:         types.StringValue("http://oncall.url"),
-			},
-			expected: func(c *common.Client, err error) {
-				assert.Nil(t, err)
-				assert.NotNil(t, c.OnCallClient)
-				assert.Nil(t, c.OnCallClient.GrafanaURL())
-			},
-		},
-		{
-			name: "OnCall client setting Grafana URL (using Grafana URL and auth)",
-			config: ProviderConfig{
-				URL:       types.StringValue("http://localhost:3000"),
-				Auth:      types.StringValue("service-account-token"),
-				OncallURL: types.StringValue("http://oncall.url"),
-			},
-			expected: func(c *common.Client, err error) {
-				assert.Nil(t, err)
-				assert.NotNil(t, c.OnCallClient)
-				assert.Equal(t, "http://localhost:3000", c.OnCallClient.GrafanaURL().String())
 			},
 		},
 	}
