@@ -27,7 +27,7 @@ func TestAcc_AzureCredential(t *testing.T) {
     "client_id": "my_client_id",
     "client_secret": "",
     "stack_id":"1",
-    "resource_discovery_tag_filters": [
+    "resource_tag_filters": [
       {
         "key": "key-1",
         "value": "value-1"
@@ -56,7 +56,7 @@ func TestAcc_AzureCredential(t *testing.T) {
     "client_id": "my-client-id",
     "client_secret": "",
     "stack_id":"1",
-    "resource_discovery_tag_filters": [
+    "resource_tag_filters": [
       {
         "key": "key-1",
         "value": "value-1"
@@ -80,7 +80,7 @@ func TestAcc_AzureCredential(t *testing.T) {
     "client_id": "my-client-id",
     "client_secret": "",
     "stack_id":"1",
-    "resource_discovery_tag_filters": [
+    "resource_tag_filters": [
       {
         "key": "key-1",
         "value": "value-1"
