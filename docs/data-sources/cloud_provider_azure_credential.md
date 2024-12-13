@@ -32,12 +32,8 @@ resource "grafana_cloud_provider_azure_credential" "test" {
 
 
 data "grafana_cloud_provider_azure_credential" "test" {
-  stack_id      = grafana_cloud_provider_azure_credential.test.stack_id
-  name          = grafana_cloud_provider_azure_credential.test.name
-  client_id     = grafana_cloud_provider_azure_credential.test.client_id
-  client_secret = grafana_cloud_provider_azure_credential.test.client_secret
-  tenant_id     = grafana_cloud_provider_azure_credential.test.tenant_id
-  resource_id   = grafana_cloud_provider_azure_credential.test.resource_id
+  stack_id    = grafana_cloud_provider_azure_credential.test.stack_id
+  resource_id = grafana_cloud_provider_azure_credential.test.resource_id
 
   resource_discovery_tag_filter {
     key   = grafana_cloud_provider_azure_credential.test.resource_discovery_tag_filter[0].key
@@ -56,12 +52,8 @@ data "grafana_cloud_provider_azure_credential" "test" {
 
 ### Required
 
-- `client_id` (String) The client ID of the Azure Credential.
-- `client_secret` (String, Sensitive) The client secret of the Azure Credential.
-- `name` (String) The name of the Azure Credential.
 - `resource_id` (String) The ID given by the Grafana Cloud Provider API to this Azure Credential resource.
 - `stack_id` (String) The StackID of the Grafana Cloud instance. Part of the Terraform Resource ID.
-- `tenant_id` (String) The tenant ID of the Azure Credential.
 
 ### Optional
 
@@ -69,7 +61,11 @@ data "grafana_cloud_provider_azure_credential" "test" {
 
 ### Read-Only
 
+- `client_id` (String) The client ID of the Azure Credential.
+- `client_secret` (String, Sensitive) The client secret of the Azure Credential.
 - `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ resource_id }}".
+- `name` (String) The name of the Azure Credential.
+- `tenant_id` (String) The tenant ID of the Azure Credential.
 
 <a id="nestedblock--resource_discovery_tag_filter"></a>
 ### Nested Schema for `resource_discovery_tag_filter`
