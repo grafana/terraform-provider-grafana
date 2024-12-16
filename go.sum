@@ -137,8 +137,8 @@ github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e h1:JKmoR8x90Iww1
 github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gorilla/mux v1.8.1 h1:TuBL49tXwgrFYWhqrNgrUNEY92u81SPhu7sTdzQEiWY=
 github.com/gorilla/mux v1.8.1/go.mod h1:AKf9I4AEqPTmMytcMc0KkNouC66V3BtZ4qD5fmWSiMQ=
-github.com/grafana/amixr-api-go-client v0.0.18 h1:gih3Uug/i9RIz4ihoqWpV3ntb7OmaR0oFfE+zVbwHU0=
-github.com/grafana/amixr-api-go-client v0.0.18/go.mod h1:u53FF0WSBMx6XvZK58fply91KBl6X+OtIu0aJC07amY=
+github.com/grafana/amixr-api-go-client v0.0.19 h1:09FxpE9CXR7YpjDvq/ionA6UlmV4G1r48HFR4noG9Dw=
+github.com/grafana/amixr-api-go-client v0.0.19/go.mod h1:u53FF0WSBMx6XvZK58fply91KBl6X+OtIu0aJC07amY=
 github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240807172819-ac10800522a3 h1:CVLTffnWgBGvVaXfUUcSgFrZbiMzvj0/Hpi909zdeG0=
 github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240807172819-ac10800522a3/go.mod h1:u9d0BESoKlztYm93CpoRleQjMbYBcZ+JOLHHP2nN6Wg=
 github.com/grafana/grafana-openapi-client-go v0.0.0-20241113095943-9cb2bbfeb8a3 h1:poKxGlUaEYVp2DMofC/I2GHw/vvtHAZ20c48I8rFB6M=
