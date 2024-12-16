@@ -52,7 +52,7 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	if !providerConfig.SMAccessToken.IsNull() {
 		c.SMAPI = SMAPI.NewClient(providerConfig.SMURL.ValueString(), providerConfig.SMAccessToken.ValueString(), getRetryClient(providerConfig))
 	}
-	if !providerConfig.OncallAccessToken.IsNull() {
+	if !providerConfig.OncallURL.IsNull() && (!providerConfig.OncallAccessToken.IsNull() || (!providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull())) {
 		var onCallClient *onCallAPI.Client
 		onCallClient, err = createOnCallClient(providerConfig)
 		if err != nil {
@@ -182,7 +182,12 @@ func createCloudClient(client *common.Client, providerConfig ProviderConfig) err
 }
 
 func createOnCallClient(providerConfig ProviderConfig) (*onCallAPI.Client, error) {
-	return onCallAPI.New(providerConfig.OncallURL.ValueString(), providerConfig.OncallAccessToken.ValueString())
+	authToken := providerConfig.OncallAccessToken.ValueString()
+	if authToken == "" {
+		// prefer OncallAccessToken if it was set, otherwise use Grafana auth (service account) token
+		authToken = providerConfig.Auth.ValueString()
+	}
+	return onCallAPI.NewWithGrafanaURL(providerConfig.OncallURL.ValueString(), authToken, providerConfig.URL.ValueString())
 }
 
 func createCloudProviderClient(client *common.Client, providerConfig ProviderConfig) error {
