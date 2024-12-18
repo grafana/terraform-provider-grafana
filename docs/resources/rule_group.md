@@ -163,7 +163,7 @@ Required:
 
 Optional:
 
-- `query_type` (String) An optional identifier for the type of query being executed. Defaults to ``.
+- `query_type` (String) An optional identifier for the type of query being executed. Defaults to `` with possible values of either "instant" or "range".
 
 <a id="nestedblock--rule--data--relative_time_range"></a>
 ### Nested Schema for `rule.data.relative_time_range`
