@@ -619,6 +619,184 @@ func (o lineNotifier) unpack(raw interface{}, name string) *models.EmbeddedConta
 	}
 }
 
+type mqttNotifier struct{}
+
+var _ notifier = (*mqttNotifier)(nil)
+
+func (o mqttNotifier) meta() notifierMeta {
+	return notifierMeta{
+		field:        "mqtt",
+		typeStr:      "mqtt",
+		desc:         "A contact point that sends notifications to an MQTT broker.",
+		secureFields: []string{"password"},
+	}
+}
+
+func (o mqttNotifier) schema() *schema.Resource {
+	r := commonNotifierResource()
+	r.Schema["broker_url"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Description: "The URL of the MQTT broker.",
+	}
+	r.Schema["topic"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		Description: "The topic to publish messages to.",
+	}
+	r.Schema["client_id"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The client ID to use when connecting to the broker.",
+	}
+	r.Schema["message_format"] = &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		ValidateFunc: validation.StringInSlice([]string{"json", "text"}, false),
+		Description:  "The format of the message to send. Supported values are `json` and `text`.",
+	}
+	r.Schema["username"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "The username to use when connecting to the broker.",
+	}
+	r.Schema["password"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "The password to use when connecting to the broker.",
+	}
+	r.Schema["qos"] = &schema.Schema{
+		Type:         schema.TypeInt,
+		Optional:     true,
+		Default:      0,
+		ValidateFunc: validation.IntBetween(0, 2),
+		Description:  "The quality of service to use when sending messages. Supported values are 0, 1, and 2.",
+	}
+	r.Schema["retain"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Default:     false,
+		Description: "Whether to retain messages on the broker.",
+	}
+
+	r.Schema["tls_config"] = &schema.Schema{
+		Type:        schema.TypeSet,
+		Optional:    true,
+		Description: "TLS configuration for the connection.",
+		Elem:        tlsConfig{}.schema(),
+	}
+
+	return r
+}
+
+func (o mqttNotifier) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	notifier := packCommonNotifierFields(p)
+	settings := p.Settings.(map[string]interface{})
+
+	packNotifierStringField(&settings, &notifier, "brokerUrl", "broker_url")
+	packNotifierStringField(&settings, &notifier, "topic", "topic")
+	packNotifierStringField(&settings, &notifier, "clientId", "client_id")
+	packNotifierStringField(&settings, &notifier, "messageFormat", "message_format")
+	packNotifierStringField(&settings, &notifier, "username", "username")
+	if v, ok := settings["insecureSkipVerify"]; ok && v != nil {
+		notifier["insecure_skip_verify"] = v.(bool)
+		delete(settings, "insecureSkipVerify")
+	}
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, o, p.UID), o.meta().secureFields)
+
+	notifier["settings"] = packSettings(p)
+	return notifier, nil
+}
+
+func (o mqttNotifier) unpack(raw interface{}, name string) *models.EmbeddedContactPoint {
+	json := raw.(map[string]interface{})
+	uid, disableResolve, settings := unpackCommonNotifierFields(json)
+
+	unpackNotifierStringField(&json, &settings, "broker_url", "brokerUrl")
+	unpackNotifierStringField(&json, &settings, "topic", "topic")
+	unpackNotifierStringField(&json, &settings, "client_id", "clientId")
+	unpackNotifierStringField(&json, &settings, "message_format", "messageFormat")
+	unpackNotifierStringField(&json, &settings, "username", "username")
+	unpackNotifierStringField(&json, &settings, "password", "password")
+	if v, ok := json["insecure_skip_verify"]; ok && v != nil {
+		settings["insecureSkipVerify"] = v.(bool)
+	}
+
+	return &models.EmbeddedContactPoint{
+		UID:                   uid,
+		Name:                  name,
+		Type:                  common.Ref(o.meta().typeStr),
+		DisableResolveMessage: disableResolve,
+		Settings:              settings,
+	}
+}
+
+type tlsConfig struct{}
+
+func (t tlsConfig) schema() *schema.Resource {
+	r := &schema.Resource{
+		Schema: make(map[string]*schema.Schema),
+	}
+
+	r.Schema["insecure_skip_verify"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Default:     false,
+		Description: "Whether to skip verification of the server's certificate chain and host name.",
+	}
+	r.Schema["ca_certificate"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "The CA certificate to use when verifying the server's certificate.",
+	}
+	r.Schema["client_certificate"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "The client certificate to use when connecting to the server.",
+	}
+	r.Schema["client_key"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "The client key to use when connecting to the server.",
+	}
+
+	return r
+}
+
+func (t tlsConfig) pack(p *models.EmbeddedContactPoint, data *schema.ResourceData) (interface{}, error) {
+	settings := p.Settings.(map[string]interface{})
+	tls := make(map[string]interface{})
+
+	if v, ok := settings["insecureSkipVerify"]; ok && v != nil {
+		tls["insecure_skip_verify"] = v.(bool)
+		delete(settings, "insecureSkipVerify")
+	}
+	packNotifierStringField(&settings, &tls, "caCertificate", "ca_certificate")
+	packNotifierStringField(&settings, &tls, "clientCertificate", "client_certificate")
+	packNotifierStringField(&settings, &tls, "clientKey", "client_key")
+
+	return tls, nil
+}
+
+func (t tlsConfig) unpack(raw interface{}) map[string]interface{} {
+	json := raw.(map[string]interface{})
+	tls := make(map[string]interface{})
+
+	if v, ok := json["insecure_skip_verify"]; ok && v != nil {
+		tls["insecureSkipVerify"] = v.(bool)
+	}
+	unpackNotifierStringField(&json, &tls, "ca_certificate", "caCertificate")
+	unpackNotifierStringField(&json, &tls, "client_certificate", "clientCertificate")
+	unpackNotifierStringField(&json, &tls, "client_key", "clientKey")
+
+	return tls
+}
+
 type oncallNotifier struct {
 }
 
