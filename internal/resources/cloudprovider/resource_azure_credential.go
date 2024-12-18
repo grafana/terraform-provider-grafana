@@ -371,8 +371,6 @@ func (r *resourceAzureCredential) Update(ctx context.Context, req resource.Updat
 	}
 	diags = resp.State.SetAttribute(ctx, path.Root("resource_discovery_tag_filter"), convertedTagFilters)
 	resp.Diagnostics.Append(diags...)
-
-	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}

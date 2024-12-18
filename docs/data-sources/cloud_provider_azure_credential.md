@@ -34,16 +34,6 @@ resource "grafana_cloud_provider_azure_credential" "test" {
 data "grafana_cloud_provider_azure_credential" "test" {
   stack_id    = grafana_cloud_provider_azure_credential.test.stack_id
   resource_id = grafana_cloud_provider_azure_credential.test.resource_id
-
-  resource_discovery_tag_filter {
-    key   = grafana_cloud_provider_azure_credential.test.resource_discovery_tag_filter[0].key
-    value = grafana_cloud_provider_azure_credential.test.resource_discovery_tag_filter[0].value
-  }
-
-  resource_discovery_tag_filter {
-    key   = grafana_cloud_provider_azure_credential.test.resource_discovery_tag_filter[1].key
-    value = grafana_cloud_provider_azure_credential.test.resource_discovery_tag_filter[1].value
-  }
 }
 ```
 
@@ -55,22 +45,19 @@ data "grafana_cloud_provider_azure_credential" "test" {
 - `resource_id` (String) The ID given by the Grafana Cloud Provider API to this Azure Credential resource.
 - `stack_id` (String) The StackID of the Grafana Cloud instance. Part of the Terraform Resource ID.
 
-### Optional
-
-- `resource_discovery_tag_filter` (Block List) The list of tag filters to apply to resources. (see [below for nested schema](#nestedblock--resource_discovery_tag_filter))
-
 ### Read-Only
 
 - `client_id` (String) The client ID of the Azure Credential.
 - `client_secret` (String, Sensitive) The client secret of the Azure Credential.
 - `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ resource_id }}".
 - `name` (String) The name of the Azure Credential.
+- `resource_discovery_tag_filter` (Block List) The list of tag filters to apply to resources. (see [below for nested schema](#nestedblock--resource_discovery_tag_filter))
 - `tenant_id` (String) The tenant ID of the Azure Credential.
 
 <a id="nestedblock--resource_discovery_tag_filter"></a>
 ### Nested Schema for `resource_discovery_tag_filter`
 
-Required:
+Read-Only:
 
 - `key` (String) The key of the tag filter.
 - `value` (String) The value of the tag filter.

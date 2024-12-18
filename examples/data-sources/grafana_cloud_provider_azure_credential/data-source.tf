@@ -19,14 +19,4 @@ resource "grafana_cloud_provider_azure_credential" "test" {
 data "grafana_cloud_provider_azure_credential" "test" {
   stack_id    = grafana_cloud_provider_azure_credential.test.stack_id
   resource_id = grafana_cloud_provider_azure_credential.test.resource_id
-
-  resource_discovery_tag_filter {
-    key   = grafana_cloud_provider_azure_credential.test.resource_discovery_tag_filter[0].key
-    value = grafana_cloud_provider_azure_credential.test.resource_discovery_tag_filter[0].value
-  }
-
-  resource_discovery_tag_filter {
-    key   = grafana_cloud_provider_azure_credential.test.resource_discovery_tag_filter[1].key
-    value = grafana_cloud_provider_azure_credential.test.resource_discovery_tag_filter[1].value
-  }
 }

@@ -3,6 +3,8 @@ package cloudprovider
 import (
 	"context"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -81,11 +83,11 @@ func (r *datasourceAzureCredential) Schema(ctx context.Context, req datasource.S
 					Attributes: map[string]schema.Attribute{
 						"key": schema.StringAttribute{
 							Description: "The key of the tag filter.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "The value of the tag filter.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -141,4 +143,35 @@ func (r *datasourceAzureCredential) Read(ctx context.Context, req datasource.Rea
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	convertedTagFilters, diags := r.convertTagFilters(ctx, credential.ResourceTagFilters)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	diags = resp.State.SetAttribute(ctx, path.Root("resource_discovery_tag_filter"), convertedTagFilters)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+}
+
+func (r *datasourceAzureCredential) convertTagFilters(ctx context.Context, apiTagFilters []cloudproviderapi.TagFilter) (types.List, diag.Diagnostics) {
+	tagFiltersTF := make([]TagFilter, len(apiTagFilters))
+	conversionDiags := diag.Diagnostics{}
+	tagFilterListObjType := types.ObjectType{AttrTypes: TagFilter{}.attrTypes()}
+
+	for i, apiTagFilter := range apiTagFilters {
+		tagFiltersTF[i] = TagFilter{
+			Key:   types.StringValue(apiTagFilter.Key),
+			Value: types.StringValue(apiTagFilter.Value),
+		}
+	}
+
+	tagFiltersTFList, diags := types.ListValueFrom(ctx, tagFilterListObjType, tagFiltersTF)
+	conversionDiags.Append(diags...)
+	if conversionDiags.HasError() {
+		return types.ListNull(tagFilterListObjType), conversionDiags
+	}
+	return tagFiltersTFList, conversionDiags
 }
