@@ -193,6 +193,76 @@ func (c *Client) DeleteAWSCloudWatchScrapeJob(ctx context.Context, stackID strin
 	return nil
 }
 
+type AzureCredential struct {
+	// ID is the unique identifier for the Azure credential in our systems.
+	ID string `json:"id"`
+
+	// Name is the user-defined name for the Azure credential.
+	Name string `json:"name"`
+
+	// TenantID is the Azure tenant ID.
+	TenantID string `json:"tenant_id"`
+
+	// ClientID is the Azure client ID.
+	ClientID string `json:"client_id"`
+
+	// ClientSecret is the Azure client secret.
+	ClientSecret string `json:"client_secret"`
+
+	// StackID is the unique identifier for the stack in our systems.
+	StackID string `json:"stack_id"`
+
+	// ResourceTagFilters is the list of Azure resource tag filters.
+	ResourceTagFilters []TagFilter `json:"resource_tag_filters"`
+}
+
+type TagFilter struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+func (c *Client) CreateAzureCredential(ctx context.Context, stackID string, credentialData AzureCredential) (AzureCredential, error) {
+	path := fmt.Sprintf("/api/v2/stacks/%s/azure/credentials", stackID)
+	respData := apiResponseWrapper[AzureCredential]{}
+	err := c.doAPIRequest(ctx, http.MethodPost, path, &credentialData, &respData)
+	if err != nil {
+		return AzureCredential{}, fmt.Errorf("failed to create Azure credential: %w", err)
+	}
+
+	return respData.Data, nil
+}
+
+func (c *Client) GetAzureCredential(ctx context.Context, stackID string, credentialID string) (AzureCredential, error) {
+	path := fmt.Sprintf("/api/v2/stacks/%s/azure/credentials/%s", stackID, credentialID)
+	respData := apiResponseWrapper[AzureCredential]{}
+	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &respData)
+	if err != nil {
+		return AzureCredential{}, fmt.Errorf("failed to get Azure credential: %w", err)
+	}
+
+	return respData.Data, nil
+}
+
+func (c *Client) UpdateAzureCredential(ctx context.Context, stackID string, accountID string, credentialData AzureCredential) (AzureCredential, error) {
+	path := fmt.Sprintf("/api/v2/stacks/%s/azure/credentials/%s", stackID, accountID)
+	respData := apiResponseWrapper[AzureCredential]{}
+	err := c.doAPIRequest(ctx, http.MethodPut, path, &credentialData, &respData)
+	if err != nil {
+		return AzureCredential{}, fmt.Errorf("failed to update Azure credential: %w", err)
+	}
+
+	return respData.Data, nil
+}
+
+func (c *Client) DeleteAzureCredential(ctx context.Context, stackID string, credentialID string) error {
+	path := fmt.Sprintf("/api/v2/stacks/%s/azure/credentials/%s", stackID, credentialID)
+	err := c.doAPIRequest(ctx, http.MethodDelete, path, nil, nil)
+	if err != nil {
+		return fmt.Errorf("failed to delete Azure credential: %w", err)
+	}
+	return nil
+}
+
 func (c *Client) doAPIRequest(ctx context.Context, method string, path string, body any, responseData any) error {
 	var reqBodyBytes io.Reader
 	if body != nil {
