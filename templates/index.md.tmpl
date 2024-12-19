@@ -143,6 +143,10 @@ provider "grafana" {
 }
 ```
 
+### Managing Grafana Fleet Management
+
+{{ tffile "examples/provider/provider-fleet-management.tf" }}
+
 ## Authentication
 
 One, or many, of the following authentication settings must be set. Each authentication setting allows a subset of resources to be used
@@ -176,3 +180,10 @@ To create one, follow the instructions in the [obtaining cloud provider access t
 An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/authorize-services/) to manage
 connections resources, such as Metrics Endpoint jobs.
 For guidance on creating one, see section [obtaining connections access token](#obtaining-connections-access-token).
+
+### `fleet_management_auth`
+
+[Grafana Fleet Management](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/)
+uses basic auth to allow access to the API, where the username is the Fleet Management instance ID and the
+password is the API key. You can access the instance ID and request a new Fleet Management API key on the
+Connections -> Collector -> Fleet Management page, in the API tab.
