@@ -28,6 +28,7 @@ var (
 		googleChatNotifier{},
 		kafkaNotifier{},
 		lineNotifier{},
+		mqttNotifier{},
 		oncallNotifier{},
 		opsGenieNotifier{},
 		pagerDutyNotifier{},
