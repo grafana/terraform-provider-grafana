@@ -25,8 +25,8 @@ func TestAccMessageTemplate_basic(t *testing.T) {
 				Config: testutils.TestAccExample(t, "resources/grafana_message_template/resource.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					alertingMessageTemplateCheckExists.exists("grafana_message_template.my_template", &tmpl),
-					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "My Reusable Template"),
-					resource.TestCheckResourceAttr("grafana_message_template.my_template", "template", "{{define \"My Reusable Template\" }}\n template content\n{{ end }}"),
+					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "My Notification Template Group"),
+					resource.TestCheckResourceAttr("grafana_message_template.my_template", "template", "{{define \"custom.message\" }}\n template content\n{{ end }}"),
 					testutils.CheckLister("grafana_message_template.my_template"),
 				),
 			},
@@ -40,16 +40,16 @@ func TestAccMessageTemplate_basic(t *testing.T) {
 			// Test update with heredoc template doesn't change
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_message_template/resource.tf", map[string]string{
-					`template = "{{define \"My Reusable Template\" }}\n template content\n{{ end }}"`: `template = <<-EOT
-{{define "My Reusable Template" }}
+					`template = "{{define \"custom.message\" }}\n template content\n{{ end }}"`: `template = <<-EOT
+{{define "custom.message" }}
  template content
 {{ end }}
 EOT`,
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					alertingMessageTemplateCheckExists.exists("grafana_message_template.my_template", &tmpl),
-					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "My Reusable Template"),
-					resource.TestCheckResourceAttr("grafana_message_template.my_template", "template", "{{define \"My Reusable Template\" }}\n template content\n{{ end }}"),
+					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "My Notification Template Group"),
+					resource.TestCheckResourceAttr("grafana_message_template.my_template", "template", "{{define \"custom.message\" }}\n template content\n{{ end }}"),
 				),
 			},
 			// Test update content.
@@ -59,20 +59,20 @@ EOT`,
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					alertingMessageTemplateCheckExists.exists("grafana_message_template.my_template", &tmpl),
-					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "My Reusable Template"),
-					resource.TestCheckResourceAttr("grafana_message_template.my_template", "template", "{{define \"My Reusable Template\" }}\n different content\n{{ end }}"),
+					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "My Notification Template Group"),
+					resource.TestCheckResourceAttr("grafana_message_template.my_template", "template", "{{define \"custom.message\" }}\n different content\n{{ end }}"),
 				),
 			},
 			// Test rename.
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_message_template/resource.tf", map[string]string{
-					"My Reusable Template": "A Different Template",
+					"My Notification Template Group": "A Different Template",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					alertingMessageTemplateCheckExists.exists("grafana_message_template.my_template", &tmpl),
 					resource.TestCheckResourceAttr("grafana_message_template.my_template", "name", "A Different Template"),
-					resource.TestCheckResourceAttr("grafana_message_template.my_template", "template", "{{define \"A Different Template\" }}\n template content\n{{ end }}"),
-					alertingMessageTemplateCheckExists.destroyed(&models.NotificationTemplate{Name: "My Reusable Template"}, nil),
+					resource.TestCheckResourceAttr("grafana_message_template.my_template", "template", "{{define \"custom.message\" }}\n template content\n{{ end }}"),
+					alertingMessageTemplateCheckExists.destroyed(&models.NotificationTemplate{Name: "My Notification Template Group"}, nil),
 				),
 			},
 		},
@@ -128,7 +128,7 @@ func testAccMessageTemplate_inOrg(name string) string {
 	resource "grafana_message_template" "my_template" {
 		org_id = grafana_organization.test.id
 		name = "my-template"
-		template = "{{define \"My Reusable Template\" }}\n template content\n{{ end }}"
+		template = "{{define \"custom.message\" }}\n template content\n{{ end }}"
 	}
 	`, name)
 }
