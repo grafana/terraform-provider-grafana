@@ -458,6 +458,87 @@ resource "grafana_rule_group" "first" {
 	})
 }
 
+func TestAccAlertRule_ruleUIDConflict(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	name := acctest.RandString(10)
+	uid := acctest.RandString(10)
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource "grafana_organization" "test" {
+	name = "%[1]s"
+}
+
+resource "grafana_folder" "first" {
+	org_id = grafana_organization.test.id
+	title = "%[1]s-first"
+}
+
+resource "grafana_rule_group" "first" {
+	org_id = grafana_organization.test.id
+	name             = "alert rule group"
+	folder_uid       = grafana_folder.first.uid
+	interval_seconds = 60
+	rule {
+		name           = "%[1]s"
+		uid            = "%[2]s"
+		for            = "2m"
+		condition      = "B"
+		no_data_state  = "NoData"
+		exec_err_state = "Alerting"
+		is_paused = false
+		data {
+			ref_id     = "A"
+			query_type = ""
+			relative_time_range {
+				from = 600
+				to   = 0
+			}
+			datasource_uid = "PD8C576611E62080A"
+			model = jsonencode({
+				hide          = false
+				intervalMs    = 1000
+				maxDataPoints = 43200
+				refId         = "A"
+			})
+		}
+	}
+	rule {
+		name           = "%[1]s 2"
+		uid            = "%[2]s"
+		for            = "2m"
+		condition      = "B"
+		no_data_state  = "NoData"
+		exec_err_state = "Alerting"
+		is_paused = false
+		data {
+			ref_id     = "A"
+			query_type = ""
+			relative_time_range {
+				from = 600
+				to   = 0
+			}
+			datasource_uid = "PD8C576611E62080A"
+			model = jsonencode({
+				hide          = false
+				intervalMs    = 1000
+				maxDataPoints = 43200
+				refId         = "A"
+			})
+		}
+	}
+}
+				`, name, uid),
+				ExpectError: regexp.MustCompile(`rule with UID "` + uid + `" is defined more than once. Rules with name "` + name + `" and "` + name + ` 2" have the same uid`),
+			},
+		},
+	})
+}
+
 func TestAccAlertRule_moveRules(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 

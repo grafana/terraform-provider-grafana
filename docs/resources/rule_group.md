@@ -146,9 +146,6 @@ Optional:
 - `no_data_state` (String) Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, KeepLast, and Alerting. Defaults to `NoData`.
 - `notification_settings` (Block List, Max: 1) Notification settings for the rule. If specified, it overrides the notification policies. Available since Grafana 10.4, requires feature flag 'alertingSimplifiedRouting' to be enabled. (see [below for nested schema](#nestedblock--rule--notification_settings))
 - `record` (Block List, Max: 1) Settings for a recording rule. Available since Grafana 11.2, requires feature flag 'grafanaManagedRecordingRules' to be enabled. (see [below for nested schema](#nestedblock--rule--record))
-
-Read-Only:
-
 - `uid` (String) The unique identifier of the alert rule.
 
 <a id="nestedblock--rule--data"></a>
