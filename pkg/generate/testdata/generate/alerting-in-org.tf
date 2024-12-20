@@ -36,7 +36,7 @@ resource "grafana_mute_timing" "my_mute_timing" {
 resource "grafana_message_template" "my_template" {
   org_id   = grafana_organization.test.id
   name     = "My Reusable Template"
-  template = "{{define \"My Reusable Template\" }}\n template content\n{{ end }}"
+  template = "{{ define \"My Reusable Template\" }}\n template content\n{{ end }}"
 }
 
 resource "grafana_folder" "rule_folder" {
