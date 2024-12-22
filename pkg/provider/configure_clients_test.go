@@ -135,6 +135,18 @@ func TestCreateClients(t *testing.T) {
 			},
 		},
 		{
+			name: "Stack URL and auth to be set, empty strings; OnCall URL set (it has a default)",
+			config: ProviderConfig{
+				URL:       types.StringValue(""),
+				Auth:      types.StringValue(""),
+				OncallURL: types.StringValue("http://oncall.url"),
+			},
+			expected: func(c *common.Client, err error) {
+				assert.Nil(t, err)
+				assert.NotNil(t, c.GrafanaAPI)
+			},
+		},
+		{
 			name: "OnCall client using original config (not setting Grafana URL)",
 			config: ProviderConfig{
 				OncallAccessToken: types.StringValue("oncall-token"),
