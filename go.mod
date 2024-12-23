@@ -32,7 +32,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.35.0
 	github.com/prometheus/common v0.61.0
 	github.com/stretchr/testify v1.10.0
-	github.com/tmccombs/hcl2json v0.6.4
+	github.com/tmccombs/hcl2json v0.6.5
 	github.com/urfave/cli/v2 v2.27.5
 	github.com/zclconf/go-cty v1.15.1
 	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f
@@ -165,7 +165,7 @@ require (
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
-	golang.org/x/tools v0.27.0 // indirect
+	golang.org/x/tools v0.28.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240903143218-8af14fe29dc1 // indirect
