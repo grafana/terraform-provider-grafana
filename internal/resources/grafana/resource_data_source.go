@@ -119,6 +119,12 @@ source selected (via the 'type' argument).
 			},
 			"json_data_encoded":        datasourceJSONDataAttribute(),
 			"secure_json_data_encoded": datasourceSecureJSONDataAttribute(),
+			"private_datasource_connect_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: "(Can only be used with data sources in Grafana Cloud) The ID of the private data source network to use with this data source.",
+			},
 		},
 	}
 
@@ -359,6 +365,13 @@ func stateToDatasourceConfig(d *schema.ResourceData) (map[string]interface{}, ma
 	if err != nil {
 		return nil, nil, err
 	}
+
+	pdcNetworkID := d.Get("private_datasource_connect_id").(string)
+	if pdcNetworkID != "" {
+		jd["enableSecureSocksProxy"] = true
+		jd["secureSocksProxyUsername"] = pdcNetworkID
+	}
+
 	sd, err := makeSecureJSONData(d)
 	if err != nil {
 		return nil, nil, err
