@@ -150,7 +150,7 @@ Required:
 Required:
 
 - `label` (String) The label.
-- `value` (Number) The value of the label.
+- `value` (String) The value of the label.
 
 ## Import
 
