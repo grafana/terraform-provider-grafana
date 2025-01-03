@@ -144,7 +144,7 @@ var (
 					},
 				},
 			},
-			"static_labels": schema.ListNestedBlock{
+			"static_label": schema.ListNestedBlock{
 				Description: "Zero or more configuration blocks to configure static labels to add to all metrics exported by this scrape job.",
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{

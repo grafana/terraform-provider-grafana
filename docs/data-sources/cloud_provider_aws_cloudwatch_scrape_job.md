@@ -103,7 +103,7 @@ data "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
 - `regions_subset_override_used` (Boolean) When true, the `regions` attribute will be the set of regions configured in the override. When false, the `regions` attribute will be the set of regions belonging to the AWS Account resource that is associated with this CloudWatch Scrape Job.
 - `role_arn` (String) The AWS ARN of the IAM role associated with the AWS Account resource that is being used by this CloudWatch Scrape Job.
 - `service` (Block List) One or more configuration blocks to dictate what this CloudWatch Scrape Job should scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service))
-- `static_labels` (Block List) Zero or more configuration blocks to configure static labels to add to all metrics exported by this scrape job. (see [below for nested schema](#nestedblock--static_labels))
+- `static_label` (Block List) Zero or more configuration blocks to configure static labels to add to all metrics exported by this scrape job. (see [below for nested schema](#nestedblock--static_label))
 
 <a id="nestedblock--custom_namespace"></a>
 ### Nested Schema for `custom_namespace`
@@ -154,8 +154,8 @@ Read-Only:
 
 
 
-<a id="nestedblock--static_labels"></a>
-### Nested Schema for `static_labels`
+<a id="nestedblock--static_label"></a>
+### Nested Schema for `static_label`
 
 Read-Only:
 

@@ -26,7 +26,7 @@ type awsCWScrapeJobTFResourceModel struct {
 	// See https://developer.hashicorp.com/terraform/plugin/framework/handling-data/attributes#nested-attribute-types
 	Services         types.List `tfsdk:"service"`
 	CustomNamespaces types.List `tfsdk:"custom_namespace"`
-	StaticLabels     types.List `tfsdk:"static_labels"`
+	StaticLabels     types.List `tfsdk:"static_label"`
 }
 
 type awsCWScrapeJobTFDataSourceModel struct {
@@ -45,7 +45,7 @@ type awsCWScrapeJobTFDataSourceModel struct {
 	// See https://developer.hashicorp.com/terraform/plugin/framework/handling-data/attributes#nested-attribute-types
 	Services         types.List `tfsdk:"service"`
 	CustomNamespaces types.List `tfsdk:"custom_namespace"`
-	StaticLabels     types.List `tfsdk:"static_labels"`
+	StaticLabels     types.List `tfsdk:"static_label"`
 }
 
 type awsCWScrapeJobStaticLabelTFModel struct {
