@@ -18,6 +18,7 @@ var knownReferences = []string{
 	"grafana_cloud_access_policy.identifier=grafana_cloud_stack.id",
 	"grafana_cloud_access_policy_token.access_policy_id=grafana_cloud_access_policy.policy_id",
 	"grafana_cloud_plugin_installation.stack_slug=grafana_cloud_stack.slug",
+	"grafana_cloud_private_datasource_connect_token.pdc_network_id=grafana_cloud_private_datasource_connect.network_id",
 	"grafana_cloud_provider_aws_cloudwatch_scrape_job.aws_account_resource_id=grafana_cloud_provider_aws_account.resource_id",
 	"grafana_cloud_stack_service_account.stack_slug=grafana_cloud_stack.slug",
 	"grafana_cloud_stack_service_account_token.auth=grafana_cloud_stack_service_account_token.key",
