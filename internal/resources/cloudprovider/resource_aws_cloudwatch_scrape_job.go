@@ -227,6 +227,21 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 					},
 				},
 			},
+			"static_label": schema.ListNestedBlock{
+				Description: "Zero or more configuration blocks to configure static labels to add to all metrics exported by this scrape job.",
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"label": schema.StringAttribute{
+							Description: "The label.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "The value of the label.",
+							Required:    true,
+						},
+					},
+				},
+			},
 		},
 	}
 }

@@ -49,6 +49,16 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
     }
     scrape_interval_seconds = 300
   }
+
+  static_label {
+    label = "label1"
+    value = "value1"
+  }
+
+  static_label {
+    label = "label2"
+    value = "value2"
+  }
 }
 
 
