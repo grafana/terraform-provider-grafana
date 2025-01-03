@@ -144,6 +144,21 @@ var (
 					},
 				},
 			},
+			"static_labels": schema.ListNestedBlock{
+				Description: "Zero or more configuration blocks to configure static labels to add to all metrics exported by this scrape job.",
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"label": schema.StringAttribute{
+							Description: "The label.",
+							Computed:    true,
+						},
+						"value": schema.Int64Attribute{
+							Description: "The value of the label.",
+							Computed:    true,
+						},
+					},
+				},
+			},
 		},
 	}
 )
