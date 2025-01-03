@@ -64,6 +64,9 @@ func NewDataSource(category ResourceCategory, name string, schema datasource.Dat
 // The data arg can be used to pass information between different listers. For example, the list of stacks will be used when listing stack plugins.
 type ResourceListIDsFunc func(ctx context.Context, client *Client, data any) ([]string, error)
 
+// ResourceListFunc is a function that returns a list of resources.
+type ResourceListFunc func(ctx context.Context, client *Client, data any) ([]any, error)
+
 // Resource represents a Terraform resource, implemented either with the SDKv2 or Terraform Plugin Framework.
 type Resource struct {
 	ResourceCommon
@@ -72,6 +75,7 @@ type Resource struct {
 
 	// Generation configuration
 	ListIDsFunc                ResourceListIDsFunc
+	ListFunc                   ResourceListFunc
 	PreferredResourceNameField string // This field will be used as the resource name instead of the ID. This is useful if the ID is not ideal for humans (ex: UUID or numeric). The field value should uniquely identify the resource.
 }
 
@@ -101,6 +105,11 @@ func NewResource(category ResourceCategory, name string, idType *ResourceID, sch
 
 func (r *Resource) WithLister(lister ResourceListIDsFunc) *Resource {
 	r.ListIDsFunc = lister
+	return r
+}
+
+func (r *Resource) WithResourceLister(listFunc ResourceListFunc) *Resource {
+	r.ListFunc = listFunc
 	return r
 }
 
