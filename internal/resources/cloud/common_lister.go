@@ -64,3 +64,17 @@ func cloudListerFunction(listerFunc func(ctx context.Context, client *gcom.APICl
 		return listerFunc(ctx, client.GrafanaCloudAPI, lm)
 	}
 }
+
+// cloudResourceListerFunction is a helper function that wraps a lister function be used more easily in cloud resources.
+func cloudResourceListerFunction(listerFunc func(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]any, error)) common.ResourceListFunc {
+	return func(ctx context.Context, client *common.Client, data any) ([]any, error) {
+		lm, ok := data.(*ListerData)
+		if !ok {
+			return nil, fmt.Errorf("unexpected data type: %T", data)
+		}
+		if client.GrafanaCloudAPI == nil {
+			return nil, fmt.Errorf("client not configured for Grafana Cloud API")
+		}
+		return listerFunc(ctx, client.GrafanaCloudAPI, lm)
+	}
+}
