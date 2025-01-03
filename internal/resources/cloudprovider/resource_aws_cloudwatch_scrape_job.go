@@ -235,7 +235,7 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 							Description: "The label.",
 							Required:    true,
 						},
-						"value": schema.Int64Attribute{
+						"value": schema.StringAttribute{
 							Description: "The value of the label.",
 							Required:    true,
 						},

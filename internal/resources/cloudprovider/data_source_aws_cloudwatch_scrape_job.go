@@ -152,7 +152,7 @@ var (
 							Description: "The label.",
 							Computed:    true,
 						},
-						"value": schema.Int64Attribute{
+						"value": schema.StringAttribute{
 							Description: "The value of the label.",
 							Computed:    true,
 						},
