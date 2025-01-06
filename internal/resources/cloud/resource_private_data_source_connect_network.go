@@ -47,14 +47,14 @@ Required access policy scopes:
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				Description:  "Region where the API is deployed. Generally where the stack is deployed. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.",
+				Description:  "The region where your stack is deployed. Use the instances list API to get the region for your instance - use the regionSlug property: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-stacks",
 				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "Name of the PDC network.",
+				Description: "Name of the PDC network." + "**Note:** The name must be lowercase and can be hyphenated.",
 			},
 			"display_name": {
 				Type:        schema.TypeString,
@@ -67,7 +67,7 @@ Required access policy scopes:
 					return false
 				},
 			},
-			"identifier": {
+			"stack_identifier": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The identifier of the stack.",
@@ -94,7 +94,7 @@ Required access policy scopes:
 
 	return common.NewLegacySDKResource(
 		common.CategoryCloud,
-		"grafana_cloud_private_datasource_connect",
+		"grafana_cloud_private_data_source_connect_network",
 		pdcNetworkID,
 		schema,
 	).
@@ -178,7 +178,7 @@ func createPDCNetwork(ctx context.Context, d *schema.ResourceData, client *gcom.
 			Name:        d.Get("name").(string),
 			DisplayName: &displayName,
 			Scopes:      []string{"pdc-signing:write"},
-			Realms:      []gcom.PostAccessPoliciesRequestRealmsInner{{Type: "stack", Identifier: d.Get("identifier").(string)}},
+			Realms:      []gcom.PostAccessPoliciesRequestRealmsInner{{Type: "stack", Identifier: d.Get("stack_identifier").(string)}},
 		})
 	result, _, err := req.Execute()
 	if err != nil {
@@ -205,7 +205,7 @@ func updatePDCNetwork(ctx context.Context, d *schema.ResourceData, client *gcom.
 	req := client.AccesspoliciesAPI.PostAccessPolicy(ctx, id.(string)).Region(region.(string)).XRequestId(ClientRequestID()).
 		PostAccessPolicyRequest(gcom.PostAccessPolicyRequest{
 			DisplayName: &displayName,
-			Realms:      []gcom.PostAccessPoliciesRequestRealmsInner{{Type: "stack", Identifier: d.Get("identifier").(string)}},
+			Realms:      []gcom.PostAccessPoliciesRequestRealmsInner{{Type: "stack", Identifier: d.Get("stack_identifier").(string)}},
 		})
 	if _, _, err = req.Execute(); err != nil {
 		return apiError(err)

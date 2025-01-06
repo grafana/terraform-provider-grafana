@@ -46,25 +46,25 @@ Required access policy scopes:
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "ID of the private datasource network for which to create a token.",
+				Description: "ID of the private data source network for which to create a token.",
 			},
 			"region": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				Description:  "Region of the private datasource network. Should be set to the same region as the private datasource network. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.",
+				Description:  "Region of the private data source network. Should be set to the same region as the private data source network. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.",
 				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "Name of the private datasource network token.",
+				Description: "Name of the private data source network token.",
 			},
 			"display_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Display name of the private datasource network token. Defaults to the name.",
+				Description: "Display name of the private data source network token. Defaults to the name.",
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					if new == "" && old == d.Get("name").(string) {
 						return true
@@ -76,7 +76,7 @@ Required access policy scopes:
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				Description:  "Expiration date of the private datasource network token. Does not expire by default.",
+				Description:  "Expiration date of the private data source network token. Does not expire by default.",
 				ValidateFunc: validation.IsRFC3339Time,
 			},
 
@@ -89,19 +89,19 @@ Required access policy scopes:
 			"created_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Creation date of the private datasource network token.",
+				Description: "Creation date of the private data source network token.",
 			},
 			"updated_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Last update date of the private datasource network token.",
+				Description: "Last update date of the private data source network token.",
 			},
 		},
 	}
 
 	return common.NewLegacySDKResource(
 		common.CategoryCloud,
-		"grafana_cloud_private_datasource_connect_token",
+		"grafana_cloud_private_data_source_connect_network_token",
 		pdcNetworkTokenID,
 		schema,
 	)
