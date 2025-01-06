@@ -9,6 +9,7 @@ var DataSources = []*common.DataSource{
 	datasourceIPs(),
 	datasourceOrganization(),
 	datasourceStack(),
+	datasourcePrivateDataSourceConnectNetworks(),
 }
 
 var Resources = []*common.Resource{
