@@ -10,7 +10,7 @@ resource "grafana_cloud_private_data_source_connect_network" "test" {
 }
 
 resource "grafana_cloud_private_data_source_connect_network_token" "test" {
-  pdc_network_id = grafana_cloud_private_data_source_connect_network.test.network_id
+  pdc_network_id = grafana_cloud_private_data_source_connect_network.test.pdc_network_id
   region         = grafana_cloud_private_data_source_connect_network.test.region
   name           = "my-pdc-token"
   display_name   = "My PDC Token"

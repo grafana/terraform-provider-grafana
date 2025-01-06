@@ -34,7 +34,7 @@ resource "grafana_cloud_private_data_source_connect_network" "test" {
 }
 
 resource "grafana_cloud_private_data_source_connect_network_token" "test" {
-  pdc_network_id = grafana_cloud_private_data_source_connect_network.test.network_id
+  pdc_network_id = grafana_cloud_private_data_source_connect_network.test.pdc_network_id
   region         = grafana_cloud_private_data_source_connect_network.test.region
   name           = "my-pdc-token"
   display_name   = "My PDC Token"
@@ -56,10 +56,10 @@ resource "grafana_cloud_private_data_source_connect_network_token" "test" {
 
 ### Read-Only
 
-- `created_at` (String) Creation date of the access policy.
+- `created_at` (String) Creation date of the private data source connect network.
 - `id` (String) The ID of this resource.
-- `policy_id` (String) ID of the access policy.
-- `updated_at` (String) Last update date of the access policy.
+- `pdc_network_id` (String) ID of the private data source connect network.
+- `updated_at` (String) Last update date of the private data source connect network.
 
 ## Import
 

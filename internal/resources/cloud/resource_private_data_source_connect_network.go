@@ -74,20 +74,20 @@ Required access policy scopes:
 			},
 
 			// Computed
-			"policy_id": {
+			"pdc_network_id": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "ID of the access policy.",
+				Description: "ID of the private data source connect network.",
 			},
 			"created_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Creation date of the access policy.",
+				Description: "Creation date of the private data source connect network.",
 			},
 			"updated_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
-				Description: "Last update date of the access policy.",
+				Description: "Last update date of the private data source connect network.",
 			},
 		},
 	}
@@ -227,7 +227,7 @@ func readPDCNetwork(ctx context.Context, d *schema.ResourceData, client *gcom.AP
 	}
 
 	d.Set("region", region)
-	d.Set("policy_id", result.Id)
+	d.Set("pdc_network_id", result.Id)
 	d.Set("name", result.Name)
 	d.Set("display_name", result.DisplayName)
 	d.Set("scopes", result.Scopes)
