@@ -119,7 +119,7 @@ source selected (via the 'type' argument).
 			},
 			"json_data_encoded":        datasourceJSONDataAttribute(),
 			"secure_json_data_encoded": datasourceSecureJSONDataAttribute(),
-			"private_datasource_connect_id": {
+			"private_datasource_connect_network_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "",
@@ -366,7 +366,7 @@ func stateToDatasourceConfig(d *schema.ResourceData) (map[string]interface{}, ma
 		return nil, nil, err
 	}
 
-	pdcNetworkID := d.Get("private_datasource_connect_id").(string)
+	pdcNetworkID := d.Get("private_datasource_connect_network_id").(string)
 	if pdcNetworkID != "" {
 		jd["enableSecureSocksProxy"] = true
 		jd["secureSocksProxyUsername"] = pdcNetworkID
