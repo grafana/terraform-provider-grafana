@@ -46,7 +46,7 @@ resource "grafana_cloud_private_data_source_connect_network_token" "test" {
 
 ### Required
 
-- `name` (String) Name of the PDC network.**Note:** The name must be lowercase and can be hyphenated.
+- `name` (String) Name of the PDC network.**Note:** The name must be lowercase and can contain hyphens or underscores. See full requirements here: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#request-body
 - `region` (String) The region where your stack is deployed. Use the instances list API to get the region for your instance - use the regionSlug property: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-stacks
 - `stack_identifier` (String) The identifier of the stack.
 

@@ -54,7 +54,7 @@ Required access policy scopes:
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "Name of the PDC network." + "**Note:** The name must be lowercase and can be hyphenated.",
+				Description: "Name of the PDC network." + "**Note:** The name must be lowercase and can contain hyphens or underscores. See full requirements here: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#request-body",
 			},
 			"display_name": {
 				Type:        schema.TypeString,
