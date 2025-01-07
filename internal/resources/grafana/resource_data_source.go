@@ -366,10 +366,12 @@ func stateToDatasourceConfig(d *schema.ResourceData) (map[string]interface{}, ma
 		return nil, nil, err
 	}
 
-	pdcNetworkID := d.Get("private_datasource_connect_network_id").(string)
-	if pdcNetworkID != "" {
-		jd["enableSecureSocksProxy"] = true
-		jd["secureSocksProxyUsername"] = pdcNetworkID
+	pdcNetworkID := d.Get("private_datasource_connect_network_id")
+	if pdcNetworkID != nil {
+		if id := pdcNetworkID.(string); id != "" {
+			jd["enableSecureSocksProxy"] = true
+			jd["secureSocksProxyUsername"] = pdcNetworkID
+		}
 	}
 
 	sd, err := makeSecureJSONData(d)
