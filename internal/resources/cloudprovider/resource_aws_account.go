@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -94,9 +95,8 @@ func (r resourceAWSAccount) Schema(ctx context.Context, req resource.SchemaReque
 			"name": schema.StringAttribute{
 				Description: "An optional human-readable name for this AWS Account resource.",
 				Optional:    true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
+				Computed:    true, // used to complete the default "" if the resource existed before this field was introduced
+				Default:     stringdefault.StaticString(""),
 			},
 			"role_arn": schema.StringAttribute{
 				Description: "An IAM Role ARN string to represent with this AWS Account resource.",
