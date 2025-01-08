@@ -3,7 +3,7 @@
 page_title: "grafana_cloud_private_data_source_connect_networks Data Source - terraform-provider-grafana"
 subcategory: "Cloud"
 description: |-
-  Fetches Private data source connect networks from Grafana Cloud.
+  Fetches Private Data source Connect networks from Grafana Cloud.
   Official documentation https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/API documentation https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-access-policies
   Required access policy scopes:
   accesspolicies:read
@@ -11,7 +11,7 @@ description: |-
 
 # grafana_cloud_private_data_source_connect_networks (Data Source)
 
-Fetches Private data source connect networks from Grafana Cloud.
+Fetches Private Data source Connect networks from Grafana Cloud.
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-access-policies)

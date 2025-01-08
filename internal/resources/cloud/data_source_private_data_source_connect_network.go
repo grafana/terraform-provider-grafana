@@ -17,22 +17,22 @@ func datasourcePrivateDataSourceConnectNetworks() *common.DataSource {
 	return common.NewDataSource(
 		common.CategoryCloud,
 		dataSourcePrivateDataSourceConnectNetworksName,
-		&PrivateDatasourceConnectNetworksDataSource{},
+		&PDCNetworksDataSource{},
 	)
 }
 
-type PrivateDatasourceConnectNetworksDataSource struct {
+type PDCNetworksDataSource struct {
 	basePluginFrameworkDataSource
 }
 
-func (r *PrivateDatasourceConnectNetworksDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (r *PDCNetworksDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = dataSourcePrivateDataSourceConnectNetworksName
 }
 
-func (r *PrivateDatasourceConnectNetworksDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (r *PDCNetworksDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `
-Fetches Private data source connect networks from Grafana Cloud.
+Fetches Private Data source Connect networks from Grafana Cloud.
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-access-policies)
@@ -69,7 +69,7 @@ Required access policy scopes:
 	}
 }
 
-type PrivateDatasourceConnectNetworksDataSourcePolicyModel struct {
+type PDCNetworksDataSourcePolicyModel struct {
 	ID          types.String `tfsdk:"id"`
 	Region      types.String `tfsdk:"region"`
 	Name        types.String `tfsdk:"name"`
@@ -77,16 +77,16 @@ type PrivateDatasourceConnectNetworksDataSourcePolicyModel struct {
 	Status      types.String `tfsdk:"status"`
 }
 
-type PrivateDatasourceConnectNetworksDataSourceModel struct {
-	ID                        types.String                                            `tfsdk:"id"`
-	NameFilter                types.String                                            `tfsdk:"name_filter"`
-	RegionFilter              types.String                                            `tfsdk:"region_filter"`
-	PrivateDataSourceNetworks []PrivateDatasourceConnectNetworksDataSourcePolicyModel `tfsdk:"private_data_source_networks"`
+type PDCNetworksDataSourceModel struct {
+	ID                        types.String                       `tfsdk:"id"`
+	NameFilter                types.String                       `tfsdk:"name_filter"`
+	RegionFilter              types.String                       `tfsdk:"region_filter"`
+	PrivateDataSourceNetworks []PDCNetworksDataSourcePolicyModel `tfsdk:"private_data_source_networks"`
 }
 
-func (r *PrivateDatasourceConnectNetworksDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (r *PDCNetworksDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	// Read Terraform state data into the model
-	var data PrivateDatasourceConnectNetworksDataSourceModel
+	var data PDCNetworksDataSourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
 	var regions []string
@@ -103,7 +103,7 @@ func (r *PrivateDatasourceConnectNetworksDataSource) Read(ctx context.Context, r
 		}
 	}
 
-	data.PrivateDataSourceNetworks = []PrivateDatasourceConnectNetworksDataSourcePolicyModel{}
+	data.PrivateDataSourceNetworks = []PDCNetworksDataSourcePolicyModel{}
 	for _, region := range regions {
 		apiResp, _, err := r.client.AccesspoliciesAPI.GetAccessPolicies(ctx).Region(region).Execute()
 		if err != nil {
@@ -114,7 +114,7 @@ func (r *PrivateDatasourceConnectNetworksDataSource) Read(ctx context.Context, r
 			if data.NameFilter.ValueString() != "" && data.NameFilter.ValueString() != policy.Name {
 				continue
 			}
-			data.PrivateDataSourceNetworks = append(data.PrivateDataSourceNetworks, PrivateDatasourceConnectNetworksDataSourcePolicyModel{
+			data.PrivateDataSourceNetworks = append(data.PrivateDataSourceNetworks, PDCNetworksDataSourcePolicyModel{
 				ID:          types.StringValue(*policy.Id),
 				Region:      types.StringValue(region),
 				Name:        types.StringValue(policy.Name),
