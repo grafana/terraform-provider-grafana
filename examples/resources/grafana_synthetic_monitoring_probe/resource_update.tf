@@ -7,4 +7,5 @@ resource "grafana_synthetic_monitoring_probe" "main" {
     type = "volcano"
   }
   disable_scripted_checks = true
+  disable_browser_checks = true
 }
