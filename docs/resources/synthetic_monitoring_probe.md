@@ -45,6 +45,7 @@ resource "grafana_synthetic_monitoring_probe" "main" {
 
 ### Optional
 
+- `disable_browser_checks` (Boolean) Disables browser checks for this probe. Defaults to `false`.
 - `disable_scripted_checks` (Boolean) Disables scripted checks for this probe. Defaults to `false`.
 - `labels` (Map of String) Custom labels to be included with collected metrics and logs.
 - `public` (Boolean) Public probes are run by Grafana Labs and can be used by all users. Only Grafana Labs managed public probes will be set to `true`. Defaults to `false`.
