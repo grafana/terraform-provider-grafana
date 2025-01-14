@@ -230,8 +230,6 @@ func readPDCNetwork(ctx context.Context, d *schema.ResourceData, client *gcom.AP
 	d.Set("pdc_network_id", result.Id)
 	d.Set("name", result.Name)
 	d.Set("display_name", result.DisplayName)
-	d.Set("scopes", result.Scopes)
-	d.Set("realm", flattenCloudAccessPolicyRealm(result.Realms))
 	d.Set("created_at", result.CreatedAt.Format(time.RFC3339))
 	if updated := result.UpdatedAt; updated != nil {
 		d.Set("updated_at", updated.Format(time.RFC3339))
