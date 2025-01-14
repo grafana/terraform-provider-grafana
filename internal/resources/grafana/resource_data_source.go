@@ -176,6 +176,16 @@ func datasourceJSONDataAttribute() *schema.Schema {
 			if oldValue == "{}" && newValue == "" {
 				return true
 			}
+
+			newValueUnmarshalled := make(map[string]interface{})
+			json.Unmarshal([]byte(newValue), &newValueUnmarshalled)
+			pdcNetworkID := d.Get("private_data_source_connect_network_id")
+			if pdcNetworkID != "" {
+				newValueUnmarshalled["enableSecureSocksProxy"] = true
+				newValueUnmarshalled["secureSocksProxyUsername"] = pdcNetworkID
+			}
+			newValue, _ = structure.FlattenJsonToString(newValueUnmarshalled)
+
 			return common.SuppressEquivalentJSONDiffs(k, oldValue, newValue, d)
 		},
 	}
