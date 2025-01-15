@@ -99,7 +99,6 @@ Required access policy scopes:
 		schema,
 	).
 		WithLister(cloudListerFunction(listPDCNetworkIds)).
-		WithResourceLister(cloudResourceListerFunction(listPDCNetworks)).
 		WithPreferredResourceNameField("name")
 }
 
@@ -127,37 +126,6 @@ func listPDCNetworkIds(ctx context.Context, client *gcom.APIClient, data *Lister
 		for _, policy := range resp.Items {
 			if slices.Contains(policy.Scopes, "pdc-signing:write") {
 				policies = append(policies, resourceAccessPolicyID.Make(regionSlug, policy.Id))
-			}
-		}
-	}
-
-	return policies, nil
-}
-
-func listPDCNetworks(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]any, error) {
-	regionsReq := client.StackRegionsAPI.GetStackRegions(ctx)
-	regionsResp, _, err := regionsReq.Execute()
-	if err != nil {
-		return nil, fmt.Errorf("failed to list regions: %w", err)
-	}
-
-	orgID, err := data.OrgID(ctx, client)
-	if err != nil {
-		return nil, err
-	}
-
-	var policies []any
-	for _, region := range regionsResp.Items {
-		regionSlug := region.FormattedApiStackRegionAnyOf.Slug
-		req := client.AccesspoliciesAPI.GetAccessPolicies(ctx).Region(regionSlug).OrgId(orgID)
-		resp, _, err := req.Execute()
-		if err != nil {
-			return nil, fmt.Errorf("failed to list access policies in region %s: %w", regionSlug, err)
-		}
-
-		for _, policy := range resp.Items {
-			if slices.Contains(policy.Scopes, "pdc-signing:write") {
-				policies = append(policies, policy)
 			}
 		}
 	}

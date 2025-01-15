@@ -75,7 +75,6 @@ type Resource struct {
 
 	// Generation configuration
 	ListIDsFunc                ResourceListIDsFunc
-	ListFunc                   ResourceListFunc
 	PreferredResourceNameField string // This field will be used as the resource name instead of the ID. This is useful if the ID is not ideal for humans (ex: UUID or numeric). The field value should uniquely identify the resource.
 }
 
@@ -105,11 +104,6 @@ func NewResource(category ResourceCategory, name string, idType *ResourceID, sch
 
 func (r *Resource) WithLister(lister ResourceListIDsFunc) *Resource {
 	r.ListIDsFunc = lister
-	return r
-}
-
-func (r *Resource) WithResourceLister(listFunc ResourceListFunc) *Resource {
-	r.ListFunc = listFunc
 	return r
 }
 
