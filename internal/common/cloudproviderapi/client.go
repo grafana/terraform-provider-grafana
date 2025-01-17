@@ -214,6 +214,25 @@ type AzureCredential struct {
 
 	// ResourceTagFilters is the list of Azure resource tag filters.
 	ResourceTagFilters []TagFilter `json:"resource_tag_filters"`
+
+	// AutoDiscoveryConfiguration is the configuration for auto-discovery of Azure resources.
+	AutoDiscoveryConfiguration AutoDiscoveryConfiguration `json:"auto_discovery_configuration"`
+}
+
+type AutoDiscoveryConfiguration struct {
+	SubscriptionID             string                      `json:"subscription_id"`
+	ResourceTypeConfigurations []ResourceTypeConfiguration `json:"resource_type_configurations"`
+}
+
+type ResourceTypeConfiguration struct {
+	ResourceTypeName    string                `json:"resource_type_name"`
+	MetricConfiguration []MetricConfiguration `json:"metric_configuration"`
+}
+
+type MetricConfiguration struct {
+	Name         string   `json:"name"`
+	Dimensions   []string `json:"dimensions"`
+	Aggregations []string `json:"aggregations"`
 }
 
 type TagFilter struct {
