@@ -33,7 +33,7 @@ resource "grafana_synthetic_monitoring_check" "dns" {
   target  = "grafana.com"
   enabled = false
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
+    data.grafana_synthetic_monitoring_probes.main.probes.Ohio,
   ]
   labels = {
     foo = "bar"
@@ -110,7 +110,7 @@ resource "grafana_synthetic_monitoring_check" "http" {
   target  = "https://grafana.com"
   enabled = false
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
+    data.grafana_synthetic_monitoring_probes.main.probes.Ohio,
   ]
   labels = {
     foo = "bar"
@@ -231,7 +231,7 @@ resource "grafana_synthetic_monitoring_check" "ping" {
   target  = "grafana.com"
   enabled = false
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
+    data.grafana_synthetic_monitoring_probes.main.probes.Ohio,
   ]
   labels = {
     foo = "bar"
@@ -278,7 +278,7 @@ resource "grafana_synthetic_monitoring_check" "tcp" {
   target  = "grafana.com:80"
   enabled = false
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
+    data.grafana_synthetic_monitoring_probes.main.probes.Ohio,
   ]
   labels = {
     foo = "bar"
@@ -370,7 +370,7 @@ resource "grafana_synthetic_monitoring_check" "traceroute" {
   frequency = 120000
   timeout   = 30000
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
+    data.grafana_synthetic_monitoring_probes.main.probes.Ohio,
   ]
   labels = {
     foo = "bar"
@@ -928,7 +928,7 @@ resource "grafana_synthetic_monitoring_check" "grpc" {
   target  = "host.docker.internal:50051"
   enabled = false
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
+    data.grafana_synthetic_monitoring_probes.main.probes.Ohio,
   ]
   labels = {
     foo = "bar"
