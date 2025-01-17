@@ -611,7 +611,7 @@ resource "grafana_synthetic_monitoring_check" "no_settings" {
   frequency = 120000
   timeout   = 30000
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
+    data.grafana_synthetic_monitoring_probes.main.probes.Ohio,
   ]
   labels = {
     foo = "bar"
@@ -631,7 +631,7 @@ resource "grafana_synthetic_monitoring_check" "multiple" {
   frequency = 120000
   timeout   = 30000
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
+    data.grafana_synthetic_monitoring_probes.main.probes.Ohio,
   ]
   labels = {
     foo = "bar"
