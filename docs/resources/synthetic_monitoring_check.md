@@ -131,7 +131,7 @@ resource "grafana_synthetic_monitoring_check" "http" {
   target  = "https://grafana.org"
   enabled = false
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Bangalore,
+    data.grafana_synthetic_monitoring_probes.main.probes.Mumbai,
     data.grafana_synthetic_monitoring_probes.main.probes.Mumbai,
   ]
   labels = {
