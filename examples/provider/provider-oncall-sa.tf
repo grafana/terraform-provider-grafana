@@ -1,4 +1,5 @@
 // Step 1: Configure provider block.
+// You may need to set oncall_url too, depending on your region or if you are using Grafana OnCall OSS. You can get it in OnCall -> settings -> API URL.
 provider "grafana" {
   alias = "oncall"
   url   = "http://grafana.example.com/"
