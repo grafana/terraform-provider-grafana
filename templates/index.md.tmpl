@@ -28,12 +28,12 @@ The changelog for this provider can be found here: <https://github.com/grafana/t
 
 ### Managing Grafana OnCall
 
-{{ tffile "examples/provider/provider-oncall.tf" }}
-
-Alternatively, you can also configure the provider block by setting `url`
-to your Grafana URL and `auth` to a service account token:
-
 {{ tffile "examples/provider/provider-oncall-sa.tf" }}
+
+Alternatively, you can also configure the provider block by setting
+an specific `oncall_access_token` instead, that you can create in the web UI:
+
+{{ tffile "examples/provider/provider-oncall.tf" }}
 
 {{ .SchemaMarkdown | trimspace }}
 
