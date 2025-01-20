@@ -264,7 +264,7 @@ func (r *DashboardResource) Delete(ctx context.Context, req resource.DeleteReque
 		return
 	}
 
-	if err := r.client.Delete(ctx, data.UID.ValueString()); err != nil {
+	if err := r.client.Delete(ctx, data.UID.ValueString(), sdkresource.DeleteOptions{}); err != nil {
 		resp.Diagnostics.AddError("Failed to delete dashboard", err.Error())
 		return
 	}

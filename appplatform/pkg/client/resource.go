@@ -141,6 +141,6 @@ func (c *ResourceClient[T, L]) Patch(
 }
 
 // Delete
-func (c *ResourceClient[T, L]) Delete(ctx context.Context, id resource.Identifier) error {
-	return c.cli.Delete(ctx, id)
+func (c *ResourceClient[T, L]) Delete(ctx context.Context, id resource.Identifier, opts resource.DeleteOptions) error {
+	return c.cli.Delete(ctx, id, opts)
 }

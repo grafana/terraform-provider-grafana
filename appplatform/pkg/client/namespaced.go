@@ -71,9 +71,9 @@ func (c *NamespacedClient[T, L]) Patch(
 }
 
 // Delete
-func (c *NamespacedClient[T, L]) Delete(ctx context.Context, uid string) error {
+func (c *NamespacedClient[T, L]) Delete(ctx context.Context, uid string, opts resource.DeleteOptions) error {
 	return c.cli.Delete(ctx, resource.Identifier{
 		Namespace: c.namespace,
 		Name:      uid,
-	})
+	}, opts)
 }
