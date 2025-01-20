@@ -7,18 +7,20 @@ import (
 	"os"
 	"strings"
 
-	"github.com/grafana/grafana-foundation-sdk/go/dashboard"
-	"github.com/grafana/grafana/pkg/apimachinery/utils"
 	"github.com/grafana/terraform-provider-grafana/appplatform/pkg/client"
 	"github.com/grafana/terraform-provider-grafana/appplatform/pkg/generated/resource/dashboard/v0alpha1"
 
+	"github.com/grafana/dashboard-linter/lint"
 	"github.com/grafana/grafana-app-sdk/k8s"
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
+	"github.com/grafana/grafana-foundation-sdk/go/dashboard"
+	"github.com/grafana/grafana/pkg/apimachinery/utils"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -43,6 +45,13 @@ type DashboardModelOptions struct {
 	Overwrite types.Bool `tfsdk:"overwrite"`
 	Validate  types.Bool `tfsdk:"validate"`
 	LintRules types.List `tfsdk:"lint_rules"`
+}
+
+// DashboardOptions represents the options for applying a Grafana dashboard.
+type DashboardOptions struct {
+	Overwrite bool
+	Validate  bool
+	LintRules []string
 }
 
 // DashboardResource is a resource that manages Grafana dashboards.
@@ -80,9 +89,6 @@ func (r *DashboardResource) Schema(ctx context.Context, req resource.SchemaReque
 				PlanModifiers: []planmodifier.String{
 					&DashboardNormalizer{},
 				},
-				Validators: []validator.String{
-					&DashboardSpecValidator{},
-				},
 			},
 
 			// Optional
@@ -100,10 +106,16 @@ func (r *DashboardResource) Schema(ctx context.Context, req resource.SchemaReque
 			"uuid": schema.StringAttribute{
 				Computed:    true,
 				Description: "The globally unique identifier of a dashboard, used by the API for tracking.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"url": schema.StringAttribute{
 				Computed:    true,
 				Description: "The full URL of the dashboard.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"version": schema.StringAttribute{
 				Computed:    true,
@@ -112,6 +124,7 @@ func (r *DashboardResource) Schema(ctx context.Context, req resource.SchemaReque
 		},
 		Blocks: map[string]schema.Block{
 			"options": schema.SingleNestedBlock{
+				Description: "Options for applying the dashboard.",
 				Attributes: map[string]schema.Attribute{
 					"overwrite": schema.BoolAttribute{
 						Optional:    true,
@@ -193,12 +206,6 @@ func (r *DashboardResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	var opts DashboardModelOptions
-	if diag := ParseOptions(ctx, data.Options, &opts); diag.HasError() {
-		resp.Diagnostics.Append(diag...)
-		return
-	}
-
 	if diag := SaveDashboardState(ctx, res, &data); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
@@ -215,7 +222,7 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	var opts DashboardModelOptions
+	var opts DashboardOptions
 	if diag := ParseOptions(ctx, data.Options, &opts); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
@@ -231,7 +238,7 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 		ResourceVersion: dash.ResourceVersion,
 	}
 
-	if opts.Overwrite.ValueBool() {
+	if opts.Overwrite {
 		reqopts.ResourceVersion = ""
 	}
 
@@ -257,7 +264,7 @@ func (r *DashboardResource) Delete(ctx context.Context, req resource.DeleteReque
 		return
 	}
 
-	if err := r.client.Delete(ctx, data.UUID.ValueString()); err != nil {
+	if err := r.client.Delete(ctx, data.UID.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Failed to delete dashboard", err.Error())
 		return
 	}
@@ -288,7 +295,7 @@ func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	res, err := r.client.Get(ctx, data.UUID.ValueString())
+	res, err := r.client.Get(ctx, data.UID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create dashboard", err.Error())
 		return
@@ -302,7 +309,6 @@ func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-// TODO:
 func (r *DashboardResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
 	var data DashboardModel
 	if diag := req.Config.Get(ctx, &data); diag.HasError() {
@@ -310,32 +316,123 @@ func (r *DashboardResource) ValidateConfig(ctx context.Context, req resource.Val
 		return
 	}
 
-	var opts DashboardModelOptions
+	var opts DashboardOptions
 	if diag := ParseOptions(ctx, data.Options, &opts); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
 
-	if !opts.Validate.ValueBool() {
-		return
+	if opts.Validate {
+		if err := ValidateDashboard([]byte(data.Spec.ValueString())); err != nil {
+			resp.Diagnostics.AddError("Invalid dashboard spec", err.Error())
+			return
+		}
 	}
 
-	// // If attribute_one is not configured, return without warning.
-	// if data.AttributeOne.IsNull() || data.AttributeOne.IsUnknown() {
-	// 	return
-	// }
+	if len(opts.LintRules) > 0 {
+		results, ok, err := LintDashboard(
+			GetLintRules(opts.LintRules), []byte(data.Spec.ValueString()),
+		)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to lint dashboard", err.Error())
+			return
+		}
 
-	// // If attribute_two is not null, return without warning.
-	// if !data.AttributeTwo.IsNull() {
-	// 	return
-	// }
+		if ok {
+			return
+		}
 
-	// resp.Diagnostics.AddAttributeWarning(
-	// 	path.Root("attribute_two"),
-	// 	"Missing Attribute Configuration",
-	// 	"Expected attribute_two to be configured with attribute_one. "+
-	// 		"The resource may return unexpected results.",
-	// )
+		resp.Diagnostics.AddWarning(
+			path.Root("spec").String(), results.Warnings,
+		)
+
+		resp.Diagnostics.AddError(
+			path.Root("spec").String(), results.Errors,
+		)
+	}
+}
+
+func ValidateDashboard(bspec []byte) error {
+	var dash dashboard.Dashboard
+	return dash.UnmarshalJSONStrict(bspec)
+}
+
+var AllRules = []lint.Rule{
+	lint.NewTemplateDatasourceRule(),
+	lint.NewTemplateJobRule(),
+	lint.NewTemplateInstanceRule(),
+	lint.NewTemplateLabelPromQLRule(),
+	lint.NewTemplateOnTimeRangeReloadRule(),
+	lint.NewPanelDatasourceRule(),
+	lint.NewPanelTitleDescriptionRule(),
+	lint.NewPanelUnitsRule(),
+	lint.NewPanelNoTargetsRule(),
+	lint.NewTargetLogQLRule(),
+	lint.NewTargetLogQLAutoRule(),
+	lint.NewTargetPromQLRule(),
+	lint.NewTargetRateIntervalRule(),
+	lint.NewTargetJobRule(),
+	lint.NewTargetInstanceRule(),
+	lint.NewTargetCounterAggRule(),
+	lint.NewUneditableRule(),
+}
+
+func GetLintRules(names []string) []lint.Rule {
+	res := make([]lint.Rule, 0, len(names))
+
+	for _, name := range names {
+		for _, rule := range AllRules {
+			if rule.Name() == name {
+				res = append(res, rule)
+			}
+		}
+	}
+
+	return res
+}
+
+type LintResults struct {
+	Warnings string
+	Errors   string
+}
+
+func LintDashboard(rules []lint.Rule, spec []byte) (LintResults, bool, error) {
+	dash, err := lint.NewDashboard(spec)
+	if err != nil {
+		return LintResults{}, false, err
+	}
+
+	resSet := &lint.ResultSet{}
+	for _, r := range rules {
+		r.Lint(dash, resSet)
+	}
+
+	var (
+		warnings strings.Builder
+		errors   strings.Builder
+	)
+
+	var anyerr bool
+	for _, r := range resSet.ByRule() {
+		for _, rc := range r {
+			for _, r := range rc.Result.Results {
+				if r.Severity == lint.Error {
+					errors.WriteString(fmt.Sprintf("\t* %s\n", r.Message))
+					anyerr = true
+				}
+
+				if r.Severity == lint.Warning {
+					warnings.WriteString(fmt.Sprintf("\t* %s\n", r.Message))
+					anyerr = true
+				}
+			}
+		}
+	}
+
+	return LintResults{
+		Warnings: warnings.String(),
+		Errors:   errors.String(),
+	}, !anyerr, nil
 }
 
 type DashboardNormalizer struct{}
@@ -352,29 +449,6 @@ func (n *DashboardNormalizer) PlanModifyString(
 	ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse,
 ) {
 	tflog.Debug(ctx, "normalizing dashboard plan")
-}
-
-type DashboardSpecValidator struct{}
-
-func (v *DashboardSpecValidator) Description(context.Context) string {
-	return "validates the dashboard plan"
-}
-
-func (v *DashboardSpecValidator) MarkdownDescription(ctx context.Context) string {
-	return v.Description(ctx)
-}
-
-func (v *DashboardSpecValidator) ValidateString(
-	ctx context.Context, req validator.StringRequest, resp *validator.StringResponse,
-) {
-	var dash dashboard.Dashboard
-	if err := dash.UnmarshalJSONStrict([]byte(req.ConfigValue.String())); err != nil {
-		resp.Diagnostics.AddError(
-			"Invalid Dashboard Specification",
-			fmt.Sprintf("Failed to parse dashboard JSON: %v", err),
-		)
-		return
-	}
 }
 
 // ParseDashboard parses a dashboard model into a dashboard resource.
@@ -466,13 +540,26 @@ func SaveDashboardState(ctx context.Context, src *v0alpha1.Dashboard, dst *Dashb
 }
 
 // ParseOptions parses the options for a dashboard model from a Terraform Object type.
-func ParseOptions(ctx context.Context, src types.Object, dst *DashboardModelOptions) diag.Diagnostics {
+func ParseOptions(ctx context.Context, src types.Object, dst *DashboardOptions) diag.Diagnostics {
 	if src.IsNull() || src.IsUnknown() {
 		return nil
 	}
 
-	if diag := src.As(ctx, dst, basetypes.ObjectAsOptions{}); diag.HasError() {
+	var opts DashboardModelOptions
+	if diag := src.As(ctx, &opts, basetypes.ObjectAsOptions{}); diag.HasError() {
 		return diag
+	}
+
+	dst.Overwrite = opts.Overwrite.ValueBool()
+	dst.Validate = opts.Validate.ValueBool()
+
+	if !opts.LintRules.IsNull() {
+		lintRules := make([]string, 0, len(opts.LintRules.Elements()))
+		if diag := opts.LintRules.ElementsAs(ctx, &lintRules, false); diag.HasError() {
+			return diag
+		}
+
+		dst.LintRules = lintRules
 	}
 
 	return diag.Diagnostics{}
