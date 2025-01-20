@@ -165,11 +165,11 @@ data "grafana_synthetic_monitoring_probes" "main" {
 
 ```terraform
 // Step 1: Configure provider block.
-// Go to the Grafana OnCall in your stack and create api token in the settings tab.It will be your oncall_access_token.
-// If you are using Grafana OnCall OSS consider set oncall_url. You can get it in OnCall -> settings -> API URL.
+// You may need to set oncall_url too, depending on your region or if you are using Grafana OnCall OSS. You can get it in OnCall -> settings -> API URL.
 provider "grafana" {
-  alias               = "oncall"
-  oncall_access_token = "my_oncall_token"
+  alias = "oncall"
+  url   = "http://grafana.example.com/"
+  auth  = var.grafana_auth
 }
 
 data "grafana_oncall_user" "alex" {
@@ -201,15 +201,16 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 }
 ```
 
-Alternatively, you can also configure the provider block by setting `url`
-to your Grafana URL and `auth` to a service account token:
+Alternatively, you can also configure the provider block by setting
+an specific `oncall_access_token` instead, that you can create in the web UI:
 
 ```terraform
 // Step 1: Configure provider block.
+// Go to the Grafana OnCall in your stack and create api token in the settings tab.It will be your oncall_access_token.
+// If you are using Grafana OnCall OSS consider set oncall_url. You can get it in OnCall -> settings -> API URL.
 provider "grafana" {
-  alias = "oncall"
-  url   = "http://grafana.example.com/"
-  auth  = var.grafana_auth
+  alias               = "oncall"
+  oncall_access_token = "my_oncall_token"
 }
 
 data "grafana_oncall_user" "alex" {

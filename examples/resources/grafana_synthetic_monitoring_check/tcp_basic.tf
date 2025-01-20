@@ -5,7 +5,7 @@ resource "grafana_synthetic_monitoring_check" "tcp" {
   target  = "grafana.com:80"
   enabled = false
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
+    data.grafana_synthetic_monitoring_probes.main.probes.Ohio,
   ]
   labels = {
     foo = "bar"
