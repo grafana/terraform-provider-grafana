@@ -17,6 +17,7 @@ func TestAccDataSourceAWSAccount(t *testing.T) {
 
 	account := cloudproviderapi.AWSAccount{
 		ID:      testCfg.accountID,
+		Name:    testCfg.accountName,
 		RoleARN: testCfg.roleARN,
 		Regions: []string{"us-east-1", "us-east-2", "us-west-1"},
 	}
@@ -29,6 +30,7 @@ func TestAccDataSourceAWSAccount(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_account.test", "stack_id", testCfg.stackID),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_account.test", "resource_id", account.ID),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_account.test", "name", account.Name),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_account.test", "role_arn", account.RoleARN),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_account.test", "regions.#", strconv.Itoa(len(account.Regions))),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_aws_account.test", "regions.0", account.Regions[0]),

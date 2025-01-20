@@ -56,6 +56,11 @@ func (r datasourceAWSAccount) Schema(ctx context.Context, req datasource.SchemaR
 				Description: "The ID given by the Grafana Cloud Provider API to this AWS Account resource.",
 				Required:    true,
 			},
+			"name": schema.StringAttribute{
+				Description: "An optional human-readable name for this AWS Account resource.",
+				Optional:    true,
+				Computed:    true,
+			},
 			"role_arn": schema.StringAttribute{
 				Description: "An IAM Role ARN string to represent with this AWS Account resource.",
 				Computed:    true,
