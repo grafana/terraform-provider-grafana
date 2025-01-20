@@ -21,6 +21,7 @@ func TestAccResourceAWSAccount(t *testing.T) {
 
 	account := cloudproviderapi.AWSAccount{
 		RoleARN: testCfg.roleARN,
+		Name:    testCfg.accountName,
 		Regions: []string{"us-east-1", "us-east-2", "us-west-1"},
 	}
 	var gotAccount cloudproviderapi.AWSAccount
