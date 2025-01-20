@@ -216,7 +216,7 @@ type AzureCredential struct {
 	ResourceTagFilters []TagFilter `json:"resource_tag_filters"`
 
 	// AutoDiscoveryConfiguration is the configuration for auto-discovery of Azure resources.
-	AutoDiscoveryConfiguration AutoDiscoveryConfiguration `json:"auto_discovery_configuration"`
+	AutoDiscoveryConfiguration []AutoDiscoveryConfiguration `json:"auto_discovery_configuration"`
 }
 
 type AutoDiscoveryConfiguration struct {

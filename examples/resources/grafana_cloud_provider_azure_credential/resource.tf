@@ -14,4 +14,27 @@ resource "grafana_cloud_provider_azure_credential" "test" {
     key   = "key-2"
     value = "value-2"
   }
+
+  auto_discovery_configuration {
+    subscription_id = "my-subscription_id"
+
+    resource_type_configurations {
+      resource_type_name = "Microsoft.App/containerApps"
+
+      metric_configuration {
+        name = "TotalCoresQuotaUsed"
+      }
+    }
+
+    resource_type_configurations {
+      resource_type_name = "Microsoft.Storage/storageAccounts/tableServices"
+
+      metric_configuration {
+        name = "Availability"
+        dimensions = [ "GeoType", "ApiName" ]
+        aggregations = [ "Average" ]
+      }
+    }
+
+  }
 }
