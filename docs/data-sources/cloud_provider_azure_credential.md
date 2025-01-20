@@ -44,9 +44,9 @@ resource "grafana_cloud_provider_azure_credential" "test" {
       resource_type_name = "Microsoft.Storage/storageAccounts/tableServices"
 
       metric_configuration {
-        name = "Availability"
-        dimensions = [ "GeoType", "ApiName" ]
-        aggregations = [ "Average" ]
+        name         = "Availability"
+        dimensions   = ["GeoType", "ApiName"]
+        aggregations = ["Average"]
       }
     }
 
