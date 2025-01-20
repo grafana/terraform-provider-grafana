@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func grafanaClientResourceValidation(d *schema.ResourceData, m interface{}) error {
-	if m.(*common.Client).GrafanaAPI == nil {
+	if m.(*client.Client).GrafanaAPI == nil {
 		return fmt.Errorf("the Grafana client is required for this resource. Set the auth and url provider attributes")
 	}
 	return nil
@@ -19,7 +20,7 @@ func grafanaClientResourceValidation(d *schema.ResourceData, m interface{}) erro
 func grafanaOrgIDResourceValidation(d *schema.ResourceData, m interface{}) error {
 	orgID, ok := d.GetOk("org_id")
 	orgIDStr, orgIDOk := orgID.(string)
-	if ok && orgIDOk && orgIDStr != "" && orgIDStr != "0" && m.(*common.Client).GrafanaAPIConfig.APIKey != "" {
+	if ok && orgIDOk && orgIDStr != "" && orgIDStr != "0" && m.(*client.Client).GrafanaAPIConfig.APIKey != "" {
 		return fmt.Errorf("org_id is only supported with basic auth. API keys are already org-scoped")
 	}
 	return nil

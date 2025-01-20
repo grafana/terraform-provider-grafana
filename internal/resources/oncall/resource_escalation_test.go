@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -65,7 +65,7 @@ func TestAccOnCallEscalation_basic(t *testing.T) {
 }
 
 func testAccCheckOnCallEscalationResourceDestroy(s *terraform.State) error {
-	client := testutils.Provider.Meta().(*common.Client).OnCallClient
+	client := testutils.Provider.Meta().(*client.Client).OnCallClient
 	for _, r := range s.RootModule().Resources {
 		if r.Type != "grafana_oncall_escalation" {
 			continue
@@ -138,7 +138,7 @@ func testAccCheckOnCallEscalationResourceExists(name string) resource.TestCheckF
 			return fmt.Errorf("No Escalation ID is set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).OnCallClient
+		client := testutils.Provider.Meta().(*client.Client).OnCallClient
 
 		found, _, err := client.Escalations.GetEscalation(rs.Primary.ID, &onCallAPI.GetEscalationOptions{})
 		if err != nil {

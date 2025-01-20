@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -32,7 +32,7 @@ func TestAccOnCallOutgoingWebhook_basic(t *testing.T) {
 }
 
 func testAccCheckOnCallOutgoingWebhookResourceDestroy(s *terraform.State) error {
-	client := testutils.Provider.Meta().(*common.Client).OnCallClient
+	client := testutils.Provider.Meta().(*client.Client).OnCallClient
 	for _, r := range s.RootModule().Resources {
 		if r.Type != "grafana_oncall_outgoing_webhook" {
 			continue
@@ -75,7 +75,7 @@ func testAccCheckOnCallOutgoingWebhookResourceExists(name string) resource.TestC
 			return fmt.Errorf("No OutgoingWebhook ID is set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).OnCallClient
+		client := testutils.Provider.Meta().(*client.Client).OnCallClient
 
 		found, _, err := client.Webhooks.GetWebhook(rs.Primary.ID, &onCallAPI.GetWebhookOptions{})
 		if err != nil {

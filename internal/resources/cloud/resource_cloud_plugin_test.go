@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -70,7 +70,7 @@ func TestAccResourcePluginInstallation(t *testing.T) {
 
 func testAccCloudPluginInstallationCheckExists(stackSlug string, pluginSlug string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+		client := testutils.Provider.Meta().(*client.Client).GrafanaCloudAPI
 		_, _, err := client.InstancesAPI.GetInstancePlugin(context.Background(), stackSlug, pluginSlug).Execute()
 		if err != nil {
 			return fmt.Errorf("error getting installation: %s", err)

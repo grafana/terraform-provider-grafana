@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -62,7 +63,7 @@ func NewDataSource(category ResourceCategory, name string, schema datasource.Dat
 // ResourceListIDsFunc is a function that returns a list of resource IDs.
 // This is used to generate TF config from existing resources.
 // The data arg can be used to pass information between different listers. For example, the list of stacks will be used when listing stack plugins.
-type ResourceListIDsFunc func(ctx context.Context, client *Client, data any) ([]string, error)
+type ResourceListIDsFunc func(ctx context.Context, client *client.Client, data any) ([]string, error)
 
 // Resource represents a Terraform resource, implemented either with the SDKv2 or Terraform Plugin Framework.
 type Resource struct {

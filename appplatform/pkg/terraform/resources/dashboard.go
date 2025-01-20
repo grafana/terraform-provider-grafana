@@ -4,14 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
-	"github.com/grafana/terraform-provider-grafana/appplatform/pkg/client"
+	sdkclient "github.com/grafana/terraform-provider-grafana/appplatform/pkg/client"
 	"github.com/grafana/terraform-provider-grafana/appplatform/pkg/generated/resource/dashboard/v0alpha1"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 
 	"github.com/grafana/dashboard-linter/lint"
-	"github.com/grafana/grafana-app-sdk/k8s"
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
 	"github.com/grafana/grafana-foundation-sdk/go/dashboard"
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
@@ -24,7 +23,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"k8s.io/client-go/rest"
 )
 
 // DashboardModel represents a Grafana dashboard Terraform model.
@@ -56,7 +54,7 @@ type DashboardOptions struct {
 
 // DashboardResource is a resource that manages Grafana dashboards.
 type DashboardResource struct {
-	client *client.NamespacedClient[*v0alpha1.Dashboard, *v0alpha1.DashboardList]
+	client *sdkclient.NamespacedClient[*v0alpha1.Dashboard, *v0alpha1.DashboardList]
 }
 
 // NewDashboardResource creates a new DashboardResource.
@@ -152,28 +150,41 @@ func (r *DashboardResource) Metadata(ctx context.Context, req resource.MetadataR
 
 // Configure initializes the DashboardResource.
 func (r *DashboardResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	// TODO: provide clients from `pkg/provider/framework_provider.go`, using `req.ProviderData`.
-	tokenb, err := os.ReadFile(".token")
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to read token", err.Error())
+	// Configure is called multiple times
+	// (sometimes when ProviderData is not yet available),
+	// we only want to configure once.
+	if req.ProviderData == nil {
 		return
 	}
 
-	registry := k8s.NewClientRegistry(rest.Config{
-		Host:        "https://localhost:3000",
-		APIPath:     "/apis",
-		BearerToken: strings.TrimSpace(string(tokenb)),
-		UserAgent: fmt.Sprintf(
-			"Terraform/%s (+https://www.terraform.io) terraform-provider-grafana/%s",
-			"v1.10.1",
-			"v0alpha1.0.1+testing",
-		),
-		TLSClientConfig: rest.TLSClientConfig{
-			Insecure: true,
-		},
-	}, k8s.DefaultClientConfig())
+	// Skip if already configured.
+	if r.client != nil {
+		return
+	}
 
-	cli, err := v0alpha1.NewOrgClient(registry, 1)
+	client, ok := req.ProviderData.(*client.Client)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected resource configure type",
+			fmt.Sprintf(
+				"Expected *client.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData,
+			),
+		)
+
+		return
+	}
+
+	var (
+		cli v0alpha1.Client
+		err error
+	)
+
+	switch {
+	case client.GrafanaOrgID > 0:
+		cli, err = v0alpha1.NewOrgClient(client.GrafanaAppPlatformAPI, client.GrafanaOrgID)
+	case client.GrafanaStackID > 0:
+		cli, err = v0alpha1.NewCloudClient(client.GrafanaAppPlatformAPI, client.GrafanaStackID)
+	}
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating Dashboard API client",

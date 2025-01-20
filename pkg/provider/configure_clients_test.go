@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -97,7 +97,7 @@ func TestCreateClients(t *testing.T) {
 	testCases := []struct {
 		name     string
 		config   ProviderConfig
-		expected func(c *common.Client, err error)
+		expected func(c *client.Client, err error)
 	}{
 		{
 			name: "http with Grafana Cloud",
@@ -105,7 +105,7 @@ func TestCreateClients(t *testing.T) {
 				URL:  types.StringValue("http://myinstance.grafana.net"),
 				Auth: types.StringValue("myapikey"),
 			},
-			expected: func(c *common.Client, err error) {
+			expected: func(c *client.Client, err error) {
 				assert.EqualError(t, err, "http not supported in Grafana Cloud. Use the https scheme")
 			},
 		},
@@ -115,7 +115,7 @@ func TestCreateClients(t *testing.T) {
 				URL:  types.StringValue("https://myinstance.grafana.net"),
 				Auth: types.StringValue("myapikey"),
 			},
-			expected: func(c *common.Client, err error) {
+			expected: func(c *client.Client, err error) {
 				assert.Nil(t, err)
 				assert.NotNil(t, c.GrafanaAPI)
 				assert.NotNil(t, c.MLAPI)
@@ -129,7 +129,7 @@ func TestCreateClients(t *testing.T) {
 				URL:  types.StringValue("http://localhost:3000"),
 				Auth: types.StringValue("admin:admin"),
 			},
-			expected: func(c *common.Client, err error) {
+			expected: func(c *client.Client, err error) {
 				assert.Nil(t, err)
 				assert.NotNil(t, c.GrafanaAPI)
 			},
@@ -141,7 +141,7 @@ func TestCreateClients(t *testing.T) {
 				Auth:      types.StringValue(""),
 				OncallURL: types.StringValue("http://oncall.url"),
 			},
-			expected: func(c *common.Client, err error) {
+			expected: func(c *client.Client, err error) {
 				assert.Nil(t, err)
 				assert.NotNil(t, c.GrafanaAPI)
 			},
@@ -152,7 +152,7 @@ func TestCreateClients(t *testing.T) {
 				OncallAccessToken: types.StringValue("oncall-token"),
 				OncallURL:         types.StringValue("http://oncall.url"),
 			},
-			expected: func(c *common.Client, err error) {
+			expected: func(c *client.Client, err error) {
 				assert.Nil(t, err)
 				assert.NotNil(t, c.OnCallClient)
 				assert.Nil(t, c.OnCallClient.GrafanaURL())
@@ -165,7 +165,7 @@ func TestCreateClients(t *testing.T) {
 				Auth:      types.StringValue("service-account-token"),
 				OncallURL: types.StringValue("http://oncall.url"),
 			},
-			expected: func(c *common.Client, err error) {
+			expected: func(c *client.Client, err error) {
 				assert.Nil(t, err)
 				assert.NotNil(t, c.OnCallClient)
 				assert.Equal(t, "http://localhost:3000", c.OnCallClient.GrafanaURL().String())

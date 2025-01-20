@@ -6,6 +6,7 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -59,7 +60,7 @@ func datasourceFolders() *common.DataSource {
 }
 
 func readFolders(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	metaClient := meta.(*common.Client)
+	metaClient := meta.(*client.Client)
 	client, orgID := OAPIClientFromNewOrgResource(meta, d)
 
 	var folders []*models.Hit

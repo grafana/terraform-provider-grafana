@@ -11,10 +11,12 @@ import (
 	"github.com/grafana/terraform-provider-grafana/appplatform/pkg/terraform/resources"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 type ProviderConfig struct {
@@ -24,6 +26,9 @@ type ProviderConfig struct {
 	Retries          types.Int64  `tfsdk:"retries"`
 	RetryStatusCodes types.Set    `tfsdk:"retry_status_codes"`
 	RetryWait        types.Int64  `tfsdk:"retry_wait"`
+
+	OrgID   types.Int64 `tfsdk:"org_id"`
+	StackID types.Int64 `tfsdk:"stack_id"`
 
 	TLSKey             types.String `tfsdk:"tls_key"`
 	TLSCert            types.String `tfsdk:"tls_cert"`
@@ -69,6 +74,19 @@ func (c *ProviderConfig) SetDefaults() error {
 	c.CloudProviderURL = envDefaultFuncString(c.CloudProviderURL, "GRAFANA_CLOUD_PROVIDER_URL")
 	c.ConnectionsAPIAccessToken = envDefaultFuncString(c.ConnectionsAPIAccessToken, "GRAFANA_CONNECTIONS_API_ACCESS_TOKEN")
 	c.ConnectionsAPIURL = envDefaultFuncString(c.ConnectionsAPIURL, "GRAFANA_CONNECTIONS_API_URL", "https://connections-api.grafana.net")
+
+	if v, err := envDefaultFuncInt64(c.OrgID, "GRAFANA_ORG_ID", 1); err != nil {
+		return fmt.Errorf("failed to parse GRAFANA_ORG_ID: %w", err)
+	} else {
+		c.OrgID = v
+	}
+
+	if v, err := envDefaultFuncInt64(c.StackID, "GRAFANA_STACK_ID", 0); err != nil {
+		return fmt.Errorf("failed to parse GRAFANA_STACK_ID: %w", err)
+	} else {
+		c.StackID = v
+	}
+
 	if c.StoreDashboardSha256, err = envDefaultFuncBool(c.StoreDashboardSha256, "GRAFANA_STORE_DASHBOARD_SHA256", false); err != nil {
 		return fmt.Errorf("failed to parse GRAFANA_STORE_DASHBOARD_SHA256: %w", err)
 	}
@@ -192,7 +210,6 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 				Optional:            true,
 				MarkdownDescription: "Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable. The correct value for each service region is cited in the [Synthetic Monitoring documentation](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/set-up/set-up-private-probes/#probe-api-server-url). Note the `sm_url` value is optional, but it must correspond with the value specified as the `region_slug` in the `grafana_cloud_stack` resource. Also note that when a Terraform configuration contains multiple provider instances managing SM resources associated with the same Grafana stack, specifying an explicit `sm_url` set to the same value for each provider ensures all providers interact with the same SM API.",
 			},
-
 			"oncall_access_token": schema.StringAttribute{
 				Optional:            true,
 				Sensitive:           true,
@@ -222,6 +239,14 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 				Optional:            true,
 				MarkdownDescription: "A Grafana Connections API address. May alternatively be set via the `GRAFANA_CONNECTIONS_API_URL` environment variable.",
 			},
+			"org_id": schema.Int64Attribute{
+				Optional:            true,
+				MarkdownDescription: "The Grafana org ID, if you are using a self-hosted OSS or enterprise Grafana instance. May alternatively be set via the `GRAFANA_ORG_ID` environment variable.",
+			},
+			"stack_id": schema.Int64Attribute{
+				Optional:            true,
+				MarkdownDescription: "The Grafana stack ID, if you are using a Grafana Cloud stack. May alternatively be set via the `GRAFANA_STACK_ID` environment variable.",
+			},
 		},
 	}
 }
@@ -241,11 +266,29 @@ func (p *frameworkProvider) Configure(ctx context.Context, req provider.Configur
 	cfg.Version = types.StringValue(p.version)
 	cfg.UserAgent = types.StringValue(fmt.Sprintf("Terraform/%s (+https://www.terraform.io) terraform-provider-grafana/%s", req.TerraformVersion, p.version))
 
+	if cfg.OrgID.ValueInt64() > 0 && cfg.StackID.ValueInt64() > 0 {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("org_id"),
+			"org_id and stack_id cannot be set at the same time",
+			"Make sure you only set org_id or stack_id, not both. If you are using a self-hosted OSS or enterprise Grafana instance, set org_id.",
+		)
+
+		resp.Diagnostics.AddAttributeError(
+			path.Root("stack_id"),
+			"stack_id and org_id cannot be set at the same time",
+			"Make sure you only set org_id or stack_id, not both. If you are using a Grafana Cloud stack, set stack_id.",
+		)
+
+		return
+	}
+
 	clients, err := CreateClients(cfg)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to create clients", err.Error())
 		return
 	}
+
+	tflog.Debug(ctx, fmt.Sprintf("configured clients: %+v", clients))
 
 	resp.ResourceData = clients
 	resp.DataSourceData = clients

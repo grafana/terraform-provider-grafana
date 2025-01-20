@@ -6,6 +6,7 @@ import (
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -25,12 +26,12 @@ func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resourc
 		return
 	}
 
-	client, ok := req.ProviderData.(*common.Client)
+	client, ok := req.ProviderData.(*client.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *common.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *client.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -49,12 +50,12 @@ func (r *basePluginFrameworkDataSource) Configure(ctx context.Context, req datas
 		return
 	}
 
-	client, ok := req.ProviderData.(*common.Client)
+	client, ok := req.ProviderData.(*client.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *common.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *client.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -67,7 +68,7 @@ type crudWithClientFunc func(ctx context.Context, d *schema.ResourceData, client
 
 func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.ReadContextFunc | schema.DeleteContextFunc](f crudWithClientFunc) T {
 	return func(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-		client := meta.(*common.Client).OnCallClient
+		client := meta.(*client.Client).OnCallClient
 		if client == nil {
 			return diag.Errorf("the OnCall client is required for this resource. Set the oncall_access_token provider attribute")
 		}

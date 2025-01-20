@@ -13,8 +13,8 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/access_control"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -281,7 +281,7 @@ func TestAccGenerate_RestrictedPermissions(t *testing.T) {
 
 	// Create SA with no permissions
 	randString := acctest.RandString(10)
-	client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.Clone().WithOrgID(0)
+	client := testutils.Provider.Meta().(*client.Client).GrafanaAPI.Clone().WithOrgID(0)
 	sa, err := client.ServiceAccounts.CreateServiceAccount(
 		service_accounts.NewCreateServiceAccountParams().WithBody(&models.CreateServiceAccountForm{
 			Name: "test-no-permissions-" + randString,

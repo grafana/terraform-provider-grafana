@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,7 +31,7 @@ func makeTestConfig(t require.TestingT) testConfig {
 	require.NotEmpty(t, stackID, "GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID must be set")
 
 	// Make sure the account exists and matches the role ARN we expect for testing
-	client := testutils.Provider.Meta().(*common.Client).CloudProviderAPI
+	client := testutils.Provider.Meta().(*client.Client).CloudProviderAPI
 	gotAccount, err := client.GetAWSAccount(context.Background(), stackID, accountID)
 	require.NoError(t, err)
 	require.Equal(t, roleARN, gotAccount.RoleARN)

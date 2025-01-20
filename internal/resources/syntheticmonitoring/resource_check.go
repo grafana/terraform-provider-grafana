@@ -16,6 +16,7 @@ import (
 	sm "github.com/grafana/synthetic-monitoring-agent/pkg/pb/synthetic_monitoring"
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 )
 
 const (
@@ -822,7 +823,7 @@ multiple checks for a single endpoint to check different capabilities.
 		WithPreferredResourceNameField("job")
 }
 
-func listChecks(ctx context.Context, client *common.Client, data any) ([]string, error) {
+func listChecks(ctx context.Context, client *client.Client, data any) ([]string, error) {
 	smClient := client.SMAPI
 	if smClient == nil {
 		return nil, fmt.Errorf("client not configured for SM API")

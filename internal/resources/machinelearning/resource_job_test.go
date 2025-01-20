@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -96,7 +96,7 @@ func testAccMLJobCheckExists(rn string, job *mlapi.Job) resource.TestCheckFunc {
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).MLAPI
+		client := testutils.Provider.Meta().(*client.Client).MLAPI
 		gotJob, err := client.Job(context.Background(), rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting job: %s", err)
@@ -115,7 +115,7 @@ func testAccMLJobCheckDestroy(job *mlapi.Job) resource.TestCheckFunc {
 		if job.ID == "" {
 			return fmt.Errorf("checking deletion of empty id")
 		}
-		client := testutils.Provider.Meta().(*common.Client).MLAPI
+		client := testutils.Provider.Meta().(*client.Client).MLAPI
 		_, err := client.Job(context.Background(), job.ID)
 		if err == nil {
 			return fmt.Errorf("job still exists on server")
@@ -128,7 +128,7 @@ func testAccDatasourceCheckDestroy() resource.TestCheckFunc {
 	// Check the `machinelearningDatasource` has been destroyed
 	return func(s *terraform.State) error {
 		var orgID int64 = 1
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
+		client := testutils.Provider.Meta().(*client.Client).GrafanaAPI.WithOrgID(orgID)
 		ds, err := client.Datasources.GetDataSourceByName("prometheus-ds-test")
 		if err == nil {
 			return fmt.Errorf("Datasource `%s` still exists after destroy", ds.Payload.Name)

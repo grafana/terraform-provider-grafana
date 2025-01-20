@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate/postprocessing"
 	"github.com/grafana/terraform-provider-grafana/v3/pkg/generate/utils"
 	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
@@ -178,7 +179,7 @@ func Generate(ctx context.Context, cfg *Config) GenerationResult {
 	return returnResult
 }
 
-func generateImportBlocks(ctx context.Context, client *common.Client, listerData any, resources []*common.Resource, cfg *Config, provider string) GenerationResult {
+func generateImportBlocks(ctx context.Context, client *client.Client, listerData any, resources []*common.Resource, cfg *Config, provider string) GenerationResult {
 	generatedFilename := func(suffix string) string {
 		if provider == "" {
 			return filepath.Join(cfg.OutputDir, suffix)

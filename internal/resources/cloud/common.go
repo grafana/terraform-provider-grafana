@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -25,7 +25,7 @@ type crudWithClientFunc func(ctx context.Context, d *schema.ResourceData, client
 
 func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.ReadContextFunc | schema.DeleteContextFunc](f crudWithClientFunc) T {
 	return func(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-		client := meta.(*common.Client).GrafanaCloudAPI
+		client := meta.(*client.Client).GrafanaCloudAPI
 		if client == nil {
 			return diag.Errorf("the Cloud API client is required for this resource. Set the cloud_access_policy_token provider attribute")
 		}
@@ -60,12 +60,12 @@ func (r *basePluginFrameworkDataSource) Configure(ctx context.Context, req datas
 		return
 	}
 
-	client, ok := req.ProviderData.(*common.Client)
+	client, ok := req.ProviderData.(*client.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *common.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *client.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return
@@ -93,12 +93,12 @@ func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resourc
 		return
 	}
 
-	client, ok := req.ProviderData.(*common.Client)
+	client, ok := req.ProviderData.(*client.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *common.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *client.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 
 		return

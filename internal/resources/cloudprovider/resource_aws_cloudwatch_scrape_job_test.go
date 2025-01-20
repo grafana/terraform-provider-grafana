@@ -9,6 +9,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -270,7 +271,7 @@ func checkAWSCloudWatchScrapeJobResourceExists(rn string, stackID string, job *c
 			return fmt.Errorf("jobName not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).CloudProviderAPI
+		client := testutils.Provider.Meta().(*client.Client).CloudProviderAPI
 		gotJob, err := client.GetAWSCloudWatchScrapeJob(context.Background(), stackID, jobName)
 		if err != nil {
 			return fmt.Errorf("error getting account: %s", err)
@@ -288,7 +289,7 @@ func checkAWSCloudWatchScrapeJobResourceDestroy(stackID string, job *cloudprovid
 			return fmt.Errorf("checking deletion of empty job name")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).CloudProviderAPI
+		client := testutils.Provider.Meta().(*client.Client).CloudProviderAPI
 		_, err := client.GetAWSCloudWatchScrapeJob(context.Background(), stackID, job.Name)
 		if err == nil {
 			return fmt.Errorf("job still exists")

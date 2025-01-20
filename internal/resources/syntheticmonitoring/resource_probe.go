@@ -14,6 +14,7 @@ import (
 	sm "github.com/grafana/synthetic-monitoring-agent/pkg/pb/synthetic_monitoring"
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 )
 
 var resourceProbeID = common.NewResourceID(common.IntIDField("id"), common.OptionalStringIDField("authToken"))
@@ -126,7 +127,7 @@ Grafana Synthetic Monitoring Agent.
 		WithPreferredResourceNameField("name")
 }
 
-func listProbes(ctx context.Context, client *common.Client, data any) ([]string, error) {
+func listProbes(ctx context.Context, client *client.Client, data any) ([]string, error) {
 	smClient := client.SMAPI
 	if smClient == nil {
 		return nil, fmt.Errorf("client not configured for SM API")

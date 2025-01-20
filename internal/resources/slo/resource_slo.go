@@ -8,6 +8,7 @@ import (
 	"github.com/grafana/slo-openapi-client/go/slo"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -273,7 +274,7 @@ var keyvalueSchema = &schema.Resource{
 	},
 }
 
-func listSlos(ctx context.Context, client *common.Client, data any) ([]string, error) {
+func listSlos(ctx context.Context, client *client.Client, data any) ([]string, error) {
 	sloClient := client.SLOClient
 	if sloClient == nil {
 		return nil, fmt.Errorf("client not configured for SLO API")

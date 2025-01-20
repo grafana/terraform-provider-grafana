@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -74,7 +74,7 @@ func testAccMLOutlierCheckExists(rn string, outlier *mlapi.OutlierDetector) reso
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).MLAPI
+		client := testutils.Provider.Meta().(*client.Client).MLAPI
 		gotOutlier, err := client.OutlierDetector(context.Background(), rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting outlier: %s", err)
@@ -93,7 +93,7 @@ func testAccMLOutlierCheckDestroy(outlier *mlapi.OutlierDetector) resource.TestC
 		if outlier.ID == "" {
 			return fmt.Errorf("checking deletion of empty id")
 		}
-		client := testutils.Provider.Meta().(*common.Client).MLAPI
+		client := testutils.Provider.Meta().(*client.Client).MLAPI
 		_, err := client.OutlierDetector(context.Background(), outlier.ID)
 		if err == nil {
 			return fmt.Errorf("outlier still exists on server")

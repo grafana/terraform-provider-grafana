@@ -10,6 +10,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -73,7 +74,7 @@ func checkAWSAccountResourceExists(rn string, stackID string, account *cloudprov
 			return fmt.Errorf("account id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).CloudProviderAPI
+		client := testutils.Provider.Meta().(*client.Client).CloudProviderAPI
 		gotAccount, err := client.GetAWSAccount(context.Background(), stackID, accountID)
 		if err != nil {
 			return fmt.Errorf("error getting account: %s", err)
@@ -91,7 +92,7 @@ func checkAWSAccountResourceDestroy(stackID string, account *cloudproviderapi.AW
 			return fmt.Errorf("checking deletion of empty account id")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).CloudProviderAPI
+		client := testutils.Provider.Meta().(*client.Client).CloudProviderAPI
 		_, err := client.GetAWSAccount(context.Background(), stackID, account.ID)
 		if err == nil {
 			return fmt.Errorf("account still exists")

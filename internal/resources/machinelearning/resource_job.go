@@ -9,6 +9,7 @@ import (
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 )
 
 var resourceJobID = common.NewResourceID(common.StringIDField("id"))
@@ -124,7 +125,7 @@ func listJobs(ctx context.Context, client *mlapi.Client) ([]string, error) {
 }
 
 func resourceJobCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).MLAPI
+	c := meta.(*client.Client).MLAPI
 	job, err := makeMLJob(d, meta)
 	if err != nil {
 		return diag.FromErr(err)
@@ -138,7 +139,7 @@ func resourceJobCreate(ctx context.Context, d *schema.ResourceData, meta interfa
 }
 
 func resourceJobRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).MLAPI
+	c := meta.(*client.Client).MLAPI
 	job, err := c.Job(ctx, d.Id())
 	if err, shouldReturn := common.CheckReadError("job", d, err); shouldReturn {
 		return err
@@ -164,7 +165,7 @@ func resourceJobRead(ctx context.Context, d *schema.ResourceData, meta interface
 }
 
 func resourceJobUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).MLAPI
+	c := meta.(*client.Client).MLAPI
 	job, err := makeMLJob(d, meta)
 	if err != nil {
 		return diag.FromErr(err)
@@ -177,7 +178,7 @@ func resourceJobUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 }
 
 func resourceJobDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).MLAPI
+	c := meta.(*client.Client).MLAPI
 	err := c.DeleteJob(ctx, d.Id())
 	return diag.FromErr(err)
 }
@@ -188,7 +189,7 @@ func makeMLJob(d *schema.ResourceData, meta interface{}) (mlapi.Job, error) {
 		Name:              d.Get("name").(string),
 		Metric:            d.Get("metric").(string),
 		Description:       d.Get("description").(string),
-		GrafanaURL:        meta.(*common.Client).GrafanaAPIURL,
+		GrafanaURL:        meta.(*client.Client).GrafanaAPIURL,
 		DatasourceUID:     d.Get("datasource_uid").(string),
 		DatasourceType:    d.Get("datasource_type").(string),
 		QueryParams:       d.Get("query_params").(map[string]interface{}),

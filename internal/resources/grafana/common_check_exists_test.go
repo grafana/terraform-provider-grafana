@@ -15,6 +15,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -287,7 +288,7 @@ func (h *checkExistsHelper[T]) exists(rn string, v *T) resource.TestCheckFunc {
 		orgID, idStr := grafana.SplitOrgResourceID(rs.Primary.ID)
 
 		// If the org ID is set, check that the resource doesn't exist in the default org
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(1)
+		client := testutils.Provider.Meta().(*client.Client).GrafanaAPI.WithOrgID(1)
 		if orgID > 1 {
 			_, err := h.getResourceFunc(client, idStr)
 			if err == nil {
@@ -322,7 +323,7 @@ func (h *checkExistsHelper[T]) destroyed(v *T, org *models.OrgDetailsDTO) resour
 			orgID = org.ID
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
+		client := testutils.Provider.Meta().(*client.Client).GrafanaAPI.WithOrgID(orgID)
 		id := h.getIDFunc(v)
 		_, err := h.getResourceFunc(client, id)
 		if err == nil {

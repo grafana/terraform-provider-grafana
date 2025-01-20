@@ -16,3 +16,19 @@ import (
 // ex. `github.com/grafana/grafana/v11 v11.4.0` would be correct,
 // but `github.com/grafana/grafana v11.4.0` is not.
 type Spec = common.Unstructured
+
+// Submodule
+// github.com/grafana/grafana/apis
+// github.com/grafana/grafana/apis/dashboards/v0alpha1
+// github.com/grafana/grafana/apis/dashboards/v1alpha1
+// github.com/grafana/grafana/apis/dashboards/v2alpha1
+// github.com/grafana/grafana/apis/playlists/v0alpha1
+// github.com/grafana/grafana/apis/playlists/v1
+
+// 1. Monorepo option
+// You depend on Grafana APIs from Grafana v11.4.0
+// github.com/grafana/grafana/apis => v11.4.0
+
+// 2. Multi-module option
+// github.com/grafana/grafana/apps/dashboards => v2.11.0
+// github.com/grafana/grafana/apps/playlist => v1.14.0

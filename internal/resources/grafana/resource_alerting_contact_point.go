@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 )
 
 var (
@@ -55,10 +56,10 @@ Manages Grafana Alerting contact points.
 
 This resource requires Grafana 9.1.0 or later.
 `,
-		CreateContext: common.WithAlertingMutex[schema.CreateContextFunc](updateContactPoint),
+		CreateContext: client.WithAlertingMutex[schema.CreateContextFunc](updateContactPoint),
 		ReadContext:   readContactPoint,
-		UpdateContext: common.WithAlertingMutex[schema.UpdateContextFunc](updateContactPoint),
-		DeleteContext: common.WithAlertingMutex[schema.DeleteContextFunc](deleteContactPoint),
+		UpdateContext: client.WithAlertingMutex[schema.UpdateContextFunc](updateContactPoint),
+		DeleteContext: client.WithAlertingMutex[schema.DeleteContextFunc](deleteContactPoint),
 
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
