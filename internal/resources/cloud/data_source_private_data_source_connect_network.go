@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"slices"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -81,7 +82,7 @@ type PDCNetworksDataSourceModel struct {
 	ID                        types.String                       `tfsdk:"id"`
 	NameFilter                types.String                       `tfsdk:"name_filter"`
 	RegionFilter              types.String                       `tfsdk:"region_filter"`
-	PrivateDataSourceNetworks []PDCNetworksDataSourcePolicyModel `tfsdk:"private_data_source_networks"`
+	PrivateDataSourceNetworks []PDCNetworksDataSourcePolicyModel `tfsdk:"private_data_source_connect_networks"`
 }
 
 func (r *PDCNetworksDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -112,6 +113,9 @@ func (r *PDCNetworksDataSource) Read(ctx context.Context, req datasource.ReadReq
 		}
 		for _, policy := range apiResp.Items {
 			if data.NameFilter.ValueString() != "" && data.NameFilter.ValueString() != policy.Name {
+				continue
+			}
+			if !slices.Contains(policy.Scopes, "pdc-signing:write") {
 				continue
 			}
 			data.PrivateDataSourceNetworks = append(data.PrivateDataSourceNetworks, PDCNetworksDataSourcePolicyModel{
