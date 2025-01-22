@@ -11,6 +11,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+var _ datasource.DataSource = &PDCNetworksDataSource{}
+var _ datasource.DataSourceWithConfigure = &PDCNetworksDataSource{}
+
 var dataSourcePrivateDataSourceConnectNetworksName = "grafana_cloud_private_data_source_connect_networks"
 
 func datasourcePrivateDataSourceConnectNetworks() *common.DataSource {
