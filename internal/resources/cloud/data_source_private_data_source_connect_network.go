@@ -86,11 +86,6 @@ type PDCNetworksDataSourceModel struct {
 }
 
 func (r *PDCNetworksDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	if r.client == nil {
-		resp.Diagnostics = diag.Diagnostics{diag.NewErrorDiagnostic("Missing Cloud API client", "The Cloud API client is required for this resource. Set the cloud_access_policy_token provider attribute")}
-		return
-	}
-
 	// Read Terraform state data into the model
 	var data PDCNetworksDataSourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
