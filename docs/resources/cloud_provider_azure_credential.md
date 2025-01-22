@@ -29,6 +29,29 @@ resource "grafana_cloud_provider_azure_credential" "test" {
     key   = "key-2"
     value = "value-2"
   }
+
+  auto_discovery_configuration {
+    subscription_id = "my-subscription_id"
+
+    resource_type_configurations {
+      resource_type_name = "Microsoft.App/containerApps"
+
+      metric_configuration {
+        name = "TotalCoresQuotaUsed"
+      }
+    }
+
+    resource_type_configurations {
+      resource_type_name = "Microsoft.Storage/storageAccounts/tableServices"
+
+      metric_configuration {
+        name         = "Availability"
+        dimensions   = ["GeoType", "ApiName"]
+        aggregations = ["Average"]
+      }
+    }
+
+  }
 }
 ```
 
@@ -45,12 +68,41 @@ resource "grafana_cloud_provider_azure_credential" "test" {
 
 ### Optional
 
+- `auto_discovery_configuration` (Block List) The list of auto discovery configurations. (see [below for nested schema](#nestedblock--auto_discovery_configuration))
 - `resource_discovery_tag_filter` (Block List) The list of tag filters to apply to resources. (see [below for nested schema](#nestedblock--resource_discovery_tag_filter))
 
 ### Read-Only
 
 - `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ resource_id }}".
 - `resource_id` (String) The ID given by the Grafana Cloud Provider API to this AWS Account resource.
+
+<a id="nestedblock--auto_discovery_configuration"></a>
+### Nested Schema for `auto_discovery_configuration`
+
+Required:
+
+- `resource_type_configurations` (List of Object) The list of resource type configurations. (see [below for nested schema](#nestedatt--auto_discovery_configuration--resource_type_configurations))
+- `subscription_id` (String) The subscription ID of the Azure account.
+
+<a id="nestedatt--auto_discovery_configuration--resource_type_configurations"></a>
+### Nested Schema for `auto_discovery_configuration.resource_type_configurations`
+
+Required:
+
+- `metric_configuration` (List of Object) (see [below for nested schema](#nestedobjatt--auto_discovery_configuration--resource_type_configurations--metric_configuration))
+- `resource_type_name` (String)
+
+<a id="nestedobjatt--auto_discovery_configuration--resource_type_configurations--metric_configuration"></a>
+### Nested Schema for `auto_discovery_configuration.resource_type_configurations.metric_configuration`
+
+Required:
+
+- `aggregations` (List of String)
+- `dimensions` (List of String)
+- `name` (String)
+
+
+
 
 <a id="nestedblock--resource_discovery_tag_filter"></a>
 ### Nested Schema for `resource_discovery_tag_filter`
