@@ -11,6 +11,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+var _ datasource.DataSource = &AccessPoliciesDataSource{}
+var _ datasource.DataSourceWithConfigure = &AccessPoliciesDataSource{}
+
 var dataSourceAccessPoliciesName = "grafana_cloud_access_policies"
 
 func datasourceAccessPolicies() *common.DataSource {
