@@ -35,6 +35,7 @@ func TestAccDataSourceStack_Basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "prometheus_url"),
 					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "prometheus_user_id"),
 					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "alertmanager_user_id"),
+					resource.TestCheckResourceAttrSet("data.grafana_cloud_stack.test", "cluster_slug"),
 				),
 			},
 		},
