@@ -108,8 +108,8 @@ func awsAccountResourceData(stackID string, account cloudproviderapi.AWSAccount)
 resource "grafana_cloud_provider_aws_account" "test" {
 	stack_id = "%[1]s"
 	role_arn = "%[2]s"
+	name = "%[4]s"
 	regions = [%[3]s]
-	name = [%[4]s]
 }
 `,
 		stackID,
