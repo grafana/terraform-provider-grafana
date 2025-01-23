@@ -58,7 +58,6 @@ func (r datasourceAWSAccount) Schema(ctx context.Context, req datasource.SchemaR
 			},
 			"name": schema.StringAttribute{
 				Description: "An optional human-readable name for this AWS Account resource.",
-				Optional:    true,
 				Computed:    true,
 			},
 			"role_arn": schema.StringAttribute{
@@ -98,6 +97,11 @@ func (r datasourceAWSAccount) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 	diags = resp.State.SetAttribute(ctx, path.Root("role_arn"), account.RoleARN)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	diags = resp.State.SetAttribute(ctx, path.Root("name"), account.Name)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
