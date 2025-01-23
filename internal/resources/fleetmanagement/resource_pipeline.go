@@ -64,6 +64,19 @@ func (r *pipelineResource) Metadata(ctx context.Context, req resource.MetadataRe
 
 func (r *pipelineResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: `
+Manages Grafana Fleet Management pipelines.
+
+* [Official documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/)
+* [API documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/pipeline-api/)
+
+**Note:** Fleet Management is currently in [public preview](https://grafana.com/docs/release-life-cycle/#public-preview). Grafana Labs offers limited support, and breaking changes might occur prior to the feature being made generally available.
+
+Required access policy scopes:
+
+* fleet-management:read
+* fleet-management:write
+`,
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
 				Description: "Name of the pipeline which is the unique identifier for the pipeline",

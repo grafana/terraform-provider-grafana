@@ -64,6 +64,19 @@ func (r *collectorResource) Metadata(ctx context.Context, req resource.MetadataR
 
 func (r *collectorResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: `
+Manages Grafana Fleet Management collectors.
+
+* [Official documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/)
+* [API documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/collector-api/)
+
+**Note:** Fleet Management is currently in [public preview](https://grafana.com/docs/release-life-cycle/#public-preview). Grafana Labs offers limited support, and breaking changes might occur prior to the feature being made generally available.
+
+Required access policy scopes:
+
+* fleet-management:read
+* fleet-management:write
+`,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "ID of the collector",
