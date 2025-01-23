@@ -117,7 +117,7 @@ This resource requires Grafana 9.1.0 or later.
 						},
 						"condition": {
 							Type:        schema.TypeString,
-							Required:    true,
+							Optional:    true,
 							Description: "The `ref_id` of the query node in the `data` field to use as the alert condition.",
 						},
 						"data": {
@@ -383,6 +383,11 @@ func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta inte
 				return retry.NonRetryableError(err)
 			}
 
+			// Run variant-specific validation that can't be captured by the schema
+			if err := checkFields(ruleToApply); err != nil {
+				return retry.NonRetryableError(fmt.Errorf("rule with name %q contains incompatible fields: %w", *ruleToApply.Title, err))
+			}
+
 			// Check if a rule with the same name already exists within the same rule group
 			for _, r := range rules {
 				if *r.Title == *ruleToApply.Title {
@@ -604,6 +609,30 @@ func unpackRuleData(raw interface{}) ([]*models.AlertQuery, error) {
 	return result, nil
 }
 
+func checkFields(rule *models.ProvisionedAlertRule) error {
+	if rule.Record != nil {
+		incompatFieldMsgFmt := `"record" and "%s" cannot be set together`
+		if rule.For != nil {
+			return fmt.Errorf(incompatFieldMsgFmt, "for")
+		}
+		if rule.NoDataState != nil {
+			return fmt.Errorf(incompatFieldMsgFmt, "no_data_state")
+		}
+		if rule.ExecErrState != nil {
+			return fmt.Errorf(incompatFieldMsgFmt, "exec_err_state")
+		}
+		if rule.Condition != nil {
+			return fmt.Errorf(incompatFieldMsgFmt, "condition")
+		}
+	} else {
+		// condition is required if the rule is not a recording rule
+		if rule.Condition == nil {
+			return fmt.Errorf(`"condition" is required`)
+		}
+	}
+	return nil
+}
+
 // normalizeModelJSON is the StateFunc for the `model`. It removes well-known default
 // values from the model json, so that users do not see perma-diffs when not specifying
 // the values explicitly in their Terraform.
@@ -765,4 +794,8 @@ func unpackRecord(p interface{}) *models.Record {
 		res.From = common.Ref(v.(string))
 	}
 	return res
+}
+
+func isValidRecordRule(rule *models.ProvisionedAlertRule) {
+
 }
