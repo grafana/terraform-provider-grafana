@@ -624,11 +624,11 @@ func checkFields(rule *models.ProvisionedAlertRule) error {
 		if rule.Condition != nil {
 			return fmt.Errorf(incompatFieldMsgFmt, "condition")
 		}
-	} else {
-		// condition is required if the rule is not a recording rule
-		if rule.Condition == nil {
-			return fmt.Errorf(`"condition" is required`)
-		}
+	}
+
+	// condition is required if the rule is not a recording rule
+	if rule.Condition == nil {
+		return fmt.Errorf(`"condition" is required`)
 	}
 	return nil
 }
