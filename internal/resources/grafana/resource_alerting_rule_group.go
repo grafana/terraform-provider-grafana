@@ -795,7 +795,3 @@ func unpackRecord(p interface{}) *models.Record {
 	}
 	return res
 }
-
-func isValidRecordRule(rule *models.ProvisionedAlertRule) {
-
-}
