@@ -59,6 +59,9 @@ type AWSAccount struct {
 
 	// Regions is the list of AWS regions in use for the AWS Account.
 	Regions []string `json:"regions"`
+
+	// Name is an optional user-defined name for the AWS account.
+	Name string `json:"name"`
 }
 
 func (c *Client) CreateAWSAccount(ctx context.Context, stackID string, accountData AWSAccount) (AWSAccount, error) {

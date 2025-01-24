@@ -13,9 +13,10 @@ import (
 )
 
 type testConfig struct {
-	stackID   string
-	accountID string
-	roleARN   string
+	stackID     string
+	accountID   string
+	accountName string
+	roleARN     string
 }
 
 func makeTestConfig(t require.TestingT) testConfig {
@@ -36,9 +37,10 @@ func makeTestConfig(t require.TestingT) testConfig {
 	require.Equal(t, roleARN, gotAccount.RoleARN)
 
 	return testConfig{
-		stackID:   stackID,
-		accountID: accountID,
-		roleARN:   roleARN,
+		stackID:     stackID,
+		accountID:   accountID,
+		accountName: gotAccount.Name,
+		roleARN:     roleARN,
 	}
 }
 
