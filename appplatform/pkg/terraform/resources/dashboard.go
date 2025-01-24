@@ -6,346 +6,197 @@ import (
 	"fmt"
 	"strings"
 
-	sdkclient "github.com/grafana/terraform-provider-grafana/appplatform/pkg/client"
-	"github.com/grafana/terraform-provider-grafana/appplatform/pkg/generated/resource/dashboard/v0alpha1"
-	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
-
 	"github.com/grafana/dashboard-linter/lint"
-	sdkresource "github.com/grafana/grafana-app-sdk/resource"
 	"github.com/grafana/grafana-foundation-sdk/go/dashboard"
-	"github.com/grafana/grafana/pkg/apimachinery/utils"
+	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
+
+	"github.com/grafana/terraform-provider-grafana/appplatform/pkg/generated/resource/dashboard/v0alpha1"
+	"github.com/grafana/terraform-provider-grafana/appplatform/pkg/terraform"
 )
 
-// DashboardModel represents a Grafana dashboard Terraform model.
-type DashboardModel struct {
-	UUID      types.String `tfsdk:"uuid"`
-	UID       types.String `tfsdk:"uid"`
-	Title     types.String `tfsdk:"title"`
-	FolderUID types.String `tfsdk:"folder_uid"`
-	URL       types.String `tfsdk:"url"`
-	Version   types.String `tfsdk:"version"`
-	Spec      types.String `tfsdk:"spec"`
-	Tags      types.List   `tfsdk:"tags"`
-	Options   types.Object `tfsdk:"options"`
+// DashboardSpecModel is a model for the dashboard spec.
+type DashboardSpecModel struct {
+	JSON  jsontypes.Normalized `tfsdk:"json"`
+	Title types.String         `tfsdk:"title"`
+	Tags  types.List           `tfsdk:"tags"`
 }
 
-// DashboardModelOptions represents the options for a Grafana dashboard Terraform model.
-type DashboardModelOptions struct {
-	Overwrite types.Bool `tfsdk:"overwrite"`
-	Validate  types.Bool `tfsdk:"validate"`
-	LintRules types.List `tfsdk:"lint_rules"`
-}
-
-// DashboardOptions represents the options for applying a Grafana dashboard.
-type DashboardOptions struct {
-	Overwrite bool
-	Validate  bool
-	LintRules []string
-}
-
-// DashboardResource is a resource that manages Grafana dashboards.
-type DashboardResource struct {
-	client *sdkclient.NamespacedClient[*v0alpha1.Dashboard, *v0alpha1.DashboardList]
-}
-
-// NewDashboardResource creates a new DashboardResource.
-func NewDashboardResource() resource.Resource {
-	return &DashboardResource{}
-}
-
-// Schema returns the schema for the DashboardResource.
-func (r *DashboardResource) Schema(ctx context.Context, req resource.SchemaRequest, res *resource.SchemaResponse) {
-	res.Schema = schema.Schema{
-		MarkdownDescription: `
+// Dashboard creates a new Grafana Dashboard resource.
+func Dashboard() resource.Resource {
+	return terraform.NewResource(terraform.ResourceConfig[*v0alpha1.Dashboard, *v0alpha1.DashboardList, v0alpha1.Spec]{
+		Schema: terraform.ResourceSpecSchema{
+			Description: "Manages Grafana dashboards.",
+			MarkdownDescription: `
 	Manages Grafana dashboards.
 
 	* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
 	* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/)
 	`,
-		Attributes: map[string]schema.Attribute{
-			// Required
-			"uid": schema.StringAttribute{
-				Required:    true,
-				Description: "The unique identifier of a dashboard, used to construct its URL. The uid allows having consistent URLs for accessing dashboards and when syncing dashboards between multiple Grafana installs.",
-			},
-			"title": schema.StringAttribute{
-				Required:    true,
-				Description: "The name of the dashboard, visible in the UI.",
-			},
-			"spec": schema.StringAttribute{
-				Required:    true,
-				Description: "The complete dashboard JSON.",
-				PlanModifiers: []planmodifier.String{
-					&DashboardNormalizer{},
-				},
-			},
-
-			// Optional
-			"folder_uid": schema.StringAttribute{
-				Optional:    true,
-				Description: "The UID of the folder to save the dashboard in.",
-			},
-			"tags": schema.ListAttribute{
-				Optional:    true,
-				ElementType: types.StringType,
-				Description: "A list of tags to attach to the dashboard. Tags can be used to filter dashboards in the Grafana UI.",
-			},
-
-			// Computed
-			"uuid": schema.StringAttribute{
-				Computed:    true,
-				Description: "The globally unique identifier of a dashboard, used by the API for tracking.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"url": schema.StringAttribute{
-				Computed:    true,
-				Description: "The full URL of the dashboard.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"version": schema.StringAttribute{
-				Computed:    true,
-				Description: "Whenever you save a version of your dashboard, a copy of that version is saved so that previous versions of your dashboard are not lost.",
-			},
-		},
-		Blocks: map[string]schema.Block{
-			"options": schema.SingleNestedBlock{
-				Description: "Options for applying the dashboard.",
-				Attributes: map[string]schema.Attribute{
-					"overwrite": schema.BoolAttribute{
-						Optional:    true,
-						Description: "Set to true if you want to overwrite existing dashboard with newer version, same dashboard title in folder or same dashboard uid.",
+			SpecAttributes: map[string]schema.Attribute{
+				"json": schema.StringAttribute{
+					Required:    true,
+					Description: "The JSON representation of the dashboard spec.",
+					CustomType:  jsontypes.NormalizedType{},
+					Validators: []validator.String{
+						&DashboardJSONValidator{},
 					},
-					"validate": schema.BoolAttribute{
-						Optional:    true,
-						Description: "Set to true if you want to perform client-side validation before submitting the dashboard to Grafana server.",
-					},
-					"lint_rules": schema.ListAttribute{
-						Optional:    true,
-						ElementType: types.StringType,
-						Description: "A list of lint rules to apply to the dashboard. Lint rules are used to validate the dashboard configuration.",
-					},
+				},
+				"title": schema.StringAttribute{
+					Optional:    true,
+					Description: "The title of the dashboard. If not set, the title will be derived from the JSON spec.",
+				},
+				"tags": schema.ListAttribute{
+					Optional:    true,
+					Description: "The tags of the dashboard. If not set, the tags will be derived from the JSON spec.",
+					ElementType: types.StringType,
 				},
 			},
 		},
-	}
+		Kind:        v0alpha1.Kind(),
+		NewClientFn: v0alpha1.NewClient,
+		SpecParser: func(ctx context.Context, spec types.Object, dst *v0alpha1.Dashboard) diag.Diagnostics {
+			var data DashboardSpecModel
+			if diag := spec.As(ctx, &data, basetypes.ObjectAsOptions{
+				UnhandledNullAsEmpty:    true,
+				UnhandledUnknownAsEmpty: true,
+			}); diag.HasError() {
+				return diag
+			}
+
+			var res v0alpha1.Spec
+			if diag := data.JSON.Unmarshal(&res); diag.HasError() {
+				return diag
+			}
+
+			if !data.Title.IsNull() && !data.Title.IsUnknown() {
+				res.Object["title"] = data.Title.ValueString()
+			}
+
+			if tags, ok := getTagsFromModel(data); ok {
+				res.Object["tags"] = tags
+			}
+
+			delete(res.Object, "version")
+
+			if err := dst.SetSpec(res); err != nil {
+				return diag.Diagnostics{
+					diag.NewErrorDiagnostic("failed to set spec", err.Error()),
+				}
+			}
+
+			return diag.Diagnostics{}
+		},
+		SpecSaver: func(ctx context.Context, obj *v0alpha1.Dashboard, dst *terraform.ResourceModel) diag.Diagnostics {
+			// HACK: for v0 we need to clean a few fields from the spec,
+			// which are not supposed to be set by the user.
+			delete(obj.Spec.Object, "version")
+
+			json, err := json.Marshal(obj.Spec.Object)
+			if err != nil {
+				return diag.Diagnostics{
+					diag.NewErrorDiagnostic("failed to marshal dashboard spec", err.Error()),
+				}
+			}
+
+			var data DashboardSpecModel
+			if diag := dst.Spec.As(ctx, &data, basetypes.ObjectAsOptions{
+				UnhandledNullAsEmpty:    true,
+				UnhandledUnknownAsEmpty: true,
+			}); diag.HasError() {
+				return diag
+			}
+			data.JSON = jsontypes.NewNormalizedValue(string(json))
+
+			// Only copy title from JSON if it is also set in Terraform.
+			if !data.Title.IsNull() && !data.Title.IsUnknown() {
+				tval := obj.Spec.Object["title"]
+				title, ok := tval.(string)
+				if !ok {
+					return diag.Diagnostics{
+						diag.NewErrorDiagnostic("failed to get title", "title is not a string"),
+					}
+				}
+				data.Title = types.StringValue(title)
+			} else {
+				data.Title = types.StringNull()
+			}
+
+			// Only copy tags from JSON if they are also set in Terraform.
+			if !data.Tags.IsNull() && !data.Tags.IsUnknown() {
+				tags, diags := types.ListValueFrom(ctx, types.StringType, getTagsFromResource(obj))
+				if diags.HasError() {
+					return diags
+				}
+				data.Tags = tags
+			} else {
+				data.Tags = types.ListNull(types.StringType)
+			}
+
+			spec, diags := types.ObjectValueFrom(ctx, map[string]attr.Type{
+				"json":  types.StringType,
+				"title": types.StringType,
+				"tags":  types.ListType{ElemType: types.StringType},
+			}, &data)
+			if diags.HasError() {
+				return diags
+			}
+			dst.Spec = spec
+
+			return diag.Diagnostics{}
+		},
+	})
 }
 
-// Metadata returns the metadata for the DashboardResource.
-func (r *DashboardResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = "grafana_dashboards_dashboard"
+// DashboardJSONValidator is a validator for the dashboard spec.
+type DashboardJSONValidator struct{}
+
+// Description returns the description of the validator.
+func (v *DashboardJSONValidator) Description(ctx context.Context) string {
+	return "validates the dashboard spec"
 }
 
-// Configure initializes the DashboardResource.
-func (r *DashboardResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	// Configure is called multiple times
-	// (sometimes when ProviderData is not yet available),
-	// we only want to configure once.
-	if req.ProviderData == nil {
-		return
-	}
-
-	// Skip if already configured.
-	if r.client != nil {
-		return
-	}
-
-	client, ok := req.ProviderData.(*client.Client)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected resource configure type",
-			fmt.Sprintf(
-				"Expected *client.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData,
-			),
-		)
-
-		return
-	}
-
-	var (
-		cli v0alpha1.Client
-		err error
-	)
-
-	switch {
-	case client.GrafanaOrgID > 0:
-		cli, err = v0alpha1.NewOrgClient(client.GrafanaAppPlatformAPI, client.GrafanaOrgID)
-	case client.GrafanaStackID > 0:
-		cli, err = v0alpha1.NewCloudClient(client.GrafanaAppPlatformAPI, client.GrafanaStackID)
-	}
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error creating Dashboard API client",
-			err.Error(),
-		)
-
-		return
-	}
-
-	r.client = cli
+// MarkdownDescription returns the markdown description of the validator.
+func (v *DashboardJSONValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
 }
 
-// Create creates a new dashboard.
-func (r *DashboardResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data DashboardModel
-	if diag := req.Plan.Get(ctx, &data); diag.HasError() {
-		resp.Diagnostics.Append(diag...)
-		return
-	}
-
-	var dash v0alpha1.Dashboard
-	if diag := ParseDashboard(ctx, data, &dash); diag.HasError() {
-		resp.Diagnostics.Append(diag...)
-		return
-	}
-
-	res, err := r.client.Create(ctx, &dash, sdkresource.CreateOptions{})
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to create dashboard", err.Error())
-		return
-	}
-
-	if diag := SaveDashboardState(ctx, res, &data); diag.HasError() {
-		resp.Diagnostics.Append(diag...)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-}
-
-// Update updates the dashboard.
-func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data DashboardModel
-	if diag := req.Plan.Get(ctx, &data); diag.HasError() {
-		resp.Diagnostics.Append(diag...)
-		return
-	}
-
-	var opts DashboardOptions
-	if diag := ParseOptions(ctx, data.Options, &opts); diag.HasError() {
-		resp.Diagnostics.Append(diag...)
-		return
-	}
-
-	var dash v0alpha1.Dashboard
-	if diag := ParseDashboard(ctx, data, &dash); diag.HasError() {
-		resp.Diagnostics.Append(diag...)
-		return
-	}
-
-	reqopts := sdkresource.UpdateOptions{
-		ResourceVersion: dash.ResourceVersion,
-	}
-
-	if opts.Overwrite {
-		reqopts.ResourceVersion = ""
-	}
-
-	res, err := r.client.Update(ctx, &dash, reqopts)
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to create dashboard", err.Error())
-		return
-	}
-
-	if diag := SaveDashboardState(ctx, res, &data); diag.HasError() {
-		resp.Diagnostics.Append(diag...)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-}
-
-// Delete deletes the dashboard.
-func (r *DashboardResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data DashboardModel
-	if diag := req.State.Get(ctx, &data); diag.HasError() {
-		resp.Diagnostics.Append(diag...)
-		return
-	}
-
-	if err := r.client.Delete(ctx, data.UID.ValueString(), sdkresource.DeleteOptions{}); err != nil {
-		resp.Diagnostics.AddError("Failed to delete dashboard", err.Error())
-		return
-	}
-}
-
-// ImportState imports the state of the dashboard.
-func (r *DashboardResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	res, err := r.client.Get(ctx, req.ID)
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to get dashboard", err.Error())
-		return
-	}
-
-	var data DashboardModel
-	if diag := SaveDashboardState(ctx, res, &data); diag.HasError() {
-		resp.Diagnostics.Append(diag...)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-}
-
-// Read reads the dashboard.
-func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data DashboardModel
-	if diag := req.State.Get(ctx, &data); diag.HasError() {
-		resp.Diagnostics.Append(diag...)
-		return
-	}
-
-	res, err := r.client.Get(ctx, data.UID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to create dashboard", err.Error())
-		return
-	}
-
-	if diag := SaveDashboardState(ctx, res, &data); diag.HasError() {
-		resp.Diagnostics.Append(diag...)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-}
-
-func (r *DashboardResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
-	var data DashboardModel
+// ValidateString validates the dashboard spec.
+func (v *DashboardJSONValidator) ValidateString(
+	ctx context.Context, req validator.StringRequest, resp *validator.StringResponse,
+) {
+	var data terraform.ResourceModel
 	if diag := req.Config.Get(ctx, &data); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
 
-	var opts DashboardOptions
-	if diag := ParseOptions(ctx, data.Options, &opts); diag.HasError() {
+	var opts terraform.ResourceOptions
+	if diag := terraform.ParseResourceOptionsFromModel(ctx, data, &opts); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
 
+	bytes := []byte(req.ConfigValue.ValueString())
+
 	if opts.Validate {
-		if err := ValidateDashboard([]byte(data.Spec.ValueString())); err != nil {
-			resp.Diagnostics.AddError("Invalid dashboard spec", err.Error())
+		if err := ValidateDashboard(bytes); err != nil {
+			resp.Diagnostics.AddError("failed to validate dashboard", err.Error())
 			return
 		}
 	}
 
 	if len(opts.LintRules) > 0 {
-		results, ok, err := LintDashboard(
-			GetLintRules(opts.LintRules), []byte(data.Spec.ValueString()),
-		)
+		results, ok, err := LintDashboard(GetLintRulesForNames(opts.LintRules), bytes)
 		if err != nil {
-			resp.Diagnostics.AddError("Failed to lint dashboard", err.Error())
+			resp.Diagnostics.AddError("failed to lint dashboard", err.Error())
 			return
 		}
 
@@ -353,22 +204,32 @@ func (r *DashboardResource) ValidateConfig(ctx context.Context, req resource.Val
 			return
 		}
 
-		resp.Diagnostics.AddWarning(
-			path.Root("spec").String(), results.Warnings,
-		)
+		if results.Warnings != "" {
+			resp.Diagnostics.AddAttributeWarning(
+				path.Root("spec").AtName("json"),
+				"dashboard linter returned warnings",
+				results.Warnings,
+			)
+		}
 
-		resp.Diagnostics.AddError(
-			path.Root("spec").String(), results.Errors,
-		)
+		if results.Errors != "" {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("spec").AtName("json"),
+				"dashboard linter returned errors",
+				results.Errors,
+			)
+		}
 	}
 }
 
+// ValidateDashboard validates the dashboard spec.
 func ValidateDashboard(bspec []byte) error {
 	var dash dashboard.Dashboard
 	return dash.UnmarshalJSONStrict(bspec)
 }
 
-var AllRules = []lint.Rule{
+// DashboardLintRules is a list of all the lint rules.
+var DashboardLintRules = []lint.Rule{
 	lint.NewTemplateDatasourceRule(),
 	lint.NewTemplateJobRule(),
 	lint.NewTemplateInstanceRule(),
@@ -388,11 +249,12 @@ var AllRules = []lint.Rule{
 	lint.NewUneditableRule(),
 }
 
-func GetLintRules(names []string) []lint.Rule {
+// GetLintRulesForNames returns a list of lint rules for the given rule names.
+func GetLintRulesForNames(names []string) []lint.Rule {
 	res := make([]lint.Rule, 0, len(names))
 
 	for _, name := range names {
-		for _, rule := range AllRules {
+		for _, rule := range DashboardLintRules {
 			if rule.Name() == name {
 				res = append(res, rule)
 			}
@@ -402,11 +264,13 @@ func GetLintRules(names []string) []lint.Rule {
 	return res
 }
 
+// LintResults is the result of linting a dashboard.
 type LintResults struct {
 	Warnings string
 	Errors   string
 }
 
+// LintDashboard lints a dashboard.
 func LintDashboard(rules []lint.Rule, spec []byte) (LintResults, bool, error) {
 	dash, err := lint.NewDashboard(spec)
 	if err != nil {
@@ -446,132 +310,42 @@ func LintDashboard(rules []lint.Rule, spec []byte) (LintResults, bool, error) {
 	}, !anyerr, nil
 }
 
-type DashboardNormalizer struct{}
-
-func (n *DashboardNormalizer) Description(context.Context) string {
-	return "normalizes the dashboard plan"
-}
-
-func (n *DashboardNormalizer) MarkdownDescription(ctx context.Context) string {
-	return n.Description(ctx)
-}
-
-func (n *DashboardNormalizer) PlanModifyString(
-	ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse,
-) {
-	tflog.Debug(ctx, "normalizing dashboard plan")
-}
-
-// ParseDashboard parses a dashboard model into a dashboard resource.
-func ParseDashboard(ctx context.Context, src DashboardModel, dst *v0alpha1.Dashboard) diag.Diagnostics {
-	tflog.Debug(ctx, "parsing dashboard from model to resource")
-
-	res := make(diag.Diagnostics, 0)
-
-	meta, err := utils.MetaAccessor(dst)
-	if err != nil {
-		res.AddError("Failed to get request dashboard metadata", err.Error())
-		return res
-	}
-
-	// Set required attributes.
-	meta.SetName(src.UID.ValueString())
-
-	// Normally a resource would be constructed from the data model,
-	// but for the dashboard we expect the spec to be provided as a stringified JSON.
-	if err := json.Unmarshal([]byte(src.Spec.ValueString()), &dst.Spec.Object); err != nil {
-		res.AddError("Failed to parse dashboard spec", err.Error())
-		return res
-	}
-
-	if src.Title.ValueString() != "" {
-		dst.Spec.Object["title"] = src.Title.ValueString()
-	}
-
-	// Set optional overrides.
-	if fid := src.FolderUID.ValueString(); fid != "" {
-		meta.SetFolder(fid)
-	}
-
-	// Add extra tags, if set.
-	if len(src.Tags.Elements()) > 0 {
-		tags := make([]types.String, 0, len(src.Tags.Elements()))
-
-		if diag := src.Tags.ElementsAs(ctx, &tags, false); diag.HasError() {
-			return diag
-		}
-
-		// HACK: because the tags are not a known field in the dashboard spec,
-		// we need to manually wrangle them here.
-		dashtags := getTags(dst)
-		for _, tag := range tags {
-			dashtags = append(dashtags, tag.ValueString())
-		}
-
-		dst.Spec.Object["tags"] = dashtags
-	}
-
-	return res
-}
-
-func getTags(src *v0alpha1.Dashboard) []string {
+func getTagsFromResource(src *v0alpha1.Dashboard) []string {
 	tags, ok := src.Spec.Object["tags"]
 	if !ok {
-		return []string{}
-	}
-
-	taglist, ok := tags.([]string)
-	if !ok {
-		return []string{}
-	}
-
-	if taglist == nil {
-		return []string{}
-	}
-
-	return taglist
-}
-
-// SaveDashboardState saves the state of a dashboard resource into a dashboard model.
-func SaveDashboardState(ctx context.Context, src *v0alpha1.Dashboard, dst *DashboardModel) diag.Diagnostics {
-	res := make(diag.Diagnostics, 0)
-
-	meta, err := utils.MetaAccessor(src)
-	if err != nil {
-		res.AddError("Failed to get response dashboard metadata", err.Error())
-		return res
-	}
-
-	dst.UUID = types.StringValue(string(meta.GetUID()))
-	dst.Version = types.StringValue(meta.GetResourceVersion())
-	// TODO: this is a placeholder, we need to construct the URL from the Grafana API.
-	dst.URL = types.StringValue(meta.GetSelfLink())
-
-	return res
-}
-
-// ParseOptions parses the options for a dashboard model from a Terraform Object type.
-func ParseOptions(ctx context.Context, src types.Object, dst *DashboardOptions) diag.Diagnostics {
-	if src.IsNull() || src.IsUnknown() {
 		return nil
 	}
 
-	var opts DashboardModelOptions
-	if diag := src.As(ctx, &opts, basetypes.ObjectAsOptions{}); diag.HasError() {
-		return diag
+	taglist, ok := tags.([]any)
+	if !ok {
+		return nil
 	}
 
-	dst.Overwrite = opts.Overwrite.ValueBool()
-	dst.Validate = opts.Validate.ValueBool()
+	if taglist == nil {
+		return nil
+	}
 
-	if !opts.LintRules.IsNull() {
-		lintRules := make([]string, 0, len(opts.LintRules.Elements()))
-		if diag := opts.LintRules.ElementsAs(ctx, &lintRules, false); diag.HasError() {
-			return diag
+	res := make([]string, 0, len(taglist))
+	for _, tag := range taglist {
+		if tag, ok := tag.(string); ok {
+			res = append(res, tag)
 		}
-
-		dst.LintRules = lintRules
 	}
 
-	return diag.Diagnostics{}
+	return res
+}
+
+func getTagsFromModel(data DashboardSpecModel) ([]string, bool) {
+	if data.Tags.IsNull() || data.Tags.IsUnknown() {
+		return nil, false
+	}
+
+	tags := make([]string, 0, len(data.Tags.Elements()))
+	for _, tag := range data.Tags.Elements() {
+		if tag, ok := tag.(types.String); ok {
+			tags = append(tags, tag.ValueString())
+		}
+	}
+
+	return tags, true
 }

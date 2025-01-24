@@ -45,7 +45,12 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-require github.com/grafana/terraform-provider-grafana/appplatform v0.0.1
+require (
+	github.com/grafana/grafana-app-sdk v0.30.0
+	github.com/grafana/terraform-provider-grafana/appplatform v0.0.1
+	github.com/hashicorp/terraform-plugin-log v0.9.0
+	k8s.io/client-go v0.32.1
+)
 
 require (
 	dario.cat/mergo v1.0.1 // indirect
@@ -117,7 +122,6 @@ require (
 	github.com/grafana/dashboard-linter v0.0.0-20241224134444-1765d94aec4a // indirect
 	github.com/grafana/dskit v0.0.0-20241216174023-0450f2ba7c3d // indirect
 	github.com/grafana/gomemcache v0.0.0-20241016125027-0a5bcc5aef40 // indirect
-	github.com/grafana/grafana-app-sdk v0.30.0 // indirect
 	github.com/grafana/grafana-app-sdk/logging v0.29.0 // indirect
 	github.com/grafana/grafana-foundation-sdk/go v0.0.0-20250115121642-61aff4f10074 // indirect
 	github.com/grafana/grafana-plugin-sdk-go v0.235.0 // indirect
@@ -147,7 +151,7 @@ require (
 	github.com/hashicorp/logutils v1.0.0 // indirect
 	github.com/hashicorp/memberlist v0.5.1 // indirect
 	github.com/hashicorp/serf v0.10.1 // indirect
-	github.com/hashicorp/terraform-plugin-log v0.9.0 // indirect
+	github.com/hashicorp/terraform-plugin-framework-jsontypes v0.2.0 // indirect
 	github.com/hashicorp/terraform-registry-address v0.2.3 // indirect
 	github.com/hashicorp/terraform-svchost v0.1.1 // indirect
 	github.com/hashicorp/yamux v0.1.1 // indirect
@@ -261,7 +265,6 @@ require (
 	k8s.io/api v0.32.1 // indirect
 	k8s.io/apiextensions-apiserver v0.32.0 // indirect
 	k8s.io/apimachinery v0.32.1 // indirect
-	k8s.io/client-go v0.32.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f // indirect
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738 // indirect

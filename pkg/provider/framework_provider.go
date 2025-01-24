@@ -303,7 +303,7 @@ func (p *frameworkProvider) DataSources(_ context.Context) []func() datasource.D
 func (p *frameworkProvider) Resources(_ context.Context) []func() resource.Resource {
 	return append(
 		pluginFrameworkResources(),
-		resources.NewDashboardResource,
+		resources.Dashboard,
 	)
 }
 
