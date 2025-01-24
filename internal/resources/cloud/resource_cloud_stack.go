@@ -83,6 +83,7 @@ Required access policy scopes:
 					return oldValue == newValue || newValue == "" // Ignore default region
 				},
 			},
+			"cluster_slug": common.ComputedStringWithDescription("Slug of the cluster where this stack resides."),
 			"url": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -369,6 +370,7 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	d.Set("url", stack.Url)
 	d.Set("status", stack.Status)
 	d.Set("region_slug", stack.RegionSlug)
+	d.Set("cluster_slug", stack.ClusterSlug)
 	d.Set("description", stack.Description)
 	d.Set("labels", stack.Labels)
 

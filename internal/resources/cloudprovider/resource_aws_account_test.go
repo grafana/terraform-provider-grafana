@@ -21,6 +21,7 @@ func TestAccResourceAWSAccount(t *testing.T) {
 
 	account := cloudproviderapi.AWSAccount{
 		RoleARN: testCfg.roleARN,
+		Name:    testCfg.accountName,
 		Regions: []string{"us-east-1", "us-east-2", "us-west-1"},
 	}
 	var gotAccount cloudproviderapi.AWSAccount
@@ -34,6 +35,7 @@ func TestAccResourceAWSAccount(t *testing.T) {
 					checkAWSAccountResourceExists("grafana_cloud_provider_aws_account.test", testCfg.stackID, &gotAccount),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_account.test", "stack_id", testCfg.stackID),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_account.test", "role_arn", account.RoleARN),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_account.test", "name", account.Name),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_account.test", "regions.#", strconv.Itoa(len(account.Regions))),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_account.test", "regions.0", account.Regions[0]),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_account.test", "regions.1", account.Regions[1]),
@@ -106,11 +108,13 @@ func awsAccountResourceData(stackID string, account cloudproviderapi.AWSAccount)
 resource "grafana_cloud_provider_aws_account" "test" {
 	stack_id = "%[1]s"
 	role_arn = "%[2]s"
+	name = "%[4]s"
 	regions = [%[3]s]
 }
 `,
 		stackID,
 		account.RoleARN,
 		regionsString(account.Regions),
+		account.Name,
 	)
 }
