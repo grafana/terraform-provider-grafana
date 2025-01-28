@@ -1,6 +1,7 @@
 package fleetmanagement
 
 import (
+	"context"
 	"testing"
 
 	pipelinev1 "github.com/grafana/fleet-management-api/api/gen/proto/go/pipeline/v1"
@@ -31,18 +32,20 @@ func TestPipelineMessageToModel(t *testing.T) {
 	expectedModel := &pipelineModel{
 		Name:     types.StringValue(name),
 		Contents: NewAlloyConfigValue(contents),
-		Matchers: types.ListValueMust(
-			types.StringType,
+		Matchers: NewGenericListValueMust[PrometheusMatcherValue](
+			context.Background(),
 			[]attr.Value{
-				types.StringValue(matcher1),
-				types.StringValue(matcher2),
+				NewPrometheusMatcherValue(matcher1),
+				NewPrometheusMatcherValue(matcher2),
 			},
 		),
 		Enabled: types.BoolPointerValue(&enabled),
 		ID:      types.StringPointerValue(&id),
 	}
 
-	actualModel := pipelineMessageToModel(msg)
+	ctx := context.Background()
+	actualModel, diags := pipelineMessageToModel(ctx, msg)
+	assert.False(t, diags.HasError())
 	assert.Equal(t, expectedModel, actualModel)
 }
 
@@ -54,48 +57,119 @@ func TestPipelineModelToMessage(t *testing.T) {
 	enabled := true
 	id := "123"
 
-	t.Run("successfully converts model to message", func(t *testing.T) {
-		model := &pipelineModel{
-			Name:     types.StringValue(name),
-			Contents: NewAlloyConfigValue(contents),
-			Matchers: types.ListValueMust(
-				types.StringType,
+	model := &pipelineModel{
+		Name:     types.StringValue(name),
+		Contents: NewAlloyConfigValue(contents),
+		Matchers: NewGenericListValueMust[PrometheusMatcherValue](
+			context.Background(),
+			[]attr.Value{
+				NewPrometheusMatcherValue(matcher1),
+				NewPrometheusMatcherValue(matcher2),
+			},
+		),
+		Enabled: types.BoolPointerValue(&enabled),
+		ID:      types.StringPointerValue(&id),
+	}
+
+	expectedMsg := &pipelinev1.Pipeline{
+		Name:     name,
+		Contents: contents,
+		Matchers: []string{matcher1, matcher2},
+		Enabled:  &enabled,
+		Id:       &id,
+	}
+
+	ctx := context.Background()
+	actualMsg, diags := pipelineModelToMessage(ctx, model)
+	assert.False(t, diags.HasError())
+	assert.Equal(t, expectedMsg, actualMsg)
+}
+
+func TestStringSliceToMatcherValues(t *testing.T) {
+	tests := []struct {
+		name        string
+		nativeSlice []string
+		expected    GenericListValue[PrometheusMatcherValue]
+	}{
+		{
+			"nil slice",
+			nil,
+			NewGenericListValueMust[PrometheusMatcherValue](context.Background(), []attr.Value{}),
+		},
+		{
+			"empty slice",
+			[]string{},
+			NewGenericListValueMust[PrometheusMatcherValue](context.Background(), []attr.Value{}),
+		},
+		{
+			"non-empty slice",
+			[]string{
+				"collector.os=linux",
+				"collector.os=darwin",
+			},
+			NewGenericListValueMust[PrometheusMatcherValue](
+				context.Background(),
 				[]attr.Value{
-					types.StringValue(matcher1),
-					types.StringValue(matcher2),
+					NewPrometheusMatcherValue("collector.os=linux"),
+					NewPrometheusMatcherValue("collector.os=darwin"),
 				},
 			),
-			Enabled: types.BoolPointerValue(&enabled),
-			ID:      types.StringPointerValue(&id),
-		}
+		},
+	}
 
-		expectedMsg := &pipelinev1.Pipeline{
-			Name:     name,
-			Contents: contents,
-			Matchers: []string{matcher1, matcher2},
-			Enabled:  &enabled,
-			Id:       &id,
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			actual, diags := stringSliceToMatcherValues(ctx, tt.nativeSlice)
+			assert.False(t, diags.HasError())
+			assert.Equal(t, tt.expected, actual)
+		})
+	}
+}
 
-		actualMsg, err := pipelineModelToMessage(model)
-		assert.NoError(t, err)
-		assert.Equal(t, expectedMsg, actualMsg)
-	})
-
-	t.Run("error when converting model to message (invalid list type)", func(t *testing.T) {
-		model := &pipelineModel{
-			Name:     types.StringValue(name),
-			Contents: NewAlloyConfigValue(contents),
-			Matchers: types.ListValueMust(
-				types.BoolType,
-				[]attr.Value{types.BoolValue(true)},
+func TestMatcherValuesToStringSlice(t *testing.T) {
+	tests := []struct {
+		name        string
+		genericList GenericListValue[PrometheusMatcherValue]
+		expected    []string
+	}{
+		{
+			"null list",
+			NewGenericListValueNull[PrometheusMatcherValue](context.Background()),
+			[]string{},
+		},
+		{
+			"unknown list",
+			NewGenericListValueUnknown[PrometheusMatcherValue](context.Background()),
+			[]string{},
+		},
+		{
+			"empty list",
+			NewGenericListValueMust[PrometheusMatcherValue](context.Background(), []attr.Value{}),
+			[]string{},
+		},
+		{
+			"non-empty list",
+			NewGenericListValueMust[PrometheusMatcherValue](
+				context.Background(),
+				[]attr.Value{
+					NewPrometheusMatcherValue("collector.os=linux"),
+					NewPrometheusMatcherValue("collector.os=darwin"),
+				},
 			),
-			Enabled: types.BoolPointerValue(&enabled),
-			ID:      types.StringPointerValue(&id),
-		}
+			[]string{
+				"collector.os=linux",
+				"collector.os=darwin",
+			},
+		},
+	}
 
-		actualMsg, err := pipelineModelToMessage(model)
-		assert.Error(t, err)
-		assert.Nil(t, actualMsg)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			actual, diags := matcherValuesToStringSlice(ctx, tt.genericList)
+			assert.False(t, diags.HasError())
+			assert.Equal(t, tt.expected, actual)
+		})
+	}
 }

@@ -112,8 +112,13 @@ func (r *collectorResource) ImportState(ctx context.Context, req resource.Import
 		return
 	}
 
-	state := collectorMessageToModel(getResp.Msg)
-	diags := resp.State.Set(ctx, state)
+	state, diags := collectorMessageToModel(ctx, getResp.Msg)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -128,16 +133,16 @@ func (r *collectorResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	collector, err := collectorModelToMessage(data)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid input", err.Error())
+	collector, diags := collectorModelToMessage(ctx, data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	createReq := &collectorv1.CreateCollectorRequest{
 		Collector: collector,
 	}
-	_, err = r.client.CreateCollector(ctx, connect.NewRequest(createReq))
+	_, err := r.client.CreateCollector(ctx, connect.NewRequest(createReq))
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create collector", err.Error())
 		return
@@ -152,7 +157,12 @@ func (r *collectorResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	state := collectorMessageToModel(getResp.Msg)
+	state, diags := collectorMessageToModel(ctx, getResp.Msg)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -177,7 +187,12 @@ func (r *collectorResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	state := collectorMessageToModel(getResp.Msg)
+	state, diags := collectorMessageToModel(ctx, getResp.Msg)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
@@ -190,16 +205,16 @@ func (r *collectorResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	collector, err := collectorModelToMessage(data)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid input", err.Error())
+	collector, diags := collectorModelToMessage(ctx, data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	updateReq := &collectorv1.UpdateCollectorRequest{
 		Collector: collector,
 	}
-	_, err = r.client.UpdateCollector(ctx, connect.NewRequest(updateReq))
+	_, err := r.client.UpdateCollector(ctx, connect.NewRequest(updateReq))
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update collector", err.Error())
 		return
@@ -214,7 +229,12 @@ func (r *collectorResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	state := collectorMessageToModel(getResp.Msg)
+	state, diags := collectorMessageToModel(ctx, getResp.Msg)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {

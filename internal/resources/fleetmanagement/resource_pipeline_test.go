@@ -35,10 +35,21 @@ resource "grafana_fleet_management_pipeline" "test" {
 }
 `
 
-	pipelineResourceSemanticallyEqualConfig = `
+	pipelineResourceSemanticallyEqualContentsConfig = `
 resource "grafana_fleet_management_pipeline" "test" {
 	name     = "%s"
 	contents = "prometheus.exporter.self \"alloy\" { }\n"
+}
+`
+
+	pipelineResourceSemanticallyEqualMatchersConfig = `
+resource "grafana_fleet_management_pipeline" "test" {
+	name     = "%s"
+	contents = "prometheus.exporter.self \"alloy\" { }"
+	matchers = [
+		"collector.os=linux",
+		"owner=TEAM-A",
+	]
 }
 `
 
@@ -103,13 +114,27 @@ func TestAccPipelineResource(t *testing.T) {
 			},
 			// Update with semantically equal contents field
 			{
-				Config: fmt.Sprintf(pipelineResourceSemanticallyEqualConfig, pipelineName),
+				Config: fmt.Sprintf(pipelineResourceSemanticallyEqualContentsConfig, pipelineName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccPipelineResourceExists(ctx, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "name", pipelineName),
 					resource.TestCheckResourceAttr(resourceName, "contents", "prometheus.exporter.self \"alloy\" { }\n"),
 					resource.TestCheckResourceAttrSet(resourceName, "matchers.#"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "0"),
+					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
+					resource.TestCheckResourceAttrSet(resourceName, "id"),
+				),
+			},
+			// Update with semantically equal matchers field
+			{
+				Config: fmt.Sprintf(pipelineResourceSemanticallyEqualMatchersConfig, pipelineName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccPipelineResourceExists(ctx, resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", pipelineName),
+					resource.TestCheckResourceAttr(resourceName, "contents", "prometheus.exporter.self \"alloy\" { }"),
+					resource.TestCheckResourceAttr(resourceName, "matchers.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "matchers.0", "collector.os=linux"),
+					resource.TestCheckResourceAttr(resourceName, "matchers.1", "owner=TEAM-A"),
 					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 				),

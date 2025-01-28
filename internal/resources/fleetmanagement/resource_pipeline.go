@@ -91,11 +91,12 @@ Required access policy scopes:
 				Required:    true,
 			},
 			"matchers": schema.ListAttribute{
+				CustomType:  ListOfPrometheusMatcherType,
 				Description: "Used to match against collectors and assign pipelines to them; follows the syntax of Prometheus Alertmanager matchers",
 				Optional:    true,
 				Computed:    true,
-				ElementType: types.StringType,
-				Default:     listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{})),
+				ElementType: PrometheusMatcherType,
+				Default:     listdefault.StaticValue(types.ListValueMust(PrometheusMatcherType, []attr.Value{})),
 			},
 			"enabled": schema.BoolAttribute{
 				Description: "Whether the pipeline is enabled for collectors",
@@ -133,8 +134,13 @@ func (r *pipelineResource) ImportState(ctx context.Context, req resource.ImportS
 		return
 	}
 
-	state := pipelineMessageToModel(getResp.Msg)
-	diags := resp.State.Set(ctx, state)
+	state, diags := pipelineMessageToModel(ctx, getResp.Msg)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -149,9 +155,9 @@ func (r *pipelineResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	pipeline, err := pipelineModelToMessage(data)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid input", err.Error())
+	pipeline, diags := pipelineModelToMessage(ctx, data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -173,7 +179,12 @@ func (r *pipelineResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	state := pipelineMessageToModel(getResp.Msg)
+	state, diags := pipelineMessageToModel(ctx, getResp.Msg)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -198,7 +209,12 @@ func (r *pipelineResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	state := pipelineMessageToModel(getResp.Msg)
+	state, diags := pipelineMessageToModel(ctx, getResp.Msg)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
@@ -211,16 +227,16 @@ func (r *pipelineResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	pipeline, err := pipelineModelToMessage(data)
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid input", err.Error())
+	pipeline, diags := pipelineModelToMessage(ctx, data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	updateReq := &pipelinev1.UpdatePipelineRequest{
 		Pipeline: pipeline,
 	}
-	_, err = r.client.UpdatePipeline(ctx, connect.NewRequest(updateReq))
+	_, err := r.client.UpdatePipeline(ctx, connect.NewRequest(updateReq))
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update pipeline", err.Error())
 		return
@@ -235,7 +251,12 @@ func (r *pipelineResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	state := pipelineMessageToModel(getResp.Msg)
+	state, diags := pipelineMessageToModel(ctx, getResp.Msg)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
