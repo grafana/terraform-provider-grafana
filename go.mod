@@ -33,6 +33,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.25.0
 	github.com/hashicorp/terraform-plugin-mux v0.17.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.35.0
+	github.com/prometheus/alertmanager v0.27.0
 	github.com/prometheus/common v0.61.0
 	github.com/stretchr/testify v1.10.0
 	github.com/tmccombs/hcl2json v0.6.5
