@@ -59,6 +59,9 @@ type AWSAccount struct {
 
 	// Regions is the list of AWS regions in use for the AWS Account.
 	Regions []string `json:"regions"`
+
+	// Name is an optional user-defined name for the AWS account.
+	Name string `json:"name"`
 }
 
 func (c *Client) CreateAWSAccount(ctx context.Context, stackID string, accountData AWSAccount) (AWSAccount, error) {
@@ -217,6 +220,25 @@ type AzureCredential struct {
 
 	// ResourceTagFilters is the list of Azure resource tag filters.
 	ResourceTagFilters []TagFilter `json:"resource_tag_filters"`
+
+	// AutoDiscoveryConfiguration is the configuration for auto-discovery of Azure resources.
+	AutoDiscoveryConfiguration []AutoDiscoveryConfiguration `json:"auto_discovery_configuration"`
+}
+
+type AutoDiscoveryConfiguration struct {
+	SubscriptionID             string                      `json:"subscription_id"`
+	ResourceTypeConfigurations []ResourceTypeConfiguration `json:"resource_type_configurations"`
+}
+
+type ResourceTypeConfiguration struct {
+	ResourceTypeName    string                `json:"resource_type_name"`
+	MetricConfiguration []MetricConfiguration `json:"metric_configuration"`
+}
+
+type MetricConfiguration struct {
+	Name         string   `json:"name"`
+	Dimensions   []string `json:"dimensions"`
+	Aggregations []string `json:"aggregations"`
 }
 
 type TagFilter struct {

@@ -59,6 +59,7 @@ data "grafana_data_source" "from_uid" {
 - `id` (String) The ID of this resource.
 - `is_default` (Boolean) Whether to set the data source as default. This should only be `true` to a single data source.
 - `json_data_encoded` (String) Serialized JSON string containing the json data. This attribute can be used to pass configuration options to the data source. To figure out what options a datasource has available, see its docs or inspect the network data when saving it from the Grafana UI. Note that keys in this map are usually camelCased.
+- `private_data_source_connect_network_id` (String) (Can only be used with data sources in Grafana Cloud) The ID of the Private Data source Connect network to use with this data source.
 - `type` (String) The data source type. Must be one of the supported data source keywords.
 - `url` (String) The URL for the data source. The type of URL required varies depending on the chosen data source type.
 - `username` (String) (Required by some data source types) The username to use to authenticate to the data source.

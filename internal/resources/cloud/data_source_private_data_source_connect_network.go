@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"slices"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -11,31 +12,31 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-var _ datasource.DataSource = &AccessPoliciesDataSource{}
-var _ datasource.DataSourceWithConfigure = &AccessPoliciesDataSource{}
+var _ datasource.DataSource = &PDCNetworksDataSource{}
+var _ datasource.DataSourceWithConfigure = &PDCNetworksDataSource{}
 
-var dataSourceAccessPoliciesName = "grafana_cloud_access_policies"
+var dataSourcePrivateDataSourceConnectNetworksName = "grafana_cloud_private_data_source_connect_networks"
 
-func datasourceAccessPolicies() *common.DataSource {
+func datasourcePrivateDataSourceConnectNetworks() *common.DataSource {
 	return common.NewDataSource(
 		common.CategoryCloud,
-		dataSourceAccessPoliciesName,
-		&AccessPoliciesDataSource{},
+		dataSourcePrivateDataSourceConnectNetworksName,
+		&PDCNetworksDataSource{},
 	)
 }
 
-type AccessPoliciesDataSource struct {
+type PDCNetworksDataSource struct {
 	basePluginFrameworkDataSource
 }
 
-func (r *AccessPoliciesDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = dataSourceAccessPoliciesName
+func (r *PDCNetworksDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = dataSourcePrivateDataSourceConnectNetworksName
 }
 
-func (r *AccessPoliciesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (r *PDCNetworksDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: `
-Fetches access policies from Grafana Cloud.
+Fetches Private Data source Connect networks from Grafana Cloud.
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-access-policies)
@@ -50,13 +51,13 @@ Required access policy scopes:
 			},
 			"region_filter": schema.StringAttribute{
 				Optional:    true,
-				Description: "If set, only access policies in the specified region will be returned. This is faster than filtering in Terraform.",
+				Description: "If set, only private data source connect networks in the specified region will be returned. This is faster than filtering in Terraform.",
 			},
 			"name_filter": schema.StringAttribute{
 				Optional:    true,
-				Description: "If set, only access policies with the specified name will be returned. This is faster than filtering in Terraform.",
+				Description: "If set, only private data source connect networks with the specified name will be returned. This is faster than filtering in Terraform.",
 			},
-			"access_policies": schema.SetAttribute{
+			"private_data_source_connect_networks": schema.SetAttribute{
 				Computed: true,
 				ElementType: types.ObjectType{
 					AttrTypes: map[string]attr.Type{
@@ -72,7 +73,7 @@ Required access policy scopes:
 	}
 }
 
-type AccessPoliciesDataSourcePolicyModel struct {
+type PDCNetworksDataSourcePolicyModel struct {
 	ID          types.String `tfsdk:"id"`
 	Region      types.String `tfsdk:"region"`
 	Name        types.String `tfsdk:"name"`
@@ -80,16 +81,16 @@ type AccessPoliciesDataSourcePolicyModel struct {
 	Status      types.String `tfsdk:"status"`
 }
 
-type AccessPoliciesDataSourceModel struct {
-	ID             types.String                          `tfsdk:"id"`
-	NameFilter     types.String                          `tfsdk:"name_filter"`
-	RegionFilter   types.String                          `tfsdk:"region_filter"`
-	AccessPolicies []AccessPoliciesDataSourcePolicyModel `tfsdk:"access_policies"`
+type PDCNetworksDataSourceModel struct {
+	ID                        types.String                       `tfsdk:"id"`
+	NameFilter                types.String                       `tfsdk:"name_filter"`
+	RegionFilter              types.String                       `tfsdk:"region_filter"`
+	PrivateDataSourceNetworks []PDCNetworksDataSourcePolicyModel `tfsdk:"private_data_source_connect_networks"`
 }
 
-func (r *AccessPoliciesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (r *PDCNetworksDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	// Read Terraform state data into the model
-	var data AccessPoliciesDataSourceModel
+	var data PDCNetworksDataSourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
 	var regions []string
@@ -106,7 +107,7 @@ func (r *AccessPoliciesDataSource) Read(ctx context.Context, req datasource.Read
 		}
 	}
 
-	data.AccessPolicies = []AccessPoliciesDataSourcePolicyModel{}
+	data.PrivateDataSourceNetworks = []PDCNetworksDataSourcePolicyModel{}
 	for _, region := range regions {
 		apiResp, _, err := r.client.AccesspoliciesAPI.GetAccessPolicies(ctx).Region(region).Execute()
 		if err != nil {
@@ -117,7 +118,10 @@ func (r *AccessPoliciesDataSource) Read(ctx context.Context, req datasource.Read
 			if data.NameFilter.ValueString() != "" && data.NameFilter.ValueString() != policy.Name {
 				continue
 			}
-			data.AccessPolicies = append(data.AccessPolicies, AccessPoliciesDataSourcePolicyModel{
+			if !slices.Contains(policy.Scopes, "pdc-signing:write") {
+				continue
+			}
+			data.PrivateDataSourceNetworks = append(data.PrivateDataSourceNetworks, PDCNetworksDataSourcePolicyModel{
 				ID:          types.StringValue(*policy.Id),
 				Region:      types.StringValue(region),
 				Name:        types.StringValue(policy.Name),

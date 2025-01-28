@@ -26,7 +26,7 @@ func TestAcc_AzureCredential(t *testing.T) {
     "tenant_id": "my_tenant_id",
     "client_id": "my_client_id",
     "client_secret": "",
-    "stack_id":"1",
+    "stack_id": "1",
     "resource_tag_filters": [
       {
         "key": "key-1",
@@ -36,10 +36,38 @@ func TestAcc_AzureCredential(t *testing.T) {
         "key": "key-2",
         "value": "value-2"
       }
-
+    ],
+    "auto_discovery_configuration": [
+      {
+        "subscription_id": "my-subscription_id",
+        "resource_type_configurations": [
+          {
+            "resource_type_name": "Microsoft.App/containerApps",
+            "metric_configuration": [
+              {
+                "name": "TotalCoresQuotaUsed"
+              }
+            ]
+          },
+          {
+            "resource_type_name": "Microsoft.Storage/storageAccounts/tableServices",
+            "metric_configuration": [
+              {
+                "name": "Availability",
+                "dimensions": [
+                  "GeoType",
+                  "ApiName"
+                ],
+				"aggregations": [ "Average" ]
+              }
+            ]
+          }
+        ]
+      }
     ]
   }
-}`, resourceID)))
+}
+`, resourceID)))
 		}
 	})
 
@@ -65,10 +93,38 @@ func TestAcc_AzureCredential(t *testing.T) {
         "key": "key-2",
         "value": "value-2"
       }
-
+    ],
+	"auto_discovery_configuration": [
+      {
+        "subscription_id": "my-subscription_id",
+        "resource_type_configurations": [
+          {
+            "resource_type_name": "Microsoft.App/containerApps",
+            "metric_configuration": [
+              {
+                "name": "TotalCoresQuotaUsed"
+              }
+            ]
+          },
+          {
+            "resource_type_name": "Microsoft.Storage/storageAccounts/tableServices",
+            "metric_configuration": [
+              {
+                "name": "Availability",
+                "dimensions": [
+                  "GeoType",
+                  "ApiName"
+                ],
+				"aggregations": [ "Average" ]
+              }
+            ]
+          }
+        ]
+      }
     ]
   }
-}`, resourceID)))
+}
+`, resourceID)))
 		case http.MethodPut:
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(fmt.Sprintf(`
@@ -89,10 +145,38 @@ func TestAcc_AzureCredential(t *testing.T) {
         "key": "key-2",
         "value": "value-2"
       }
-
+    ],
+	"auto_discovery_configuration": [
+      {
+        "subscription_id": "my-subscription_id",
+        "resource_type_configurations": [
+          {
+            "resource_type_name": "Microsoft.App/containerApps",
+            "metric_configuration": [
+              {
+                "name": "TotalCoresQuotaUsed"
+              }
+            ]
+          },
+          {
+            "resource_type_name": "Microsoft.Storage/storageAccounts/tableServices",
+            "metric_configuration": [
+              {
+                "name": "Availability",
+                "dimensions": [
+                  "GeoType",
+                  "ApiName"
+                ],
+				"aggregations": [ "Average" ]
+              }
+            ]
+          }
+        ]
+      }
     ]
   }
-}`, resourceID)))
+}
+`, resourceID)))
 
 		case http.MethodDelete:
 			w.WriteHeader(http.StatusNoContent)
@@ -126,6 +210,14 @@ func TestAcc_AzureCredential(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "resource_discovery_tag_filter.1.key", "key-2"),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "resource_discovery_tag_filter.0.value", "value-1"),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "resource_discovery_tag_filter.1.value", "value-2"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.subscription_id", "my-subscription_id"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.0.resource_type_name", "Microsoft.App/containerApps"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.0.metric_configuration.0.name", "TotalCoresQuotaUsed"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.1.resource_type_name", "Microsoft.Storage/storageAccounts/tableServices"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.1.metric_configuration.0.name", "Availability"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.1.metric_configuration.0.dimensions.0", "GeoType"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.1.metric_configuration.0.dimensions.1", "ApiName"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.1.metric_configuration.0.aggregations.0", "Average"),
 				),
 			},
 			{
@@ -143,6 +235,14 @@ func TestAcc_AzureCredential(t *testing.T) {
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "resource_discovery_tag_filter.1.key", "key-2"),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "resource_discovery_tag_filter.0.value", "value-1"),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "resource_discovery_tag_filter.1.value", "value-2"),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.subscription_id", "my-subscription_id"),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.0.resource_type_name", "Microsoft.App/containerApps"),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.0.metric_configuration.0.name", "TotalCoresQuotaUsed"),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.1.resource_type_name", "Microsoft.Storage/storageAccounts/tableServices"),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.1.metric_configuration.0.name", "Availability"),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.1.metric_configuration.0.dimensions.0", "GeoType"),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.1.metric_configuration.0.dimensions.1", "ApiName"),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.1.metric_configuration.0.aggregations.0", "Average"),
 				),
 			},
 		},

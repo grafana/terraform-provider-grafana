@@ -165,11 +165,11 @@ data "grafana_synthetic_monitoring_probes" "main" {
 
 ```terraform
 // Step 1: Configure provider block.
-// Go to the Grafana OnCall in your stack and create api token in the settings tab.It will be your oncall_access_token.
-// If you are using Grafana OnCall OSS consider set oncall_url. You can get it in OnCall -> settings -> API URL.
+// You may need to set oncall_url too, depending on your region or if you are using Grafana OnCall OSS. You can get it in OnCall -> settings -> API URL.
 provider "grafana" {
-  alias               = "oncall"
-  oncall_access_token = "my_oncall_token"
+  alias = "oncall"
+  url   = "http://grafana.example.com/"
+  auth  = var.grafana_auth
 }
 
 data "grafana_oncall_user" "alex" {
@@ -201,15 +201,16 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 }
 ```
 
-Alternatively, you can also configure the provider block by setting `url`
-to your Grafana URL and `auth` to a service account token:
+Alternatively, you can also configure the provider block by setting
+an specific `oncall_access_token` instead, that you can create in the web UI:
 
 ```terraform
 // Step 1: Configure provider block.
+// Go to the Grafana OnCall in your stack and create api token in the settings tab.It will be your oncall_access_token.
+// If you are using Grafana OnCall OSS consider set oncall_url. You can get it in OnCall -> settings -> API URL.
 provider "grafana" {
-  alias = "oncall"
-  url   = "http://grafana.example.com/"
-  auth  = var.grafana_auth
+  alias               = "oncall"
+  oncall_access_token = "my_oncall_token"
 }
 
 data "grafana_oncall_user" "alex" {
@@ -273,7 +274,7 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 #### Obtaining Cloud Provider access token
 
 Before using the Terraform Provider to manage Grafana Cloud Provider Observability resources, such as AWS CloudWatch scrape jobs, you need to create an access policy token on the Grafana Cloud Portal. This token is used to authenticate the provider to the Grafana Cloud Provider API.
-[These docs](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/authorize-services/#create-an-access-policy-for-a-stack) will guide you on how to create
+[These docs](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/using-an-access-policy-token/#create-an-access-policy-for-a-stack) will guide you on how to create
 an access policy. The required permissions, or scopes, are `integration-management:read`, `integration-management:write` and `stacks:read`.
 
 Also, by default the Access Policies UI will not show those scopes, to find name you need to use the `Add Scope` textbox, as shown in the following image:
@@ -281,7 +282,7 @@ Also, by default the Access Policies UI will not show those scopes, to find name
 <img src="https://grafana.com/media/docs/grafana-cloud/aws/cloud-provider-terraform-access-policy-creation.png" width="700"/>
 
 Having created an Access Policy, you can now create a token that will be used to authenticate the provider to the Cloud Provider API. You can do so just after creating the access policy, following
-the in-screen instructions, of following [this guide](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/authorize-services/#create-one-or-more-access-policy-tokens).
+the in-screen instructions, of following [this guide](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/using-an-access-policy-token/#create-one-or-more-access-policy-tokens).
 
 #### Obtaining Cloud Provider API hostname
 
@@ -408,7 +409,7 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
 #### Obtaining Connections access token
 
 Before using the Terraform Provider to manage Grafana Connections resources, such as metrics endpoint scrape jobs, you need to create an access policy token on the Grafana Cloud Portal. This token is used to authenticate the provider to the Grafana Connections API.
-[These docs](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/authorize-services/#create-an-access-policy-for-a-stack) will guide you on how to create
+[These docs](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/using-an-access-policy-token/#create-an-access-policy-for-a-stack) will guide you on how to create
 an access policy. The required permissions, or scopes, are `integration-management:read`, `integration-management:write` and `stacks:read`.
 
 Also, by default the Access Policies UI will not show those scopes, instead, search for it using the `Add Scope` textbox, as shown in the following image:
@@ -419,7 +420,7 @@ Also, by default the Access Policies UI will not show those scopes, instead, sea
 1. Once done, you should see the scopes selected with checkboxes.
 
 Having created an Access Policy, you can now create a token that will be used to authenticate the provider to the Connections API. You can do so just after creating the access policy, following
-the in-screen instructions, of following [this guide](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/authorize-services/#create-one-or-more-access-policy-tokens).
+the in-screen instructions, of following [this guide](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/using-an-access-policy-token/#create-one-or-more-access-policy-tokens).
 
 #### Obtaining Connections API hostname
 
@@ -465,7 +466,7 @@ This can be a Grafana API key, basic auth `username:password`, or a
 
 ### `cloud_access_policy_token`
 
-An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/authorize-services/).
+An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/using-an-access-policy-token/).
 
 ### `sm_access_token`
 
@@ -484,6 +485,6 @@ To create one, follow the instructions in the [obtaining cloud provider access t
 
 ### `connections_api_access_token`
 
-An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/authorize-services/) to manage
+An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/using-an-access-policy-token/) to manage
 connections resources, such as Metrics Endpoint jobs.
 For guidance on creating one, see section [obtaining connections access token](#obtaining-connections-access-token).

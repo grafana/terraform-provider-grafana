@@ -5,7 +5,7 @@ resource "grafana_synthetic_monitoring_check" "dns" {
   target  = "grafana.com"
   enabled = false
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Atlanta,
+    data.grafana_synthetic_monitoring_probes.main.probes.Ohio,
   ]
   labels = {
     foo = "bar"

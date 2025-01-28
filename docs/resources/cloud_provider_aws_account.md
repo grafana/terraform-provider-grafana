@@ -41,6 +41,10 @@ resource "grafana_cloud_provider_aws_account" "test" {
 - `role_arn` (String) An IAM Role ARN string to represent with this AWS Account resource.
 - `stack_id` (String) The StackID of the Grafana Cloud instance. Part of the Terraform Resource ID.
 
+### Optional
+
+- `name` (String) An optional human-readable name for this AWS Account resource.
+
 ### Read-Only
 
 - `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ resource_id }}".

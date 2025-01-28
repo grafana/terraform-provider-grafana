@@ -52,6 +52,7 @@ func TestResourceStack_Basic(t *testing.T) {
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "profiles_status"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "otlp_url"),
 		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "influx_url"),
+		resource.TestCheckResourceAttrSet("grafana_cloud_stack.test", "cluster_slug"),
 	)
 
 	resource.ParallelTest(t, resource.TestCase{

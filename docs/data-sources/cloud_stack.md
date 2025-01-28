@@ -39,6 +39,7 @@ available at “https://<stack_slug>.grafana.net".
 - `alertmanager_status` (String) Status of the Alertmanager instance configured for this stack.
 - `alertmanager_url` (String) Base URL of the Alertmanager instance configured for this stack.
 - `alertmanager_user_id` (Number) User ID of the Alertmanager instance configured for this stack.
+- `cluster_slug` (String) Slug of the cluster where this stack resides.
 - `description` (String) Description of stack.
 - `graphite_name` (String)
 - `graphite_status` (String)
