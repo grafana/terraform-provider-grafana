@@ -304,6 +304,7 @@ func (p *frameworkProvider) Resources(_ context.Context) []func() resource.Resou
 	return append(
 		pluginFrameworkResources(),
 		resources.Dashboard,
+		resources.Playlist,
 	)
 }
 

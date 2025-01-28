@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
+	"github.com/grafana/terraform-provider-grafana/appplatform/pkg/client"
 	"github.com/grafana/terraform-provider-grafana/appplatform/pkg/generated/resource/dashboard/v0alpha1"
 	"github.com/grafana/terraform-provider-grafana/appplatform/pkg/terraform"
 )
@@ -60,8 +61,18 @@ func Dashboard() resource.Resource {
 				},
 			},
 		},
-		Kind:        v0alpha1.Kind(),
-		NewClientFn: v0alpha1.NewClient,
+		Kind: v0alpha1.Kind(),
+		NewClientFn: func(reg client.Registry, stackOrOrgID int64, isOrg bool) (*client.NamespacedClient[*v0alpha1.Dashboard, *v0alpha1.DashboardList], error) {
+			cli, err := reg.ClientFor(v0alpha1.Kind())
+			if err != nil {
+				return nil, err
+			}
+
+			return client.NewNamespaced(
+				client.NewResourceClient[*v0alpha1.Dashboard, *v0alpha1.DashboardList](cli, v0alpha1.Kind()),
+				stackOrOrgID, isOrg,
+			), nil
+		},
 		SpecParser: func(ctx context.Context, spec types.Object, dst *v0alpha1.Dashboard) diag.Diagnostics {
 			var data DashboardSpecModel
 			if diag := spec.As(ctx, &data, basetypes.ObjectAsOptions{

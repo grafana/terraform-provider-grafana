@@ -242,7 +242,7 @@ func (r *Resource[T, L, S]) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	if diag := SaveResourceToModel(ctx, res, &data, r.config.SpecSaver); diag.HasError() {
+	if diag := SaveResourceToModel(ctx, res, &data); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
@@ -288,7 +288,7 @@ func (r *Resource[T, L, S]) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	if diag := SaveResourceToModel(ctx, res, &data, r.config.SpecSaver); diag.HasError() {
+	if diag := SaveResourceToModel(ctx, res, &data); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
@@ -340,7 +340,7 @@ func (r *Resource[T, L, S]) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	if diag := SaveResourceToModel(ctx, res, &data, r.config.SpecSaver); diag.HasError() {
+	if diag := SaveResourceToModel(ctx, res, &data); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
@@ -395,7 +395,12 @@ func (r *Resource[T, L, S]) ImportState(ctx context.Context, req resource.Import
 	}
 
 	var data ResourceModel
-	if diag := SaveResourceToModel(ctx, res, &data, r.config.SpecSaver); diag.HasError() {
+	if diag := SaveResourceToModel(ctx, res, &data); diag.HasError() {
+		resp.Diagnostics.Append(diag...)
+		return
+	}
+
+	if diag := r.config.SpecSaver(ctx, res, &data); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
 	}
@@ -445,7 +450,7 @@ type SpecSaver[T sdkresource.Object] func(ctx context.Context, src T, dst *Resou
 
 // SaveResourceToModel saves a resource to a Terraform model.
 func SaveResourceToModel[T sdkresource.Object](
-	ctx context.Context, src T, dst *ResourceModel, specSaver SpecSaver[T],
+	ctx context.Context, src T, dst *ResourceModel,
 ) diag.Diagnostics {
 	diag := make(diag.Diagnostics, 0)
 
@@ -478,10 +483,6 @@ func SaveResourceToModel[T sdkresource.Object](
 		}
 	}
 
-	if diag := specSaver(ctx, src, dst); diag.HasError() {
-		return diag
-	}
-
 	return diag
 }
 
@@ -497,9 +498,12 @@ func GetModelFromMetadata(
 		return diag
 	}
 
+	if !dst.FolderUID.IsNull() && !dst.FolderUID.IsUnknown() {
+		dst.FolderUID = types.StringValue(meta.GetFolder())
+	}
+
 	dst.UUID = types.StringValue(string(src.GetUID()))
 	dst.UID = types.StringValue(src.GetName())
-	dst.FolderUID = types.StringValue(meta.GetFolder())
 	dst.Version = types.StringValue(src.GetResourceVersion())
 	dst.URL = types.StringValue(meta.GetSelfLink())
 
