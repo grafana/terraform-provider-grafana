@@ -26,7 +26,7 @@ func TestAlloyConfigValue_Equal(t *testing.T) {
 func TestAlloyConfigValue_Type(t *testing.T) {
 	ctx := context.Background()
 	value := NewAlloyConfigValue("logging {}")
-	assert.IsType(t, AlloyConfigType{}, value.Type(ctx))
+	assert.IsType(t, AlloyConfigType, value.Type(ctx))
 }
 
 func TestAlloyConfigValue_StringSemanticEquals(t *testing.T) {
@@ -37,24 +37,24 @@ func TestAlloyConfigValue_StringSemanticEquals(t *testing.T) {
 
 	t.Run("semantically equal Alloy Config value", func(t *testing.T) {
 		equal, diags := value1.StringSemanticEquals(ctx, value2)
-		assert.True(t, equal)
 		assert.False(t, diags.HasError())
+		assert.True(t, equal)
 	})
 
 	t.Run("semantically not equal Alloy Config value", func(t *testing.T) {
 		equal, diags := value1.StringSemanticEquals(ctx, value3)
-		assert.False(t, equal)
 		assert.False(t, diags.HasError())
+		assert.False(t, equal)
 	})
 }
 
 func TestAlloyConfigValue_ValidateAttribute(t *testing.T) {
 	ctx := context.Background()
-	value := NewAlloyConfigValue("// valid")
 	req := xattr.ValidateAttributeRequest{}
 	resp := &xattr.ValidateAttributeResponse{}
 
 	t.Run("valid attribute", func(t *testing.T) {
+		value := NewAlloyConfigValue("// valid")
 		value.ValidateAttribute(ctx, req, resp)
 		assert.False(t, resp.Diagnostics.HasError())
 	})

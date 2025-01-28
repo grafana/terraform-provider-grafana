@@ -86,7 +86,7 @@ Required access policy scopes:
 				},
 			},
 			"contents": schema.StringAttribute{
-				CustomType:  AlloyConfigType{},
+				CustomType:  AlloyConfigType,
 				Description: "Configuration contents of the pipeline to be used by collectors",
 				Required:    true,
 			},

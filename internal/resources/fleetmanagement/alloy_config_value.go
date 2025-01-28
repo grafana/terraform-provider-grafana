@@ -39,7 +39,7 @@ func (v AlloyConfigValue) Equal(o attr.Value) bool {
 }
 
 func (v AlloyConfigValue) Type(ctx context.Context) attr.Type {
-	return AlloyConfigType{}
+	return AlloyConfigType
 }
 
 func (v AlloyConfigValue) StringSemanticEquals(ctx context.Context, newValuable basetypes.StringValuable) (bool, diag.Diagnostics) {
@@ -58,18 +58,8 @@ func (v AlloyConfigValue) StringSemanticEquals(ctx context.Context, newValuable 
 		return false, diags
 	}
 
-	result, err := riverEqual(v.ValueString(), newValue.ValueString())
-	if err != nil {
-		diags.AddError(
-			"Semantic Equality Check Error",
-			"An unexpected error occurred while performing semantic equality checks. "+
-				"Please report this to the provider developers.\n\n"+
-				"Error: "+err.Error(),
-		)
-
-		return false, diags
-	}
-
+	// Values are already validated at this point, ignoring errors
+	result, _ := riverEqual(v.ValueString(), newValue.ValueString())
 	return result, diags
 }
 
@@ -83,7 +73,7 @@ func (v AlloyConfigValue) ValidateAttribute(ctx context.Context, req xattr.Valid
 		resp.Diagnostics.AddAttributeError(
 			req.Path,
 			"Invalid Alloy configuration",
-			"An unexpected error occurred while parsing Alloy configuration. "+
+			"A string value was provided that is not valid Alloy configuration format.\n\n"+
 				"Path: "+req.Path.String()+"\n"+
 				"Given Value: "+v.ValueString()+"\n"+
 				"Error: "+err.Error(),

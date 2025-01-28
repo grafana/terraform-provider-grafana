@@ -4,68 +4,46 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAlloyConfigType_Equal(t *testing.T) {
-	type1 := AlloyConfigType{}
-	type2 := AlloyConfigType{}
-	type3 := basetypes.StringType{}
+	type1 := AlloyConfigType
+	type2 := AlloyConfigType
+	type3 := types.StringType
 
 	assert.True(t, type1.Equal(type2))
 	assert.False(t, type1.Equal(type3))
 }
 
 func TestAlloyConfigType_String(t *testing.T) {
-	alloyConfigType := AlloyConfigType{}
-	assert.Equal(t, "AlloyConfigType", alloyConfigType.String())
+	assert.Equal(t, "AlloyConfigType", AlloyConfigType.String())
 }
 
 func TestAlloyConfigType_ValueFromString(t *testing.T) {
-	alloyConfigType := AlloyConfigType{}
+	ctx := context.Background()
 	stringValue := types.StringValue("test")
 
-	ctx := context.Background()
-	value, diags := alloyConfigType.ValueFromString(ctx, stringValue)
+	alloyCfgValue, diags := AlloyConfigType.ValueFromString(ctx, stringValue)
 	assert.False(t, diags.HasError())
-	assert.Equal(t, "test", value.(AlloyConfigValue).ValueString())
+	expected := AlloyConfigValue{StringValue: stringValue}
+	assert.Equal(t, expected, alloyCfgValue)
 }
 
 func TestAlloyConfigType_ValueFromTerraform(t *testing.T) {
-	alloyConfigType := AlloyConfigType{}
+	ctx := context.Background()
 	tfValue := tftypes.NewValue(tftypes.String, "test")
 
-	ctx := context.Background()
-	value, err := alloyConfigType.ValueFromTerraform(ctx, tfValue)
+	alloyCfgValue, err := AlloyConfigType.ValueFromTerraform(ctx, tfValue)
 	assert.NoError(t, err)
-	assert.Equal(t, "test", value.(AlloyConfigValue).ValueString())
+	expected := AlloyConfigValue{StringValue: types.StringValue("test")}
+	assert.Equal(t, expected, alloyCfgValue)
 }
 
 func TestAlloyConfigType_ValueType(t *testing.T) {
-	alloyConfigType := AlloyConfigType{}
 	ctx := context.Background()
-	value := alloyConfigType.ValueType(ctx)
-	assert.IsType(t, AlloyConfigValue{}, value)
-}
-
-func TestAlloyConfigType_Validate(t *testing.T) {
-	alloyConfigType := AlloyConfigType{}
-	ctx := context.Background()
-	valuePath := path.Root("test")
-
-	t.Run("valid Alloy Config value", func(t *testing.T) {
-		value := tftypes.NewValue(tftypes.String, "// valid")
-		diags := alloyConfigType.Validate(ctx, value, valuePath)
-		assert.False(t, diags.HasError())
-	})
-
-	t.Run("invalid Alloy Config value", func(t *testing.T) {
-		value := tftypes.NewValue(tftypes.String, "invalid")
-		diags := alloyConfigType.Validate(ctx, value, valuePath)
-		assert.True(t, diags.HasError())
-	})
+	alloyCfgValue := AlloyConfigType.ValueType(ctx)
+	assert.IsType(t, AlloyConfigValue{}, alloyCfgValue)
 }
