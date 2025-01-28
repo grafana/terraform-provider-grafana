@@ -117,13 +117,14 @@ type AWSCloudWatchScrapeJobResponse struct {
 	ExportTags           bool                           `json:"exportTags"`
 	Services             []AWSCloudWatchService         `json:"services"`
 	CustomNamespaces     []AWSCloudWatchCustomNamespace `json:"customNamespaces"`
+	StaticLabels         map[string]string              `json:"staticLabels"`
+
 	// computed fields beyond the original request
-	RoleARN                   string            `json:"roleARN"`
-	Regions                   []string          `json:"regions"`
-	RegionsSubsetOverrideUsed bool              `json:"regionsSubsetOverrideUsed"`
-	DisabledReason            string            `json:"disabledReason"`
-	Provenance                string            `json:"provenance"`
-	StaticLabels              map[string]string `json:"staticLabels"`
+	RoleARN                   string   `json:"roleARN"`
+	Regions                   []string `json:"regions"`
+	RegionsSubsetOverrideUsed bool     `json:"regionsSubsetOverrideUsed"`
+	DisabledReason            string   `json:"disabledReason"`
+	Provenance                string   `json:"provenance"`
 }
 type AWSCloudWatchService struct {
 	Name                        string                   `json:"name"`
