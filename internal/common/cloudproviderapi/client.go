@@ -220,6 +220,9 @@ type AzureCredential struct {
 
 	// AutoDiscoveryConfiguration is the configuration for auto-discovery of Azure resources.
 	AutoDiscoveryConfiguration []AutoDiscoveryConfiguration `json:"auto_discovery_configuration"`
+
+	// ResourceTagsToAddToMetrics is the list of Azure resource tags to add to metrics.
+	ResourceTagsToAddToMetrics []string `json:"resource_tags_to_add_to_metrics"`
 }
 
 type AutoDiscoveryConfiguration struct {
