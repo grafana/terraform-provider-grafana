@@ -26,7 +26,7 @@ func TestCollectorMessageToModel(t *testing.T) {
 
 	expectedModel := &collectorModel{
 		ID: types.StringValue(id),
-		AttributeOverrides: types.MapValueMust(
+		RemoteAttributes: types.MapValueMust(
 			types.StringType,
 			map[string]attr.Value{
 				"key1": types.StringValue("value1"),
@@ -48,7 +48,7 @@ func TestCollectorModelToMessage(t *testing.T) {
 
 	model := &collectorModel{
 		ID: types.StringValue(id),
-		AttributeOverrides: types.MapValueMust(
+		RemoteAttributes: types.MapValueMust(
 			types.StringType,
 			map[string]attr.Value{
 				"key1": types.StringValue("value1"),

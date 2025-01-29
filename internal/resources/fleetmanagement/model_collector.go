@@ -10,33 +10,33 @@ import (
 )
 
 type collectorModel struct {
-	ID                 types.String `tfsdk:"id"`
-	AttributeOverrides types.Map    `tfsdk:"attribute_overrides"`
-	Enabled            types.Bool   `tfsdk:"enabled"`
+	ID               types.String `tfsdk:"id"`
+	RemoteAttributes types.Map    `tfsdk:"remote_attributes"`
+	Enabled          types.Bool   `tfsdk:"enabled"`
 }
 
 func collectorMessageToModel(ctx context.Context, msg *collectorv1.Collector) (*collectorModel, diag.Diagnostics) {
-	attributeOverrides, diags := nativeStringMapToTFStringMap(ctx, msg.AttributeOverrides)
+	remoteAttributes, diags := nativeStringMapToTFStringMap(ctx, msg.AttributeOverrides)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &collectorModel{
-		ID:                 types.StringValue(msg.Id),
-		AttributeOverrides: attributeOverrides,
-		Enabled:            types.BoolPointerValue(msg.Enabled),
+		ID:               types.StringValue(msg.Id),
+		RemoteAttributes: remoteAttributes,
+		Enabled:          types.BoolPointerValue(msg.Enabled),
 	}, nil
 }
 
 func collectorModelToMessage(ctx context.Context, model *collectorModel) (*collectorv1.Collector, diag.Diagnostics) {
-	attributeOverrides, diags := tfStringMapToNativeStringMap(ctx, model.AttributeOverrides)
+	remoteAttributes, diags := tfStringMapToNativeStringMap(ctx, model.RemoteAttributes)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &collectorv1.Collector{
 		Id:                 model.ID.ValueString(),
-		AttributeOverrides: attributeOverrides,
+		AttributeOverrides: remoteAttributes,
 		Enabled:            tfBoolToNativeBoolPtr(model.Enabled),
 	}, nil
 }

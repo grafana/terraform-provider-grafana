@@ -85,8 +85,8 @@ Required access policy scopes:
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"attribute_overrides": schema.MapAttribute{
-				Description: "Attribute overrides for the collector",
+			"remote_attributes": schema.MapAttribute{
+				Description: "Remote attributes that override local attributes for the collector",
 				Optional:    true,
 				Computed:    true,
 				ElementType: types.StringType,

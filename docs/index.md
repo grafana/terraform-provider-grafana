@@ -517,7 +517,7 @@ resource "grafana_fleet_management_collector" "collector" {
   provider = grafana.fm
 
   id = "my_collector"
-  attribute_overrides = {
+  remote_attributes = {
     "env"   = "PROD",
     "owner" = "TEAM-A"
   }

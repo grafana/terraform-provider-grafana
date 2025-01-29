@@ -29,7 +29,7 @@ Required access policy scopes:
 ```terraform
 resource "grafana_fleet_management_collector" "test" {
   id = "my_collector"
-  attribute_overrides = {
+  remote_attributes = {
     "env"   = "PROD",
     "owner" = "TEAM-A"
   }
@@ -46,8 +46,8 @@ resource "grafana_fleet_management_collector" "test" {
 
 ### Optional
 
-- `attribute_overrides` (Map of String) Attribute overrides for the collector
 - `enabled` (Boolean) Whether the collector is enabled or not
+- `remote_attributes` (Map of String) Remote attributes that override local attributes for the collector
 
 ## Import
 

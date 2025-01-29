@@ -25,7 +25,7 @@ resource "grafana_fleet_management_collector" "test" {
 	collectorResourceOptionalConfig = `
 resource "grafana_fleet_management_collector" "test" {
 	id = "%s"
-	attribute_overrides = {
+	remote_attributes = {
 		"env"   = "PROD",
 		"owner" = "TEAM-A"
 	}
@@ -36,7 +36,7 @@ resource "grafana_fleet_management_collector" "test" {
 	collectorResourceEmptyAttributeOverridesConfig = `
 resource "grafana_fleet_management_collector" "test" {
 	id = "%s"
-	attribute_overrides = {}
+	remote_attributes = {}
 }
 `
 )
@@ -57,8 +57,8 @@ func TestAccCollectorResource(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCollectorResourceExists(ctx, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "id", collectorID),
-					resource.TestCheckResourceAttrSet(resourceName, "attribute_overrides.%"),
-					resource.TestCheckResourceAttr(resourceName, "attribute_overrides.%", "0"),
+					resource.TestCheckResourceAttrSet(resourceName, "remote_attributes.%"),
+					resource.TestCheckResourceAttr(resourceName, "remote_attributes.%", "0"),
 					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
 				),
 			},
@@ -74,9 +74,9 @@ func TestAccCollectorResource(t *testing.T) {
 				Config: fmt.Sprintf(collectorResourceOptionalConfig, collectorID),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "id", collectorID),
-					resource.TestCheckResourceAttr(resourceName, "attribute_overrides.%", "2"),
-					resource.TestCheckResourceAttr(resourceName, "attribute_overrides.env", "PROD"),
-					resource.TestCheckResourceAttr(resourceName, "attribute_overrides.owner", "TEAM-A"),
+					resource.TestCheckResourceAttr(resourceName, "remote_attributes.%", "2"),
+					resource.TestCheckResourceAttr(resourceName, "remote_attributes.env", "PROD"),
+					resource.TestCheckResourceAttr(resourceName, "remote_attributes.owner", "TEAM-A"),
 					resource.TestCheckResourceAttr(resourceName, "enabled", "false"),
 				),
 			},
@@ -87,13 +87,13 @@ func TestAccCollectorResource(t *testing.T) {
 				ImportStateId:     collectorID,
 				ImportStateVerify: true,
 			},
-			// Update with empty attribute_overrides field
+			// Update with empty remote_attributes field
 			{
 				Config: fmt.Sprintf(collectorResourceEmptyAttributeOverridesConfig, collectorID),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "id", collectorID),
-					resource.TestCheckResourceAttrSet(resourceName, "attribute_overrides.%"),
-					resource.TestCheckResourceAttr(resourceName, "attribute_overrides.%", "0"),
+					resource.TestCheckResourceAttrSet(resourceName, "remote_attributes.%"),
+					resource.TestCheckResourceAttr(resourceName, "remote_attributes.%", "0"),
 					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
 				),
 			},
@@ -103,8 +103,8 @@ func TestAccCollectorResource(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCollectorResourceExists(ctx, resourceName),
 					resource.TestCheckResourceAttr(resourceName, "id", collectorID),
-					resource.TestCheckResourceAttrSet(resourceName, "attribute_overrides.%"),
-					resource.TestCheckResourceAttr(resourceName, "attribute_overrides.%", "0"),
+					resource.TestCheckResourceAttrSet(resourceName, "remote_attributes.%"),
+					resource.TestCheckResourceAttr(resourceName, "remote_attributes.%", "0"),
 					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
 				),
 			},
