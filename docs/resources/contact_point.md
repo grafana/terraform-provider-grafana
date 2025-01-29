@@ -358,6 +358,7 @@ Read-Only:
 
 Optional:
 
+- `color` (String) Templated color of the slack message.
 - `disable_resolve_message` (Boolean) Whether to disable sending resolve messages. Defaults to `false`.
 - `endpoint_url` (String) Use this to override the Slack API endpoint URL to send requests to.
 - `icon_emoji` (String) The name of a Slack workspace emoji to use as the bot icon.
@@ -372,7 +373,6 @@ Optional:
 - `token` (String, Sensitive) A Slack API token,for sending messages directly without the webhook method.
 - `url` (String, Sensitive) A Slack webhook URL,for sending messages via the webhook method.
 - `username` (String) Username for the bot to use.
-- `color` (String) Templated color of the slack message.
 
 Read-Only:
 
