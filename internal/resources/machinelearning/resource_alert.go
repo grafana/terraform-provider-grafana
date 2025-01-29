@@ -76,6 +76,15 @@ func (r *alertResource) Configure(ctx context.Context, req resource.ConfigureReq
 		return
 	}
 
+	if client.MLAPI == nil {
+		resp.Diagnostics.AddError(
+			"The Grafana Provider is missing a configuration for the MLAPI API.",
+			"Please ensure that url and auth are set in the provider configuration.",
+		)
+
+		return
+	}
+
 	r.mlapi = client.MLAPI
 }
 

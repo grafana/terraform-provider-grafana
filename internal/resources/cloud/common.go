@@ -104,5 +104,14 @@ func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resourc
 		return
 	}
 
+	if client.GrafanaCloudAPI == nil {
+		resp.Diagnostics.AddError(
+			"The Grafana Provider is missing a configuration for the Grafana Cloud API.",
+			"Please ensure that cloud_api_url and cloud_access_policy_token are set in the provider configuration.",
+		)
+
+		return
+	}
+
 	r.client = client.GrafanaCloudAPI
 }
