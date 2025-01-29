@@ -3,13 +3,14 @@ package cloudprovider
 import (
 	"context"
 	"fmt"
+	"sort"
+
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"sort"
 )
 
 type awsCWScrapeJobTFResourceModel struct {
