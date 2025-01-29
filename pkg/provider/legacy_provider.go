@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -166,6 +167,10 @@ func Provider(version string) *schema.Provider {
 				Optional:    true,
 				Sensitive:   true,
 				Description: "A Grafana Fleet Management basic auth in the `username:password` format. May alternatively be set via the `GRAFANA_FLEET_MANAGEMENT_AUTH` environment variable.",
+				ValidateFunc: validation.StringMatch(
+					regexp.MustCompile(`^[^:]+:[^:]+$`),
+					"must be in the format `username:password`",
+				),
 			},
 			"fleet_management_url": {
 				Type:        schema.TypeString,
