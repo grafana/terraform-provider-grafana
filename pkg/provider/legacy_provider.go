@@ -173,9 +173,10 @@ func Provider(version string) *schema.Provider {
 				),
 			},
 			"fleet_management_url": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A Grafana Fleet Management API address. May alternatively be set via the `GRAFANA_FLEET_MANAGEMENT_URL` environment variable.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "A Grafana Fleet Management API address. May alternatively be set via the `GRAFANA_FLEET_MANAGEMENT_URL` environment variable.",
+				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
 		},
 
