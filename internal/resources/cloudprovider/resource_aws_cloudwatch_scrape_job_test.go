@@ -314,6 +314,17 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
   stack_id = "%[1]s"
   name = "%[2]s"
   enabled = %[3]t
+  
+  static_label {
+    label = "label1"
+    value = "value1"
+  }
+
+  static_label {
+    label = "label2"
+    value = "value2"
+  }
+
   aws_account_resource_id = "%[4]s"
   regions_subset_override = [%[5]s]
   export_tags = true
