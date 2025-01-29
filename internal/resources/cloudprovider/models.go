@@ -3,13 +3,13 @@ package cloudprovider
 import (
 	"context"
 	"fmt"
-
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"sort"
 )
 
 type awsCWScrapeJobTFResourceModel struct {
@@ -375,6 +375,11 @@ func generateCloudWatchScrapeJobTFResourceModel(ctx context.Context, stackID str
 		})
 	}
 
+	// sort static labels because the order of the labels is not guaranteed: it is a map type in the response
+	sort.Slice(staticLabels, func(i, j int) bool {
+		return staticLabels[i].Label.ValueString() < staticLabels[j].Label.ValueString()
+	})
+
 	staticLabelsList, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: awsCWScrapeJobStaticLabelTFModel{}.attrTypes()}, staticLabels)
 	conversionDiags.Append(diags...)
 	if conversionDiags.HasError() {
@@ -428,6 +433,11 @@ func generateCloudWatchScrapeJobDataSourceTFModel(ctx context.Context, stackID s
 			Value: types.StringValue(value),
 		})
 	}
+
+	// sort static labels because the order of the labels is not guaranteed: it is a map type in the response
+	sort.Slice(staticLabels, func(i, j int) bool {
+		return staticLabels[i].Label.ValueString() < staticLabels[j].Label.ValueString()
+	})
 
 	staticLabelsList, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: awsCWScrapeJobStaticLabelTFModel{}.attrTypes()}, staticLabels)
 	conversionDiags.Append(diags...)
