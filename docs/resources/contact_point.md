@@ -372,6 +372,7 @@ Optional:
 - `token` (String, Sensitive) A Slack API token,for sending messages directly without the webhook method.
 - `url` (String, Sensitive) A Slack webhook URL,for sending messages via the webhook method.
 - `username` (String) Username for the bot to use.
+- `color` (String) Templated color of the slack message.
 
 Read-Only:
 
