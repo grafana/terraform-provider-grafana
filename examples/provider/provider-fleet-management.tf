@@ -1,33 +1,25 @@
 // Variables
 variable "cloud_access_policy_token" {
   type        = string
-  description = "Cloud access policy token with scopes: accesspolicies:read|write|delete, stacks:read|write|delete"
+  description = "Cloud access policy token with scopes: accesspolicies:read|write|delete, stacks:read"
 }
 
 variable "stack_slug" {
   type        = string
-  description = "Subdomain that the Grafana Cloud instance will be available at: https://<stack_slug>.grafana.net"
+  description = "Subdomain that the Grafana Cloud instance is available at: https://<stack_slug>.grafana.net"
 }
 
-variable "region_slug" {
-  type        = string
-  description = "Region to assign to the stack"
-  default     = "us"
-}
-
-// Step 1: Create a stack
+// Step 1: Retrieve stack details
 provider "grafana" {
   alias = "cloud"
 
   cloud_access_policy_token = var.cloud_access_policy_token
 }
 
-resource "grafana_cloud_stack" "stack" {
+data "grafana_cloud_stack" "stack" {
   provider = grafana.cloud
 
-  name        = var.stack_slug
-  slug        = var.stack_slug
-  region_slug = var.region_slug
+  slug = var.stack_slug
 }
 
 // Step 2: Create an access policy and token for Fleet Management
@@ -35,7 +27,7 @@ resource "grafana_cloud_access_policy" "policy" {
   provider = grafana.cloud
 
   name   = "fleet-management-policy"
-  region = grafana_cloud_stack.stack.region_slug
+  region = data.grafana_cloud_stack.stack.region_slug
 
   scopes = [
     "fleet-management:read",
@@ -44,7 +36,7 @@ resource "grafana_cloud_access_policy" "policy" {
 
   realm {
     type       = "stack"
-    identifier = grafana_cloud_stack.stack.id
+    identifier = data.grafana_cloud_stack.stack.id
   }
 }
 
@@ -60,8 +52,8 @@ resource "grafana_cloud_access_policy_token" "token" {
 provider "grafana" {
   alias = "fm"
 
-  fleet_management_auth = "${grafana_cloud_stack.stack.fleet_management_user_id}:${grafana_cloud_access_policy_token.token.token}"
-  fleet_management_url  = grafana_cloud_stack.stack.fleet_management_url
+  fleet_management_auth = "${data.grafana_cloud_stack.stack.fleet_management_user_id}:${grafana_cloud_access_policy_token.token.token}"
+  fleet_management_url  = data.grafana_cloud_stack.stack.fleet_management_url
 }
 
 resource "grafana_fleet_management_collector" "collector" {
@@ -81,7 +73,7 @@ resource "grafana_fleet_management_pipeline" "pipeline" {
   name     = "my_pipeline"
   contents = file("config.alloy")
   matchers = [
-    "collector.os=~\".*\"",
+    "collector.os=\"linux\"",
     "env=\"PROD\""
   ]
   enabled = true
