@@ -204,6 +204,14 @@ func (r *pipelineResource) Read(ctx context.Context, req resource.ReadRequest, r
 		Id: data.ID.ValueString(),
 	}
 	getResp, err := r.client.GetPipeline(ctx, connect.NewRequest(getReq))
+	if connect.CodeOf(err) == connect.CodeNotFound {
+		resp.Diagnostics.AddWarning(
+			"Pipeline not found during refresh",
+			"Automatically removing resource from Terraform state. Original error: "+err.Error(),
+		)
+		resp.State.RemoveResource(ctx)
+		return
+	}
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to get pipeline", err.Error())
 		return
