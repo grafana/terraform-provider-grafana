@@ -124,7 +124,8 @@ func listPDCNetworkIds(ctx context.Context, client *gcom.APIClient, data *Lister
 		}
 
 		for _, policy := range resp.Items {
-			if slices.Contains(policy.Scopes, "pdc-signing:write") {
+			// Include pdc-signing:write to account for old PDC access policies
+			if slices.Contains(policy.Scopes, "pdc-signing:write") || slices.Contains(policy.Scopes, "set:pdc-signing") {
 				policies = append(policies, resourceAccessPolicyID.Make(regionSlug, policy.Id))
 			}
 		}
@@ -145,7 +146,7 @@ func createPDCNetwork(ctx context.Context, d *schema.ResourceData, client *gcom.
 		PostAccessPoliciesRequest(gcom.PostAccessPoliciesRequest{
 			Name:        d.Get("name").(string),
 			DisplayName: &displayName,
-			Scopes:      []string{"pdc-signing:write"},
+			Scopes:      []string{"set:pdc-signing"},
 			Realms:      []gcom.PostAccessPoliciesRequestRealmsInner{{Type: "stack", Identifier: d.Get("stack_identifier").(string)}},
 		})
 	result, _, err := req.Execute()
