@@ -92,7 +92,7 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
 - `export_tags` (Boolean) When enabled, AWS resource tags are exported as Prometheus labels to metrics formatted as `aws_<service_name>_info`.
 - `regions_subset_override` (Set of String) A subset of the regions that are configured in the associated AWS Account resource to apply to this scrape job. If not set or empty, all of the Account resource's regions are scraped.
 - `service` (Block List) One or more configuration blocks to configure AWS services for the CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service))
-- `static_label` (Block List) Zero or more configuration blocks to configure static labels to add to all metrics exported by this scrape job. (see [below for nested schema](#nestedblock--static_label))
+- `static_labels` (Map of String) A set of static labels to add to all metrics exported by this scrape job.
 
 ### Read-Only
 
@@ -151,16 +151,6 @@ Required:
 
 - `key` (String) The key of the tag filter.
 - `value` (String) The value of the tag filter.
-
-
-
-<a id="nestedblock--static_label"></a>
-### Nested Schema for `static_label`
-
-Required:
-
-- `label` (String) The label.
-- `value` (String) The value of the label.
 
 ## Import
 

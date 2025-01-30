@@ -3,8 +3,6 @@ package cloudprovider
 import (
 	"context"
 	"fmt"
-	"sort"
-
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -27,7 +25,7 @@ type awsCWScrapeJobTFResourceModel struct {
 	// See https://developer.hashicorp.com/terraform/plugin/framework/handling-data/attributes#nested-attribute-types
 	Services         types.List `tfsdk:"service"`
 	CustomNamespaces types.List `tfsdk:"custom_namespace"`
-	StaticLabels     types.List `tfsdk:"static_label"`
+	StaticLabels     types.Map  `tfsdk:"static_labels"`
 }
 
 type awsCWScrapeJobTFDataSourceModel struct {
@@ -46,19 +44,7 @@ type awsCWScrapeJobTFDataSourceModel struct {
 	// See https://developer.hashicorp.com/terraform/plugin/framework/handling-data/attributes#nested-attribute-types
 	Services         types.List `tfsdk:"service"`
 	CustomNamespaces types.List `tfsdk:"custom_namespace"`
-	StaticLabels     types.List `tfsdk:"static_label"`
-}
-
-type awsCWScrapeJobStaticLabelTFModel struct {
-	Label types.String `tfsdk:"label"`
-	Value types.String `tfsdk:"value"`
-}
-
-func (tf awsCWScrapeJobStaticLabelTFModel) attrTypes() map[string]attr.Type {
-	return map[string]attr.Type{
-		"label": types.StringType,
-		"value": types.StringType,
-	}
+	StaticLabels     types.Map  `tfsdk:"static_labels"`
 }
 
 type awsCWScrapeJobServiceTFModel struct {
@@ -316,15 +302,10 @@ func (tfData awsCWScrapeJobTFResourceModel) toClientModel(ctx context.Context) (
 		}
 	}
 
-	var staticLabels []awsCWScrapeJobStaticLabelTFModel
-	diags = tfData.StaticLabels.ElementsAs(ctx, &staticLabels, false)
+	diags = tfData.StaticLabels.ElementsAs(ctx, &converted.StaticLabels, false)
 	conversionDiags.Append(diags...)
 	if conversionDiags.HasError() {
 		return cloudproviderapi.AWSCloudWatchScrapeJobRequest{}, conversionDiags
-	}
-	converted.StaticLabels = make(map[string]string, len(services))
-	for _, label := range staticLabels {
-		converted.StaticLabels[label.Label.ValueString()] = label.Value.ValueString()
 	}
 
 	return converted, conversionDiags
@@ -368,25 +349,15 @@ func generateCloudWatchScrapeJobTFResourceModel(ctx context.Context, stackID str
 	}
 	converted.CustomNamespaces = customNamespaces
 
-	staticLabels := make([]awsCWScrapeJobStaticLabelTFModel, 0, len(scrapeJobData.StaticLabels))
-	for key, value := range scrapeJobData.StaticLabels {
-		staticLabels = append(staticLabels, awsCWScrapeJobStaticLabelTFModel{
-			Label: types.StringValue(key),
-			Value: types.StringValue(value),
-		})
+	staticLabelsMap := types.MapValueMust(types.StringType, map[string]attr.Value{})
+	if scrapeJobData.StaticLabels != nil {
+		staticLabelsMap, diags = types.MapValueFrom(ctx, basetypes.StringType{}, scrapeJobData.StaticLabels)
+		conversionDiags.Append(diags...)
+		if conversionDiags.HasError() {
+			return awsCWScrapeJobTFResourceModel{}, conversionDiags
+		}
 	}
-
-	// sort static labels because the order of the labels is not guaranteed: it is a map type in the response
-	sort.Slice(staticLabels, func(i, j int) bool {
-		return staticLabels[i].Label.ValueString() < staticLabels[j].Label.ValueString()
-	})
-
-	staticLabelsList, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: awsCWScrapeJobStaticLabelTFModel{}.attrTypes()}, staticLabels)
-	conversionDiags.Append(diags...)
-	if conversionDiags.HasError() {
-		return awsCWScrapeJobTFResourceModel{}, conversionDiags
-	}
-	converted.StaticLabels = staticLabelsList
+	converted.StaticLabels = staticLabelsMap
 
 	return converted, conversionDiags
 }
@@ -427,25 +398,15 @@ func generateCloudWatchScrapeJobDataSourceTFModel(ctx context.Context, stackID s
 	}
 	converted.CustomNamespaces = customNamespaces
 
-	staticLabels := make([]awsCWScrapeJobStaticLabelTFModel, 0, len(scrapeJobData.StaticLabels))
-	for key, value := range scrapeJobData.StaticLabels {
-		staticLabels = append(staticLabels, awsCWScrapeJobStaticLabelTFModel{
-			Label: types.StringValue(key),
-			Value: types.StringValue(value),
-		})
+	staticLabelsMap := types.MapValueMust(types.StringType, map[string]attr.Value{})
+	if scrapeJobData.StaticLabels != nil {
+		staticLabelsMap, diags = types.MapValueFrom(ctx, basetypes.StringType{}, scrapeJobData.StaticLabels)
+		conversionDiags.Append(diags...)
+		if conversionDiags.HasError() {
+			return awsCWScrapeJobTFDataSourceModel{}, conversionDiags
+		}
 	}
-
-	// sort static labels because the order of the labels is not guaranteed: it is a map type in the response
-	sort.Slice(staticLabels, func(i, j int) bool {
-		return staticLabels[i].Label.ValueString() < staticLabels[j].Label.ValueString()
-	})
-
-	staticLabelsList, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: awsCWScrapeJobStaticLabelTFModel{}.attrTypes()}, staticLabels)
-	conversionDiags.Append(diags...)
-	if conversionDiags.HasError() {
-		return awsCWScrapeJobTFDataSourceModel{}, conversionDiags
-	}
-	converted.StaticLabels = staticLabelsList
+	converted.StaticLabels = staticLabelsMap
 
 	return converted, conversionDiags
 }
