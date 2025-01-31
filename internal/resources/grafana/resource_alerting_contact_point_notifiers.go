@@ -1514,6 +1514,11 @@ func (s slackNotifier) schema() *schema.Resource {
 		Optional:    true,
 		Description: "Comma-separated list of groups to mention in the message.",
 	}
+	r.Schema["color"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Templated color of the slack message.",
+	}
 	return r
 }
 
@@ -1533,6 +1538,7 @@ func (s slackNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Resourc
 	packNotifierStringField(&settings, &notifier, "mentionChannel", "mention_channel")
 	packNotifierStringField(&settings, &notifier, "mentionUsers", "mention_users")
 	packNotifierStringField(&settings, &notifier, "mentionGroups", "mention_groups")
+	packNotifierStringField(&settings, &notifier, "color", "color")
 
 	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, s, p.UID), s.meta().secureFields)
 
@@ -1557,6 +1563,7 @@ func (s slackNotifier) unpack(raw interface{}, name string) *models.EmbeddedCont
 	unpackNotifierStringField(&json, &settings, "mention_channel", "mentionChannel")
 	unpackNotifierStringField(&json, &settings, "mention_users", "mentionUsers")
 	unpackNotifierStringField(&json, &settings, "mention_groups", "mentionGroups")
+	unpackNotifierStringField(&json, &settings, "color", "color")
 
 	return &models.EmbeddedContactPoint{
 		UID:                   uid,

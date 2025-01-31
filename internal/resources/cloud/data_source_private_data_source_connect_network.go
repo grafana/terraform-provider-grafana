@@ -118,7 +118,8 @@ func (r *PDCNetworksDataSource) Read(ctx context.Context, req datasource.ReadReq
 			if data.NameFilter.ValueString() != "" && data.NameFilter.ValueString() != policy.Name {
 				continue
 			}
-			if !slices.Contains(policy.Scopes, "pdc-signing:write") {
+			// Include pdc-signing:write to account for old PDC access policies
+			if !slices.Contains(policy.Scopes, "pdc-signing:write") || !slices.Contains(policy.Scopes, "set:pdc-signing") {
 				continue
 			}
 			data.PrivateDataSourceNetworks = append(data.PrivateDataSourceNetworks, PDCNetworksDataSourcePolicyModel{
