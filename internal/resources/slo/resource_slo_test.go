@@ -22,6 +22,7 @@ func TestAccResourceSlo(t *testing.T) {
 	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	randomName := acctest.RandomWithPrefix("SLO Terraform Testing")
+	bigTentRandomName := acctest.RandomWithPrefix("SLO Terraform Testing")
 
 	var slo slo.SloV00Slo
 	resource.Test(t, resource.TestCase{
@@ -62,6 +63,24 @@ func TestAccResourceSlo(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.value", "0.9995"),
 					resource.TestCheckResourceAttr("grafana_slo.test", "objectives.0.window", "7d"),
 					resource.TestCheckResourceAttrSet("grafana_slo.test", "folder_uid"),
+				),
+			},
+			{
+				// Tests Big Tent
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_slo/resource_big_tent.tf", map[string]string{
+					"Terraform Testing": bigTentRandomName,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSloCheckExists("grafana_slo.big_tent_test", &slo),
+					resource.TestCheckResourceAttrSet("grafana_slo.big_tent_test", "id"),
+					resource.TestCheckResourceAttr("grafana_slo.big_tent_test", "name", bigTentRandomName+" - Big Tent"),
+					resource.TestCheckResourceAttr("grafana_slo.big_tent_test", "description", "Terraform Description - Big Tent"),
+					resource.TestCheckResourceAttr("grafana_slo.big_tent_test", "query.0.type", "freeform"),
+					resource.TestCheckResourceAttr("grafana_slo.big_tent_test", "query.0.freeform.0.query", "[{\"aggregation\":\"Sum\",\"alias\":\"\",\"application\":\"57831\",\"applicationName\":\"petclinic\",\"datasource\":{\"type\":\"dlopes7-appdynamics-datasource\",\"uid\":\"appdynamics_localdev\"},\"delimiter\":\"|\",\"isRawQuery\":false,\"metric\":\"Overall Application Performance|Calls per Minute\",\"queryType\":\"metrics\",\"refId\":\"total\",\"rollUp\":true,\"schemaVersion\":\"3.9.5\",\"transformLegend\":\"Segments\",\"transformLegendText\":\"\"},{\"aggregation\":\"Sum\",\"alias\":\"\",\"application\":\"57831\",\"applicationName\":\"petclinic\",\"datasource\":{\"type\":\"dlopes7-appdynamics-datasource\",\"uid\":\"appdynamics_localdev\"},\"delimiter\":\"|\",\"intervalMs\":1000,\"isRawQuery\":false,\"maxDataPoints\":43200,\"metric\":\"Overall Application Performance|Calls per Minute\",\"queryType\":\"metrics\",\"refId\":\"also_total\",\"rollUp\":true,\"schemaVersion\":\"3.9.5\",\"transformLegend\":\"Segments\",\"transformLegendText\":\"\"},{\"conditions\":[{\"evaluator\":{\"params\":[0,0],\"type\":\"gt\"},\"operator\":{\"type\":\"and\"},\"query\":{\"params\":[]},\"reducer\":{\"params\":[],\"type\":\"avg\"},\"type\":\"query\"}],\"datasource\":{\"name\":\"Expression\",\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"($total / $also_total)\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"C\",\"type\":\"math\"}]"),
+					resource.TestCheckResourceAttr("grafana_slo.big_tent_test", "objectives.0.value", "0.995"),
+					resource.TestCheckResourceAttr("grafana_slo.big_tent_test", "objectives.0.window", "30d"),
+					resource.TestCheckNoResourceAttr("grafana_slo.big_tent_test", "folder_uid"),
+					testutils.CheckLister("grafana_slo.big_tent_test"),
 				),
 			},
 			{
