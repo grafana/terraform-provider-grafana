@@ -2,7 +2,9 @@ package slo
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/structure"
 	"regexp"
 
 	"github.com/grafana/slo-openapi-client/go/slo"
@@ -90,9 +92,10 @@ Resource manages Grafana SLOs.
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"query": {
-										Type:        schema.TypeString,
-										Required:    true,
-										Description: "Freeform Query Field",
+										Type:         schema.TypeString,
+										Required:     true,
+										Description:  "Freeform Query Field",
+										ValidateFunc: ValidateBigTent(),
 									},
 								},
 							},
@@ -104,14 +107,16 @@ Resource manages Grafana SLOs.
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"success_metric": {
-										Type:        schema.TypeString,
-										Description: `Counter metric for success events (numerator)`,
-										Required:    true,
+										Type:         schema.TypeString,
+										Description:  `Counter metric for success events (numerator)`,
+										Required:     true,
+										ValidateFunc: ValidateBigTent(),
 									},
 									"total_metric": {
-										Type:        schema.TypeString,
-										Description: `Metric for total events (denominator)`,
-										Required:    true,
+										Type:         schema.TypeString,
+										Description:  `Metric for total events (denominator)`,
+										Required:     true,
+										ValidateFunc: ValidateBigTent(),
 									},
 									"group_by_labels": {
 										Type:        schema.TypeList,
@@ -659,5 +664,50 @@ func apiError(action string, err error) diag.Diagnostics {
 			Summary:  action,
 			Detail:   detail,
 		},
+	}
+}
+
+func ValidateBigTent() schema.SchemaValidateFunc {
+	return func(i interface{}, k string) (warnings []string, errors []error) {
+
+		v, ok := i.(string)
+		if !ok {
+			errors = append(errors, fmt.Errorf("expected type of %s to be string", k))
+			return warnings, errors
+		}
+
+		normString, err := structure.NormalizeJsonString(v)
+		if err != nil {
+			warnings = append(warnings, fmt.Sprintf("%q contains an invalid JSON: %s", k, err))
+			return warnings, errors
+		}
+
+		var gmrQuery []map[string]any
+		err = json.Unmarshal([]byte(normString), &gmrQuery)
+		if err != nil {
+			warnings = append(warnings, fmt.Sprintf("%v", err))
+			// If queries aren't valid JSON, we'll attempt to validate as promQL
+			return warnings, errors
+		}
+
+		for _, queryObj := range gmrQuery {
+			source := queryObj["datasource"]
+			s, ok := source.(map[string]interface{})
+			if !ok {
+				errors = append(errors, fmt.Errorf("expected Big Tent Query %v to have a datasource", queryObj))
+				return warnings, errors
+			}
+
+			_, ok = s["type"]
+			if !ok {
+				errors = append(errors, fmt.Errorf("expected Big Tent Query datasource %v to have a type", s))
+			}
+			_, ok = s["uid"]
+			if !ok {
+				errors = append(errors, fmt.Errorf("expected Big Tent Query datasource %v to have a uid", s))
+			}
+		}
+
+		return warnings, errors
 	}
 }
