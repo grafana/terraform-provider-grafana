@@ -106,14 +106,12 @@ This resource requires Grafana 9.1.0 or later.
 						"no_data_state": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Default:     "NoData",
-							Description: "Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, KeepLast, and Alerting.",
+							Description: "Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, KeepLast, and Alerting. Defaults to NoData if not set.",
 						},
 						"exec_err_state": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Default:     "Alerting",
-							Description: "Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, KeepLast, and Alerting.",
+							Description: "Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, KeepLast, and Alerting.  Defaults to Alerting if not set.",
 						},
 						"condition": {
 							Type:        schema.TypeString,
@@ -383,11 +381,6 @@ func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta inte
 				return retry.NonRetryableError(err)
 			}
 
-			// Run variant-specific validation that can't be captured by the schema
-			if err := checkFields(ruleToApply); err != nil {
-				return retry.NonRetryableError(fmt.Errorf("rule with name %q contains incompatible fields: %w", *ruleToApply.Title, err))
-			}
-
 			// Check if a rule with the same name already exists within the same rule group
 			for _, r := range rules {
 				if *r.Title == *ruleToApply.Title {
@@ -532,17 +525,53 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		return nil, err
 	}
 
+	// Check for conflicting fields before unpacking the rest of the rule.
+	// This is a workaround due to the lack of support for ConflictsWith in Lists in the SDK.
+	errState := json["exec_err_state"].(string)
+	noDataState := json["no_data_state"].(string)
+	condition := json["condition"].(string)
+
+	record := unpackRecord(json["record"])
+	if record != nil {
+		incompatFieldMsgFmt := `conflicting fields "record" and "%s"`
+		if forDuration != 0 {
+			return nil, fmt.Errorf(incompatFieldMsgFmt, "for")
+		}
+		if noDataState != "" {
+			return nil, fmt.Errorf(incompatFieldMsgFmt, "no_data_state")
+		}
+		if errState != "" {
+			return nil, fmt.Errorf(incompatFieldMsgFmt, "exec_err_state")
+		}
+		if condition != "" {
+			return nil, fmt.Errorf(incompatFieldMsgFmt, "condition")
+		}
+	}
+	if record == nil {
+		if condition == "" {
+			return nil, fmt.Errorf(`"condition" is required`)
+		}
+		// Compute defaults here to avoid issues related to the above, setting a default in the schema will cause these
+		// to be set before we can validate the configuration.
+		if noDataState == "" {
+			noDataState = "NoData"
+		}
+		if errState == "" {
+			errState = "Alerting"
+		}
+	}
+
 	rule := models.ProvisionedAlertRule{
 		UID:                  json["uid"].(string),
 		Title:                common.Ref(json["name"].(string)),
 		FolderUID:            common.Ref(folderUID),
 		RuleGroup:            common.Ref(groupName),
 		OrgID:                common.Ref(orgID),
-		ExecErrState:         common.Ref(json["exec_err_state"].(string)),
-		NoDataState:          common.Ref(json["no_data_state"].(string)),
+		ExecErrState:         common.Ref(errState),
+		NoDataState:          common.Ref(noDataState),
 		For:                  common.Ref(strfmt.Duration(forDuration)),
 		Data:                 data,
-		Condition:            common.Ref(json["condition"].(string)),
+		Condition:            common.Ref(condition),
 		Labels:               unpackMap(json["labels"]),
 		Annotations:          unpackMap(json["annotations"]),
 		IsPaused:             json["is_paused"].(bool),
@@ -607,30 +636,6 @@ func unpackRuleData(raw interface{}) ([]*models.AlertQuery, error) {
 		result = append(result, stage)
 	}
 	return result, nil
-}
-
-func checkFields(rule *models.ProvisionedAlertRule) error {
-	if rule.Record != nil {
-		incompatFieldMsgFmt := `"record" and "%s" cannot be set together`
-		if rule.For != nil {
-			return fmt.Errorf(incompatFieldMsgFmt, "for")
-		}
-		if rule.NoDataState != nil {
-			return fmt.Errorf(incompatFieldMsgFmt, "no_data_state")
-		}
-		if rule.ExecErrState != nil {
-			return fmt.Errorf(incompatFieldMsgFmt, "exec_err_state")
-		}
-		if rule.Condition != nil {
-			return fmt.Errorf(incompatFieldMsgFmt, "condition")
-		}
-	}
-
-	// condition is required if the rule is not a recording rule
-	if rule.Condition == nil {
-		return fmt.Errorf(`"condition" is required`)
-	}
-	return nil
 }
 
 // normalizeModelJSON is the StateFunc for the `model`. It removes well-known default
