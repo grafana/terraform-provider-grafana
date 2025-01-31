@@ -118,6 +118,7 @@ resource "grafana_contact_point" "receiver_types" {
     mention_channel = "here"
     mention_users   = "user"
     mention_groups  = "group"
+    color           = "color"
   }
 
   teams {

@@ -40,7 +40,7 @@ func TestResourcePrivateDataSourceConnectNetworkToken_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "name", initialName),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "display_name", initialName),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.#", "1"),
-					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.0", "pdc-signing:write"),
+					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "scopes.0", "set:pdc-signing"),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "realm.#", "1"),
 					resource.TestCheckResourceAttr("grafana_cloud_access_policy.test", "realm.0.type", "stack"),
 
