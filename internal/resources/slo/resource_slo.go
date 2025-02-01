@@ -669,7 +669,6 @@ func apiError(action string, err error) diag.Diagnostics {
 
 func ValidateBigTent() schema.SchemaValidateFunc {
 	return func(i interface{}, k string) (warnings []string, errors []error) {
-
 		v, ok := i.(string)
 		if !ok {
 			errors = append(errors, fmt.Errorf("expected type of %s to be string", k))

@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	slo2 "github.com/grafana/terraform-provider-grafana/v3/internal/resources/slo"
+	"github.com/stretchr/testify/assert"
 	"regexp"
 	"strings"
 	"testing"
@@ -411,4 +413,136 @@ func TestAccResourceInvalidSlo(t *testing.T) {
 			},
 		},
 	})
+}
+
+const bigTentQuery = `
+      [
+        {
+          "aggregation": "Sum",
+          "alias": "",
+          "application": "57831",
+          "applicationName": "petclinic",
+          "datasource": {
+            "type": "dlopes7-appdynamics-datasource",
+            "uid": "appdynamics_localdev"
+          },
+          "delimiter": "|",
+          "isRawQuery": false,
+          "metric": "Overall Application Performance|Calls per Minute",
+          "queryType": "metrics",
+          "refId": "total",
+          "rollUp": true,
+          "schemaVersion": "3.9.5",
+          "transformLegend": "Segments",
+          "transformLegendText": ""
+        },
+        {
+          "aggregation": "Sum",
+          "alias": "",
+          "application": "57831",
+          "applicationName": "petclinic",
+          "datasource": {
+            "type": "dlopes7-appdynamics-datasource",
+            "uid": "appdynamics_localdev"
+          },
+          "intervalMs": 1000,
+          "maxDataPoints": 43200,
+          "delimiter": "|",
+          "isRawQuery": false,
+          "metric": "Overall Application Performance|Calls per Minute",
+          "queryType": "metrics",
+          "refId": "also_total",
+          "rollUp": true,
+          "schemaVersion": "3.9.5",
+          "transformLegend": "Segments",
+          "transformLegendText": ""
+        },
+        {
+          "conditions": [
+              {
+                  "evaluator": {
+                      "params": [
+                          0,
+                          0
+                      ],
+                      "type": "gt"
+                  },
+                  "operator": {
+                      "type": "and"
+                  },
+                  "query": {
+                      "params": []
+                  },
+                  "reducer": {
+                      "params": [],
+                      "type": "avg"
+                  },
+                  "type": "query"
+              }
+          ],
+          "datasource": {
+              "name": "Expression",
+              "type": "__expr__",
+              "uid": "__expr__"
+          },
+          "expression": "($total / $also_total)",
+          "intervalMs": 1000,
+          "maxDataPoints": 43200,
+          "refId": "C",
+          "type": "math"
+        }
+      ]`
+
+const bigTentNoDataSource = `[{}]`
+const bigTentMissingFields = `[{"datasource":{}}]`
+
+func TestValidateBigTent(t *testing.T) {
+	tests := map[string]struct {
+		query            string
+		expectedWarnings []string
+		expectedErrors   []error
+	}{
+		"prometheus": {
+			query: "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))",
+			expectedWarnings: []string{
+				"\"Test\" contains an invalid JSON: invalid character 's' looking for beginning of value",
+			},
+			expectedErrors: []error{},
+		},
+		"bigTent_success": {
+			query:            bigTentQuery,
+			expectedWarnings: []string{},
+			expectedErrors:   []error{},
+		},
+		"bigTent_noDatasource": {
+			query:            bigTentNoDataSource,
+			expectedWarnings: []string{},
+			expectedErrors:   []error{fmt.Errorf("expected Big Tent Query map[] to have a datasource")},
+		},
+		"bigTent_missingFields": {
+			query:            bigTentMissingFields,
+			expectedWarnings: []string{},
+			expectedErrors: []error{fmt.Errorf("expected Big Tent Query datasource map[] to have a type"),
+				fmt.Errorf("expected Big Tent Query datasource map[] to have a uid")},
+		},
+	}
+	testFunc := slo2.ValidateBigTent()
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			warnings, errs := testFunc(tc.query, "Test")
+
+			require.Len(t, warnings, len(tc.expectedWarnings))
+			for i, w := range tc.expectedWarnings {
+				assert.Equal(t, w, warnings[i])
+			}
+
+			require.Len(t, errs, len(tc.expectedErrors))
+			for i, e := range tc.expectedErrors {
+				assert.Equal(t, e, errs[i])
+			}
+
+		})
+	}
+
 }
