@@ -261,6 +261,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "slack.0.mention_channel", "here"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "slack.0.mention_users", "user"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "slack.0.mention_groups", "group"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "slack.0.color", "color"),
 					// teams
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "teams.#", "1"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "teams.0.url", "http://teams-webhook"),
