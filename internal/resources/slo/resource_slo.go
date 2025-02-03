@@ -696,13 +696,13 @@ func ValidateBigTent() schema.SchemaValidateDiagFunc {
 		for _, queryObj := range gmrQuery {
 			currentPath := path.Copy()
 
-			refID, ok := queryObj["refID"]
+			refID, ok := queryObj["refId"]
 			if !ok {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected Big Tent Query %v to have a refID", queryObj),
-					AttributePath: append(currentPath, cty.IndexStep{Key: cty.StringVal("refID")}),
+					Detail:        fmt.Sprintf("expected Big Tent Query %v to have a refId", queryObj),
+					AttributePath: append(currentPath, cty.IndexStep{Key: cty.StringVal("refId")}),
 				})
 				return diags
 			}
@@ -713,7 +713,7 @@ func ValidateBigTent() schema.SchemaValidateDiagFunc {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected Big Tent Query (refID:%v) to have a datasource", refID),
+					Detail:        fmt.Sprintf("expected Big Tent Query (refId:%v) to have a datasource", refID),
 					AttributePath: append(currentPath, cty.IndexStep{Key: cty.StringVal("datasource")}),
 				})
 				return diags
@@ -725,7 +725,7 @@ func ValidateBigTent() schema.SchemaValidateDiagFunc {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected Big Tent Query (refID:%v) to have a type", refID),
+					Detail:        fmt.Sprintf("expected Big Tent Query (refId:%v) to have a type", refID),
 					AttributePath: append(currentPath.Copy(), cty.IndexStep{Key: cty.StringVal("type")}),
 				})
 			}
@@ -734,7 +734,7 @@ func ValidateBigTent() schema.SchemaValidateDiagFunc {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected Big Tent Query (refID:%v) to have a uid", refID),
+					Detail:        fmt.Sprintf("expected Big Tent Query (refId:%v) to have a uid", refID),
 					AttributePath: append(currentPath.Copy(), cty.IndexStep{Key: cty.StringVal("uid")}),
 				})
 			}
