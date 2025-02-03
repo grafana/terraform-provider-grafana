@@ -2,9 +2,13 @@ package slo_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/grafana/grafana-openapi-client-go/models"
 	slo2 "github.com/grafana/terraform-provider-grafana/v3/internal/resources/slo"
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/stretchr/testify/assert"
 	"regexp"
 	"strings"
@@ -415,7 +419,82 @@ func TestAccResourceInvalidSlo(t *testing.T) {
 	})
 }
 
-const bigTentQuery = `
+func TestValidateBigTent(t *testing.T) {
+	tests := map[string]struct {
+		query         string
+		expectedDiags diag.Diagnostics
+	}{
+		"prometheus": {
+			query: "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))",
+			expectedDiags: diag.Diagnostics{
+				diag.Diagnostic{
+					Severity:      diag.Warning,
+					Summary:       "Bad JSON format",
+					Detail:        "If this is a big tent query, this should be valid JSON. If this is a prometheus query, ignore this.",
+					AttributePath: cty.IndexPath(cty.Value{}),
+				},
+			},
+		},
+		"bigTent_success": {
+			query:         createBigTent(true, []map[string]any{}),
+			expectedDiags: diag.Diagnostics{},
+		},
+		"bigTent_noRefId": {
+			query: createBigTent(false, []map[string]any{{}}),
+			expectedDiags: diag.Diagnostics{
+				diag.Diagnostic{
+					Severity:      diag.Error,
+					Summary:       "Missing Required Field",
+					Detail:        fmt.Sprintf("expected Big Tent Query %v to have a refId", "map[]"),
+					AttributePath: append(cty.IndexPath(cty.Value{}), cty.IndexStep{Key: cty.StringVal("refId")}),
+				},
+			},
+		},
+		"bigTent_noDatasource": {
+			query: createBigTent(false, []map[string]any{{"refId": "A"}}),
+			expectedDiags: diag.Diagnostics{
+				diag.Diagnostic{
+					Severity:      diag.Error,
+					Summary:       "Missing Required Field",
+					Detail:        "expected Big Tent Query (refId:A) to have a datasource",
+					AttributePath: append(cty.IndexPath(cty.Value{}), cty.IndexStep{Key: cty.StringVal("datasource")}),
+				},
+			},
+		},
+		"bigTent_missingFields": {
+			query: createBigTent(false, []map[string]any{{"refId": "A", "datasource": models.DataSource{}}}),
+			expectedDiags: diag.Diagnostics{
+				diag.Diagnostic{
+					Severity:      diag.Error,
+					Summary:       "Missing Required Field",
+					Detail:        "expected Big Tent Query (refId:A) to have a type",
+					AttributePath: append(cty.IndexPath(cty.Value{}), cty.IndexStep{Key: cty.StringVal("datasource")}, cty.IndexStep{Key: cty.StringVal("type")}),
+				},
+				diag.Diagnostic{
+					Severity:      diag.Error,
+					Summary:       "Missing Required Field",
+					Detail:        "expected Big Tent Query (refId:A) to have a uid",
+					AttributePath: append(cty.IndexPath(cty.Value{}), cty.IndexStep{Key: cty.StringVal("datasource")}, cty.IndexStep{Key: cty.StringVal("uid")}),
+				},
+			},
+		},
+	}
+	testFunc := slo2.ValidateBigTent()
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			diags := testFunc(tc.query, cty.IndexPath(cty.Value{}))
+
+			require.Len(t, diags, len(tc.expectedDiags))
+			for i, w := range tc.expectedDiags {
+				assert.Equal(t, w, diags[i])
+			}
+		})
+	}
+}
+
+func createBigTent(useDefault bool, input []map[string]any) string {
+	const bigTentQuery = `
       [
         {
           "aggregation": "Sum",
@@ -493,54 +572,10 @@ const bigTentQuery = `
         }
       ]`
 
-const bigTentNoDataSource = `[{}]`
-const bigTentMissingFields = `[{"datasource":{}}]`
-
-func TestValidateBigTent(t *testing.T) {
-	tests := map[string]struct {
-		query            string
-		expectedWarnings []string
-		expectedErrors   []error
-	}{
-		"prometheus": {
-			query: "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))",
-			expectedWarnings: []string{
-				"\"Test\" contains an invalid JSON: invalid character 's' looking for beginning of value",
-			},
-			expectedErrors: []error{},
-		},
-		"bigTent_success": {
-			query:            bigTentQuery,
-			expectedWarnings: []string{},
-			expectedErrors:   []error{},
-		},
-		"bigTent_noDatasource": {
-			query:            bigTentNoDataSource,
-			expectedWarnings: []string{},
-			expectedErrors:   []error{fmt.Errorf("expected Big Tent Query map[] to have a datasource")},
-		},
-		"bigTent_missingFields": {
-			query:            bigTentMissingFields,
-			expectedWarnings: []string{},
-			expectedErrors: []error{fmt.Errorf("expected Big Tent Query datasource map[] to have a type"),
-				fmt.Errorf("expected Big Tent Query datasource map[] to have a uid")},
-		},
+	if useDefault {
+		return bigTentQuery
 	}
-	testFunc := slo2.ValidateBigTent()
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			warnings, errs := testFunc(tc.query, "Test")
-
-			require.Len(t, warnings, len(tc.expectedWarnings))
-			for i, w := range tc.expectedWarnings {
-				assert.Equal(t, w, warnings[i])
-			}
-
-			require.Len(t, errs, len(tc.expectedErrors))
-			for i, e := range tc.expectedErrors {
-				assert.Equal(t, e, errs[i])
-			}
-		})
-	}
+	output, _ := json.Marshal(input)
+	return string(output)
 }

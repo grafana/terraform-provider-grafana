@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/structure"
+	"github.com/hashicorp/go-cty/cty"
 	"regexp"
 
 	"github.com/grafana/slo-openapi-client/go/slo"
@@ -92,10 +92,10 @@ Resource manages Grafana SLOs.
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"query": {
-										Type:         schema.TypeString,
-										Required:     true,
-										Description:  "Freeform Query Field",
-										ValidateFunc: ValidateBigTent(),
+										Type:             schema.TypeString,
+										Required:         true,
+										Description:      "Freeform Query Field",
+										ValidateDiagFunc: ValidateBigTent(),
 									},
 								},
 							},
@@ -107,16 +107,16 @@ Resource manages Grafana SLOs.
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"success_metric": {
-										Type:         schema.TypeString,
-										Description:  `Counter metric for success events (numerator)`,
-										Required:     true,
-										ValidateFunc: ValidateBigTent(),
+										Type:             schema.TypeString,
+										Description:      `Counter metric for success events (numerator)`,
+										Required:         true,
+										ValidateDiagFunc: ValidateBigTent(),
 									},
 									"total_metric": {
-										Type:         schema.TypeString,
-										Description:  `Metric for total events (denominator)`,
-										Required:     true,
-										ValidateFunc: ValidateBigTent(),
+										Type:             schema.TypeString,
+										Description:      `Metric for total events (denominator)`,
+										Required:         true,
+										ValidateDiagFunc: ValidateBigTent(),
 									},
 									"group_by_labels": {
 										Type:        schema.TypeList,
@@ -667,46 +667,79 @@ func apiError(action string, err error) diag.Diagnostics {
 	}
 }
 
-func ValidateBigTent() schema.SchemaValidateFunc {
-	return func(i interface{}, k string) (warnings []string, errors []error) {
+func ValidateBigTent() schema.SchemaValidateDiagFunc {
+	return func(i interface{}, path cty.Path) diag.Diagnostics {
+		var diags diag.Diagnostics
+
 		v, ok := i.(string)
 		if !ok {
-			errors = append(errors, fmt.Errorf("expected type of %s to be string", k))
-			return warnings, errors
-		}
-
-		normString, err := structure.NormalizeJsonString(v)
-		if err != nil {
-			warnings = append(warnings, fmt.Sprintf("%q contains an invalid JSON: %s", k, err))
-			return warnings, errors
+			diags = append(diags, diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       "Bad Format",
+				Detail:        fmt.Sprintf("expected type of %s to be string", path),
+				AttributePath: path,
+			})
 		}
 
 		var gmrQuery []map[string]any
-		err = json.Unmarshal([]byte(normString), &gmrQuery)
+		err := json.Unmarshal([]byte(v), &gmrQuery)
 		if err != nil {
-			warnings = append(warnings, fmt.Sprintf("%v", err))
-			// If queries aren't valid JSON, we'll attempt to validate as promQL
-			return warnings, errors
+			diags = append(diags, diag.Diagnostic{
+				Severity:      diag.Warning,
+				Summary:       "Bad JSON format",
+				Detail:        "If this is a big tent query, this should be valid JSON. If this is a prometheus query, ignore this.",
+				AttributePath: path,
+			})
+			return diags
 		}
 
 		for _, queryObj := range gmrQuery {
+			currentPath := path.Copy()
+
+			refId, ok := queryObj["refId"]
+			if !ok {
+				diags = append(diags, diag.Diagnostic{
+					Severity:      diag.Error,
+					Summary:       "Missing Required Field",
+					Detail:        fmt.Sprintf("expected Big Tent Query %v to have a refId", queryObj),
+					AttributePath: append(currentPath, cty.IndexStep{Key: cty.StringVal("refId")}),
+				})
+				return diags
+			}
+
 			source := queryObj["datasource"]
 			s, ok := source.(map[string]interface{})
 			if !ok {
-				errors = append(errors, fmt.Errorf("expected Big Tent Query %v to have a datasource", queryObj))
-				return warnings, errors
+				diags = append(diags, diag.Diagnostic{
+					Severity:      diag.Error,
+					Summary:       "Missing Required Field",
+					Detail:        fmt.Sprintf("expected Big Tent Query (refId:%v) to have a datasource", refId),
+					AttributePath: append(currentPath, cty.IndexStep{Key: cty.StringVal("datasource")}),
+				})
+				return diags
 			}
 
+			currentPath = append(currentPath, cty.IndexStep{Key: cty.StringVal("datasource")})
 			_, ok = s["type"]
 			if !ok {
-				errors = append(errors, fmt.Errorf("expected Big Tent Query datasource %v to have a type", s))
+				diags = append(diags, diag.Diagnostic{
+					Severity:      diag.Error,
+					Summary:       "Missing Required Field",
+					Detail:        fmt.Sprintf("expected Big Tent Query (refId:%v) to have a type", refId),
+					AttributePath: append(currentPath.Copy(), cty.IndexStep{Key: cty.StringVal("type")}),
+				})
 			}
 			_, ok = s["uid"]
 			if !ok {
-				errors = append(errors, fmt.Errorf("expected Big Tent Query datasource %v to have a uid", s))
+				diags = append(diags, diag.Diagnostic{
+					Severity:      diag.Error,
+					Summary:       "Missing Required Field",
+					Detail:        fmt.Sprintf("expected Big Tent Query (refId:%v) to have a uid", refId),
+					AttributePath: append(currentPath.Copy(), cty.IndexStep{Key: cty.StringVal("uid")}),
+				})
 			}
-		}
 
-		return warnings, errors
+		}
+		return diags
 	}
 }
