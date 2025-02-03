@@ -37,6 +37,7 @@ func TestAcc_AzureCredential(t *testing.T) {
         "value": "value-2"
       }
     ],
+	"resource_tags_to_add_to_metrics" : ["tag1", "tag2"],
     "auto_discovery_configuration": [
       {
         "subscription_id": "my-subscription_id",
@@ -94,6 +95,7 @@ func TestAcc_AzureCredential(t *testing.T) {
         "value": "value-2"
       }
     ],
+	"resource_tags_to_add_to_metrics" : ["tag1", "tag2"],
 	"auto_discovery_configuration": [
       {
         "subscription_id": "my-subscription_id",
@@ -146,6 +148,7 @@ func TestAcc_AzureCredential(t *testing.T) {
         "value": "value-2"
       }
     ],
+	"resource_tags_to_add_to_metrics" : ["tag1", "tag2"],
 	"auto_discovery_configuration": [
       {
         "subscription_id": "my-subscription_id",
@@ -218,6 +221,8 @@ func TestAcc_AzureCredential(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.1.metric_configuration.0.dimensions.0", "GeoType"),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.1.metric_configuration.0.dimensions.1", "ApiName"),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.1.metric_configuration.0.aggregations.0", "Average"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "resource_tags_to_add_to_metrics.0", "tag1"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_azure_credential.test", "resource_tags_to_add_to_metrics.1", "tag2"),
 				),
 			},
 			{
@@ -243,6 +248,8 @@ func TestAcc_AzureCredential(t *testing.T) {
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.1.metric_configuration.0.dimensions.0", "GeoType"),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.1.metric_configuration.0.dimensions.1", "ApiName"),
 					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "auto_discovery_configuration.0.resource_type_configurations.1.metric_configuration.0.aggregations.0", "Average"),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "resource_tags_to_add_to_metrics.0", "tag1"),
+					resource.TestCheckResourceAttr("data.grafana_cloud_provider_azure_credential.test", "resource_tags_to_add_to_metrics.1", "tag2"),
 				),
 			},
 		},
