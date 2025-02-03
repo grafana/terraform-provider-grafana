@@ -75,6 +75,11 @@ func (r *datasourceAzureCredential) Schema(ctx context.Context, req datasource.S
 				Computed:    true,
 				Sensitive:   true,
 			},
+			"resource_tags_to_add_to_metrics": schema.SetAttribute{
+				Description: "A set of regions that this AWS Account resource applies to.",
+				Computed:    true,
+				ElementType: types.StringType,
+			},
 		},
 		Blocks: map[string]schema.Block{
 			"resource_discovery_tag_filter": schema.ListNestedBlock{
@@ -175,6 +180,12 @@ func (r *datasourceAzureCredential) Read(ctx context.Context, req datasource.Rea
 	}
 	diags = resp.State.SetAttribute(ctx, path.Root("auto_discovery_configuration"), convertedAutoDiscoveryConfigurations)
 	resp.Diagnostics.Append(diags...)
+
+	diags = resp.State.SetAttribute(ctx, path.Root("resource_tags_to_add_to_metrics"), credential.ResourceTagsToAddToMetrics)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	if resp.Diagnostics.HasError() {
 		return
