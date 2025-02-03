@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/go-cty/cty"
 	"regexp"
 
 	"github.com/grafana/slo-openapi-client/go/slo"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -696,13 +696,13 @@ func ValidateBigTent() schema.SchemaValidateDiagFunc {
 		for _, queryObj := range gmrQuery {
 			currentPath := path.Copy()
 
-			refId, ok := queryObj["refId"]
+			refID, ok := queryObj["refID"]
 			if !ok {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected Big Tent Query %v to have a refId", queryObj),
-					AttributePath: append(currentPath, cty.IndexStep{Key: cty.StringVal("refId")}),
+					Detail:        fmt.Sprintf("expected Big Tent Query %v to have a refID", queryObj),
+					AttributePath: append(currentPath, cty.IndexStep{Key: cty.StringVal("refID")}),
 				})
 				return diags
 			}
@@ -713,7 +713,7 @@ func ValidateBigTent() schema.SchemaValidateDiagFunc {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected Big Tent Query (refId:%v) to have a datasource", refId),
+					Detail:        fmt.Sprintf("expected Big Tent Query (refID:%v) to have a datasource", refID),
 					AttributePath: append(currentPath, cty.IndexStep{Key: cty.StringVal("datasource")}),
 				})
 				return diags
@@ -725,7 +725,7 @@ func ValidateBigTent() schema.SchemaValidateDiagFunc {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected Big Tent Query (refId:%v) to have a type", refId),
+					Detail:        fmt.Sprintf("expected Big Tent Query (refID:%v) to have a type", refID),
 					AttributePath: append(currentPath.Copy(), cty.IndexStep{Key: cty.StringVal("type")}),
 				})
 			}
@@ -734,11 +734,10 @@ func ValidateBigTent() schema.SchemaValidateDiagFunc {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected Big Tent Query (refId:%v) to have a uid", refId),
+					Detail:        fmt.Sprintf("expected Big Tent Query (refID:%v) to have a uid", refID),
 					AttributePath: append(currentPath.Copy(), cty.IndexStep{Key: cty.StringVal("uid")}),
 				})
 			}
-
 		}
 		return diags
 	}
