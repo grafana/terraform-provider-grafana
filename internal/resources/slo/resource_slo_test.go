@@ -541,8 +541,6 @@ func TestValidateBigTent(t *testing.T) {
 			for i, e := range tc.expectedErrors {
 				assert.Equal(t, e, errs[i])
 			}
-
 		})
 	}
-
 }
