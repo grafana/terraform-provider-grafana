@@ -185,7 +185,7 @@ func (v awsCWScrapeJobNoDuplicateMetricNamesValidator) MarkdownDescription(ctx c
 func (v awsCWScrapeJobNoDuplicateMetricNamesValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
 	seen := map[string]struct{}{}
 	elems := make([]awsCWScrapeJobMetricTFModel, len(req.ConfigValue.Elements()))
-	diags := req.ConfigValue.ElementsAs(ctx, &elems, false)
+	diags := req.ConfigValue.ElementsAs(ctx, &elems, true)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
