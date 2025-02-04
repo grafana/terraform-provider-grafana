@@ -286,7 +286,7 @@ the in-screen instructions, of following [this guide](https://grafana.com/docs/g
 
 #### Obtaining Cloud Provider API hostname
 
-Having created the token, we can find the correct Cloud Provider API hostname by running the following script, that requires `curl` and [`jq`](https://jqlang.github.io/jq/) installed:
+Having created the token, we can find the correct Cloud Provider API hostname by running the following script, that requires `curl` and [`jq`](https://jqlang.org/) installed:
 
 ```bash
 curl -sH "Authorization: Bearer <Access Token from previous step>" "https://grafana.com/api/instances" | \
@@ -414,7 +414,7 @@ the in-screen instructions, of following [this guide](https://grafana.com/docs/g
 
 #### Obtaining Connections API hostname
 
-Having created the token, we can find the correct Connections API hostname by running the following script, that requires `curl` and [`jq`](https://jqlang.github.io/jq/) installed:
+Having created the token, we can find the correct Connections API hostname by running the following script, that requires `curl` and [`jq`](https://jqlang.org/) installed:
 
 ```bash
 curl -sH "Authorization: Bearer <Access Token from previous step>" "https://grafana.com/api/instances" | \
