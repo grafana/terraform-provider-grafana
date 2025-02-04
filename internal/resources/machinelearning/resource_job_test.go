@@ -81,6 +81,22 @@ func TestAccResourceJob(t *testing.T) {
 					resource.TestCheckResourceAttrSet("grafana_machine_learning_job.test_job", "holidays.0"),
 				),
 			},
+			{
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_machine_learning_job/transformed_job.tf", map[string]string{
+					"Test Job": randomName,
+				}),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("grafana_machine_learning_job.test_job", "id"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "name", randomName),
+					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "metric", "tf_test_job"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "datasource_type", "prometheus"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "datasource_uid", "prometheus-ds-test-uid"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "query_params.expr", "grafanacloud_grafana_instance_active_user_count"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "interval", "300"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "training_window", "7776000"),
+					resource.TestCheckResourceAttr("grafana_machine_learning_job.test_job", "hyper_params.transformation_id", "power"),
+				),
+			},
 		},
 	})
 }

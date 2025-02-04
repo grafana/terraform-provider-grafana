@@ -26,6 +26,12 @@ This forecast has tuned hyperparameters to improve the accuracy of the model.
 
 {{ tffile "examples/resources/grafana_machine_learning_job/tuned_job.tf" }}
 
+### Rescaled Forecast
+
+This forecast has had the data transformed using a power transformation in order to avoid negative lower predictions.
+
+{{ tffile "examples/resources/grafana_machine_learning_job/transformed_job.tf" }}
+
 ### Forecast with Holidays
 
 This forecast has holidays which will be taken into account when training the model.
