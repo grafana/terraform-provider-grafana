@@ -3,6 +3,8 @@ checkextern=1
 ignore=
   # https://regex101.com/r/Pl0jCn/1
   \/\*\!sc\*\/
+ignorewarningsforurls=
+  ^https://jqlang\.github\.io/jq/ ^http-redirected
 
 [MarkdownCheck]
 filename_re=.*\.md
