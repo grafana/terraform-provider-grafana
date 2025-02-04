@@ -132,18 +132,18 @@ EOT
 
 Required:
 
-- `condition` (String) The `ref_id` of the query node in the `data` field to use as the alert condition.
 - `data` (Block List, Min: 1) A sequence of stages that describe the contents of the rule. (see [below for nested schema](#nestedblock--rule--data))
 - `name` (String) The name of the alert rule.
 
 Optional:
 
 - `annotations` (Map of String) Key-value pairs of metadata to attach to the alert rule. They add additional information, such as a `summary` or `runbook_url`, to help identify and investigate alerts. The `dashboardUId` and `panelId` annotations, which link alerts to a panel, must be set together. Defaults to `map[]`.
-- `exec_err_state` (String) Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, KeepLast, and Alerting. Defaults to `Alerting`.
+- `condition` (String) The `ref_id` of the query node in the `data` field to use as the alert condition.
+- `exec_err_state` (String) Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, KeepLast, and Alerting.  Defaults to Alerting if not set.
 - `for` (String) The amount of time for which the rule must be breached for the rule to be considered to be Firing. Before this time has elapsed, the rule is only considered to be Pending. Defaults to `0`.
 - `is_paused` (Boolean) Sets whether the alert should be paused or not. Defaults to `false`.
 - `labels` (Map of String) Key-value pairs to attach to the alert rule that can be used in matching, grouping, and routing. Defaults to `map[]`.
-- `no_data_state` (String) Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, KeepLast, and Alerting. Defaults to `NoData`.
+- `no_data_state` (String) Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, KeepLast, and Alerting. Defaults to NoData if not set.
 - `notification_settings` (Block List, Max: 1) Notification settings for the rule. If specified, it overrides the notification policies. Available since Grafana 10.4, requires feature flag 'alertingSimplifiedRouting' to be enabled. (see [below for nested schema](#nestedblock--rule--notification_settings))
 - `record` (Block List, Max: 1) Settings for a recording rule. Available since Grafana 11.2, requires feature flag 'grafanaManagedRecordingRules' to be enabled. (see [below for nested schema](#nestedblock--rule--record))
 
