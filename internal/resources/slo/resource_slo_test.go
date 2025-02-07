@@ -426,15 +426,8 @@ func TestValidateBigTent(t *testing.T) {
 		expectedDiags diag.Diagnostics
 	}{
 		"prometheus": {
-			query: "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))",
-			expectedDiags: diag.Diagnostics{
-				diag.Diagnostic{
-					Severity:      diag.Warning,
-					Summary:       "Bad JSON format",
-					Detail:        "If this is a big tent query, this should be valid JSON. If this is a prometheus query, ignore this.",
-					AttributePath: cty.IndexPath(cty.Value{}),
-				},
-			},
+			query:         "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))",
+			expectedDiags: diag.Diagnostics{},
 		},
 		"bigTent_success": {
 			query:         createBigTent(true, []map[string]any{}),

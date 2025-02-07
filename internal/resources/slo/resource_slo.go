@@ -679,17 +679,12 @@ func ValidateBigTent() schema.SchemaValidateDiagFunc {
 				Detail:        fmt.Sprintf("expected type of %s to be string", path),
 				AttributePath: path,
 			})
+			return diags
 		}
 
 		var gmrQuery []map[string]any
 		err := json.Unmarshal([]byte(v), &gmrQuery)
 		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity:      diag.Warning,
-				Summary:       "Bad JSON format",
-				Detail:        "If this is a big tent query, this should be valid JSON. If this is a prometheus query, ignore this.",
-				AttributePath: path,
-			})
 			return diags
 		}
 
