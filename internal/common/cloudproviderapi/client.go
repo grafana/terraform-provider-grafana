@@ -111,6 +111,7 @@ type AWSCloudWatchScrapeJobRequest struct {
 	ExportTags            bool                           `json:"exportTags"`
 	Services              []AWSCloudWatchService         `json:"services"`
 	CustomNamespaces      []AWSCloudWatchCustomNamespace `json:"customNamespaces"`
+	StaticLabels          map[string]string              `json:"staticLabels"`
 }
 type AWSCloudWatchScrapeJobResponse struct {
 	Name                 string                         `json:"name"`
@@ -119,6 +120,8 @@ type AWSCloudWatchScrapeJobResponse struct {
 	ExportTags           bool                           `json:"exportTags"`
 	Services             []AWSCloudWatchService         `json:"services"`
 	CustomNamespaces     []AWSCloudWatchCustomNamespace `json:"customNamespaces"`
+	StaticLabels         map[string]string              `json:"staticLabels"`
+
 	// computed fields beyond the original request
 	RoleARN                   string   `json:"roleARN"`
 	Regions                   []string `json:"regions"`

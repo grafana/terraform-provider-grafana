@@ -52,6 +52,10 @@ var testAWSCloudWatchScrapeJobData = cloudproviderapi.AWSCloudWatchScrapeJobResp
 			},
 		},
 	},
+	StaticLabels: map[string]string{
+		"label1": "value1",
+		"label2": "value2",
+	},
 }
 
 func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
@@ -105,6 +109,8 @@ func TestAccResourceAWSCloudWatchScrapeJob(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.metric.0.statistics.#", fmt.Sprintf("%d", len(testAWSCloudWatchScrapeJobData.CustomNamespaces[0].Metrics[0].Statistics))),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.metric.0.statistics.0", testAWSCloudWatchScrapeJobData.CustomNamespaces[0].Metrics[0].Statistics[0]),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "custom_namespace.0.scrape_interval_seconds", fmt.Sprintf("%d", testAWSCloudWatchScrapeJobData.CustomNamespaces[0].ScrapeIntervalSeconds)),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "static_labels.label1", testAWSCloudWatchScrapeJobData.StaticLabels["label1"]),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_cloudwatch_scrape_job.test", "static_labels.label2", testAWSCloudWatchScrapeJobData.StaticLabels["label2"]),
 				),
 			},
 			// update to remove regions_subset_override so that the account's regions are used instead
@@ -306,6 +312,12 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
   stack_id = "%[1]s"
   name = "%[2]s"
   enabled = %[3]t
+  
+  static_labels = {
+    "label1" = "value1"
+    "label2" = "value2"
+  }
+
   aws_account_resource_id = "%[4]s"
   regions_subset_override = [%[5]s]
   export_tags = true
