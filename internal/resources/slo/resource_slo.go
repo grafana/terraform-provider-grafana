@@ -94,7 +94,7 @@ Resource manages Grafana SLOs.
 									"query": {
 										Type:             schema.TypeString,
 										Required:         true,
-										Description:      "Freeform Query Field",
+										Description:      "Freeform Query Field - valid promQl or JSON formatted string",
 										ValidateDiagFunc: ValidateBigTent(),
 									},
 								},

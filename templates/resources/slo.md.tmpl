@@ -22,6 +22,10 @@ description: |-
 
 ## Non Prometheus
 
+Non prometheus queries use the freeform query field. It expects a JSON string list of valid grafana query JSON objects.
+You can see more examples of correct JSON structure from using the export button on a Grafana-managed rule definition
+created by the SLO app, under the model field.
+
 {{ tffile "examples/resources/grafana_slo/resource_nonprometheus.tf" }}
 
 {{ .SchemaMarkdown | trimspace }}
