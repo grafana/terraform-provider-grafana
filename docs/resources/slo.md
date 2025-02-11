@@ -125,11 +125,12 @@ resource "grafana_slo" "test" {
 }
 ```
 
-## Non Prometheus
+## Enterprise Datasources
 
-Non prometheus queries use the freeform query field. It expects a JSON string list of valid grafana query JSON objects.
-You can see more examples of correct JSON structure from using the export button on a Grafana-managed rule definition
-created by the SLO app, under the model field.
+Currently supported datasources: AppDynamics, Splunk, Graphite
+
+Enterprise Datasource queries use the freeform query field. It expects a JSON string list of valid grafana query JSON objects.
+For additional help, view our [documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/).
 
 ```terraform
 resource "grafana_slo" "test" {
