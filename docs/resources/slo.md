@@ -145,8 +145,8 @@ resource "grafana_slo" "test" {
           application : "57831",
           applicationName : "petclinic",
           datasource : {
-            "type" : "dlopes7-appdynamics-datasource",
-            "uid" : "appdynamics_localdev"
+            type : "dlopes7-appdynamics-datasource",
+            uid : "appdynamics_localdev"
           },
           delimiter : "|",
           isRawQuery : false,
@@ -164,8 +164,8 @@ resource "grafana_slo" "test" {
           application : "57831",
           applicationName : "petclinic",
           datasource : {
-            "type" : "dlopes7-appdynamics-datasource",
-            "uid" : "appdynamics_localdev"
+            type : "dlopes7-appdynamics-datasource",
+            uid : "appdynamics_localdev"
           },
           intervalMs : 1000,
           maxDataPoints : 43200,
@@ -181,8 +181,8 @@ resource "grafana_slo" "test" {
         },
         {
           datasource : {
-            "type" : "__expr__",
-            "uid" : "__expr__"
+            type : "__expr__",
+            uid : "__expr__"
           },
           expression : "($total - $errors) / $total",
           intervalMs : 1000,
