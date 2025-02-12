@@ -47,7 +47,7 @@ Required access policy scopes:
 				Sensitive:   true,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) with the following scopes: `stacks:read`, `metrics:write`, `logs:write`, `traces:write`. This is used to publish metrics and logs to Grafana Cloud stack.",
+				Description: "The [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/security-and-account-management/authentication-and-permissions/access-policies/) with the following scopes: `stacks:read`, `metrics:write`, `logs:write`, `traces:write`. This is used to publish metrics and logs to Grafana Cloud stack.",
 			},
 			"stack_sm_api_url": {
 				Type:        schema.TypeString,
