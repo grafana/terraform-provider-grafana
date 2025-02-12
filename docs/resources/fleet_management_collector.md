@@ -47,7 +47,7 @@ resource "grafana_fleet_management_collector" "test" {
 ### Optional
 
 - `enabled` (Boolean) Whether the collector is enabled or not
-- `remote_attributes` (Map of String) Remote attributes that override local attributes for the collector
+- `remote_attributes` (Map of String) Remote attributes for the collector
 
 ## Import
 

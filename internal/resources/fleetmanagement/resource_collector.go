@@ -86,7 +86,7 @@ Required access policy scopes:
 				},
 			},
 			"remote_attributes": schema.MapAttribute{
-				Description: "Remote attributes that override local attributes for the collector",
+				Description: "Remote attributes for the collector",
 				Optional:    true,
 				Computed:    true,
 				ElementType: types.StringType,

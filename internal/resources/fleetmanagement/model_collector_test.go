@@ -17,7 +17,7 @@ func TestCollectorMessageToModel(t *testing.T) {
 
 	msg := &collectorv1.Collector{
 		Id: id,
-		AttributeOverrides: map[string]string{
+		RemoteAttributes: map[string]string{
 			"key1": "value1",
 			"key2": "value2",
 		},
@@ -60,7 +60,7 @@ func TestCollectorModelToMessage(t *testing.T) {
 
 	expectedMsg := &collectorv1.Collector{
 		Id: id,
-		AttributeOverrides: map[string]string{
+		RemoteAttributes: map[string]string{
 			"key1": "value1",
 			"key2": "value2",
 		},

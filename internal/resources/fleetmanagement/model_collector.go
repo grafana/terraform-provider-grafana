@@ -16,7 +16,7 @@ type collectorModel struct {
 }
 
 func collectorMessageToModel(ctx context.Context, msg *collectorv1.Collector) (*collectorModel, diag.Diagnostics) {
-	remoteAttributes, diags := nativeStringMapToTFStringMap(ctx, msg.AttributeOverrides)
+	remoteAttributes, diags := nativeStringMapToTFStringMap(ctx, msg.RemoteAttributes)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -35,9 +35,9 @@ func collectorModelToMessage(ctx context.Context, model *collectorModel) (*colle
 	}
 
 	return &collectorv1.Collector{
-		Id:                 model.ID.ValueString(),
-		AttributeOverrides: remoteAttributes,
-		Enabled:            tfBoolToNativeBoolPtr(model.Enabled),
+		Id:               model.ID.ValueString(),
+		RemoteAttributes: remoteAttributes,
+		Enabled:          tfBoolToNativeBoolPtr(model.Enabled),
 	}, nil
 }
 

@@ -33,7 +33,7 @@ resource "grafana_fleet_management_collector" "test" {
 }
 `
 
-	collectorResourceEmptyAttributeOverridesConfig = `
+	collectorResourceEmptyRemoteAttributesConfig = `
 resource "grafana_fleet_management_collector" "test" {
 	id = "%s"
 	remote_attributes = {}
@@ -89,7 +89,7 @@ func TestAccCollectorResource(t *testing.T) {
 			},
 			// Update with empty remote_attributes field
 			{
-				Config: fmt.Sprintf(collectorResourceEmptyAttributeOverridesConfig, collectorID),
+				Config: fmt.Sprintf(collectorResourceEmptyRemoteAttributesConfig, collectorID),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "id", collectorID),
 					resource.TestCheckResourceAttrSet(resourceName, "remote_attributes.%"),
