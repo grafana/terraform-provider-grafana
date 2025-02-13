@@ -48,6 +48,8 @@ jobs:
             GRAFANA_CLOUD_PROVIDER_ACCESS_TOKEN=cloudprovider-tests:access-token
             GRAFANA_CLOUD_PROVIDER_AWS_ROLE_ARN=cloudprovider-tests:aws-role-arn
             GRAFANA_CLOUD_PROVIDER_TEST_STACK_ID=cloudprovider-tests:test-stack-id
+            GRAFANA_FLEET_MANAGEMENT_AUTH=cloud-instance-tests:fleet-management-auth
+            GRAFANA_FLEET_MANAGEMENT_URL=cloud-instance-tests:fleet-management-url
       - uses: iFaxity/wait-on-action@a7d13170ec542bdca4ef8ac4b15e9c6aa00a6866 # v1.2.1
         with:
           resource: ${{ env.GRAFANA_URL }}

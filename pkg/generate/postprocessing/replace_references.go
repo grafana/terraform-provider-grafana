@@ -17,6 +17,7 @@ var knownReferences = []string{
 	"grafana_annotation.org_id=grafana_organization.id",
 	"grafana_cloud_access_policy.identifier=grafana_cloud_stack.id",
 	"grafana_cloud_access_policy_token.access_policy_id=grafana_cloud_access_policy.policy_id",
+	"grafana_cloud_access_policy_token.region=grafana_cloud_access_policy.region",
 	"grafana_cloud_plugin_installation.stack_slug=grafana_cloud_stack.slug",
 	"grafana_cloud_private_data_source_connect_network.stack_identifier=grafana_cloud_stack.id",
 	"grafana_cloud_private_data_source_connect_network_token.pdc_network_id=grafana_cloud_private_data_source_connect_network.pdc_network_id",
