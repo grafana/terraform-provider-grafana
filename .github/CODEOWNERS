@@ -4,6 +4,7 @@
 /internal/resources/cloud/*                 @grafana/platform-monitoring @grafana/grafana-com-maintainers
 /internal/resources/cloudprovider/*         @grafana/platform-monitoring @grafana/middleware-apps
 /internal/resources/connections/*           @grafana/platform-monitoring @grafana/middleware-apps
+/internal/resources/fleetmanagement/*       @grafana/platform-monitoring @grafana/fleet-management-backend
 /internal/resources/machinelearning/*       @grafana/platform-monitoring @grafana/machine-learning
 /internal/resources/oncall/*                @grafana/platform-monitoring @grafana/grafana-irm-backend
 /internal/resources/slo/*                   @grafana/platform-monitoring @grafana/slo-squad

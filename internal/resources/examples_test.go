@@ -99,6 +99,13 @@ func TestAccExamples(t *testing.T) {
 				t.Skip()
 			},
 		},
+		{
+			category: "Fleet Management",
+			testCheck: func(t *testing.T, filename string) {
+				t.Skip()
+				testutils.CheckCloudInstanceTestsEnabled(t)
+			},
+		},
 	} {
 		// Get all the filenames for all resource examples for this category
 		filenames := []string{}
