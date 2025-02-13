@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
@@ -58,7 +58,7 @@ func TestAccResourceOrgMember(t *testing.T) {
 
 func testAccCheckOrgMember(org, user string, shouldExist bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		commonClient, ok := testutils.Provider.Meta().(*common.Client)
+		commonClient, ok := testutils.Provider.Meta().(*client.Client)
 		if !ok {
 			return fmt.Errorf("failed to get common client")
 		}
@@ -90,7 +90,7 @@ func testAccCheckOrgMember(org, user string, shouldExist bool) resource.TestChec
 func testAccDeleteExistingOrgMember(t *testing.T, org, name string) {
 	t.Helper()
 
-	client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+	client := testutils.Provider.Meta().(*client.Client).GrafanaCloudAPI
 	resp, _, err := client.OrgsAPI.GetOrgMembers(context.Background(), org).Execute()
 	if err != nil {
 		t.Error(err)

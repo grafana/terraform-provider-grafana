@@ -7,6 +7,7 @@ import (
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 )
 
 // ListerData is used as the data arg in "ListIDs" functions. It allows getting data common to multiple resources.
@@ -53,7 +54,7 @@ func (d *ListerData) OrgID(ctx context.Context, client *gcom.APIClient) (int32, 
 
 // cloudListerFunction is a helper function that wraps a lister function be used more easily in cloud resources.
 func cloudListerFunction(listerFunc func(ctx context.Context, client *gcom.APIClient, data *ListerData) ([]string, error)) common.ResourceListIDsFunc {
-	return func(ctx context.Context, client *common.Client, data any) ([]string, error) {
+	return func(ctx context.Context, client *client.Client, data any) ([]string, error) {
 		lm, ok := data.(*ListerData)
 		if !ok {
 			return nil, fmt.Errorf("unexpected data type: %T", data)

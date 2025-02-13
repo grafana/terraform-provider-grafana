@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -139,7 +139,7 @@ func testAccMLJobAlertCheckExists(rn string, job *mlapi.Job, alert *mlapi.Alert)
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).MLAPI
+		client := testutils.Provider.Meta().(*client.Client).MLAPI
 		gotAlert, err := client.JobAlert(context.Background(), job.ID, rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting job: %s", err)
@@ -162,7 +162,7 @@ func testAccMLOutlierAlertCheckExists(rn string, outlier *mlapi.OutlierDetector,
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).MLAPI
+		client := testutils.Provider.Meta().(*client.Client).MLAPI
 		gotAlert, err := client.OutlierAlert(context.Background(), outlier.ID, rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("error getting job: %s", err)
@@ -184,7 +184,7 @@ func testAccMLJobAlertCheckDestroy(job *mlapi.Job, alert *mlapi.Alert) resource.
 		if alert.ID == "" {
 			return fmt.Errorf("checking deletion of empty alert id")
 		}
-		client := testutils.Provider.Meta().(*common.Client).MLAPI
+		client := testutils.Provider.Meta().(*client.Client).MLAPI
 		_, err := client.JobAlert(context.Background(), job.ID, alert.ID)
 		if err == nil {
 			return fmt.Errorf("job still exists on server")
@@ -203,7 +203,7 @@ func testAccMLOutlierAlertCheckDestroy(outlier *mlapi.OutlierDetector, alert *ml
 		if alert.ID == "" {
 			return fmt.Errorf("checking deletion of empty alert id")
 		}
-		client := testutils.Provider.Meta().(*common.Client).MLAPI
+		client := testutils.Provider.Meta().(*client.Client).MLAPI
 		_, err := client.OutlierAlert(context.Background(), outlier.ID, alert.ID)
 		if err == nil {
 			return fmt.Errorf("job still exists on server")

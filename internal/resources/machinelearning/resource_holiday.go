@@ -11,6 +11,7 @@ import (
 
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 )
 
 var resourceHolidayID = common.NewResourceID(common.StringIDField("id"))
@@ -127,7 +128,7 @@ func listHolidays(ctx context.Context, client *mlapi.Client) ([]string, error) {
 }
 
 func resourceHolidayCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).MLAPI
+	c := meta.(*client.Client).MLAPI
 	holiday, err := makeMLHoliday(d)
 	if err != nil {
 		return diag.FromErr(err)
@@ -141,7 +142,7 @@ func resourceHolidayCreate(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func resourceHolidayRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).MLAPI
+	c := meta.(*client.Client).MLAPI
 	holiday, err := c.Holiday(ctx, d.Id())
 	if err, shouldReturn := common.CheckReadError("holiday", d, err); shouldReturn {
 		return err
@@ -167,7 +168,7 @@ func resourceHolidayRead(ctx context.Context, d *schema.ResourceData, meta inter
 }
 
 func resourceHolidayUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).MLAPI
+	c := meta.(*client.Client).MLAPI
 	job, err := makeMLHoliday(d)
 	if err != nil {
 		return diag.FromErr(err)
@@ -180,7 +181,7 @@ func resourceHolidayUpdate(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func resourceHolidayDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	c := meta.(*common.Client).MLAPI
+	c := meta.(*client.Client).MLAPI
 	err := c.DeleteHoliday(ctx, d.Id())
 	return diag.FromErr(err)
 }

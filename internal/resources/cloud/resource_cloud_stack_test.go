@@ -13,6 +13,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -186,7 +187,7 @@ func TestResourceStack_Invalid(t *testing.T) {
 }
 
 func testAccDeleteExistingStacks(t *testing.T, prefix string) {
-	client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+	client := testutils.Provider.Meta().(*client.Client).GrafanaCloudAPI
 	resp, _, err := client.InstancesAPI.GetInstances(context.Background()).Execute()
 	if err != nil {
 		t.Error(err)
@@ -213,7 +214,7 @@ func testAccStackCheckExists(rn string, a *gcom.FormattedApiInstance) resource.T
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+		client := testutils.Provider.Meta().(*client.Client).GrafanaCloudAPI
 		stack, _, err := client.InstancesAPI.GetInstance(context.Background(), rs.Primary.ID).Execute()
 		if err != nil {
 			return fmt.Errorf("error getting data source: %s", err)
@@ -231,7 +232,7 @@ func testAccStackCheckExists(rn string, a *gcom.FormattedApiInstance) resource.T
 
 func testAccStackCheckDestroy(a *gcom.FormattedApiInstance) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+		client := testutils.Provider.Meta().(*client.Client).GrafanaCloudAPI
 		stack, _, err := client.InstancesAPI.GetInstance(context.Background(), a.Slug).Execute()
 		if err == nil && stack.Name != "" && stack.Status != "deleting" {
 			return fmt.Errorf("stack `%s` with ID `%d` still exists after destroy. Status: %s", stack.Name, int(stack.Id), stack.Status)

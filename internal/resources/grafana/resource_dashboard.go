@@ -14,6 +14,7 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/search"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 )
 
 var (
@@ -136,7 +137,7 @@ func CreateDashboard(ctx context.Context, d *schema.ResourceData, meta interface
 }
 
 func ReadDashboard(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	metaClient := meta.(*common.Client)
+	metaClient := meta.(*client.Client)
 	client, orgID, uid := OAPIClientFromExistingOrgResource(meta, d.Id())
 
 	resp, err := client.Dashboards.GetDashboardByUID(uid)

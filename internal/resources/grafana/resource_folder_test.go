@@ -18,6 +18,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 )
 
 func TestAccFolder_basic(t *testing.T) {
@@ -349,7 +350,7 @@ func testAccFolderWasntRecreated(rn string, oldFolder *models.Folder) resource.T
 			return fmt.Errorf("folder not found: %s", rn)
 		}
 		orgID, folderUID := grafana.SplitOrgResourceID(newFolderResource.Primary.ID)
-		client := testutils.Provider.Meta().(*common.Client).GrafanaAPI.WithOrgID(orgID)
+		client := testutils.Provider.Meta().(*client.Client).GrafanaAPI.WithOrgID(orgID)
 		newFolder, err := grafana.GetFolderByIDorUID(client.Folders, folderUID)
 		if err != nil {
 			return fmt.Errorf("error getting folder: %s", err)

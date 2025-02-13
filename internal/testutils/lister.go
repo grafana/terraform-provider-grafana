@@ -8,6 +8,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -44,7 +45,7 @@ func CheckLister(terraformResource string) resource.TestCheckFunc {
 		if resource.Category == common.CategoryCloud {
 			listerData = cloud.NewListerData(os.Getenv("GRAFANA_CLOUD_ORG"))
 		}
-		ids, err := lister(ctx, Provider.Meta().(*common.Client), listerData)
+		ids, err := lister(ctx, Provider.Meta().(*client.Client), listerData)
 		if err != nil {
 			return fmt.Errorf("error listing %s: %w", terraformResource, err)
 		}

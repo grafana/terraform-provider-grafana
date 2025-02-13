@@ -8,6 +8,7 @@ import (
 	"github.com/grafana/grafana-openapi-client-go/client/enterprise"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -48,7 +49,7 @@ type resourceDataSourceConfigLBACRulesModel struct {
 }
 
 type resourceDataSourceConfigLBACRules struct {
-	client *common.Client
+	client *client.Client
 }
 
 func (r *resourceDataSourceConfigLBACRules) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -87,7 +88,7 @@ func (r *resourceDataSourceConfigLBACRules) Configure(ctx context.Context, req r
 	if req.ProviderData == nil {
 		return
 	}
-	r.client = req.ProviderData.(*common.Client)
+	r.client = req.ProviderData.(*client.Client)
 }
 
 // Add this helper function to handle the common update logic

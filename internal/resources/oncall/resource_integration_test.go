@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -71,7 +71,7 @@ func TestAccOnCallIntegration_basic(t *testing.T) {
 }
 
 func testAccCheckOnCallIntegrationResourceDestroy(s *terraform.State) error {
-	client := testutils.Provider.Meta().(*common.Client).OnCallClient
+	client := testutils.Provider.Meta().(*client.Client).OnCallClient
 	for _, r := range s.RootModule().Resources {
 		if r.Type != "grafana_oncall_integration" {
 			continue
@@ -113,7 +113,7 @@ func testAccCheckOnCallIntegrationResourceExists(name string) resource.TestCheck
 			return fmt.Errorf("No Integration ID is set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).OnCallClient
+		client := testutils.Provider.Meta().(*client.Client).OnCallClient
 
 		found, _, err := client.Integrations.GetIntegration(rs.Primary.ID, &onCallAPI.GetIntegrationOptions{})
 		if err != nil {

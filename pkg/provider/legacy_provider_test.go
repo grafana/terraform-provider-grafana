@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/grafana/terraform-provider-grafana/v3/pkg/provider"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -28,7 +28,7 @@ func TestProviderConfigure(t *testing.T) {
 
 	// Helper for header tests
 	checkHeaders := func(t *testing.T, provider *schema.Provider) {
-		gotHeaders := provider.Meta().(*common.Client).GrafanaAPIConfig.HTTPHeaders
+		gotHeaders := provider.Meta().(*client.Client).GrafanaAPIConfig.HTTPHeaders
 		if len(gotHeaders) != 4 {
 			t.Errorf("expected 4 HTTP header, got %d", len(gotHeaders))
 		}
@@ -42,7 +42,7 @@ func TestProviderConfigure(t *testing.T) {
 
 	// Helper for status codes tests
 	checkStatusCodes := func(t *testing.T, provider *schema.Provider) {
-		gotStatusCodes := provider.Meta().(*common.Client).GrafanaAPIConfig.RetryStatusCodes
+		gotStatusCodes := provider.Meta().(*client.Client).GrafanaAPIConfig.RetryStatusCodes
 		if len(gotStatusCodes) != 2 {
 			t.Errorf("expected 2 status codes, got %d", len(gotStatusCodes))
 		}

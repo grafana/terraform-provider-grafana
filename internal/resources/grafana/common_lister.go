@@ -9,6 +9,7 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/orgs"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 )
 
 // ListerData is used as the data arg in "ListIDs" functions. It allows getting data common to multiple resources.
@@ -62,7 +63,7 @@ type grafanaOrgResourceListerFunc func(ctx context.Context, client *goapi.Grafan
 
 // listerFunction is a helper function that wraps a lister function be used more easily in grafana resources.
 func listerFunction(listerFunc grafanaListerFunc) common.ResourceListIDsFunc {
-	return func(ctx context.Context, client *common.Client, data any) ([]string, error) {
+	return func(ctx context.Context, client *client.Client, data any) ([]string, error) {
 		lm, ok := data.(*ListerData)
 		if !ok {
 			return nil, fmt.Errorf("unexpected data type: %T", data)

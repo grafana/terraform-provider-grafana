@@ -5,6 +5,7 @@ import (
 
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -13,7 +14,7 @@ type crudWithClientFunc func(ctx context.Context, d *schema.ResourceData, client
 
 func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.ReadContextFunc | schema.DeleteContextFunc](f crudWithClientFunc) T {
 	return func(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-		client := meta.(*common.Client).SMAPI
+		client := meta.(*client.Client).SMAPI
 		if client == nil {
 			return diag.Errorf("the SM client is required for this resource. Set the sm_access_token provider attribute")
 		}

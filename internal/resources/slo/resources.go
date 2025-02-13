@@ -5,6 +5,7 @@ import (
 
 	"github.com/grafana/slo-openapi-client/go/slo"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -13,7 +14,7 @@ type crudWithClientFunc func(ctx context.Context, d *schema.ResourceData, client
 
 func withClient[T schema.CreateContextFunc | schema.UpdateContextFunc | schema.ReadContextFunc | schema.DeleteContextFunc](f crudWithClientFunc) T {
 	return func(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-		client := meta.(*common.Client).SLOClient
+		client := meta.(*client.Client).SLOClient
 		if client == nil {
 			return diag.Errorf("the SLO API client is required for this resource. Set the url and auth provider attributes")
 		}

@@ -12,27 +12,28 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-openapi/strfmt"
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/grafana/grafana-app-sdk/k8s"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/slo-openapi-client/go/slo"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
-
-	"github.com/go-openapi/strfmt"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"k8s.io/client-go/rest"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 )
 
-func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
+func CreateClients(providerConfig ProviderConfig) (*client.Client, error) {
 	var err error
-	c := &common.Client{}
+	c := &client.Client{}
 	if !providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull() {
 		if err = createGrafanaAPIClient(c, providerConfig); err != nil {
 			return nil, err
@@ -41,6 +42,9 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 			return nil, err
 		}
 		if err = createSLOClient(c, providerConfig); err != nil {
+			return nil, err
+		}
+		if err = createGrafanaAppPlatformClient(c, providerConfig); err != nil {
 			return nil, err
 		}
 	}
@@ -77,7 +81,7 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	return c, nil
 }
 
-func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig) error {
+func createGrafanaAPIClient(client *client.Client, providerConfig ProviderConfig) error {
 	tlsClientConfig, err := parseTLSconfig(providerConfig)
 	if err != nil {
 		return err
@@ -129,7 +133,69 @@ func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig
 	return nil
 }
 
-func createMLClient(client *common.Client, providerConfig ProviderConfig) error {
+func createGrafanaAppPlatformClient(client *client.Client, cfg ProviderConfig) error {
+	rcfg := rest.Config{
+		UserAgent: cfg.UserAgent.ValueString(),
+		Host:      cfg.URL.ValueString(),
+		APIPath:   "/apis",
+	}
+
+	tlsClientConfig, err := parseTLSconfig(cfg)
+	if err != nil {
+		return err
+	}
+
+	// Kubernetes really is wonderful, huh.
+	// tl;dr it has it's own TLSClientConfig,
+	// and it's not compatible with the one from the "crypto/tls" package.
+	rcfg.TLSClientConfig = rest.TLSClientConfig{
+		Insecure:   tlsClientConfig.InsecureSkipVerify,
+		ServerName: tlsClientConfig.ServerName,
+	}
+
+	if len(tlsClientConfig.Certificates) > 0 {
+		rcfg.CertData = tlsClientConfig.Certificates[0].Certificate[0]
+		rcfg.KeyData = tlsClientConfig.Certificates[0].PrivateKey.([]byte)
+	}
+
+	if tlsClientConfig.RootCAs != nil {
+		if sub := tlsClientConfig.RootCAs.Subjects(); len(sub) > 0 {
+			rcfg.CAData = sub[0]
+		}
+	}
+
+	userInfo, orgID, apiKey, err := parseAuth(cfg)
+	if err != nil {
+		return err
+	}
+
+	switch {
+	case apiKey != "":
+		if orgID > 1 {
+			return fmt.Errorf("org_id is only supported with basic auth. API keys are already org-scoped")
+		}
+
+		rcfg.BearerToken = apiKey
+	case userInfo != nil:
+		rcfg.Username = userInfo.Username()
+		if p, ok := userInfo.Password(); ok {
+			rcfg.Password = p
+		}
+	}
+
+	client.GrafanaOrgID = cfg.OrgID.ValueInt64()
+	client.GrafanaStackID = cfg.StackID.ValueInt64()
+	client.GrafanaAppPlatformAPI = k8s.NewClientRegistry(rcfg, k8s.ClientConfig{
+		// TODO: check with @IfSentient if we should be using this serializer provider.
+		// NegotiatedSerializerProvider: func(kind resource.Kind) runtime.NegotiatedSerializer {
+		// 	return &k8s.KindNegotiatedSerializer{Kind: kind}
+		// },
+	})
+
+	return nil
+}
+
+func createMLClient(client *client.Client, providerConfig ProviderConfig) error {
 	mlcfg := mlapi.Config{
 		BasicAuth:   client.GrafanaAPIConfig.BasicAuth,
 		BearerToken: client.GrafanaAPIConfig.APIKey,
@@ -145,7 +211,7 @@ func createMLClient(client *common.Client, providerConfig ProviderConfig) error 
 	return err
 }
 
-func createSLOClient(client *common.Client, providerConfig ProviderConfig) error {
+func createSLOClient(client *client.Client, providerConfig ProviderConfig) error {
 	var err error
 
 	sloConfig := slo.NewConfiguration()
@@ -159,7 +225,7 @@ func createSLOClient(client *common.Client, providerConfig ProviderConfig) error
 	return err
 }
 
-func createCloudClient(client *common.Client, providerConfig ProviderConfig) error {
+func createCloudClient(client *client.Client, providerConfig ProviderConfig) error {
 	openAPIConfig := gcom.NewConfiguration()
 	parsedURL, err := url.Parse(providerConfig.CloudAPIURL.ValueString())
 	if err != nil {
@@ -190,7 +256,7 @@ func createOnCallClient(providerConfig ProviderConfig) (*onCallAPI.Client, error
 	return onCallAPI.NewWithGrafanaURL(providerConfig.OncallURL.ValueString(), authToken, providerConfig.URL.ValueString())
 }
 
-func createCloudProviderClient(client *common.Client, providerConfig ProviderConfig) error {
+func createCloudProviderClient(client *client.Client, providerConfig ProviderConfig) error {
 	providerHeaders, err := getHTTPHeadersMap(providerConfig)
 	if err != nil {
 		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
@@ -209,7 +275,7 @@ func createCloudProviderClient(client *common.Client, providerConfig ProviderCon
 	return nil
 }
 
-func createConnectionsClient(client *common.Client, providerConfig ProviderConfig) error {
+func createConnectionsClient(client *client.Client, providerConfig ProviderConfig) error {
 	providerHeaders, err := getHTTPHeadersMap(providerConfig)
 	if err != nil {
 		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)

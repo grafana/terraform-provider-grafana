@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -78,7 +78,7 @@ func TestAccResourceProbe_recreate(t *testing.T) {
 				Check: func(s *terraform.State) error {
 					rs := s.RootModule().Resources["grafana_synthetic_monitoring_probe.main"]
 					id, _ := strconv.ParseInt(rs.Primary.ID, 10, 64)
-					return testutils.Provider.Meta().(*common.Client).SMAPI.DeleteProbe(context.Background(), id)
+					return testutils.Provider.Meta().(*client.Client).SMAPI.DeleteProbe(context.Background(), id)
 				},
 				ExpectNonEmptyPlan: true,
 			},

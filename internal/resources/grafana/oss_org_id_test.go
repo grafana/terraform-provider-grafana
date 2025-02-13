@@ -10,8 +10,8 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -48,7 +48,7 @@ func checkResourceIsInOrg(resourceName, orgResourceName string) resource.TestChe
 }
 
 func grafanaTestClient() *goapi.GrafanaHTTPAPI {
-	return testutils.Provider.Meta().(*common.Client).GrafanaAPI.Clone().WithOrgID(0)
+	return testutils.Provider.Meta().(*client.Client).GrafanaAPI.Clone().WithOrgID(0)
 }
 
 // Makes the current test run with a service account token on a secondary org

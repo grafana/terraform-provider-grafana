@@ -160,6 +160,16 @@ func Provider(version string) *schema.Provider {
 				Description:  "A Grafana Connections API address. May alternatively be set via the `GRAFANA_CONNECTIONS_API_URL` environment variable.",
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
+			"org_id": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The Grafana org ID, if you are using a self-hosted OSS or enterprise Grafana instance. May alternatively be set via the `GRAFANA_ORG_ID` environment variable.",
+			},
+			"stack_id": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The Grafana stack ID, if you are using a Grafana Cloud stack. May alternatively be set via the `GRAFANA_STACK_ID` environment variable.",
+			},
 		},
 
 		ResourcesMap:   legacySDKResources(),
@@ -239,6 +249,8 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			RetryWait:                 types.Int64Value(int64(d.Get("retry_wait").(int))),
 			UserAgent:                 types.StringValue(p.UserAgent("terraform-provider-grafana", version)),
 			Version:                   types.StringValue(version),
+			OrgID:                     int64ValueOrNull(d, "org_id"),
+			StackID:                   int64ValueOrNull(d, "stack_id"),
 		}
 		if err := cfg.SetDefaults(); err != nil {
 			return nil, diag.FromErr(err)

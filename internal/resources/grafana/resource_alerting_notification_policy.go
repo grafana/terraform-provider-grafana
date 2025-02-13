@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 )
 
 func resourceNotificationPolicy() *common.Resource {
@@ -30,10 +31,10 @@ Sets the global notification policy for Grafana.
 This resource requires Grafana 9.1.0 or later.
 `,
 
-		CreateContext: common.WithAlertingMutex[schema.CreateContextFunc](putNotificationPolicy),
+		CreateContext: client.WithAlertingMutex[schema.CreateContextFunc](putNotificationPolicy),
 		ReadContext:   readNotificationPolicy,
-		UpdateContext: common.WithAlertingMutex[schema.UpdateContextFunc](putNotificationPolicy),
-		DeleteContext: common.WithAlertingMutex[schema.DeleteContextFunc](deleteNotificationPolicy),
+		UpdateContext: client.WithAlertingMutex[schema.UpdateContextFunc](putNotificationPolicy),
+		DeleteContext: client.WithAlertingMutex[schema.DeleteContextFunc](deleteNotificationPolicy),
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -549,7 +549,7 @@ func TestAccResourceCheck_recreate(t *testing.T) {
 				Check: func(s *terraform.State) error {
 					rs := s.RootModule().Resources["grafana_synthetic_monitoring_check.http"]
 					id, _ := strconv.ParseInt(rs.Primary.ID, 10, 64)
-					return testutils.Provider.Meta().(*common.Client).SMAPI.DeleteCheck(context.Background(), id)
+					return testutils.Provider.Meta().(*client.Client).SMAPI.DeleteCheck(context.Background(), id)
 				},
 				ExpectNonEmptyPlan: true,
 			},

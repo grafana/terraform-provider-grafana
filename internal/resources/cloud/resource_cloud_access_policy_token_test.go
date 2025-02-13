@@ -11,9 +11,9 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -82,7 +82,7 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+					client := testutils.Provider.Meta().(*client.Client).GrafanaCloudAPI
 					_, _, err = client.TokensAPI.DeleteToken(context.Background(), *policyToken.Id).
 						Region("us").
 						OrgId(int32(orgID)).
@@ -182,7 +182,7 @@ func testAccCloudAccessPolicyCheckExists(rn string, a *gcom.AuthAccessPolicy) re
 
 		region, id, _ := strings.Cut(rs.Primary.ID, ":")
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+		client := testutils.Provider.Meta().(*client.Client).GrafanaCloudAPI
 		policy, _, err := client.AccesspoliciesAPI.GetAccessPolicy(context.Background(), id).Region(region).Execute()
 		if err != nil {
 			return fmt.Errorf("error getting cloud access policy: %s", err)
@@ -207,7 +207,7 @@ func testAccCloudAccessPolicyTokenCheckExists(rn string, a *gcom.AuthToken) reso
 
 		region, id, _ := strings.Cut(rs.Primary.ID, ":")
 
-		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+		client := testutils.Provider.Meta().(*client.Client).GrafanaCloudAPI
 		token, _, err := client.TokensAPI.GetToken(context.Background(), id).Region(region).Execute()
 		if err != nil {
 			return fmt.Errorf("error getting cloud access policy token: %s", err)
@@ -224,7 +224,7 @@ func testAccCloudAccessPolicyCheckDestroy(region string, a *gcom.AuthAccessPolic
 		if a == nil {
 			return nil
 		}
-		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+		client := testutils.Provider.Meta().(*client.Client).GrafanaCloudAPI
 		policy, _, err := client.AccesspoliciesAPI.GetAccessPolicy(context.Background(), *a.Id).Region(region).Execute()
 		if err == nil && policy.Name != "" {
 			return fmt.Errorf("cloud access policy `%s` with ID `%s` still exists after destroy", policy.Name, *policy.Id)
@@ -239,7 +239,7 @@ func testAccCloudAccessPolicyTokenCheckDestroy(region string, a *gcom.AuthToken)
 		if a == nil {
 			return nil
 		}
-		client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+		client := testutils.Provider.Meta().(*client.Client).GrafanaCloudAPI
 		token, _, err := client.TokensAPI.GetToken(context.Background(), *a.Id).Region(region).Execute()
 		if err == nil && token.Name != "" {
 			return fmt.Errorf("cloud access policy token `%s` with ID `%s` still exists after destroy", token.Name, *token.Id)
@@ -250,7 +250,7 @@ func testAccCloudAccessPolicyTokenCheckDestroy(region string, a *gcom.AuthToken)
 }
 
 func testAccDeleteExistingAccessPolicies(t *testing.T, region, prefix string) {
-	client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
+	client := testutils.Provider.Meta().(*client.Client).GrafanaCloudAPI
 	resp, _, err := client.AccesspoliciesAPI.GetAccessPolicies(context.Background()).Region(region).Execute()
 	if err != nil {
 		t.Error(err)

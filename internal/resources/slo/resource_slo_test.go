@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/grafana/slo-openapi-client/go/slo"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
+	"github.com/grafana/terraform-provider-grafana/v3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -172,7 +172,7 @@ func TestAccSLO_recreate(t *testing.T) {
 			// Delete out-of-band
 			{
 				PreConfig: func() {
-					client := testutils.Provider.Meta().(*common.Client).SLOClient
+					client := testutils.Provider.Meta().(*client.Client).SLOClient
 					req := client.DefaultAPI.V1SloIdDelete(context.Background(), slo.Uuid)
 					_, err := req.Execute()
 					require.NoError(t, err)
@@ -214,7 +214,7 @@ func testAccSloCheckExists(rn string, slo *slo.SloV00Slo) resource.TestCheckFunc
 			return fmt.Errorf("resource id not set")
 		}
 
-		client := testutils.Provider.Meta().(*common.Client).SLOClient
+		client := testutils.Provider.Meta().(*client.Client).SLOClient
 		req := client.DefaultAPI.V1SloIdGet(context.Background(), rs.Primary.ID)
 		gotSlo, _, err := req.Execute()
 		if err != nil {
@@ -234,7 +234,7 @@ func testAccSloCheckExists(rn string, slo *slo.SloV00Slo) resource.TestCheckFunc
 func testAlertingExists(expectation bool, rn string, slo *slo.SloV00Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs := s.RootModule().Resources[rn]
-		client := testutils.Provider.Meta().(*common.Client).SLOClient
+		client := testutils.Provider.Meta().(*client.Client).SLOClient
 		req := client.DefaultAPI.V1SloIdGet(context.Background(), rs.Primary.ID)
 		gotSlo, _, err := req.Execute()
 
@@ -258,7 +258,7 @@ func testAlertingExists(expectation bool, rn string, slo *slo.SloV00Slo) resourc
 func testAdvancedOptionsExists(expectation bool, rn string, slo *slo.SloV00Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs := s.RootModule().Resources[rn]
-		client := testutils.Provider.Meta().(*common.Client).SLOClient
+		client := testutils.Provider.Meta().(*client.Client).SLOClient
 		req := client.DefaultAPI.V1SloIdGet(context.Background(), rs.Primary.ID)
 		gotSlo, _, err := req.Execute()
 
@@ -281,7 +281,7 @@ func testAdvancedOptionsExists(expectation bool, rn string, slo *slo.SloV00Slo) 
 
 func testAccSloCheckDestroy(sloObj *slo.SloV00Slo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testutils.Provider.Meta().(*common.Client).SLOClient
+		client := testutils.Provider.Meta().(*client.Client).SLOClient
 		req := client.DefaultAPI.V1SloIdGet(context.Background(), sloObj.Uuid)
 		gotSlo, resp, err := req.Execute()
 		if err != nil {
