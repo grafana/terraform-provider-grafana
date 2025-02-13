@@ -284,7 +284,7 @@ Also, by default the Access Policies UI will not show those scopes, to find name
 <img src="https://grafana.com/media/docs/grafana-cloud/aws/cloud-provider-terraform-access-policy-creation.png" width="700"/>
 
 Having created an Access Policy, you can now create a token that will be used to authenticate the provider to the Cloud Provider API. You can do so just after creating the access policy, following
-the in-screen instructions, of following [this guide](https://grafana.com/docs/grafana-cloud/security-and-account-management/authentication-and-permissions/access-policies/using-an-access-policy-token/#create-one-or-more-access-policy-tokens).
+the in-screen instructions, of following [this guide](https://grafana.com/docs/grafana-cloud/security-and-account-management/authentication-and-permissions/access-policies/create-access-policies/#create-tokens-for-an-access-policy).
 
 #### Obtaining Cloud Provider API hostname
 
