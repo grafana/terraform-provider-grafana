@@ -19,8 +19,8 @@ import {
 }
 
 import {
-  to = grafana_message_template._2_My_Reusable_Template
-  id = "2:My Reusable Template"
+  to = grafana_message_template._2_My_Notification_Template_Group
+  id = "2:My Notification Template Group"
 }
 
 import {
