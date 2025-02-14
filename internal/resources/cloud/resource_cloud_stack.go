@@ -28,6 +28,15 @@ var (
 	resourceStackID = common.NewResourceID(common.StringIDField("stackSlugOrID"))
 )
 
+func privateConnectivityDescription(prefix, service string) *schema.Schema {
+	return common.ComputedStringWithDescription(
+		fmt.Sprintf(
+			"%s for %s when using CSP's private connectivity (such as AWS PrivateLink)",
+			prefix,
+			service,
+		))
+}
+
 func resourceStack() *common.Resource {
 	schema := &schema.Resource{
 		Description: `
@@ -139,7 +148,7 @@ Required access policy scopes:
 				},
 			},
 
-			"grafanas_ip_allow_list_cname": common.ComputedStringWithDescription("comma-separated list of CNAMEs that can be whitelisted to access this service"),
+			"grafanas_ip_allow_list_cname": common.ComputedStringWithDescription("Comma-separated list of CNAMEs that can be whitelisted to access this service"),
 
 			// Metrics (Mimir/Prometheus)
 			"prometheus_user_id":                                common.ComputedIntWithDescription("Prometheus user ID. Used for e.g. remote_write."),
@@ -148,54 +157,54 @@ Required access policy scopes:
 			"prometheus_remote_endpoint":                        common.ComputedStringWithDescription("Use this URL to query hosted metrics data e.g. Prometheus data source in Grafana"),
 			"prometheus_remote_write_endpoint":                  common.ComputedStringWithDescription("Use this URL to send prometheus metrics to Grafana cloud"),
 			"prometheus_status":                                 common.ComputedStringWithDescription("Prometheus status for this instance."),
-			"prometheus_private_connectivity_info_private_dns":  common.ComputedString(),
-			"prometheus_private_connectivity_info_service_name": common.ComputedString(),
-			"prometheus_ip_allow_list_cname":                    common.ComputedStringWithDescription("comma-separated list of CNAMEs that can be whitelisted to access this service"),
+			"prometheus_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Prometheus"),
+			"prometheus_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Prometheus"),
+			"prometheus_ip_allow_list_cname":                    common.ComputedStringWithDescription("Comma-separated list of CNAMEs that can be whitelisted to access this service"),
 
 			// Alertmanager
 			"alertmanager_user_id": common.ComputedIntWithDescription("User ID of the Alertmanager instance configured for this stack."),
 			"alertmanager_name":    common.ComputedStringWithDescription("Name of the Alertmanager instance configured for this stack."),
 			"alertmanager_url":     common.ComputedStringWithDescription("Base URL of the Alertmanager instance configured for this stack."),
 			"alertmanager_status":  common.ComputedStringWithDescription("Status of the Alertmanager instance configured for this stack."),
-			"alertmanager_private_connectivity_info_private_dns":  common.ComputedString(),
-			"alertmanager_private_connectivity_info_service_name": common.ComputedString(),
-			"alertmanager_ip_allow_list_cname":                    common.ComputedStringWithDescription("comma-separated list of CNAMEs that can be whitelisted to access this service"),
+			"alertmanager_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Alerts"),
+			"alertmanager_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Alerts"),
+			"alertmanager_ip_allow_list_cname":                    common.ComputedStringWithDescription("Comma-separated list of CNAMEs that can be whitelisted to access this service"),
 
 			// Logs (Loki)
 			"logs_user_id": common.ComputedInt(),
 			"logs_name":    common.ComputedString(),
 			"logs_url":     common.ComputedString(),
 			"logs_status":  common.ComputedString(),
-			"logs_private_connectivity_info_private_dns":  common.ComputedString(),
-			"logs_private_connectivity_info_service_name": common.ComputedString(),
-			"logs_ip_allow_list_cname":                    common.ComputedStringWithDescription("comma-separated list of CNAMEs that can be whitelisted to access this service"),
+			"logs_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Logs"),
+			"logs_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Logs"),
+			"logs_ip_allow_list_cname":                    common.ComputedStringWithDescription("Comma-separated list of CNAMEs that can be whitelisted to access this service"),
 
 			// Traces (Tempo)
 			"traces_user_id": common.ComputedInt(),
 			"traces_name":    common.ComputedString(),
 			"traces_url":     common.ComputedStringWithDescription("Base URL of the Traces instance configured for this stack. To use this in the Tempo data source in Grafana, append `/tempo` to the URL."),
 			"traces_status":  common.ComputedString(),
-			"traces_private_connectivity_info_private_dns":  common.ComputedString(),
-			"traces_private_connectivity_info_service_name": common.ComputedString(),
-			"traces_ip_allow_list_cname":                    common.ComputedStringWithDescription("comma-separated list of CNAMEs that can be whitelisted to access this service"),
+			"traces_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Traces"),
+			"traces_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Traces"),
+			"traces_ip_allow_list_cname":                    common.ComputedStringWithDescription("Comma-separated list of CNAMEs that can be whitelisted to access this service"),
 
 			// Profiles (Pyroscope)
 			"profiles_user_id": common.ComputedInt(),
 			"profiles_name":    common.ComputedString(),
 			"profiles_url":     common.ComputedString(),
 			"profiles_status":  common.ComputedString(),
-			"profiles_private_connectivity_info_private_dns":  common.ComputedString(),
-			"profiles_private_connectivity_info_service_name": common.ComputedString(),
-			"profiles_ip_allow_list_cname":                    common.ComputedStringWithDescription("comma-separated list of CNAMEs that can be whitelisted to access this service"),
+			"profiles_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Profiles"),
+			"profiles_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Profiles"),
+			"profiles_ip_allow_list_cname":                    common.ComputedStringWithDescription("Comma-separated list of CNAMEs that can be whitelisted to access this service"),
 
 			// Graphite
 			"graphite_user_id": common.ComputedInt(),
 			"graphite_name":    common.ComputedString(),
 			"graphite_url":     common.ComputedString(),
 			"graphite_status":  common.ComputedString(),
-			"graphite_private_connectivity_info_private_dns":  common.ComputedString(),
-			"graphite_private_connectivity_info_service_name": common.ComputedString(),
-			"graphite_ip_allow_list_cname":                    common.ComputedStringWithDescription("comma-separated list of CNAMEs that can be whitelisted to access this service"),
+			"graphite_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Graphite"),
+			"graphite_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Graphite"),
+			"graphite_ip_allow_list_cname":                    common.ComputedStringWithDescription("Comma-separated list of CNAMEs that can be whitelisted to access this service"),
 
 			// Fleet Management
 			"fleet_management_user_id": common.ComputedIntWithDescription("User ID of the Fleet Management instance configured for this stack."),
@@ -206,14 +215,14 @@ Required access policy scopes:
 			// Connections
 			"influx_url": common.ComputedStringWithDescription("Base URL of the InfluxDB instance configured for this stack. The username is the same as the metrics' (`prometheus_user_id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-influxdb/push-from-telegraf/ for docs on how to use this."),
 			"otlp_url":   common.ComputedStringWithDescription("Base URL of the OTLP instance configured for this stack. The username is the stack's ID (`id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/ for docs on how to use this."),
-			"otlp_private_connectivity_info_private_dns":  common.ComputedString(),
-			"otlp_private_connectivity_info_service_name": common.ComputedString(),
+			"otlp_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "OTLP"),
+			"otlp_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "OTLP"),
 
 			// pdc
-			"pdc_api_private_connectivity_info_private_dns":      common.ComputedString(),
-			"pdc_api_private_connectivity_info_service_name":     common.ComputedString(),
-			"pdc_gateway_private_connectivity_info_private_dns":  common.ComputedString(),
-			"pdc_gateway_private_connectivity_info_service_name": common.ComputedString(),
+			"pdc_api_private_connectivity_info_private_dns":      privateConnectivityDescription("Private DNS", "PDC's API"),
+			"pdc_api_private_connectivity_info_service_name":     privateConnectivityDescription("Service Name", "PDC's API"),
+			"pdc_gateway_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "PDC's Gateway"),
+			"pdc_gateway_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "PDC's Gateway"),
 		},
 		CustomizeDiff: customdiff.All(
 			customdiff.ComputedIf("url", func(_ context.Context, diff *schema.ResourceDiff, meta interface{}) bool {
