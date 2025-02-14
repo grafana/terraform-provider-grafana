@@ -145,6 +145,10 @@ github.com/grafana/fleet-management-api v0.1.2 h1:ADBRtK7zACm+Qh/0rA0JtxnYrmCldm
 github.com/grafana/fleet-management-api v0.1.2/go.mod h1:6iJjhjWhHZ8iwkyuDXFVTuay57JILnE3kaOPk8Nzorw=
 github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240807172819-ac10800522a3 h1:CVLTffnWgBGvVaXfUUcSgFrZbiMzvj0/Hpi909zdeG0=
 github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240807172819-ac10800522a3/go.mod h1:u9d0BESoKlztYm93CpoRleQjMbYBcZ+JOLHHP2nN6Wg=
+github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20250214122057-e5d151cc7c72 h1:Se2Az5hscviEq8Zn45zzcGWoNE7iatXfXGuU2Ac08uo=
+github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20250214122057-e5d151cc7c72/go.mod h1:sYWkB3NhyirQJfy3wtNQ29UYjoHbRlJlYhqN1jNsC5g=
+github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20250214150112-a52892176c26 h1:7NMB6/x0CcfH/zKQ5D+3Ffb2DbYMJBx0QdJ1GGdw8z4=
+github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20250214150112-a52892176c26/go.mod h1:sYWkB3NhyirQJfy3wtNQ29UYjoHbRlJlYhqN1jNsC5g=
 github.com/grafana/grafana-openapi-client-go v0.0.0-20241113095943-9cb2bbfeb8a3 h1:poKxGlUaEYVp2DMofC/I2GHw/vvtHAZ20c48I8rFB6M=
 github.com/grafana/grafana-openapi-client-go v0.0.0-20241113095943-9cb2bbfeb8a3/go.mod h1:hiZnMmXc9KXNUlvkV2BKFsiWuIFF/fF4wGgYWEjBitI=
 github.com/grafana/grafana-plugin-sdk-go v0.250.0 h1:9EBucp9jLqMx2b8NTlOXH+4OuQWUh6L85c6EJUN8Jdo=
