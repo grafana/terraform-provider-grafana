@@ -4,7 +4,7 @@ page_title: "grafana_cloud_private_data_source_connect_networks Data Source - te
 subcategory: "Cloud"
 description: |-
   Fetches Private Data source Connect networks from Grafana Cloud.
-  Official documentation https://grafana.com/docs/grafana-cloud/security-and-account-management/authentication-and-permissions/access-policies documentation https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-access-policies
+  Official documentation https://grafana.com/docs/grafana-cloud/security-and-account-management/authentication-and-permissions/access-policies/API documentation https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-access-policies
   Required access policy scopes:
   accesspolicies:read
 ---

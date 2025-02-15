@@ -3,7 +3,7 @@
 page_title: "grafana_cloud_access_policy Resource - terraform-provider-grafana"
 subcategory: "Cloud"
 description: |-
-  Official documentation https://grafana.com/docs/grafana-cloud/security-and-account-management/authentication-and-permissions/access-policies documentation https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#create-an-access-policy
+  Official documentation https://grafana.com/docs/grafana-cloud/security-and-account-management/authentication-and-permissions/access-policies/API documentation https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#create-an-access-policy
   Required access policy scopes:
   accesspolicies:readaccesspolicies:writeaccesspolicies:delete
 ---
