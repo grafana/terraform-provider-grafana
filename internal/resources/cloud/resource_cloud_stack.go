@@ -31,7 +31,7 @@ var (
 func privateConnectivityDescription(prefix, service string) *schema.Schema {
 	return common.ComputedStringWithDescription(
 		fmt.Sprintf(
-			"%s for %s when using CSP's private connectivity (such as AWS PrivateLink)",
+			"%s for %s when using AWS PrivateLink (only for AWS stacks)",
 			prefix,
 			service,
 		))
@@ -170,13 +170,11 @@ Required access policy scopes:
 			"prometheus_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Prometheus instance"),
 
 			// Alertmanager
-			"alertmanager_user_id": common.ComputedIntWithDescription("User ID of the Alertmanager instance configured for this stack."),
-			"alertmanager_name":    common.ComputedStringWithDescription("Name of the Alertmanager instance configured for this stack."),
-			"alertmanager_url":     common.ComputedStringWithDescription("Base URL of the Alertmanager instance configured for this stack."),
-			"alertmanager_status":  common.ComputedStringWithDescription("Status of the Alertmanager instance configured for this stack."),
-			"alertmanager_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Alerts"),
-			"alertmanager_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Alerts"),
-			"alertmanager_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Alertmanager instances"),
+			"alertmanager_user_id":             common.ComputedIntWithDescription("User ID of the Alertmanager instance configured for this stack."),
+			"alertmanager_name":                common.ComputedStringWithDescription("Name of the Alertmanager instance configured for this stack."),
+			"alertmanager_url":                 common.ComputedStringWithDescription("Base URL of the Alertmanager instance configured for this stack."),
+			"alertmanager_status":              common.ComputedStringWithDescription("Status of the Alertmanager instance configured for this stack."),
+			"alertmanager_ip_allow_list_cname": ipAllowListCNAMEDescription("the Alertmanager instances"),
 
 			// Logs (Loki)
 			"logs_user_id": common.ComputedInt(),
