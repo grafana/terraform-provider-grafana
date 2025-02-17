@@ -37,6 +37,14 @@ func privateConnectivityDescription(prefix, service string) *schema.Schema {
 		))
 }
 
+func ipAllowListCNAMEDescription(service string) *schema.Schema {
+	return common.ComputedStringWithDescription(
+		fmt.Sprintf(
+			"Comma-separated list of CNAMEs that can be whitelisted to access %s", service,
+		),
+	)
+}
+
 func resourceStack() *common.Resource {
 	schema := &schema.Resource{
 		Description: `
@@ -148,7 +156,7 @@ Required access policy scopes:
 				},
 			},
 
-			"grafanas_ip_allow_list_cname": common.ComputedStringWithDescription("Comma-separated list of CNAMEs that can be whitelisted to access this service"),
+			"grafanas_ip_allow_list_cname": ipAllowListCNAMEDescription("the grafana instance"),
 
 			// Metrics (Mimir/Prometheus)
 			"prometheus_user_id":                                common.ComputedIntWithDescription("Prometheus user ID. Used for e.g. remote_write."),
@@ -159,7 +167,7 @@ Required access policy scopes:
 			"prometheus_status":                                 common.ComputedStringWithDescription("Prometheus status for this instance."),
 			"prometheus_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Prometheus"),
 			"prometheus_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Prometheus"),
-			"prometheus_ip_allow_list_cname":                    common.ComputedStringWithDescription("Comma-separated list of CNAMEs that can be whitelisted to access this service"),
+			"prometheus_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Prometheus instance"),
 
 			// Alertmanager
 			"alertmanager_user_id": common.ComputedIntWithDescription("User ID of the Alertmanager instance configured for this stack."),
@@ -168,7 +176,7 @@ Required access policy scopes:
 			"alertmanager_status":  common.ComputedStringWithDescription("Status of the Alertmanager instance configured for this stack."),
 			"alertmanager_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Alerts"),
 			"alertmanager_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Alerts"),
-			"alertmanager_ip_allow_list_cname":                    common.ComputedStringWithDescription("Comma-separated list of CNAMEs that can be whitelisted to access this service"),
+			"alertmanager_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Alertmanager instances"),
 
 			// Logs (Loki)
 			"logs_user_id": common.ComputedInt(),
@@ -177,7 +185,7 @@ Required access policy scopes:
 			"logs_status":  common.ComputedString(),
 			"logs_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Logs"),
 			"logs_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Logs"),
-			"logs_ip_allow_list_cname":                    common.ComputedStringWithDescription("Comma-separated list of CNAMEs that can be whitelisted to access this service"),
+			"logs_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Logs instance"),
 
 			// Traces (Tempo)
 			"traces_user_id": common.ComputedInt(),
@@ -186,7 +194,7 @@ Required access policy scopes:
 			"traces_status":  common.ComputedString(),
 			"traces_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Traces"),
 			"traces_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Traces"),
-			"traces_ip_allow_list_cname":                    common.ComputedStringWithDescription("Comma-separated list of CNAMEs that can be whitelisted to access this service"),
+			"traces_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Traces instance"),
 
 			// Profiles (Pyroscope)
 			"profiles_user_id": common.ComputedInt(),
@@ -195,7 +203,7 @@ Required access policy scopes:
 			"profiles_status":  common.ComputedString(),
 			"profiles_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Profiles"),
 			"profiles_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Profiles"),
-			"profiles_ip_allow_list_cname":                    common.ComputedStringWithDescription("Comma-separated list of CNAMEs that can be whitelisted to access this service"),
+			"profiles_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Profiles instance"),
 
 			// Graphite
 			"graphite_user_id": common.ComputedInt(),
@@ -204,7 +212,7 @@ Required access policy scopes:
 			"graphite_status":  common.ComputedString(),
 			"graphite_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Graphite"),
 			"graphite_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Graphite"),
-			"graphite_ip_allow_list_cname":                    common.ComputedStringWithDescription("Comma-separated list of CNAMEs that can be whitelisted to access this service"),
+			"graphite_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Graphite instance"),
 
 			// Fleet Management
 			"fleet_management_user_id": common.ComputedIntWithDescription("User ID of the Fleet Management instance configured for this stack."),

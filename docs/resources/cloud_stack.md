@@ -48,7 +48,10 @@ resource "grafana_cloud_stack" "test" {
 
 ### Read-Only
 
+- `alertmanager_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Alertmanager instances
 - `alertmanager_name` (String) Name of the Alertmanager instance configured for this stack.
+- `alertmanager_private_connectivity_info_private_dns` (String) Private DNS for Alerts when using CSP's private connectivity (such as AWS PrivateLink)
+- `alertmanager_private_connectivity_info_service_name` (String) Service Name for Alerts when using CSP's private connectivity (such as AWS PrivateLink)
 - `alertmanager_status` (String) Status of the Alertmanager instance configured for this stack.
 - `alertmanager_url` (String) Base URL of the Alertmanager instance configured for this stack.
 - `alertmanager_user_id` (Number) User ID of the Alertmanager instance configured for this stack.
@@ -57,32 +60,54 @@ resource "grafana_cloud_stack" "test" {
 - `fleet_management_status` (String) Status of the Fleet Management instance configured for this stack.
 - `fleet_management_url` (String) Base URL of the Fleet Management instance configured for this stack.
 - `fleet_management_user_id` (Number) User ID of the Fleet Management instance configured for this stack.
+- `grafanas_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the grafana instance
+- `graphite_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Graphite instance
 - `graphite_name` (String)
+- `graphite_private_connectivity_info_private_dns` (String) Private DNS for Graphite when using CSP's private connectivity (such as AWS PrivateLink)
+- `graphite_private_connectivity_info_service_name` (String) Service Name for Graphite when using CSP's private connectivity (such as AWS PrivateLink)
 - `graphite_status` (String)
 - `graphite_url` (String)
 - `graphite_user_id` (Number)
 - `id` (String) The stack id assigned to this stack by Grafana.
 - `influx_url` (String) Base URL of the InfluxDB instance configured for this stack. The username is the same as the metrics' (`prometheus_user_id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-influxdb/push-from-telegraf/ for docs on how to use this.
+- `logs_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Logs instance
 - `logs_name` (String)
+- `logs_private_connectivity_info_private_dns` (String) Private DNS for Logs when using CSP's private connectivity (such as AWS PrivateLink)
+- `logs_private_connectivity_info_service_name` (String) Service Name for Logs when using CSP's private connectivity (such as AWS PrivateLink)
 - `logs_status` (String)
 - `logs_url` (String)
 - `logs_user_id` (Number)
 - `org_id` (Number) Organization id to assign to this stack.
 - `org_name` (String) Organization name to assign to this stack.
 - `org_slug` (String) Organization slug to assign to this stack.
+- `otlp_private_connectivity_info_private_dns` (String) Private DNS for OTLP when using CSP's private connectivity (such as AWS PrivateLink)
+- `otlp_private_connectivity_info_service_name` (String) Service Name for OTLP when using CSP's private connectivity (such as AWS PrivateLink)
 - `otlp_url` (String) Base URL of the OTLP instance configured for this stack. The username is the stack's ID (`id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/ for docs on how to use this.
+- `pdc_api_private_connectivity_info_private_dns` (String) Private DNS for PDC's API when using CSP's private connectivity (such as AWS PrivateLink)
+- `pdc_api_private_connectivity_info_service_name` (String) Service Name for PDC's API when using CSP's private connectivity (such as AWS PrivateLink)
+- `pdc_gateway_private_connectivity_info_private_dns` (String) Private DNS for PDC's Gateway when using CSP's private connectivity (such as AWS PrivateLink)
+- `pdc_gateway_private_connectivity_info_service_name` (String) Service Name for PDC's Gateway when using CSP's private connectivity (such as AWS PrivateLink)
+- `profiles_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Profiles instance
 - `profiles_name` (String)
+- `profiles_private_connectivity_info_private_dns` (String) Private DNS for Profiles when using CSP's private connectivity (such as AWS PrivateLink)
+- `profiles_private_connectivity_info_service_name` (String) Service Name for Profiles when using CSP's private connectivity (such as AWS PrivateLink)
 - `profiles_status` (String)
 - `profiles_url` (String)
 - `profiles_user_id` (Number)
+- `prometheus_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Prometheus instance
 - `prometheus_name` (String) Prometheus name for this instance.
+- `prometheus_private_connectivity_info_private_dns` (String) Private DNS for Prometheus when using CSP's private connectivity (such as AWS PrivateLink)
+- `prometheus_private_connectivity_info_service_name` (String) Service Name for Prometheus when using CSP's private connectivity (such as AWS PrivateLink)
 - `prometheus_remote_endpoint` (String) Use this URL to query hosted metrics data e.g. Prometheus data source in Grafana
 - `prometheus_remote_write_endpoint` (String) Use this URL to send prometheus metrics to Grafana cloud
 - `prometheus_status` (String) Prometheus status for this instance.
 - `prometheus_url` (String) Prometheus url for this instance.
 - `prometheus_user_id` (Number) Prometheus user ID. Used for e.g. remote_write.
 - `status` (String) Status of the stack.
+- `traces_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Traces instance
 - `traces_name` (String)
+- `traces_private_connectivity_info_private_dns` (String) Private DNS for Traces when using CSP's private connectivity (such as AWS PrivateLink)
+- `traces_private_connectivity_info_service_name` (String) Service Name for Traces when using CSP's private connectivity (such as AWS PrivateLink)
 - `traces_status` (String)
 - `traces_url` (String) Base URL of the Traces instance configured for this stack. To use this in the Tempo data source in Grafana, append `/tempo` to the URL.
 - `traces_user_id` (Number)
