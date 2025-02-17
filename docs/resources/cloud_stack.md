@@ -48,7 +48,7 @@ resource "grafana_cloud_stack" "test" {
 
 ### Read-Only
 
-- `alertmanager_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Alertmanager instances
+- `alertmanager_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Alertmanager instances (Optional)
 - `alertmanager_name` (String) Name of the Alertmanager instance configured for this stack.
 - `alertmanager_status` (String) Status of the Alertmanager instance configured for this stack.
 - `alertmanager_url` (String) Base URL of the Alertmanager instance configured for this stack.
@@ -58,8 +58,8 @@ resource "grafana_cloud_stack" "test" {
 - `fleet_management_status` (String) Status of the Fleet Management instance configured for this stack.
 - `fleet_management_url` (String) Base URL of the Fleet Management instance configured for this stack.
 - `fleet_management_user_id` (Number) User ID of the Fleet Management instance configured for this stack.
-- `grafanas_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the grafana instance
-- `graphite_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Graphite instance
+- `grafanas_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the grafana instance (Optional)
+- `graphite_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Graphite instance (Optional)
 - `graphite_name` (String)
 - `graphite_private_connectivity_info_private_dns` (String) Private DNS for Graphite when using AWS PrivateLink (only for AWS stacks)
 - `graphite_private_connectivity_info_service_name` (String) Service Name for Graphite when using AWS PrivateLink (only for AWS stacks)
@@ -68,7 +68,7 @@ resource "grafana_cloud_stack" "test" {
 - `graphite_user_id` (Number)
 - `id` (String) The stack id assigned to this stack by Grafana.
 - `influx_url` (String) Base URL of the InfluxDB instance configured for this stack. The username is the same as the metrics' (`prometheus_user_id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-influxdb/push-from-telegraf/ for docs on how to use this.
-- `logs_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Logs instance
+- `logs_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Logs instance (Optional)
 - `logs_name` (String)
 - `logs_private_connectivity_info_private_dns` (String) Private DNS for Logs when using AWS PrivateLink (only for AWS stacks)
 - `logs_private_connectivity_info_service_name` (String) Service Name for Logs when using AWS PrivateLink (only for AWS stacks)
@@ -85,14 +85,14 @@ resource "grafana_cloud_stack" "test" {
 - `pdc_api_private_connectivity_info_service_name` (String) Service Name for PDC's API when using AWS PrivateLink (only for AWS stacks)
 - `pdc_gateway_private_connectivity_info_private_dns` (String) Private DNS for PDC's Gateway when using AWS PrivateLink (only for AWS stacks)
 - `pdc_gateway_private_connectivity_info_service_name` (String) Service Name for PDC's Gateway when using AWS PrivateLink (only for AWS stacks)
-- `profiles_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Profiles instance
+- `profiles_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Profiles instance (Optional)
 - `profiles_name` (String)
 - `profiles_private_connectivity_info_private_dns` (String) Private DNS for Profiles when using AWS PrivateLink (only for AWS stacks)
 - `profiles_private_connectivity_info_service_name` (String) Service Name for Profiles when using AWS PrivateLink (only for AWS stacks)
 - `profiles_status` (String)
 - `profiles_url` (String)
 - `profiles_user_id` (Number)
-- `prometheus_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Prometheus instance
+- `prometheus_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Prometheus instance (Optional)
 - `prometheus_name` (String) Prometheus name for this instance.
 - `prometheus_private_connectivity_info_private_dns` (String) Private DNS for Prometheus when using AWS PrivateLink (only for AWS stacks)
 - `prometheus_private_connectivity_info_service_name` (String) Service Name for Prometheus when using AWS PrivateLink (only for AWS stacks)
@@ -102,7 +102,7 @@ resource "grafana_cloud_stack" "test" {
 - `prometheus_url` (String) Prometheus url for this instance.
 - `prometheus_user_id` (Number) Prometheus user ID. Used for e.g. remote_write.
 - `status` (String) Status of the stack.
-- `traces_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Traces instance
+- `traces_ip_allow_list_cname` (String) Comma-separated list of CNAMEs that can be whitelisted to access the Traces instance (Optional)
 - `traces_name` (String)
 - `traces_private_connectivity_info_private_dns` (String) Private DNS for Traces when using AWS PrivateLink (only for AWS stacks)
 - `traces_private_connectivity_info_service_name` (String) Service Name for Traces when using AWS PrivateLink (only for AWS stacks)

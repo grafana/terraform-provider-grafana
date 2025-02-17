@@ -40,7 +40,7 @@ func privateConnectivityDescription(prefix, service string) *schema.Schema {
 func ipAllowListCNAMEDescription(service string) *schema.Schema {
 	return common.ComputedStringWithDescription(
 		fmt.Sprintf(
-			"Comma-separated list of CNAMEs that can be whitelisted to access %s", service,
+			"Comma-separated list of CNAMEs that can be whitelisted to access %s (Optional)", service,
 		),
 	)
 }
