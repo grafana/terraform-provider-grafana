@@ -9,7 +9,7 @@ resource "grafana_cloud_stack" "my_stack" {
 
   name        = "myteststack"
   slug        = "myteststack"
-  region_slug = "us"
+  region_slug = "prod-us-east-0"
 }
 
 // Step 2: Create a service account and key for the stack
