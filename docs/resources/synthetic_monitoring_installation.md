@@ -35,7 +35,7 @@ variable "cloud_access_policy_token" {
 }
 variable "stack_slug" {}
 variable "cloud_region" {
-  default = "us"
+  default = "prod-us-east-0"
 }
 
 // Step 1: Create a stack

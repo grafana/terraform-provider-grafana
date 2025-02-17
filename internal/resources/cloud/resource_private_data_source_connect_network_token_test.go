@@ -27,12 +27,12 @@ func TestResourcePrivateDataSourceConnectNetworkToken_Basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
-			testAccCloudAccessPolicyCheckDestroy("us", &pdcNetwork),
-			testAccCloudAccessPolicyTokenCheckDestroy("us", &pdcNetworkToken),
+			testAccCloudAccessPolicyCheckDestroy("prod-us-east-0", &pdcNetwork),
+			testAccCloudAccessPolicyTokenCheckDestroy("prod-us-east-0", &pdcNetworkToken),
 		),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCloudPrivateDataSourceConnectNetworkConfigBasic(initialName, "", "us"),
+				Config: testAccCloudPrivateDataSourceConnectNetworkConfigBasic(initialName, "", "prod-us-east-0"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.test", &pdcNetwork),
 					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_token.test", &pdcNetworkToken),

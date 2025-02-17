@@ -58,7 +58,7 @@ resource "grafana_cloud_stack" "my_stack" {
 
   name        = "myteststack"
   slug        = "myteststack"
-  region_slug = "us"
+  region_slug = "prod-us-east-0"
 }
 
 // Step 2: Create a service account and key for the stack
@@ -102,7 +102,7 @@ variable "cloud_access_policy_token" {
 }
 variable "stack_slug" {}
 variable "cloud_region" {
-  default = "us"
+  default = "prod-us-east-0"
 }
 
 // Step 1: Create a stack
