@@ -720,6 +720,12 @@ func ValidateBigTent() schema.SchemaValidateDiagFunc {
 		var gmrQuery []map[string]any
 		err := json.Unmarshal([]byte(v), &gmrQuery)
 		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       "Missing Required Field",
+				Detail:        fmt.Sprintf("expected grafana queries to be valid JSON format"),
+				AttributePath: path,
+			})
 			return diags
 		}
 

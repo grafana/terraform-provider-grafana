@@ -426,8 +426,13 @@ func TestValidateBigTent(t *testing.T) {
 		expectedDiags diag.Diagnostics
 	}{
 		"prometheus": {
-			query:         "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))",
-			expectedDiags: diag.Diagnostics{},
+			query: "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))",
+			expectedDiags: diag.Diagnostics{diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       "Missing Required Field",
+				Detail:        fmt.Sprintf("expected grafana queries to be valid JSON format"),
+				AttributePath: cty.IndexPath(cty.Value{}),
+			}},
 		},
 		"bigTent_success": {
 			query:         createBigTent(true, []map[string]any{}),
