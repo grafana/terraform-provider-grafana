@@ -20,7 +20,7 @@ const (
 	QueryTypeHistogram      string = "histogram"
 	QueryTypeRatio          string = "ratio"
 	QueryTypeThreshold      string = "threshold"
-	QueryTypeGrafanaQueries string = "grafanaQueries"
+	QueryTypeGrafanaQueries string = "grafana_queries"
 )
 
 var resourceSloID = common.NewResourceID(common.StringIDField("uuid"))
@@ -100,13 +100,13 @@ Resource manages Grafana SLOs.
 								},
 							},
 						},
-						"grafanaQueries": {
+						"grafana_queries": {
 							Type:        schema.TypeList,
 							Optional:    true,
 							Description: "Array for holding a set of grafana queries",
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"grafanaQueries": {
+									"grafana_queries": {
 										Type:             schema.TypeString,
 										Required:         true,
 										Description:      "Query Object - JSON formatted string",
@@ -531,9 +531,9 @@ func packQuery(query map[string]interface{}) (slo.SloV00Query, error) {
 		return sloQuery, nil
 	}
 
-	if query["type"] == "grafanaQueries" {
-		freeformquery := query["grafanaQueries"].([]interface{})[0].(map[string]interface{})
-		querystring := freeformquery["grafanaQueries"].(string)
+	if query["type"] == "grafana_queries" {
+		freeformquery := query["grafana_queries"].([]interface{})[0].(map[string]interface{})
+		querystring := freeformquery["grafana_queries"].(string)
 
 		var queryMapList []map[string]interface{}
 		err := json.Unmarshal([]byte(querystring), &queryMapList)

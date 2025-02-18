@@ -2,8 +2,8 @@ resource "grafana_slo" "test" {
   name        = "Terraform Testing"
   description = "Terraform Description"
   query {
-    grafanaQueries {
-      grafanaQueries = jsonencode([
+    grafana_queries {
+      grafana_queries = jsonencode([
         {
           aggregation : "Sum",
           alias : "",
@@ -57,7 +57,7 @@ resource "grafana_slo" "test" {
         }
       ])
     }
-    type = "freeform"
+    type = "grafana_queries"
   }
   objectives {
     value  = 0.995
