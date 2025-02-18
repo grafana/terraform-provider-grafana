@@ -106,7 +106,7 @@ jobs:
     steps:
       - name: Check if fork
         run: |
-          if [[ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" || "${{ matrix.type }}" == "enterprise" ]]; then
+          if [[ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" && "${{ matrix.type }}" == "enterprise" ]]; then
             echo "Skipping enterprise tests for forks"
             exit 1
           fi
