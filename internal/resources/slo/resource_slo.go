@@ -723,7 +723,7 @@ func ValidateBigTent() schema.SchemaValidateDiagFunc {
 			diags = append(diags, diag.Diagnostic{
 				Severity:      diag.Error,
 				Summary:       "Missing Required Field",
-				Detail:        fmt.Sprintf("expected grafana queries to be valid JSON format"),
+				Detail:        "expected grafana queries to be valid JSON format",
 				AttributePath: path,
 			})
 			return diags

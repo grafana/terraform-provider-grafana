@@ -430,7 +430,7 @@ func TestValidateBigTent(t *testing.T) {
 			expectedDiags: diag.Diagnostics{diag.Diagnostic{
 				Severity:      diag.Error,
 				Summary:       "Missing Required Field",
-				Detail:        fmt.Sprintf("expected grafana queries to be valid JSON format"),
+				Detail:        "expected grafana queries to be valid JSON format",
 				AttributePath: cty.IndexPath(cty.Value{}),
 			}},
 		},
