@@ -16,10 +16,11 @@ import (
 )
 
 const (
-	QueryTypeFreeform  string = "freeform"
-	QueryTypeHistogram string = "histogram"
-	QueryTypeRatio     string = "ratio"
-	QueryTypeThreshold string = "threshold"
+	QueryTypeFreeform       string = "freeform"
+	QueryTypeHistogram      string = "histogram"
+	QueryTypeRatio          string = "ratio"
+	QueryTypeThreshold      string = "threshold"
+	QueryTypeGrafanaQueries string = "grafanaQueries"
 )
 
 var resourceSloID = common.NewResourceID(common.StringIDField("uuid"))
@@ -81,8 +82,8 @@ Resource manages Grafana SLOs.
 					Schema: map[string]*schema.Schema{
 						"type": {
 							Type:         schema.TypeString,
-							Description:  `Query type must be one of: "freeform", "query", "ratio", or "threshold"`,
-							ValidateFunc: validation.StringInSlice([]string{"freeform", "query", "ratio", "threshold"}, false),
+							Description:  `Query type must be one of: "freeform", "query", "ratio", "grafanaQueries" or "threshold"`,
+							ValidateFunc: validation.StringInSlice([]string{"freeform", "query", "ratio", "threshold", "grafanaQueries"}, false),
 							Required:     true,
 						},
 						"freeform": {
@@ -92,9 +93,23 @@ Resource manages Grafana SLOs.
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"query": {
+										Type:        schema.TypeString,
+										Required:    true,
+										Description: "Freeform Query Field - valid promQl",
+									},
+								},
+							},
+						},
+						"grafanaQueries": {
+							Type:        schema.TypeList,
+							Optional:    true,
+							Description: "Array for holding a set of grafana queries",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"grafanaQueries": {
 										Type:             schema.TypeString,
 										Required:         true,
-										Description:      "Freeform Query Field - valid promQl or JSON formatted string",
+										Description:      "Query Object - JSON formatted string",
 										ValidateDiagFunc: ValidateBigTent(),
 									},
 								},
@@ -511,6 +526,26 @@ func packQuery(query map[string]interface{}) (slo.SloV00Query, error) {
 				GroupByLabels: labels,
 			},
 			Type: QueryTypeRatio,
+		}
+
+		return sloQuery, nil
+	}
+
+	if query["type"] == "grafanaQueries" {
+		freeformquery := query["grafanaQueries"].([]interface{})[0].(map[string]interface{})
+		querystring := freeformquery["grafanaQueries"].(string)
+
+		var queryMapList []map[string]interface{}
+		err := json.Unmarshal([]byte(querystring), &queryMapList)
+
+		// We validate the JSON structure this should never occur
+		if err != nil {
+			return slo.SloV00Query{}, err
+		}
+
+		sloQuery := slo.SloV00Query{
+			GrafanaQueries: &slo.SloV00GrafanaQueries{GrafanaQueries: queryMapList},
+			Type:           QueryTypeGrafanaQueries,
 		}
 
 		return sloQuery, nil
