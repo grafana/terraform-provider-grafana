@@ -27,7 +27,7 @@ data "grafana_cloud_stack" "current" {
 }
 
 resource "grafana_cloud_private_data_source_connect_network" "test" {
-  region           = "us"
+  region           = "prod-us-east-0"
   name             = "my-pdc"
   display_name     = "My PDC"
   stack_identifier = data.grafana_cloud_stack.current.id

@@ -30,11 +30,11 @@ func TestDataSourceAccessPolicy_Basic(t *testing.T) {
 		"datadog:validate",
 	}
 
-	accessPolicyConfig := testAccCloudAccessPolicyTokenConfigBasic(randomName, randomName+"display", "us", scopes, expiresAt)
+	accessPolicyConfig := testAccCloudAccessPolicyTokenConfigBasic(randomName, randomName+"display", "prod-us-east-0", scopes, expiresAt)
 	setItemMatcher := func(s *terraform.State) error {
 		return resource.TestCheckTypeSetElemNestedAttrs("data.grafana_cloud_access_policies.test", "access_policies.*", map[string]string{
 			"id":           *policy.Id,
-			"region":       "us",
+			"region":       "prod-us-east-0",
 			"name":         randomName,
 			"display_name": randomName + "display",
 			"status":       *policy.Status,
@@ -43,7 +43,7 @@ func TestDataSourceAccessPolicy_Basic(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		CheckDestroy:             testAccCloudAccessPolicyCheckDestroy("us", &policy),
+		CheckDestroy:             testAccCloudAccessPolicyCheckDestroy("prod-us-east-0", &policy),
 		Steps: []resource.TestStep{
 			// Test without filters
 			{
@@ -70,23 +70,23 @@ func TestDataSourceAccessPolicy_Basic(t *testing.T) {
 			},
 			// Test with region filter
 			{
-				Config: accessPolicyConfig + testAccDataSourceAccessPoliciesConfigBasic(nil, common.Ref("us")),
+				Config: accessPolicyConfig + testAccDataSourceAccessPoliciesConfigBasic(nil, common.Ref("prod-us-east-0")),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.test", &policy),
 
 					resource.TestCheckNoResourceAttr("data.grafana_cloud_access_policies.test", "name_filter"),
-					resource.TestCheckResourceAttr("data.grafana_cloud_access_policies.test", "region_filter", "us"),
+					resource.TestCheckResourceAttr("data.grafana_cloud_access_policies.test", "region_filter", "prod-us-east-0"),
 					setItemMatcher,
 				),
 			},
 			// Test with name and region filter
 			{
-				Config: accessPolicyConfig + testAccDataSourceAccessPoliciesConfigBasic(&randomName, common.Ref("us")),
+				Config: accessPolicyConfig + testAccDataSourceAccessPoliciesConfigBasic(&randomName, common.Ref("prod-us-east-0")),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.test", &policy),
 
 					resource.TestCheckResourceAttr("data.grafana_cloud_access_policies.test", "name_filter", randomName),
-					resource.TestCheckResourceAttr("data.grafana_cloud_access_policies.test", "region_filter", "us"),
+					resource.TestCheckResourceAttr("data.grafana_cloud_access_policies.test", "region_filter", "prod-us-east-0"),
 					resource.TestCheckResourceAttr("data.grafana_cloud_access_policies.test", "access_policies.#", "1"),
 					setItemMatcher,
 				),
