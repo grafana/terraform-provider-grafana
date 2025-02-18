@@ -137,8 +137,8 @@ resource "grafana_slo" "test" {
   name        = "Terraform Testing"
   description = "Terraform Description"
   query {
-    freeform {
-      query = jsonencode([
+    grafana_queries {
+      grafana_queries = jsonencode([
         {
           aggregation : "Sum",
           alias : "",
@@ -192,7 +192,7 @@ resource "grafana_slo" "test" {
         }
       ])
     }
-    type = "freeform"
+    type = "grafana_queries"
   }
   objectives {
     value  = 0.995
@@ -279,11 +279,12 @@ Required:
 
 Required:
 
-- `type` (String) Query type must be one of: "freeform", "query", "ratio", or "threshold"
+- `type` (String) Query type must be one of: "freeform", "query", "ratio", "grafanaQueries" or "threshold"
 
 Optional:
 
 - `freeform` (Block List, Max: 1) (see [below for nested schema](#nestedblock--query--freeform))
+- `grafana_queries` (Block List) Array for holding a set of grafana queries (see [below for nested schema](#nestedblock--query--grafana_queries))
 - `ratio` (Block List, Max: 1) (see [below for nested schema](#nestedblock--query--ratio))
 
 <a id="nestedblock--query--freeform"></a>
@@ -291,7 +292,15 @@ Optional:
 
 Required:
 
-- `query` (String) Freeform Query Field - valid promQl or JSON formatted string
+- `query` (String) Freeform Query Field - valid promQl
+
+
+<a id="nestedblock--query--grafana_queries"></a>
+### Nested Schema for `query.grafana_queries`
+
+Required:
+
+- `grafana_queries` (String) Query Object - JSON formatted string
 
 
 <a id="nestedblock--query--ratio"></a>
