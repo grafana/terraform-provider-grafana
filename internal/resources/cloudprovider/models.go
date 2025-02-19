@@ -26,6 +26,7 @@ type awsCWScrapeJobTFResourceModel struct {
 	// See https://developer.hashicorp.com/terraform/plugin/framework/handling-data/attributes#nested-attribute-types
 	Services         types.List `tfsdk:"service"`
 	CustomNamespaces types.List `tfsdk:"custom_namespace"`
+	StaticLabels     types.Map  `tfsdk:"static_labels"`
 }
 
 type awsCWScrapeJobTFDataSourceModel struct {
@@ -44,6 +45,7 @@ type awsCWScrapeJobTFDataSourceModel struct {
 	// See https://developer.hashicorp.com/terraform/plugin/framework/handling-data/attributes#nested-attribute-types
 	Services         types.List `tfsdk:"service"`
 	CustomNamespaces types.List `tfsdk:"custom_namespace"`
+	StaticLabels     types.Map  `tfsdk:"static_labels"`
 }
 
 type awsCWScrapeJobServiceTFModel struct {
@@ -185,7 +187,7 @@ func (v awsCWScrapeJobNoDuplicateMetricNamesValidator) MarkdownDescription(ctx c
 func (v awsCWScrapeJobNoDuplicateMetricNamesValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
 	seen := map[string]struct{}{}
 	elems := make([]awsCWScrapeJobMetricTFModel, len(req.ConfigValue.Elements()))
-	diags := req.ConfigValue.ElementsAs(ctx, &elems, false)
+	diags := req.ConfigValue.ElementsAs(ctx, &elems, true)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -301,6 +303,12 @@ func (tfData awsCWScrapeJobTFResourceModel) toClientModel(ctx context.Context) (
 		}
 	}
 
+	diags = tfData.StaticLabels.ElementsAs(ctx, &converted.StaticLabels, false)
+	conversionDiags.Append(diags...)
+	if conversionDiags.HasError() {
+		return cloudproviderapi.AWSCloudWatchScrapeJobRequest{}, conversionDiags
+	}
+
 	return converted, conversionDiags
 }
 
@@ -342,6 +350,16 @@ func generateCloudWatchScrapeJobTFResourceModel(ctx context.Context, stackID str
 	}
 	converted.CustomNamespaces = customNamespaces
 
+	staticLabelsMap := types.MapValueMust(types.StringType, map[string]attr.Value{})
+	if scrapeJobData.StaticLabels != nil {
+		staticLabelsMap, diags = types.MapValueFrom(ctx, basetypes.StringType{}, scrapeJobData.StaticLabels)
+		conversionDiags.Append(diags...)
+		if conversionDiags.HasError() {
+			return awsCWScrapeJobTFResourceModel{}, conversionDiags
+		}
+	}
+	converted.StaticLabels = staticLabelsMap
+
 	return converted, conversionDiags
 }
 
@@ -380,6 +398,16 @@ func generateCloudWatchScrapeJobDataSourceTFModel(ctx context.Context, stackID s
 		return awsCWScrapeJobTFDataSourceModel{}, conversionDiags
 	}
 	converted.CustomNamespaces = customNamespaces
+
+	staticLabelsMap := types.MapValueMust(types.StringType, map[string]attr.Value{})
+	if scrapeJobData.StaticLabels != nil {
+		staticLabelsMap, diags = types.MapValueFrom(ctx, basetypes.StringType{}, scrapeJobData.StaticLabels)
+		conversionDiags.Append(diags...)
+		if conversionDiags.HasError() {
+			return awsCWScrapeJobTFDataSourceModel{}, conversionDiags
+		}
+	}
+	converted.StaticLabels = staticLabelsMap
 
 	return converted, conversionDiags
 }

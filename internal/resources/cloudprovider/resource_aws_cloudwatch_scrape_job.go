@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -111,6 +112,13 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 			"disabled_reason": schema.StringAttribute{
 				Description: "When the CloudWatch Scrape Job is disabled, this will show the reason that it is in that state.",
 				Computed:    true,
+			},
+			"static_labels": schema.MapAttribute{
+				Description: "A set of static labels to add to all metrics exported by this scrape job.",
+				Optional:    true,
+				Computed:    true,
+				ElementType: basetypes.StringType{},
+				Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
 			},
 		},
 		Blocks: map[string]schema.Block{

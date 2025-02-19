@@ -111,6 +111,7 @@ type AWSCloudWatchScrapeJobRequest struct {
 	ExportTags            bool                           `json:"exportTags"`
 	Services              []AWSCloudWatchService         `json:"services"`
 	CustomNamespaces      []AWSCloudWatchCustomNamespace `json:"customNamespaces"`
+	StaticLabels          map[string]string              `json:"staticLabels"`
 }
 type AWSCloudWatchScrapeJobResponse struct {
 	Name                 string                         `json:"name"`
@@ -119,6 +120,8 @@ type AWSCloudWatchScrapeJobResponse struct {
 	ExportTags           bool                           `json:"exportTags"`
 	Services             []AWSCloudWatchService         `json:"services"`
 	CustomNamespaces     []AWSCloudWatchCustomNamespace `json:"customNamespaces"`
+	StaticLabels         map[string]string              `json:"staticLabels"`
+
 	// computed fields beyond the original request
 	RoleARN                   string   `json:"roleARN"`
 	Regions                   []string `json:"regions"`
@@ -220,6 +223,9 @@ type AzureCredential struct {
 
 	// AutoDiscoveryConfiguration is the configuration for auto-discovery of Azure resources.
 	AutoDiscoveryConfiguration []AutoDiscoveryConfiguration `json:"auto_discovery_configuration"`
+
+	// ResourceTagsToAddToMetrics is the list of Azure resource tags to add to metrics.
+	ResourceTagsToAddToMetrics []string `json:"resource_tags_to_add_to_metrics"`
 }
 
 type AutoDiscoveryConfiguration struct {

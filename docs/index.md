@@ -58,7 +58,7 @@ resource "grafana_cloud_stack" "my_stack" {
 
   name        = "myteststack"
   slug        = "myteststack"
-  region_slug = "us"
+  region_slug = "prod-us-east-0"
 }
 
 // Step 2: Create a service account and key for the stack
@@ -102,7 +102,7 @@ variable "cloud_access_policy_token" {
 }
 variable "stack_slug" {}
 variable "cloud_region" {
-  default = "us"
+  default = "prod-us-east-0"
 }
 
 // Step 1: Create a stack
@@ -255,6 +255,8 @@ resource "grafana_oncall_escalation" "example_notify_step" {
 - `cloud_provider_url` (String) A Grafana Cloud Provider backend address. May alternatively be set via the `GRAFANA_CLOUD_PROVIDER_URL` environment variable.
 - `connections_api_access_token` (String, Sensitive) A Grafana Connections API access token. May alternatively be set via the `GRAFANA_CONNECTIONS_API_ACCESS_TOKEN` environment variable.
 - `connections_api_url` (String) A Grafana Connections API address. May alternatively be set via the `GRAFANA_CONNECTIONS_API_URL` environment variable.
+- `fleet_management_auth` (String, Sensitive) A Grafana Fleet Management basic auth in the `username:password` format. May alternatively be set via the `GRAFANA_FLEET_MANAGEMENT_AUTH` environment variable.
+- `fleet_management_url` (String) A Grafana Fleet Management API address. May alternatively be set via the `GRAFANA_FLEET_MANAGEMENT_URL` environment variable.
 - `http_headers` (Map of String, Sensitive) Optional. HTTP headers mapping keys to values used for accessing the Grafana and Grafana Cloud APIs. May alternatively be set via the `GRAFANA_HTTP_HEADERS` environment variable in JSON format.
 - `insecure_skip_verify` (Boolean) Skip TLS certificate verification. May alternatively be set via the `GRAFANA_INSECURE_SKIP_VERIFY` environment variable.
 - `oncall_access_token` (String, Sensitive) A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable.
@@ -286,7 +288,7 @@ the in-screen instructions, of following [this guide](https://grafana.com/docs/g
 
 #### Obtaining Cloud Provider API hostname
 
-Having created the token, we can find the correct Cloud Provider API hostname by running the following script, that requires `curl` and [`jq`](https://jqlang.github.io/jq/) installed:
+Having created the token, we can find the correct Cloud Provider API hostname by running the following script, that requires `curl` and [`jq`](https://jqlang.org/) installed:
 
 ```bash
 curl -sH "Authorization: Bearer <Access Token from previous step>" "https://grafana.com/api/instances" | \
@@ -391,6 +393,11 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
     }
     scrape_interval_seconds = 300
   }
+
+  static_labels = {
+    "label1" = "value1"
+    "label2" = "value2"
+  }
 }
 ```
 
@@ -414,7 +421,7 @@ the in-screen instructions, of following [this guide](https://grafana.com/docs/g
 
 #### Obtaining Connections API hostname
 
-Having created the token, we can find the correct Connections API hostname by running the following script, that requires `curl` and [`jq`](https://jqlang.github.io/jq/) installed:
+Having created the token, we can find the correct Connections API hostname by running the following script, that requires `curl` and [`jq`](https://jqlang.org/) installed:
 
 ```bash
 curl -sH "Authorization: Bearer <Access Token from previous step>" "https://grafana.com/api/instances" | \
@@ -442,6 +449,91 @@ Once you have the token and Connections API hostname, you can configure the prov
 provider "grafana" {
   connections_api_url          = "<Connections API URL from previous step>"
   connections_api_access_token = "<Access Token from previous step>"
+}
+```
+
+### Managing Grafana Fleet Management
+
+```terraform
+// Variables
+variable "cloud_access_policy_token" {
+  type        = string
+  description = "Cloud access policy token with scopes: accesspolicies:read|write|delete, stacks:read"
+}
+
+variable "stack_slug" {
+  type        = string
+  description = "Subdomain that the Grafana Cloud instance is available at: https://<stack_slug>.grafana.net"
+}
+
+// Step 1: Retrieve stack details
+provider "grafana" {
+  alias = "cloud"
+
+  cloud_access_policy_token = var.cloud_access_policy_token
+}
+
+data "grafana_cloud_stack" "stack" {
+  provider = grafana.cloud
+
+  slug = var.stack_slug
+}
+
+// Step 2: Create an access policy and token for Fleet Management
+resource "grafana_cloud_access_policy" "policy" {
+  provider = grafana.cloud
+
+  name   = "fleet-management-policy"
+  region = data.grafana_cloud_stack.stack.region_slug
+
+  scopes = [
+    "fleet-management:read",
+    "fleet-management:write"
+  ]
+
+  realm {
+    type       = "stack"
+    identifier = data.grafana_cloud_stack.stack.id
+  }
+}
+
+resource "grafana_cloud_access_policy_token" "token" {
+  provider = grafana.cloud
+
+  name             = "fleet-management-token"
+  region           = grafana_cloud_access_policy.policy.region
+  access_policy_id = grafana_cloud_access_policy.policy.policy_id
+}
+
+// Step 3: Interact with Fleet Management
+provider "grafana" {
+  alias = "fm"
+
+  fleet_management_auth = "${data.grafana_cloud_stack.stack.fleet_management_user_id}:${grafana_cloud_access_policy_token.token.token}"
+  fleet_management_url  = data.grafana_cloud_stack.stack.fleet_management_url
+}
+
+resource "grafana_fleet_management_collector" "collector" {
+  provider = grafana.fm
+
+  id = "my_collector"
+  remote_attributes = {
+    "env"   = "PROD",
+    "owner" = "TEAM-A"
+  }
+  enabled = true
+}
+
+resource "grafana_fleet_management_pipeline" "pipeline" {
+  provider = grafana.fm
+
+  name     = "my_pipeline"
+  contents = file("config.alloy")
+  matchers = [
+    "collector.os=\"linux\"",
+    "env=\"PROD\""
+  ]
+  enabled = true
 }
 ```
 
@@ -478,3 +570,10 @@ To create one, follow the instructions in the [obtaining cloud provider access t
 An access policy token created on the [Grafana Cloud Portal](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/using-an-access-policy-token/) to manage
 connections resources, such as Metrics Endpoint jobs.
 For guidance on creating one, see section [obtaining connections access token](#obtaining-connections-access-token).
+
+### `fleet_management_auth`
+
+[Grafana Fleet Management](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/)
+uses basic auth to allow access to the API, where the username is the Fleet Management instance ID and the
+password is the API token. You can access the instance ID and request a new Fleet Management API token on the
+Connections -> Collector -> Fleet Management page, in the API tab.

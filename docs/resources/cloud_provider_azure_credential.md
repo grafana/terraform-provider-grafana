@@ -20,6 +20,8 @@ resource "grafana_cloud_provider_azure_credential" "test" {
   client_secret = "my-client-secret"
   tenant_id     = "my-tenant-id"
 
+  resource_tags_to_add_to_metrics = ["tag1", "tag2"]
+
   resource_discovery_tag_filter {
     key   = "key-1"
     value = "value-1"
@@ -70,6 +72,7 @@ resource "grafana_cloud_provider_azure_credential" "test" {
 
 - `auto_discovery_configuration` (Block List) The list of auto discovery configurations. (see [below for nested schema](#nestedblock--auto_discovery_configuration))
 - `resource_discovery_tag_filter` (Block List) The list of tag filters to apply to resources. (see [below for nested schema](#nestedblock--resource_discovery_tag_filter))
+- `resource_tags_to_add_to_metrics` (Set of String) A set of regions that this AWS Account resource applies to.
 
 ### Read-Only
 

@@ -676,7 +676,7 @@ func TestAccAlertRule_NotificationSettings(t *testing.T) {
 }
 
 func TestAccRecordingRule(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: change to 11.3.1 when available
+	testutils.CheckOSSTestsEnabled(t, ">=11.4.0")
 
 	var group models.AlertRuleGroup
 	var name = acctest.RandString(10)
@@ -696,12 +696,29 @@ func TestAccRecordingRule(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.data.0.model", "{\"refId\":\"A\"}"),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.record.0.metric", metric),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.record.0.from", "A"),
-					// ensure fields are cleared as expected
-					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.for", "2m0s"),
-					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.condition", "A"),
-					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.no_data_state", "NoData"),
-					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.exec_err_state", "Alerting"),
+					// ensure fields are empty as expected
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.for", "0s"),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.condition", ""),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.no_data_state", ""),
+					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "rule.0.exec_err_state", ""),
 				),
+			},
+		},
+	})
+}
+
+func TestAccRecordingRule_incompatibleSettings(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=11.4.0")
+
+	var name = acctest.RandString(10)
+	var metric = "valid_metric"
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccRecordingRuleInvalid(name, metric, "A"),
+				ExpectError: regexp.MustCompile(`conflicting fields "record" and "for"`),
 			},
 		},
 	})
@@ -877,7 +894,49 @@ resource "grafana_rule_group" "my_rule_group" {
 
 	rule {
 		name      = "My Random Walk Alert"
-		// following should be cleared by Grafana
+
+		// Query the datasource.
+		data {
+			ref_id = "A"
+			relative_time_range {
+				from = 600
+				to   = 0
+			}
+			datasource_uid = grafana_data_source.testdata_datasource.uid
+			model = jsonencode({
+				intervalMs    = 1000
+				maxDataPoints = 43200
+				refId         = "A"
+			})
+		}
+		record {
+			metric = "%[2]s"
+			from   = "%[3]s"
+		}
+	}
+}`, name, metric, refID)
+}
+
+func testAccRecordingRuleInvalid(name string, metric string, refID string) string {
+	return fmt.Sprintf(`
+resource "grafana_folder" "rule_folder" {
+	title = "%[1]s"
+}
+
+resource "grafana_data_source" "testdata_datasource" {
+	name = "%[1]s"
+	type = "grafana-testdata-datasource"
+	url  = "http://localhost:3333"
+}
+
+resource "grafana_rule_group" "my_rule_group" {
+	name             = "%[1]s"
+	folder_uid       = grafana_folder.rule_folder.uid
+	interval_seconds = 60
+
+	rule {
+		name      = "My Random Walk Alert"
+		// following should be rejected
 		condition = "A"
 		no_data_state  = "NoData"
 		exec_err_state = "Alerting"
