@@ -122,16 +122,14 @@ Resource manages Grafana SLOs.
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"success_metric": {
-										Type:             schema.TypeString,
-										Description:      `Counter metric for success events (numerator)`,
-										Required:         true,
-										ValidateDiagFunc: ValidateBigTent(),
+										Type:        schema.TypeString,
+										Description: `Counter metric for success events (numerator)`,
+										Required:    true,
 									},
 									"total_metric": {
-										Type:             schema.TypeString,
-										Description:      `Metric for total events (denominator)`,
-										Required:         true,
-										ValidateDiagFunc: ValidateBigTent(),
+										Type:        schema.TypeString,
+										Description: `Metric for total events (denominator)`,
+										Required:    true,
 									},
 									"group_by_labels": {
 										Type:        schema.TypeList,
