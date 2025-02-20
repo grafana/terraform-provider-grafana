@@ -105,6 +105,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check if fork
+        if: github.event_name == 'pull_request'
         run: |
           if [[ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" && "${{ matrix.type }}" == "enterprise" ]]; then
             echo "IS_FORK=true" >> $GITHUB_ENV
@@ -112,7 +113,7 @@ jobs:
             echo "IS_FORK=false" >> $GITHUB_ENV
           fi
       - name: Comment PR in forks
-        if: env.IS_FORK == 'true'
+        if: github.event_name == 'pull_request' && env.IS_FORK == 'true'
         uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -120,7 +121,7 @@ jobs:
           body: |
             ⚠️ Enterprise tests skipped for fork PRs.
       - name: Skip job if fork
-        if: env.IS_FORK == 'true'
+        if: github.event_name == 'pull_request' && env.IS_FORK == 'true'
         run: |
           echo "Skipping job because PR is from a fork"
           exit 0

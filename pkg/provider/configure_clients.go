@@ -28,6 +28,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/fleetmanagementapi"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/frontendo11yapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
 )
 
@@ -74,6 +75,12 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	}
 	if !providerConfig.FleetManagementAuth.IsNull() {
 		if err := createFleetManagementClient(c, providerConfig); err != nil {
+			return nil, err
+		}
+	}
+
+	if !providerConfig.FrontendO11yAPIAccessToken.IsNull() || !providerConfig.CloudAccessPolicyToken.IsNull() {
+		if err := createFrontendO11yClient(c, providerConfig); err != nil {
 			return nil, err
 		}
 	}
@@ -212,6 +219,45 @@ func createCloudProviderClient(client *common.Client, providerConfig ProviderCon
 		return err
 	}
 	client.CloudProviderAPI = apiClient
+	return nil
+}
+
+func createFrontendO11yClient(client *common.Client, providerConfig ProviderConfig) error {
+	providerHeaders, err := getHTTPHeadersMap(providerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
+	}
+
+	var token string
+	if providerConfig.FrontendO11yAPIAccessToken.IsNull() {
+		token = providerConfig.CloudAccessPolicyToken.ValueString()
+	} else {
+		token = providerConfig.FrontendO11yAPIAccessToken.ValueString()
+	}
+
+	cURL, err := url.Parse(providerConfig.CloudAPIURL.ValueString())
+	if err != nil {
+		return err
+	}
+
+	cHostParts := strings.Split(cURL.Host, ".")
+	if len(cHostParts) < 2 {
+		return fmt.Errorf("invalid cloud url")
+	}
+	// https://grafana.com -> grafana.net
+	cHost := fmt.Sprintf("%s.net", cHostParts[len(cHostParts)-2])
+
+	apiClient, err := frontendo11yapi.NewClient(
+		cHost,
+		token,
+		getRetryClient(providerConfig),
+		providerConfig.UserAgent.ValueString(),
+		providerHeaders,
+	)
+	if err != nil {
+		return err
+	}
+	client.FrontendO11yAPIClient = apiClient
 	return nil
 }
 
