@@ -82,8 +82,8 @@ Resource manages Grafana SLOs.
 					Schema: map[string]*schema.Schema{
 						"type": {
 							Type:         schema.TypeString,
-							Description:  `Query type must be one of: "freeform", "query", "ratio", "grafanaQueries" or "threshold"`,
-							ValidateFunc: validation.StringInSlice([]string{"freeform", "query", "ratio", "threshold", "grafanaQueries"}, false),
+							Description:  `Query type must be one of: "freeform", "query", "ratio", "grafana_queries" or "threshold"`,
+							ValidateFunc: validation.StringInSlice([]string{"freeform", "query", "ratio", "threshold", "grafana_queries"}, false),
 							Required:     true,
 						},
 						"freeform": {
