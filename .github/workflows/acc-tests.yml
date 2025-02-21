@@ -55,7 +55,7 @@ jobs:
           resource: ${{ env.GRAFANA_URL }}
           interval: 2000 # 2s
           timeout: 30000 # 30s
-      - uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
+      - uses: nick-fields/retry@c97818ca39074beaea45180dba704f92496a0082 # v3.0.1
         with:
           timeout_minutes: 30
           max_attempts: 3 # Try 3 times to make sure we don't report failures on flaky tests
@@ -140,7 +140,7 @@ jobs:
         uses: ScribeMD/docker-cache@fb28c93772363301b8d0a6072ce850224b73f74e # v0.5.0
         with:
           key: docker-${{ runner.os }}-${{ matrix.type == 'enterprise' && 'enterprise' || 'oss' }}-${{ matrix.version }}
-      - uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
+      - uses: nick-fields/retry@c97818ca39074beaea45180dba704f92496a0082 # v3.0.1
         with:
           timeout_minutes: 30
           max_attempts: 3 # Try 3 times to make sure we don't report failures on flaky tests
