@@ -20,7 +20,7 @@ const (
 	QueryTypeHistogram      string = "histogram"
 	QueryTypeRatio          string = "ratio"
 	QueryTypeThreshold      string = "threshold"
-	QueryTypeGrafanaQueries string = "grafana_queries"
+	QueryTypeGrafanaQueries string = "grafanaQueries"
 )
 
 var resourceSloID = common.NewResourceID(common.StringIDField("uuid"))
