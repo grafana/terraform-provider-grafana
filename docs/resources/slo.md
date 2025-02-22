@@ -279,7 +279,7 @@ Required:
 
 Required:
 
-- `type` (String) Query type must be one of: "freeform", "query", "ratio", "grafanaQueries" or "threshold"
+- `type` (String) Query type must be one of: "freeform", "query", "ratio", "grafana_queries" or "threshold"
 
 Optional:
 
