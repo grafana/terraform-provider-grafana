@@ -28,7 +28,7 @@ func resourceAccessPolicy() *common.Resource {
 			"allowed_subnets": {
 				Type:        schema.TypeSet,
 				Required:    true,
-				Description: "Conditions that apply to the access policy,such as IP Allow lists.",
+				Description: "IP range based access control for the access policy. Connections initiated from IP addresses outside of the specified ranges will be denied. Ensure you review the [Caveats of IP range based access control](https://grafana.com/docs/grafana-cloud/security-and-account-management/authentication-and-permissions/access-policies/ip-ranges-access-policies/#caveats) before using this parameter.",
 				Elem: &schema.Schema{
 					Type:             schema.TypeString,
 					ValidateDiagFunc: validateCloudAccessPolicyAllowedSubnets,

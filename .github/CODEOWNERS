@@ -5,6 +5,7 @@
 /internal/resources/cloudprovider/*         @grafana/platform-monitoring @grafana/middleware-apps
 /internal/resources/connections/*           @grafana/platform-monitoring @grafana/middleware-apps
 /internal/resources/fleetmanagement/*       @grafana/platform-monitoring @grafana/fleet-management-backend
+/internal/resources/frontendo11y/*          @grafana/platform-monitoring @grafana/frontend-o11y
 /internal/resources/machinelearning/*       @grafana/platform-monitoring @grafana/machine-learning
 /internal/resources/oncall/*                @grafana/platform-monitoring @grafana/grafana-irm-backend
 /internal/resources/slo/*                   @grafana/platform-monitoring @grafana/slo-squad

@@ -15,6 +15,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/fleetmanagementapi"
 
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/frontendo11yapi"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
@@ -35,6 +36,7 @@ type Client struct {
 	CloudProviderAPI      *cloudproviderapi.Client
 	ConnectionsAPIClient  *connectionsapi.Client
 	FleetManagementClient *fleetmanagementapi.Client
+	FrontendO11yAPIClient *frontendo11yapi.Client
 
 	alertingMutex sync.Mutex
 }

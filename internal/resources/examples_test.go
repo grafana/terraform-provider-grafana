@@ -106,6 +106,13 @@ func TestAccExamples(t *testing.T) {
 				testutils.CheckCloudInstanceTestsEnabled(t)
 			},
 		},
+		{
+			category: "Frontend Observability",
+			testCheck: func(t *testing.T, filename string) {
+				t.Skip() // TODO: Make all examples work
+				testutils.CheckCloudInstanceTestsEnabled(t)
+			},
+		},
 	} {
 		// Get all the filenames for all resource examples for this category
 		filenames := []string{}
