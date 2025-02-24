@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
@@ -23,6 +24,19 @@ var (
 	resourceAzureCredentialTerraformName = "grafana_cloud_provider_azure_credential"
 	resourceAzureCredentialTerraformID   = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("resource_id"))
 )
+
+type resourceAzureCredentialModel struct {
+	ID                         types.String `tfsdk:"id"`
+	Name                       types.String `tfsdk:"name"`
+	TenantID                   types.String `tfsdk:"tenant_id"`
+	ClientID                   types.String `tfsdk:"client_id"`
+	StackID                    types.String `tfsdk:"stack_id"`
+	ClientSecret               types.String `tfsdk:"client_secret"`
+	ResourceID                 types.String `tfsdk:"resource_id"`
+	ResourceTagFilters         types.List   `tfsdk:"resource_discovery_tag_filter"`
+	AutoDiscoveryConfiguration types.List   `tfsdk:"auto_discovery_configuration"`
+	ResourceTagsToAddToMetrics types.Set    `tfsdk:"resource_tags_to_add_to_metrics"`
+}
 
 type TagFilter struct {
 	Key   types.String `tfsdk:"key"`
@@ -36,15 +50,50 @@ func (tf TagFilter) attrTypes() map[string]attr.Type {
 	}
 }
 
-type resourceAzureCredentialModel struct {
-	ID                 types.String `tfsdk:"id"`
-	Name               types.String `tfsdk:"name"`
-	TenantID           types.String `tfsdk:"tenant_id"`
-	ClientID           types.String `tfsdk:"client_id"`
-	StackID            types.String `tfsdk:"stack_id"`
-	ClientSecret       types.String `tfsdk:"client_secret"`
-	ResourceID         types.String `tfsdk:"resource_id"`
-	ResourceTagFilters types.List   `tfsdk:"resource_discovery_tag_filter"`
+type azureAutoDiscoveryConfigurationModel struct {
+	SubscriptionID             types.String `tfsdk:"subscription_id"`
+	ResourceTypeConfigurations types.List   `tfsdk:"resource_type_configurations"`
+}
+
+func (tf azureAutoDiscoveryConfigurationModel) attrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"subscription_id": types.StringType,
+		"resource_type_configurations": types.ListType{
+			ElemType: types.ObjectType{
+				AttrTypes: azureResourceTypeConfigurationModel{}.attrTypes(),
+			},
+		},
+	}
+}
+
+type azureResourceTypeConfigurationModel struct {
+	ResourceTypeName    types.String `tfsdk:"resource_type_name"`
+	MetricConfiguration types.List   `tfsdk:"metric_configuration"`
+}
+
+func (tf azureResourceTypeConfigurationModel) attrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"resource_type_name": types.StringType,
+		"metric_configuration": types.ListType{
+			ElemType: types.ObjectType{
+				AttrTypes: azureMetricConfigurationModel{}.attrTypes(),
+			},
+		},
+	}
+}
+
+type azureMetricConfigurationModel struct {
+	Name         types.String `tfsdk:"name"`
+	Dimensions   types.List   `tfsdk:"dimensions"`
+	Aggregations types.List   `tfsdk:"aggregations"`
+}
+
+func (tf azureMetricConfigurationModel) attrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"name":         types.StringType,
+		"dimensions":   types.ListType{ElemType: types.StringType},
+		"aggregations": types.ListType{ElemType: types.StringType},
+	}
 }
 
 type resourceAzureCredential struct {
@@ -123,6 +172,11 @@ func (r *resourceAzureCredential) Schema(ctx context.Context, req resource.Schem
 				Required:    true,
 				Sensitive:   true,
 			},
+			"resource_tags_to_add_to_metrics": schema.SetAttribute{
+				Description: "A set of regions that this AWS Account resource applies to.",
+				Optional:    true,
+				ElementType: types.StringType,
+			},
 		},
 		Blocks: map[string]schema.Block{
 			"resource_discovery_tag_filter": schema.ListNestedBlock{
@@ -136,6 +190,22 @@ func (r *resourceAzureCredential) Schema(ctx context.Context, req resource.Schem
 						"value": schema.StringAttribute{
 							Description: "The value of the tag filter.",
 							Required:    true,
+						},
+					},
+				},
+			},
+			"auto_discovery_configuration": schema.ListNestedBlock{
+				Description: "The list of auto discovery configurations.",
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"subscription_id": schema.StringAttribute{
+							Description: "The subscription ID of the Azure account.",
+							Required:    true,
+						},
+						"resource_type_configurations": schema.ListAttribute{
+							Description: "The list of resource type configurations.",
+							Required:    true,
+							ElementType: types.ObjectType{AttrTypes: azureResourceTypeConfigurationModel{}.attrTypes()},
 						},
 					},
 				},
@@ -169,15 +239,29 @@ func (r *resourceAzureCredential) ImportState(ctx context.Context, req resource.
 		return
 	}
 
+	autoconfiguration, diags := r.convertAutoDiscoveryConfigurations(ctx, credentials.AutoDiscoveryConfiguration)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resourceTagsToAddToMetrics, diags := types.SetValueFrom(ctx, basetypes.StringType{}, credentials.ResourceTagsToAddToMetrics)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	resp.State.Set(ctx, &resourceAzureCredentialModel{
-		ID:                 types.StringValue(req.ID),
-		Name:               types.StringValue(credentials.Name),
-		TenantID:           types.StringValue(credentials.TenantID),
-		ClientID:           types.StringValue(credentials.ClientID),
-		StackID:            types.StringValue(stackID),
-		ResourceID:         types.StringValue(resourceID),
-		ClientSecret:       types.StringValue(""), // We don't import the client secret
-		ResourceTagFilters: tagFilters,
+		ID:                         types.StringValue(req.ID),
+		Name:                       types.StringValue(credentials.Name),
+		TenantID:                   types.StringValue(credentials.TenantID),
+		ClientID:                   types.StringValue(credentials.ClientID),
+		StackID:                    types.StringValue(stackID),
+		ResourceID:                 types.StringValue(resourceID),
+		ClientSecret:               types.StringValue(""), // We don't import the client secret
+		ResourceTagFilters:         tagFilters,
+		AutoDiscoveryConfiguration: autoconfiguration,
+		ResourceTagsToAddToMetrics: resourceTagsToAddToMetrics,
 	})
 }
 
@@ -205,12 +289,27 @@ func (r *resourceAzureCredential) Create(ctx context.Context, req resource.Creat
 		})
 	}
 
+	var requestAutoDiscoveryConfiguration []cloudproviderapi.AutoDiscoveryConfiguration
+
+	requestAutoDiscoveryConfiguration, diags = r.convertAutoDiscoveryConfigurationsToRequest(ctx, data.AutoDiscoveryConfiguration)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	azureCredential := cloudproviderapi.AzureCredential{
-		Name:               data.Name.ValueString(),
-		TenantID:           data.TenantID.ValueString(),
-		ClientID:           data.ClientID.ValueString(),
-		ClientSecret:       data.ClientSecret.ValueString(),
-		ResourceTagFilters: requestTagFilters,
+		Name:                       data.Name.ValueString(),
+		TenantID:                   data.TenantID.ValueString(),
+		ClientID:                   data.ClientID.ValueString(),
+		ClientSecret:               data.ClientSecret.ValueString(),
+		ResourceTagFilters:         requestTagFilters,
+		AutoDiscoveryConfiguration: requestAutoDiscoveryConfiguration,
+	}
+
+	diags = data.ResourceTagsToAddToMetrics.ElementsAs(ctx, &azureCredential.ResourceTagsToAddToMetrics, false)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	credential, err := r.client.CreateAzureCredential(
@@ -224,14 +323,16 @@ func (r *resourceAzureCredential) Create(ctx context.Context, req resource.Creat
 	}
 
 	resp.State.Set(ctx, &resourceAzureCredentialModel{
-		ID:                 types.StringValue(resourceAzureCredentialTerraformID.Make(data.StackID.ValueString(), credential.ID)),
-		Name:               data.Name,
-		TenantID:           data.TenantID,
-		ClientID:           data.ClientID,
-		StackID:            data.StackID,
-		ClientSecret:       data.ClientSecret,
-		ResourceID:         types.StringValue(credential.ID),
-		ResourceTagFilters: data.ResourceTagFilters,
+		ID:                         types.StringValue(resourceAzureCredentialTerraformID.Make(data.StackID.ValueString(), credential.ID)),
+		Name:                       data.Name,
+		TenantID:                   data.TenantID,
+		ClientID:                   data.ClientID,
+		StackID:                    data.StackID,
+		ClientSecret:               data.ClientSecret,
+		ResourceID:                 types.StringValue(credential.ID),
+		ResourceTagFilters:         data.ResourceTagFilters,
+		AutoDiscoveryConfiguration: data.AutoDiscoveryConfiguration,
+		ResourceTagsToAddToMetrics: data.ResourceTagsToAddToMetrics,
 	})
 }
 
@@ -298,6 +399,20 @@ func (r *resourceAzureCredential) Read(ctx context.Context, req resource.ReadReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	autoconfiguration, diags := r.convertAutoDiscoveryConfigurations(ctx, credential.AutoDiscoveryConfiguration)
+	resp.Diagnostics.Append(diags...)
+	diags = resp.State.SetAttribute(ctx, path.Root("auto_discovery_configuration"), autoconfiguration)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	diags = resp.State.SetAttribute(ctx, path.Root("resource_tags_to_add_to_metrics"), credential.ResourceTagsToAddToMetrics)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
 func (r *resourceAzureCredential) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -327,6 +442,21 @@ func (r *resourceAzureCredential) Update(ctx context.Context, req resource.Updat
 			Key:   tagFilter.Key.ValueString(),
 			Value: tagFilter.Value.ValueString(),
 		}
+	}
+
+	var autoDiscoveryConfigurations []cloudproviderapi.AutoDiscoveryConfiguration
+	autoDiscoveryConfigurations, diags = r.convertAutoDiscoveryConfigurationsToRequest(ctx, planData.AutoDiscoveryConfiguration)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	credential.AutoDiscoveryConfiguration = autoDiscoveryConfigurations
+
+	diags = planData.ResourceTagsToAddToMetrics.ElementsAs(ctx, &credential.ResourceTagsToAddToMetrics, false)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	credentialResponse, err := r.client.UpdateAzureCredential(
@@ -374,6 +504,23 @@ func (r *resourceAzureCredential) Update(ctx context.Context, req resource.Updat
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	convertedAutoDiscoveryConfigurations, diags := r.convertAutoDiscoveryConfigurations(ctx, credential.AutoDiscoveryConfiguration)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	diags = resp.State.SetAttribute(ctx, path.Root("auto_discovery_configuration"), convertedAutoDiscoveryConfigurations)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	diags = resp.State.SetAttribute(ctx, path.Root("resource_tags_to_add_to_metrics"), planData.ResourceTagsToAddToMetrics)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
 func (r *resourceAzureCredential) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -395,4 +542,124 @@ func (r *resourceAzureCredential) Delete(ctx context.Context, req resource.Delet
 	}
 
 	resp.State.Set(ctx, nil)
+}
+
+func (r *resourceAzureCredential) convertAutoDiscoveryConfigurations(ctx context.Context, configurations []cloudproviderapi.AutoDiscoveryConfiguration) (types.List, diag.Diagnostics) {
+	conversionDiags := diag.Diagnostics{}
+	autoDiscoveryConfigListObjType := types.ObjectType{AttrTypes: azureAutoDiscoveryConfigurationModel{}.attrTypes()}
+
+	autoDiscoveryConfigsTF := make([]azureAutoDiscoveryConfigurationModel, len(configurations))
+	for i, config := range configurations {
+		resourceTypeConfigsTF := make([]azureResourceTypeConfigurationModel, len(config.ResourceTypeConfigurations))
+		for j, resourceTypeConfig := range config.ResourceTypeConfigurations {
+			metricConfigsTF := make([]azureMetricConfigurationModel, len(resourceTypeConfig.MetricConfiguration))
+			for k, metricConfig := range resourceTypeConfig.MetricConfiguration {
+				metricConfigsTFDimensions, diags := types.ListValueFrom(ctx, types.StringType, metricConfig.Dimensions)
+				conversionDiags.Append(diags...)
+				if conversionDiags.HasError() {
+					return types.ListNull(autoDiscoveryConfigListObjType), conversionDiags
+				}
+
+				metricConfigsTFAggregations, diags := types.ListValueFrom(ctx, types.StringType, metricConfig.Aggregations)
+				conversionDiags.Append(diags...)
+				if conversionDiags.HasError() {
+					return types.ListNull(autoDiscoveryConfigListObjType), conversionDiags
+				}
+				metricConfigsTF[k] = azureMetricConfigurationModel{
+					Name:         types.StringValue(metricConfig.Name),
+					Dimensions:   metricConfigsTFDimensions,
+					Aggregations: metricConfigsTFAggregations,
+				}
+			}
+			resourceTypeConfigsTFMetricConfiguration, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: azureMetricConfigurationModel{}.attrTypes()}, metricConfigsTF)
+			conversionDiags.Append(diags...)
+			if conversionDiags.HasError() {
+				return types.ListNull(autoDiscoveryConfigListObjType), conversionDiags
+			}
+			resourceTypeConfigsTF[j] = azureResourceTypeConfigurationModel{
+				ResourceTypeName:    types.StringValue(resourceTypeConfig.ResourceTypeName),
+				MetricConfiguration: resourceTypeConfigsTFMetricConfiguration,
+			}
+		}
+
+		autoDiscoveryConfigsTFResourceTypeConfigurations, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: azureResourceTypeConfigurationModel{}.attrTypes()}, resourceTypeConfigsTF)
+		conversionDiags.Append(diags...)
+		if conversionDiags.HasError() {
+			return types.ListNull(autoDiscoveryConfigListObjType), conversionDiags
+		}
+		autoDiscoveryConfigsTF[i] = azureAutoDiscoveryConfigurationModel{
+			SubscriptionID:             types.StringValue(config.SubscriptionID),
+			ResourceTypeConfigurations: autoDiscoveryConfigsTFResourceTypeConfigurations,
+		}
+	}
+
+	autoDiscoveryConfigsTFList, diags := types.ListValueFrom(ctx, autoDiscoveryConfigListObjType, autoDiscoveryConfigsTF)
+	conversionDiags.Append(diags...)
+	if conversionDiags.HasError() {
+		return types.ListNull(autoDiscoveryConfigListObjType), conversionDiags
+	}
+	return autoDiscoveryConfigsTFList, conversionDiags
+}
+
+func (r *resourceAzureCredential) convertAutoDiscoveryConfigurationsToRequest(ctx context.Context, configuration types.List) ([]cloudproviderapi.AutoDiscoveryConfiguration, diag.Diagnostics) {
+	var autoDiscoveryConfigs []cloudproviderapi.AutoDiscoveryConfiguration
+	var diags diag.Diagnostics
+
+	var autoDiscoveryConfigModels []azureAutoDiscoveryConfigurationModel
+	diags = configuration.ElementsAs(ctx, &autoDiscoveryConfigModels, false)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	for _, configModel := range autoDiscoveryConfigModels {
+		var resourceTypeConfigs []cloudproviderapi.ResourceTypeConfiguration
+
+		var resourceTypeConfigModels []azureResourceTypeConfigurationModel
+		diags = configModel.ResourceTypeConfigurations.ElementsAs(ctx, &resourceTypeConfigModels, false)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		for _, resourceTypeConfigModel := range resourceTypeConfigModels {
+			var metricConfigs []cloudproviderapi.MetricConfiguration
+
+			var metricConfigModels []azureMetricConfigurationModel
+			diags = resourceTypeConfigModel.MetricConfiguration.ElementsAs(ctx, &metricConfigModels, false)
+			if diags.HasError() {
+				return nil, diags
+			}
+
+			for _, metricConfigModel := range metricConfigModels {
+				var dimensions []string
+				diags = metricConfigModel.Dimensions.ElementsAs(ctx, &dimensions, false)
+				if diags.HasError() {
+					return nil, diags
+				}
+
+				var aggregations []string
+				diags = metricConfigModel.Aggregations.ElementsAs(ctx, &aggregations, false)
+				if diags.HasError() {
+					return nil, diags
+				}
+
+				metricConfigs = append(metricConfigs, cloudproviderapi.MetricConfiguration{
+					Name:         metricConfigModel.Name.ValueString(),
+					Dimensions:   dimensions,
+					Aggregations: aggregations,
+				})
+			}
+
+			resourceTypeConfigs = append(resourceTypeConfigs, cloudproviderapi.ResourceTypeConfiguration{
+				ResourceTypeName:    resourceTypeConfigModel.ResourceTypeName.ValueString(),
+				MetricConfiguration: metricConfigs,
+			})
+		}
+
+		autoDiscoveryConfigs = append(autoDiscoveryConfigs, cloudproviderapi.AutoDiscoveryConfiguration{
+			SubscriptionID:             configModel.SubscriptionID.ValueString(),
+			ResourceTypeConfigurations: resourceTypeConfigs,
+		})
+	}
+
+	return autoDiscoveryConfigs, diags
 }

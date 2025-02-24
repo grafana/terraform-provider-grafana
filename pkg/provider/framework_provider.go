@@ -46,6 +46,10 @@ type ProviderConfig struct {
 	ConnectionsAPIAccessToken types.String `tfsdk:"connections_api_access_token"`
 	ConnectionsAPIURL         types.String `tfsdk:"connections_api_url"`
 
+	FleetManagementAuth        types.String `tfsdk:"fleet_management_auth"`
+	FleetManagementURL         types.String `tfsdk:"fleet_management_url"`
+	FrontendO11yAPIAccessToken types.String `tfsdk:"frontend_o11y_api_access_token"`
+
 	UserAgent types.String `tfsdk:"-"`
 	Version   types.String `tfsdk:"-"`
 }
@@ -68,6 +72,9 @@ func (c *ProviderConfig) SetDefaults() error {
 	c.CloudProviderURL = envDefaultFuncString(c.CloudProviderURL, "GRAFANA_CLOUD_PROVIDER_URL")
 	c.ConnectionsAPIAccessToken = envDefaultFuncString(c.ConnectionsAPIAccessToken, "GRAFANA_CONNECTIONS_API_ACCESS_TOKEN")
 	c.ConnectionsAPIURL = envDefaultFuncString(c.ConnectionsAPIURL, "GRAFANA_CONNECTIONS_API_URL", "https://connections-api.grafana.net")
+	c.FleetManagementAuth = envDefaultFuncString(c.FleetManagementAuth, "GRAFANA_FLEET_MANAGEMENT_AUTH")
+	c.FleetManagementURL = envDefaultFuncString(c.FleetManagementURL, "GRAFANA_FLEET_MANAGEMENT_URL")
+	c.FrontendO11yAPIAccessToken = envDefaultFuncString(c.FrontendO11yAPIAccessToken, "GRAFANA_FRONTEND_O11Y_API_ACCESS_TOKEN")
 	if c.StoreDashboardSha256, err = envDefaultFuncBool(c.StoreDashboardSha256, "GRAFANA_STORE_DASHBOARD_SHA256", false); err != nil {
 		return fmt.Errorf("failed to parse GRAFANA_STORE_DASHBOARD_SHA256: %w", err)
 	}
@@ -220,6 +227,21 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 			"connections_api_url": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "A Grafana Connections API address. May alternatively be set via the `GRAFANA_CONNECTIONS_API_URL` environment variable.",
+			},
+
+			"fleet_management_auth": schema.StringAttribute{
+				Optional:            true,
+				Sensitive:           true,
+				MarkdownDescription: "A Grafana Fleet Management basic auth in the `username:password` format. May alternatively be set via the `GRAFANA_FLEET_MANAGEMENT_AUTH` environment variable.",
+			},
+			"fleet_management_url": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "A Grafana Fleet Management API address. May alternatively be set via the `GRAFANA_FLEET_MANAGEMENT_URL` environment variable.",
+			},
+			"frontend_o11y_api_access_token": schema.StringAttribute{
+				Optional:            true,
+				Sensitive:           true,
+				MarkdownDescription: "A Grafana Frontend Observability API access token. May alternatively be set via the `GRAFANA_FRONTEND_O11Y_API_ACCESS_TOKEN` environment variable.",
 			},
 		},
 	}

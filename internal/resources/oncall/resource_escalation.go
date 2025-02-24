@@ -65,7 +65,7 @@ func resourceEscalation() *common.Resource {
 			"important": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Will activate \"important\" personal notification rules. Actual for steps: notify_persons, notify_on_call_from_schedule and notify_user_group,notify_team_members",
+				Description: "Will activate \"important\" personal notification rules. Actual for steps: notify_persons, notify_person_next_each_time, notify_on_call_from_schedule, notify_user_group and notify_team_members",
 			},
 			"duration": {
 				Type:     schema.TypeInt,

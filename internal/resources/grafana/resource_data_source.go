@@ -119,6 +119,12 @@ source selected (via the 'type' argument).
 			},
 			"json_data_encoded":        datasourceJSONDataAttribute(),
 			"secure_json_data_encoded": datasourceSecureJSONDataAttribute(),
+			"private_data_source_connect_network_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: "(Can only be used with data sources in Grafana Cloud) The ID of the Private Data source Connect network to use with this data source.",
+			},
 		},
 	}
 
@@ -170,6 +176,16 @@ func datasourceJSONDataAttribute() *schema.Schema {
 			if oldValue == "{}" && newValue == "" {
 				return true
 			}
+
+			newValueUnmarshalled := make(map[string]interface{})
+			json.Unmarshal([]byte(newValue), &newValueUnmarshalled)
+			pdcNetworkID := d.Get("private_data_source_connect_network_id")
+			if pdcNetworkID != "" {
+				newValueUnmarshalled["enableSecureSocksProxy"] = true
+				newValueUnmarshalled["secureSocksProxyUsername"] = pdcNetworkID
+			}
+			newValue, _ = structure.FlattenJsonToString(newValueUnmarshalled)
+
 			return common.SuppressEquivalentJSONDiffs(k, oldValue, newValue, d)
 		},
 	}
@@ -359,6 +375,15 @@ func stateToDatasourceConfig(d *schema.ResourceData) (map[string]interface{}, ma
 	if err != nil {
 		return nil, nil, err
 	}
+
+	pdcNetworkID := d.Get("private_data_source_connect_network_id")
+	if pdcNetworkID != nil {
+		if id := pdcNetworkID.(string); id != "" {
+			jd["enableSecureSocksProxy"] = true
+			jd["secureSocksProxyUsername"] = pdcNetworkID
+		}
+	}
+
 	sd, err := makeSecureJSONData(d)
 	if err != nil {
 		return nil, nil, err

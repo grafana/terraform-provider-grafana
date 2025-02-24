@@ -107,6 +107,12 @@ Grafana Synthetic Monitoring Agent.
 				Optional:    true,
 				Default:     false,
 			},
+			"disable_browser_checks": {
+				Description: "Disables browser checks for this probe.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+			},
 		},
 	}
 
@@ -184,8 +190,10 @@ func resourceProbeRead(ctx context.Context, d *schema.ResourceData, c *smapi.Cli
 
 	if prb.Capabilities != nil {
 		d.Set("disable_scripted_checks", prb.Capabilities.DisableScriptedChecks)
+		d.Set("disable_browser_checks", prb.Capabilities.DisableBrowserChecks)
 	} else {
 		d.Set("disable_scripted_checks", false)
+		d.Set("disable_browser_checks", false)
 	}
 
 	return nil
@@ -254,6 +262,7 @@ func makeProbe(d *schema.ResourceData) *sm.Probe {
 		Public:    d.Get("public").(bool),
 		Capabilities: &sm.Probe_Capabilities{
 			DisableScriptedChecks: d.Get("disable_scripted_checks").(bool),
+			DisableBrowserChecks:  d.Get("disable_browser_checks").(bool),
 		},
 	}
 }

@@ -17,7 +17,7 @@ func TestAccDataSourceProbe(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_synthetic_monitoring_probe/data-source.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("data.grafana_synthetic_monitoring_probe.atlanta", "name", "Atlanta"),
+					resource.TestCheckResourceAttr("data.grafana_synthetic_monitoring_probe.Ohio", "name", "Ohio"),
 				),
 			},
 		},

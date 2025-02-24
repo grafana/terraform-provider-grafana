@@ -7,6 +7,8 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloudprovider"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/connections"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/fleetmanagement"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/frontendo11y"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/machinelearning"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/oncall"
@@ -27,6 +29,7 @@ func DataSources() []*common.DataSource {
 	resources = append(resources, syntheticmonitoring.DataSources...)
 	resources = append(resources, cloudprovider.DataSources...)
 	resources = append(resources, connections.DataSources...)
+	resources = append(resources, frontendo11y.DataSources...)
 	return resources
 }
 
@@ -64,6 +67,8 @@ func Resources() []*common.Resource {
 	resources = append(resources, syntheticmonitoring.Resources...)
 	resources = append(resources, cloudprovider.Resources...)
 	resources = append(resources, connections.Resources...)
+	resources = append(resources, fleetmanagement.Resources...)
+	resources = append(resources, frontendo11y.Resources...)
 	return resources
 }
 

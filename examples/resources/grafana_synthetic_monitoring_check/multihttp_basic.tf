@@ -5,7 +5,7 @@ resource "grafana_synthetic_monitoring_check" "multihttp" {
   target  = "https://www.grafana-dev.com"
   enabled = false
   probes = [
-    data.grafana_synthetic_monitoring_probes.main.probes.Amsterdam,
+    data.grafana_synthetic_monitoring_probes.main.probes.Frankfurt,
   ]
   labels = {
     foo = "bar"

@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 var (
@@ -55,6 +56,11 @@ var (
 			"disabled_reason": schema.StringAttribute{
 				Description: "When the CloudWatch Scrape Job is disabled, this will show the reason that it is in that state.",
 				Computed:    true,
+			},
+			"static_labels": schema.MapAttribute{
+				Description: "A set of static labels to add to all metrics exported by this scrape job.",
+				Computed:    true,
+				ElementType: basetypes.StringType{},
 			},
 		},
 		Blocks: map[string]schema.Block{
