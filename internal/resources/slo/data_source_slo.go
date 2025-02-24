@@ -3,8 +3,6 @@ package slo
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-
 	"github.com/grafana/slo-openapi-client/go/slo"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -133,7 +131,6 @@ func unpackQuery(apiquery slo.SloV00Query) []map[string]interface{} {
 		grafanaQueriesString := map[string]interface{}{"grafana_queries": string(queryString)}
 		grafanaQueries = append(grafanaQueries, grafanaQueriesString)
 		query["grafana_queries"] = grafanaQueries
-		fmt.Println(grafanaQueries)
 		retQuery = append(retQuery, query)
 	}
 
