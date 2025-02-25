@@ -530,8 +530,8 @@ func packQuery(query map[string]interface{}) (slo.SloV00Query, error) {
 	}
 
 	if query["type"] == "grafana_queries" {
-		freeformquery := query["grafana_queries"].([]interface{})[0].(map[string]interface{})
-		querystring := freeformquery["grafana_queries"].(string)
+		grafanaquery := query["grafana_queries"].([]interface{})[0].(map[string]interface{})
+		querystring := grafanaquery["grafana_queries"].(string)
 
 		var queryMapList []map[string]interface{}
 		err := json.Unmarshal([]byte(querystring), &queryMapList)
