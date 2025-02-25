@@ -47,6 +47,7 @@ resource "grafana_frontend_o11y_app" "test-app" {
 
 ### Read-Only
 
+- `collector_endpoint` (String) The collector URL Grafana Cloud Frontend Observability. Use this endpoint to send your Telemetry.
 - `id` (Number) The Terraform Resource ID. This is auto-generated from Frontend Observability API.
 
 ## Import
