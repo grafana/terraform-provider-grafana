@@ -36,7 +36,7 @@ resource "grafana_mute_timing" "my_mute_timing" {
 resource "grafana_message_template" "my_template" {
   org_id   = grafana_organization.test.id
   name     = "My Notification Template Group"
-  template = "{{define \"custom.message\" }}\n template content\n{{ end }}"
+  template = "{{ define \"custom.message\" }}\n template content\n{{ end }}"
 }
 
 resource "grafana_folder" "rule_folder" {
