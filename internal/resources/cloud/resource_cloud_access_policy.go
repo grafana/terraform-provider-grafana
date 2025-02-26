@@ -334,7 +334,6 @@ func flattenCloudAccessPolicyConditions(condition *gcom.AuthAccessPolicyConditio
 }
 
 func expandCloudAccessPolicyConditions(condition []interface{}) *gcom.PostAccessPoliciesRequestConditions {
-
 	var result gcom.PostAccessPoliciesRequestConditions
 
 	for _, c := range condition {

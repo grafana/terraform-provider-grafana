@@ -14,7 +14,6 @@ import (
 )
 
 func TestResourceAccessPolicy_AllowedSubnets(t *testing.T) {
-
 	t.Parallel()
 	testutils.CheckCloudAPITestsEnabled(t)
 
