@@ -33,6 +33,9 @@ resource "grafana_slo" "test" {
     }
     type = "grafana_queries"
   }
+  destination_datasource {
+    uid = "grafanacloud-prom"
+  }
   objectives {
     value  = 0.995
     window = "30d"

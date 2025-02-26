@@ -357,6 +357,80 @@ resource  "grafana_slo" "invalid" {
 }
 `
 
+const graphiteBadFormat = `
+resource "grafana_slo" "invalid" {
+  name        = "Terraform Testing"
+  description = "Terraform Description"
+  query {
+    grafana_queries {
+      grafana_queries = jsonencode([
+  {
+    "datasource": {
+      "type": "graphite",
+      "uid": "becy9yvjmuz9ca"
+    },
+    "refId": "Success",
+    "target": "groupByNode(perSecond(web.*.http.2xx_success.*.*), 1, 'avg''')"
+  },
+  {
+    "datasource": {
+      "type": "graphite",
+      "uid": "becy9yvjmuz9ca"
+    },
+    "refId": "Total",
+    "target": "groupByNode(perSecond(web.*.http.*.*.*), 1, 'avg')"
+  },
+  {
+    "datasource": {
+      "type": "__expr__",
+      "uid": "__expr__"
+    },
+    "expression": "$Success / $Total",
+    "refId": "Expression",
+    "type": "math"
+  }
+])
+    }
+    type = "grafana_queries"
+  }
+  destination_datasource {
+    uid = "grafanacloud-prom"
+  }
+  objectives {
+    value  = 0.995
+    window = "30d"
+  }
+
+  label {
+    key   = "slo"
+    value = "terraform"
+  }
+  alerting {
+    fastburn {
+      annotation {
+        key   = "name"
+        value = "SLO Burn Rate Very High"
+      }
+      annotation {
+        key   = "description"
+        value = "Error budget is burning too fast"
+      }
+    }
+
+    slowburn {
+      annotation {
+        key   = "name"
+        value = "SLO Burn Rate High"
+      }
+      annotation {
+        key   = "description"
+        value = "Error budget is burning too fast"
+      }
+    }
+  }
+}
+`
+
 func emptyAlert(name string) string {
 	return fmt.Sprintf(`
 	resource "grafana_slo" "empty_alert" {
@@ -416,6 +490,10 @@ func TestAccResourceInvalidSlo(t *testing.T) {
 				Config:      sloMissingDestinationDatasource,
 				ExpectError: regexp.MustCompile("Error: Insufficient destination_datasource blocks"),
 			},
+			{
+				Config:      graphiteBadFormat,
+				ExpectError: regexp.MustCompile("Error: Insufficient destination_datasource blocks"),
+			},
 		},
 	})
 }
@@ -429,7 +507,7 @@ func TestValidateGrafanaQuery(t *testing.T) {
 			query: "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))",
 			expectedDiags: diag.Diagnostics{diag.Diagnostic{
 				Severity:      diag.Error,
-				Summary:       "Missing Required Field",
+				Summary:       "Bad Format",
 				Detail:        "expected grafana queries to be valid JSON format",
 				AttributePath: cty.IndexPath(cty.Value{}),
 			}},

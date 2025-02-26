@@ -102,6 +102,7 @@ Resource manages Grafana SLOs.
 						},
 						"grafana_queries": {
 							Type:        schema.TypeList,
+							MaxItems:    1,
 							Optional:    true,
 							Description: "Array for holding a set of grafana queries",
 							Elem: &schema.Resource{
@@ -109,7 +110,7 @@ Resource manages Grafana SLOs.
 									"grafana_queries": {
 										Type:             schema.TypeString,
 										Required:         true,
-										Description:      "Query Object - JSON formatted string",
+										Description:      "Query Object - Array of Grafana Query JSON objects",
 										ValidateDiagFunc: ValidateGrafanaQuery(),
 									},
 								},
@@ -530,6 +531,7 @@ func packQuery(query map[string]interface{}) (slo.SloV00Query, error) {
 	}
 
 	if query["type"] == "grafana_queries" {
+		// This is safe
 		grafanaInterface := query["grafana_queries"].([]interface{})
 
 		if len(grafanaInterface) == 0 {
@@ -726,7 +728,7 @@ func ValidateGrafanaQuery() schema.SchemaValidateDiagFunc {
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity:      diag.Error,
-				Summary:       "Missing Required Field",
+				Summary:       "Bad Format",
 				Detail:        "expected grafana queries to be valid JSON format",
 				AttributePath: path,
 			})
@@ -763,7 +765,7 @@ func ValidateGrafanaQuery() schema.SchemaValidateDiagFunc {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected grafana query (refId:%v) to have a datasource", refID),
+					Detail:        fmt.Sprintf("expected grafana query (refId:%s) to have a datasource", refID),
 					AttributePath: append(currentPath, cty.IndexStep{Key: cty.StringVal("datasource")}),
 				})
 				return diags
@@ -775,7 +777,7 @@ func ValidateGrafanaQuery() schema.SchemaValidateDiagFunc {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected grafana query (refId:%v) to have a type", refID),
+					Detail:        fmt.Sprintf("expected grafana query (refId:%s) to have a type", refID),
 					AttributePath: append(currentPath.Copy(), cty.IndexStep{Key: cty.StringVal("type")}),
 				})
 			}
@@ -784,7 +786,7 @@ func ValidateGrafanaQuery() schema.SchemaValidateDiagFunc {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected grafana query (refId:%v) to have a uid", refID),
+					Detail:        fmt.Sprintf("expected grafana query (refId:%s) to have a uid", refID),
 					AttributePath: append(currentPath.Copy(), cty.IndexStep{Key: cty.StringVal("uid")}),
 				})
 			}

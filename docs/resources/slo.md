@@ -17,7 +17,58 @@ Resource manages Grafana SLOs.
 
 ## Example Usage
 
-### Basic
+### Ratio
+
+```terraform
+resource "grafana_slo" "ratio" {
+  name        = "Terraform Testing - Ratio Query"
+  description = "Terraform Description - Ratio Query"
+  query {
+    ratio {
+      success_metric  = "kubelet_http_requests_total{status!~\"5..\"}"
+      total_metric    = "kubelet_http_requests_total"
+      group_by_labels = ["job", "instance"]
+    }
+    type = "ratio"
+  }
+  objectives {
+    value  = 0.995
+    window = "30d"
+  }
+  destination_datasource {
+    uid = "grafanacloud-prom"
+  }
+  label {
+    key   = "slo"
+    value = "terraform"
+  }
+  alerting {
+    fastburn {
+      annotation {
+        key   = "name"
+        value = "SLO Burn Rate Very High"
+      }
+      annotation {
+        key   = "description"
+        value = "Error budget is burning too fast"
+      }
+    }
+
+    slowburn {
+      annotation {
+        key   = "name"
+        value = "SLO Burn Rate High"
+      }
+      annotation {
+        key   = "description"
+        value = "Error budget is burning too fast"
+      }
+    }
+  }
+}
+```
+
+### Advanced
 
 ```terraform
 resource "grafana_slo" "test" {
@@ -66,73 +117,11 @@ resource "grafana_slo" "test" {
 }
 ```
 
-### Advanced
+### Grafana Queries - Any supported datasource
 
-```terraform
-resource "grafana_slo" "test" {
-  name        = "Complex Resource - Terraform Ratio Query Example"
-  description = "Complex Resource - Terraform Ratio Query Description"
-  query {
-    ratio {
-      success_metric  = "kubelet_http_requests_total{status!~\"5..\"}"
-      total_metric    = "kubelet_http_requests_total"
-      group_by_labels = ["job", "instance"]
-    }
-    type = "ratio"
-  }
-  objectives {
-    value  = 0.995
-    window = "30d"
-  }
-  destination_datasource {
-    uid = "grafanacloud-prom"
-  }
-  label {
-    key   = "slo"
-    value = "terraform"
-  }
-  alerting {
-    fastburn {
-      annotation {
-        key   = "name"
-        value = "SLO Burn Rate Very High"
-      }
-      annotation {
-        key   = "description"
-        value = "Error budget is burning too fast"
-      }
-      label {
-        key   = "type"
-        value = "slo"
-      }
-    }
-
-    slowburn {
-      annotation {
-        key   = "name"
-        value = "SLO Burn Rate High"
-      }
-      annotation {
-        key   = "description"
-        value = "Error budget is burning too fast"
-      }
-      label {
-        key   = "type"
-        value = "slo"
-      }
-    }
-  }
-}
-```
-
-## Enterprise Datasources
-
-Currently supported datasources: AppDynamics, Splunk, Graphite
-
-Enterprise Datasource queries use the grafana_queries query field. It expects a JSON string list of valid grafana query JSON objects.
+Grafana Queries use the grafana_queries field. It expects a JSON string list of valid grafana query JSON objects.
 For additional help, view our [documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/).
 
-Graphite:
 ```terraform
 resource "grafana_slo" "test" {
   name        = "Terraform Testing"
@@ -169,111 +158,14 @@ resource "grafana_slo" "test" {
     }
     type = "grafana_queries"
   }
-  objectives {
-    value  = 0.995
-    window = "30d"
-  }
-
-  label {
-    key   = "slo"
-    value = "terraform"
-  }
-  alerting {
-    fastburn {
-      annotation {
-        key   = "name"
-        value = "SLO Burn Rate Very High"
-      }
-      annotation {
-        key   = "description"
-        value = "Error budget is burning too fast"
-      }
-    }
-
-    slowburn {
-      annotation {
-        key   = "name"
-        value = "SLO Burn Rate High"
-      }
-      annotation {
-        key   = "description"
-        value = "Error budget is burning too fast"
-      }
-    }
-  }
-}
-```
-
-App Dynamics:
-```terraform
-resource "grafana_slo" "test" {
-  name        = "Terraform Testing"
-  description = "Terraform Description"
-  query {
-    grafana_queries {
-      grafana_queries = jsonencode([
-        {
-          aggregation : "Sum",
-          alias : "",
-          application : "57831",
-          applicationName : "petclinic",
-          datasource : {
-            type : "dlopes7-appdynamics-datasource",
-            uid : "appdynamics_localdev"
-          },
-          delimiter : "|",
-          isRawQuery : false,
-          metric : "Service Endpoints|PetClinicEastTier1|/petclinic/api_SERVLET|Errors per Minute",
-          queryType : "metrics",
-          refId : "errors",
-          rollUp : true,
-          schemaVersion : "3.9.5",
-          transformLegend : "Segments",
-          transformLegendText : ""
-        },
-        {
-          aggregation : "Sum",
-          alias : "",
-          application : "57831",
-          applicationName : "petclinic",
-          datasource : {
-            type : "dlopes7-appdynamics-datasource",
-            uid : "appdynamics_localdev"
-          },
-          intervalMs : 1000,
-          maxDataPoints : 43200,
-          delimiter : "|",
-          isRawQuery : false,
-          metric : "Service Endpoints|PetClinicEastTier1|/petclinic/api_SERVLET|Calls per Minute",
-          queryType : "metrics",
-          refId : "total",
-          rollUp : true,
-          schemaVersion : "3.9.5",
-          transformLegend : "Segments",
-          transformLegendText : ""
-        },
-        {
-          datasource : {
-            type : "__expr__",
-            uid : "__expr__"
-          },
-          expression : "($total - $errors) / $total",
-          intervalMs : 1000,
-          maxDataPoints : 43200,
-          refId : "C",
-          type : "math"
-        }
-      ])
-    }
-    type = "grafana_queries"
-  }
-  objectives {
-    value  = 0.995
-    window = "30d"
-  }
   destination_datasource {
     uid = "grafanacloud-prom"
   }
+  objectives {
+    value  = 0.995
+    window = "30d"
+  }
+
   label {
     key   = "slo"
     value = "terraform"
@@ -303,6 +195,8 @@ resource "grafana_slo" "test" {
   }
 }
 ```
+
+For a list of currently supported datasources review the [documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/set-up/additionaldatasources/#supported-data-sources).
 
 <!-- schema generated by tfplugindocs -->
 ## Schema
@@ -357,7 +251,7 @@ Required:
 Optional:
 
 - `freeform` (Block List, Max: 1) (see [below for nested schema](#nestedblock--query--freeform))
-- `grafana_queries` (Block List) Array for holding a set of grafana queries (see [below for nested schema](#nestedblock--query--grafana_queries))
+- `grafana_queries` (Block List, Max: 1) Array for holding a set of grafana queries (see [below for nested schema](#nestedblock--query--grafana_queries))
 - `ratio` (Block List, Max: 1) (see [below for nested schema](#nestedblock--query--ratio))
 
 <a id="nestedblock--query--freeform"></a>
@@ -373,7 +267,7 @@ Required:
 
 Required:
 
-- `grafana_queries` (String) Query Object - JSON formatted string
+- `grafana_queries` (String) Query Object - Array of Grafana Query JSON objects
 
 
 <a id="nestedblock--query--ratio"></a>
