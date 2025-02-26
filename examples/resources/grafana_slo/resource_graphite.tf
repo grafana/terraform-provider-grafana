@@ -5,29 +5,29 @@ resource "grafana_slo" "test" {
     grafana_queries {
       grafana_queries = jsonencode([
         {
-          datasource: {
-            "type": "graphite",
-            "uid": "datasource-uid"
+          datasource : {
+            "type" : "graphite",
+            "uid" : "datasource-uid"
           },
-          refId: "Success",
-          target: "groupByNode(perSecond(web.*.http.2xx_success.*.*), 3, 'avg'')"
+          refId : "Success",
+          target : "groupByNode(perSecond(web.*.http.2xx_success.*.*), 3, 'avg'')"
         },
         {
-          datasource: {
-            "type": "graphite",
-            "uid": "datasource-uid"
+          datasource : {
+            "type" : "graphite",
+            "uid" : "datasource-uid"
           },
-          refId: "Total",
-          target: "groupByNode(perSecond(web.*.http.5xx_errors.*.*), 3, 'avg')"
+          refId : "Total",
+          target : "groupByNode(perSecond(web.*.http.5xx_errors.*.*), 3, 'avg')"
         },
         {
-          datasource: {
-            "type": "__expr__",
-            "uid": "__expr__"
+          datasource : {
+            "type" : "__expr__",
+            "uid" : "__expr__"
           },
-          expression: "$Success / $Total",
-          refId: "Expression",
-          type: "math"
+          expression : "$Success / $Total",
+          refId : "Expression",
+          type : "math"
         }
       ])
     }
