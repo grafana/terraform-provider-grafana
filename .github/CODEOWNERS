@@ -2,6 +2,7 @@
 
 /internal/resources/grafana/*_alerting_*    @grafana/platform-monitoring @grafana/alerting-squad
 /internal/resources/cloud/*                 @grafana/platform-monitoring @grafana/grafana-com-maintainers
+/internal/resources/cloud/*_access_policy_* @grafana/platform-monitoring @grafana/identity-squad
 /internal/resources/cloudprovider/*         @grafana/platform-monitoring @grafana/middleware-apps
 /internal/resources/connections/*           @grafana/platform-monitoring @grafana/middleware-apps
 /internal/resources/fleetmanagement/*       @grafana/platform-monitoring @grafana/fleet-management-backend
