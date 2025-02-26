@@ -367,7 +367,7 @@ resource "grafana_slo" "invalid" {
   {
     "datasource": {
       "type": "graphite",
-      "uid": "becy9yvjmuz9ca"
+      "uid": "grafanaloud-graphite"
     },
     "refId": "Success",
     "target": "groupByNode(perSecond(web.*.http.2xx_success.*.*), 1, 'avg''')"
@@ -375,7 +375,7 @@ resource "grafana_slo" "invalid" {
   {
     "datasource": {
       "type": "graphite",
-      "uid": "becy9yvjmuz9ca"
+      "uid": "grafanaloud-graphite"
     },
     "refId": "Total",
     "target": "groupByNode(perSecond(web.*.http.*.*.*), 1, 'avg')"
