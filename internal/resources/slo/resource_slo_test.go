@@ -492,7 +492,7 @@ func TestAccResourceInvalidSlo(t *testing.T) {
 			},
 			{
 				Config:      graphiteBadFormat,
-				ExpectError: regexp.MustCompile("Error: Insufficient destination_datasource blocks"),
+				ExpectError: regexp.MustCompile("SLO failed validation: invalid parameters on query please check your input values"),
 			},
 		},
 	})
