@@ -110,7 +110,7 @@ Resource manages Grafana SLOs.
 										Type:             schema.TypeString,
 										Required:         true,
 										Description:      "Query Object - JSON formatted string",
-										ValidateDiagFunc: ValidateBigTent(),
+										ValidateDiagFunc: ValidateGrafanaQuery(),
 									},
 								},
 							},
@@ -706,7 +706,7 @@ func apiError(action string, err error) diag.Diagnostics {
 	}
 }
 
-func ValidateBigTent() schema.SchemaValidateDiagFunc {
+func ValidateGrafanaQuery() schema.SchemaValidateDiagFunc {
 	return func(i interface{}, path cty.Path) diag.Diagnostics {
 		var diags diag.Diagnostics
 

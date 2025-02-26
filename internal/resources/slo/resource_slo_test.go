@@ -420,7 +420,7 @@ func TestAccResourceInvalidSlo(t *testing.T) {
 	})
 }
 
-func TestValidateBigTent(t *testing.T) {
+func TestValidateGrafanaQuery(t *testing.T) {
 	tests := map[string]struct {
 		query         string
 		expectedDiags diag.Diagnostics
@@ -434,51 +434,51 @@ func TestValidateBigTent(t *testing.T) {
 				AttributePath: cty.IndexPath(cty.Value{}),
 			}},
 		},
-		"bigTent_success": {
-			query:         createBigTent(true, []map[string]any{}),
+		"grafanaQueries_success": {
+			query:         createGrafanaQuery(true, []map[string]any{}),
 			expectedDiags: diag.Diagnostics{},
 		},
-		"bigTent_noRefId": {
-			query: createBigTent(false, []map[string]any{{}}),
+		"grafanaQueries_noRefId": {
+			query: createGrafanaQuery(false, []map[string]any{{}}),
 			expectedDiags: diag.Diagnostics{
 				diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected Big Tent Query %v to have a refId", "map[]"),
+					Detail:        fmt.Sprintf("expected grafana query %v to have a refId", "map[]"),
 					AttributePath: append(cty.IndexPath(cty.Value{}), cty.IndexStep{Key: cty.StringVal("refId")}),
 				},
 			},
 		},
-		"bigTent_noDatasource": {
-			query: createBigTent(false, []map[string]any{{"refId": "A"}}),
+		"grafanaQueries_noDatasource": {
+			query: createGrafanaQuery(false, []map[string]any{{"refId": "A"}}),
 			expectedDiags: diag.Diagnostics{
 				diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        "expected Big Tent Query (refId:A) to have a datasource",
+					Detail:        "expected grafana query (refId:A) to have a datasource",
 					AttributePath: append(cty.IndexPath(cty.Value{}), cty.IndexStep{Key: cty.StringVal("datasource")}),
 				},
 			},
 		},
-		"bigTent_missingFields": {
-			query: createBigTent(false, []map[string]any{{"refId": "A", "datasource": models.DataSource{}}}),
+		"grafanaQueries_missingFields": {
+			query: createGrafanaQuery(false, []map[string]any{{"refId": "A", "datasource": models.DataSource{}}}),
 			expectedDiags: diag.Diagnostics{
 				diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        "expected Big Tent Query (refId:A) to have a type",
+					Detail:        "expected grafana query (refId:A) to have a type",
 					AttributePath: append(cty.IndexPath(cty.Value{}), cty.IndexStep{Key: cty.StringVal("datasource")}, cty.IndexStep{Key: cty.StringVal("type")}),
 				},
 				diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        "expected Big Tent Query (refId:A) to have a uid",
+					Detail:        "expected grafana query (refId:A) to have a uid",
 					AttributePath: append(cty.IndexPath(cty.Value{}), cty.IndexStep{Key: cty.StringVal("datasource")}, cty.IndexStep{Key: cty.StringVal("uid")}),
 				},
 			},
 		},
 	}
-	testFunc := slo2.ValidateBigTent()
+	testFunc := slo2.ValidateGrafanaQuery()
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -492,8 +492,8 @@ func TestValidateBigTent(t *testing.T) {
 	}
 }
 
-func createBigTent(useDefault bool, input []map[string]any) string {
-	const bigTentQuery = `
+func createGrafanaQuery(useDefault bool, input []map[string]any) string {
+	const grafanaQueriesQuery = `
       [
         {
           "aggregation": "Sum",
@@ -572,7 +572,7 @@ func createBigTent(useDefault bool, input []map[string]any) string {
       ]`
 
 	if useDefault {
-		return bigTentQuery
+		return grafanaQueriesQuery
 	}
 
 	output, _ := json.Marshal(input)
