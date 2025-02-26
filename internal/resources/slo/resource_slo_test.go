@@ -492,7 +492,7 @@ func TestAccResourceInvalidSlo(t *testing.T) {
 			},
 			{
 				Config:      graphiteBadFormat,
-				ExpectError: regexp.MustCompile("SLO failed validation: invalid parameters on query please check your input values"),
+				ExpectError: regexp.MustCompile("Error: Unable to create SLO - API"),
 			},
 		},
 	})
