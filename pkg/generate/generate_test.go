@@ -96,6 +96,7 @@ func TestAccGenerate(t *testing.T) {
 	// Install Terraform to a temporary directory to avoid reinstalling it for each test case.
 	installDir := t.TempDir()
 
+	var AlertRule1ID string
 	cases := []generateTestCase{
 		{
 			name:   "dashboard",
@@ -240,11 +241,26 @@ func TestAccGenerate(t *testing.T) {
 					"grafana_rule_group.*",
 				}
 			},
+			stateCheck: func(s *terraform.State) error {
+				// Save the ID of the first alert rule for later use
+				alertGroupResource, ok := s.RootModule().Resources["grafana_rule_group.my_alert_rule"]
+				if !ok {
+					return fmt.Errorf("expected resource 'grafana_rule_group.my_alert_rule' to be present")
+				}
+				AlertRule1ID = alertGroupResource.Primary.Attributes["rule.0.uid"]
+				if AlertRule1ID == "" {
+					return fmt.Errorf("expected 'rule.0.uid' to be present in 'grafana_rule_group.my_alert_rule' attributes")
+				}
+				return nil
+			},
 			check: func(t *testing.T, tempDir string) {
-				assertFiles(t, tempDir, "testdata/generate/alerting-in-org", []string{
+				templateAttrs := map[string]string{
+					"AlertRule1ID": AlertRule1ID,
+				}
+				assertFilesWithTemplating(t, tempDir, "testdata/generate/alerting-in-org", []string{
 					".terraform",
 					".terraform.lock.hcl",
-				})
+				}, templateAttrs)
 			},
 		},
 		{
