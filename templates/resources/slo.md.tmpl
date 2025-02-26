@@ -24,10 +24,14 @@ description: |-
 
 Currently supported datasources: AppDynamics, Splunk, Graphite
 
-Enterprise Datasource queries use the freeform query field. It expects a JSON string list of valid grafana query JSON objects.
+Enterprise Datasource queries use the grafana_queries query field. It expects a JSON string list of valid grafana query JSON objects.
 For additional help, view our [documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/).
 
-{{ tffile "examples/resources/grafana_slo/resource_nonprometheus.tf" }}
+Graphite:
+{{ tffile "examples/resources/grafana_slo/resource_graphite.tf" }}
+
+App Dynamics:
+{{ tffile "examples/resources/grafana_slo/resource_appDynamics.tf" }}
 
 {{ .SchemaMarkdown | trimspace }}
 

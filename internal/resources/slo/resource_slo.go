@@ -530,7 +530,13 @@ func packQuery(query map[string]interface{}) (slo.SloV00Query, error) {
 	}
 
 	if query["type"] == "grafana_queries" {
-		grafanaquery := query["grafana_queries"].([]interface{})[0].(map[string]interface{})
+		grafanaInterface := query["grafana_queries"].([]interface{})
+
+		if len(grafanaInterface) == 0 {
+			return slo.SloV00Query{}, fmt.Errorf("grafana_queries must be set")
+		}
+
+		grafanaquery := grafanaInterface[0].(map[string]interface{})
 		querystring := grafanaquery["grafana_queries"].(string)
 
 		var queryMapList []map[string]interface{}
@@ -727,6 +733,16 @@ func ValidateBigTent() schema.SchemaValidateDiagFunc {
 			return diags
 		}
 
+		if len(gmrQuery) == 0 {
+			diags = append(diags, diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       "Missing Required Field",
+				Detail:        "expected grafana queries to have at least one query",
+				AttributePath: path,
+			})
+			return diags
+		}
+
 		for _, queryObj := range gmrQuery {
 			currentPath := path.Copy()
 
@@ -735,7 +751,7 @@ func ValidateBigTent() schema.SchemaValidateDiagFunc {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected Big Tent Query %v to have a refId", queryObj),
+					Detail:        fmt.Sprintf("expected grafana query %v to have a refId", queryObj),
 					AttributePath: append(currentPath, cty.IndexStep{Key: cty.StringVal("refId")}),
 				})
 				return diags
@@ -747,7 +763,7 @@ func ValidateBigTent() schema.SchemaValidateDiagFunc {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected Big Tent Query (refId:%v) to have a datasource", refID),
+					Detail:        fmt.Sprintf("expected grafana query (refId:%v) to have a datasource", refID),
 					AttributePath: append(currentPath, cty.IndexStep{Key: cty.StringVal("datasource")}),
 				})
 				return diags
@@ -759,7 +775,7 @@ func ValidateBigTent() schema.SchemaValidateDiagFunc {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected Big Tent Query (refId:%v) to have a type", refID),
+					Detail:        fmt.Sprintf("expected grafana query (refId:%v) to have a type", refID),
 					AttributePath: append(currentPath.Copy(), cty.IndexStep{Key: cty.StringVal("type")}),
 				})
 			}
@@ -768,7 +784,7 @@ func ValidateBigTent() schema.SchemaValidateDiagFunc {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected Big Tent Query (refId:%v) to have a uid", refID),
+					Detail:        fmt.Sprintf("expected grafana query (refId:%v) to have a uid", refID),
 					AttributePath: append(currentPath.Copy(), cty.IndexStep{Key: cty.StringVal("uid")}),
 				})
 			}
