@@ -64,6 +64,7 @@ resource "grafana_cloud_access_policy_token" "test" {
 
 ### Optional
 
+- `conditions` (Block Set) Conditions for the access policy. (see [below for nested schema](#nestedblock--conditions))
 - `display_name` (String) Display name of the access policy. Defaults to the name.
 
 ### Read-Only
@@ -91,6 +92,15 @@ Optional:
 Required:
 
 - `selector` (String) The label selector to match in metrics or logs query. Should be in PromQL or LogQL format.
+
+
+
+<a id="nestedblock--conditions"></a>
+### Nested Schema for `conditions`
+
+Required:
+
+- `allowed_subnets` (Set of String) Conditions that apply to the access policy,such as IP Allow lists.
 
 ## Import
 
