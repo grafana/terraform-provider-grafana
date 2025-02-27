@@ -64,7 +64,7 @@ resource "grafana_cloud_access_policy_token" "test" {
 
 ### Optional
 
-- `conditions` (Block Set ) (see [below for nested schema](#nestedblock--conditions))
+- `conditions` (Block Set) Conditions for the access policy. (see [below for nested schema](#nestedblock--conditions))
 - `display_name` (String) Display name of the access policy. Defaults to the name.
 
 ### Read-Only
@@ -73,13 +73,6 @@ resource "grafana_cloud_access_policy_token" "test" {
 - `id` (String) The ID of this resource.
 - `policy_id` (String) ID of the access policy.
 - `updated_at` (String) Last update date of the access policy.
-
-<a id="nestedblock--conditions"></a>
-### Nested Schema for `conditions`
-
-Required:
-
-- `allowed_subnets` (Set of String) IP range based access control for the access policy. Connections initiated from IP addresses outside of the specified ranges will be denied.
 
 <a id="nestedblock--realm"></a>
 ### Nested Schema for `realm`
@@ -99,6 +92,15 @@ Optional:
 Required:
 
 - `selector` (String) The label selector to match in metrics or logs query. Should be in PromQL or LogQL format.
+
+
+
+<a id="nestedblock--conditions"></a>
+### Nested Schema for `conditions`
+
+Required:
+
+- `allowed_subnets` (Set of String) Conditions that apply to the access policy,such as IP Allow lists.
 
 ## Import
 
