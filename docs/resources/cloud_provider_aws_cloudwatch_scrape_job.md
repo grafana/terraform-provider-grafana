@@ -121,13 +121,13 @@ Required:
 
 Required:
 
-- `name` (String) The name of the service to scrape. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported services.
+- `name` (String) The name of the service to scrape. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/cloudwatch-metrics/services/ for supported services.
 
 Optional:
 
 - `metric` (Block List) One or more configuration blocks to configure metrics and their statistics to scrape. Please note that AWS metric names must be supplied, and not their PromQL counterparts. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service--metric))
 - `resource_discovery_tag_filter` (Block List) One or more configuration blocks to configure tag filters applied to discovery of resource entities in the associated AWS account. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service--resource_discovery_tag_filter))
-- `scrape_interval_seconds` (Number) The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported scrape intervals.
+- `scrape_interval_seconds` (Number) The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/cloudwatch-metrics/services/ for supported scrape intervals.
 - `tags_to_add_to_metrics` (Set of String) A set of tags to add to all metrics exported by this scrape job, for use in PromQL queries.
 
 <a id="nestedblock--service--metric"></a>
