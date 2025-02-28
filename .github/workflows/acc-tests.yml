@@ -112,14 +112,6 @@ jobs:
           else
             echo "IS_FORK=false" >> $GITHUB_ENV
           fi
-      - name: Comment PR in forks
-        if: github.event_name == 'pull_request' && env.IS_FORK == 'true'
-        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4.0.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            ⚠️ Enterprise tests skipped for fork PRs.
       - name: Skip job if fork
         if: github.event_name == 'pull_request' && env.IS_FORK == 'true'
         run: |
