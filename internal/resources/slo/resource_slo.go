@@ -750,7 +750,7 @@ func ValidateGrafanaQuery() schema.SchemaValidateDiagFunc {
 
 			refID, ok := queryObj["refId"]
 			if !ok {
-				//This unmarshalled so it is safe to marshal
+				// This unmarshalled so it is safe to marshal
 				obj, _ := json.Marshal(queryObj)
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
