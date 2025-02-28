@@ -755,7 +755,7 @@ func ValidateGrafanaQuery() schema.SchemaValidateDiagFunc {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected grafana query %s to have a refId field", obj),
+					Detail:        fmt.Sprintf("expected grafana query to have a 'refId' field (%s)", obj),
 					AttributePath: append(currentPath, cty.IndexStep{Key: cty.StringVal("refId")}),
 				})
 				return diags
@@ -767,7 +767,7 @@ func ValidateGrafanaQuery() schema.SchemaValidateDiagFunc {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected grafana query (refId:%s) to have a datasource field", refID),
+					Detail:        fmt.Sprintf("expected grafana query to have a 'datasource' field (refId:%s)", refID),
 					AttributePath: append(currentPath, cty.IndexStep{Key: cty.StringVal("datasource")}),
 				})
 				return diags
@@ -779,7 +779,7 @@ func ValidateGrafanaQuery() schema.SchemaValidateDiagFunc {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected grafana query (refId:%s) datasource field to have a type field", refID),
+					Detail:        fmt.Sprintf("expected grafana query datasource field to have a 'type' field (refId:%s)", refID),
 					AttributePath: append(currentPath.Copy(), cty.IndexStep{Key: cty.StringVal("type")}),
 				})
 			}
@@ -788,7 +788,7 @@ func ValidateGrafanaQuery() schema.SchemaValidateDiagFunc {
 				diags = append(diags, diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected grafana query (refId:%s) datasource field to have a uid field", refID),
+					Detail:        fmt.Sprintf("expected grafana query datasource field to have a 'uid' field (refId:%s)", refID),
 					AttributePath: append(currentPath.Copy(), cty.IndexStep{Key: cty.StringVal("uid")}),
 				})
 			}

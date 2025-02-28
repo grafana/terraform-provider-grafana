@@ -522,7 +522,7 @@ func TestValidateGrafanaQuery(t *testing.T) {
 				diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        fmt.Sprintf("expected grafana query %v to have a refId field", "{}"),
+					Detail:        fmt.Sprintf("expected grafana query to have a 'refId' field (%s)", "{}"),
 					AttributePath: append(cty.IndexPath(cty.Value{}), cty.IndexStep{Key: cty.StringVal("refId")}),
 				},
 			},
@@ -533,7 +533,7 @@ func TestValidateGrafanaQuery(t *testing.T) {
 				diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        "expected grafana query (refId:A) to have a datasource field",
+					Detail:        "expected grafana query to have a 'datasource' field (refId:A)",
 					AttributePath: append(cty.IndexPath(cty.Value{}), cty.IndexStep{Key: cty.StringVal("datasource")}),
 				},
 			},
@@ -544,13 +544,13 @@ func TestValidateGrafanaQuery(t *testing.T) {
 				diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        "expected grafana query (refId:A) datasource field to have a type field",
+					Detail:        "expected grafana query datasource field to have a 'type' field (refId:A)",
 					AttributePath: append(cty.IndexPath(cty.Value{}), cty.IndexStep{Key: cty.StringVal("datasource")}, cty.IndexStep{Key: cty.StringVal("type")}),
 				},
 				diag.Diagnostic{
 					Severity:      diag.Error,
 					Summary:       "Missing Required Field",
-					Detail:        "expected grafana query (refId:A) datasource field to have a uid field",
+					Detail:        "expected grafana query datasource field to have a 'uid' field (refId:A)",
 					AttributePath: append(cty.IndexPath(cty.Value{}), cty.IndexStep{Key: cty.StringVal("datasource")}, cty.IndexStep{Key: cty.StringVal("uid")}),
 				},
 			},
