@@ -10,7 +10,7 @@ resource "grafana_slo" "test" {
             "uid" : "datasource-uid"
           },
           refId : "Success",
-          target : "groupByNode(perSecond(web.*.http.2xx_success.*.*), 3, 'avg'')"
+          target : "groupByNode(perSecond(web.*.http.2xx_success.*.*), 3, 'avg')"
         },
         {
           datasource : {

@@ -22,12 +22,13 @@ description: |-
 
 ### Grafana Queries - Any supported datasource
 
-Grafana Queries use the grafana_queries field. It expects a JSON string list of valid grafana query JSON objects.
-For additional help, view our [documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/).
+Grafana Queries use the grafana_queries field. It expects a JSON string list of valid grafana query JSON objects, the same as you'll find assigned to a Grafana Dashboard panel `targets` field.
 
 {{ tffile "examples/resources/grafana_slo/resource_graphite.tf" }}
 
-For a list of currently supported datasources review the [documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/set-up/additionaldatasources/#supported-data-sources).
+For a complete list, see [supported data sources](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/set-up/additionaldatasources/#supported-data-sources).
+
+For additional help with SLOs, view our [documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/).
 
 {{ .SchemaMarkdown | trimspace }}
 
