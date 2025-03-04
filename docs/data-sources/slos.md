@@ -214,6 +214,7 @@ Read-Only:
 Read-Only:
 
 - `freeform` (List of Object) (see [below for nested schema](#nestedobjatt--slos--query--freeform))
+- `grafana_queries` (List of Object) (see [below for nested schema](#nestedobjatt--slos--query--grafana_queries))
 - `ratio` (List of Object) (see [below for nested schema](#nestedobjatt--slos--query--ratio))
 - `type` (String)
 
@@ -223,6 +224,14 @@ Read-Only:
 Read-Only:
 
 - `query` (String)
+
+
+<a id="nestedobjatt--slos--query--grafana_queries"></a>
+### Nested Schema for `slos.query.grafana_queries`
+
+Read-Only:
+
+- `grafana_queries` (String)
 
 
 <a id="nestedobjatt--slos--query--ratio"></a>
