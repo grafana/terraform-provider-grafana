@@ -76,7 +76,7 @@ func (r *datasourceAzureCredential) Schema(ctx context.Context, req datasource.S
 				Sensitive:   true,
 			},
 			"resource_tags_to_add_to_metrics": schema.SetAttribute{
-				Description: "A set of regions that this AWS Account resource applies to.",
+				Description: "The list of resource tags to add to metrics.",
 				Computed:    true,
 				ElementType: types.StringType,
 			},
