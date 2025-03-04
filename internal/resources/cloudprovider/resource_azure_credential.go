@@ -147,7 +147,7 @@ func (r *resourceAzureCredential) Schema(ctx context.Context, req resource.Schem
 				},
 			},
 			"resource_id": schema.StringAttribute{
-				Description: "The ID given by the Grafana Cloud Provider API to this AWS Account resource.",
+				Description: "The ID given by the Grafana Cloud Provider API to this Azure Credential resource.",
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					// See https://developer.hashicorp.com/terraform/plugin/framework/resources/plan-modification#usestateforunknown
@@ -173,7 +173,7 @@ func (r *resourceAzureCredential) Schema(ctx context.Context, req resource.Schem
 				Sensitive:   true,
 			},
 			"resource_tags_to_add_to_metrics": schema.SetAttribute{
-				Description: "A set of regions that this AWS Account resource applies to.",
+				Description: "The list of resource tags to add to metrics.",
 				Optional:    true,
 				ElementType: types.StringType,
 			},

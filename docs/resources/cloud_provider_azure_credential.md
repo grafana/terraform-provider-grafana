@@ -72,12 +72,12 @@ resource "grafana_cloud_provider_azure_credential" "test" {
 
 - `auto_discovery_configuration` (Block List) The list of auto discovery configurations. (see [below for nested schema](#nestedblock--auto_discovery_configuration))
 - `resource_discovery_tag_filter` (Block List) The list of tag filters to apply to resources. (see [below for nested schema](#nestedblock--resource_discovery_tag_filter))
-- `resource_tags_to_add_to_metrics` (Set of String) A set of regions that this AWS Account resource applies to.
+- `resource_tags_to_add_to_metrics` (Set of String) The list of resource tags to add to metrics.
 
 ### Read-Only
 
 - `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ resource_id }}".
-- `resource_id` (String) The ID given by the Grafana Cloud Provider API to this AWS Account resource.
+- `resource_id` (String) The ID given by the Grafana Cloud Provider API to this Azure Credential resource.
 
 <a id="nestedblock--auto_discovery_configuration"></a>
 ### Nested Schema for `auto_discovery_configuration`

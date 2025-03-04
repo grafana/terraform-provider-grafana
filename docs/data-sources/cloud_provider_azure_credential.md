@@ -78,7 +78,7 @@ data "grafana_cloud_provider_azure_credential" "test" {
 - `id` (String) The Terraform Resource ID. This has the format "{{ stack_id }}:{{ resource_id }}".
 - `name` (String) The name of the Azure Credential.
 - `resource_discovery_tag_filter` (Block List) The list of tag filters to apply to resources. (see [below for nested schema](#nestedblock--resource_discovery_tag_filter))
-- `resource_tags_to_add_to_metrics` (Set of String) A set of regions that this AWS Account resource applies to.
+- `resource_tags_to_add_to_metrics` (Set of String) The list of resource tags to add to metrics.
 - `tenant_id` (String) The tenant ID of the Azure Credential.
 
 <a id="nestedblock--auto_discovery_configuration"></a>
