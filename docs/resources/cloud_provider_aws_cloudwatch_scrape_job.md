@@ -63,6 +63,11 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
     }
     scrape_interval_seconds = 300
   }
+
+  static_labels = {
+    "label1" = "value1"
+    "label2" = "value2"
+  }
 }
 ```
 
@@ -82,6 +87,7 @@ resource "grafana_cloud_provider_aws_cloudwatch_scrape_job" "test" {
 - `export_tags` (Boolean) When enabled, AWS resource tags are exported as Prometheus labels to metrics formatted as `aws_<service_name>_info`.
 - `regions_subset_override` (Set of String) A subset of the regions that are configured in the associated AWS Account resource to apply to this scrape job. If not set or empty, all of the Account resource's regions are scraped.
 - `service` (Block List) One or more configuration blocks to configure AWS services for the CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service))
+- `static_labels` (Map of String) A set of static labels to add to all metrics exported by this scrape job.
 
 ### Read-Only
 
@@ -115,13 +121,13 @@ Required:
 
 Required:
 
-- `name` (String) The name of the service to scrape. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported services.
+- `name` (String) The name of the service to scrape. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/cloudwatch-metrics/services/ for supported services.
 
 Optional:
 
 - `metric` (Block List) One or more configuration blocks to configure metrics and their statistics to scrape. Please note that AWS metric names must be supplied, and not their PromQL counterparts. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service--metric))
 - `resource_discovery_tag_filter` (Block List) One or more configuration blocks to configure tag filters applied to discovery of resource entities in the associated AWS account. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--service--resource_discovery_tag_filter))
-- `scrape_interval_seconds` (Number) The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported scrape intervals.
+- `scrape_interval_seconds` (Number) The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/cloudwatch-metrics/services/ for supported scrape intervals.
 - `tags_to_add_to_metrics` (Set of String) A set of tags to add to all metrics exported by this scrape job, for use in PromQL queries.
 
 <a id="nestedblock--service--metric"></a>

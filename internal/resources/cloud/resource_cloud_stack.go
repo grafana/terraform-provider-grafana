@@ -28,6 +28,23 @@ var (
 	resourceStackID = common.NewResourceID(common.StringIDField("stackSlugOrID"))
 )
 
+func privateConnectivityDescription(prefix, service string) *schema.Schema {
+	return common.ComputedStringWithDescription(
+		fmt.Sprintf(
+			"%s for %s when using AWS PrivateLink (only for AWS stacks)",
+			prefix,
+			service,
+		))
+}
+
+func ipAllowListCNAMEDescription(service string) *schema.Schema {
+	return common.ComputedStringWithDescription(
+		fmt.Sprintf(
+			"Comma-separated list of CNAMEs that can be whitelisted to access %s (Optional)", service,
+		),
+	)
+}
+
 func resourceStack() *common.Resource {
 	schema := &schema.Resource{
 		Description: `
@@ -83,6 +100,7 @@ Required access policy scopes:
 					return oldValue == newValue || newValue == "" // Ignore default region
 				},
 			},
+			"cluster_slug": common.ComputedStringWithDescription("Slug of the cluster where this stack resides."),
 			"url": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -138,47 +156,79 @@ Required access policy scopes:
 				},
 			},
 
+			"grafanas_ip_allow_list_cname": ipAllowListCNAMEDescription("the grafana instance"),
+
 			// Metrics (Mimir/Prometheus)
-			"prometheus_user_id":               common.ComputedIntWithDescription("Prometheus user ID. Used for e.g. remote_write."),
-			"prometheus_url":                   common.ComputedStringWithDescription("Prometheus url for this instance."),
-			"prometheus_name":                  common.ComputedStringWithDescription("Prometheus name for this instance."),
-			"prometheus_remote_endpoint":       common.ComputedStringWithDescription("Use this URL to query hosted metrics data e.g. Prometheus data source in Grafana"),
-			"prometheus_remote_write_endpoint": common.ComputedStringWithDescription("Use this URL to send prometheus metrics to Grafana cloud"),
-			"prometheus_status":                common.ComputedStringWithDescription("Prometheus status for this instance."),
+			"prometheus_user_id":                                common.ComputedIntWithDescription("Prometheus user ID. Used for e.g. remote_write."),
+			"prometheus_url":                                    common.ComputedStringWithDescription("Prometheus url for this instance."),
+			"prometheus_name":                                   common.ComputedStringWithDescription("Prometheus name for this instance."),
+			"prometheus_remote_endpoint":                        common.ComputedStringWithDescription("Use this URL to query hosted metrics data e.g. Prometheus data source in Grafana"),
+			"prometheus_remote_write_endpoint":                  common.ComputedStringWithDescription("Use this URL to send prometheus metrics to Grafana cloud"),
+			"prometheus_status":                                 common.ComputedStringWithDescription("Prometheus status for this instance."),
+			"prometheus_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Prometheus"),
+			"prometheus_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Prometheus"),
+			"prometheus_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Prometheus instance"),
 
 			// Alertmanager
-			"alertmanager_user_id": common.ComputedIntWithDescription("User ID of the Alertmanager instance configured for this stack."),
-			"alertmanager_name":    common.ComputedStringWithDescription("Name of the Alertmanager instance configured for this stack."),
-			"alertmanager_url":     common.ComputedStringWithDescription("Base URL of the Alertmanager instance configured for this stack."),
-			"alertmanager_status":  common.ComputedStringWithDescription("Status of the Alertmanager instance configured for this stack."),
+			"alertmanager_user_id":             common.ComputedIntWithDescription("User ID of the Alertmanager instance configured for this stack."),
+			"alertmanager_name":                common.ComputedStringWithDescription("Name of the Alertmanager instance configured for this stack."),
+			"alertmanager_url":                 common.ComputedStringWithDescription("Base URL of the Alertmanager instance configured for this stack."),
+			"alertmanager_status":              common.ComputedStringWithDescription("Status of the Alertmanager instance configured for this stack."),
+			"alertmanager_ip_allow_list_cname": ipAllowListCNAMEDescription("the Alertmanager instances"),
 
 			// Logs (Loki)
 			"logs_user_id": common.ComputedInt(),
 			"logs_name":    common.ComputedString(),
 			"logs_url":     common.ComputedString(),
 			"logs_status":  common.ComputedString(),
+			"logs_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Logs"),
+			"logs_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Logs"),
+			"logs_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Logs instance"),
 
 			// Traces (Tempo)
 			"traces_user_id": common.ComputedInt(),
 			"traces_name":    common.ComputedString(),
 			"traces_url":     common.ComputedStringWithDescription("Base URL of the Traces instance configured for this stack. To use this in the Tempo data source in Grafana, append `/tempo` to the URL."),
 			"traces_status":  common.ComputedString(),
+			"traces_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Traces"),
+			"traces_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Traces"),
+			"traces_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Traces instance"),
 
 			// Profiles (Pyroscope)
 			"profiles_user_id": common.ComputedInt(),
 			"profiles_name":    common.ComputedString(),
 			"profiles_url":     common.ComputedString(),
 			"profiles_status":  common.ComputedString(),
+			"profiles_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Profiles"),
+			"profiles_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Profiles"),
+			"profiles_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Profiles instance"),
 
 			// Graphite
 			"graphite_user_id": common.ComputedInt(),
 			"graphite_name":    common.ComputedString(),
 			"graphite_url":     common.ComputedString(),
 			"graphite_status":  common.ComputedString(),
+			"graphite_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "Graphite"),
+			"graphite_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "Graphite"),
+			"graphite_ip_allow_list_cname":                    ipAllowListCNAMEDescription("the Graphite instance"),
+
+			// Fleet Management
+			"fleet_management_user_id": common.ComputedIntWithDescription("User ID of the Fleet Management instance configured for this stack."),
+			"fleet_management_name":    common.ComputedStringWithDescription("Name of the Fleet Management instance configured for this stack."),
+			"fleet_management_url":     common.ComputedStringWithDescription("Base URL of the Fleet Management instance configured for this stack."),
+			"fleet_management_status":  common.ComputedStringWithDescription("Status of the Fleet Management instance configured for this stack."),
 
 			// Connections
 			"influx_url": common.ComputedStringWithDescription("Base URL of the InfluxDB instance configured for this stack. The username is the same as the metrics' (`prometheus_user_id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-influxdb/push-from-telegraf/ for docs on how to use this."),
 			"otlp_url":   common.ComputedStringWithDescription("Base URL of the OTLP instance configured for this stack. The username is the stack's ID (`id` attribute of this resource). See https://grafana.com/docs/grafana-cloud/send-data/otlp/send-data-otlp/ for docs on how to use this."),
+			"otlp_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "OTLP"),
+			"otlp_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "OTLP"),
+
+			// pdc
+			"pdc_api_private_connectivity_info_private_dns":      privateConnectivityDescription("Private DNS", "PDC's API"),
+			"pdc_api_private_connectivity_info_service_name":     privateConnectivityDescription("Service Name", "PDC's API"),
+			"pdc_gateway_private_connectivity_info_private_dns":  privateConnectivityDescription("Private DNS", "PDC's Gateway"),
+			"pdc_gateway_private_connectivity_info_service_name": privateConnectivityDescription("Service Name", "PDC's Gateway"),
 		},
 		CustomizeDiff: customdiff.All(
 			customdiff.ComputedIf("url", func(_ context.Context, diff *schema.ResourceDiff, meta interface{}) bool {
@@ -363,12 +413,22 @@ func readStack(ctx context.Context, d *schema.ResourceData, client *gcom.APIClie
 
 func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, connections *gcom.FormattedApiInstanceConnections) error {
 	id := strconv.FormatInt(int64(stack.Id), 10)
+
+	// getting tenants information for later use
+	privateConnectivityInfo := connections.PrivateConnectivityInfo
+	tenants := privateConnectivityInfo.GetTenants()
+
 	d.SetId(id)
 	d.Set("name", stack.Name)
 	d.Set("slug", stack.Slug)
 	d.Set("url", stack.Url)
+	runIfTenantFound(tenants, "grafana", func(tenant gcom.TenantsInner) {
+		addIPAllowListIfPresent(d, "grafana", tenant)
+	})
+
 	d.Set("status", stack.Status)
 	d.Set("region_slug", stack.RegionSlug)
+	d.Set("cluster_slug", stack.ClusterSlug)
 	d.Set("description", stack.Description)
 	d.Set("labels", stack.Labels)
 
@@ -390,34 +450,72 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	}
 	d.Set("prometheus_remote_write_endpoint", rweURL)
 	d.Set("prometheus_status", stack.HmInstancePromStatus)
+	runIfTenantFound(tenants, "prometheus", func(tenant gcom.TenantsInner) {
+		addPrivateConnectivityInfoIfPresent(d, "prometheus", tenant)
+		addIPAllowListIfPresent(d, "prometheus", tenant)
+	})
 
 	d.Set("logs_user_id", stack.HlInstanceId)
 	d.Set("logs_url", stack.HlInstanceUrl)
 	d.Set("logs_name", stack.HlInstanceName)
 	d.Set("logs_status", stack.HlInstanceStatus)
+	runIfTenantFound(tenants, "logs", func(tenant gcom.TenantsInner) {
+		addPrivateConnectivityInfoIfPresent(d, "logs", tenant)
+		addIPAllowListIfPresent(d, "logs", tenant)
+	})
 
 	d.Set("alertmanager_user_id", stack.AmInstanceId)
 	d.Set("alertmanager_name", stack.AmInstanceName)
 	d.Set("alertmanager_url", stack.AmInstanceUrl)
 	d.Set("alertmanager_status", stack.AmInstanceStatus)
+	runIfTenantFound(tenants, "alerts", func(tenant gcom.TenantsInner) {
+		addPrivateConnectivityInfoIfPresent(d, "alertmanager", tenant)
+		addIPAllowListIfPresent(d, "alertmanager", tenant)
+	})
 
 	d.Set("traces_user_id", stack.HtInstanceId)
 	d.Set("traces_name", stack.HtInstanceName)
 	d.Set("traces_url", stack.HtInstanceUrl)
 	d.Set("traces_status", stack.HtInstanceStatus)
+	runIfTenantFound(tenants, "traces", func(tenant gcom.TenantsInner) {
+		addPrivateConnectivityInfoIfPresent(d, "traces", tenant)
+		addIPAllowListIfPresent(d, "traces", tenant)
+	})
 
 	d.Set("profiles_user_id", stack.HpInstanceId)
 	d.Set("profiles_name", stack.HpInstanceName)
 	d.Set("profiles_url", stack.HpInstanceUrl)
 	d.Set("profiles_status", stack.HpInstanceStatus)
+	runIfTenantFound(tenants, "profiles", func(tenant gcom.TenantsInner) {
+		addPrivateConnectivityInfoIfPresent(d, "profiles", tenant)
+		addIPAllowListIfPresent(d, "profiles", tenant)
+	})
 
 	d.Set("graphite_user_id", stack.HmInstanceGraphiteId)
 	d.Set("graphite_name", stack.HmInstanceGraphiteName)
 	d.Set("graphite_url", stack.HmInstanceGraphiteUrl)
 	d.Set("graphite_status", stack.HmInstanceGraphiteStatus)
+	runIfTenantFound(tenants, "graphite", func(tenant gcom.TenantsInner) {
+		addPrivateConnectivityInfoIfPresent(d, "graphite", tenant)
+		addIPAllowListIfPresent(d, "graphite", tenant)
+	})
+
+	d.Set("fleet_management_user_id", stack.AgentManagementInstanceId)
+	d.Set("fleet_management_name", stack.AgentManagementInstanceName)
+	d.Set("fleet_management_url", stack.AgentManagementInstanceUrl)
+	d.Set("fleet_management_status", stack.AgentManagementInstanceStatus)
 
 	if otlpURL := connections.OtlpHttpUrl; otlpURL.IsSet() {
 		d.Set("otlp_url", otlpURL.Get())
+		if privateConnectivityInfo.Otlp != nil {
+			otlp := privateConnectivityInfo.Otlp
+			addPrivateConnectivityInfo(d, "otlp", otlp.PrivateDNS, otlp.ServiceName)
+		}
+	}
+	if privateConnectivityInfo.Pdc != nil {
+		pdc := privateConnectivityInfo.Pdc
+		addPrivateConnectivityInfo(d, "pdc_api", pdc.Api.PrivateDNS, pdc.Api.ServiceName)
+		addPrivateConnectivityInfo(d, "pdc_gateway", pdc.Gateway.PrivateDNS, pdc.Gateway.ServiceName)
 	}
 
 	if influxURL := connections.InfluxUrl; influxURL.IsSet() {
@@ -425,6 +523,36 @@ func flattenStack(d *schema.ResourceData, stack *gcom.FormattedApiInstance, conn
 	}
 
 	return nil
+}
+
+func runIfTenantFound(
+	tenants []gcom.TenantsInner,
+	tenantType string,
+	action func(gcom.TenantsInner),
+) {
+	for _, tenant := range tenants {
+		if tenant.Type == tenantType {
+			action(tenant)
+			break
+		}
+	}
+}
+
+func addPrivateConnectivityInfoIfPresent(d *schema.ResourceData, preffix string, tenant gcom.TenantsInner) {
+	if tenant.Info != nil {
+		addPrivateConnectivityInfo(d, preffix, tenant.Info.PrivateDNS, tenant.Info.ServiceName)
+	}
+}
+
+func addIPAllowListIfPresent(d *schema.ResourceData, preffix string, tenant gcom.TenantsInner) {
+	if tenant.IpAllowListCNAME != nil {
+		d.Set(fmt.Sprintf("%s_ip_allow_list_cname", preffix), *tenant.IpAllowListCNAME)
+	}
+}
+
+func addPrivateConnectivityInfo(d *schema.ResourceData, preffix string, privateDNS, serviceName string) {
+	d.Set(fmt.Sprintf("%s_private_connectivity_info_private_dns", preffix), privateDNS)
+	d.Set(fmt.Sprintf("%s_private_connectivity_info_service_name", preffix), serviceName)
 }
 
 // Append path to baseurl

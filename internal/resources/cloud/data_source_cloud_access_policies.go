@@ -11,6 +11,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+var _ datasource.DataSource = &AccessPoliciesDataSource{}
+var _ datasource.DataSourceWithConfigure = &AccessPoliciesDataSource{}
+
 var dataSourceAccessPoliciesName = "grafana_cloud_access_policies"
 
 func datasourceAccessPolicies() *common.DataSource {
@@ -34,7 +37,7 @@ func (r *AccessPoliciesDataSource) Schema(ctx context.Context, req datasource.Sc
 		MarkdownDescription: `
 Fetches access policies from Grafana Cloud.
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/security-and-account-management/authentication-and-permissions/access-policies/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-access-policies)
 
 Required access policy scopes:

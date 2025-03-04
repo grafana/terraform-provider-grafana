@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -27,6 +28,7 @@ type resourceAWSAccountModel struct {
 	ID         types.String `tfsdk:"id"`
 	StackID    types.String `tfsdk:"stack_id"`
 	ResourceID types.String `tfsdk:"resource_id"`
+	Name       types.String `tfsdk:"name"`
 	RoleARN    types.String `tfsdk:"role_arn"`
 	Regions    types.Set    `tfsdk:"regions"`
 }
@@ -90,6 +92,12 @@ func (r resourceAWSAccount) Schema(ctx context.Context, req resource.SchemaReque
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"name": schema.StringAttribute{
+				Description: "An optional human-readable name for this AWS Account resource.",
+				Optional:    true,
+				Computed:    true, // used to complete the default "" if the resource existed before this field was introduced
+				Default:     stringdefault.StaticString(""),
+			},
 			"role_arn": schema.StringAttribute{
 				Description: "An IAM Role ARN string to represent with this AWS Account resource.",
 				Required:    true,
@@ -134,6 +142,7 @@ func (r resourceAWSAccount) ImportState(ctx context.Context, req resource.Import
 		ID:         types.StringValue(req.ID),
 		StackID:    types.StringValue(stackID),
 		ResourceID: types.StringValue(resourceID),
+		Name:       types.StringValue(account.Name),
 		RoleARN:    types.StringValue(account.RoleARN),
 		Regions:    regions,
 	})
@@ -149,6 +158,7 @@ func (r resourceAWSAccount) Create(ctx context.Context, req resource.CreateReque
 
 	accountData := cloudproviderapi.AWSAccount{}
 	accountData.RoleARN = data.RoleARN.ValueString()
+	accountData.Name = data.Name.ValueString()
 	diags = data.Regions.ElementsAs(ctx, &accountData.Regions, false)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -168,6 +178,7 @@ func (r resourceAWSAccount) Create(ctx context.Context, req resource.CreateReque
 		ID:         types.StringValue(resourceAWSAccountTerraformID.Make(data.StackID.ValueString(), account.ID)),
 		StackID:    data.StackID,
 		ResourceID: types.StringValue(account.ID),
+		Name:       data.Name,
 		RoleARN:    data.RoleARN,
 		Regions:    data.Regions,
 	})
@@ -196,6 +207,11 @@ func (r resourceAWSAccount) Read(ctx context.Context, req resource.ReadRequest, 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	diags = resp.State.SetAttribute(ctx, path.Root("name"), account.Name)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	diags = resp.State.SetAttribute(ctx, path.Root("regions"), account.Regions)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -213,6 +229,7 @@ func (r *resourceAWSAccount) Update(ctx context.Context, req resource.UpdateRequ
 
 	accountData := cloudproviderapi.AWSAccount{}
 	accountData.RoleARN = planData.RoleARN.ValueString()
+	accountData.Name = planData.Name.ValueString()
 	diags = planData.Regions.ElementsAs(ctx, &accountData.Regions, false)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -230,6 +247,11 @@ func (r *resourceAWSAccount) Update(ctx context.Context, req resource.UpdateRequ
 	}
 
 	diags = resp.State.SetAttribute(ctx, path.Root("role_arn"), account.RoleARN)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	diags = resp.State.SetAttribute(ctx, path.Root("name"), account.Name)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

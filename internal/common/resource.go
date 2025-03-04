@@ -23,6 +23,8 @@ var (
 	CategorySyntheticMonitoring ResourceCategory = "Synthetic Monitoring"
 	CategoryCloudProvider       ResourceCategory = "Cloud Provider"
 	CategoryConnections         ResourceCategory = "Connections"
+	CategoryFleetManagement     ResourceCategory = "Fleet Management"
+	CategoryFrontendO11y        ResourceCategory = "Frontend Observability"
 )
 
 type ResourceCommon struct {

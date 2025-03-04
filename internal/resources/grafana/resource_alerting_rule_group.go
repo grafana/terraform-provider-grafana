@@ -83,6 +83,7 @@ This resource requires Grafana 9.1.0 or later.
 					Schema: map[string]*schema.Schema{
 						"uid": {
 							Type:        schema.TypeString,
+							Optional:    true,
 							Computed:    true,
 							Description: "The unique identifier of the alert rule.",
 						},
@@ -106,18 +107,30 @@ This resource requires Grafana 9.1.0 or later.
 						"no_data_state": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Default:     "NoData",
-							Description: "Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, KeepLast, and Alerting.",
+							Description: "Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, KeepLast, and Alerting. Defaults to NoData if not set.",
+							DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+								// We default to this value later in the pipeline, so we need to account for that here.
+								if newValue == "" {
+									return oldValue == "NoData"
+								}
+								return oldValue == newValue
+							},
 						},
 						"exec_err_state": {
 							Type:        schema.TypeString,
 							Optional:    true,
-							Default:     "Alerting",
-							Description: "Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, KeepLast, and Alerting.",
+							Description: "Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, KeepLast, and Alerting.  Defaults to Alerting if not set.",
+							DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+								// We default to this value later in the pipeline, so we need to account for that here.
+								if newValue == "" {
+									return oldValue == "Alerting"
+								}
+								return oldValue == newValue
+							},
 						},
 						"condition": {
 							Type:        schema.TypeString,
-							Required:    true,
+							Optional:    true,
 							Description: "The `ref_id` of the query node in the `data` field to use as the alert condition.",
 						},
 						"data": {
@@ -383,10 +396,13 @@ func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta inte
 				return retry.NonRetryableError(err)
 			}
 
-			// Check if a rule with the same name already exists within the same rule group
+			// Check if a rule with the same name or uid already exists within the same rule group
 			for _, r := range rules {
 				if *r.Title == *ruleToApply.Title {
 					return retry.NonRetryableError(fmt.Errorf("rule with name %q is defined more than once", *ruleToApply.Title))
+				}
+				if ruleToApply.UID != "" && r.UID == ruleToApply.UID {
+					return retry.NonRetryableError(fmt.Errorf("rule with UID %q is defined more than once. Rules with name %q and %q have the same uid", ruleToApply.UID, *r.Title, *ruleToApply.Title))
 				}
 			}
 
@@ -527,17 +543,53 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		return nil, err
 	}
 
+	// Check for conflicting fields before unpacking the rest of the rule.
+	// This is a workaround due to the lack of support for ConflictsWith in Lists in the SDK.
+	errState := json["exec_err_state"].(string)
+	noDataState := json["no_data_state"].(string)
+	condition := json["condition"].(string)
+
+	record := unpackRecord(json["record"])
+	if record != nil {
+		incompatFieldMsgFmt := `conflicting fields "record" and "%s"`
+		if forDuration != 0 {
+			return nil, fmt.Errorf(incompatFieldMsgFmt, "for")
+		}
+		if noDataState != "" {
+			return nil, fmt.Errorf(incompatFieldMsgFmt, "no_data_state")
+		}
+		if errState != "" {
+			return nil, fmt.Errorf(incompatFieldMsgFmt, "exec_err_state")
+		}
+		if condition != "" {
+			return nil, fmt.Errorf(incompatFieldMsgFmt, "condition")
+		}
+	}
+	if record == nil {
+		if condition == "" {
+			return nil, fmt.Errorf(`"condition" is required`)
+		}
+		// Compute defaults here to avoid issues related to the above, setting a default in the schema will cause these
+		// to be set before we can validate the configuration.
+		if noDataState == "" {
+			noDataState = "NoData"
+		}
+		if errState == "" {
+			errState = "Alerting"
+		}
+	}
+
 	rule := models.ProvisionedAlertRule{
 		UID:                  json["uid"].(string),
 		Title:                common.Ref(json["name"].(string)),
 		FolderUID:            common.Ref(folderUID),
 		RuleGroup:            common.Ref(groupName),
 		OrgID:                common.Ref(orgID),
-		ExecErrState:         common.Ref(json["exec_err_state"].(string)),
-		NoDataState:          common.Ref(json["no_data_state"].(string)),
+		ExecErrState:         common.Ref(errState),
+		NoDataState:          common.Ref(noDataState),
 		For:                  common.Ref(strfmt.Duration(forDuration)),
 		Data:                 data,
-		Condition:            common.Ref(json["condition"].(string)),
+		Condition:            common.Ref(condition),
 		Labels:               unpackMap(json["labels"]),
 		Annotations:          unpackMap(json["annotations"]),
 		IsPaused:             json["is_paused"].(bool),

@@ -35,7 +35,7 @@ variable "cloud_access_policy_token" {
 }
 variable "stack_slug" {}
 variable "cloud_region" {
-  default = "us"
+  default = "prod-us-east-0"
 }
 
 // Step 1: Create a stack
@@ -99,7 +99,7 @@ data "grafana_synthetic_monitoring_probes" "main" {
 
 ### Required
 
-- `metrics_publisher_key` (String, Sensitive) The [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/) with the following scopes: `stacks:read`, `metrics:write`, `logs:write`, `traces:write`. This is used to publish metrics and logs to Grafana Cloud stack.
+- `metrics_publisher_key` (String, Sensitive) The [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/security-and-account-management/authentication-and-permissions/access-policies/) with the following scopes: `stacks:read`, `metrics:write`, `logs:write`, `traces:write`. This is used to publish metrics and logs to Grafana Cloud stack.
 - `stack_id` (String) The ID or slug of the stack to install SM on.
 
 ### Optional

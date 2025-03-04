@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 var (
@@ -56,6 +57,11 @@ var (
 				Description: "When the CloudWatch Scrape Job is disabled, this will show the reason that it is in that state.",
 				Computed:    true,
 			},
+			"static_labels": schema.MapAttribute{
+				Description: "A set of static labels to add to all metrics exported by this scrape job.",
+				Computed:    true,
+				ElementType: basetypes.StringType{},
+			},
 		},
 		Blocks: map[string]schema.Block{
 			"service": schema.ListNestedBlock{
@@ -63,11 +69,11 @@ var (
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"name": schema.StringAttribute{
-							Description: "The name of the service to scrape. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported services, metrics, and their statistics.",
+							Description: "The name of the service to scrape. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/cloudwatch-metrics/services/ for supported services, metrics, and their statistics.",
 							Computed:    true,
 						},
 						"scrape_interval_seconds": schema.Int64Attribute{
-							Description: "The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported scrape intervals.",
+							Description: "The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/cloudwatch-metrics/services/ for supported scrape intervals.",
 							Computed:    true,
 						},
 						"tags_to_add_to_metrics": schema.SetAttribute{

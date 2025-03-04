@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -112,6 +113,13 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 				Description: "When the CloudWatch Scrape Job is disabled, this will show the reason that it is in that state.",
 				Computed:    true,
 			},
+			"static_labels": schema.MapAttribute{
+				Description: "A set of static labels to add to all metrics exported by this scrape job.",
+				Optional:    true,
+				Computed:    true,
+				ElementType: basetypes.StringType{},
+				Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
+			},
 		},
 		Blocks: map[string]schema.Block{
 			"service": schema.ListNestedBlock{
@@ -123,11 +131,11 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"name": schema.StringAttribute{
-							Description: "The name of the service to scrape. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported services.",
+							Description: "The name of the service to scrape. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/cloudwatch-metrics/services/ for supported services.",
 							Required:    true,
 						},
 						"scrape_interval_seconds": schema.Int64Attribute{
-							Description: "The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported scrape intervals.",
+							Description: "The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/cloudwatch-metrics/services/ for supported scrape intervals.",
 							Optional:    true,
 							Computed:    true,
 							Default:     int64default.StaticInt64(300),

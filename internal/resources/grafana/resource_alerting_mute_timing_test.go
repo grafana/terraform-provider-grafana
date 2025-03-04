@@ -118,11 +118,11 @@ func TestAccMuteTiming_RemoveInUse(t *testing.T) {
 		locals {
 			use_mute = %t
 		}
-		
+
 		resource "grafana_organization" "my_org" {
 			name = "mute-timing-test"
 		}
-		
+
 		resource "grafana_contact_point" "default_policy" {
 			org_id = grafana_organization.my_org.id
 			name   = "default-policy"
@@ -130,7 +130,7 @@ func TestAccMuteTiming_RemoveInUse(t *testing.T) {
 				addresses = ["test@example.com"]
 			}
 		}
-		
+
 		resource "grafana_notification_policy" "org_policy" {
 			org_id             = grafana_organization.my_org.id
 			group_by           = ["..."]
@@ -138,9 +138,9 @@ func TestAccMuteTiming_RemoveInUse(t *testing.T) {
 			group_interval     = "6m"
 			repeat_interval    = "3h"
 			contact_point      = grafana_contact_point.default_policy.name
-			
+
 			policy {
-				mute_timings = local.use_mute ? [grafana_mute_timing.test[0].name] : [] 
+				mute_timings = local.use_mute ? [grafana_mute_timing.test[0].name] : []
 				contact_point = grafana_contact_point.default_policy.name
 			}
 		}
@@ -167,7 +167,7 @@ func TestAccMuteTiming_RemoveInUse(t *testing.T) {
 }
 
 func TestAccMuteTiming_RemoveInUseInAlertRule(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t) // TODO: Switch to OSS when this is released: https://github.com/grafana/grafana/pull/90500
+	testutils.CheckOSSTestsEnabled(t, ">=11.2.0")
 
 	randomStr := acctest.RandString(6)
 
@@ -176,11 +176,11 @@ func TestAccMuteTiming_RemoveInUseInAlertRule(t *testing.T) {
 		locals {
 			use_mute = %[2]t
 		}
-		
+
 		resource "grafana_folder" "rule_folder" {
 			title  = "%[1]s"
 		}
-		
+
 		resource "grafana_contact_point" "default_policy" {
 			name   = "%[1]s"
 			email {
@@ -219,7 +219,7 @@ func TestAccMuteTiming_RemoveInUseInAlertRule(t *testing.T) {
 			}
 		}
 
-		
+
 		resource "grafana_mute_timing" "test" {
 			count = local.use_mute ? 1 : 0
 			name = "%[1]s"

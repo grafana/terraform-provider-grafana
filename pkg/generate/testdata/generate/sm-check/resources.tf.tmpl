@@ -11,7 +11,7 @@ resource "grafana_synthetic_monitoring_check" "{{ .Job }}" {
   labels = {
     foo = "bar"
   }
-  probes  = [7]
+  probes  = [19]
   target  = "https://grafana.com"
   timeout = 3000
   settings {

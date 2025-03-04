@@ -19,10 +19,10 @@ import (
 func resourceMessageTemplate() *common.Resource {
 	schema := &schema.Resource{
 		Description: `
-Manages Grafana Alerting message templates.
+Manages Grafana Alerting notification template groups, including notification templates.
 
 * [Official documentation](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/terraform-provisioning/)
-* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#templates)
+* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/alerting_provisioning/#notification-template-groups)
 
 This resource requires Grafana 9.1.0 or later.
 `,
@@ -41,12 +41,12 @@ This resource requires Grafana 9.1.0 or later.
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The name of the message template.",
+				Description: "The name of the notification template group.",
 			},
 			"template": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The content of the message template.",
+				Description: "The content of the notification template group.",
 				StateFunc: func(v interface{}) string {
 					return strings.TrimSpace(v.(string))
 				},

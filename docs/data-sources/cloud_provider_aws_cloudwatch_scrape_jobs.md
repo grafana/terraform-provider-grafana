@@ -51,6 +51,7 @@ Read-Only:
 - `role_arn` (String) The AWS ARN of the IAM role associated with the AWS Account resource that is being used by this CloudWatch Scrape Job.
 - `service` (Block List) One or more configuration blocks to dictate what this CloudWatch Scrape Job should scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--scrape_job--service))
 - `stack_id` (String) The Stack ID of the Grafana Cloud instance. Part of the Terraform Resource ID.
+- `static_labels` (Map of String) A set of static labels to add to all metrics exported by this scrape job.
 
 <a id="nestedblock--scrape_job--custom_namespace"></a>
 ### Nested Schema for `scrape_job.custom_namespace`
@@ -77,9 +78,9 @@ Read-Only:
 Read-Only:
 
 - `metric` (Block List) One or more configuration blocks to configure metrics and their statistics to scrape. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--scrape_job--service--metric))
-- `name` (String) The name of the service to scrape. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported services, metrics, and their statistics.
+- `name` (String) The name of the service to scrape. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/cloudwatch-metrics/services/ for supported services, metrics, and their statistics.
 - `resource_discovery_tag_filter` (Block List) One or more configuration blocks to configure tag filters applied to discovery of resource entities in the associated AWS account. When accessing this as an attribute reference, it is a list of objects. (see [below for nested schema](#nestedblock--scrape_job--service--resource_discovery_tag_filter))
-- `scrape_interval_seconds` (Number) The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/aws/cloudwatch-metrics/services/ for supported scrape intervals.
+- `scrape_interval_seconds` (Number) The interval in seconds to scrape the service. See https://grafana.com/docs/grafana-cloud/monitor-infrastructure/monitor-cloud-provider/aws/cloudwatch-metrics/services/ for supported scrape intervals.
 - `tags_to_add_to_metrics` (Set of String) A set of tags to add to all metrics exported by this scrape job, for use in PromQL queries.
 
 <a id="nestedblock--scrape_job--service--metric"></a>

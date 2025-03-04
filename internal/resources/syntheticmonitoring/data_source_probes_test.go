@@ -16,12 +16,12 @@ func TestAccDataSourceProbes(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_synthetic_monitoring_probes/data-source.tf"),
-				Check:  resource.TestCheckResourceAttrSet("data.grafana_synthetic_monitoring_probes.main", "probes.Atlanta"),
+				Check:  resource.TestCheckResourceAttrSet("data.grafana_synthetic_monitoring_probes.main", "probes.Ohio"),
 			},
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_synthetic_monitoring_probes/with-deprecated.tf"),
 				// We're not checking for deprecated probes here because there may not be any, causing tests to fail.
-				Check: resource.TestCheckResourceAttrSet("data.grafana_synthetic_monitoring_probes.main", "probes.Atlanta"),
+				Check: resource.TestCheckResourceAttrSet("data.grafana_synthetic_monitoring_probes.main", "probes.Ohio"),
 			},
 		},
 	})

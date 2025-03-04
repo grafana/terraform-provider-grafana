@@ -59,6 +59,9 @@ type AWSAccount struct {
 
 	// Regions is the list of AWS regions in use for the AWS Account.
 	Regions []string `json:"regions"`
+
+	// Name is an optional user-defined name for the AWS account.
+	Name string `json:"name"`
 }
 
 func (c *Client) CreateAWSAccount(ctx context.Context, stackID string, accountData AWSAccount) (AWSAccount, error) {
@@ -108,6 +111,7 @@ type AWSCloudWatchScrapeJobRequest struct {
 	ExportTags            bool                           `json:"exportTags"`
 	Services              []AWSCloudWatchService         `json:"services"`
 	CustomNamespaces      []AWSCloudWatchCustomNamespace `json:"customNamespaces"`
+	StaticLabels          map[string]string              `json:"staticLabels"`
 }
 type AWSCloudWatchScrapeJobResponse struct {
 	Name                 string                         `json:"name"`
@@ -116,6 +120,8 @@ type AWSCloudWatchScrapeJobResponse struct {
 	ExportTags           bool                           `json:"exportTags"`
 	Services             []AWSCloudWatchService         `json:"services"`
 	CustomNamespaces     []AWSCloudWatchCustomNamespace `json:"customNamespaces"`
+	StaticLabels         map[string]string              `json:"staticLabels"`
+
 	// computed fields beyond the original request
 	RoleARN                   string   `json:"roleARN"`
 	Regions                   []string `json:"regions"`
@@ -214,6 +220,28 @@ type AzureCredential struct {
 
 	// ResourceTagFilters is the list of Azure resource tag filters.
 	ResourceTagFilters []TagFilter `json:"resource_tag_filters"`
+
+	// AutoDiscoveryConfiguration is the configuration for auto-discovery of Azure resources.
+	AutoDiscoveryConfiguration []AutoDiscoveryConfiguration `json:"auto_discovery_configuration"`
+
+	// ResourceTagsToAddToMetrics is the list of Azure resource tags to add to metrics.
+	ResourceTagsToAddToMetrics []string `json:"resource_tags_to_add_to_metrics"`
+}
+
+type AutoDiscoveryConfiguration struct {
+	SubscriptionID             string                      `json:"subscription_id"`
+	ResourceTypeConfigurations []ResourceTypeConfiguration `json:"resource_type_configurations"`
+}
+
+type ResourceTypeConfiguration struct {
+	ResourceTypeName    string                `json:"resource_type_name"`
+	MetricConfiguration []MetricConfiguration `json:"metric_configuration"`
+}
+
+type MetricConfiguration struct {
+	Name         string   `json:"name"`
+	Dimensions   []string `json:"dimensions"`
+	Aggregations []string `json:"aggregations"`
 }
 
 type TagFilter struct {

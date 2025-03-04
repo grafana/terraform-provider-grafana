@@ -38,6 +38,15 @@ func (r *basePluginFrameworkDataSource) Configure(ctx context.Context, req datas
 		return
 	}
 
+	if client.GrafanaAPI == nil || client.GrafanaAPIConfig == nil {
+		resp.Diagnostics.AddError(
+			"The Grafana Provider is missing a configuration for the Grafana API.",
+			"Please ensure that url and auth are set in the provider configuration.",
+		)
+
+		return
+	}
+
 	r.client = client.GrafanaAPI
 	r.config = client.GrafanaAPIConfig
 }
@@ -76,6 +85,15 @@ func (r *basePluginFrameworkResource) Configure(ctx context.Context, req resourc
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
 			fmt.Sprintf("Expected *common.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+
+		return
+	}
+
+	if client.GrafanaAPI == nil || client.GrafanaAPIConfig == nil {
+		resp.Diagnostics.AddError(
+			"The Grafana Provider is missing a configuration for the Grafana API.",
+			"Please ensure that url and auth are set in the provider configuration.",
 		)
 
 		return
