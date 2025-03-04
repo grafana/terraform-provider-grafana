@@ -86,6 +86,13 @@ func (r *resourceFrontendO11yApp) Schema(ctx context.Context, req resource.Schem
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
+			"collector_endpoint": schema.StringAttribute{
+				Description: "The collector URL Grafana Cloud Frontend Observability. Use this endpoint to send your Telemetry.",
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"allowed_origins": schema.ListAttribute{
 				Description: "A list of allowed origins for CORS.",
 				ElementType: types.StringType,
