@@ -74,6 +74,7 @@ type App struct {
 	CORSAllowedOrigins []AllowedOrigin   `json:"corsOrigins,omitempty"`
 	AllowedRate        uint64            `json:"allowedRate,omitempty"`
 	Settings           map[string]string `json:"settings,omitempty"`
+	CollectEndpointURL string            `json:"collectEndpointURL,omitempty"`
 
 	CreatedAt *time.Time `json:"createdAt,omitempty"`
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
@@ -229,6 +230,7 @@ func (a *App) UnmarshalJSON(input []byte) error {
 	a.CreatedAt = raw.CreatedAt
 	a.UpdatedAt = raw.UpdatedAt
 	a.DeletedAt = raw.DeletedAt
+	a.CollectEndpointURL = raw.CollectEndpointURL
 
 	return nil
 }
