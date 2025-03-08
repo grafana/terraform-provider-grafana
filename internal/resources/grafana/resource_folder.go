@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"regexp"
 	"strconv"
+	"time"
 
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/folders"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -98,7 +100,19 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 	}
 
 	if parentUID, ok := d.GetOk("parent_folder_uid"); ok {
-		body.ParentUID = parentUID.(string)
+		err := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
+			parentFolder, err := GetFolderByIDorUID(client.Folders, parentUID.(string))
+			if err != nil {
+				return retry.RetryableError(err)
+			}
+
+			body.ParentUID = parentFolder.UID
+			return nil
+		})
+
+		if err != nil {
+			return diag.Errorf("failed to find parent folder '%s': %s", parentUID, err)
+		}
 	}
 
 	resp, err := client.Folders.CreateFolder(&body)
