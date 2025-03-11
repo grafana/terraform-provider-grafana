@@ -5,7 +5,6 @@ subcategory: "Fleet Management"
 description: |-
   Manages Grafana Fleet Management collectors.
   Official documentation https://grafana.com/docs/grafana-cloud/send-data/fleet-management/API documentation https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/collector-api/
-  Note: Fleet Management is in public preview https://grafana.com/docs/release-life-cycle/#public-preview and this resource is experimental. Grafana Labs offers limited support, and breaking changes might occur.
   Required access policy scopes:
   fleet-management:readfleet-management:write
 ---
@@ -16,8 +15,6 @@ Manages Grafana Fleet Management collectors.
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/send-data/fleet-management/api-reference/collector-api/)
-
-**Note:** Fleet Management is in [public preview](https://grafana.com/docs/release-life-cycle/#public-preview) and this resource is experimental. Grafana Labs offers limited support, and breaking changes might occur.
 
 Required access policy scopes:
 
