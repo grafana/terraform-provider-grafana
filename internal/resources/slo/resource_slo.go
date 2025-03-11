@@ -2,22 +2,25 @@ package slo
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"regexp"
 
 	"github.com/grafana/slo-openapi-client/go/slo"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 const (
-	QueryTypeFreeform  string = "freeform"
-	QueryTypeHistogram string = "histogram"
-	QueryTypeRatio     string = "ratio"
-	QueryTypeThreshold string = "threshold"
+	QueryTypeFreeform       string = "freeform"
+	QueryTypeHistogram      string = "histogram"
+	QueryTypeRatio          string = "ratio"
+	QueryTypeThreshold      string = "threshold"
+	QueryTypeGrafanaQueries string = "grafanaQueries"
 )
 
 var resourceSloID = common.NewResourceID(common.StringIDField("uuid"))
@@ -79,8 +82,8 @@ Resource manages Grafana SLOs.
 					Schema: map[string]*schema.Schema{
 						"type": {
 							Type:         schema.TypeString,
-							Description:  `Query type must be one of: "freeform", "query", "ratio", or "threshold"`,
-							ValidateFunc: validation.StringInSlice([]string{"freeform", "query", "ratio", "threshold"}, false),
+							Description:  `Query type must be one of: "freeform", "query", "ratio", "grafana_queries" or "threshold"`,
+							ValidateFunc: validation.StringInSlice([]string{"freeform", "query", "ratio", "threshold", "grafana_queries"}, false),
 							Required:     true,
 						},
 						"freeform": {
@@ -92,7 +95,23 @@ Resource manages Grafana SLOs.
 									"query": {
 										Type:        schema.TypeString,
 										Required:    true,
-										Description: "Freeform Query Field",
+										Description: "Freeform Query Field - valid promQl",
+									},
+								},
+							},
+						},
+						"grafana_queries": {
+							Type:        schema.TypeList,
+							MaxItems:    1,
+							Optional:    true,
+							Description: "Array for holding a set of grafana queries",
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"grafana_queries": {
+										Type:             schema.TypeString,
+										Required:         true,
+										Description:      "Query Object - Array of Grafana Query JSON objects",
+										ValidateDiagFunc: ValidateGrafanaQuery(),
 									},
 								},
 							},
@@ -511,6 +530,33 @@ func packQuery(query map[string]interface{}) (slo.SloV00Query, error) {
 		return sloQuery, nil
 	}
 
+	if query["type"] == "grafana_queries" {
+		// This is safe
+		grafanaInterface := query["grafana_queries"].([]interface{})
+
+		if len(grafanaInterface) == 0 {
+			return slo.SloV00Query{}, fmt.Errorf("grafana_queries must be set")
+		}
+
+		grafanaquery := grafanaInterface[0].(map[string]interface{})
+		querystring := grafanaquery["grafana_queries"].(string)
+
+		var queryMapList []map[string]interface{}
+		err := json.Unmarshal([]byte(querystring), &queryMapList)
+
+		// We validate the JSON structure this should never occur
+		if err != nil {
+			return slo.SloV00Query{}, err
+		}
+
+		sloQuery := slo.SloV00Query{
+			GrafanaQueries: &slo.SloV00GrafanaQueries{GrafanaQueries: queryMapList},
+			Type:           QueryTypeGrafanaQueries,
+		}
+
+		return sloQuery, nil
+	}
+
 	return slo.SloV00Query{}, fmt.Errorf("%s query type not implemented", query["type"])
 }
 
@@ -659,5 +705,94 @@ func apiError(action string, err error) diag.Diagnostics {
 			Summary:  action,
 			Detail:   detail,
 		},
+	}
+}
+
+func ValidateGrafanaQuery() schema.SchemaValidateDiagFunc {
+	return func(i interface{}, path cty.Path) diag.Diagnostics {
+		var diags diag.Diagnostics
+
+		v, ok := i.(string)
+		if !ok {
+			diags = append(diags, diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       "Bad Format",
+				Detail:        fmt.Sprintf("expected type of %s to be string", path),
+				AttributePath: path,
+			})
+			return diags
+		}
+
+		var gmrQuery []map[string]any
+		err := json.Unmarshal([]byte(v), &gmrQuery)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       "Bad Format",
+				Detail:        "expected grafana queries to be valid JSON format",
+				AttributePath: path,
+			})
+			return diags
+		}
+
+		if len(gmrQuery) == 0 {
+			diags = append(diags, diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       "Missing Required Field",
+				Detail:        "expected grafana queries to have at least one query",
+				AttributePath: path,
+			})
+			return diags
+		}
+
+		for _, queryObj := range gmrQuery {
+			currentPath := path.Copy()
+
+			refID, ok := queryObj["refId"]
+			if !ok {
+				// This unmarshalled so it is safe to marshal
+				obj, _ := json.Marshal(queryObj)
+				diags = append(diags, diag.Diagnostic{
+					Severity:      diag.Error,
+					Summary:       "Missing Required Field",
+					Detail:        fmt.Sprintf("expected grafana query to have a 'refId' field (%s)", obj),
+					AttributePath: append(currentPath, cty.IndexStep{Key: cty.StringVal("refId")}),
+				})
+				return diags
+			}
+
+			source := queryObj["datasource"]
+			s, ok := source.(map[string]interface{})
+			if !ok {
+				diags = append(diags, diag.Diagnostic{
+					Severity:      diag.Error,
+					Summary:       "Missing Required Field",
+					Detail:        fmt.Sprintf("expected grafana query to have a 'datasource' field (refId:%s)", refID),
+					AttributePath: append(currentPath, cty.IndexStep{Key: cty.StringVal("datasource")}),
+				})
+				return diags
+			}
+
+			currentPath = append(currentPath, cty.IndexStep{Key: cty.StringVal("datasource")})
+			_, ok = s["type"]
+			if !ok {
+				diags = append(diags, diag.Diagnostic{
+					Severity:      diag.Error,
+					Summary:       "Missing Required Field",
+					Detail:        fmt.Sprintf("expected grafana query datasource field to have a 'type' field (refId:%s)", refID),
+					AttributePath: append(currentPath.Copy(), cty.IndexStep{Key: cty.StringVal("type")}),
+				})
+			}
+			_, ok = s["uid"]
+			if !ok {
+				diags = append(diags, diag.Diagnostic{
+					Severity:      diag.Error,
+					Summary:       "Missing Required Field",
+					Detail:        fmt.Sprintf("expected grafana query datasource field to have a 'uid' field (refId:%s)", refID),
+					AttributePath: append(currentPath.Copy(), cty.IndexStep{Key: cty.StringVal("uid")}),
+				})
+			}
+		}
+		return diags
 	}
 }

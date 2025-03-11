@@ -2,6 +2,7 @@ package slo
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/grafana/slo-openapi-client/go/slo"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
@@ -120,6 +121,17 @@ func unpackQuery(apiquery slo.SloV00Query) []map[string]interface{} {
 		ratio = append(ratio, body)
 		query["ratio"] = ratio
 
+		retQuery = append(retQuery, query)
+	}
+
+	if apiquery.Type == QueryTypeGrafanaQueries {
+		query := map[string]interface{}{"type": "grafana_queries"}
+
+		grafanaQueries := []map[string]interface{}{}
+		queryString, _ := json.Marshal(apiquery.GrafanaQueries.GetGrafanaQueries())
+		grafanaQueriesString := map[string]interface{}{"grafana_queries": string(queryString)}
+		grafanaQueries = append(grafanaQueries, grafanaQueriesString)
+		query["grafana_queries"] = grafanaQueries
 		retQuery = append(retQuery, query)
 	}
 
