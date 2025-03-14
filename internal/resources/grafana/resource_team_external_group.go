@@ -127,7 +127,6 @@ func applyTeamExternalGroup(client *goapi.GrafanaHTTPAPI, teamID int64, addGroup
 	}
 
 	for _, group := range removeGroups {
-		group := group
 		params := teamsSync.NewRemoveTeamGroupAPIQueryParams().WithTeamID(teamID).WithGroupID(&group)
 		if _, err := client.SyncTeamGroups.RemoveTeamGroupAPIQuery(params); err != nil {
 			return fmt.Errorf("error removing group %s from team %d: %w", group, teamID, err)

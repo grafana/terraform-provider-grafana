@@ -16,7 +16,6 @@ func TestSortResources(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, goldenFile := range goldenFiles {
-		goldenFile := goldenFile
 		testFile := strings.Replace(goldenFile, "-golden.tf", ".tf", 1)
 		t.Run(testFile, func(t *testing.T) {
 			t.Parallel()

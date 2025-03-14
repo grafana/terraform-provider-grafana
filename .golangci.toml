@@ -9,7 +9,7 @@ min-occurrences = 5
 disable-all = true
 enable = [
   "dogsled",
-  "exportloopref",
+  "copyloopvar",
   "goconst",
   "gocritic",
   "gocyclo",
