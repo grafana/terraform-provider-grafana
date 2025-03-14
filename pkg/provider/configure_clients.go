@@ -13,11 +13,13 @@ import (
 	"time"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/grafana/grafana-app-sdk/k8s"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/slo-openapi-client/go/slo"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
+	"k8s.io/client-go/rest"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/hashicorp/go-retryablehttp"
@@ -37,6 +39,9 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	c := &common.Client{}
 	if !providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull() {
 		if err = createGrafanaAPIClient(c, providerConfig); err != nil {
+			return nil, err
+		}
+		if err = createGrafanaAppPlatformClient(c, providerConfig); err != nil {
 			return nil, err
 		}
 		if err = createMLClient(c, providerConfig); err != nil {
@@ -138,6 +143,70 @@ func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig
 	}
 	client.GrafanaAPI = goapi.NewHTTPClientWithConfig(strfmt.Default, &cfg)
 	client.GrafanaAPIConfig = &cfg
+
+	return nil
+}
+
+func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) error {
+	rcfg := rest.Config{
+		UserAgent: cfg.UserAgent.ValueString(),
+		Host:      cfg.URL.ValueString(),
+		APIPath:   "/apis",
+	}
+
+	tlsClientConfig, err := parseTLSconfig(cfg)
+	if err != nil {
+		return err
+	}
+
+	// Kubernetes really is wonderful, huh.
+	// tl;dr it has it's own TLSClientConfig,
+	// and it's not compatible with the one from the "crypto/tls" package.
+	rcfg.TLSClientConfig = rest.TLSClientConfig{
+		Insecure:   tlsClientConfig.InsecureSkipVerify,
+		ServerName: tlsClientConfig.ServerName,
+	}
+
+	if len(tlsClientConfig.Certificates) > 0 {
+		rcfg.CertData = tlsClientConfig.Certificates[0].Certificate[0]
+		rcfg.KeyData = tlsClientConfig.Certificates[0].PrivateKey.([]byte)
+	}
+
+	if tlsClientConfig.RootCAs != nil {
+		// @radiohead: there is no other way to get root CA subjects, so ignore the deprecation.
+		// nolint: staticcheck
+		if sub := tlsClientConfig.RootCAs.Subjects(); len(sub) > 0 {
+			rcfg.CAData = sub[0]
+		}
+	}
+
+	userInfo, orgID, apiKey, err := parseAuth(cfg)
+	if err != nil {
+		return err
+	}
+
+	switch {
+	case apiKey != "":
+		if orgID > 1 {
+			return fmt.Errorf("org_id is only supported with basic auth. API keys are already org-scoped")
+		}
+
+		rcfg.BearerToken = apiKey
+	case userInfo != nil:
+		rcfg.Username = userInfo.Username()
+		if p, ok := userInfo.Password(); ok {
+			rcfg.Password = p
+		}
+	}
+
+	client.GrafanaOrgID = cfg.OrgID.ValueInt64()
+	client.GrafanaStackID = cfg.StackID.ValueInt64()
+	client.GrafanaAppPlatformAPI = k8s.NewClientRegistry(rcfg, k8s.ClientConfig{
+		// TODO: check with @IfSentient if we should be using this serializer provider.
+		// NegotiatedSerializerProvider: func(kind resource.Kind) runtime.NegotiatedSerializer {
+		// 	return &k8s.KindNegotiatedSerializer{Kind: kind}
+		// },
+	})
 
 	return nil
 }
