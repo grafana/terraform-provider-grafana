@@ -101,6 +101,31 @@ func TestAccRoleAssignmentItem_inOrg(t *testing.T) {
 	})
 }
 
+func TestAccRoleAssignmentItem_withCloudServiceAccount(t *testing.T) {
+	testutils.CheckEnterpriseTestsEnabled(t, ">=9.0.0")
+
+	testName := acctest.RandString(10)
+	var role models.RoleDTO
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             roleAssignmentCheckExists.destroyed(&role, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: roleAssignmentItemConfigWithCloudServiceAccount(testName),
+				Check: resource.ComposeTestCheckFunc(
+					roleAssignmentCheckExists.exists("grafana_role.test", &role),
+				),
+			},
+			{
+				ImportState:       true,
+				ResourceName:      "grafana_role_assignment_item.cloud_service_account",
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func roleAssignmentItemConfig(name string) string {
 	return fmt.Sprintf(`
 resource "grafana_role" "test" {
@@ -224,6 +249,38 @@ resource grafana_role_assignment_item "service_account" {
 	org_id = grafana_organization.test.id
 	role_uid = grafana_role.test.uid
 	service_account_id = grafana_service_account.test.id
+}
+`, name)
+}
+
+func roleAssignmentItemConfigWithCloudServiceAccount(name string) string {
+	return fmt.Sprintf(`
+resource "grafana_role" "test" {
+	name  = "%[1]s" 
+	description = "test desc"
+	version = 1
+	uid = "%[1]s"
+	global = true
+	group = "testgroup"
+	display_name = "testdisplay"
+	hidden = true
+}
+
+// Mock a cloud service account ID with slug format
+resource "grafana_service_account" "mock_cloud" {
+	name        = "%[1]s-cloud-mock"
+	role        = "Editor"
+	is_disabled = false
+}
+
+// Override the ID to simulate a cloud service account
+resource "terraform_data" "mock_cloud_sa_id" {
+	input = "testslug:${grafana_service_account.mock_cloud.id}"
+}
+
+resource "grafana_role_assignment_item" "cloud_service_account" {
+	role_uid = grafana_role.test.uid
+	service_account_id = terraform_data.mock_cloud_sa_id.output
 }
 `, name)
 }
