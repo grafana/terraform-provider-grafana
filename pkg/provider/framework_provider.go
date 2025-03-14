@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/appplatform"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -23,6 +24,9 @@ type ProviderConfig struct {
 	Retries          types.Int64  `tfsdk:"retries"`
 	RetryStatusCodes types.Set    `tfsdk:"retry_status_codes"`
 	RetryWait        types.Int64  `tfsdk:"retry_wait"`
+
+	OrgID   types.Int64 `tfsdk:"org_id"`
+	StackID types.Int64 `tfsdk:"stack_id"`
 
 	TLSKey             types.String `tfsdk:"tls_key"`
 	TLSCert            types.String `tfsdk:"tls_cert"`
@@ -68,6 +72,19 @@ func (c *ProviderConfig) SetDefaults() error {
 	c.CloudProviderURL = envDefaultFuncString(c.CloudProviderURL, "GRAFANA_CLOUD_PROVIDER_URL")
 	c.ConnectionsAPIAccessToken = envDefaultFuncString(c.ConnectionsAPIAccessToken, "GRAFANA_CONNECTIONS_API_ACCESS_TOKEN")
 	c.ConnectionsAPIURL = envDefaultFuncString(c.ConnectionsAPIURL, "GRAFANA_CONNECTIONS_API_URL", "https://connections-api.grafana.net")
+
+	if v, err := envDefaultFuncInt64(c.OrgID, "GRAFANA_ORG_ID", 1); err != nil {
+		return fmt.Errorf("failed to parse GRAFANA_ORG_ID: %w", err)
+	} else {
+		c.OrgID = v
+	}
+
+	if v, err := envDefaultFuncInt64(c.StackID, "GRAFANA_STACK_ID", 0); err != nil {
+		return fmt.Errorf("failed to parse GRAFANA_STACK_ID: %w", err)
+	} else {
+		c.StackID = v
+	}
+
 	if c.StoreDashboardSha256, err = envDefaultFuncBool(c.StoreDashboardSha256, "GRAFANA_STORE_DASHBOARD_SHA256", false); err != nil {
 		return fmt.Errorf("failed to parse GRAFANA_STORE_DASHBOARD_SHA256: %w", err)
 	}
@@ -257,7 +274,11 @@ func (p *frameworkProvider) DataSources(_ context.Context) []func() datasource.D
 
 // Resources defines the resources implemented in the provider.
 func (p *frameworkProvider) Resources(_ context.Context) []func() resource.Resource {
-	return pluginFrameworkResources()
+	return append(
+		pluginFrameworkResources(),
+		appplatform.Dashboard,
+		appplatform.Playlist,
+	)
 }
 
 // FrameworkProvider returns a terraform-plugin-framework Provider.
