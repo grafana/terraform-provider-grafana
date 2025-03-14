@@ -10,8 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/appplatform/client"
 )
 
 // TODO: validate type.
@@ -44,6 +42,7 @@ var PlaylistItemType = types.ObjectType{
 // Playlist creates a new Grafana Playlist resource.
 func Playlist() resource.Resource {
 	return NewResource(ResourceConfig[*v0alpha1.Playlist, *v0alpha1.PlaylistList, v0alpha1.PlaylistSpec]{
+		Kind: v0alpha1.PlaylistKind(),
 		Schema: ResourceSpecSchema{
 			Description: "Manages Grafana playlists.",
 			MarkdownDescription: `
@@ -64,20 +63,6 @@ Manages Grafana playlists.
 					ElementType: PlaylistItemType,
 				},
 			},
-		},
-		Kind: v0alpha1.PlaylistKind(),
-		NewClientFn: func(
-			reg client.Registry, stackOrOrgID int64, isOrg bool,
-		) (*client.NamespacedClient[*v0alpha1.Playlist, *v0alpha1.PlaylistList], error) {
-			cli, err := reg.ClientFor(v0alpha1.PlaylistKind())
-			if err != nil {
-				return nil, err
-			}
-
-			return client.NewNamespaced(
-				client.NewResourceClient[*v0alpha1.Playlist, *v0alpha1.PlaylistList](cli, v0alpha1.PlaylistKind()),
-				stackOrOrgID, isOrg,
-			), nil
 		},
 		SpecParser: func(ctx context.Context, src types.Object, dst *v0alpha1.Playlist) diag.Diagnostics {
 			var data PlaylistSpecModel

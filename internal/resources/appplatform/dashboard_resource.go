@@ -18,8 +18,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/appplatform/client"
 )
 
 // DashboardSpecModel is a model for the dashboard spec.
@@ -32,6 +30,7 @@ type DashboardSpecModel struct {
 // Dashboard creates a new Grafana Dashboard resource.
 func Dashboard() resource.Resource {
 	return NewResource(ResourceConfig[*v1alpha1.Dashboard, *v1alpha1.DashboardList, v1alpha1.DashboardSpec]{
+		Kind: v1alpha1.DashboardKind(),
 		Schema: ResourceSpecSchema{
 			Description: "Manages Grafana dashboards.",
 			MarkdownDescription: `
@@ -59,18 +58,6 @@ func Dashboard() resource.Resource {
 					ElementType: types.StringType,
 				},
 			},
-		},
-		Kind: v1alpha1.DashboardKind(),
-		NewClientFn: func(reg client.Registry, stackOrOrgID int64, isOrg bool) (*client.NamespacedClient[*v1alpha1.Dashboard, *v1alpha1.DashboardList], error) {
-			cli, err := reg.ClientFor(v1alpha1.DashboardKind())
-			if err != nil {
-				return nil, err
-			}
-
-			return client.NewNamespaced(
-				client.NewResourceClient[*v1alpha1.Dashboard, *v1alpha1.DashboardList](cli, v1alpha1.DashboardKind()),
-				stackOrOrgID, isOrg,
-			), nil
 		},
 		SpecParser: func(ctx context.Context, spec types.Object, dst *v1alpha1.Dashboard) diag.Diagnostics {
 			var data DashboardSpecModel

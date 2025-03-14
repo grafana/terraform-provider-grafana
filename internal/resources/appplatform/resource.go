@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/grafana/authlib/claims"
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -18,7 +19,6 @@ import (
 	k8stypes "k8s.io/apimachinery/pkg/types"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
-	sdkclient "github.com/grafana/terraform-provider-grafana/v3/internal/resources/appplatform/client"
 )
 
 // ResourceModel is a Terraform model for a Grafana resource.
@@ -46,11 +46,10 @@ type ResourceOptionsModel struct {
 
 // ResourceConfig is a configuration for a Grafana resource.
 type ResourceConfig[T sdkresource.Object, L sdkresource.ListObject, S any] struct {
-	Schema      ResourceSpecSchema
-	Kind        sdkresource.Kind
-	NewClientFn NewClientFunc[T, L]
-	SpecParser  SpecParser[T]
-	SpecSaver   SpecSaver[T]
+	Schema     ResourceSpecSchema
+	Kind       sdkresource.Kind
+	SpecParser SpecParser[T]
+	SpecSaver  SpecSaver[T]
 }
 
 // ResourceSpecSchema is the Terraform schema for a Grafana resource spec.
@@ -60,15 +59,10 @@ type ResourceSpecSchema struct {
 	SpecAttributes      map[string]schema.Attribute
 }
 
-// NewClientFunc is a function that creates a new client for a resource.
-type NewClientFunc[T sdkresource.Object, L sdkresource.ListObject] func(
-	reg sdkclient.Registry, stackOrOrgID int64, isOrg bool,
-) (*sdkclient.NamespacedClient[T, L], error)
-
 // Resource is a generic Terraform resource for a Grafana resource.
 type Resource[T sdkresource.Object, L sdkresource.ListObject, S any] struct {
 	config ResourceConfig[T, L, S]
-	client *sdkclient.NamespacedClient[T, L]
+	client *sdkresource.NamespacedClient[T, L]
 }
 
 // NewResource creates a new Terraform resource for a Grafana resource.
@@ -182,27 +176,32 @@ func (r *Resource[T, L, S]) Configure(ctx context.Context, req resource.Configur
 		return
 	}
 
-	var (
-		cli *sdkclient.NamespacedClient[T, L]
-		err error
-	)
-
-	switch {
-	case client.GrafanaOrgID > 0:
-		cli, err = r.config.NewClientFn(client.GrafanaAppPlatformAPI, client.GrafanaOrgID, true)
-	case client.GrafanaStackID > 0:
-		cli, err = r.config.NewClientFn(client.GrafanaAppPlatformAPI, client.GrafanaStackID, false)
-	}
+	rcli, err := client.GrafanaAppPlatformAPI.ClientFor(r.config.Kind)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error creating Dashboard API client",
+			"Error creating Grafana App Platform API client",
 			err.Error(),
 		)
 
 		return
 	}
 
-	r.client = cli
+	var ns string
+	switch {
+	case client.GrafanaOrgID > 0:
+		ns = claims.OrgNamespaceFormatter(client.GrafanaOrgID)
+	case client.GrafanaStackID > 0:
+		ns = claims.CloudNamespaceFormatter(client.GrafanaStackID)
+	default:
+		resp.Diagnostics.AddError(
+			"Error creating Grafana App Platform API client",
+			"Expected either Grafana org ID (for local Grafana) or Grafana stack ID (for Grafana Cloud) to be set",
+		)
+
+		return
+	}
+
+	r.client = sdkresource.NewNamespaced(sdkresource.NewTypedClient[T, L](rcli, r.config.Kind), ns)
 }
 
 // Read reads the Grafana resource.

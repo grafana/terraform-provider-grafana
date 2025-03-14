@@ -14,7 +14,7 @@ require (
 	github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437
 	github.com/grafana/dashboard-linter v0.0.0-20241224134444-1765d94aec4a
 	github.com/grafana/fleet-management-api v1.0.0
-	github.com/grafana/grafana-app-sdk v0.33.0
+	github.com/grafana/grafana-app-sdk v0.34.1-0.20250314160558-ff4892e2895c
 	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20250214150112-a52892176c26
 	github.com/grafana/grafana-foundation-sdk/go v0.0.0-20250115121642-61aff4f10074
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20241113095943-9cb2bbfeb8a3
@@ -123,7 +123,7 @@ require (
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/grafana/dskit v0.0.0-20241216174023-0450f2ba7c3d // indirect
 	github.com/grafana/gomemcache v0.0.0-20241016125027-0a5bcc5aef40 // indirect
-	github.com/grafana/grafana-app-sdk/logging v0.32.1 // indirect
+	github.com/grafana/grafana-app-sdk/logging v0.33.0 // indirect
 	github.com/grafana/grafana-plugin-sdk-go v0.272.0 // indirect
 	github.com/grafana/jsonparser v0.0.0-20241004153430-023329977675 // indirect
 	github.com/grafana/loki/pkg/push v0.0.0-20241220083700-6c49cc07305e // indirect
@@ -253,7 +253,7 @@ require (
 	golang.org/x/time v0.9.0 // indirect
 	golang.org/x/tools v0.30.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
-	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
+	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250218202821-56aae31c358a // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250218202821-56aae31c358a // indirect
@@ -264,7 +264,7 @@ require (
 	gopkg.in/validator.v2 v2.0.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/api v0.32.3 // indirect
-	k8s.io/apiextensions-apiserver v0.32.2 // indirect
+	k8s.io/apiextensions-apiserver v0.32.3 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f // indirect
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738 // indirect
