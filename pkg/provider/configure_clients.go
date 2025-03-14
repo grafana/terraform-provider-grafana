@@ -167,8 +167,10 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 		ServerName: tlsClientConfig.ServerName,
 	}
 
+	// TODO (@radiohead): fix this shoddy code.
 	if len(tlsClientConfig.Certificates) > 0 {
 		rcfg.CertData = tlsClientConfig.Certificates[0].Certificate[0]
+		// panic: interface conversion: crypto.PrivateKey is *rsa.PrivateKey, not []uint8
 		rcfg.KeyData = tlsClientConfig.Certificates[0].PrivateKey.([]byte)
 	}
 
