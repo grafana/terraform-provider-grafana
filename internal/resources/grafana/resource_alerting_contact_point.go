@@ -233,6 +233,23 @@ func updateContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, name := OAPIClientFromExistingOrgResource(meta, data.Id())
 
+	// Check if the contact point is being used by a notification policy
+	policyTreeResp, err := client.Provisioning.GetPolicyTree()
+	if err == nil && policyTreeResp.Payload != nil {
+		// Check if the contact point is referenced in the policy tree
+		if isContactPointInUse(policyTreeResp.Payload, name) {
+			// Create a temporary policy tree without references to this contact point
+			updatedPolicyTree := sanitizePolicyTree(policyTreeResp.Payload, name)
+
+			// Update the policy tree to remove references to this contact point
+			putParams := provisioning.NewPutPolicyTreeParams().WithBody(updatedPolicyTree)
+			_, err := client.Provisioning.PutPolicyTree(putParams)
+			if err != nil {
+				return diag.Errorf("failed to update notification policy to remove references to contact point '%s': %v", name, err)
+			}
+		}
+	}
+
 	resp, err := client.Provisioning.GetContactpoints(provisioning.NewGetContactpointsParams().WithName(&name))
 	if err, shouldReturn := common.CheckReadError("contact point", data, err); shouldReturn {
 		return err
@@ -245,6 +262,58 @@ func deleteContactPoint(ctx context.Context, data *schema.ResourceData, meta int
 	}
 
 	return nil
+}
+
+// isContactPointInUse recursively checks if a contact point is used in a notification policy tree
+func isContactPointInUse(route *models.Route, contactPointName string) bool {
+	// Check if the route uses the contact point
+	if route.Receiver == contactPointName {
+		return true
+	}
+
+	// Recursively check nested routes
+	if route.Routes != nil {
+		for _, nestedRoute := range route.Routes {
+			if isContactPointInUse(nestedRoute, contactPointName) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// sanitizePolicyTree creates a new policy tree with all references to the specified contact point removed
+func sanitizePolicyTree(route *models.Route, contactPointName string) *models.Route {
+	// Create a deep copy of the route
+	newRoute := &models.Route{
+		Receiver:          route.Receiver,
+		GroupBy:           route.GroupBy,
+		GroupWait:         route.GroupWait,
+		GroupInterval:     route.GroupInterval,
+		RepeatInterval:    route.RepeatInterval,
+		Continue:          route.Continue,
+		ObjectMatchers:    route.ObjectMatchers,
+		MuteTimeIntervals: route.MuteTimeIntervals,
+		Routes:            []*models.Route{},
+		Provenance:        route.Provenance,
+	}
+
+	// If this route references the contact point being deleted, use a default contact point instead
+	// The user can update the notification policy later if needed
+	if newRoute.Receiver == contactPointName {
+		newRoute.Receiver = "grafana-default-email" // Use default email as fallback
+	}
+
+	// Recursively process nested routes
+	if route.Routes != nil {
+		for _, childRoute := range route.Routes {
+			sanitizedChild := sanitizePolicyTree(childRoute, contactPointName)
+			newRoute.Routes = append(newRoute.Routes, sanitizedChild)
+		}
+	}
+
+	return newRoute
 }
 
 // unpackContactPoints unpacks the contact points from the Terraform state.
