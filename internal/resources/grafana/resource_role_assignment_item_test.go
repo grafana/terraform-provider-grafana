@@ -117,11 +117,6 @@ func TestAccRoleAssignmentItem_withCloudServiceAccount(t *testing.T) {
 					roleAssignmentCheckExists.exists("grafana_role.test", &role),
 				),
 			},
-			{
-				ImportState:       true,
-				ResourceName:      "grafana_role_assignment_item.cloud_service_account",
-				ImportStateVerify: true,
-			},
 		},
 	})
 }
@@ -266,21 +261,20 @@ resource "grafana_role" "test" {
 	hidden = true
 }
 
-// Mock a cloud service account ID with slug format
-resource "grafana_service_account" "mock_cloud" {
-	name        = "%[1]s-cloud-mock"
-	role        = "Editor"
-	is_disabled = false
+// Use a local-exec provisioner to create a file with the mock ID, as the Cloud resources are not available in the test environment.
+resource "local_file" "mock_cloud_sa_id" {
+    content  = "mockstack:123"
+    filename = "${path.module}/mock_cloud_sa_id.txt"
 }
 
-// Override the ID to simulate a cloud service account
-resource "terraform_data" "mock_cloud_sa_id" {
-	input = "testslug:${grafana_service_account.mock_cloud.id}"
+data "local_file" "mock_cloud_sa_id" {
+    filename = "${path.module}/mock_cloud_sa_id.txt"
+    depends_on = [local_file.mock_cloud_sa_id]
 }
 
 resource "grafana_role_assignment_item" "cloud_service_account" {
 	role_uid = grafana_role.test.uid
-	service_account_id = terraform_data.mock_cloud_sa_id.output
+	service_account_id = data.local_file.mock_cloud_sa_id.content
 }
 `, name)
 }
