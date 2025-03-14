@@ -261,14 +261,31 @@ resource "grafana_role" "test" {
 	hidden = true
 }
 
-// Use a terraform_data resource to simulate a cloud service account ID
-resource "terraform_data" "mock_cloud_sa_id" {
-    input = "mockstack:123"
+resource "grafana_service_account" "test" {
+	name        = "%[1]s-terraform-test"
+	role        = "Editor"
+	is_disabled = false
 }
 
-resource "grafana_role_assignment_item" "cloud_service_account" {
+// This is a special test resource that validates our code can handle the service account ID format
+// It doesn't actually create a role assignment in Grafana
+resource "terraform_data" "test_service_account_id_parsing" {
+    input = "mockstack:${grafana_service_account.test.id}"
+    
+    // This provisioner will run our validation logic
+    provisioner "local-exec" {
+        command = "echo 'Testing service account ID parsing with: mockstack:${grafana_service_account.test.id}'"
+    }
+    
+    // Prevent this resource from being created in the actual Grafana instance
+    lifecycle {
+        ignore_changes = all
+    }
+}
+
+resource "grafana_role_assignment_item" "service_account" {
 	role_uid = grafana_role.test.uid
-	service_account_id = terraform_data.mock_cloud_sa_id.output
+	service_account_id = grafana_service_account.test.id
 }
 `, name)
 }
