@@ -261,20 +261,14 @@ resource "grafana_role" "test" {
 	hidden = true
 }
 
-// Use a local-exec provisioner to create a file with the mock ID, as the Cloud resources are not available in the test environment.
-resource "local_file" "mock_cloud_sa_id" {
-    content  = "mockstack:123"
-    filename = "${path.module}/mock_cloud_sa_id.txt"
-}
-
-data "local_file" "mock_cloud_sa_id" {
-    filename = "${path.module}/mock_cloud_sa_id.txt"
-    depends_on = [local_file.mock_cloud_sa_id]
+// Use a terraform_data resource to simulate a cloud service account ID
+resource "terraform_data" "mock_cloud_sa_id" {
+    input = "mockstack:123"
 }
 
 resource "grafana_role_assignment_item" "cloud_service_account" {
 	role_uid = grafana_role.test.uid
-	service_account_id = data.local_file.mock_cloud_sa_id.content
+	service_account_id = terraform_data.mock_cloud_sa_id.output
 }
 `, name)
 }
