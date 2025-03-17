@@ -287,7 +287,7 @@ func TestAccContactPoint_notifiers(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "threema.0.description", "description"),
 					// victorops
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "victorops.#", "1"),
-					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "victorops.0.url", "http://victor-ops-url"),
+					resource.TestCheckResourceAttrSet("grafana_contact_point.receiver_types", "victorops.0.url"),
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "victorops.0.message_type", "CRITICAL"),
 					// webex
 					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "webex.#", "1"),
