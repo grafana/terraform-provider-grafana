@@ -101,6 +101,11 @@ func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig
 		return err
 	}
 
+	tlsConfig, err := tlsClientConfig.TLSConfig()
+	if err != nil {
+		return err
+	}
+
 	client.GrafanaAPIURL = providerConfig.URL.ValueString()
 	client.GrafanaAPIURLParsed, err = url.Parse(providerConfig.URL.ValueString())
 	if err != nil {
@@ -132,7 +137,7 @@ func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig
 		NumRetries:       int(providerConfig.Retries.ValueInt64()),
 		RetryTimeout:     time.Second * time.Duration(providerConfig.RetryWait.ValueInt64()),
 		RetryStatusCodes: setToStringArray(providerConfig.RetryStatusCodes.Elements()),
-		TLSConfig:        tlsClientConfig,
+		TLSConfig:        tlsConfig,
 		BasicAuth:        userInfo,
 		OrgID:            orgID,
 		APIKey:           apiKey,
@@ -163,23 +168,19 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 	// tl;dr it has it's own TLSClientConfig,
 	// and it's not compatible with the one from the "crypto/tls" package.
 	rcfg.TLSClientConfig = rest.TLSClientConfig{
-		Insecure:   tlsClientConfig.InsecureSkipVerify,
-		ServerName: tlsClientConfig.ServerName,
+		Insecure: tlsClientConfig.InsecureSkipVerify,
 	}
 
-	// TODO (@radiohead): fix this shoddy code.
-	if len(tlsClientConfig.Certificates) > 0 {
-		rcfg.CertData = tlsClientConfig.Certificates[0].Certificate[0]
-		// panic: interface conversion: crypto.PrivateKey is *rsa.PrivateKey, not []uint8
-		rcfg.KeyData = tlsClientConfig.Certificates[0].PrivateKey.([]byte)
+	if len(tlsClientConfig.CertData) > 0 {
+		rcfg.CertData = tlsClientConfig.CertData
 	}
 
-	if tlsClientConfig.RootCAs != nil {
-		// @radiohead: there is no other way to get root CA subjects, so ignore the deprecation.
-		// nolint: staticcheck
-		if sub := tlsClientConfig.RootCAs.Subjects(); len(sub) > 0 {
-			rcfg.CAData = sub[0]
-		}
+	if len(tlsClientConfig.KeyData) > 0 {
+		rcfg.KeyData = tlsClientConfig.KeyData
+	}
+
+	if len(tlsClientConfig.CAData) > 0 {
+		rcfg.CAData = tlsClientConfig.CAData
 	}
 
 	userInfo, orgID, apiKey, err := parseAuth(cfg)
@@ -425,8 +426,39 @@ func parseAuth(providerConfig ProviderConfig) (*url.Userinfo, int64, string, err
 	return nil, 0, "", nil
 }
 
-func parseTLSconfig(providerConfig ProviderConfig) (*tls.Config, error) {
-	tlsClientConfig := &tls.Config{}
+type TLSConfig struct {
+	CAData             []byte
+	CertData           []byte
+	KeyData            []byte
+	InsecureSkipVerify bool
+}
+
+func (t TLSConfig) TLSConfig() (*tls.Config, error) {
+	res := &tls.Config{
+		InsecureSkipVerify: t.InsecureSkipVerify,
+		RootCAs:            x509.NewCertPool(),
+	}
+
+	if len(t.CAData) > 0 {
+		res.RootCAs.AppendCertsFromPEM(t.CAData)
+	}
+
+	if len(t.CertData) > 0 && len(t.KeyData) > 0 {
+		cert, err := tls.X509KeyPair(t.CertData, t.KeyData)
+		if err != nil {
+			return nil, err
+		}
+
+		res.Certificates = []tls.Certificate{cert}
+	}
+
+	return res, nil
+}
+
+func parseTLSconfig(providerConfig ProviderConfig) (*TLSConfig, error) {
+	res := &TLSConfig{
+		InsecureSkipVerify: providerConfig.InsecureSkipVerify.ValueBool(),
+	}
 
 	tlsKeyFile, tempFile, err := createTempFileIfLiteral(providerConfig.TLSKey.ValueString())
 	if err != nil {
@@ -450,28 +482,31 @@ func parseTLSconfig(providerConfig ProviderConfig) (*tls.Config, error) {
 		defer os.Remove(caCertFile)
 	}
 
-	insecure := providerConfig.InsecureSkipVerify.ValueBool()
 	if caCertFile != "" {
 		ca, err := os.ReadFile(caCertFile)
 		if err != nil {
 			return nil, err
 		}
-		pool := x509.NewCertPool()
-		pool.AppendCertsFromPEM(ca)
-		tlsClientConfig.RootCAs = pool
+		res.CAData = ca
 	}
-	if tlsKeyFile != "" && tlsCertFile != "" {
-		cert, err := tls.LoadX509KeyPair(tlsCertFile, tlsKeyFile)
+
+	if tlsCertFile != "" {
+		certData, err := os.ReadFile(tlsCertFile)
 		if err != nil {
 			return nil, err
 		}
-		tlsClientConfig.Certificates = []tls.Certificate{cert}
-	}
-	if insecure {
-		tlsClientConfig.InsecureSkipVerify = true
+		res.CertData = certData
 	}
 
-	return tlsClientConfig, nil
+	if tlsKeyFile != "" {
+		keyData, err := os.ReadFile(tlsKeyFile)
+		if err != nil {
+			return nil, err
+		}
+		res.KeyData = keyData
+	}
+
+	return res, nil
 }
 
 func setToStringArray(set []attr.Value) []string {
