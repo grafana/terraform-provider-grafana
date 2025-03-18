@@ -257,8 +257,8 @@ github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e h1:JKmoR8x90Iww1
 github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gorilla/mux v1.8.1 h1:TuBL49tXwgrFYWhqrNgrUNEY92u81SPhu7sTdzQEiWY=
 github.com/gorilla/mux v1.8.1/go.mod h1:AKf9I4AEqPTmMytcMc0KkNouC66V3BtZ4qD5fmWSiMQ=
-github.com/grafana/amixr-api-go-client v0.0.19 h1:09FxpE9CXR7YpjDvq/ionA6UlmV4G1r48HFR4noG9Dw=
-github.com/grafana/amixr-api-go-client v0.0.19/go.mod h1:u53FF0WSBMx6XvZK58fply91KBl6X+OtIu0aJC07amY=
+github.com/grafana/amixr-api-go-client v0.0.20 h1:/L44PCP0H8y0Z6NSZmJFCUH3Nc5gRPphKrp2Ck7ufz0=
+github.com/grafana/amixr-api-go-client v0.0.20/go.mod h1:u53FF0WSBMx6XvZK58fply91KBl6X+OtIu0aJC07amY=
 github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437 h1:OlwbIVFcYgMjnQhpbZwRPVNrvZKTodvPMqwb8yEqVW0=
 github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437/go.mod h1:r+F8H6awwjNQt/KPZ2GNwjk8TvsJ7/gxzkXN26GlL/A=
 github.com/grafana/dashboard-linter v0.0.0-20241224134444-1765d94aec4a h1:wpyAYX8+Rqu0LIEE7zXBR/qjBH4t0yXvqlRGa1wD5rg=
