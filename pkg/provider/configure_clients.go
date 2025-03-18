@@ -434,16 +434,23 @@ type TLSConfig struct {
 }
 
 func (t TLSConfig) TLSConfig() (*tls.Config, error) {
+	pool, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get system certificate pool: %w", err)
+	}
+
 	res := &tls.Config{
 		// gosec is stating the obvious here.
 		// G402: TLS InsecureSkipVerify may be true. (gosec)
 		// nolint: gosec
 		InsecureSkipVerify: t.InsecureSkipVerify,
-		RootCAs:            x509.NewCertPool(),
+		RootCAs:            pool,
 	}
 
 	if len(t.CAData) > 0 {
-		res.RootCAs.AppendCertsFromPEM(t.CAData)
+		if !res.RootCAs.AppendCertsFromPEM(t.CAData) {
+			return nil, fmt.Errorf("failed to append CA data")
+		}
 	}
 
 	if len(t.CertData) > 0 && len(t.KeyData) > 0 {
