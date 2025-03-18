@@ -435,6 +435,9 @@ type TLSConfig struct {
 
 func (t TLSConfig) TLSConfig() (*tls.Config, error) {
 	res := &tls.Config{
+		// gosec is stating the obvious here.
+		// G402: TLS InsecureSkipVerify may be true. (gosec)
+		// nolint: gosec
 		InsecureSkipVerify: t.InsecureSkipVerify,
 		RootCAs:            x509.NewCertPool(),
 	}
