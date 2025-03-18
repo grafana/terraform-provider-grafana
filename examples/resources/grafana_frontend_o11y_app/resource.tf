@@ -14,6 +14,6 @@ resource "grafana_frontend_o11y_app" "test-app" {
   }
 
   settings = {
-    "geolocation.enabled" : "1"
+    "combineLabData" : "1"
   }
 }
