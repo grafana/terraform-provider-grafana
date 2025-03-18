@@ -400,6 +400,79 @@ func TestAccContactPoint_notifiers10_3(t *testing.T) {
 	})
 }
 
+func TestAccContactPoint_notifiers11_3(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=11.3.0")
+
+	var points models.ContactPoints
+
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		// Implicitly tests deletion.
+		CheckDestroy: alertingContactPointCheckExists.destroyed(&points, nil),
+		Steps: []resource.TestStep{
+			{
+				Config: testutils.TestAccExample(t, "resources/grafana_contact_point/_acc_receiver_types_11_3.tf"),
+				Check: resource.ComposeTestCheckFunc(
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.receiver_types", &points, 3),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.#", "3"),
+
+					// First MQTT config - basic
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.broker_url", "tcp://localhost:1883"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.topic", "grafana/alerts"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.0.qos", "0"),
+
+					// Second MQTT config - with auth
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.1.broker_url", "tcp://localhost:1883"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.1.topic", "grafana/alerts"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.1.client_id", "grafana-client"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.1.username", "mqtt-user"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.1.password", "secret123"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.1.message_format", "json"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.1.qos", "1"),
+
+					// Third MQTT config - with TLS
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.2.broker_url", "ssl://localhost:8883"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.2.topic", "grafana/alerts"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.2.client_id", "grafana-secure"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.2.message_format", "json"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.2.qos", "2"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.2.retain", "true"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.2.tls_config.0.insecure_skip_verify", "false"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.2.tls_config.0.ca_certificate", "ca.pem"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.2.tls_config.0.client_certificate", "client-cert.pem"),
+					resource.TestCheckResourceAttr("grafana_contact_point.receiver_types", "mqtt.2.tls_config.0.client_key", "client-key.pem"),
+				),
+			},
+			// Test invalid QoS value
+			{
+				Config: `
+				resource "grafana_contact_point" "receiver_types" {
+					name = "Receiver Types since v11.3"
+					mqtt {
+						broker_url = "tcp://localhost:1883"
+						topic = "grafana/alerts"
+						qos = 3
+					}
+				}`,
+				ExpectError: regexp.MustCompile(`expected qos to be in the range \(0 - 2\)`),
+			},
+			// Test invalid message_format value
+			{
+				Config: `
+				resource "grafana_contact_point" "receiver_types" {
+					name = "Receiver Types since v11.3"
+					mqtt {
+						broker_url = "tcp://localhost:1883"
+						topic = "grafana/alerts"
+						message_format = "invalid"
+					}
+				}`,
+				ExpectError: regexp.MustCompile(`expected message_format to be one of \[json text\]`),
+			},
+		},
+	})
+}
+
 func TestAccContactPoint_sensitiveData(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
