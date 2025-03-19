@@ -204,6 +204,7 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 
 	client.GrafanaOrgID = cfg.OrgID.ValueInt64()
 	client.GrafanaStackID = cfg.StackID.ValueInt64()
+	client.GrafanaAppPlatformAPIClientID = cfg.UserAgent.ValueString()
 	client.GrafanaAppPlatformAPI = k8s.NewClientRegistry(rcfg, k8s.ClientConfig{
 		// TODO: check with @IfSentient if we should be using this serializer provider.
 		// NegotiatedSerializerProvider: func(kind resource.Kind) runtime.NegotiatedSerializer {

@@ -59,8 +59,9 @@ type ResourceSpecSchema struct {
 
 // Resource is a generic Terraform resource for a Grafana resource.
 type Resource[T sdkresource.Object, L sdkresource.ListObject, S any] struct {
-	config ResourceConfig[T, L, S]
-	client *sdkresource.NamespacedClient[T, L]
+	config   ResourceConfig[T, L, S]
+	client   *sdkresource.NamespacedClient[T, L]
+	clientID string
 }
 
 // NewResource creates a new Terraform resource for a Grafana resource.
@@ -191,6 +192,7 @@ func (r *Resource[T, L, S]) Configure(ctx context.Context, req resource.Configur
 	}
 
 	r.client = sdkresource.NewNamespaced(sdkresource.NewTypedClient[T, L](rcli, r.config.Kind), ns)
+	r.clientID = client.GrafanaAppPlatformAPIClientID
 }
 
 // Read reads the Grafana resource.
@@ -258,6 +260,11 @@ func (r *Resource[T, L, S]) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
+	if err := setManagerProperties(obj, r.clientID); err != nil {
+		resp.Diagnostics.AddError("failed to set manager properties", err.Error())
+		return
+	}
+
 	if diag := ParseResourceFromModel(ctx, data, obj, r.config.SpecParser); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
 		return
@@ -312,6 +319,11 @@ func (r *Resource[T, L, S]) Update(ctx context.Context, req resource.UpdateReque
 	var opts ResourceOptions
 	if diag := ParseResourceOptionsFromModel(ctx, data, &opts); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
+		return
+	}
+
+	if err := setManagerProperties(obj, r.clientID); err != nil {
+		resp.Diagnostics.AddError("failed to set manager properties", err.Error())
 		return
 	}
 
@@ -553,4 +565,41 @@ func ParseResourceOptionsFromModel(
 	dst.Overwrite = mod.Overwrite.ValueBool()
 
 	return diag
+}
+
+// setManagerProperties ensures that the manager properties of a resource are set to the correct values.
+// If they already are set correctly, it will do nothing.
+func setManagerProperties(obj sdkresource.Object, clientID string) error {
+	meta, err := utils.MetaAccessor(obj)
+	if err != nil {
+		// This should never happen,
+		// but we'll add this error for extra safety.
+		return fmt.Errorf(
+			"failed to configure resource metadata: %w",
+			err.Error(),
+		)
+	}
+
+	var changed bool
+	ex, ok := meta.GetManagerProperties()
+	if ok {
+		if ex.Kind != utils.ManagerKindTerraform {
+			ex.Kind = utils.ManagerKindTerraform
+			changed = true
+		}
+
+		if ex.Identity != clientID {
+			ex.Identity = clientID
+			changed = true
+		}
+	}
+
+	if changed {
+		meta.SetManagerProperties(utils.ManagerProperties{
+			Kind:     utils.ManagerKindTerraform,
+			Identity: clientID,
+		})
+	}
+
+	return nil
 }

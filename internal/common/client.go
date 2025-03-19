@@ -24,13 +24,14 @@ import (
 )
 
 type Client struct {
-	GrafanaAPIURL         string
-	GrafanaAPIURLParsed   *url.URL
-	GrafanaAPI            *goapi.GrafanaHTTPAPI
-	GrafanaAPIConfig      *goapi.TransportConfig
-	GrafanaAppPlatformAPI *k8s.ClientRegistry
-	GrafanaOrgID          int64
-	GrafanaStackID        int64
+	GrafanaAPIURL                 string
+	GrafanaAPIURLParsed           *url.URL
+	GrafanaAPI                    *goapi.GrafanaHTTPAPI
+	GrafanaAPIConfig              *goapi.TransportConfig
+	GrafanaAppPlatformAPI         *k8s.ClientRegistry
+	GrafanaAppPlatformAPIClientID string
+	GrafanaOrgID                  int64
+	GrafanaStackID                int64
 
 	GrafanaCloudAPI       *gcom.APIClient
 	SMAPI                 *SMAPI.Client
