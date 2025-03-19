@@ -62,6 +62,10 @@ func (r *datasourceFrontendO11yApp) Schema(ctx context.Context, req datasource.S
 				Description: "The name of the Frontend Observability App. Part of the Terraform Resource ID.",
 				Required:    true,
 			},
+			"collector_endpoint": schema.StringAttribute{
+				Description: "The collector URL Grafana Cloud Frontend Observability. Use this endpoint to send your Telemetry.",
+				Computed:    true,
+			},
 			"allowed_origins": schema.ListAttribute{
 				Description: "A list of allowed origins for CORS.",
 				ElementType: types.StringType,
