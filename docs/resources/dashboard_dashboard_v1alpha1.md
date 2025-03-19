@@ -50,9 +50,7 @@ Read-Only:
 
 Optional:
 
-- `lint_rules` (List of String) A list of lint rules to apply to the resource. Lint rules are used to validate the resource configuration. Not all resources support linting.
 - `overwrite` (Boolean) Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.
-- `validate` (Boolean) Set to true if you want to perform client-side validation before submitting the resource to Grafana server.
 
 
 <a id="nestedblock--spec"></a>

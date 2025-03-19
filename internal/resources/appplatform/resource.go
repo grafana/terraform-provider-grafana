@@ -40,8 +40,6 @@ type ResourceMetadataModel struct {
 // ResourceOptionsModel is a Terraform model for the options of a Grafana resource.
 type ResourceOptionsModel struct {
 	Overwrite types.Bool `tfsdk:"overwrite"`
-	Validate  types.Bool `tfsdk:"validate"`
-	LintRules types.List `tfsdk:"lint_rules"`
 }
 
 // ResourceConfig is a configuration for a Grafana resource.
@@ -134,15 +132,6 @@ func (r *Resource[T, L, S]) Schema(ctx context.Context, req resource.SchemaReque
 					"overwrite": schema.BoolAttribute{
 						Optional:    true,
 						Description: "Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.",
-					},
-					"validate": schema.BoolAttribute{
-						Optional:    true,
-						Description: "Set to true if you want to perform client-side validation before submitting the resource to Grafana server.",
-					},
-					"lint_rules": schema.ListAttribute{
-						Optional:    true,
-						ElementType: types.StringType,
-						Description: "A list of lint rules to apply to the resource. Lint rules are used to validate the resource configuration. Not all resources support linting.",
 					},
 				},
 			},
@@ -406,13 +395,9 @@ func (r *Resource[T, L, S]) ImportState(ctx context.Context, req resource.Import
 	}
 
 	opts, diag := types.ObjectValueFrom(ctx, map[string]attr.Type{
-		"overwrite":  types.BoolType,
-		"validate":   types.BoolType,
-		"lint_rules": types.ListType{ElemType: types.StringType},
+		"overwrite": types.BoolType,
 	}, ResourceOptionsModel{
 		Overwrite: types.BoolValue(true),
-		Validate:  types.BoolValue(true),
-		LintRules: types.ListNull(types.StringType),
 	})
 	if diag.HasError() {
 		resp.Diagnostics.Append(diag...)
@@ -566,20 +551,6 @@ func ParseResourceOptionsFromModel(
 	}
 
 	dst.Overwrite = mod.Overwrite.ValueBool()
-	dst.Validate = mod.Validate.ValueBool()
-
-	if mod.LintRules.IsNull() || mod.LintRules.IsUnknown() {
-		return diag
-	}
-
-	if !mod.LintRules.IsNull() {
-		lintRules := make([]string, 0, len(mod.LintRules.Elements()))
-		if diag := mod.LintRules.ElementsAs(ctx, &lintRules, false); diag.HasError() {
-			return diag
-		}
-
-		dst.LintRules = lintRules
-	}
 
 	return diag
 }

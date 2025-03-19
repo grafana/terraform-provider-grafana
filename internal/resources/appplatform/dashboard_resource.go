@@ -3,19 +3,13 @@ package appplatform
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"strings"
 
-	"github.com/grafana/dashboard-linter/lint"
-	"github.com/grafana/grafana-foundation-sdk/go/dashboard"
 	"github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v1alpha1"
 	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
@@ -44,9 +38,6 @@ func Dashboard() resource.Resource {
 					Required:    true,
 					Description: "The JSON representation of the dashboard spec.",
 					CustomType:  jsontypes.NormalizedType{},
-					Validators: []validator.String{
-						&DashboardJSONValidator{},
-					},
 				},
 				"title": schema.StringAttribute{
 					Optional:    true,
@@ -150,161 +141,6 @@ func Dashboard() resource.Resource {
 			return diag.Diagnostics{}
 		},
 	})
-}
-
-// DashboardJSONValidator is a validator for the dashboard spec.
-type DashboardJSONValidator struct{}
-
-// Description returns the description of the validator.
-func (v *DashboardJSONValidator) Description(ctx context.Context) string {
-	return "validates the dashboard spec"
-}
-
-// MarkdownDescription returns the markdown description of the validator.
-func (v *DashboardJSONValidator) MarkdownDescription(ctx context.Context) string {
-	return v.Description(ctx)
-}
-
-// ValidateString validates the dashboard spec.
-func (v *DashboardJSONValidator) ValidateString(
-	ctx context.Context, req validator.StringRequest, resp *validator.StringResponse,
-) {
-	var data ResourceModel
-	if diag := req.Config.Get(ctx, &data); diag.HasError() {
-		resp.Diagnostics.Append(diag...)
-		return
-	}
-
-	var opts ResourceOptions
-	if diag := ParseResourceOptionsFromModel(ctx, data, &opts); diag.HasError() {
-		resp.Diagnostics.Append(diag...)
-		return
-	}
-
-	bytes := []byte(req.ConfigValue.ValueString())
-
-	if opts.Validate {
-		if err := ValidateDashboard(bytes); err != nil {
-			resp.Diagnostics.AddError("failed to validate dashboard", err.Error())
-			return
-		}
-	}
-
-	if len(opts.LintRules) > 0 {
-		results, ok, err := LintDashboard(GetLintRulesForNames(opts.LintRules), bytes)
-		if err != nil {
-			resp.Diagnostics.AddError("failed to lint dashboard", err.Error())
-			return
-		}
-
-		if ok {
-			return
-		}
-
-		if results.Warnings != "" {
-			resp.Diagnostics.AddAttributeWarning(
-				path.Root("spec").AtName("json"),
-				"dashboard linter returned warnings",
-				results.Warnings,
-			)
-		}
-
-		if results.Errors != "" {
-			resp.Diagnostics.AddAttributeError(
-				path.Root("spec").AtName("json"),
-				"dashboard linter returned errors",
-				results.Errors,
-			)
-		}
-	}
-}
-
-// ValidateDashboard validates the dashboard spec.
-func ValidateDashboard(bspec []byte) error {
-	var dash dashboard.Dashboard
-	return dash.UnmarshalJSONStrict(bspec)
-}
-
-// DashboardLintRules is a list of all the lint rules.
-var DashboardLintRules = []lint.Rule{
-	lint.NewTemplateDatasourceRule(),
-	lint.NewTemplateJobRule(),
-	lint.NewTemplateInstanceRule(),
-	lint.NewTemplateLabelPromQLRule(),
-	lint.NewTemplateOnTimeRangeReloadRule(),
-	lint.NewPanelDatasourceRule(),
-	lint.NewPanelTitleDescriptionRule(),
-	lint.NewPanelUnitsRule(),
-	lint.NewPanelNoTargetsRule(),
-	lint.NewTargetLogQLRule(),
-	lint.NewTargetLogQLAutoRule(),
-	lint.NewTargetPromQLRule(),
-	lint.NewTargetRateIntervalRule(),
-	lint.NewTargetJobRule(),
-	lint.NewTargetInstanceRule(),
-	lint.NewTargetCounterAggRule(),
-	lint.NewUneditableRule(),
-}
-
-// GetLintRulesForNames returns a list of lint rules for the given rule names.
-func GetLintRulesForNames(names []string) []lint.Rule {
-	res := make([]lint.Rule, 0, len(names))
-
-	for _, name := range names {
-		for _, rule := range DashboardLintRules {
-			if rule.Name() == name {
-				res = append(res, rule)
-			}
-		}
-	}
-
-	return res
-}
-
-// LintResults is the result of linting a dashboard.
-type LintResults struct {
-	Warnings string
-	Errors   string
-}
-
-// LintDashboard lints a dashboard.
-func LintDashboard(rules []lint.Rule, spec []byte) (LintResults, bool, error) {
-	dash, err := lint.NewDashboard(spec)
-	if err != nil {
-		return LintResults{}, false, err
-	}
-
-	resSet := &lint.ResultSet{}
-	for _, r := range rules {
-		r.Lint(dash, resSet)
-	}
-
-	var (
-		warnings strings.Builder
-		errors   strings.Builder
-	)
-
-	var anyerr bool
-	for _, r := range resSet.ByRule() {
-		for _, rc := range r {
-			for _, r := range rc.Result.Results {
-				if r.Severity == lint.Error {
-					errors.WriteString(fmt.Sprintf("\t* %s\n", r.Message))
-					anyerr = true
-				}
-
-				if r.Severity == lint.Warning {
-					warnings.WriteString(fmt.Sprintf("\t* %s\n", r.Message))
-					anyerr = true
-				}
-			}
-		}
-	}
-
-	return LintResults{
-		Warnings: warnings.String(),
-		Errors:   errors.String(),
-	}, !anyerr, nil
 }
 
 func getTagsFromResource(src *v1alpha1.Dashboard) []string {

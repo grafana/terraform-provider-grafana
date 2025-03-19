@@ -4,11 +4,17 @@ page_title: "grafana_playlist_playlist_v0alpha1 Resource - terraform-provider-gr
 subcategory: ""
 description: |-
   Manages Grafana playlists.
+  
+  * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/create-manage-playlists/)
+  * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/playlist/)
 ---
 
 # grafana_playlist_playlist_v0alpha1 (Resource)
 
 Manages Grafana playlists.
+
+	* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/create-manage-playlists/)
+	* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/playlist/)
 
 
 
@@ -44,9 +50,7 @@ Read-Only:
 
 Optional:
 
-- `lint_rules` (List of String) A list of lint rules to apply to the resource. Lint rules are used to validate the resource configuration. Not all resources support linting.
 - `overwrite` (Boolean) Set to true if you want to overwrite existing resource with newer version, same resource title in folder or same resource uid.
-- `validate` (Boolean) Set to true if you want to perform client-side validation before submitting the resource to Grafana server.
 
 
 <a id="nestedblock--spec"></a>
@@ -55,7 +59,7 @@ Optional:
 Required:
 
 - `items` (List of Object) The items of the playlist. (see [below for nested schema](#nestedatt--spec--items))
-- `title` (String) The title of the playlist. If not set, the title will be derived from the JSON spec.
+- `title` (String) The title of the playlist.
 
 Optional:
 
