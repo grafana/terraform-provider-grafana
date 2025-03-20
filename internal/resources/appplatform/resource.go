@@ -2,10 +2,13 @@ package appplatform
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/grafana/authlib/claims"
+	"github.com/grafana/grafana-app-sdk/k8s"
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -229,6 +232,11 @@ func (r *Resource[T, L, S]) Read(ctx context.Context, req resource.ReadRequest, 
 
 	res, err := r.client.Get(ctx, obj.GetName())
 	if err != nil {
+		if isNotFoundErr(err) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
+
 		resp.Diagnostics.AddError("failed to get resource", err.Error())
 		return
 	}
@@ -572,17 +580,13 @@ func ParseResourceOptionsFromModel(
 func setManagerProperties(obj sdkresource.Object, clientID string) error {
 	meta, err := utils.MetaAccessor(obj)
 	if err != nil {
-		// This should never happen,
-		// but we'll add this error for extra safety.
-		return fmt.Errorf(
-			"failed to configure resource metadata: %w",
-			err.Error(),
-		)
+		// This should never happen, but we'll add this error for extra safety.
+		return fmt.Errorf("failed to configure resource metadata: %w", err)
 	}
 
-	var changed bool
-	ex, ok := meta.GetManagerProperties()
-	if ok {
+	ex, found := meta.GetManagerProperties()
+	changed := !found
+	if found {
 		if ex.Kind != utils.ManagerKindTerraform {
 			ex.Kind = utils.ManagerKindTerraform
 			changed = true
@@ -602,4 +606,12 @@ func setManagerProperties(obj sdkresource.Object, clientID string) error {
 	}
 
 	return nil
+}
+
+func isNotFoundErr(err error) bool {
+	var cast *k8s.ServerResponseError
+	if errors.As(err, &cast) {
+		return cast.StatusCode() == http.StatusNotFound
+	}
+	return false
 }
