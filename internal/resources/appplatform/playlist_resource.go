@@ -6,7 +6,6 @@ import (
 	"slices"
 
 	"github.com/grafana/grafana/apps/playlist/pkg/apis/playlist/v0alpha1"
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -63,18 +62,9 @@ func Playlist() resource.Resource {
 					Description: "The items of the playlist.",
 					ElementType: PlaylistItemType,
 					Validators: []validator.List{
-						listvalidator.SizeAtLeast(1),
 						PlaylistItemValidator{},
 					},
 				},
-
-				// Validators: []validator.String{
-				// 	stringvalidator.OneOf(
-				// 		string(v0alpha1.PlaylistItemTypeDashboardByTag),
-				// 		string(v0alpha1.PlaylistItemTypeDashboardByUid),
-				// 		string(v0alpha1.PlaylistItemTypeDashboardById),
-				// 	),
-				// },
 			},
 		},
 		SpecParser: func(ctx context.Context, src types.Object, dst *v0alpha1.Playlist) diag.Diagnostics {
