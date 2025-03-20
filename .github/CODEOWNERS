@@ -12,3 +12,5 @@
 /internal/resources/oncall/*                        @grafana/platform-monitoring @grafana/grafana-irm-backend
 /internal/resources/slo/*                           @grafana/platform-monitoring @grafana/slo-squad
 /internal/resources/syntheticmonitoring/*           @grafana/platform-monitoring @grafana/synthetic-monitoring
+/internal/resources/syntheticmonitoring/*           @grafana/platform-monitoring @grafana/synthetic-monitoring
+/internal/resources/appplatform/*                   @grafana/platform-monitoring @grafana/grafana-app-platform-squad
