@@ -208,7 +208,7 @@ func shouldSkipResource(t *testing.T, category string, filename string) {
 		}
 
 		if r.category == category && strings.Contains(filename, r.name) {
-			t.Skipf(r.reason)
+			t.Skip(r.reason)
 		}
 	}
 }
