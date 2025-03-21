@@ -2,19 +2,21 @@ package fleetmanagement
 
 import (
 	"context"
+	"fmt"
 
 	pipelinev1 "github.com/grafana/fleet-management-api/api/gen/proto/go/pipeline/v1"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 type pipelineModel struct {
-	Name     types.String                             `tfsdk:"name"`
-	Contents AlloyConfigValue                         `tfsdk:"contents"`
-	Matchers GenericListValue[PrometheusMatcherValue] `tfsdk:"matchers"`
-	Enabled  types.Bool                               `tfsdk:"enabled"`
-	ID       types.String                             `tfsdk:"id"`
+	Name     types.String                 `tfsdk:"name"`
+	Contents AlloyConfigValue             `tfsdk:"contents"`
+	Matchers ListOfPrometheusMatcherValue `tfsdk:"matchers"`
+	Enabled  types.Bool                   `tfsdk:"enabled"`
+	ID       types.String                 `tfsdk:"id"`
 }
 
 func pipelineMessageToModel(ctx context.Context, msg *pipelinev1.Pipeline) (*pipelineModel, diag.Diagnostics) {
@@ -47,30 +49,35 @@ func pipelineModelToMessage(ctx context.Context, model *pipelineModel) (*pipelin
 	}, nil
 }
 
-func stringSliceToMatcherValues(ctx context.Context, matchers []string) (GenericListValue[PrometheusMatcherValue], diag.Diagnostics) {
+func stringSliceToMatcherValues(ctx context.Context, matchers []string) (ListOfPrometheusMatcherValue, diag.Diagnostics) {
 	if len(matchers) == 0 {
-		return NewGenericListValueMust[PrometheusMatcherValue](ctx, []attr.Value{}), nil
+		return NewListOfPrometheusMatcherValueMust([]attr.Value{}), nil
 	}
 
-	return NewGenericListValueFrom[PrometheusMatcherValue](ctx, PrometheusMatcherType, matchers)
+	return NewListOfPrometheusMatcherValueFrom(ctx, matchers)
 }
 
-func matcherValuesToStringSlice(ctx context.Context, matcherValues GenericListValue[PrometheusMatcherValue]) ([]string, diag.Diagnostics) {
+func matcherValuesToStringSlice(ctx context.Context, matcherValues ListOfPrometheusMatcherValue) ([]string, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
 	if matcherValues.IsNull() || matcherValues.IsUnknown() {
 		return []string{}, nil
 	}
 
-	length := len(matcherValues.Elements())
-	elements := make([]PrometheusMatcherValue, length)
-	diags := matcherValues.ElementsAs(ctx, &elements, false)
-	if diags.HasError() {
-		return nil, diags
-	}
+	elements := matcherValues.Elements()
+	result := make([]string, len(elements))
 
-	matchers := make([]string, length)
 	for i, element := range elements {
-		matchers[i] = element.ValueString()
+		stringValue, ok := element.(basetypes.StringValue)
+		if !ok {
+			diags.AddError(
+				"Type Conversion Error",
+				fmt.Sprintf("Expected string value, got: %T", element),
+			)
+			return nil, diags
+		}
+		result[i] = stringValue.ValueString()
 	}
 
-	return matchers, nil
+	return result, diags
 }

@@ -7,6 +7,7 @@ import (
 	pipelinev1 "github.com/grafana/fleet-management-api/api/gen/proto/go/pipeline/v1"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,11 +33,10 @@ func TestPipelineMessageToModel(t *testing.T) {
 	expectedModel := &pipelineModel{
 		Name:     types.StringValue(name),
 		Contents: NewAlloyConfigValue(contents),
-		Matchers: NewGenericListValueMust[PrometheusMatcherValue](
-			context.Background(),
+		Matchers: NewListOfPrometheusMatcherValueMust(
 			[]attr.Value{
-				NewPrometheusMatcherValue(matcher1),
-				NewPrometheusMatcherValue(matcher2),
+				basetypes.NewStringValue(matcher1),
+				basetypes.NewStringValue(matcher2),
 			},
 		),
 		Enabled: types.BoolPointerValue(&enabled),
@@ -60,11 +60,10 @@ func TestPipelineModelToMessage(t *testing.T) {
 	model := &pipelineModel{
 		Name:     types.StringValue(name),
 		Contents: NewAlloyConfigValue(contents),
-		Matchers: NewGenericListValueMust[PrometheusMatcherValue](
-			context.Background(),
+		Matchers: NewListOfPrometheusMatcherValueMust(
 			[]attr.Value{
-				NewPrometheusMatcherValue(matcher1),
-				NewPrometheusMatcherValue(matcher2),
+				basetypes.NewStringValue(matcher1),
+				basetypes.NewStringValue(matcher2),
 			},
 		),
 		Enabled: types.BoolPointerValue(&enabled),
@@ -89,17 +88,17 @@ func TestStringSliceToMatcherValues(t *testing.T) {
 	tests := []struct {
 		name        string
 		nativeSlice []string
-		expected    GenericListValue[PrometheusMatcherValue]
+		expected    ListOfPrometheusMatcherValue
 	}{
 		{
 			"nil slice",
 			nil,
-			NewGenericListValueMust[PrometheusMatcherValue](context.Background(), []attr.Value{}),
+			NewListOfPrometheusMatcherValueMust([]attr.Value{}),
 		},
 		{
 			"empty slice",
 			[]string{},
-			NewGenericListValueMust[PrometheusMatcherValue](context.Background(), []attr.Value{}),
+			NewListOfPrometheusMatcherValueMust([]attr.Value{}),
 		},
 		{
 			"non-empty slice",
@@ -107,11 +106,10 @@ func TestStringSliceToMatcherValues(t *testing.T) {
 				"collector.os=linux",
 				"collector.os=darwin",
 			},
-			NewGenericListValueMust[PrometheusMatcherValue](
-				context.Background(),
+			NewListOfPrometheusMatcherValueMust(
 				[]attr.Value{
-					NewPrometheusMatcherValue("collector.os=linux"),
-					NewPrometheusMatcherValue("collector.os=darwin"),
+					basetypes.NewStringValue("collector.os=linux"),
+					basetypes.NewStringValue("collector.os=darwin"),
 				},
 			),
 		},
@@ -130,31 +128,30 @@ func TestStringSliceToMatcherValues(t *testing.T) {
 func TestMatcherValuesToStringSlice(t *testing.T) {
 	tests := []struct {
 		name        string
-		genericList GenericListValue[PrometheusMatcherValue]
+		genericList ListOfPrometheusMatcherValue
 		expected    []string
 	}{
 		{
 			"null list",
-			NewGenericListValueNull[PrometheusMatcherValue](context.Background()),
+			NewListOfPrometheusMatcherValueNull(),
 			[]string{},
 		},
 		{
 			"unknown list",
-			NewGenericListValueUnknown[PrometheusMatcherValue](context.Background()),
+			NewListOfPrometheusMatcherValueUnknown(),
 			[]string{},
 		},
 		{
 			"empty list",
-			NewGenericListValueMust[PrometheusMatcherValue](context.Background(), []attr.Value{}),
+			NewListOfPrometheusMatcherValueMust([]attr.Value{}),
 			[]string{},
 		},
 		{
 			"non-empty list",
-			NewGenericListValueMust[PrometheusMatcherValue](
-				context.Background(),
+			NewListOfPrometheusMatcherValueMust(
 				[]attr.Value{
-					NewPrometheusMatcherValue("collector.os=linux"),
-					NewPrometheusMatcherValue("collector.os=darwin"),
+					basetypes.NewStringValue("collector.os=linux"),
+					basetypes.NewStringValue("collector.os=darwin"),
 				},
 			),
 			[]string{

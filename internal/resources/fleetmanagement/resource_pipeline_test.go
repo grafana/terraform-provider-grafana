@@ -53,6 +53,17 @@ resource "grafana_fleet_management_pipeline" "test" {
 }
 `
 
+	pipelineResourceUnorderedMatchersConfig = `
+resource "grafana_fleet_management_pipeline" "test" {
+	name     = "%s"
+	contents = "prometheus.exporter.self \"alloy\" { }"
+	matchers = [
+		"owner=\"TEAM-A\"",
+		"collector.os=\"linux\"",
+	]
+}
+`
+
 	pipelineResourceEmptyMatchersConfig = `
 resource "grafana_fleet_management_pipeline" "test" {
 	name     = "%s"
@@ -135,6 +146,20 @@ func TestAccPipelineResource(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "matchers.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.0", "collector.os=linux"),
 					resource.TestCheckResourceAttr(resourceName, "matchers.1", "owner=TEAM-A"),
+					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
+					resource.TestCheckResourceAttrSet(resourceName, "id"),
+				),
+			},
+			// Update with unordered matchers field
+			{
+				Config: fmt.Sprintf(pipelineResourceUnorderedMatchersConfig, pipelineName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccPipelineResourceExists(ctx, resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", pipelineName),
+					resource.TestCheckResourceAttr(resourceName, "contents", "prometheus.exporter.self \"alloy\" { }"),
+					resource.TestCheckResourceAttr(resourceName, "matchers.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "matchers.0", "owner=\"TEAM-A\""),
+					resource.TestCheckResourceAttr(resourceName, "matchers.1", "collector.os=\"linux\""),
 					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 				),

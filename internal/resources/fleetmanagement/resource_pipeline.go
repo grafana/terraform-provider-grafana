@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 const (
@@ -93,8 +94,13 @@ Required access policy scopes:
 				Description: "Used to match against collectors and assign pipelines to them; follows the syntax of Prometheus Alertmanager matchers",
 				Optional:    true,
 				Computed:    true,
-				ElementType: PrometheusMatcherType,
-				Default:     listdefault.StaticValue(types.ListValueMust(PrometheusMatcherType, []attr.Value{})),
+				ElementType: types.StringType,
+				Default: listdefault.StaticValue(
+					basetypes.NewListValueMust(
+						types.StringType,
+						[]attr.Value{},
+					),
+				),
 			},
 			"enabled": schema.BoolAttribute{
 				Description: "Whether the pipeline is enabled for collectors",
