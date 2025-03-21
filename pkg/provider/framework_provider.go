@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/appplatform"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -23,6 +24,9 @@ type ProviderConfig struct {
 	Retries          types.Int64  `tfsdk:"retries"`
 	RetryStatusCodes types.Set    `tfsdk:"retry_status_codes"`
 	RetryWait        types.Int64  `tfsdk:"retry_wait"`
+
+	OrgID   types.Int64 `tfsdk:"org_id"`
+	StackID types.Int64 `tfsdk:"stack_id"`
 
 	TLSKey             types.String `tfsdk:"tls_key"`
 	TLSCert            types.String `tfsdk:"tls_cert"`
@@ -75,6 +79,19 @@ func (c *ProviderConfig) SetDefaults() error {
 	c.FleetManagementAuth = envDefaultFuncString(c.FleetManagementAuth, "GRAFANA_FLEET_MANAGEMENT_AUTH")
 	c.FleetManagementURL = envDefaultFuncString(c.FleetManagementURL, "GRAFANA_FLEET_MANAGEMENT_URL")
 	c.FrontendO11yAPIAccessToken = envDefaultFuncString(c.FrontendO11yAPIAccessToken, "GRAFANA_FRONTEND_O11Y_API_ACCESS_TOKEN")
+
+	if v, err := envDefaultFuncInt64(c.OrgID, "GRAFANA_ORG_ID", 1); err != nil {
+		return fmt.Errorf("failed to parse GRAFANA_ORG_ID: %w", err)
+	} else {
+		c.OrgID = v
+	}
+
+	if v, err := envDefaultFuncInt64(c.StackID, "GRAFANA_STACK_ID", 0); err != nil {
+		return fmt.Errorf("failed to parse GRAFANA_STACK_ID: %w", err)
+	} else {
+		c.StackID = v
+	}
+
 	if c.StoreDashboardSha256, err = envDefaultFuncBool(c.StoreDashboardSha256, "GRAFANA_STORE_DASHBOARD_SHA256", false); err != nil {
 		return fmt.Errorf("failed to parse GRAFANA_STORE_DASHBOARD_SHA256: %w", err)
 	}
@@ -158,6 +175,14 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 				Optional:            true,
 				MarkdownDescription: "The amount of time in seconds to wait between retries for Grafana API and Grafana Cloud API calls. May alternatively be set via the `GRAFANA_RETRY_WAIT` environment variable.",
 			},
+			"org_id": schema.Int64Attribute{
+				Optional:            true,
+				MarkdownDescription: "The Grafana org ID, if you are using a self-hosted OSS or enterprise Grafana instance. May alternatively be set via the `GRAFANA_ORG_ID` environment variable.",
+			},
+			"stack_id": schema.Int64Attribute{
+				Optional:            true,
+				MarkdownDescription: "The Grafana stack ID, if you are using a Grafana Cloud stack. May alternatively be set via the `GRAFANA_STACK_ID` environment variable.",
+			},
 			"tls_key": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "Client TLS key (file path or literal value) to use to authenticate to the Grafana server. May alternatively be set via the `GRAFANA_TLS_KEY` environment variable.",
@@ -178,7 +203,6 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 				Optional:            true,
 				MarkdownDescription: "Set to true if you want to save only the sha256sum instead of complete dashboard model JSON in the tfstate.",
 			},
-
 			"cloud_access_policy_token": schema.StringAttribute{
 				Optional:            true,
 				Sensitive:           true,
@@ -188,7 +212,6 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 				Optional:            true,
 				MarkdownDescription: "Grafana Cloud's API URL. May alternatively be set via the `GRAFANA_CLOUD_API_URL` environment variable.",
 			},
-
 			"sm_access_token": schema.StringAttribute{
 				Optional:            true,
 				Sensitive:           true,
@@ -198,7 +221,6 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 				Optional:            true,
 				MarkdownDescription: "Synthetic monitoring backend address. May alternatively be set via the `GRAFANA_SM_URL` environment variable. The correct value for each service region is cited in the [Synthetic Monitoring documentation](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/set-up/set-up-private-probes/#probe-api-server-url). Note the `sm_url` value is optional, but it must correspond with the value specified as the `region_slug` in the `grafana_cloud_stack` resource. Also note that when a Terraform configuration contains multiple provider instances managing SM resources associated with the same Grafana stack, specifying an explicit `sm_url` set to the same value for each provider ensures all providers interact with the same SM API.",
 			},
-
 			"oncall_access_token": schema.StringAttribute{
 				Optional:            true,
 				Sensitive:           true,
@@ -208,7 +230,6 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 				Optional:            true,
 				MarkdownDescription: "An Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable.",
 			},
-
 			"cloud_provider_access_token": schema.StringAttribute{
 				Optional:            true,
 				Sensitive:           true,
@@ -218,7 +239,6 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 				Optional:            true,
 				MarkdownDescription: "A Grafana Cloud Provider backend address. May alternatively be set via the `GRAFANA_CLOUD_PROVIDER_URL` environment variable.",
 			},
-
 			"connections_api_access_token": schema.StringAttribute{
 				Optional:            true,
 				Sensitive:           true,
@@ -228,7 +248,6 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 				Optional:            true,
 				MarkdownDescription: "A Grafana Connections API address. May alternatively be set via the `GRAFANA_CONNECTIONS_API_URL` environment variable.",
 			},
-
 			"fleet_management_auth": schema.StringAttribute{
 				Optional:            true,
 				Sensitive:           true,
@@ -279,7 +298,11 @@ func (p *frameworkProvider) DataSources(_ context.Context) []func() datasource.D
 
 // Resources defines the resources implemented in the provider.
 func (p *frameworkProvider) Resources(_ context.Context) []func() resource.Resource {
-	return pluginFrameworkResources()
+	return append(
+		pluginFrameworkResources(),
+		appplatform.Dashboard,
+		appplatform.Playlist,
+	)
 }
 
 // FrameworkProvider returns a terraform-plugin-framework Provider.
