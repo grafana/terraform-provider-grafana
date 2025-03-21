@@ -49,7 +49,6 @@ resource "grafana_data_source_config_lbac_rules" "test_rule" {
     ]
   })
 
-
   depends_on = [
     grafana_team.team,
     grafana_data_source.test
