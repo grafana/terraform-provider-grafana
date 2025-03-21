@@ -103,7 +103,7 @@ func Dashboard() resource.Resource {
 			}
 			data.JSON = jsontypes.NewNormalizedValue(string(json))
 
-			// Only copy title from JSON if it is also set in Terraform.
+			// Only copy title from JSON if it is not set in Terraform.
 			if !data.Title.IsNull() && !data.Title.IsUnknown() {
 				tval := obj.Spec.Object["title"]
 				title, ok := tval.(string)
@@ -117,7 +117,7 @@ func Dashboard() resource.Resource {
 				data.Title = types.StringNull()
 			}
 
-			// Only copy tags from JSON if they are also set in Terraform.
+			// Only copy tags from JSON if they are not set in Terraform.
 			if !data.Tags.IsNull() && !data.Tags.IsUnknown() {
 				tags, diags := types.ListValueFrom(ctx, types.StringType, getTagsFromResource(obj))
 				if diags.HasError() {

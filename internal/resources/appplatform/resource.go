@@ -105,6 +105,7 @@ func (r *Resource[T, L, S]) Schema(ctx context.Context, req resource.SchemaReque
 					//
 					// TODO: add labels & annotations
 					//
+
 					// Computed by API
 					"uuid": schema.StringAttribute{
 						Computed:    true,
