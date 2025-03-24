@@ -80,7 +80,7 @@ func (r *Resource[T, L, S]) Metadata(ctx context.Context, req resource.MetadataR
 	// because we need to make sure that the group has the proper format.
 	g := strings.Split(r.config.Kind.Group(), ".")[0]
 
-	resp.TypeName = fmt.Sprintf("grafana_%s_%s_%s", g, strings.ToLower(r.config.Kind.Kind()), r.config.Kind.Version())
+	resp.TypeName = fmt.Sprintf("grafana_apps_%s_%s_%s", g, strings.ToLower(r.config.Kind.Kind()), r.config.Kind.Version())
 }
 
 // Schema returns the schema for the DashboardResource.

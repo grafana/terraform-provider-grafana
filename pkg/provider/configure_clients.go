@@ -14,11 +14,13 @@ import (
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/grafana-app-sdk/k8s"
+	"github.com/grafana/grafana-app-sdk/resource"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/slo-openapi-client/go/slo"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 
 	"github.com/go-openapi/strfmt"
@@ -206,10 +208,11 @@ func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) e
 	client.GrafanaStackID = cfg.StackID.ValueInt64()
 	client.GrafanaAppPlatformAPIClientID = cfg.UserAgent.ValueString()
 	client.GrafanaAppPlatformAPI = k8s.NewClientRegistry(rcfg, k8s.ClientConfig{
-		// TODO: check with @IfSentient if we should be using this serializer provider.
-		// NegotiatedSerializerProvider: func(kind resource.Kind) runtime.NegotiatedSerializer {
-		// 	return &k8s.KindNegotiatedSerializer{Kind: kind}
-		// },
+		NegotiatedSerializerProvider: func(kind resource.Kind) runtime.NegotiatedSerializer {
+			return &k8s.KindNegotiatedSerializer{
+				Kind: kind,
+			}
+		},
 	})
 
 	return nil
