@@ -76,9 +76,8 @@ This resource requires Grafana 9.1.0 or later.
 			},
 			"rule": {
 				Type:        schema.TypeList,
-				Required:    true,
+				Optional:    true,
 				Description: "The rules within the group.",
-				MinItems:    1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"uid": {
@@ -390,35 +389,37 @@ func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta inte
 		packedRules := data.Get("rule").([]interface{})
 		rules := make([]*models.ProvisionedAlertRule, 0, len(packedRules))
 
-		for i := range packedRules {
-			ruleToApply, err := unpackAlertRule(packedRules[i], group, folder, orgID)
-			if err != nil {
-				return retry.NonRetryableError(err)
-			}
-
-			// Check if a rule with the same name or uid already exists within the same rule group
-			for _, r := range rules {
-				if *r.Title == *ruleToApply.Title {
-					return retry.NonRetryableError(fmt.Errorf("rule with name %q is defined more than once", *ruleToApply.Title))
+		if len(packedRules) > 0 {
+			for i := range packedRules {
+				ruleToApply, err := unpackAlertRule(packedRules[i], group, folder, orgID)
+				if err != nil {
+					return retry.NonRetryableError(err)
 				}
-				if ruleToApply.UID != "" && r.UID == ruleToApply.UID {
-					return retry.NonRetryableError(fmt.Errorf("rule with UID %q is defined more than once. Rules with name %q and %q have the same uid", ruleToApply.UID, *r.Title, *ruleToApply.Title))
-				}
-			}
 
-			// Check if a rule with the same name already exists within the same folder (changing the ordering is allowed within the same rule group)
-			for _, existingRule := range respAlertRules.Payload {
-				if *existingRule.Title == *ruleToApply.Title && *existingRule.FolderUID == *ruleToApply.FolderUID {
-					if *ruleToApply.RuleGroup == *existingRule.RuleGroup {
-						break
+				// Check if a rule with the same name or uid already exists within the same rule group
+				for _, r := range rules {
+					if *r.Title == *ruleToApply.Title {
+						return retry.NonRetryableError(fmt.Errorf("rule with name %q is defined more than once", *ruleToApply.Title))
 					}
-
-					// Retry so that if the user is moving a rule from one group to another, it will pass on the next iteration.
-					return retry.RetryableError(fmt.Errorf("rule with name %q already exists in the folder", *ruleToApply.Title))
+					if ruleToApply.UID != "" && r.UID == ruleToApply.UID {
+						return retry.NonRetryableError(fmt.Errorf("rule with UID %q is defined more than once. Rules with name %q and %q have the same uid", ruleToApply.UID, *r.Title, *ruleToApply.Title))
+					}
 				}
-			}
 
-			rules = append(rules, ruleToApply)
+				// Check if a rule with the same name already exists within the same folder (changing the ordering is allowed within the same rule group)
+				for _, existingRule := range respAlertRules.Payload {
+					if *existingRule.Title == *ruleToApply.Title && *existingRule.FolderUID == *ruleToApply.FolderUID {
+						if *ruleToApply.RuleGroup == *existingRule.RuleGroup {
+							break
+						}
+
+						// Retry so that if the user is moving a rule from one group to another, it will pass on the next iteration.
+						return retry.RetryableError(fmt.Errorf("rule with name %q already exists in the folder", *ruleToApply.Title))
+					}
+				}
+
+				rules = append(rules, ruleToApply)
+			}
 		}
 
 		putParams := provisioning.NewPutAlertRuleGroupParams().
