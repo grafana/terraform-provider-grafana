@@ -24,7 +24,7 @@ jobs:
       - run: make integration-test
 
   cloudinstance:
-    concurrency:
+    concurrency: 
       group: cloud-instance
       cancel-in-progress: false
     runs-on: ubuntu-latest
@@ -60,47 +60,47 @@ jobs:
           timeout_minutes: 30
           max_attempts: 3 # Try 3 times to make sure we don't report failures on flaky tests
           command: make testacc-cloud-instance
-
+  
   local:
     strategy:
       fail-fast: false # Let all versions run, even if one fails
       matrix:
         # OSS tests, run on all versions
-        version: ["11.0.0", "10.4.3", "9.5.18"]
-        type: ["oss"]
-        subset: ["basic", "other", "long"]
+        version: ['11.0.0', '10.4.3', '9.5.18']
+        type: ['oss']
+        subset: ['basic', 'other', 'long']
         include:
-          - version: "11.0.0"
-            type: "oss"
+          - version: '11.0.0'
+            type: 'oss'
             subset: examples
           # TLS proxy tests, run only on latest version
-          - version: "11.0.0"
-            type: "tls"
-            subset: "basic"
+          - version: '11.0.0'
+            type: 'tls'
+            subset: 'basic'
           # Sub-path tests. Runs tests on localhost:3000/grafana/
-          - version: "11.0.0"
-            type: "subpath"
-            subset: "basic"
-          - version: "11.0.0"
-            type: "subpath"
-            subset: "other"
+          - version: '11.0.0'
+            type: 'subpath'
+            subset: 'basic'
+          - version: '11.0.0'
+            type: 'subpath'
+            subset: 'other'
           # Enterprise tests
-          - version: "11.0.0"
-            type: "enterprise"
-            subset: "enterprise"
-          - version: "10.4.3"
-            type: "enterprise"
-            subset: "enterprise"
-          - version: "9.5.18"
-            type: "enterprise"
-            subset: "enterprise"
+          - version: '11.0.0'
+            type: 'enterprise'
+            subset: 'enterprise'
+          - version: '10.4.3'
+            type: 'enterprise'
+            subset: 'enterprise'
+          - version: '9.5.18'
+            type: 'enterprise'
+            subset: 'enterprise'
           # Generate tests
-          - version: "11.0.0"
-            type: "enterprise"
-            subset: "generate"
-          - version: "10.4.3"
-            type: "enterprise"
-            subset: "generate"
+          - version: '11.0.0'
+            type: 'enterprise'
+            subset: 'generate'
+          - version: '10.4.3'
+            type: 'enterprise'
+            subset: 'generate'
     name: ${{ matrix.version }} - ${{ matrix.type }} - ${{ matrix.subset }}
     runs-on: ubuntu-latest
     steps:
@@ -139,7 +139,7 @@ jobs:
           command: make testacc-${{ matrix.type }}-docker
         env:
           GRAFANA_VERSION: ${{ matrix.version }}
-          TESTARGS: >-
+          TESTARGS: >- 
             ${{ matrix.subset == 'enterprise' && '-skip="TestAccGenerate" -parallel 2' || '' }}
             ${{ matrix.subset == 'basic' && '-run=".*_basic" -short -parallel 2' || '' }}
             ${{ matrix.subset == 'other' && '-skip=".*_basic" -short -parallel 2' || '' }}
