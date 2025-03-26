@@ -3,18 +3,12 @@
 page_title: "grafana_apps_playlist_playlist_v0alpha1 Resource - terraform-provider-grafana"
 subcategory: ""
 description: |-
-  Manages Grafana playlists.
-  
-  * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/create-manage-playlists/)
-  * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/playlist/)
+  Manages Grafana playlists via the new Grafana App Platform API. This resource is currently EXPERIMENTAL and may be subject to change. It requires a development build of Grafana with specific feature flags enabled.
 ---
 
 # grafana_apps_playlist_playlist_v0alpha1 (Resource)
 
-Manages Grafana playlists.
-
-	* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/create-manage-playlists/)
-	* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/playlist/)
+Manages Grafana playlists via the new Grafana App Platform API. This resource is currently **EXPERIMENTAL** and may be subject to change. It requires a development build of Grafana with specific feature flags enabled.
 
 
 

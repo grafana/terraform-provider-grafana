@@ -3,18 +3,12 @@
 page_title: "grafana_apps_dashboard_dashboard_v1alpha1 Resource - terraform-provider-grafana"
 subcategory: ""
 description: |-
-  Manages Grafana dashboards.
-  
-  * [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
-  * [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/)
+  Manages Grafana dashboards via the new Grafana App Platform API. This resource is currently EXPERIMENTAL and may be subject to change. It requires a development build of Grafana with specific feature flags enabled.
 ---
 
 # grafana_apps_dashboard_dashboard_v1alpha1 (Resource)
 
-Manages Grafana dashboards.
-
-	* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
-	* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/)
+Manages Grafana dashboards via the new Grafana App Platform API. This resource is currently **EXPERIMENTAL** and may be subject to change. It requires a development build of Grafana with specific feature flags enabled.
 
 
 

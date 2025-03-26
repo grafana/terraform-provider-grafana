@@ -28,11 +28,9 @@ func Dashboard() resource.Resource {
 		Schema: ResourceSpecSchema{
 			Description: "Manages Grafana dashboards.",
 			MarkdownDescription: `
-	Manages Grafana dashboards.
-
-	* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
-	* [HTTP API](https://grafana.com/docs/grafana/latest/developers/http_api/dashboard/)
+Manages Grafana dashboards via the new Grafana App Platform API. This resource is currently **EXPERIMENTAL** and may be subject to change. It requires a development build of Grafana with specific feature flags enabled.
 	`,
+			DeprecationMessage: "This resource is currently EXPERIMENTAL and may be subject to change.",
 			SpecAttributes: map[string]schema.Attribute{
 				"json": schema.StringAttribute{
 					Required:    true,

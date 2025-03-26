@@ -57,6 +57,7 @@ type ResourceConfig[T sdkresource.Object, L sdkresource.ListObject, S any] struc
 type ResourceSpecSchema struct {
 	Description         string
 	MarkdownDescription string
+	DeprecationMessage  string
 	SpecAttributes      map[string]schema.Attribute
 }
 
@@ -89,6 +90,7 @@ func (r *Resource[T, L, S]) Schema(ctx context.Context, req resource.SchemaReque
 	res.Schema = schema.Schema{
 		Description:         sch.Description,
 		MarkdownDescription: sch.MarkdownDescription,
+		DeprecationMessage:  sch.DeprecationMessage,
 		Blocks: map[string]schema.Block{
 			"metadata": schema.SingleNestedBlock{
 				Description: "The metadata of the resource.",
