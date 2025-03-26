@@ -23,7 +23,7 @@ type DashboardSpecModel struct {
 
 // Dashboard creates a new Grafana Dashboard resource.
 func Dashboard() resource.Resource {
-	return NewResource(ResourceConfig[*v1alpha1.Dashboard, *v1alpha1.DashboardList, v1alpha1.DashboardSpec]{
+	return NewResource[*v1alpha1.Dashboard, *v1alpha1.DashboardList](ResourceConfig[*v1alpha1.Dashboard]{
 		Kind: v1alpha1.DashboardKind(),
 		Schema: ResourceSpecSchema{
 			Description: "Manages Grafana dashboards.",
@@ -70,6 +70,8 @@ Manages Grafana dashboards via the new Grafana App Platform API. This resource i
 				res.Object["tags"] = tags
 			}
 
+			// HACK: for v0 we need to clean a few fields from the spec,
+			// which are not supposed to be set by the user.
 			delete(res.Object, "version")
 
 			if err := dst.SetSpec(res); err != nil {

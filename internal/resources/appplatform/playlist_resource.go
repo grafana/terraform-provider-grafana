@@ -38,7 +38,7 @@ var PlaylistItemType = types.ObjectType{
 
 // Playlist creates a new Grafana Playlist resource.
 func Playlist() resource.Resource {
-	return NewResource(ResourceConfig[*v0alpha1.Playlist, *v0alpha1.PlaylistList, v0alpha1.PlaylistSpec]{
+	return NewResource[*v0alpha1.Playlist, *v0alpha1.PlaylistList](ResourceConfig[*v0alpha1.Playlist]{
 		Kind: v0alpha1.PlaylistKind(),
 		Schema: ResourceSpecSchema{
 			Description: "Manages Grafana playlists.",

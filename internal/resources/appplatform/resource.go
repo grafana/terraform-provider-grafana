@@ -46,7 +46,7 @@ type ResourceOptionsModel struct {
 }
 
 // ResourceConfig is a configuration for a Grafana resource.
-type ResourceConfig[T sdkresource.Object, L sdkresource.ListObject, S any] struct {
+type ResourceConfig[T sdkresource.Object] struct {
 	Schema     ResourceSpecSchema
 	Kind       sdkresource.Kind
 	SpecParser SpecParser[T]
@@ -62,21 +62,21 @@ type ResourceSpecSchema struct {
 }
 
 // Resource is a generic Terraform resource for a Grafana resource.
-type Resource[T sdkresource.Object, L sdkresource.ListObject, S any] struct {
-	config   ResourceConfig[T, L, S]
+type Resource[T sdkresource.Object, L sdkresource.ListObject] struct {
+	config   ResourceConfig[T]
 	client   *sdkresource.NamespacedClient[T, L]
 	clientID string
 }
 
 // NewResource creates a new Terraform resource for a Grafana resource.
-func NewResource[T sdkresource.Object, L sdkresource.ListObject, S any](cfg ResourceConfig[T, L, S]) resource.Resource {
-	return &Resource[T, L, S]{
+func NewResource[T sdkresource.Object, L sdkresource.ListObject](cfg ResourceConfig[T]) resource.Resource {
+	return &Resource[T, L]{
 		config: cfg,
 	}
 }
 
 // Metadata returns the metadata for the Resource.
-func (r *Resource[T, L, S]) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *Resource[T, L]) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	// TODO: extract & validate in the constructor instead,
 	// because we need to make sure that the group has the proper format.
 	g := strings.Split(r.config.Kind.Group(), ".")[0]
@@ -84,8 +84,8 @@ func (r *Resource[T, L, S]) Metadata(ctx context.Context, req resource.MetadataR
 	resp.TypeName = fmt.Sprintf("grafana_apps_%s_%s_%s", g, strings.ToLower(r.config.Kind.Kind()), r.config.Kind.Version())
 }
 
-// Schema returns the schema for the DashboardResource.
-func (r *Resource[T, L, S]) Schema(ctx context.Context, req resource.SchemaRequest, res *resource.SchemaResponse) {
+// Schema returns the schema for the Resource.
+func (r *Resource[T, L]) Schema(ctx context.Context, req resource.SchemaRequest, res *resource.SchemaResponse) {
 	sch := r.config.Schema
 	res.Schema = schema.Schema{
 		Description:         sch.Description,
@@ -147,7 +147,7 @@ func (r *Resource[T, L, S]) Schema(ctx context.Context, req resource.SchemaReque
 }
 
 // Configure initializes the Resource.
-func (r *Resource[T, L, S]) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *Resource[T, L]) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Configure is called multiple times
 	// (sometimes when ProviderData is not yet available),
 	// we only want to configure once.
@@ -202,7 +202,7 @@ func (r *Resource[T, L, S]) Configure(ctx context.Context, req resource.Configur
 }
 
 // Read reads the Grafana resource.
-func (r *Resource[T, L, S]) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (r *Resource[T, L]) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data ResourceModel
 	if diag := req.State.Get(ctx, &data); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
@@ -253,7 +253,7 @@ func (r *Resource[T, L, S]) Read(ctx context.Context, req resource.ReadRequest, 
 }
 
 // Create creates a new Grafana resource.
-func (r *Resource[T, L, S]) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r *Resource[T, L]) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data ResourceModel
 	if diag := req.Plan.Get(ctx, &data); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
@@ -304,7 +304,7 @@ func (r *Resource[T, L, S]) Create(ctx context.Context, req resource.CreateReque
 }
 
 // Update updates the Grafana resource.
-func (r *Resource[T, L, S]) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r *Resource[T, L]) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data ResourceModel
 	if diag := req.Plan.Get(ctx, &data); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
@@ -361,7 +361,7 @@ func (r *Resource[T, L, S]) Update(ctx context.Context, req resource.UpdateReque
 }
 
 // Delete deletes the Grafana resource.
-func (r *Resource[T, L, S]) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r *Resource[T, L]) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var data ResourceModel
 	if diag := req.State.Get(ctx, &data); diag.HasError() {
 		resp.Diagnostics.Append(diag...)
@@ -399,7 +399,7 @@ func (r *Resource[T, L, S]) Delete(ctx context.Context, req resource.DeleteReque
 }
 
 // ImportState imports the state of the Grafana resource.
-func (r *Resource[T, L, S]) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *Resource[T, L]) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	res, err := r.client.Get(ctx, req.ID)
 	if err != nil {
 		resp.Diagnostics.AddError("failed to get resource", err.Error())
