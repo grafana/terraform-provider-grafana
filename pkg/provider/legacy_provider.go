@@ -72,6 +72,16 @@ func Provider(version string) *schema.Provider {
 				Optional:    true,
 				Description: "The amount of time in seconds to wait between retries for Grafana API and Grafana Cloud API calls. May alternatively be set via the `GRAFANA_RETRY_WAIT` environment variable.",
 			},
+			"org_id": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The Grafana org ID, if you are using a self-hosted OSS or enterprise Grafana instance. May alternatively be set via the `GRAFANA_ORG_ID` environment variable.",
+			},
+			"stack_id": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The Grafana stack ID, if you are using a Grafana Cloud stack. May alternatively be set via the `GRAFANA_STACK_ID` environment variable.",
+			},
 			"tls_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -242,6 +252,8 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		cfg := ProviderConfig{
 			Auth:                       stringValueOrNull(d, "auth"),
 			URL:                        stringValueOrNull(d, "url"),
+			OrgID:                      int64ValueOrNull(d, "org_id"),
+			StackID:                    int64ValueOrNull(d, "stack_id"),
 			TLSKey:                     stringValueOrNull(d, "tls_key"),
 			TLSCert:                    stringValueOrNull(d, "tls_cert"),
 			CACert:                     stringValueOrNull(d, "ca_cert"),
