@@ -604,6 +604,40 @@ func TestAccContactPoint_disableProvenance(t *testing.T) {
 	})
 }
 
+func TestAccContactPoint_automaticDependencyHandling(t *testing.T) {
+	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+
+	var points models.ContactPoints
+	var policy models.Route
+	name := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create both contact point and notification policy
+			{
+				Config: testAccContactPointWithNotificationPolicy(name),
+				Check: resource.ComposeTestCheckFunc(
+					checkAlertingContactPointExistsWithLength("grafana_contact_point.test", &points, 1),
+					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+					resource.TestCheckResourceAttr("grafana_contact_point.test", "name", name),
+					resource.TestCheckResourceAttr("grafana_notification_policy.test", "contact_point", name),
+				),
+			},
+			// Delete both resources - this tests our automatic dependency handling
+			// because the provider should update the notification policy first to remove the
+			// reference to the contact point before deleting it
+			{
+				Config: "",
+				Check: resource.ComposeTestCheckFunc(
+					alertingContactPointCheckExists.destroyed(&points, nil),
+					alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
+				),
+			},
+		},
+	})
+}
+
 func checkAlertingContactPointExistsWithLength(rn string, v *models.ContactPoints, expectedLength int) resource.TestCheckFunc {
 	return resource.ComposeTestCheckFunc(
 		alertingContactPointCheckExists.exists(rn, v),
@@ -686,4 +720,20 @@ func testAccContactPointWithSensitiveData(name, url, apiKey string) string {
 			}
 		  }
 	}`, name, url, apiKey)
+}
+
+func testAccContactPointWithNotificationPolicy(name string) string {
+	return fmt.Sprintf(`
+	resource "grafana_contact_point" "test" {
+		name = "%[1]s"
+		email {
+			addresses = [ "test@example.com" ]
+		}
+	}
+
+	resource "grafana_notification_policy" "test" {
+		group_by      = ["alertname"]
+		contact_point = grafana_contact_point.test.name
+	}
+	`, name)
 }
