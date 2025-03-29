@@ -297,8 +297,8 @@ func readAlertRule(ctx context.Context, data *schema.ResourceData, meta interfac
 	client, orgID, uid := OAPIClientFromExistingOrgResource(meta, data.Id())
 
 	ruleResp, err := client.Provisioning.GetAlertRule(uid)
-	if err != nil {
-		return diag.FromErr(err)
+	if err, shouldReturn := common.CheckReadError("rule", data, err); shouldReturn {
+		return err
 	}
 
 	r := ruleResp.Payload
