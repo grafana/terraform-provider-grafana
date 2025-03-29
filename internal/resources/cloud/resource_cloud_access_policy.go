@@ -319,6 +319,9 @@ func flattenCloudAccessPolicyRealm(realm []gcom.AuthAccessPolicyRealmsInner) []i
 }
 
 func flattenCloudAccessPolicyConditions(condition *gcom.AuthAccessPolicyConditions) []interface{} {
+        if condition == nil || len(condition.GetAllowedSubnets()) == 0 {
+		return nil
+	}
 	var result []interface{}
 	var allowedSubnets []string
 
