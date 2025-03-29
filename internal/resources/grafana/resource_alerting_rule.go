@@ -320,14 +320,21 @@ func readAlertRule(ctx context.Context, data *schema.ResourceData, meta interfac
 	data.Set("uid", r.UID)
 	data.Set("name", r.Title)
 	data.Set("for", r.For.String())
-	data.Set("no_data_state", *r.NoDataState)
-	data.Set("exec_err_state", *r.ExecErrState)
 	data.Set("condition", r.Condition)
 	data.Set("labels", r.Labels)
 	data.Set("annotations", r.Annotations)
 	data.Set("is_paused", r.IsPaused)
 	data.Set("data", ruleData)
-
+	if r.NoDataState != nil {
+		data.Set("no_data_state", *r.NoDataState)
+	} else {
+		data.Set("no_data_state", "NoData")
+	}
+	if r.ExecErrState != nil {
+		data.Set("exec_err_state", *r.ExecErrState)
+	} else {
+		data.Set("exec_err_state", "Alerting")
+	}
 	if ns != nil {
 		data.Set("notification_settings", ns)
 	}
@@ -408,7 +415,7 @@ func putAlertRule(ctx context.Context, data *schema.ResourceData, meta interface
 func deleteAlertRule(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, _, uid := OAPIClientFromExistingOrgResource(meta, data.Id())
 	_, deleteErr := client.Provisioning.DeleteAlertRule(provisioning.NewDeleteAlertRuleParams().WithUID(uid))
-	err, _ := common.CheckReadError("rule group", data, deleteErr)
+	err, _ := common.CheckReadError("rule", data, deleteErr)
 	return err
 }
 
