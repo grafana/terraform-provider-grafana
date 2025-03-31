@@ -6,7 +6,6 @@ import (
 	"sort"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/attr/xattr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
@@ -16,7 +15,6 @@ import (
 var (
 	_ basetypes.ListValuable                   = ListOfPrometheusMatcherValue{}
 	_ basetypes.ListValuableWithSemanticEquals = ListOfPrometheusMatcherValue{}
-	_ xattr.ValidateableAttribute              = ListOfPrometheusMatcherValue{}
 )
 
 type ListOfPrometheusMatcherValue struct {
@@ -102,41 +100,21 @@ func (v ListOfPrometheusMatcherValue) ListSemanticEquals(ctx context.Context, ne
 	sort.Strings(newValueMatchers)
 
 	for i, matcher := range matchers {
-		// Values are already validated at this point, ignoring errors
-		equal, _ := matcherEqual(matcher, newValueMatchers[i])
+		equal, err := matcherEqual(matcher, newValueMatchers[i])
+		if err != nil {
+			diags.AddError(
+				"Invalid Prometheus matcher",
+				"An error occurred when parsing Prometheus matchers: "+err.Error(),
+			)
+			return false, diags
+		}
+
 		if !equal {
 			return false, diags
 		}
 	}
 
 	return true, diags
-}
-
-func (v ListOfPrometheusMatcherValue) ValidateAttribute(ctx context.Context, req xattr.ValidateAttributeRequest, resp *xattr.ValidateAttributeResponse) {
-	if v.IsNull() || v.IsUnknown() {
-		return
-	}
-
-	for _, element := range v.Elements() {
-		stringValue, ok := element.(basetypes.StringValue)
-		if !ok {
-			resp.Diagnostics.AddError("Invalid element type", "Expected a string value")
-			return
-		}
-
-		_, err := parse.Matcher(stringValue.ValueString())
-		if err != nil {
-			resp.Diagnostics.AddAttributeError(
-				req.Path,
-				"Invalid Prometheus matcher",
-				"A string value was provided that is not valid Prometheus matcher format.\n\n"+
-					"Path: "+req.Path.String()+"\n"+
-					"Given Value: "+stringValue.ValueString()+"\n"+
-					"Error: "+err.Error(),
-			)
-			return
-		}
-	}
 }
 
 func attrValueToStringSlice(elements []attr.Value) []string {
@@ -150,12 +128,12 @@ func attrValueToStringSlice(elements []attr.Value) []string {
 func matcherEqual(matcher1 string, matcher2 string) (bool, error) {
 	parsed1, err := parse.Matcher(matcher1)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("invalid Prometheus matcher %q: %v", matcher1, err)
 	}
 
 	parsed2, err := parse.Matcher(matcher2)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("invalid Prometheus matcher %q: %v", matcher2, err)
 	}
 
 	return parsed1.String() == parsed2.String(), nil
