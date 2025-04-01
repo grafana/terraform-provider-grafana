@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/attr/xattr"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/stretchr/testify/assert"
 )
@@ -101,6 +100,10 @@ func TestListOfPrometheusMatcherValue_ListSemanticEquals(t *testing.T) {
 		basetypes.NewStringValue("collector.os=\"linux\""),
 		basetypes.NewStringValue("owner=\"TEAM-B\""),
 	})
+	value5 := NewListOfPrometheusMatcherValueMust([]attr.Value{
+		basetypes.NewStringValue("collector.os~=.*"),
+		basetypes.NewStringValue("owner=TEAM-A"),
+	})
 
 	t.Run("semantically equal matchers (same order)", func(t *testing.T) {
 		equal, diags := value1.ListSemanticEquals(ctx, value2)
@@ -119,29 +122,13 @@ func TestListOfPrometheusMatcherValue_ListSemanticEquals(t *testing.T) {
 		assert.False(t, diags.HasError())
 		assert.False(t, equal)
 	})
-}
 
-func TestListOfPrometheusMatcherValue_ValidateAttribute(t *testing.T) {
-	ctx := context.Background()
-	req := xattr.ValidateAttributeRequest{}
-	resp := &xattr.ValidateAttributeResponse{}
-
-	t.Run("valid attribute", func(t *testing.T) {
-		value := NewListOfPrometheusMatcherValueMust([]attr.Value{
-			basetypes.NewStringValue("collector.os=~.*"),
-			basetypes.NewStringValue("owner=TEAM-A"),
-		})
-		value.ValidateAttribute(ctx, req, resp)
-		assert.False(t, resp.Diagnostics.HasError())
-	})
-
-	t.Run("invalid attribute", func(t *testing.T) {
-		value := NewListOfPrometheusMatcherValueMust([]attr.Value{
-			basetypes.NewStringValue("collector.os~=.*"),
-			basetypes.NewStringValue("owner=TEAM-A"),
-		})
-		value.ValidateAttribute(ctx, req, resp)
-		assert.True(t, resp.Diagnostics.HasError())
+	t.Run("invalid matcher", func(t *testing.T) {
+		equal, diags := value1.ListSemanticEquals(ctx, value5)
+		assert.True(t, diags.HasError())
+		assert.Equal(t, 1, len(diags.Errors()))
+		assert.Equal(t, "Invalid Prometheus matcher", diags.Errors()[0].Summary())
+		assert.False(t, equal)
 	})
 }
 
