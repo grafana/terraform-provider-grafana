@@ -110,7 +110,7 @@ func (r *collectorResource) ImportState(ctx context.Context, req resource.Import
 		return
 	}
 
-	state, diags := collectorMessageToModel(ctx, getResp.Msg)
+	state, diags := collectorMessageToResourceModel(ctx, getResp.Msg)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -124,14 +124,14 @@ func (r *collectorResource) ImportState(ctx context.Context, req resource.Import
 }
 
 func (r *collectorResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	data := &collectorModel{}
+	data := &collectorResourceModel{}
 	diags := req.Plan.Get(ctx, data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	collector, diags := collectorModelToMessage(ctx, data)
+	collector, diags := collectorResourceModelToMessage(ctx, data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -155,7 +155,7 @@ func (r *collectorResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	state, diags := collectorMessageToModel(ctx, getResp.Msg)
+	state, diags := collectorMessageToResourceModel(ctx, getResp.Msg)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -169,7 +169,7 @@ func (r *collectorResource) Create(ctx context.Context, req resource.CreateReque
 }
 
 func (r *collectorResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	data := &collectorModel{}
+	data := &collectorResourceModel{}
 	diags := req.State.Get(ctx, data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -193,7 +193,7 @@ func (r *collectorResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	state, diags := collectorMessageToModel(ctx, getResp.Msg)
+	state, diags := collectorMessageToResourceModel(ctx, getResp.Msg)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -204,14 +204,14 @@ func (r *collectorResource) Read(ctx context.Context, req resource.ReadRequest, 
 }
 
 func (r *collectorResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	data := &collectorModel{}
+	data := &collectorResourceModel{}
 	diags := req.Plan.Get(ctx, data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	collector, diags := collectorModelToMessage(ctx, data)
+	collector, diags := collectorResourceModelToMessage(ctx, data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -235,7 +235,7 @@ func (r *collectorResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	state, diags := collectorMessageToModel(ctx, getResp.Msg)
+	state, diags := collectorMessageToResourceModel(ctx, getResp.Msg)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -249,7 +249,7 @@ func (r *collectorResource) Update(ctx context.Context, req resource.UpdateReque
 }
 
 func (r *collectorResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	data := &collectorModel{}
+	data := &collectorResourceModel{}
 	diags := req.State.Get(ctx, data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {

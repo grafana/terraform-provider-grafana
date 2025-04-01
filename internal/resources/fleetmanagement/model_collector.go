@@ -9,26 +9,56 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-type collectorModel struct {
+type collectorDataSourceModel struct {
+	ID               types.String `tfsdk:"id"`
+	RemoteAttributes types.Map    `tfsdk:"remote_attributes"`
+	LocalAttributes  types.Map    `tfsdk:"local_attributes"`
+	Enabled          types.Bool   `tfsdk:"enabled"`
+}
+
+type collectorDataSourcesModel struct {
+	Collectors []collectorDataSourceModel `tfsdk:"collectors"`
+}
+
+type collectorResourceModel struct {
 	ID               types.String `tfsdk:"id"`
 	RemoteAttributes types.Map    `tfsdk:"remote_attributes"`
 	Enabled          types.Bool   `tfsdk:"enabled"`
 }
 
-func collectorMessageToModel(ctx context.Context, msg *collectorv1.Collector) (*collectorModel, diag.Diagnostics) {
+func collectorMessageToDataSourceModel(ctx context.Context, msg *collectorv1.Collector) (*collectorDataSourceModel, diag.Diagnostics) {
 	remoteAttributes, diags := nativeStringMapToTFStringMap(ctx, msg.RemoteAttributes)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &collectorModel{
+	localAttributes, diags := nativeStringMapToTFStringMap(ctx, msg.LocalAttributes)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &collectorDataSourceModel{
+		ID:               types.StringValue(msg.Id),
+		RemoteAttributes: remoteAttributes,
+		LocalAttributes:  localAttributes,
+		Enabled:          types.BoolPointerValue(msg.Enabled),
+	}, nil
+}
+
+func collectorMessageToResourceModel(ctx context.Context, msg *collectorv1.Collector) (*collectorResourceModel, diag.Diagnostics) {
+	remoteAttributes, diags := nativeStringMapToTFStringMap(ctx, msg.RemoteAttributes)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &collectorResourceModel{
 		ID:               types.StringValue(msg.Id),
 		RemoteAttributes: remoteAttributes,
 		Enabled:          types.BoolPointerValue(msg.Enabled),
 	}, nil
 }
 
-func collectorModelToMessage(ctx context.Context, model *collectorModel) (*collectorv1.Collector, diag.Diagnostics) {
+func collectorResourceModelToMessage(ctx context.Context, model *collectorResourceModel) (*collectorv1.Collector, diag.Diagnostics) {
 	remoteAttributes, diags := tfStringMapToNativeStringMap(ctx, model.RemoteAttributes)
 	if diags.HasError() {
 		return nil, diags
