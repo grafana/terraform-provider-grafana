@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
@@ -113,6 +114,11 @@ func readRuleGroupConfig(ctx context.Context, data *schema.ResourceData, meta in
 	data.Set("rule_group_name", g.Title)
 	data.Set("folder_uid", g.FolderUID)
 	data.Set("interval_seconds", g.Interval)
+	if orgIDRaw, ok := data.GetOk("org_id"); ok {
+		data.Set("org_id", orgIDRaw)
+	} else {
+		data.Set("org_id", strconv.FormatInt(orgID, 10))
+	}
 
 	data.SetId(resourceRuleGroupID.Make(orgID, folderUID, name))
 
