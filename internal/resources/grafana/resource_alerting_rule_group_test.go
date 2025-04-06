@@ -14,7 +14,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 )
 
-func TestAccAlertRule_basic(t *testing.T) {
+func TestAccAlertRuleGroup_basic(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	var group models.AlertRuleGroup
@@ -128,7 +128,7 @@ func TestAccAlertRule_basic(t *testing.T) {
 	})
 }
 
-func TestAccAlertRule_model(t *testing.T) {
+func TestAccAlertRuleGroup_model(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	var group models.AlertRuleGroup
@@ -172,7 +172,7 @@ func TestAccAlertRule_model(t *testing.T) {
 	})
 }
 
-func TestAccAlertRule_compound(t *testing.T) {
+func TestAccAlertRuleGroup_compound(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	var group models.AlertRuleGroup
@@ -239,7 +239,7 @@ func TestAccAlertRule_compound(t *testing.T) {
 	})
 }
 
-func TestAccAlertRule_inOrg(t *testing.T) {
+func TestAccAlertRuleGroup_inOrg(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	var group models.AlertRuleGroup
@@ -294,7 +294,7 @@ func TestAccAlertRule_inOrg(t *testing.T) {
 	})
 }
 
-func TestAccAlertRule_nameConflict(t *testing.T) {
+func TestAccAlertRuleGroup_nameConflict(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	name := acctest.RandString(10)
@@ -380,7 +380,7 @@ resource "grafana_rule_group" "second" {
 	})
 }
 
-func TestAccAlertRule_ruleNameConflict(t *testing.T) {
+func TestAccAlertRuleGroup_ruleNameConflict(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	name := acctest.RandString(10)
@@ -458,7 +458,7 @@ resource "grafana_rule_group" "first" {
 	})
 }
 
-func TestAccAlertRule_ruleUIDConflict(t *testing.T) {
+func TestAccAlertRuleGroup_ruleUIDConflict(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	name := acctest.RandString(10)
@@ -539,7 +539,7 @@ resource "grafana_rule_group" "first" {
 	})
 }
 
-func TestAccAlertRule_moveRules(t *testing.T) {
+func TestAccAlertRuleGroup_moveRules(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	name := acctest.RandString(10)
@@ -637,7 +637,7 @@ resource "grafana_rule_group" "second" {
 	})
 }
 
-func TestAccAlertRule_disableProvenance(t *testing.T) {
+func TestAccAlertRuleGroup_disableProvenance(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	var group models.AlertRuleGroup
@@ -699,7 +699,7 @@ func TestAccAlertRule_disableProvenance(t *testing.T) {
 	})
 }
 
-func TestAccAlertRule_zeroSeconds(t *testing.T) {
+func TestAccAlertRuleGroup_zeroSeconds(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
 
 	var group models.AlertRuleGroup
@@ -723,7 +723,7 @@ func TestAccAlertRule_zeroSeconds(t *testing.T) {
 	})
 }
 
-func TestAccAlertRule_NotificationSettings(t *testing.T) {
+func TestAccAlertRuleGroup_NotificationSettings(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=10.4.0")
 
 	var group models.AlertRuleGroup
@@ -734,7 +734,7 @@ func TestAccAlertRule_NotificationSettings(t *testing.T) {
 		CheckDestroy:             alertingRuleGroupCheckExists.destroyed(&group, nil),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAlertRuleWithNotificationSettings(name, []string{"alertname", "grafana_folder", "test"}),
+				Config: testAccAlertRuleGroupWithNotificationSettings(name, []string{"alertname", "grafana_folder", "test"}),
 				Check: resource.ComposeTestCheckFunc(
 					alertingRuleGroupCheckExists.exists("grafana_rule_group.my_rule_group", &group),
 					resource.TestCheckResourceAttr("grafana_rule_group.my_rule_group", "name", name),
@@ -756,7 +756,7 @@ func TestAccAlertRule_NotificationSettings(t *testing.T) {
 	})
 }
 
-func TestAccRecordingRule(t *testing.T) {
+func TestAccAlertRuleGroup_RecordingRule(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=11.4.0")
 
 	var group models.AlertRuleGroup
@@ -788,7 +788,7 @@ func TestAccRecordingRule(t *testing.T) {
 	})
 }
 
-func TestAccRecordingRule_incompatibleSettings(t *testing.T) {
+func TestAccAlertRuleGroup_RecordingRule_incompatibleSettings(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=11.4.0")
 
 	var name = acctest.RandString(10)
@@ -890,7 +890,7 @@ resource "grafana_rule_group" "my_rule_group" {
 }`, name)
 }
 
-func testAccAlertRuleWithNotificationSettings(name string, groupBy []string) string {
+func testAccAlertRuleGroupWithNotificationSettings(name string, groupBy []string) string {
 	gr := ""
 	if len(groupBy) > 0 {
 		b, _ := json.Marshal(groupBy)
