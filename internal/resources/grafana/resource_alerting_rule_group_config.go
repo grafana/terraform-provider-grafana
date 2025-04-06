@@ -130,6 +130,20 @@ func readRuleGroupConfig(ctx context.Context, data *schema.ResourceData, meta in
 		data.Set("org_id", strconv.FormatInt(orgID, 10))
 	}
 
+	// Check if any rules have provenance set
+	disableProvenance := true
+	for _, r := range g.Rules {
+		ruleResp, err := client.Provisioning.GetAlertRule(r.UID)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		if ruleResp.Payload.Provenance != "" {
+			disableProvenance = false
+			break
+		}
+	}
+	data.Set("disable_provenance", disableProvenance)
+
 	data.SetId(resourceRuleGroupConfigID.Make(orgID, folderUID, name))
 
 	return nil
