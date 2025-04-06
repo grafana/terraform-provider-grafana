@@ -33,12 +33,6 @@ var resourceAlertRuleSchema = map[string]*schema.Schema{
 		Description:  "The UID of the folder that the group belongs to.",
 		ValidateFunc: folderUIDValidation,
 	},
-	"disable_provenance": {
-		Type:        schema.TypeBool,
-		Optional:    true,
-		Default:     false,
-		Description: "Allow modifying the rule group from other sources than Terraform or the Grafana API.",
-	},
 	"uid": {
 		Type:        schema.TypeString,
 		Optional:    true,
@@ -316,7 +310,6 @@ func readAlertRule(ctx context.Context, data *schema.ResourceData, meta interfac
 	data.Set("org_id", strconv.FormatInt(orgID, 10))
 	data.Set("rule_group", r.RuleGroup)
 	data.Set("folder_uid", r.FolderUID)
-	data.Set("disable_provenance", r.Provenance == "")
 	data.Set("uid", r.UID)
 	data.Set("name", r.Title)
 	data.Set("for", r.For.String())
@@ -351,9 +344,6 @@ func postAlertRule(ctx context.Context, data *schema.ResourceData, meta interfac
 	}
 
 	postParams := provisioning.NewPostAlertRuleParams().WithBody(ruleToApply)
-	if data.Get("disable_provenance").(bool) {
-		postParams.SetXDisableProvenance(&provenanceDisabled)
-	}
 
 	retryErr := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		resp, err := client.Provisioning.PostAlertRule(postParams)
@@ -386,9 +376,6 @@ func putAlertRule(ctx context.Context, data *schema.ResourceData, meta interface
 	}
 
 	putParams := provisioning.NewPutAlertRuleParams().WithBody(ruleToApply).WithUID(uid)
-	if data.Get("disable_provenance").(bool) {
-		putParams.SetXDisableProvenance(&provenanceDisabled)
-	}
 
 	retryErr := retry.RetryContext(ctx, 2*time.Minute, func() *retry.RetryError {
 		resp, err := client.Provisioning.PutAlertRule(putParams)
