@@ -58,6 +58,12 @@ This resource requires Grafana 9.1.0 or later.
 				Required:    true,
 				Description: "The interval, in seconds, at which all rules in the group are evaluated. If a group contains many rules, the rules are evaluated sequentially.",
 			},
+			"disable_provenance": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Allow modifying the rule group from other sources than Terraform or the Grafana API.",
+			},
 		},
 	}
 
@@ -85,6 +91,10 @@ func createRuleGroupConfig(ctx context.Context, data *schema.ResourceData, meta 
 			FolderUID: folderUID,
 			Interval:  int64(intervalSeconds),
 		})
+
+	if data.Get("disable_provenance").(bool) {
+		putParams.SetXDisableProvenance(&provenanceDisabled)
+	}
 
 	_, err := client.Provisioning.PutAlertRuleGroup(putParams)
 	if err != nil {
@@ -141,6 +151,10 @@ func putRuleGroupConfig(ctx context.Context, data *schema.ResourceData, meta int
 			FolderUID: folderUID,
 			Interval:  int64(intervalSeconds),
 		})
+
+	if data.Get("disable_provenance").(bool) {
+		putParams.SetXDisableProvenance(&provenanceDisabled)
+	}
 
 	_, err := client.Provisioning.PutAlertRuleGroup(putParams)
 	if err != nil {
