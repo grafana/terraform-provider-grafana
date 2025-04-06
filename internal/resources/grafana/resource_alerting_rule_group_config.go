@@ -130,7 +130,7 @@ func readRuleGroupConfig(ctx context.Context, data *schema.ResourceData, meta in
 		data.Set("org_id", strconv.FormatInt(orgID, 10))
 	}
 
-	data.SetId(resourceRuleGroupID.Make(orgID, folderUID, name))
+	data.SetId(resourceRuleGroupConfigID.Make(orgID, folderUID, name))
 
 	return nil
 }
