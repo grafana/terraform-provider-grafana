@@ -59,7 +59,6 @@ var resourceAlertRuleSchema = map[string]*schema.Schema{
 	"no_data_state": {
 		Type:        schema.TypeString,
 		Optional:    true,
-		Default:     "NoData",
 		Description: "Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, KeepLast, and Alerting. Defaults to NoData if not set.",
 		DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
 			// We default to this value later in the pipeline, so we need to account for that here.
@@ -72,7 +71,6 @@ var resourceAlertRuleSchema = map[string]*schema.Schema{
 	"exec_err_state": {
 		Type:        schema.TypeString,
 		Optional:    true,
-		Default:     "Alerting",
 		Description: "Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, KeepLast, and Alerting.  Defaults to Alerting if not set.",
 		DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
 			// We default to this value later in the pipeline, so we need to account for that here.

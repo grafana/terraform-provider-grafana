@@ -119,7 +119,6 @@ EOT
 
 - `annotations` (Map of String) Key-value pairs of metadata to attach to the alert rule. They add additional information, such as a `summary` or `runbook_url`, to help identify and investigate alerts. The `dashboardUId` and `panelId` annotations, which link alerts to a panel, must be set together. Defaults to `map[]`.
 - `condition` (String) The `ref_id` of the query node in the `data` field to use as the alert condition.
-- `disable_provenance` (Boolean) Allow modifying the rule group from other sources than Terraform or the Grafana API. Defaults to `false`.
 - `exec_err_state` (String) Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, KeepLast, and Alerting.  Defaults to Alerting if not set.
 - `for` (String) The amount of time for which the rule must be breached for the rule to be considered to be Firing. Before this time has elapsed, the rule is only considered to be Pending. Defaults to `0`.
 - `is_paused` (Boolean) Sets whether the alert should be paused or not. Defaults to `false`.
