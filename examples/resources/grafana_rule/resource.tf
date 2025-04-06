@@ -3,7 +3,6 @@ resource "grafana_folder" "rule_folder" {
 }
 
 resource "grafana_rule" "test_rule" {
-  disable_provenance = true
   name               = "My Alert Rule"
   folder_uid         = grafana_folder.rule_folder.uid
   rule_group         = "My Rule Group"

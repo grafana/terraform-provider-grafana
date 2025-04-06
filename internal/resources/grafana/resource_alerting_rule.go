@@ -2,6 +2,7 @@ package grafana
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -424,20 +425,61 @@ func unpackAlertRule(data *schema.ResourceData, orgID int64) (*models.Provisione
 		return nil, err
 	}
 
+	// Get all the fields that need validation
+	condition := data.Get("condition").(string)
+	noDataState := data.Get("no_data_state").(string)
+	execErrState := data.Get("exec_err_state").(string)
+
+	// Handle recording rule validation
+	var record *models.Record
+	if recordData, ok := data.GetOk("record"); ok {
+		record = unpackRecord(recordData)
+		if record != nil {
+			incompatFieldMsgFmt := `conflicting fields "record" and "%s"`
+			if forDuration != 0 {
+				return nil, fmt.Errorf(incompatFieldMsgFmt, "for")
+			}
+			if noDataState != "" {
+				return nil, fmt.Errorf(incompatFieldMsgFmt, "no_data_state")
+			}
+			if execErrState != "" {
+				return nil, fmt.Errorf(incompatFieldMsgFmt, "exec_err_state")
+			}
+			if condition != "" {
+				return nil, fmt.Errorf(incompatFieldMsgFmt, "condition")
+			}
+		}
+	}
+
+	// Validate alert rule fields if not a recording rule
+	if record == nil {
+		if condition == "" {
+			return nil, fmt.Errorf(`"condition" is required`)
+		}
+		// Set defaults for alert rules
+		if noDataState == "" {
+			noDataState = "NoData"
+		}
+		if execErrState == "" {
+			execErrState = "Alerting"
+		}
+	}
+
 	ruleToApply := models.ProvisionedAlertRule{
 		Title:                common.Ref(data.Get("name").(string)),
 		FolderUID:            common.Ref(data.Get("folder_uid").(string)),
 		RuleGroup:            common.Ref(data.Get("rule_group").(string)),
 		OrgID:                common.Ref(orgID),
-		ExecErrState:         common.Ref(data.Get("exec_err_state").(string)),
-		NoDataState:          common.Ref(data.Get("no_data_state").(string)),
+		ExecErrState:         common.Ref(execErrState),
+		NoDataState:          common.Ref(noDataState),
 		For:                  common.Ref(strfmt.Duration(forDuration)),
 		Data:                 ruleData,
-		Condition:            common.Ref(data.Get("condition").(string)),
+		Condition:            common.Ref(condition),
 		Labels:               unpackMap(data.Get("labels")),
 		Annotations:          unpackMap(data.Get("annotations")),
 		IsPaused:             data.Get("is_paused").(bool),
 		NotificationSettings: ns,
+		Record:               record,
 	}
 
 	if uid, ok := data.GetOk("uid"); ok {

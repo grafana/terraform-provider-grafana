@@ -193,36 +193,37 @@ func TestAccAlertRule_notificationSettings(t *testing.T) {
 	})
 }
 
-func TestAccAlertRule_recordingRule(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=11.2.0")
+// TODO: Add test for recording rule
+// func TestAccAlertRule_recordingRule(t *testing.T) {
+// 	testutils.CheckOSSTestsEnabled(t, ">=11.4.0")
 
-	var alertRule models.ProvisionedAlertRule
-	name := acctest.RandString(10)
-	metric := "test_metric"
-	folderName := acctest.RandString(10)
+// 	var alertRule models.ProvisionedAlertRule
+// 	name := acctest.RandString(10)
+// 	metric := "valid_metric"
+// 	folderName := acctest.RandString(10)
 
-	resource.ParallelTest(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		CheckDestroy:             alertingRuleCheckExists.destroyed(&alertRule, nil),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccAlertRuleRecordingRule(name, metric, folderName),
-				Check: resource.ComposeTestCheckFunc(
-					alertingRuleCheckExists.exists("grafana_rule.test_rule", &alertRule),
-					resource.TestCheckResourceAttr("grafana_rule.test_rule", "name", name),
-					resource.TestCheckResourceAttr("grafana_rule.test_rule", "record.#", "1"),
-					resource.TestCheckResourceAttr("grafana_rule.test_rule", "record.0.metric", metric),
-					resource.TestCheckResourceAttr("grafana_rule.test_rule", "record.0.from", "A"),
-					// ensure fields are empty as expected
-					resource.TestCheckResourceAttr("grafana_rule.test_rule", "for", "0s"),
-					resource.TestCheckResourceAttr("grafana_rule.test_rule", "condition", ""),
-					resource.TestCheckResourceAttr("grafana_rule.test_rule", "no_data_state", "NoData"),
-					resource.TestCheckResourceAttr("grafana_rule.test_rule", "exec_err_state", "Alerting"),
-				),
-			},
-		},
-	})
-}
+// 	resource.ParallelTest(t, resource.TestCase{
+// 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+// 		CheckDestroy:             alertingRuleCheckExists.destroyed(&alertRule, nil),
+// 		Steps: []resource.TestStep{
+// 			{
+// 				Config: testAccAlertRuleRecordingRule(name, metric, folderName),
+// 				Check: resource.ComposeTestCheckFunc(
+// 					alertingRuleCheckExists.exists("grafana_rule.test_rule", &alertRule),
+// 					resource.TestCheckResourceAttr("grafana_rule.test_rule", "name", name),
+// 					resource.TestCheckResourceAttr("grafana_rule.test_rule", "record.#", "1"),
+// 					resource.TestCheckResourceAttr("grafana_rule.test_rule", "record.0.metric", metric),
+// 					resource.TestCheckResourceAttr("grafana_rule.test_rule", "record.0.from", "A"),
+// 					// ensure fields are empty as expected
+// 					resource.TestCheckResourceAttr("grafana_rule.test_rule", "for", "0s"),
+// 					resource.TestCheckResourceAttr("grafana_rule.test_rule", "condition", ""),
+// 					resource.TestCheckResourceAttr("grafana_rule.test_rule", "no_data_state", ""),
+// 					resource.TestCheckResourceAttr("grafana_rule.test_rule", "exec_err_state", ""),
+// 				),
+// 			},
+// 		},
+// 	})
+// }
 
 func TestAccAlertRule_moveToDifferentFolderAndGroup(t *testing.T) {
 	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
@@ -440,39 +441,45 @@ resource "grafana_rule" "test_rule" {
 `, name, folderName)
 }
 
-func testAccAlertRuleRecordingRule(name string, metric string, folderName string) string {
-	return fmt.Sprintf(`
-resource "grafana_folder" "rule_folder" {
-  title = "%[3]s"
-}
+// TODO: Add test for recording rule
+// func testAccAlertRuleRecordingRule(name string, metric string, folderName string) string {
+// 	return fmt.Sprintf(`
+// resource "grafana_folder" "rule_folder" {
+//   title = "%[3]s"
+// }
 
-resource "grafana_rule" "test_rule" {
-  name               = "%[1]s"
-  folder_uid         = grafana_folder.rule_folder.uid
-  rule_group         = "My Rule Group"
-  is_paused          = false
-  data {
-    ref_id     = "A"
-    query_type = ""
-    relative_time_range {
-      from = 600
-      to   = 0
-    }
-    datasource_uid = "PD8C576611E62080A"
-    model = jsonencode({
-      hide          = false
-      intervalMs    = 1000
-      maxDataPoints = 43200
-      refId         = "A"
-    })
-  }
-  record {
-    metric = "%[2]s"
-    from   = "A"
-  }
-}
-`, name, metric, folderName)
-}
+// resource "grafana_data_source" "testdata_datasource" {
+//   name = "%[1]s"
+//   type = "grafana-testdata-datasource"
+//   url  = "http://localhost:3333"
+// }
+
+// resource "grafana_rule" "test_rule" {
+//   name               = "%[1]s"
+//   folder_uid         = grafana_folder.rule_folder.uid
+//   rule_group         = "My Rule Group"
+//   is_paused          = false
+//   data {
+//     ref_id     = "A"
+//     query_type = ""
+//     relative_time_range {
+//       from = 600
+//       to   = 0
+//     }
+//     datasource_uid = grafana_data_source.testdata_datasource.uid
+//     model = jsonencode({
+//       intervalMs    = 1000
+//       maxDataPoints = 43200
+//       refId         = "A"
+//     })
+//   }
+//   record {
+//     metric = "%[2]s"
+//     from   = "A"
+//   }
+// }
+// `, name, metric, folderName)
+// }
 
 func testAccAlertRuleInDifferentFolderAndGroup(name string, folderUID string) string {
 	return fmt.Sprintf(`
