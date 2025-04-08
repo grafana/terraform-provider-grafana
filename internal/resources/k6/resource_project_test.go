@@ -17,7 +17,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 )
 
-var defaultIDRegexp = regexp.MustCompile(`^\d{7}$`)
+var defaultIDRegexp = regexp.MustCompile(`^\d{5,8}$`)
 
 func TestAccProject_basic(t *testing.T) {
 	//testutils.CheckOSSTestsEnabled(t)

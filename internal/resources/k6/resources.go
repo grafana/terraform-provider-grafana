@@ -12,6 +12,7 @@ import (
 
 var Resources = addValidationToResources(
 	resourceProject(),
+	resourceLoadTest(),
 )
 
 func addValidationToResources(resources ...*common.Resource) []*common.Resource {

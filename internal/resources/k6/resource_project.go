@@ -106,8 +106,8 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 	p, _, err := k6Req.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error creating project",
-			"Could not create project, unexpected error: "+err.Error(),
+			"Error creating GCk6 project",
+			"Could not create GCk6 project, unexpected error: "+err.Error(),
 		)
 		return
 	}
@@ -195,8 +195,8 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 	_, err := updateReq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error updating project",
-			"Could not update project, unexpected error: "+err.Error(),
+			"Error updating GCk6 project",
+			"Could not update GCk6 project, unexpected error: "+err.Error(),
 		)
 		return
 	}
