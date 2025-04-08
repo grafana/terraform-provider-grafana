@@ -2,13 +2,10 @@ package appplatform
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/grafana/authlib/claims"
-	"github.com/grafana/grafana-app-sdk/k8s"
 	sdkresource "github.com/grafana/grafana-app-sdk/resource"
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -19,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
@@ -63,25 +61,23 @@ type ResourceSpecSchema struct {
 
 // Resource is a generic Terraform resource for a Grafana resource.
 type Resource[T sdkresource.Object, L sdkresource.ListObject] struct {
-	config   ResourceConfig[T]
-	client   *sdkresource.NamespacedClient[T, L]
-	clientID string
+	config       ResourceConfig[T]
+	client       *sdkresource.NamespacedClient[T, L]
+	clientID     string
+	resourceName string
 }
 
 // NewResource creates a new Terraform resource for a Grafana resource.
 func NewResource[T sdkresource.Object, L sdkresource.ListObject](cfg ResourceConfig[T]) resource.Resource {
 	return &Resource[T, L]{
-		config: cfg,
+		config:       cfg,
+		resourceName: formatResourceType(cfg.Kind),
 	}
 }
 
 // Metadata returns the metadata for the Resource.
 func (r *Resource[T, L]) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	// TODO: extract & validate in the constructor instead,
-	// because we need to make sure that the group has the proper format.
-	g := strings.Split(r.config.Kind.Group(), ".")[0]
-
-	resp.TypeName = fmt.Sprintf("grafana_apps_%s_%s_%s", g, strings.ToLower(r.config.Kind.Kind()), r.config.Kind.Version())
+	resp.TypeName = r.resourceName
 }
 
 // Schema returns the schema for the Resource.
@@ -235,12 +231,12 @@ func (r *Resource[T, L]) Read(ctx context.Context, req resource.ReadRequest, res
 
 	res, err := r.client.Get(ctx, obj.GetName())
 	if err != nil {
-		if isNotFoundErr(err) {
+		if apierrors.IsNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
 
-		resp.Diagnostics.AddError("failed to get resource", err.Error())
+		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionRead, obj.GetName(), r.resourceName, err)...)
 		return
 	}
 
@@ -291,7 +287,7 @@ func (r *Resource[T, L]) Create(ctx context.Context, req resource.CreateRequest,
 
 	res, err := r.client.Create(ctx, obj, sdkresource.CreateOptions{})
 	if err != nil {
-		resp.Diagnostics.AddError("failed to create resource", err.Error())
+		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionCreate, obj.GetName(), r.resourceName, err)...)
 		return
 	}
 
@@ -348,7 +344,7 @@ func (r *Resource[T, L]) Update(ctx context.Context, req resource.UpdateRequest,
 
 	res, err := r.client.Update(ctx, obj, reqopts)
 	if err != nil {
-		resp.Diagnostics.AddError("failed to update resource", err.Error())
+		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionUpdate, obj.GetName(), r.resourceName, err)...)
 		return
 	}
 
@@ -393,7 +389,11 @@ func (r *Resource[T, L]) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 
 	if err := r.client.Delete(ctx, obj.GetName(), sdkresource.DeleteOptions{}); err != nil {
-		resp.Diagnostics.AddError("failed to delete resource", err.Error())
+		if apierrors.IsNotFound(err) {
+			return
+		}
+
+		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionDelete, obj.GetName(), r.resourceName, err)...)
 		return
 	}
 }
@@ -402,7 +402,7 @@ func (r *Resource[T, L]) Delete(ctx context.Context, req resource.DeleteRequest,
 func (r *Resource[T, L]) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	res, err := r.client.Get(ctx, req.ID)
 	if err != nil {
-		resp.Diagnostics.AddError("failed to get resource", err.Error())
+		resp.Diagnostics.Append(ErrorToDiagnostics(ResourceActionRead, req.ID, r.resourceName, err)...)
 		return
 	}
 
@@ -611,10 +611,7 @@ func setManagerProperties(obj sdkresource.Object, clientID string) error {
 	return nil
 }
 
-func isNotFoundErr(err error) bool {
-	var cast *k8s.ServerResponseError
-	if errors.As(err, &cast) {
-		return cast.StatusCode() == http.StatusNotFound
-	}
-	return false
+func formatResourceType(kind sdkresource.Kind) string {
+	g := strings.Split(kind.Group(), ".")[0]
+	return fmt.Sprintf("grafana_apps_%s_%s_%s", g, strings.ToLower(kind.Kind()), kind.Version())
 }
