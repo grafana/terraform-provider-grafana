@@ -1,0 +1,1 @@
+terraform import grafana_k6_project_limits.project_id "{{ project_id }}"

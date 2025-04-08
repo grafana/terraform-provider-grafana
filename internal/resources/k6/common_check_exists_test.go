@@ -28,6 +28,16 @@ var (
 			return payloadOrError(m, err)
 		},
 	)
+	projectLimitsCheckExists = newCheckExistsHelper(
+		func(p *k6.ProjectLimitsApiModel) int32 { return p.GetProjectId() },
+		func(client *k6.APIClient, config *k6providerapi.K6APIConfig, id int32) (*k6.ProjectLimitsApiModel, error) {
+			ctx := context.WithValue(context.Background(), k6.ContextAccessToken, config.Token)
+			m, _, err := client.ProjectsAPI.ProjectsLimitsRetrieve(ctx, id).
+				XStackId(config.StackID).
+				Execute()
+			return payloadOrError(m, err)
+		},
+	)
 	loadTestCheckExists = newCheckExistsHelper(
 		func(lt *k6.LoadTestApiModel) int32 { return lt.GetId() },
 		func(client *k6.APIClient, config *k6providerapi.K6APIConfig, id int32) (*k6.LoadTestApiModel, error) {

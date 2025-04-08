@@ -12,6 +12,7 @@ import (
 
 var Resources = addValidationToResources(
 	resourceProject(),
+	resourceProjectLimits(),
 	resourceLoadTest(),
 )
 
