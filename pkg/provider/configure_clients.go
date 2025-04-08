@@ -15,6 +15,7 @@ import (
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/slo-openapi-client/go/slo"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
@@ -27,6 +28,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/k6providerapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
 )
 
@@ -68,6 +70,12 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	}
 	if !providerConfig.ConnectionsAPIAccessToken.IsNull() {
 		if err := createConnectionsClient(c, providerConfig); err != nil {
+			return nil, err
+		}
+	}
+
+	if !providerConfig.K6CloudToken.IsNull() && !providerConfig.K6CloudStackID.IsNull() {
+		if err := createK6Client(c, providerConfig); err != nil {
 			return nil, err
 		}
 	}
@@ -226,6 +234,32 @@ func createConnectionsClient(client *common.Client, providerConfig ProviderConfi
 		return err
 	}
 	client.ConnectionsAPIClient = apiClient
+	return nil
+}
+
+func createK6Client(client *common.Client, providerConfig ProviderConfig) error {
+	k6Cfg := k6.NewConfiguration()
+	if !providerConfig.K6CloudURL.IsNull() {
+		k6Cfg.Servers = []k6.ServerConfiguration{
+			{URL: providerConfig.K6CloudURL.ValueString()},
+		}
+	}
+
+	k6Cfg.HTTPClient = getRetryClient(providerConfig)
+
+	httpHeaders, err := getHTTPHeadersMap(providerConfig)
+	if err != nil {
+		return err
+	}
+	for k, v := range httpHeaders {
+		k6Cfg.DefaultHeader[k] = v
+	}
+
+	client.K6APIClient = k6.NewAPIClient(k6Cfg)
+	client.K6APIConfig = &k6providerapi.K6APIConfig{
+		Token:   providerConfig.K6CloudToken.ValueString(),
+		StackID: providerConfig.K6CloudStackID.ValueInt32(),
+	}
 	return nil
 }
 

@@ -8,6 +8,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloudprovider"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/connections"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/k6"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/machinelearning"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/oncall"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/slo"
@@ -64,6 +65,7 @@ func Resources() []*common.Resource {
 	resources = append(resources, syntheticmonitoring.Resources...)
 	resources = append(resources, cloudprovider.Resources...)
 	resources = append(resources, connections.Resources...)
+	resources = append(resources, k6.Resources...)
 	return resources
 }
 

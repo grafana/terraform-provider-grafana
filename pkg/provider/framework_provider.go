@@ -46,6 +46,10 @@ type ProviderConfig struct {
 	ConnectionsAPIAccessToken types.String `tfsdk:"connections_api_access_token"`
 	ConnectionsAPIURL         types.String `tfsdk:"connections_api_url"`
 
+	K6CloudURL     types.String `tfsdk:"k6_cloud_url"`
+	K6CloudToken   types.String `tfsdk:"k6_cloud_token"`
+	K6CloudStackID types.Int32  `tfsdk:"k6_cloud_stack_id"`
+
 	UserAgent types.String `tfsdk:"-"`
 	Version   types.String `tfsdk:"-"`
 }
@@ -68,6 +72,11 @@ func (c *ProviderConfig) SetDefaults() error {
 	c.CloudProviderURL = envDefaultFuncString(c.CloudProviderURL, "GRAFANA_CLOUD_PROVIDER_URL")
 	c.ConnectionsAPIAccessToken = envDefaultFuncString(c.ConnectionsAPIAccessToken, "GRAFANA_CONNECTIONS_API_ACCESS_TOKEN")
 	c.ConnectionsAPIURL = envDefaultFuncString(c.ConnectionsAPIURL, "GRAFANA_CONNECTIONS_API_URL", "https://connections-api.grafana.net")
+	c.K6CloudURL = envDefaultFuncString(c.K6CloudURL, "GRAFANA_K6_CLOUD_URL")
+	c.K6CloudToken = envDefaultFuncString(c.K6CloudToken, "GRAFANA_K6_CLOUD_TOKEN")
+	if c.K6CloudStackID, err = envDefaultFuncInt32(c.K6CloudStackID, "GRAFANA_K6_CLOUD_STACK_ID"); err != nil {
+		return fmt.Errorf("failed to parse GRAFANA_K6_CLOUD_STACK_ID: %w", err)
+	}
 	if c.StoreDashboardSha256, err = envDefaultFuncBool(c.StoreDashboardSha256, "GRAFANA_STORE_DASHBOARD_SHA256", false); err != nil {
 		return fmt.Errorf("failed to parse GRAFANA_STORE_DASHBOARD_SHA256: %w", err)
 	}
@@ -221,6 +230,19 @@ func (p *frameworkProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 				Optional:            true,
 				MarkdownDescription: "A Grafana Connections API address. May alternatively be set via the `GRAFANA_CONNECTIONS_API_URL` environment variable.",
 			},
+			"k6_cloud_url": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "The k6 Cloud API url. May alternatively be set via the `GRAFANA_K6_CLOUD_URL` environment variable.",
+			},
+			"k6_cloud_token": schema.StringAttribute{
+				Optional:            true,
+				Sensitive:           true,
+				MarkdownDescription: "The k6 Cloud API token. May alternatively be set via the `GRAFANA_K6_CLOUD_TOKEN` environment variable.",
+			},
+			"k6_cloud_stack_id": schema.Int32Attribute{
+				Optional:            true,
+				MarkdownDescription: "The k6 Cloud stack identifier. May alternatively be set via the `GRAFANA_K6_CLOUD_STACK_ID` environment variable.",
+			},
 		},
 	}
 }
@@ -275,6 +297,16 @@ func envDefaultFuncString(v types.String, envVar string, defaultValue ...string)
 		return types.StringValue(defaultValue[0])
 	}
 	return v
+}
+
+func envDefaultFuncInt32(v types.Int32, envVar string, defaultValue ...int32) (types.Int32, error) {
+	if envValue := os.Getenv(envVar); v.IsNull() && envValue != "" {
+		value, err := strconv.ParseInt(envValue, 10, 32)
+		return types.Int32Value(int32(value)), err
+	} else if v.IsNull() && len(defaultValue) > 0 {
+		return types.Int32Value(defaultValue[0]), nil
+	}
+	return v, nil
 }
 
 func envDefaultFuncInt64(v types.Int64, envVar string, defaultValue ...int64) (types.Int64, error) {

@@ -9,14 +9,17 @@ import (
 	onCallAPI "github.com/grafana/amixr-api-go-client"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/slo-openapi-client/go/slo"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
-	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/k6providerapi"
 )
 
 type Client struct {
@@ -32,6 +35,9 @@ type Client struct {
 	SLOClient            *slo.APIClient
 	CloudProviderAPI     *cloudproviderapi.Client
 	ConnectionsAPIClient *connectionsapi.Client
+
+	K6APIClient *k6.APIClient
+	K6APIConfig *k6providerapi.K6APIConfig
 
 	alertingMutex sync.Mutex
 }

@@ -1,8 +1,8 @@
 module github.com/grafana/terraform-provider-grafana/v3
 
-go 1.23
+go 1.23.4
 
-toolchain go1.23.2
+toolchain go1.23.6
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
@@ -39,6 +39,8 @@ require (
 	golang.org/x/text v0.21.0
 	gopkg.in/yaml.v2 v2.4.0
 )
+
+require github.com/grafana/k6-cloud-openapi-client-go v0.0.0-20250212105944-bad1c240dbcd
 
 require (
 	github.com/BurntSushi/toml v1.4.0 // indirect

@@ -145,6 +145,8 @@ github.com/grafana/grafana-openapi-client-go v0.0.0-20241113095943-9cb2bbfeb8a3 
 github.com/grafana/grafana-openapi-client-go v0.0.0-20241113095943-9cb2bbfeb8a3/go.mod h1:hiZnMmXc9KXNUlvkV2BKFsiWuIFF/fF4wGgYWEjBitI=
 github.com/grafana/grafana-plugin-sdk-go v0.250.0 h1:9EBucp9jLqMx2b8NTlOXH+4OuQWUh6L85c6EJUN8Jdo=
 github.com/grafana/grafana-plugin-sdk-go v0.250.0/go.mod h1:gCGN9kHY3KeX4qyni3+Kead38Q+85pYOrsDcxZp6AIk=
+github.com/grafana/k6-cloud-openapi-client-go v0.0.0-20250212105944-bad1c240dbcd h1:in/fjdm9rJVEsqlqSKPs11V6L5ijrwRorRlWWtnkLbo=
+github.com/grafana/k6-cloud-openapi-client-go v0.0.0-20250212105944-bad1c240dbcd/go.mod h1:nBtSyJ0NTfJvEPSrRSKc1u7Vn0mB/kttEZdClHwTqi0=
 github.com/grafana/machine-learning-go-client v0.8.2 h1:TvU4e+Kgg4GhwBNYTMjBUNq4tbhcxe0L8w1eo/UfV2M=
 github.com/grafana/machine-learning-go-client v0.8.2/go.mod h1:GQKDn10CZqG11l1Qtc6BZ5V6e54fSv5Vi8wskWn3BWs=
 github.com/grafana/otel-profiling-go v0.5.1 h1:stVPKAFZSa7eGiqbYuG25VcqYksR6iWvF3YH66t4qL8=

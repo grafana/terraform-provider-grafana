@@ -160,6 +160,23 @@ func Provider(version string) *schema.Provider {
 				Description:  "A Grafana Connections API address. May alternatively be set via the `GRAFANA_CONNECTIONS_API_URL` environment variable.",
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
+			"k6_cloud_url": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The k6 Cloud API url. May alternatively be set via the `GRAFANA_K6_CLOUD_URL` environment variable.",
+				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
+			},
+			"k6_cloud_token": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "The k6 Cloud API token. May alternatively be set via the `GRAFANA_K6_CLOUD_TOKEN` environment variable.",
+			},
+			"k6_cloud_stack_id": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The k6 Cloud stack identifier. May alternatively be set via the `GRAFANA_K6_CLOUD_STACK_ID` environment variable.",
+			},
 		},
 
 		ResourcesMap:   legacySDKResources(),
@@ -232,6 +249,9 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			CloudProviderURL:          stringValueOrNull(d, "cloud_provider_url"),
 			ConnectionsAPIAccessToken: stringValueOrNull(d, "connections_api_access_token"),
 			ConnectionsAPIURL:         stringValueOrNull(d, "connections_api_url"),
+			K6CloudURL:                stringValueOrNull(d, "k6_cloud_url"),
+			K6CloudToken:              stringValueOrNull(d, "k6_cloud_token"),
+			K6CloudStackID:            int32ValueOrNull(d, "k6_cloud_stack_id"),
 			StoreDashboardSha256:      boolValueOrNull(d, "store_dashboard_sha256"),
 			HTTPHeaders:               headers,
 			Retries:                   int64ValueOrNull(d, "retries"),
@@ -261,6 +281,13 @@ func boolValueOrNull(d *schema.ResourceData, key string) types.Bool {
 		return types.BoolValue(v.(bool))
 	}
 	return types.BoolNull()
+}
+
+func int32ValueOrNull(d *schema.ResourceData, key string) types.Int32 {
+	if v, ok := d.GetOk(key); ok {
+		return types.Int32Value(int32(v.(int)))
+	}
+	return types.Int32Null()
 }
 
 func int64ValueOrNull(d *schema.ResourceData, key string) types.Int64 {
