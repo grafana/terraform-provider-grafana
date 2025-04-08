@@ -13,7 +13,7 @@ require (
 	github.com/grafana/amixr-api-go-client v0.0.20 // main branch
 	github.com/grafana/authlib/claims v0.0.0-20250120084028-e3328c576437
 	github.com/grafana/fleet-management-api v1.0.0
-	github.com/grafana/grafana-app-sdk v0.34.1-0.20250314160558-ff4892e2895c
+	github.com/grafana/grafana-app-sdk v0.35.2-0.20250408075831-c2a87bde0849
 	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20250214150112-a52892176c26
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20241113095943-9cb2bbfeb8a3
 	github.com/grafana/grafana/apps/dashboard v0.0.0-20250314125419-399df82f0b25
@@ -79,7 +79,7 @@ require (
 	github.com/elazarl/goproxy v1.7.2 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
-	github.com/getkin/kin-openapi v0.129.0 // indirect
+	github.com/getkin/kin-openapi v0.131.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/analysis v0.23.0 // indirect
@@ -101,7 +101,7 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
-	github.com/grafana/grafana-app-sdk/logging v0.33.0 // indirect
+	github.com/grafana/grafana-app-sdk/logging v0.35.1 // indirect
 	github.com/grafana/grafana-plugin-sdk-go v0.272.0 // indirect
 	github.com/grafana/otel-profiling-go v0.5.1 // indirect
 	github.com/grafana/pyroscope-go/godeltaprof v0.1.8 // indirect
@@ -140,8 +140,8 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/oasdiff/yaml v0.0.0-20241210131133-6b86fb107d80 // indirect
-	github.com/oasdiff/yaml3 v0.0.0-20241210130736-a94c01f36349 // indirect
+	github.com/oasdiff/yaml v0.0.0-20250309154309-f31be36b4037 // indirect
+	github.com/oasdiff/yaml3 v0.0.0-20250309153720-d2182401db90 // indirect
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
@@ -197,7 +197,7 @@ require (
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250218202821-56aae31c358a // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250218202821-56aae31c358a // indirect
-	google.golang.org/grpc v1.71.0 // indirect
+	google.golang.org/grpc v1.71.1 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/fsnotify/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
