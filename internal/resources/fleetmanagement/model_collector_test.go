@@ -11,7 +11,49 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCollectorMessageToModel(t *testing.T) {
+func TestCollectorMessageToDataSourceModel(t *testing.T) {
+	id := "test_id"
+	enabled := true
+
+	msg := &collectorv1.Collector{
+		Id: id,
+		RemoteAttributes: map[string]string{
+			"key1": "value1",
+			"key2": "value2",
+		},
+		LocalAttributes: map[string]string{
+			"key3": "value3",
+			"key4": "value4",
+		},
+		Enabled: &enabled,
+	}
+
+	expectedModel := &collectorDataSourceModel{
+		ID: types.StringValue(id),
+		RemoteAttributes: types.MapValueMust(
+			types.StringType,
+			map[string]attr.Value{
+				"key1": types.StringValue("value1"),
+				"key2": types.StringValue("value2"),
+			},
+		),
+		LocalAttributes: types.MapValueMust(
+			types.StringType,
+			map[string]attr.Value{
+				"key3": types.StringValue("value3"),
+				"key4": types.StringValue("value4"),
+			},
+		),
+		Enabled: types.BoolPointerValue(&enabled),
+	}
+
+	ctx := context.Background()
+	actualModel, diags := collectorMessageToDataSourceModel(ctx, msg)
+	assert.False(t, diags.HasError())
+	assert.Equal(t, expectedModel, actualModel)
+}
+
+func TestCollectorMessageToResourceModel(t *testing.T) {
 	id := "test_id"
 	enabled := true
 
@@ -24,7 +66,7 @@ func TestCollectorMessageToModel(t *testing.T) {
 		Enabled: &enabled,
 	}
 
-	expectedModel := &collectorModel{
+	expectedModel := &collectorResourceModel{
 		ID: types.StringValue(id),
 		RemoteAttributes: types.MapValueMust(
 			types.StringType,
@@ -37,16 +79,16 @@ func TestCollectorMessageToModel(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	actualModel, diags := collectorMessageToModel(ctx, msg)
+	actualModel, diags := collectorMessageToResourceModel(ctx, msg)
 	assert.False(t, diags.HasError())
 	assert.Equal(t, expectedModel, actualModel)
 }
 
-func TestCollectorModelToMessage(t *testing.T) {
+func TestCollectorResourceModelToMessage(t *testing.T) {
 	id := "test_id"
 	enabled := true
 
-	model := &collectorModel{
+	model := &collectorResourceModel{
 		ID: types.StringValue(id),
 		RemoteAttributes: types.MapValueMust(
 			types.StringType,
@@ -68,7 +110,7 @@ func TestCollectorModelToMessage(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	actualMsg, diags := collectorModelToMessage(ctx, model)
+	actualMsg, diags := collectorResourceModelToMessage(ctx, model)
 	assert.False(t, diags.HasError())
 	assert.Equal(t, expectedMsg, actualMsg)
 }
