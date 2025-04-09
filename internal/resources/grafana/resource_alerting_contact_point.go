@@ -28,6 +28,7 @@ var (
 		googleChatNotifier{},
 		kafkaNotifier{},
 		lineNotifier{},
+		mqttNotifier{},
 		oncallNotifier{},
 		opsGenieNotifier{},
 		pagerDutyNotifier{},
@@ -419,11 +420,38 @@ func packNotifierStringField(gfSettings, tfSettings *map[string]interface{}, gfK
 	}
 }
 
+func packNotifierIntField(gfSettings, tfSettings *map[string]interface{}, gfKey, tfKey string) error {
+	val := (*gfSettings)[gfKey]
+	if val == nil {
+		return nil
+	}
+	v, err := strconv.Atoi(val.(string))
+	if err != nil {
+		return err
+	}
+	(*tfSettings)[tfKey] = int64(v)
+	delete(*gfSettings, gfKey)
+	return nil
+}
+
+func packNotifierBoolField(gfSettings, tfSettings *map[string]interface{}, gfKey, tfKey string) {
+	if v, ok := (*gfSettings)[gfKey]; ok && v != nil {
+		(*tfSettings)[tfKey] = v.(bool)
+		delete(*gfSettings, gfKey)
+	}
+}
+
 func packSecureFields(tfSettings, state map[string]interface{}, secureFields []string) {
 	for _, tfKey := range secureFields {
 		if v, ok := state[tfKey]; ok && v != nil {
 			tfSettings[tfKey] = v.(string)
 		}
+	}
+}
+
+func unpackNotifierBoolField(tfSettings, gfSettings *map[string]interface{}, tfKey, gfKey string) {
+	if v, ok := (*tfSettings)[tfKey]; ok && v != nil {
+		(*gfSettings)[gfKey] = v.(bool)
 	}
 }
 
