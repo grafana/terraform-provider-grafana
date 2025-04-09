@@ -104,6 +104,23 @@ This resource requires Grafana 9.1.0 or later.
 								return oldDuration == newDuration
 							},
 						},
+						"keep_firing_for": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							Description:      "The amount of time for which the rule will considered to be Recovering after initially Firing. Before this time has elapsed, the rule will continue to fire once it's been triggered.",
+							ValidateDiagFunc: common.ValidateDurationWithDays,
+							DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+								oldDuration, _ := strfmt.ParseDuration(oldValue)
+								newDuration, _ := strfmt.ParseDuration(newValue)
+								return oldDuration == newDuration
+							},
+						},
+						"missing_series_evals_to_resolve": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							Description:  "The number of missing series evaluations that must occur before the rule is considered to be resolved. Defaults to 2 if not set.",
+							ValidateFunc: validation.IntAtLeast(1),
+						},
 						"no_data_state": {
 							Type:        schema.TypeString,
 							Optional:    true,
