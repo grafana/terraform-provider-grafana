@@ -36,7 +36,7 @@ func (r *basePluginFrameworkResource) Configure(_ context.Context, req resource.
 	if client.K6APIClient == nil || client.K6APIConfig == nil {
 		resp.Diagnostics.AddError(
 			"The Grafana Provider is missing the configuration for the k6 Cloud API.",
-			"Please ensure that k6_cloud_token and k6_cloud_stack_id are set in the provider configuration.",
+			"Please ensure that k6_access_token and k6_stack_id are set in the provider configuration.",
 		)
 
 		return

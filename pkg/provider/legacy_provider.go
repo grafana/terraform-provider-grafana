@@ -160,22 +160,22 @@ func Provider(version string) *schema.Provider {
 				Description:  "A Grafana Connections API address. May alternatively be set via the `GRAFANA_CONNECTIONS_API_URL` environment variable.",
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
-			"k6_cloud_url": {
+			"k6_url": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Description:  "The k6 Cloud API url. May alternatively be set via the `GRAFANA_K6_CLOUD_URL` environment variable.",
+				Description:  "The k6 Cloud API url. May alternatively be set via the `GRAFANA_K6_URL` environment variable.",
 				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
 			},
-			"k6_cloud_token": {
+			"k6_access_token": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Sensitive:   true,
-				Description: "The k6 Cloud API token. May alternatively be set via the `GRAFANA_K6_CLOUD_TOKEN` environment variable.",
+				Description: "The k6 Cloud API token. May alternatively be set via the `GRAFANA_K6_ACCESS_TOKEN` environment variable.",
 			},
-			"k6_cloud_stack_id": {
+			"k6_stack_id": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Description: "The k6 Cloud stack identifier. May alternatively be set via the `GRAFANA_K6_CLOUD_STACK_ID` environment variable.",
+				Description: "The k6 Cloud stack identifier. May alternatively be set via the `GRAFANA_K6_STACK_ID` environment variable.",
 			},
 		},
 
@@ -249,9 +249,9 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			CloudProviderURL:          stringValueOrNull(d, "cloud_provider_url"),
 			ConnectionsAPIAccessToken: stringValueOrNull(d, "connections_api_access_token"),
 			ConnectionsAPIURL:         stringValueOrNull(d, "connections_api_url"),
-			K6CloudURL:                stringValueOrNull(d, "k6_cloud_url"),
-			K6CloudToken:              stringValueOrNull(d, "k6_cloud_token"),
-			K6CloudStackID:            int32ValueOrNull(d, "k6_cloud_stack_id"),
+			K6URL:                     stringValueOrNull(d, "k6_url"),
+			K6AccessToken:             stringValueOrNull(d, "k6_access_token"),
+			K6StackID:                 int32ValueOrNull(d, "k6_stack_id"),
 			StoreDashboardSha256:      boolValueOrNull(d, "store_dashboard_sha256"),
 			HTTPHeaders:               headers,
 			Retries:                   int64ValueOrNull(d, "retries"),

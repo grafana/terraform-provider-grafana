@@ -74,7 +74,7 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 		}
 	}
 
-	if !providerConfig.K6CloudToken.IsNull() && !providerConfig.K6CloudStackID.IsNull() {
+	if !providerConfig.K6AccessToken.IsNull() && !providerConfig.K6StackID.IsNull() {
 		if err := createK6Client(c, providerConfig); err != nil {
 			return nil, err
 		}
@@ -239,9 +239,9 @@ func createConnectionsClient(client *common.Client, providerConfig ProviderConfi
 
 func createK6Client(client *common.Client, providerConfig ProviderConfig) error {
 	k6Cfg := k6.NewConfiguration()
-	if !providerConfig.K6CloudURL.IsNull() {
+	if !providerConfig.K6URL.IsNull() {
 		k6Cfg.Servers = []k6.ServerConfiguration{
-			{URL: providerConfig.K6CloudURL.ValueString()},
+			{URL: providerConfig.K6URL.ValueString()},
 		}
 	}
 
@@ -257,8 +257,8 @@ func createK6Client(client *common.Client, providerConfig ProviderConfig) error 
 
 	client.K6APIClient = k6.NewAPIClient(k6Cfg)
 	client.K6APIConfig = &k6providerapi.K6APIConfig{
-		Token:   providerConfig.K6CloudToken.ValueString(),
-		StackID: providerConfig.K6CloudStackID.ValueInt32(),
+		Token:   providerConfig.K6AccessToken.ValueString(),
+		StackID: providerConfig.K6StackID.ValueInt32(),
 	}
 	return nil
 }
