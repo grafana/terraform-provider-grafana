@@ -186,7 +186,7 @@ func TestAccNotificationPolicy_error(t *testing.T) {
 					contact_point = "invalid"
 				  }`,
 				// This tests that the API error message is propagated to the user.
-				ExpectError: regexp.MustCompile("400.+invalid object specification: receiver 'invalid' does not exist"),
+				ExpectError: regexp.MustCompile("400.+Invalid format of the submitted route: receiver 'invalid' does not exist"),
 			},
 		},
 	})
