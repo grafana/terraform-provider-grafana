@@ -188,6 +188,7 @@ func CheckCloudInstanceTestsEnabled(t *testing.T) {
 	CheckEnvVarsSet(t,
 		"GRAFANA_URL",
 		"GRAFANA_AUTH",
+		"GRAFANA_K6_ACCESS_TOKEN",
 		"GRAFANA_SM_ACCESS_TOKEN",
 		"GRAFANA_ONCALL_ACCESS_TOKEN",
 		"GRAFANA_CLOUD_PROVIDER_URL",

@@ -20,7 +20,7 @@ import (
 var defaultIDRegexp = regexp.MustCompile(`^\d{5,8}$`)
 
 func TestAccProject_basic(t *testing.T) {
-	//testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	var project k6.ProjectApiModel
 

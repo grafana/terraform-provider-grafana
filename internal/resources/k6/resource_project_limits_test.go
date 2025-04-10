@@ -13,7 +13,7 @@ import (
 )
 
 func TestAccProjectLimits_basic(t *testing.T) {
-	//testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	var project k6.ProjectApiModel
 	var projectLimits k6.ProjectLimitsApiModel

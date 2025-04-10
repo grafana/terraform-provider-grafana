@@ -17,7 +17,7 @@ import (
 )
 
 func TestAccLoadTest_basic(t *testing.T) {
-	//testutils.CheckOSSTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	var (
 		project  k6.ProjectApiModel
