@@ -57,7 +57,7 @@ on available hyperparameters for use in the ` + "`hyper_params`" + ` field.`,
 				Required:    true,
 			},
 			"datasource_type": {
-				Description: "The type of datasource being queried. Currently allowed values are prometheus, graphite, loki, postgres, and datadog.",
+				Description: "The type of datasource being queried. Currently allowed values are prometheus, graphite, loki, postgres, influxdb, snowflake, splunk, elasticsearch, bigquery, mongodb, and datadog.",
 				Type:        schema.TypeString,
 				Required:    true,
 			},

@@ -60,10 +60,10 @@ Visit https://grafana.com/docs/grafana-cloud/machine-learning/outlier-detection/
 				Required:    true,
 			},
 			"datasource_type": {
-				Description:  "The type of datasource being queried. Currently allowed values are prometheus, graphite, loki, postgres, and datadog.",
+				Description:  "The type of datasource being queried. Currently allowed values are prometheus, graphite, loki, postgres, influxdb, snowflake, splunk, elasticsearch, bigquery, mongodb, and datadog.",
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validation.StringInSlice([]string{"prometheus", "graphite", "loki", "postgres", "datadog"}, false),
+				ValidateFunc: validation.StringInSlice([]string{"prometheus", "graphite", "loki", "postgres", "influxdb", "snowflake", "splunk", "elasticsearch", "bigquery", "mongodb", "datadog"}, false),
 			},
 			"query_params": {
 				Description: "An object representing the query params to query Grafana with.",
