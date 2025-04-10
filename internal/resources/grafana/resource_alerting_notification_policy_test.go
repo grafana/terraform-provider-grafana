@@ -125,52 +125,82 @@ func TestAccNotificationPolicy_inheritContactPoint(t *testing.T) {
 }
 
 func TestAccNotificationPolicy_disableProvenance(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+	t.Run("fetch disable_provenance", func(t *testing.T) {
+		testutils.CheckOSSTestsEnabled(t, ">=11.3.0")
 
-	var policy models.Route
+		var policy models.Route
 
-	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		// Implicitly tests deletion.
-		CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
-		Steps: []resource.TestStep{
-			// Create
-			{
-				Config: testAccNotificationPolicyDisableProvenance(false),
-				Check: resource.ComposeTestCheckFunc(
-					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
-					resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "false"),
-				),
+		resource.Test(t, resource.TestCase{
+			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			// Implicitly tests deletion.
+			CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
+			Steps: []resource.TestStep{
+				// Create
+				{
+					Config: testAccNotificationPolicyDisableProvenance(false),
+					Check: resource.ComposeTestCheckFunc(
+						alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+						resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "false"),
+					),
+				},
+				// Import (tests that disable_provenance is fetched from API)
+				{
+					ResourceName:      "grafana_notification_policy.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
 			},
-			// Import (tests that disable_provenance is fetched from API)
-			{
-				ResourceName:      "grafana_notification_policy.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+		})
+	})
+
+	t.Run("disable_provenance", func(t *testing.T) {
+		testutils.CheckOSSTestsEnabled(t, ">=9.1.0,<=11.1.0")
+
+		var policy models.Route
+
+		resource.Test(t, resource.TestCase{
+			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			// Implicitly tests deletion.
+			CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
+			Steps: []resource.TestStep{
+				// Create
+				{
+					Config: testAccNotificationPolicyDisableProvenance(false),
+					Check: resource.ComposeTestCheckFunc(
+						alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+						resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "false"),
+					),
+				},
+				// Import (tests that disable_provenance is fetched from API)
+				{
+					ResourceName:      "grafana_notification_policy.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+				// Disable provenance
+				{
+					Config: testAccNotificationPolicyDisableProvenance(true),
+					Check: resource.ComposeTestCheckFunc(
+						alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+						resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "true"),
+					),
+				},
+				// Import (tests that disable_provenance is fetched from API)
+				{
+					ResourceName:      "grafana_notification_policy.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+				// Re-enable provenance
+				{
+					Config: testAccNotificationPolicyDisableProvenance(false),
+					Check: resource.ComposeTestCheckFunc(
+						alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+						resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "false"),
+					),
+				},
 			},
-			// Disable provenance
-			{
-				Config: testAccNotificationPolicyDisableProvenance(true),
-				Check: resource.ComposeTestCheckFunc(
-					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
-					resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "true"),
-				),
-			},
-			// Import (tests that disable_provenance is fetched from API)
-			{
-				ResourceName:      "grafana_notification_policy.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-			// Re-enable provenance
-			{
-				Config: testAccNotificationPolicyDisableProvenance(false),
-				Check: resource.ComposeTestCheckFunc(
-					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
-					resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "false"),
-				),
-			},
-		},
+		})
 	})
 }
 
