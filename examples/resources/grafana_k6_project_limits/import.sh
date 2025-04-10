@@ -1,1 +1,1 @@
-terraform import grafana_k6_project_limits.project_id "{{ project_id }}"
+terraform import grafana_k6_project_limits.name "{{ project_id }}"
