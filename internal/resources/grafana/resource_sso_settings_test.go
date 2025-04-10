@@ -64,7 +64,7 @@ func TestSSOSettings_basic_oauth2(t *testing.T) {
 }
 
 func TestSSOSettings_basic_saml(t *testing.T) {
-	testutils.CheckEnterpriseTestsEnabled(t, ">=11.1")
+	testutils.CheckEnterpriseTestsEnabled(t, ">=12.0")
 
 	provider := "saml"
 
