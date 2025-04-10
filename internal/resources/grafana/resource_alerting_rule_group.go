@@ -15,6 +15,7 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -116,10 +117,15 @@ This resource requires Grafana 9.1.0 or later.
 							},
 						},
 						"missing_series_evals_to_resolve": {
-							Type:         schema.TypeInt,
-							Optional:     true,
-							Description:  "The number of missing series evaluations that must occur before the rule is considered to be resolved. Defaults to 2 if not set.",
-							ValidateFunc: validation.IntAtLeast(1),
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Description: "The number of missing series evaluations that must occur before the rule is considered to be resolved.",
+							ValidateDiagFunc: func(i any, path cty.Path) (diags diag.Diagnostics) {
+								if i != nil && i.(int) < 1 {
+									return diag.Errorf("missing_series_evals_to_resolve must be greater than or equal to 1")
+								}
+								return nil
+							},
 						},
 						"no_data_state": {
 							Type:        schema.TypeString,
