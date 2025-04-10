@@ -385,9 +385,10 @@ var _ notifier = (*googleChatNotifier)(nil)
 
 func (g googleChatNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:   "googlechat",
-		typeStr: "googlechat",
-		desc:    "A contact point that sends notifications to Google Chat.",
+		field:        "googlechat",
+		typeStr:      "googlechat",
+		desc:         "A contact point that sends notifications to Google Chat.",
+		secureFields: []string{"url"},
 	}
 }
 
@@ -424,6 +425,9 @@ func (g googleChatNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Re
 		notifier["message"] = v.(string)
 		delete(settings, "message")
 	}
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, g, p.UID), g.meta().secureFields)
+
 	notifier["settings"] = packSettings(p)
 	return notifier, nil
 }
@@ -1961,9 +1965,10 @@ var _ notifier = (*victorOpsNotifier)(nil)
 
 func (v victorOpsNotifier) meta() notifierMeta {
 	return notifierMeta{
-		field:   "victorops",
-		typeStr: "victorops",
-		desc:    "A contact point that sends notifications to VictorOps (now known as Splunk OnCall).",
+		field:        "victorops",
+		typeStr:      "victorops",
+		desc:         "A contact point that sends notifications to VictorOps (now known as Splunk OnCall).",
+		secureFields: []string{"url"},
 	}
 }
 
@@ -1972,6 +1977,7 @@ func (v victorOpsNotifier) schema() *schema.Resource {
 	r.Schema["url"] = &schema.Schema{
 		Type:        schema.TypeString,
 		Required:    true,
+		Sensitive:   true,
 		Description: "The VictorOps webhook URL.",
 	}
 	r.Schema["message_type"] = &schema.Schema{
@@ -2000,6 +2006,8 @@ func (v victorOpsNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Res
 	packNotifierStringField(&settings, &notifier, "messageType", "message_type")
 	packNotifierStringField(&settings, &notifier, "title", "title")
 	packNotifierStringField(&settings, &notifier, "description", "description")
+
+	packSecureFields(notifier, getNotifierConfigFromStateWithUID(data, v, p.UID), v.meta().secureFields)
 
 	notifier["settings"] = packSettings(p)
 	return notifier, nil
