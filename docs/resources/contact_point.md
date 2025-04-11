@@ -474,7 +474,7 @@ Read-Only:
 
 Required:
 
-- `url` (String) The VictorOps webhook URL.
+- `url` (String, Sensitive) The VictorOps webhook URL.
 
 Optional:
 
