@@ -234,9 +234,53 @@ func resourceIntegration() *common.Resource {
 				},
 			},
 
-
 			"labels": {
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Schema{
+							Type: schema.TypeList,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"key": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"value": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+					},
+				},
+			},
+/*
+			"labels": {
+			  Type:     schema.TypeSet,
+			  Optional: true,
+			  Elem: &schema.Resource{
+				Schema: schema.Schema{
+			  	  Required: true,
+				  Type: schema.TypeList,
+				  Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+					  "key": {
+						Type:     schema.TypeString,
+						Required: true,
+					  },
+					  "value": {
+						Type:     schema.TypeString,
+						Required: true,
+					  },
+					},
+				  },
+
+				},
+			  },
+			},
+
+			/*
+			"labels": {
+				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -380,8 +424,8 @@ func resourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, clie
 	templatesData := d.Get("templates").([]interface{})
 	defaultRouteData := d.Get("default_route").([]interface{})
 
-	labelsData := d.Get("labels").([]interface{})
-	//labelsData := make([]interface{}, 0, 1)
+	//labelsData := d.Get("labels").([]interface{})
+	labelsData := make([]interface{}, 0, 1)
 	/*
 	labelsData := make([]*onCallAPI.Label, 0, 1)
 	label := onCallAPI.Label{
