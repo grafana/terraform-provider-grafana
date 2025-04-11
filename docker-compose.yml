@@ -21,6 +21,7 @@ services:
     ports:
       - 3000:3000
     image: ${GRAFANA_IMAGE:-grafana/grafana}:${GRAFANA_VERSION}
+    user: ${DOCKER_USER_UID:-}
     environment:
       - GF_DATABASE_TYPE=mysql
       - GF_DATABASE_HOST=mysql
@@ -36,6 +37,8 @@ services:
       interval: 10s
       retries: 10
       start_period: 10s
+    volumes:
+      - ./testdata:/certs
   mtls-proxy:
     profiles:
       - "tls"
