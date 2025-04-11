@@ -1,4 +1,4 @@
-GRAFANA_VERSION ?= 11.0.0
+GRAFANA_VERSION ?= 11.6.0
 DOCKER_COMPOSE_ARGS ?= --force-recreate --detach --remove-orphans --wait --renew-anon-volumes
 
 testacc:
@@ -29,8 +29,10 @@ testacc-oss-docker:
 	docker compose down
 
 testacc-enterprise-docker:
+	export DOCKER_USER_UID="$(shell id -u)" && \
 	export GRAFANA_URL=http://0.0.0.0:3000 && \
 	export GRAFANA_VERSION=$(GRAFANA_VERSION) && \
+	make -C testdata generate && \
 	GRAFANA_IMAGE=grafana/grafana-enterprise docker compose up $(DOCKER_COMPOSE_ARGS) && \
 	make testacc-enterprise && \
 	docker compose down
