@@ -56,8 +56,8 @@ resource "grafana_sso_settings" "saml_sso_settings" {
   provider_name = "saml"
   saml_settings {
     allow_sign_up             = true
-    certificate_path          = "devenv/docker/blocks/auth/saml-enterprise/cert.crt"
-    private_key_path          = "devenv/docker/blocks/auth/saml-enterprise/key.pem"
+    certificate_path          = "/certs/saml.crt"
+    private_key_path          = "/certs/saml.key"
     idp_metadata_url          = "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"
     signature_algorithm       = "rsa-sha256"
     assertion_attribute_login = "login"

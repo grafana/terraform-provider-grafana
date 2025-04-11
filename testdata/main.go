@@ -60,7 +60,7 @@ func makeCerts() error {
 	}
 
 	// Create client and server certificates
-	for _, name := range []string{"client", "grafana"} {
+	for _, name := range []string{"client", "grafana", "saml"} {
 		serialNumber = serialNumber.Add(serialNumber, big.NewInt(1))
 		// copy CA data
 		crt := &x509.Certificate{}
@@ -84,10 +84,32 @@ func makeCerts() error {
 			return fmt.Errorf("cannot create certificate %s: %w", name, err)
 		}
 
-		if err := writePEMFiles(name, crtBytes, crtPrivKey); err != nil {
-			return err
+		if name == "saml" {
+			if err := writePKCS8PEMFiles(name, crtBytes, crtPrivKey); err != nil {
+				return err
+			}
+		} else {
+			if err := writePEMFiles(name, crtBytes, crtPrivKey); err != nil {
+				return err
+			}
 		}
+	}
 
+	return nil
+}
+
+func writePKCS8PEMFiles(name string, crtBytes []byte, crtPrivKey *rsa.PrivateKey) error {
+	if err := writePEMFile(name+".crt", "CERTIFICATE", crtBytes); err != nil {
+		return fmt.Errorf("cannot write certificate file: %w", err)
+	}
+
+	pkcs8Bytes, err := x509.MarshalPKCS8PrivateKey(crtPrivKey)
+	if err != nil {
+		return fmt.Errorf("cannot marshal private key to PKCS#8: %w", err)
+	}
+
+	if err := writePEMFile(name+".key", "PRIVATE KEY", pkcs8Bytes); err != nil {
+		return fmt.Errorf("cannot write key file: %w", err)
 	}
 
 	return nil
