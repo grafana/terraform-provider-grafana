@@ -233,6 +233,84 @@ func resourceIntegration() *common.Resource {
 					return true
 				},
 			},
+
+
+			"labels": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"value": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+
+			/*
+            "labels": {
+				Type: schema.TypeSet,
+				Elem: &schema.Schema{
+					Type: schema.TypeSet,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"key": {
+								Type:        schema.TypeString,
+								Required:    true,
+								Description: "Name of the label key",
+							},
+							"value": {
+								Type:        schema.TypeString,
+								Required:    true,
+								Description: "Name of the label value",
+							},
+						},
+					},
+					Optional: true,
+				},
+				Optional: true,
+			},
+				/*
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"label_key": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"label_value": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+				*/
+			/*
+			"labels": {
+				Type: schema.TypeList,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"label_key": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "The key of the label",
+						},
+						"label_value": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "The value of the label.",
+						},
+					},
+					//ValidateFunc: validation.StringInSlice(onCallShiftWeekDayOptions, false),
+				},
+				Optional:    true,
+				Description: "A list of Labels.",
+			},
+			*/
 		},
 	}
 
@@ -302,12 +380,27 @@ func resourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, clie
 	templatesData := d.Get("templates").([]interface{})
 	defaultRouteData := d.Get("default_route").([]interface{})
 
+	labelsData := d.Get("labels").([]interface{})
+	//labelsData := make([]interface{}, 0, 1)
+	/*
+	labelsData := make([]*onCallAPI.Label, 0, 1)
+	label := onCallAPI.Label{
+		Key: onCallAPI.KeyValueName{Name: "TestKey"},
+		Value: onCallAPI.KeyValueName{Name: "TestValue"},
+	}
+	labelsData = append(labelsData, &label)
+	*/
+	//defaultRoute := make([]map[string]interface{}, 0, 1)
+//func expandTemplates(input []interface{}) *onCallAPI.Templates {
+	//slack := make([]map[string]interface{}, 0, 1)
+
 	createOptions := &onCallAPI.CreateIntegrationOptions{
 		TeamId:       teamIDData,
 		Name:         nameData,
 		Type:         typeData,
 		Templates:    expandTemplates(templatesData),
 		DefaultRoute: expandDefaultRoute(defaultRouteData),
+		Labels:       expandLabels(labelsData),
 	}
 
 	integration, _, err := client.Integrations.CreateIntegration(createOptions)
@@ -359,6 +452,8 @@ func resourceIntegrationRead(ctx context.Context, d *schema.ResourceData, client
 	d.Set("type", integration.Type)
 	d.Set("templates", flattenTemplates(integration.Templates))
 	d.Set("link", integration.Link)
+	//d.Set("link", "blorp")
+	d.Set("labels", flattenLabels(integration.Labels))
 
 	return nil
 }
@@ -791,4 +886,63 @@ func expandDefaultRoute(input []interface{}) *onCallAPI.DefaultRoute {
 		}
 	}
 	return &defaultRoute
+}
+
+func expandLabels(input []interface{}) []*onCallAPI.Label {
+	labelsData := make([]*onCallAPI.Label, 0, 1)
+
+	for _, r := range input {
+		//inputMap := r.(map[string]interface{})
+		/*
+		key := inputMap["key"].(string)
+		*/
+		//value := inputMap["value"].(string)
+		value := r.(string)
+		label := onCallAPI.Label{
+			Key: onCallAPI.KeyValueName{Name: "TestKey"},
+			Value: onCallAPI.KeyValueName{Name: "TestValue" + value + "B"},
+			//Key: onCallAPI.KeyValueName{Name: key},
+			//Value: onCallAPI.KeyValueName{Name: value},
+		}
+		labelsData = append(labelsData, &label)
+	}
+	return labelsData
+}
+
+func flattenLabels(labels []*onCallAPI.Label) []string {
+	new_labels := make([]string, 0)
+	for _, l := range labels {
+	//for range labels {
+		new_labels = append(new_labels, l.Key.Name)
+		//new_labels = append(new_labels, "Test?")
+	}
+	new_labels = append(new_labels, "Test2")
+	/*
+	l := Label{
+		Key: "TestKey",
+		Value: "TestValue",
+	}
+	*/
+	//new_labels = append(new_labels, "woozle wuzzle")
+	/*
+	out := make(map[string]interface{})
+	out["id"] = in.ID
+	out["escalation_chain_id"] = in.EscalationChainId
+	// Set messengers data only if related fields are present
+	_, slackOk := d.GetOk("default_route.0.slack")
+	if slackOk {
+		out["slack"] = flattenRouteSlack(in.SlackRoute)
+	}
+	_, telegramOk := d.GetOk("default_route.0.telegram")
+	if telegramOk {
+		out["telegram"] = flattenRouteTelegram(in.TelegramRoute)
+	}
+	_, msteamsOk := d.GetOk("default_route.0.msteams")
+	if msteamsOk {
+		out["msteams"] = flattenRouteMSTeams(in.MSTeamsRoute)
+	}
+
+	defaultRoute = append(defaultRoute, out)
+	*/
+	return new_labels
 }
