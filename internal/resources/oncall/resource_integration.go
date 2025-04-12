@@ -820,15 +820,16 @@ func expandLabels(input []interface{}) []*onCallAPI.Label {
 
 	for _, r := range input {
 		inputMap := r.(map[string]interface{})
-		// TODO - need to check that "key" and "value" exist.
-		// What should we do if they don't?
-		key := inputMap["key"].(string)
-		value := inputMap["value"].(string)
-		label := onCallAPI.Label{
-			Key:   onCallAPI.KeyValueName{Name: key},
-			Value: onCallAPI.KeyValueName{Name: value},
+		key, keyExists := inputMap["key"]
+		value, valueExists := inputMap["value"]
+
+		if keyExists && valueExists {
+			label := onCallAPI.Label{
+				Key:   onCallAPI.KeyValueName{Name: key.(string)},
+				Value: onCallAPI.KeyValueName{Name: value.(string)},
+			}
+			labelsData = append(labelsData, &label)
 		}
-		labelsData = append(labelsData, &label)
 	}
 	return labelsData
 }
