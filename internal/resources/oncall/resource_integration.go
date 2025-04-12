@@ -233,128 +233,17 @@ func resourceIntegration() *common.Resource {
 					return true
 				},
 			},
-
-			"labels": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem: &schema.Schema{
-							Type: schema.TypeList,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"key": {
-										Type:     schema.TypeString,
-										Required: true,
-									},
-									"value": {
-										Type:     schema.TypeString,
-										Required: true,
-									},
-								},
-					},
-				},
-			},
-/*
-			"labels": {
-			  Type:     schema.TypeSet,
-			  Optional: true,
-			  Elem: &schema.Resource{
-				Schema: schema.Schema{
-			  	  Required: true,
-				  Type: schema.TypeList,
-				  Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-					  "key": {
-						Type:     schema.TypeString,
-						Required: true,
-					  },
-					  "value": {
-						Type:     schema.TypeString,
-						Required: true,
-					  },
-					},
-				  },
-
-				},
-			  },
-			},
-
-			/*
-			"labels": {
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"key": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"value": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-					},
-				},
-			},
-
-			/*
             "labels": {
-				Type: schema.TypeSet,
-				Elem: &schema.Schema{
-					Type: schema.TypeSet,
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"key": {
-								Type:        schema.TypeString,
-								Required:    true,
-								Description: "Name of the label key",
-							},
-							"value": {
-								Type:        schema.TypeString,
-								Required:    true,
-								Description: "Name of the label value",
-							},
-						},
-					},
-					Optional: true,
-				},
-				Optional: true,
-			},
-				/*
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"label_key": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"label_value": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-					},
-				},
-				*/
-			/*
-			"labels": {
-				Type: schema.TypeList,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"label_key": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Description: "The key of the label",
-						},
-						"label_value": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Description: "The value of the label.",
-						},
-					},
-					//ValidateFunc: validation.StringInSlice(onCallShiftWeekDayOptions, false),
-				},
-				Optional:    true,
-				Description: "A list of Labels.",
-			},
-			*/
+                Type: schema.TypeList,
+                Elem: &schema.Schema{
+                    Type: schema.TypeMap,
+                    Elem: &schema.Schema{
+                        Type: schema.TypeString,
+                    },
+                },
+                Optional:    true,
+				Description: "A list of string-to-string mappings. Each map must include one key named \"key\" and one key named \"value\".",
+            },
 		},
 	}
 
@@ -423,20 +312,7 @@ func resourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, clie
 	typeData := d.Get("type").(string)
 	templatesData := d.Get("templates").([]interface{})
 	defaultRouteData := d.Get("default_route").([]interface{})
-
-	//labelsData := d.Get("labels").([]interface{})
-	labelsData := make([]interface{}, 0, 1)
-	/*
-	labelsData := make([]*onCallAPI.Label, 0, 1)
-	label := onCallAPI.Label{
-		Key: onCallAPI.KeyValueName{Name: "TestKey"},
-		Value: onCallAPI.KeyValueName{Name: "TestValue"},
-	}
-	labelsData = append(labelsData, &label)
-	*/
-	//defaultRoute := make([]map[string]interface{}, 0, 1)
-//func expandTemplates(input []interface{}) *onCallAPI.Templates {
-	//slack := make([]map[string]interface{}, 0, 1)
+	labelsData := d.Get("labels").([]interface{})
 
 	createOptions := &onCallAPI.CreateIntegrationOptions{
 		TeamId:       teamIDData,
@@ -936,17 +812,14 @@ func expandLabels(input []interface{}) []*onCallAPI.Label {
 	labelsData := make([]*onCallAPI.Label, 0, 1)
 
 	for _, r := range input {
-		//inputMap := r.(map[string]interface{})
-		/*
+		inputMap := r.(map[string]interface{})
+		// TODO - need to check that "key" and "value" exist.
+		// What should we do if they don't?
 		key := inputMap["key"].(string)
-		*/
-		//value := inputMap["value"].(string)
-		value := r.(string)
+		value := inputMap["value"].(string)
 		label := onCallAPI.Label{
-			Key: onCallAPI.KeyValueName{Name: "TestKey"},
-			Value: onCallAPI.KeyValueName{Name: "TestValue" + value + "B"},
-			//Key: onCallAPI.KeyValueName{Name: key},
-			//Value: onCallAPI.KeyValueName{Name: value},
+			Key: onCallAPI.KeyValueName{Name: key},
+			Value: onCallAPI.KeyValueName{Name: value},
 		}
 		labelsData = append(labelsData, &label)
 	}
