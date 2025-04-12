@@ -46,6 +46,12 @@ var integrationTypes = []string{
 
 var integrationTypesVerbal = strings.Join(integrationTypes, ", ")
 
+type Label struct {
+	Id	string
+	Key string
+	Value string
+}
+
 func resourceIntegration() *common.Resource {
 	schema := &schema.Resource{
 		Description: `
@@ -827,40 +833,16 @@ func expandLabels(input []interface{}) []*onCallAPI.Label {
 	return labelsData
 }
 
-func flattenLabels(labels []*onCallAPI.Label) []string {
-	new_labels := make([]string, 0)
+func flattenLabels(labels []*onCallAPI.Label) []Label {
+	flattened_labels := make([]Label, 0, 1)
 	for _, l := range labels {
-		//for range labels {
-		new_labels = append(new_labels, l.Key.Name)
-		//new_labels = append(new_labels, "Test?")
+		label := Label{
+			Id: l.Key.Name,
+			Key: l.Key.Name,
+			Value: l.Value.Name,
+		}
+		flattened_labels = append(flattened_labels, label)
 	}
-	new_labels = append(new_labels, "Test2")
-	/*
-		l := Label{
-			Key: "TestKey",
-			Value: "TestValue",
-		}
-	*/
-	//new_labels = append(new_labels, "woozle wuzzle")
-	/*
-		out := make(map[string]interface{})
-		out["id"] = in.ID
-		out["escalation_chain_id"] = in.EscalationChainId
-		// Set messengers data only if related fields are present
-		_, slackOk := d.GetOk("default_route.0.slack")
-		if slackOk {
-			out["slack"] = flattenRouteSlack(in.SlackRoute)
-		}
-		_, telegramOk := d.GetOk("default_route.0.telegram")
-		if telegramOk {
-			out["telegram"] = flattenRouteTelegram(in.TelegramRoute)
-		}
-		_, msteamsOk := d.GetOk("default_route.0.msteams")
-		if msteamsOk {
-			out["msteams"] = flattenRouteMSTeams(in.MSTeamsRoute)
-		}
 
-		defaultRoute = append(defaultRoute, out)
-	*/
-	return new_labels
+	return flattened_labels
 }
