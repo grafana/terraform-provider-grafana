@@ -233,17 +233,17 @@ func resourceIntegration() *common.Resource {
 					return true
 				},
 			},
-            "labels": {
-                Type: schema.TypeList,
-                Elem: &schema.Schema{
-                    Type: schema.TypeMap,
-                    Elem: &schema.Schema{
-                        Type: schema.TypeString,
-                    },
-                },
-                Optional:    true,
+			"labels": {
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeMap,
+					Elem: &schema.Schema{
+						Type: schema.TypeString,
+					},
+				},
+				Optional:    true,
 				Description: "A list of string-to-string mappings. Each map must include one key named \"key\" and one key named \"value\".",
-            },
+			},
 		},
 	}
 
@@ -338,12 +338,14 @@ func resourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, clie
 	teamIDData := d.Get("team_id").(string)
 	templateData := d.Get("templates").([]interface{})
 	defaultRouteData := d.Get("default_route").([]interface{})
+	labelsData := d.Get("labels").([]interface{})
 
 	updateOptions := &onCallAPI.UpdateIntegrationOptions{
 		Name:         nameData,
 		TeamId:       teamIDData,
 		Templates:    expandTemplates(templateData),
 		DefaultRoute: expandDefaultRoute(defaultRouteData),
+		Labels:       expandLabels(labelsData),
 	}
 
 	integration, _, err := client.Integrations.UpdateIntegration(d.Id(), updateOptions)
@@ -372,7 +374,6 @@ func resourceIntegrationRead(ctx context.Context, d *schema.ResourceData, client
 	d.Set("type", integration.Type)
 	d.Set("templates", flattenTemplates(integration.Templates))
 	d.Set("link", integration.Link)
-	//d.Set("link", "blorp")
 	d.Set("labels", flattenLabels(integration.Labels))
 
 	return nil
@@ -818,7 +819,7 @@ func expandLabels(input []interface{}) []*onCallAPI.Label {
 		key := inputMap["key"].(string)
 		value := inputMap["value"].(string)
 		label := onCallAPI.Label{
-			Key: onCallAPI.KeyValueName{Name: key},
+			Key:   onCallAPI.KeyValueName{Name: key},
 			Value: onCallAPI.KeyValueName{Name: value},
 		}
 		labelsData = append(labelsData, &label)
@@ -829,37 +830,37 @@ func expandLabels(input []interface{}) []*onCallAPI.Label {
 func flattenLabels(labels []*onCallAPI.Label) []string {
 	new_labels := make([]string, 0)
 	for _, l := range labels {
-	//for range labels {
+		//for range labels {
 		new_labels = append(new_labels, l.Key.Name)
 		//new_labels = append(new_labels, "Test?")
 	}
 	new_labels = append(new_labels, "Test2")
 	/*
-	l := Label{
-		Key: "TestKey",
-		Value: "TestValue",
-	}
+		l := Label{
+			Key: "TestKey",
+			Value: "TestValue",
+		}
 	*/
 	//new_labels = append(new_labels, "woozle wuzzle")
 	/*
-	out := make(map[string]interface{})
-	out["id"] = in.ID
-	out["escalation_chain_id"] = in.EscalationChainId
-	// Set messengers data only if related fields are present
-	_, slackOk := d.GetOk("default_route.0.slack")
-	if slackOk {
-		out["slack"] = flattenRouteSlack(in.SlackRoute)
-	}
-	_, telegramOk := d.GetOk("default_route.0.telegram")
-	if telegramOk {
-		out["telegram"] = flattenRouteTelegram(in.TelegramRoute)
-	}
-	_, msteamsOk := d.GetOk("default_route.0.msteams")
-	if msteamsOk {
-		out["msteams"] = flattenRouteMSTeams(in.MSTeamsRoute)
-	}
+		out := make(map[string]interface{})
+		out["id"] = in.ID
+		out["escalation_chain_id"] = in.EscalationChainId
+		// Set messengers data only if related fields are present
+		_, slackOk := d.GetOk("default_route.0.slack")
+		if slackOk {
+			out["slack"] = flattenRouteSlack(in.SlackRoute)
+		}
+		_, telegramOk := d.GetOk("default_route.0.telegram")
+		if telegramOk {
+			out["telegram"] = flattenRouteTelegram(in.TelegramRoute)
+		}
+		_, msteamsOk := d.GetOk("default_route.0.msteams")
+		if msteamsOk {
+			out["msteams"] = flattenRouteMSTeams(in.MSTeamsRoute)
+		}
 
-	defaultRoute = append(defaultRoute, out)
+		defaultRoute = append(defaultRoute, out)
 	*/
 	return new_labels
 }
