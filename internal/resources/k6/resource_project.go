@@ -58,7 +58,7 @@ func (r *projectResource) Metadata(_ context.Context, _ resource.MetadataRequest
 // Schema defines the schema for the resource.
 func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Manages a project.",
+		Description: "Manages a k6 project.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int32Attribute{
 				Description: "Numeric identifier of the project.",
@@ -69,7 +69,7 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Required:    true,
 			},
 			"is_default": schema.BoolAttribute{
-				Description: "Use this project as default for running tests when no explicit project ID is provided.",
+				Description: "Use this project as default for running tests when no explicit project identifier is provided.",
 				Computed:    true,
 			},
 			"created": schema.StringAttribute{

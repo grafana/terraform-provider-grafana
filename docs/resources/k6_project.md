@@ -3,12 +3,12 @@
 page_title: "grafana_k6_project Resource - terraform-provider-grafana"
 subcategory: "k6"
 description: |-
-  Manages a project.
+  Manages a k6 project.
 ---
 
 # grafana_k6_project (Resource)
 
-Manages a project.
+Manages a k6 project.
 
 ## Example Usage
 
@@ -29,7 +29,7 @@ resource "grafana_k6_project" "test_project" {
 
 - `created` (String) The date when the project was created.
 - `id` (Number) Numeric identifier of the project.
-- `is_default` (Boolean) Use this project as default for running tests when no explicit project ID is provided.
+- `is_default` (Boolean) Use this project as default for running tests when no explicit project identifier is provided.
 - `updated` (String) The date when the project was last updated.
 
 ## Import

@@ -8,6 +8,8 @@ description: |-
   This resource cannot be imported but it can be used on an existing k6 App installation without issues.
   Note that this resource must be used on a provider configured with Grafana Cloud credentials.
   Official documentation https://grafana.com/docs/grafana-cloud/testing/k6/
+  Required access policy scopes:
+  stacks:readstacks:writesubscriptions:readorgs:read
 ---
 
 # grafana_k6_installation (Resource)
@@ -19,6 +21,13 @@ This resource cannot be imported but it can be used on an existing k6 App instal
 **Note that this resource must be used on a provider configured with Grafana Cloud credentials.**
 
 * [Official documentation](https://grafana.com/docs/grafana-cloud/testing/k6/)
+
+Required access policy scopes:
+
+* stacks:read
+* stacks:write
+* subscriptions:read
+* orgs:read
 
 
 

@@ -25,6 +25,7 @@ func DataSources() []*common.DataSource {
 	resources = append(resources, machinelearning.DataSources...)
 	resources = append(resources, oncall.DataSources...)
 	resources = append(resources, slo.DataSources...)
+	resources = append(resources, k6.DataSources...)
 	resources = append(resources, syntheticmonitoring.DataSources...)
 	resources = append(resources, cloudprovider.DataSources...)
 	resources = append(resources, connections.DataSources...)
@@ -62,10 +63,10 @@ func Resources() []*common.Resource {
 	resources = append(resources, machinelearning.Resources...)
 	resources = append(resources, oncall.Resources...)
 	resources = append(resources, slo.Resources...)
+	resources = append(resources, k6.Resources...)
 	resources = append(resources, syntheticmonitoring.Resources...)
 	resources = append(resources, cloudprovider.Resources...)
 	resources = append(resources, connections.Resources...)
-	resources = append(resources, k6.Resources...)
 	return resources
 }
 

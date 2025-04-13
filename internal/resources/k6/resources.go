@@ -16,11 +16,25 @@ var Resources = addValidationToResources(
 	resourceLoadTest(),
 )
 
+var DataSources = addValidationToDataSources(
+	dataSourceProject(),
+	dataSourceProjectLimits(),
+	dataSourceLoadTest(),
+	dataSourceLoadTests(),
+)
+
 func addValidationToResources(resources ...*common.Resource) []*common.Resource {
 	for _, r := range resources {
 		addValidationToSchema(r.Schema)
 	}
 	return resources
+}
+
+func addValidationToDataSources(dataSources ...*common.DataSource) []*common.DataSource {
+	for _, d := range dataSources {
+		addValidationToSchema(d.Schema)
+	}
+	return dataSources
 }
 
 func addValidationToSchema(r *schema.Resource) {

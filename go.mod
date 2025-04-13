@@ -12,6 +12,7 @@ require (
 	github.com/grafana/amixr-api-go-client v0.0.19 // main branch
 	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20240807172819-ac10800522a3
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20241113095943-9cb2bbfeb8a3
+	github.com/grafana/k6-cloud-openapi-client-go v0.0.0-20250212105944-bad1c240dbcd
 	github.com/grafana/machine-learning-go-client v0.8.2
 	github.com/grafana/slo-openapi-client/go/slo v0.0.0-20240807172758-1b7d00838fc7
 	github.com/grafana/synthetic-monitoring-agent v0.30.2
@@ -39,8 +40,6 @@ require (
 	golang.org/x/text v0.21.0
 	gopkg.in/yaml.v2 v2.4.0
 )
-
-require github.com/grafana/k6-cloud-openapi-client-go v0.0.0-20250212105944-bad1c240dbcd
 
 require (
 	github.com/BurntSushi/toml v1.4.0 // indirect
