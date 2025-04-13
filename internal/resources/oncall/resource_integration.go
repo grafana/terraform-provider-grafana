@@ -834,15 +834,15 @@ func expandLabels(input []interface{}) []*onCallAPI.Label {
 	return labelsData
 }
 
-func flattenLabels(labels []*onCallAPI.Label) []Label {
-	flattened_labels := make([]Label, 0, 1)
+func flattenLabels(labels []*onCallAPI.Label) []map[string]string {
+	flattened_labels := make([]map[string]string, 0, 1)
+
 	for _, l := range labels {
-		label := Label{
-			Id: l.Key.Name,
-			Key: l.Key.Name,
-			Value: l.Value.Name,
-		}
-		flattened_labels = append(flattened_labels, label)
+		flattened_labels = append(flattened_labels, map[string]string{
+			"id": l.Key.Name,
+			"key": l.Key.Name,
+			"value": l.Value.Name,
+		})
 	}
 
 	return flattened_labels
