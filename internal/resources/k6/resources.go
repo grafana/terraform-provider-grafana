@@ -85,7 +85,7 @@ func addValidationToSchema(r *schema.Resource) {
 
 func k6ClientResourceValidation(_ *schema.ResourceData, m interface{}) error {
 	if m.(*common.Client).K6APIClient == nil || m.(*common.Client).K6APIConfig == nil {
-		return fmt.Errorf("the k6 Cloud API client is required for this resource. Set the k6_access_token and k6_stack_id provider attributes")
+		return fmt.Errorf("the k6 Cloud API client is required for this resource. Set the k6_access_token and stack_id provider attributes")
 	}
 	return nil
 }

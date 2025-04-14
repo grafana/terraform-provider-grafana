@@ -337,16 +337,6 @@ func envDefaultFuncString(v types.String, envVar string, defaultValue ...string)
 	return v
 }
 
-func envDefaultFuncInt32(v types.Int32, envVar string, defaultValue ...int32) (types.Int32, error) {
-	if envValue := os.Getenv(envVar); v.IsNull() && envValue != "" {
-		value, err := strconv.ParseInt(envValue, 10, 32)
-		return types.Int32Value(int32(value)), err
-	} else if v.IsNull() && len(defaultValue) > 0 {
-		return types.Int32Value(defaultValue[0]), nil
-	}
-	return v, nil
-}
-
 func envDefaultFuncInt64(v types.Int64, envVar string, defaultValue ...int64) (types.Int64, error) {
 	if envValue := os.Getenv(envVar); v.IsNull() && envValue != "" {
 		value, err := strconv.ParseInt(envValue, 10, 64)

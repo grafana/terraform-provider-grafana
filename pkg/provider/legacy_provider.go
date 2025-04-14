@@ -284,8 +284,8 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			FleetManagementAuth:        stringValueOrNull(d, "fleet_management_auth"),
 			FleetManagementURL:         stringValueOrNull(d, "fleet_management_url"),
 			FrontendO11yAPIAccessToken: stringValueOrNull(d, "frontend_o11y_api_access_token"),
-			K6URL:                     stringValueOrNull(d, "k6_url"),
-			K6AccessToken:             stringValueOrNull(d, "k6_access_token"),
+			K6URL:                      stringValueOrNull(d, "k6_url"),
+			K6AccessToken:              stringValueOrNull(d, "k6_access_token"),
 			StoreDashboardSha256:       boolValueOrNull(d, "store_dashboard_sha256"),
 			HTTPHeaders:                headers,
 			Retries:                    int64ValueOrNull(d, "retries"),
@@ -315,13 +315,6 @@ func boolValueOrNull(d *schema.ResourceData, key string) types.Bool {
 		return types.BoolValue(v.(bool))
 	}
 	return types.BoolNull()
-}
-
-func int32ValueOrNull(d *schema.ResourceData, key string) types.Int32 {
-	if v, ok := d.GetOk(key); ok {
-		return types.Int32Value(int32(v.(int)))
-	}
-	return types.Int32Null()
 }
 
 func int64ValueOrNull(d *schema.ResourceData, key string) types.Int64 {

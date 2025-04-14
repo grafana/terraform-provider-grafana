@@ -281,7 +281,6 @@ provider "grafana" {
 - `http_headers` (Map of String, Sensitive) Optional. HTTP headers mapping keys to values used for accessing the Grafana and Grafana Cloud APIs. May alternatively be set via the `GRAFANA_HTTP_HEADERS` environment variable in JSON format.
 - `insecure_skip_verify` (Boolean) Skip TLS certificate verification. May alternatively be set via the `GRAFANA_INSECURE_SKIP_VERIFY` environment variable.
 - `k6_access_token` (String, Sensitive) The k6 Cloud API token. May alternatively be set via the `GRAFANA_K6_ACCESS_TOKEN` environment variable.
-- `k6_stack_id` (Number) The k6 Cloud stack identifier. May alternatively be set via the `GRAFANA_K6_STACK_ID` environment variable.
 - `k6_url` (String) The k6 Cloud API url. May alternatively be set via the `GRAFANA_K6_URL` environment variable.
 - `oncall_access_token` (String, Sensitive) A Grafana OnCall access token. May alternatively be set via the `GRAFANA_ONCALL_ACCESS_TOKEN` environment variable.
 - `oncall_url` (String) An Grafana OnCall backend address. May alternatively be set via the `GRAFANA_ONCALL_URL` environment variable.

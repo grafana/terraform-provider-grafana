@@ -107,7 +107,7 @@ func (d *loadTestDataSource) Read(ctx context.Context, req datasource.ReadReques
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading k6 load test",
-			"Could not read k6 load test ID "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
+			"Could not read k6 load test with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
 		)
 		return
 	}

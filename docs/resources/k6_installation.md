@@ -86,7 +86,7 @@ resource "grafana_k6_installation" "k6_installation" {
 provider "grafana" {
   alias = "k6"
 
-  k6_stack_id     = grafana_cloud_stack.k6_stack.id
+  stack_id        = grafana_cloud_stack.k6_stack.id
   k6_access_token = grafana_k6_installation.k6_installation.k6_access_token
 }
 
