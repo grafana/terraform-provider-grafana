@@ -29,4 +29,5 @@ var DataSources = []*common.DataSource{
 var Resources = []*common.Resource{
 	resourceCheck(),
 	resourceProbe(),
+	resourceCheckAlerts(),
 }
