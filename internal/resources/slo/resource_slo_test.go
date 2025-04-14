@@ -2,12 +2,19 @@ package slo_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/grafana/grafana-openapi-client-go/models"
+	slo2 "github.com/grafana/terraform-provider-grafana/v3/internal/resources/slo"
+	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/grafana/slo-openapi-client/go/slo"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
@@ -350,6 +357,80 @@ resource  "grafana_slo" "invalid" {
 }
 `
 
+const graphiteBadFormat = `
+resource "grafana_slo" "invalid" {
+  name        = "Terraform Testing"
+  description = "Terraform Description"
+  query {
+    grafana_queries {
+      grafana_queries = jsonencode([
+  {
+    "datasource": {
+      "type": "graphite",
+      "uid": "grafanacloud-graphite"
+    },
+    "refId": "Success",
+    "target": "groupByNode(perSecond(web.*.http.2xx_success.*.*), 1, 'avg''')"
+  },
+  {
+    "datasource": {
+      "type": "graphite",
+      "uid": "grafanacloud-graphite"
+    },
+    "refId": "Total",
+    "target": "groupByNode(perSecond(web.*.http.*.*.*), 1, 'avg')"
+  },
+  {
+    "datasource": {
+      "type": "__expr__",
+      "uid": "__expr__"
+    },
+    "expression": "$Success / $Total",
+    "refId": "Expression",
+    "type": "math"
+  }
+])
+    }
+    type = "grafana_queries"
+  }
+  destination_datasource {
+    uid = "grafanacloud-prom"
+  }
+  objectives {
+    value  = 0.995
+    window = "30d"
+  }
+
+  label {
+    key   = "slo"
+    value = "terraform"
+  }
+  alerting {
+    fastburn {
+      annotation {
+        key   = "name"
+        value = "SLO Burn Rate Very High"
+      }
+      annotation {
+        key   = "description"
+        value = "Error budget is burning too fast"
+      }
+    }
+
+    slowburn {
+      annotation {
+        key   = "name"
+        value = "SLO Burn Rate High"
+      }
+      annotation {
+        key   = "description"
+        value = "Error budget is burning too fast"
+      }
+    }
+  }
+}
+`
+
 func emptyAlert(name string) string {
 	return fmt.Sprintf(`
 	resource "grafana_slo" "empty_alert" {
@@ -409,6 +490,169 @@ func TestAccResourceInvalidSlo(t *testing.T) {
 				Config:      sloMissingDestinationDatasource,
 				ExpectError: regexp.MustCompile("Error: Insufficient destination_datasource blocks"),
 			},
+			{
+				Config:      graphiteBadFormat,
+				ExpectError: regexp.MustCompile("Error: Unable to create SLO - API"),
+			},
 		},
 	})
+}
+
+func TestValidateGrafanaQuery(t *testing.T) {
+	tests := map[string]struct {
+		query         string
+		expectedDiags diag.Diagnostics
+	}{
+		"prometheus": {
+			query: "sum(rate(apiserver_request_total{code!=\"500\"}[$__rate_interval])) / sum(rate(apiserver_request_total[$__rate_interval]))",
+			expectedDiags: diag.Diagnostics{diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       "Bad Format",
+				Detail:        "expected grafana queries to be valid JSON format",
+				AttributePath: cty.IndexPath(cty.Value{}),
+			}},
+		},
+		"grafanaQueries_success": {
+			query:         createGrafanaQuery(true, []map[string]any{}),
+			expectedDiags: diag.Diagnostics{},
+		},
+		"grafanaQueries_noRefId": {
+			query: createGrafanaQuery(false, []map[string]any{{}}),
+			expectedDiags: diag.Diagnostics{
+				diag.Diagnostic{
+					Severity:      diag.Error,
+					Summary:       "Missing Required Field",
+					Detail:        fmt.Sprintf("expected grafana query to have a 'refId' field (%s)", "{}"),
+					AttributePath: append(cty.IndexPath(cty.Value{}), cty.IndexStep{Key: cty.StringVal("refId")}),
+				},
+			},
+		},
+		"grafanaQueries_noDatasource": {
+			query: createGrafanaQuery(false, []map[string]any{{"refId": "A"}}),
+			expectedDiags: diag.Diagnostics{
+				diag.Diagnostic{
+					Severity:      diag.Error,
+					Summary:       "Missing Required Field",
+					Detail:        "expected grafana query to have a 'datasource' field (refId:A)",
+					AttributePath: append(cty.IndexPath(cty.Value{}), cty.IndexStep{Key: cty.StringVal("datasource")}),
+				},
+			},
+		},
+		"grafanaQueries_missingFields": {
+			query: createGrafanaQuery(false, []map[string]any{{"refId": "A", "datasource": models.DataSource{}}}),
+			expectedDiags: diag.Diagnostics{
+				diag.Diagnostic{
+					Severity:      diag.Error,
+					Summary:       "Missing Required Field",
+					Detail:        "expected grafana query datasource field to have a 'type' field (refId:A)",
+					AttributePath: append(cty.IndexPath(cty.Value{}), cty.IndexStep{Key: cty.StringVal("datasource")}, cty.IndexStep{Key: cty.StringVal("type")}),
+				},
+				diag.Diagnostic{
+					Severity:      diag.Error,
+					Summary:       "Missing Required Field",
+					Detail:        "expected grafana query datasource field to have a 'uid' field (refId:A)",
+					AttributePath: append(cty.IndexPath(cty.Value{}), cty.IndexStep{Key: cty.StringVal("datasource")}, cty.IndexStep{Key: cty.StringVal("uid")}),
+				},
+			},
+		},
+	}
+	testFunc := slo2.ValidateGrafanaQuery()
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			diags := testFunc(tc.query, cty.IndexPath(cty.Value{}))
+
+			require.Len(t, diags, len(tc.expectedDiags))
+			for i, w := range tc.expectedDiags {
+				assert.Equal(t, w, diags[i])
+			}
+		})
+	}
+}
+
+func createGrafanaQuery(useDefault bool, input []map[string]any) string {
+	const grafanaQueriesQuery = `
+      [
+        {
+          "aggregation": "Sum",
+          "alias": "",
+          "application": "57831",
+          "applicationName": "petclinic",
+          "datasource": {
+            "type": "dlopes7-appdynamics-datasource",
+            "uid": "appdynamics_localdev"
+          },
+          "delimiter": "|",
+          "isRawQuery": false,
+          "metric": "Overall Application Performance|Calls per Minute",
+          "queryType": "metrics",
+          "refId": "total",
+          "rollUp": true,
+          "schemaVersion": "3.9.5",
+          "transformLegend": "Segments",
+          "transformLegendText": ""
+        },
+        {
+          "aggregation": "Sum",
+          "alias": "",
+          "application": "57831",
+          "applicationName": "petclinic",
+          "datasource": {
+            "type": "dlopes7-appdynamics-datasource",
+            "uid": "appdynamics_localdev"
+          },
+          "intervalMs": 1000,
+          "maxDataPoints": 43200,
+          "delimiter": "|",
+          "isRawQuery": false,
+          "metric": "Overall Application Performance|Calls per Minute",
+          "queryType": "metrics",
+          "refId": "also_total",
+          "rollUp": true,
+          "schemaVersion": "3.9.5",
+          "transformLegend": "Segments",
+          "transformLegendText": ""
+        },
+        {
+          "conditions": [
+              {
+                  "evaluator": {
+                      "params": [
+                          0,
+                          0
+                      ],
+                      "type": "gt"
+                  },
+                  "operator": {
+                      "type": "and"
+                  },
+                  "query": {
+                      "params": []
+                  },
+                  "reducer": {
+                      "params": [],
+                      "type": "avg"
+                  },
+                  "type": "query"
+              }
+          ],
+          "datasource": {
+              "name": "Expression",
+              "type": "__expr__",
+              "uid": "__expr__"
+          },
+          "expression": "($total / $also_total)",
+          "intervalMs": 1000,
+          "maxDataPoints": 43200,
+          "refId": "C",
+          "type": "math"
+        }
+      ]`
+
+	if useDefault {
+		return grafanaQueriesQuery
+	}
+
+	output, _ := json.Marshal(input)
+	return string(output)
 }

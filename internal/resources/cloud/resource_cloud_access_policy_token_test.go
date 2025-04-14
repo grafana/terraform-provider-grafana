@@ -48,12 +48,12 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
-			testAccCloudAccessPolicyCheckDestroy("us", &policy),
-			testAccCloudAccessPolicyTokenCheckDestroy("us", &policyToken),
+			testAccCloudAccessPolicyCheckDestroy("prod-us-east-0", &policy),
+			testAccCloudAccessPolicyTokenCheckDestroy("prod-us-east-0", &policyToken),
 		),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCloudAccessPolicyTokenConfigBasic(initialName, "", "us", initialScopes, expiresAt),
+				Config: testAccCloudAccessPolicyTokenConfigBasic(initialName, "", "prod-us-east-0", initialScopes, expiresAt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.test", &policy),
 					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_token.test", &policyToken),
@@ -76,7 +76,7 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCloudAccessPolicyTokenConfigBasic(initialName, "", "us", initialScopes, expiresAt),
+				Config: testAccCloudAccessPolicyTokenConfigBasic(initialName, "", "prod-us-east-0", initialScopes, expiresAt),
 				PreConfig: func() {
 					orgID, err := strconv.ParseInt(*policy.OrgId, 10, 32)
 					if err != nil {
@@ -84,7 +84,7 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 					}
 					client := testutils.Provider.Meta().(*common.Client).GrafanaCloudAPI
 					_, _, err = client.TokensAPI.DeleteToken(context.Background(), *policyToken.Id).
-						Region("us").
+						Region("prod-us-east-0").
 						OrgId(int32(orgID)).
 						XRequestId("deleting-token").Execute()
 					if err != nil {
@@ -93,7 +93,7 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 				},
 			},
 			{
-				Config: testAccCloudAccessPolicyTokenConfigBasic(initialName, "updated", "us", updatedScopes, expiresAt),
+				Config: testAccCloudAccessPolicyTokenConfigBasic(initialName, "updated", "prod-us-east-0", updatedScopes, expiresAt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.test", &policy),
 					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_token.test", &policyToken),
@@ -112,7 +112,7 @@ func TestResourceAccessPolicyToken_Basic(t *testing.T) {
 			},
 			// Recreate
 			{
-				Config: testAccCloudAccessPolicyTokenConfigBasic(updatedName, "updated", "us", updatedScopes, expiresAt),
+				Config: testAccCloudAccessPolicyTokenConfigBasic(updatedName, "updated", "prod-us-east-0", updatedScopes, expiresAt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.test", &policy),
 					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_token.test", &policyToken),
@@ -152,7 +152,7 @@ func TestResourceAccessPolicyToken_NoExpiration(t *testing.T) {
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCloudAccessPolicyTokenConfigBasic(randomName, "", "us", []string{"metrics:read"}, ""),
+				Config: testAccCloudAccessPolicyTokenConfigBasic(randomName, "", "prod-us-east-0", []string{"metrics:read"}, ""),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCloudAccessPolicyCheckExists("grafana_cloud_access_policy.test", &policy),
 					testAccCloudAccessPolicyTokenCheckExists("grafana_cloud_access_policy_token.test", &policyToken),

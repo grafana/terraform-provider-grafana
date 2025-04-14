@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -22,6 +23,19 @@ var (
 )
 
 func resourceAccessPolicy() *common.Resource {
+	cloudAccessPolicyConditionSchema := &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"allowed_subnets": {
+				Type:        schema.TypeSet,
+				Required:    true,
+				Description: "Conditions that apply to the access policy,such as IP Allow lists.",
+				Elem: &schema.Schema{
+					Type:             schema.TypeString,
+					ValidateDiagFunc: validateCloudAccessPolicyAllowedSubnets,
+				},
+			},
+		},
+	}
 	cloudAccessPolicyRealmSchema := &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"type": {
@@ -53,7 +67,7 @@ func resourceAccessPolicy() *common.Resource {
 
 	schema := &schema.Resource{
 		Description: `
-* [Official documentation](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/)
+* [Official documentation](https://grafana.com/docs/grafana-cloud/security-and-account-management/authentication-and-permissions/access-policies/)
 * [API documentation](https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#create-an-access-policy)
 
 Required access policy scopes:
@@ -74,11 +88,10 @@ Required access policy scopes:
 
 		Schema: map[string]*schema.Schema{
 			"region": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				Description:  "Region where the API is deployed. Generally where the stack is deployed. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.",
-				ValidateFunc: validation.StringIsNotEmpty,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "Region where the API is deployed. Generally where the stack is deployed. Use the region list API to get the list of available regions: https://grafana.com/docs/grafana-cloud/developer-resources/api-reference/cloud-api/#list-regions.",
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -100,7 +113,7 @@ Required access policy scopes:
 			"scopes": {
 				Type:        schema.TypeSet,
 				Required:    true,
-				Description: "Scopes of the access policy. See https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/#scopes for possible values.",
+				Description: "Scopes of the access policy. See https://grafana.com/docs/grafana-cloud/security-and-account-management/authentication-and-permissions/access-policies/#scopes for possible values.",
 				Elem: &schema.Schema{
 					Type:             schema.TypeString,
 					ValidateDiagFunc: validateCloudAccessPolicyScope,
@@ -110,6 +123,12 @@ Required access policy scopes:
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem:     cloudAccessPolicyRealmSchema,
+			},
+			"conditions": {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Description: "Conditions for the access policy.",
+				Elem:        cloudAccessPolicyConditionSchema,
 			},
 
 			// Computed
@@ -184,7 +203,9 @@ func createCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 			DisplayName: &displayName,
 			Scopes:      common.ListToStringSlice(d.Get("scopes").(*schema.Set).List()),
 			Realms:      expandCloudAccessPolicyRealm(d.Get("realm").(*schema.Set).List()),
+			Conditions:  expandCloudAccessPolicyConditions(d.Get("conditions").(*schema.Set).List()),
 		})
+
 	result, _, err := req.Execute()
 	if err != nil {
 		return apiError(err)
@@ -212,6 +233,7 @@ func updateCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client
 			DisplayName: &displayName,
 			Scopes:      common.ListToStringSlice(d.Get("scopes").(*schema.Set).List()),
 			Realms:      expandCloudAccessPolicyRealm(d.Get("realm").(*schema.Set).List()),
+			Conditions:  expandCloudAccessPolicyConditions(d.Get("conditions").(*schema.Set).List()),
 		})
 	if _, _, err = req.Execute(); err != nil {
 		return apiError(err)
@@ -238,6 +260,7 @@ func readCloudAccessPolicy(ctx context.Context, d *schema.ResourceData, client *
 	d.Set("display_name", result.DisplayName)
 	d.Set("scopes", result.Scopes)
 	d.Set("realm", flattenCloudAccessPolicyRealm(result.Realms))
+	d.Set("conditions", flattenCloudAccessPolicyConditions(result.Conditions))
 	d.Set("created_at", result.CreatedAt.Format(time.RFC3339))
 	if updated := result.UpdatedAt; updated != nil {
 		d.Set("updated_at", updated.Format(time.RFC3339))
@@ -266,6 +289,14 @@ func validateCloudAccessPolicyScope(v interface{}, path cty.Path) diag.Diagnosti
 	return nil
 }
 
+func validateCloudAccessPolicyAllowedSubnets(v interface{}, path cty.Path) diag.Diagnostics {
+	_, _, err := net.ParseCIDR(v.(string))
+	if err == nil {
+		return nil
+	}
+	return diag.Errorf("Invalid IP CIDR : %s.", v.(string))
+}
+
 func flattenCloudAccessPolicyRealm(realm []gcom.AuthAccessPolicyRealmsInner) []interface{} {
 	var result []interface{}
 
@@ -283,7 +314,39 @@ func flattenCloudAccessPolicyRealm(realm []gcom.AuthAccessPolicyRealmsInner) []i
 			"label_policy": labelPolicy,
 		})
 	}
+
 	return result
+}
+
+func flattenCloudAccessPolicyConditions(condition *gcom.AuthAccessPolicyConditions) []interface{} {
+	if condition == nil || len(condition.GetAllowedSubnets()) == 0 {
+		return nil
+	}
+	var result []interface{}
+	var allowedSubnets []string
+
+	for _, sn := range condition.GetAllowedSubnets() {
+		allowedSubnets = append(allowedSubnets, *sn.String)
+	}
+
+	result = append(result, map[string]interface{}{
+		"allowed_subnets": allowedSubnets,
+	})
+
+	return result
+}
+
+func expandCloudAccessPolicyConditions(condition []interface{}) *gcom.PostAccessPoliciesRequestConditions {
+	var result gcom.PostAccessPoliciesRequestConditions
+
+	for _, c := range condition {
+		c := c.(map[string]interface{})
+		for _, as := range c["allowed_subnets"].(*schema.Set).List() {
+			result.AllowedSubnets = append(result.AllowedSubnets, as.(string))
+		}
+	}
+
+	return &result
 }
 
 func expandCloudAccessPolicyRealm(realm []interface{}) []gcom.PostAccessPoliciesRequestRealmsInner {

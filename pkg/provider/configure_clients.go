@@ -13,12 +13,17 @@ import (
 	"time"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/grafana/grafana-app-sdk/k8s"
+	"github.com/grafana/grafana-app-sdk/resource"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/slo-openapi-client/go/slo"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
+
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/rest"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/hashicorp/go-retryablehttp"
@@ -28,6 +33,8 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/fleetmanagementapi"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/frontendo11yapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/k6providerapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
 )
@@ -37,6 +44,9 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 	c := &common.Client{}
 	if !providerConfig.Auth.IsNull() && !providerConfig.URL.IsNull() {
 		if err = createGrafanaAPIClient(c, providerConfig); err != nil {
+			return nil, err
+		}
+		if err = createGrafanaAppPlatformClient(c, providerConfig); err != nil {
 			return nil, err
 		}
 		if err = createMLClient(c, providerConfig); err != nil {
@@ -73,6 +83,17 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 			return nil, err
 		}
 	}
+	if !providerConfig.FleetManagementAuth.IsNull() {
+		if err := createFleetManagementClient(c, providerConfig); err != nil {
+			return nil, err
+		}
+	}
+
+	if !providerConfig.FrontendO11yAPIAccessToken.IsNull() || !providerConfig.CloudAccessPolicyToken.IsNull() {
+		if err := createFrontendO11yClient(c, providerConfig); err != nil {
+			return nil, err
+		}
+	}
 
 	if !providerConfig.K6AccessToken.IsNull() && !providerConfig.K6StackID.IsNull() {
 		if err := createK6Client(c, providerConfig); err != nil {
@@ -87,6 +108,11 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 
 func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig) error {
 	tlsClientConfig, err := parseTLSconfig(providerConfig)
+	if err != nil {
+		return err
+	}
+
+	tlsConfig, err := tlsClientConfig.TLSConfig()
 	if err != nil {
 		return err
 	}
@@ -122,7 +148,7 @@ func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig
 		NumRetries:       int(providerConfig.Retries.ValueInt64()),
 		RetryTimeout:     time.Second * time.Duration(providerConfig.RetryWait.ValueInt64()),
 		RetryStatusCodes: setToStringArray(providerConfig.RetryStatusCodes.Elements()),
-		TLSConfig:        tlsClientConfig,
+		TLSConfig:        tlsConfig,
 		BasicAuth:        userInfo,
 		OrgID:            orgID,
 		APIKey:           apiKey,
@@ -133,6 +159,70 @@ func createGrafanaAPIClient(client *common.Client, providerConfig ProviderConfig
 	}
 	client.GrafanaAPI = goapi.NewHTTPClientWithConfig(strfmt.Default, &cfg)
 	client.GrafanaAPIConfig = &cfg
+
+	return nil
+}
+
+func createGrafanaAppPlatformClient(client *common.Client, cfg ProviderConfig) error {
+	rcfg := rest.Config{
+		UserAgent: cfg.UserAgent.ValueString(),
+		Host:      cfg.URL.ValueString(),
+		APIPath:   "/apis",
+	}
+
+	tlsClientConfig, err := parseTLSconfig(cfg)
+	if err != nil {
+		return err
+	}
+
+	// Kubernetes really is wonderful, huh.
+	// tl;dr it has it's own TLSClientConfig,
+	// and it's not compatible with the one from the "crypto/tls" package.
+	rcfg.TLSClientConfig = rest.TLSClientConfig{
+		Insecure: tlsClientConfig.InsecureSkipVerify,
+	}
+
+	if len(tlsClientConfig.CertData) > 0 {
+		rcfg.CertData = tlsClientConfig.CertData
+	}
+
+	if len(tlsClientConfig.KeyData) > 0 {
+		rcfg.KeyData = tlsClientConfig.KeyData
+	}
+
+	if len(tlsClientConfig.CAData) > 0 {
+		rcfg.CAData = tlsClientConfig.CAData
+	}
+
+	userInfo, orgID, apiKey, err := parseAuth(cfg)
+	if err != nil {
+		return err
+	}
+
+	switch {
+	case apiKey != "":
+		if orgID > 1 {
+			return fmt.Errorf("org_id is only supported with basic auth. API keys are already org-scoped")
+		}
+
+		rcfg.BearerToken = apiKey
+	case userInfo != nil:
+		rcfg.Username = userInfo.Username()
+		if p, ok := userInfo.Password(); ok {
+			rcfg.Password = p
+		}
+	}
+
+	client.GrafanaOrgID = cfg.OrgID.ValueInt64()
+	client.GrafanaStackID = cfg.StackID.ValueInt64()
+	client.GrafanaAppPlatformAPIClientID = cfg.UserAgent.ValueString()
+	client.GrafanaAppPlatformAPI = k8s.NewClientRegistry(rcfg, k8s.ClientConfig{
+		NegotiatedSerializerProvider: func(kind resource.Kind) runtime.NegotiatedSerializer {
+			return &k8s.KindNegotiatedSerializer{
+				Kind: kind,
+			}
+		},
+	})
 
 	return nil
 }
@@ -217,6 +307,45 @@ func createCloudProviderClient(client *common.Client, providerConfig ProviderCon
 	return nil
 }
 
+func createFrontendO11yClient(client *common.Client, providerConfig ProviderConfig) error {
+	providerHeaders, err := getHTTPHeadersMap(providerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
+	}
+
+	var token string
+	if providerConfig.FrontendO11yAPIAccessToken.IsNull() {
+		token = providerConfig.CloudAccessPolicyToken.ValueString()
+	} else {
+		token = providerConfig.FrontendO11yAPIAccessToken.ValueString()
+	}
+
+	cURL, err := url.Parse(providerConfig.CloudAPIURL.ValueString())
+	if err != nil {
+		return err
+	}
+
+	cHostParts := strings.Split(cURL.Host, ".")
+	if len(cHostParts) < 2 {
+		return fmt.Errorf("invalid cloud url")
+	}
+	// https://grafana.com -> grafana.net
+	cHost := fmt.Sprintf("%s.net", cHostParts[len(cHostParts)-2])
+
+	apiClient, err := frontendo11yapi.NewClient(
+		cHost,
+		token,
+		getRetryClient(providerConfig),
+		providerConfig.UserAgent.ValueString(),
+		providerHeaders,
+	)
+	if err != nil {
+		return err
+	}
+	client.FrontendO11yAPIClient = apiClient
+	return nil
+}
+
 func createConnectionsClient(client *common.Client, providerConfig ProviderConfig) error {
 	providerHeaders, err := getHTTPHeadersMap(providerConfig)
 	if err != nil {
@@ -260,6 +389,23 @@ func createK6Client(client *common.Client, providerConfig ProviderConfig) error 
 		Token:   providerConfig.K6AccessToken.ValueString(),
 		StackID: providerConfig.K6StackID.ValueInt32(),
 	}
+	return nil
+}
+
+func createFleetManagementClient(client *common.Client, providerConfig ProviderConfig) error {
+	providerHeaders, err := getHTTPHeadersMap(providerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to get provider default HTTP headers: %w", err)
+	}
+
+	client.FleetManagementClient = fleetmanagementapi.NewClient(
+		providerConfig.FleetManagementAuth.ValueString(),
+		providerConfig.FleetManagementURL.ValueString(),
+		getRetryClient(providerConfig),
+		providerConfig.UserAgent.ValueString(),
+		providerHeaders,
+	)
+
 	return nil
 }
 
@@ -319,8 +465,49 @@ func parseAuth(providerConfig ProviderConfig) (*url.Userinfo, int64, string, err
 	return nil, 0, "", nil
 }
 
-func parseTLSconfig(providerConfig ProviderConfig) (*tls.Config, error) {
-	tlsClientConfig := &tls.Config{}
+type TLSConfig struct {
+	CAData             []byte
+	CertData           []byte
+	KeyData            []byte
+	InsecureSkipVerify bool
+}
+
+func (t TLSConfig) TLSConfig() (*tls.Config, error) {
+	pool, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get system certificate pool: %w", err)
+	}
+
+	res := &tls.Config{
+		// gosec is stating the obvious here.
+		// G402: TLS InsecureSkipVerify may be true. (gosec)
+		// nolint: gosec
+		InsecureSkipVerify: t.InsecureSkipVerify,
+		RootCAs:            pool,
+	}
+
+	if len(t.CAData) > 0 {
+		if !res.RootCAs.AppendCertsFromPEM(t.CAData) {
+			return nil, fmt.Errorf("failed to append CA data")
+		}
+	}
+
+	if len(t.CertData) > 0 && len(t.KeyData) > 0 {
+		cert, err := tls.X509KeyPair(t.CertData, t.KeyData)
+		if err != nil {
+			return nil, err
+		}
+
+		res.Certificates = []tls.Certificate{cert}
+	}
+
+	return res, nil
+}
+
+func parseTLSconfig(providerConfig ProviderConfig) (*TLSConfig, error) {
+	res := &TLSConfig{
+		InsecureSkipVerify: providerConfig.InsecureSkipVerify.ValueBool(),
+	}
 
 	tlsKeyFile, tempFile, err := createTempFileIfLiteral(providerConfig.TLSKey.ValueString())
 	if err != nil {
@@ -344,28 +531,31 @@ func parseTLSconfig(providerConfig ProviderConfig) (*tls.Config, error) {
 		defer os.Remove(caCertFile)
 	}
 
-	insecure := providerConfig.InsecureSkipVerify.ValueBool()
 	if caCertFile != "" {
 		ca, err := os.ReadFile(caCertFile)
 		if err != nil {
 			return nil, err
 		}
-		pool := x509.NewCertPool()
-		pool.AppendCertsFromPEM(ca)
-		tlsClientConfig.RootCAs = pool
+		res.CAData = ca
 	}
-	if tlsKeyFile != "" && tlsCertFile != "" {
-		cert, err := tls.LoadX509KeyPair(tlsCertFile, tlsKeyFile)
+
+	if tlsCertFile != "" {
+		certData, err := os.ReadFile(tlsCertFile)
 		if err != nil {
 			return nil, err
 		}
-		tlsClientConfig.Certificates = []tls.Certificate{cert}
-	}
-	if insecure {
-		tlsClientConfig.InsecureSkipVerify = true
+		res.CertData = certData
 	}
 
-	return tlsClientConfig, nil
+	if tlsKeyFile != "" {
+		keyData, err := os.ReadFile(tlsKeyFile)
+		if err != nil {
+			return nil, err
+		}
+		res.KeyData = keyData
+	}
+
+	return res, nil
 }
 
 func setToStringArray(set []attr.Value) []string {

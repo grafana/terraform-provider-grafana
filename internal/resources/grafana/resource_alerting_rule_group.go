@@ -83,6 +83,7 @@ This resource requires Grafana 9.1.0 or later.
 					Schema: map[string]*schema.Schema{
 						"uid": {
 							Type:        schema.TypeString,
+							Optional:    true,
 							Computed:    true,
 							Description: "The unique identifier of the alert rule.",
 						},
@@ -199,7 +200,7 @@ This resource requires Grafana 9.1.0 or later.
 							Type:        schema.TypeMap,
 							Optional:    true,
 							Default:     map[string]interface{}{},
-							Description: "Key-value pairs of metadata to attach to the alert rule. They add additional information, such as a `summary` or `runbook_url`, to help identify and investigate alerts. The `dashboardUId` and `panelId` annotations, which link alerts to a panel, must be set together.",
+							Description: "Key-value pairs of metadata to attach to the alert rule. They add additional information, such as a `summary` or `runbook_url`, to help identify and investigate alerts. The `__dashboardUid__` and `__panelId__` annotations, which link alerts to a panel, must be set together.",
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
@@ -395,10 +396,13 @@ func putAlertRuleGroup(ctx context.Context, data *schema.ResourceData, meta inte
 				return retry.NonRetryableError(err)
 			}
 
-			// Check if a rule with the same name already exists within the same rule group
+			// Check if a rule with the same name or uid already exists within the same rule group
 			for _, r := range rules {
 				if *r.Title == *ruleToApply.Title {
 					return retry.NonRetryableError(fmt.Errorf("rule with name %q is defined more than once", *ruleToApply.Title))
+				}
+				if ruleToApply.UID != "" && r.UID == ruleToApply.UID {
+					return retry.NonRetryableError(fmt.Errorf("rule with UID %q is defined more than once. Rules with name %q and %q have the same uid", ruleToApply.UID, *r.Title, *ruleToApply.Title))
 				}
 			}
 

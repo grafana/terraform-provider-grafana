@@ -91,6 +91,7 @@ func (r *usersDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		if usersResponse.PaginatedResponse.Next == nil {
 			break
 		}
+		page++
 	}
 
 	data.ID = basetypes.NewStringValue("oncall_users") // singleton

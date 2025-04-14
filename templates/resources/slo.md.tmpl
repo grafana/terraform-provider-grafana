@@ -12,13 +12,23 @@ description: |-
 
 ## Example Usage
 
-### Basic
+### Ratio
 
-{{ tffile "examples/resources/grafana_slo/resource.tf" }}
+{{ tffile "examples/resources/grafana_slo/resource_ratio.tf" }}
 
 ### Advanced
 
-{{ tffile "examples/resources/grafana_slo/resource_complex.tf" }}
+{{ tffile "examples/resources/grafana_slo/resource.tf" }}
+
+### Grafana Queries - Any supported datasource
+
+Grafana Queries use the grafana_queries field. It expects a JSON string list of valid grafana query JSON objects, the same as you'll find assigned to a Grafana Dashboard panel `targets` field.
+
+{{ tffile "examples/resources/grafana_slo/resource_graphite.tf" }}
+
+For a complete list, see [supported data sources](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/set-up/additionaldatasources/#supported-data-sources).
+
+For additional help with SLOs, view our [documentation](https://grafana.com/docs/grafana-cloud/alerting-and-irm/slo/).
 
 {{ .SchemaMarkdown | trimspace }}
 

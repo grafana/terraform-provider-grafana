@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/grafana/grafana-app-sdk/k8s"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/k6-cloud-openapi-client-go/k6"
@@ -19,22 +20,30 @@ import (
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/fleetmanagementapi"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/frontendo11yapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/k6providerapi"
 )
 
 type Client struct {
-	GrafanaAPIURL       string
-	GrafanaAPIURLParsed *url.URL
-	GrafanaAPI          *goapi.GrafanaHTTPAPI
-	GrafanaAPIConfig    *goapi.TransportConfig
+	GrafanaAPIURL                 string
+	GrafanaAPIURLParsed           *url.URL
+	GrafanaAPI                    *goapi.GrafanaHTTPAPI
+	GrafanaAPIConfig              *goapi.TransportConfig
+	GrafanaAppPlatformAPI         *k8s.ClientRegistry
+	GrafanaAppPlatformAPIClientID string
+	GrafanaOrgID                  int64
+	GrafanaStackID                int64
 
-	GrafanaCloudAPI      *gcom.APIClient
-	SMAPI                *SMAPI.Client
-	MLAPI                *mlapi.Client
-	OnCallClient         *onCallAPI.Client
-	SLOClient            *slo.APIClient
-	CloudProviderAPI     *cloudproviderapi.Client
-	ConnectionsAPIClient *connectionsapi.Client
+	GrafanaCloudAPI       *gcom.APIClient
+	SMAPI                 *SMAPI.Client
+	MLAPI                 *mlapi.Client
+	OnCallClient          *onCallAPI.Client
+	SLOClient             *slo.APIClient
+	CloudProviderAPI      *cloudproviderapi.Client
+	ConnectionsAPIClient  *connectionsapi.Client
+	FleetManagementClient *fleetmanagementapi.Client
+	FrontendO11yAPIClient *frontendo11yapi.Client
 
 	K6APIClient *k6.APIClient
 	K6APIConfig *k6providerapi.K6APIConfig

@@ -15,8 +15,11 @@ import (
 var knownReferences = []string{
 	"grafana_annotation.dashboard_uid=grafana_dashboard.uid",
 	"grafana_annotation.org_id=grafana_organization.id",
+	"grafana_apps_dashboard_dashboard_v1alpha1.folder_uid=grafana_folder.uid",
+	"grafana_apps_playlist_playlist_v0alpha1.value=grafana_apps_dashboard_dashboard_v1alpha1.metadata",
 	"grafana_cloud_access_policy.identifier=grafana_cloud_stack.id",
 	"grafana_cloud_access_policy_token.access_policy_id=grafana_cloud_access_policy.policy_id",
+	"grafana_cloud_access_policy_token.region=grafana_cloud_access_policy.region",
 	"grafana_cloud_plugin_installation.stack_slug=grafana_cloud_stack.slug",
 	"grafana_cloud_private_data_source_connect_network.stack_identifier=grafana_cloud_stack.id",
 	"grafana_cloud_private_data_source_connect_network_token.pdc_network_id=grafana_cloud_private_data_source_connect_network.pdc_network_id",

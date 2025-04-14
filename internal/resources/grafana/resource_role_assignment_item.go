@@ -176,7 +176,7 @@ func (r *resourceRoleAssignmentItem) Create(ctx context.Context, req resource.Cr
 		assignmentType = "user"
 		resourceID = data.UserID.ValueString()
 	case !data.ServiceAccountID.IsNull():
-		_, serviceAccountIDStr := SplitOrgResourceID(data.ServiceAccountID.ValueString())
+		_, serviceAccountIDStr := SplitServiceAccountID(data.ServiceAccountID.ValueString())
 		serviceAccountID, err := strconv.ParseInt(serviceAccountIDStr, 10, 64)
 		if err != nil {
 			resp.Diagnostics.AddError("Failed to parse service account ID", err.Error())

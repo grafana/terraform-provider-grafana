@@ -243,7 +243,6 @@ func generateImportBlocks(ctx context.Context, client *common.Client, listerData
 			// }
 			var blocks []*hclwrite.Block
 			for _, id := range ids {
-				id := id
 				matched, err := filterResourceByName(resource.Name, id, cfg.IncludeResources)
 				if err != nil {
 					wg.Done()
