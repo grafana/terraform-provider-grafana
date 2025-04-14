@@ -2,16 +2,18 @@ package k6_test
 
 import (
 	"fmt"
-	"github.com/grafana/k6-cloud-openapi-client-go/k6"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"strconv"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
+	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 )
 
 func TestAccDataSourceK6LoadTests_basic(t *testing.T) {
-	//testutils.CheckCloudInstanceTestsEnabled(t)
+	testutils.CheckCloudInstanceTestsEnabled(t)
 
 	var project k6.ProjectApiModel
 
