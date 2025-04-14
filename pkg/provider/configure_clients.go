@@ -384,10 +384,15 @@ func createK6Client(client *common.Client, providerConfig ProviderConfig) error 
 		k6Cfg.DefaultHeader[k] = v
 	}
 
+	var stackID int32
+	if stackID, err = common.ToInt32(providerConfig.StackID.ValueInt64()); err != nil {
+		return fmt.Errorf("could not convert stack_id to int32: %s", err.Error())
+	}
+
 	client.K6APIClient = k6.NewAPIClient(k6Cfg)
 	client.K6APIConfig = &k6providerapi.K6APIConfig{
 		Token:   providerConfig.K6AccessToken.ValueString(),
-		StackID: int32(providerConfig.StackID.ValueInt64()),
+		StackID: stackID,
 	}
 	return nil
 }

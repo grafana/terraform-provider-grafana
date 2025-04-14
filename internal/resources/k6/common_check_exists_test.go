@@ -77,10 +77,10 @@ func (h *checkExistsHelper[T]) exists(rn string, v *T) resource.TestCheckFunc {
 		}
 
 		var resourceID int32
-		if resID, err := strconv.Atoi(rs.Primary.ID); err != nil {
-			return fmt.Errorf("resource id is not a valid int32")
-		} else {
-			resourceID = int32(resID)
+		if intResourceID, err := strconv.Atoi(rs.Primary.ID); err != nil {
+			return fmt.Errorf("could not convert resource id to integer: %s", err.Error())
+		} else if resourceID, err = common.ToInt32(intResourceID); err != nil {
+			return fmt.Errorf("could not convert resource id to int32: %s", err.Error())
 		}
 
 		obj, err := h.getResourceFunc(

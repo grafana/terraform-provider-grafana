@@ -37,7 +37,7 @@ type loadTestDataSourceModel struct {
 	ProjectID         types.Int32  `tfsdk:"project_id"`
 	Name              types.String `tfsdk:"name"`
 	Script            types.String `tfsdk:"script"`
-	BaselineTestRunId types.Int32  `tfsdk:"baseline_test_run_id"`
+	BaselineTestRunID types.Int32  `tfsdk:"baseline_test_run_id"`
 	Created           types.String `tfsdk:"created"`
 	Updated           types.String `tfsdk:"updated"`
 }
@@ -127,7 +127,7 @@ func (d *loadTestDataSource) Read(ctx context.Context, req datasource.ReadReques
 
 	state.Name = types.StringValue(lt.GetName())
 	state.ProjectID = types.Int32Value(lt.GetProjectId())
-	state.BaselineTestRunId = handleBaselineTestRunId(lt.GetBaselineTestRunId())
+	state.BaselineTestRunID = handleBaselineTestRunID(lt.GetBaselineTestRunId())
 	state.Script = types.StringValue(script)
 	state.Created = types.StringValue(lt.GetCreated().Format(time.RFC3339Nano))
 	state.Updated = types.StringValue(lt.GetUpdated().Format(time.RFC3339Nano))
@@ -136,10 +136,10 @@ func (d *loadTestDataSource) Read(ctx context.Context, req datasource.ReadReques
 	resp.Diagnostics.Append(diags...)
 }
 
-func handleBaselineTestRunId(baselineTestRunId int32) types.Int32 {
-	if baselineTestRunId == 0 {
+func handleBaselineTestRunID(baselineTestRunID int32) types.Int32 {
+	if baselineTestRunID == 0 {
 		// If the API returned 0, set it as null
 		return types.Int32Null()
 	}
-	return types.Int32Value(baselineTestRunId)
+	return types.Int32Value(baselineTestRunID)
 }

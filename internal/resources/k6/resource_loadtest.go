@@ -44,7 +44,7 @@ type loadTestResourceModel struct {
 	ProjectID         types.Int32  `tfsdk:"project_id"`
 	Name              types.String `tfsdk:"name"`
 	Script            types.String `tfsdk:"script"`
-	BaselineTestRunId types.Int32  `tfsdk:"baseline_test_run_id"`
+	BaselineTestRunID types.Int32  `tfsdk:"baseline_test_run_id"`
 	Created           types.String `tfsdk:"created"`
 	Updated           types.String `tfsdk:"updated"`
 }
@@ -128,11 +128,11 @@ func (r *loadTestResource) Create(ctx context.Context, req resource.CreateReques
 	plan.ProjectID = types.Int32Value(lt.GetProjectId())
 
 	// Handle baseline_test_run_id properly
-	if lt.GetBaselineTestRunId() == 0 && plan.BaselineTestRunId.IsNull() {
+	if lt.GetBaselineTestRunId() == 0 && plan.BaselineTestRunID.IsNull() {
 		// If the API returned 0 and the plan had it as null, keep it as null
-		plan.BaselineTestRunId = types.Int32Null()
+		plan.BaselineTestRunID = types.Int32Null()
 	} else {
-		plan.BaselineTestRunId = types.Int32Value(lt.GetBaselineTestRunId())
+		plan.BaselineTestRunID = types.Int32Value(lt.GetBaselineTestRunId())
 	}
 
 	plan.Created = types.StringValue(lt.GetCreated().Format(time.RFC3339Nano))
@@ -191,9 +191,9 @@ func (r *loadTestResource) Read(ctx context.Context, req resource.ReadRequest, r
 	// Handle baseline_test_run_id properly
 	if lt.GetBaselineTestRunId() == 0 {
 		// If the API returned 0, set it as null
-		state.BaselineTestRunId = types.Int32Null()
+		state.BaselineTestRunID = types.Int32Null()
 	} else {
-		state.BaselineTestRunId = types.Int32Value(lt.GetBaselineTestRunId())
+		state.BaselineTestRunID = types.Int32Value(lt.GetBaselineTestRunId())
 	}
 
 	state.Script = types.StringValue(script)
@@ -229,10 +229,10 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 	// Generate API request body from plan
 	toUpdate := k6.NewPatchLoadTestApiModel()
 	toUpdate.SetName(plan.Name.ValueString())
-	if plan.BaselineTestRunId.IsNull() {
+	if plan.BaselineTestRunID.IsNull() {
 		toUpdate.SetBaselineTestRunIdNil()
 	} else {
-		toUpdate.SetBaselineTestRunId(plan.BaselineTestRunId.ValueInt32())
+		toUpdate.SetBaselineTestRunId(plan.BaselineTestRunID.ValueInt32())
 	}
 
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
@@ -300,9 +300,9 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 	// Handle baseline_test_run_id properly
 	if lt.GetBaselineTestRunId() == 0 {
 		// If the API returned 0, set it as null
-		plan.BaselineTestRunId = types.Int32Null()
+		plan.BaselineTestRunID = types.Int32Null()
 	} else {
-		plan.BaselineTestRunId = types.Int32Value(lt.GetBaselineTestRunId())
+		plan.BaselineTestRunID = types.Int32Value(lt.GetBaselineTestRunId())
 	}
 
 	plan.Script = types.StringValue(script)

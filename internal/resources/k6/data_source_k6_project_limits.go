@@ -94,11 +94,12 @@ func (d *projectLimitsDataSource) Read(ctx context.Context, req datasource.ReadR
 
 	// We rely on project_id first, if set, as it is more human-friendly.
 	var projectID types.Int32
-	if !state.ProjectID.IsNull() {
+	switch {
+	case !state.ProjectID.IsNull():
 		projectID = state.ProjectID
-	} else if !state.ID.IsNull() {
+	case !state.ID.IsNull():
 		projectID = state.ID
-	} else {
+	default:
 		resp.Diagnostics.AddError(
 			"Error reading k6 project limits",
 			"Could not read k6 project limits: project_id or id is required",

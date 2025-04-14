@@ -132,7 +132,7 @@ func (d *loadTestsDataSource) Read(ctx context.Context, req datasource.ReadReque
 			ID:                types.Int32Value(lt.GetId()),
 			Name:              types.StringValue(lt.GetName()),
 			ProjectID:         types.Int32Value(lt.GetProjectId()),
-			BaselineTestRunId: handleBaselineTestRunId(lt.GetBaselineTestRunId()),
+			BaselineTestRunID: handleBaselineTestRunID(lt.GetBaselineTestRunId()),
 			Script:            types.StringValue(script),
 			Created:           types.StringValue(lt.GetCreated().Format(time.RFC3339Nano)),
 			Updated:           types.StringValue(lt.GetUpdated().Format(time.RFC3339Nano)),

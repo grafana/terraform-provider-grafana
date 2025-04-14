@@ -17,7 +17,7 @@ func TestAccDataSourceK6LoadTests_basic(t *testing.T) {
 
 	var project k6.ProjectApiModel
 
-	checkProjectIdMatch := func(value string) error {
+	checkProjectIDMatch := func(value string) error {
 		if value != strconv.Itoa(int(project.GetId())) {
 			return fmt.Errorf("project_id does not match the expected value: %s", value)
 		}
@@ -34,14 +34,14 @@ func TestAccDataSourceK6LoadTests_basic(t *testing.T) {
 					// 0
 					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.from_project_id", "load_tests.0.id"),
 					resource.TestCheckResourceAttr("data.grafana_k6_load_tests.from_project_id", "load_tests.0.name", "Terraform Test Load Test"),
-					resource.TestCheckResourceAttrWith("data.grafana_k6_load_tests.from_project_id", "load_tests.0.project_id", checkProjectIdMatch),
+					resource.TestCheckResourceAttrWith("data.grafana_k6_load_tests.from_project_id", "load_tests.0.project_id", checkProjectIDMatch),
 					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.from_project_id", "load_tests.0.script"),
 					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.from_project_id", "load_tests.0.created"),
 					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.from_project_id", "load_tests.0.updated"),
 					// 1
 					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.from_project_id", "load_tests.1.id"),
 					resource.TestCheckResourceAttr("data.grafana_k6_load_tests.from_project_id", "load_tests.1.name", "Terraform Test Load Test (2)"),
-					resource.TestCheckResourceAttrWith("data.grafana_k6_load_tests.from_project_id", "load_tests.1.project_id", checkProjectIdMatch),
+					resource.TestCheckResourceAttrWith("data.grafana_k6_load_tests.from_project_id", "load_tests.1.project_id", checkProjectIDMatch),
 					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.from_project_id", "load_tests.1.script"),
 					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.from_project_id", "load_tests.1.created"),
 					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.from_project_id", "load_tests.1.updated"),
