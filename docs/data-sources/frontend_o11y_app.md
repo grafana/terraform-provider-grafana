@@ -36,6 +36,7 @@ data "grafana_frontend_o11y_app" "test-app" {
 ### Read-Only
 
 - `allowed_origins` (List of String) A list of allowed origins for CORS.
+- `collector_endpoint` (String) The collector URL Grafana Cloud Frontend Observability. Use this endpoint to send your Telemetry.
 - `extra_log_attributes` (Map of String) The extra attributes to append in each signal.
 - `id` (Number) The Terraform Resource ID. This auto-generated from Frontend Observability API.
 - `settings` (Map of String) The settings of the Frontend Observability App.

@@ -29,8 +29,10 @@ testacc-oss-docker:
 	docker compose down
 
 testacc-enterprise-docker:
+	export DOCKER_USER_UID="$(shell id -u)" && \
 	export GRAFANA_URL=http://0.0.0.0:3000 && \
 	export GRAFANA_VERSION=$(GRAFANA_VERSION) && \
+	make -C testdata generate && \
 	GRAFANA_IMAGE=grafana/grafana-enterprise docker compose up $(DOCKER_COMPOSE_ARGS) && \
 	make testacc-enterprise && \
 	docker compose down
@@ -65,7 +67,7 @@ golangci-lint:
 		--rm \
 		--volume "$(shell pwd):/src" \
 		--workdir "/src" \
-		golangci/golangci-lint:v1.61.0 golangci-lint run ./... -v
+		golangci/golangci-lint:v1.64.7 golangci-lint run ./... -v
 
 docs:
 	go generate ./...

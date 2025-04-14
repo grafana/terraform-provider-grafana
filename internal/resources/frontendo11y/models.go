@@ -2,6 +2,7 @@ package frontendo11y
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -17,6 +18,7 @@ type FrontendO11yAppTFModel struct {
 	AllowedOrigins     types.List   `tfsdk:"allowed_origins"`
 	ExtraLogAtrributes types.Map    `tfsdk:"extra_log_attributes"`
 	Settings           types.Map    `tfsdk:"settings"`
+	CollectorEndpoint  types.String `tfsdk:"collector_endpoint"`
 }
 
 // toClientModel converts a FrontendO11yAppTFModel instance to a frontendo11yapi.App instance.
@@ -63,6 +65,7 @@ func (tfData FrontendO11yAppTFModel) toClientModel(ctx context.Context) (fronten
 		CORSAllowedOrigins: allowedOrigins,
 		ExtraLogLabels:     extraLogLabels,
 		Settings:           actualSettings,
+		CollectEndpointURL: tfData.CollectorEndpoint.ValueString(),
 	}, conversionDiags
 }
 
@@ -100,6 +103,7 @@ func convertClientModelToTFModel(stackID int64, app frontendo11yapi.App) (Fronte
 		AllowedOrigins:     tfAllowedOriginsValue,
 		ExtraLogAtrributes: tfExtraLogAttributes,
 		Settings:           tfSettings,
+		CollectorEndpoint:  types.StringValue(fmt.Sprintf("%s/%s", app.CollectEndpointURL, app.Key)),
 	}
 
 	return resp, diags

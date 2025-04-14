@@ -29,6 +29,7 @@ func DataSources() []*common.DataSource {
 	resources = append(resources, syntheticmonitoring.DataSources...)
 	resources = append(resources, cloudprovider.DataSources...)
 	resources = append(resources, connections.DataSources...)
+	resources = append(resources, fleetmanagement.DataSources...)
 	resources = append(resources, frontendo11y.DataSources...)
 	return resources
 }
