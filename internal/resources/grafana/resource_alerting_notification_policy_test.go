@@ -205,21 +205,39 @@ func TestAccNotificationPolicy_disableProvenance(t *testing.T) {
 }
 
 func TestAccNotificationPolicy_error(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+	testCases := []struct {
+		versionConstraint string
+		errorMessage      string
+	}{
+		{
+			versionConstraint: ">=9.1.0,<11.4.0",
+			errorMessage:      "400.+invalid object specification: receiver 'invalid' does not exist",
+		},
+		{
+			versionConstraint: ">=11.4.0",
+			errorMessage:      "400.+Invalid format of the submitted route: receiver 'invalid' does not exist",
+		},
+	}
 
-	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: `resource "grafana_notification_policy" "test" {
+	for _, tc := range testCases {
+		t.Run(tc.versionConstraint, func(t *testing.T) {
+			testutils.CheckOSSTestsEnabled(t, tc.versionConstraint)
+
+			resource.Test(t, resource.TestCase{
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				Steps: []resource.TestStep{
+					{
+						Config: `resource "grafana_notification_policy" "test" {
 					group_by      = ["..."]
 					contact_point = "invalid"
 				  }`,
-				// This tests that the API error message is propagated to the user.
-				ExpectError: regexp.MustCompile("400.+invalid object specification: receiver 'invalid' does not exist"),
-			},
-		},
-	})
+						// This tests that the API error message is propagated to the user.
+						ExpectError: regexp.MustCompile(tc.errorMessage),
+					},
+				},
+			})
+		})
+	}
 }
 
 func TestAccNotificationPolicy_inOrg(t *testing.T) {
