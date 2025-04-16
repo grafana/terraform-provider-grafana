@@ -129,12 +129,12 @@ resource "grafana_oncall_integration" "test-acc-integration" {
 }
 
 func testAccOnCallIntegrationConfigWithLabelDataSource(rName, rType string) string {
-	datasource := fmt.Sprintf(`
+	datasource := `
 data "grafana_oncall_label" "test-acc-integration-label" {
   key      = "TestKey"
   value    = "TestValue"
 }
-`)
+`
 
 	return datasource + testAccOnCallIntegrationConfig(rName, rType, `labels = [data.grafana_oncall_label.test-acc-integration-label]`)
 }

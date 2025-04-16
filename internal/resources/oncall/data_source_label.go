@@ -16,6 +16,7 @@ type labelDataSourceModel struct {
 	Key   basetypes.StringValue `tfsdk:"key"`
 	Value basetypes.StringValue `tfsdk:"value"`
 }
+
 func dataSourceLabel() *common.DataSource {
 	return common.NewDataSource(common.CategoryOnCall, dataSourceLabelName, &labelDataSource{})
 }
@@ -60,7 +61,6 @@ func (d *labelDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 	if resp.Diagnostics.HasError() {
-      return
-    }
-
+		return
+	}
 }

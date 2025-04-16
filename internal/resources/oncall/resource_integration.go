@@ -46,12 +46,6 @@ var integrationTypes = []string{
 
 var integrationTypesVerbal = strings.Join(integrationTypes, ", ")
 
-type Label struct {
-	Id	string
-	Key string
-	Value string
-}
-
 func resourceIntegration() *common.Resource {
 	schema := &schema.Resource{
 		Description: `
@@ -835,15 +829,15 @@ func expandLabels(input []interface{}) []*onCallAPI.Label {
 }
 
 func flattenLabels(labels []*onCallAPI.Label) []map[string]string {
-	flattened_labels := make([]map[string]string, 0, 1)
+	flattenedLabels := make([]map[string]string, 0, 1)
 
 	for _, l := range labels {
-		flattened_labels = append(flattened_labels, map[string]string{
-			"id": l.Key.Name,
-			"key": l.Key.Name,
+		flattenedLabels = append(flattenedLabels, map[string]string{
+			"id":    l.Key.Name,
+			"key":   l.Key.Name,
 			"value": l.Value.Name,
 		})
 	}
 
-	return flattened_labels
+	return flattenedLabels
 }
