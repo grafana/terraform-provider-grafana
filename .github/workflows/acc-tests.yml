@@ -66,26 +66,26 @@ jobs:
       fail-fast: false # Let all versions run, even if one fails
       matrix:
         # OSS tests, run on all versions
-        version: ['11.0.0', '10.4.3', '9.5.18']
+        version: ['11.6.0', '10.4.3', '9.5.18']
         type: ['oss']
         subset: ['basic', 'other', 'long']
         include:
-          - version: '11.0.0'
+          - version: '11.6.0'
             type: 'oss'
             subset: examples
           # TLS proxy tests, run only on latest version
-          - version: '11.0.0'
+          - version: '11.6.0'
             type: 'tls'
             subset: 'basic'
           # Sub-path tests. Runs tests on localhost:3000/grafana/
-          - version: '11.0.0'
+          - version: '11.6.0'
             type: 'subpath'
             subset: 'basic'
-          - version: '11.0.0'
+          - version: '11.6.0'
             type: 'subpath'
             subset: 'other'
           # Enterprise tests
-          - version: '11.0.0'
+          - version: '11.6.0'
             type: 'enterprise'
             subset: 'enterprise'
           - version: '10.4.3'
@@ -95,7 +95,7 @@ jobs:
             type: 'enterprise'
             subset: 'enterprise'
           # Generate tests
-          - version: '11.0.0'
+          - version: '11.6.0'
             type: 'enterprise'
             subset: 'generate'
           - version: '10.4.3'
