@@ -29,7 +29,7 @@ func TestAccExamples(t *testing.T) {
 		{
 			category: "Alerting",
 			testCheck: func(t *testing.T, filename string) {
-				testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
+				testutils.CheckOSSTestsEnabled(t, ">=11.6.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 			},
 		},
 		{
@@ -76,7 +76,7 @@ func TestAccExamples(t *testing.T) {
 					//   format of team LBAC rules"}
 					t.Skip()
 				} else {
-					testutils.CheckEnterpriseTestsEnabled(t, ">=11.0.0") // Only run on latest version
+					testutils.CheckEnterpriseTestsEnabled(t, ">=11.6.0") // Only run on latest version
 				}
 			},
 		},
