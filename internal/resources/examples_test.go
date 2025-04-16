@@ -37,7 +37,7 @@ func TestAccExamples(t *testing.T) {
 				case strings.Contains(filename, "grafana_apps_rules"):
 					t.Skip() // TODO: Enable once the API is no longer behind a feature toggle.
 				default:
-					testutils.CheckOSSTestsEnabled(t, ">=11.0.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
+					testutils.CheckOSSTestsEnabled(t, ">=11.6.0") // Only run on latest OSS version. The examples should be updated to reflect their latest working config.
 				}
 			},
 		},
@@ -94,7 +94,7 @@ func TestAccExamples(t *testing.T) {
 				case strings.Contains(filename, "grafana_scim_config"):
 					testutils.CheckEnterpriseTestsEnabled(t, ">=12.0.0")
 				default:
-					testutils.CheckEnterpriseTestsEnabled(t, ">=11.0.0") // Only run on latest version
+					testutils.CheckEnterpriseTestsEnabled(t, ">=11.6.0") // Only run on latest version
 				}
 			},
 		},
