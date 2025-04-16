@@ -1,5 +1,6 @@
 resource "grafana_library_panel" "test" {
-  name = "panel"
+  name       = "panel"
+  folder_uid = "general"
   model_json = jsonencode({
     gridPos = {
       x = 0
