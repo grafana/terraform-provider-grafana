@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"testing"
 
+	onCallAPI "github.com/grafana/amixr-api-go-client"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/testutils"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccDataSourceLabel_Basic(t *testing.T) {
@@ -17,6 +20,7 @@ func TestAccDataSourceLabel_Basic(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckOnCallIntegrationLabelDatasourceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDataSourceLabelConfig(key, value),
@@ -37,4 +41,18 @@ data "grafana_oncall_label" "test-acc-label" {
 	value = "%[2]s"
 }
 `, key, value)
+}
+
+func testAccCheckOnCallIntegrationLabelDatasourceDestroy(s *terraform.State) error {
+	client := testutils.Provider.Meta().(*common.Client).OnCallClient
+	for _, r := range s.RootModule().Resources {
+		if r.Type != "grafana_oncall_label" {
+			continue
+		}
+
+		if _, _, err := client.Integrations.GetIntegration(r.Primary.ID, &onCallAPI.GetIntegrationOptions{}); err == nil {
+			return fmt.Errorf("integration label still exists")
+		}
+	}
+	return nil
 }
