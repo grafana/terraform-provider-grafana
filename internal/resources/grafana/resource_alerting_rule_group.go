@@ -15,6 +15,7 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -102,6 +103,28 @@ This resource requires Grafana 9.1.0 or later.
 								oldDuration, _ := strfmt.ParseDuration(oldValue)
 								newDuration, _ := strfmt.ParseDuration(newValue)
 								return oldDuration == newDuration
+							},
+						},
+						"keep_firing_for": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							Description:      "The amount of time for which the rule will considered to be Recovering after initially Firing. Before this time has elapsed, the rule will continue to fire once it's been triggered.",
+							ValidateDiagFunc: common.ValidateDurationWithDays,
+							DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+								oldDuration, _ := strfmt.ParseDuration(oldValue)
+								newDuration, _ := strfmt.ParseDuration(newValue)
+								return oldDuration == newDuration
+							},
+						},
+						"missing_series_evals_to_resolve": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Description: "The number of missing series evaluations that must occur before the rule is considered to be resolved.",
+							ValidateDiagFunc: func(i any, path cty.Path) (diags diag.Diagnostics) {
+								if i != nil && i.(int) < 1 {
+									return diag.Errorf("missing_series_evals_to_resolve must be greater than or equal to 1")
+								}
+								return nil
 							},
 						},
 						"no_data_state": {
