@@ -233,6 +233,17 @@ func resourceIntegration() *common.Resource {
 					return true
 				},
 			},
+			"labels": {
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeMap,
+					Elem: &schema.Schema{
+						Type: schema.TypeString,
+					},
+				},
+				Optional:    true,
+				Description: "A list of string-to-string mappings. Each map must include one key named \"key\" and one key named \"value\".",
+			},
 		},
 	}
 
@@ -301,6 +312,7 @@ func resourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, clie
 	typeData := d.Get("type").(string)
 	templatesData := d.Get("templates").([]interface{})
 	defaultRouteData := d.Get("default_route").([]interface{})
+	labelsData := d.Get("labels").([]interface{})
 
 	createOptions := &onCallAPI.CreateIntegrationOptions{
 		TeamId:       teamIDData,
@@ -308,6 +320,7 @@ func resourceIntegrationCreate(ctx context.Context, d *schema.ResourceData, clie
 		Type:         typeData,
 		Templates:    expandTemplates(templatesData),
 		DefaultRoute: expandDefaultRoute(defaultRouteData),
+		Labels:       expandLabels(labelsData),
 	}
 
 	integration, _, err := client.Integrations.CreateIntegration(createOptions)
@@ -325,12 +338,14 @@ func resourceIntegrationUpdate(ctx context.Context, d *schema.ResourceData, clie
 	teamIDData := d.Get("team_id").(string)
 	templateData := d.Get("templates").([]interface{})
 	defaultRouteData := d.Get("default_route").([]interface{})
+	labelsData := d.Get("labels").([]interface{})
 
 	updateOptions := &onCallAPI.UpdateIntegrationOptions{
 		Name:         nameData,
 		TeamId:       teamIDData,
 		Templates:    expandTemplates(templateData),
 		DefaultRoute: expandDefaultRoute(defaultRouteData),
+		Labels:       expandLabels(labelsData),
 	}
 
 	integration, _, err := client.Integrations.UpdateIntegration(d.Id(), updateOptions)
@@ -359,6 +374,7 @@ func resourceIntegrationRead(ctx context.Context, d *schema.ResourceData, client
 	d.Set("type", integration.Type)
 	d.Set("templates", flattenTemplates(integration.Templates))
 	d.Set("link", integration.Link)
+	d.Set("labels", flattenLabels(integration.Labels))
 
 	return nil
 }
@@ -791,4 +807,37 @@ func expandDefaultRoute(input []interface{}) *onCallAPI.DefaultRoute {
 		}
 	}
 	return &defaultRoute
+}
+
+func expandLabels(input []interface{}) []*onCallAPI.Label {
+	labelsData := make([]*onCallAPI.Label, 0, 1)
+
+	for _, r := range input {
+		inputMap := r.(map[string]interface{})
+		key, keyExists := inputMap["key"]
+		value, valueExists := inputMap["value"]
+
+		if keyExists && valueExists {
+			label := onCallAPI.Label{
+				Key:   onCallAPI.KeyValueName{Name: key.(string)},
+				Value: onCallAPI.KeyValueName{Name: value.(string)},
+			}
+			labelsData = append(labelsData, &label)
+		}
+	}
+	return labelsData
+}
+
+func flattenLabels(labels []*onCallAPI.Label) []map[string]string {
+	flattenedLabels := make([]map[string]string, 0, 1)
+
+	for _, l := range labels {
+		flattenedLabels = append(flattenedLabels, map[string]string{
+			"id":    l.Key.Name,
+			"key":   l.Key.Name,
+			"value": l.Value.Name,
+		})
+	}
+
+	return flattenedLabels
 }

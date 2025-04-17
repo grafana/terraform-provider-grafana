@@ -55,6 +55,7 @@ resource "grafana_oncall_integration" "integration_with_templates" {
 
 ### Optional
 
+- `labels` (List of Map of String) A list of string-to-string mappings. Each map must include one key named "key" and one key named "value".
 - `team_id` (String) The ID of the OnCall team. To get one, create a team in Grafana, and navigate to the OnCall plugin (to sync the team with OnCall). You can then get the ID using the `grafana_oncall_team` datasource.
 - `templates` (Block List, Max: 1) Jinja2 templates for Alert payload. An empty templates block will be ignored. (see [below for nested schema](#nestedblock--templates))
 
