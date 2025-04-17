@@ -22,7 +22,7 @@ func TestAccDataSourceLabel_Basic(t *testing.T) {
 				Config: testAccDataSourceLabelConfig(key, value),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.grafana_oncall_label.test-acc-label", "id"),
-					resource.TestCheckResourceAttr("data.grafana_oncall_label.test-acc-label", "key", "1"),
+					resource.TestCheckResourceAttr("data.grafana_oncall_label.test-acc-label", "key", key),
 					resource.TestCheckResourceAttr("data.grafana_oncall_label.test-acc-label", "value", value),
 				),
 			},
@@ -33,7 +33,6 @@ func TestAccDataSourceLabel_Basic(t *testing.T) {
 func testAccDataSourceLabelConfig(key string, value string) string {
 	return fmt.Sprintf(`
 data "grafana_oncall_label" "test-acc-label" {
-	provider = grafana.oncall
 	key = "%[1]s"
 	value = "%[2]s"
 }
