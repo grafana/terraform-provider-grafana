@@ -54,7 +54,7 @@ func (d *labelDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	var data labelDataSourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
-	data.ID = basetypes.NewStringValue(data.Key.ValueString())
+	data.ID = basetypes.NewStringValue(fmt.Sprintf("%s:%s", data.Key.ValueString(), data.Value.ValueString()))
 	data.Key = basetypes.NewStringValue(data.Key.ValueString())
 	data.Value = basetypes.NewStringValue(data.Value.ValueString())
 
