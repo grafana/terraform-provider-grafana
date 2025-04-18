@@ -17,9 +17,11 @@ import (
 	"github.com/grafana/grafana-app-sdk/resource"
 	"github.com/grafana/grafana-com-public-clients/go/gcom"
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
+	"github.com/grafana/k6-cloud-openapi-client-go/k6"
 	"github.com/grafana/machine-learning-go-client/mlapi"
 	"github.com/grafana/slo-openapi-client/go/slo"
 	SMAPI "github.com/grafana/synthetic-monitoring-api-go-client"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 
@@ -33,6 +35,7 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/connectionsapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/fleetmanagementapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/frontendo11yapi"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/common/k6providerapi"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/grafana"
 )
 
@@ -88,6 +91,12 @@ func CreateClients(providerConfig ProviderConfig) (*common.Client, error) {
 
 	if !providerConfig.FrontendO11yAPIAccessToken.IsNull() || !providerConfig.CloudAccessPolicyToken.IsNull() {
 		if err := createFrontendO11yClient(c, providerConfig); err != nil {
+			return nil, err
+		}
+	}
+
+	if !providerConfig.K6AccessToken.IsNull() && !providerConfig.StackID.IsNull() {
+		if err := createK6Client(c, providerConfig); err != nil {
 			return nil, err
 		}
 	}
@@ -354,6 +363,37 @@ func createConnectionsClient(client *common.Client, providerConfig ProviderConfi
 		return err
 	}
 	client.ConnectionsAPIClient = apiClient
+	return nil
+}
+
+func createK6Client(client *common.Client, providerConfig ProviderConfig) error {
+	k6Cfg := k6.NewConfiguration()
+	if !providerConfig.K6URL.IsNull() {
+		k6Cfg.Servers = []k6.ServerConfiguration{
+			{URL: providerConfig.K6URL.ValueString()},
+		}
+	}
+
+	k6Cfg.HTTPClient = getRetryClient(providerConfig)
+
+	httpHeaders, err := getHTTPHeadersMap(providerConfig)
+	if err != nil {
+		return err
+	}
+	for k, v := range httpHeaders {
+		k6Cfg.DefaultHeader[k] = v
+	}
+
+	var stackID int32
+	if stackID, err = common.ToInt32(providerConfig.StackID.ValueInt64()); err != nil {
+		return fmt.Errorf("could not convert stack_id to int32: %s", err.Error())
+	}
+
+	client.K6APIClient = k6.NewAPIClient(k6Cfg)
+	client.K6APIConfig = &k6providerapi.K6APIConfig{
+		Token:   providerConfig.K6AccessToken.ValueString(),
+		StackID: stackID,
+	}
 	return nil
 }
 
