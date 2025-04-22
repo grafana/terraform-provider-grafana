@@ -2,7 +2,6 @@ package syntheticmonitoring
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	smapi "github.com/grafana/synthetic-monitoring-api-go-client"
@@ -30,9 +29,7 @@ func resourceCheckAlerts() *common.Resource {
 			Description: `
 Manages alerts for a check in Grafana Synthetic Monitoring.
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/synthetic-monitoring/configure-alerts/)
-* [API documentation](https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#alerts)
-`,
+* [Official documentation](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/configure-alerts/configure-per-check-alerts/)`,
 
 			CreateContext: withClient[schema.CreateContextFunc](resourceCheckAlertCreate),
 			ReadContext:   withClient[schema.ReadContextFunc](resourceCheckAlertRead),
@@ -58,7 +55,7 @@ Manages alerts for a check in Grafana Synthetic Monitoring.
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"name": {
-								Description: "Name of the alert. Must be one of: " + AlertNameProbeFailedExecutionsTooHigh + ", " + AlertNameTLSTargetCertificateCloseToExpiring,
+								Description: "Name of the alert. Required.",
 								Type:        schema.TypeString,
 								Required:    true,
 								ValidateFunc: validation.StringInSlice([]string{
@@ -72,13 +69,13 @@ Manages alerts for a check in Grafana Synthetic Monitoring.
 								Required:    true,
 							},
 							"period": {
-								Description: "Period for the alert threshold. Required only for " + AlertNameProbeFailedExecutionsTooHigh + " alerts. One of: `1m`, `2m`, `5m`, `10m`, `15m`, `20m`, `30m`, `1h`.",
+								Description: "Period for the alert. Required and must be one of: `5m`, `10m`, `15m`, `20m`, `30m`, `1h`.",
 								Type:        schema.TypeString,
 								Required:    false,
 								Optional:    true,
 								Default:     "",
 								ValidateFunc: validation.StringInSlice([]string{
-									"", "1m", "2m", "5m", "10m", "15m", "20m", "30m", "1h",
+									"", "5m", "10m", "15m", "20m", "30m", "1h",
 								}, false),
 							},
 						},
@@ -92,11 +89,6 @@ Manages alerts for a check in Grafana Synthetic Monitoring.
 func resourceCheckAlertCreate(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	checkID := int64(d.Get("check_id").(int))
 
-	// Validate that the check exists
-	if err := validateCheckExists(ctx, c, checkID); err != nil {
-		return diag.FromErr(err)
-	}
-
 	alerts, err := makeCheckAlerts(d)
 	if err != nil {
 		return diag.FromErr(err)
@@ -107,18 +99,13 @@ func resourceCheckAlertCreate(ctx context.Context, d *schema.ResourceData, c *sm
 		return diag.FromErr(err)
 	}
 
-	d.SetId(fmt.Sprintf("%d", checkID))
+	d.SetId(strconv.FormatInt(checkID, 10))
 	return resourceCheckAlertRead(ctx, d, c)
 }
 
 func resourceCheckAlertRead(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	checkID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	// Validate that the check exists
-	if err := validateCheckExists(ctx, c, checkID); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -153,11 +140,6 @@ func resourceCheckAlertUpdate(ctx context.Context, d *schema.ResourceData, c *sm
 		return diag.FromErr(err)
 	}
 
-	// Validate that the check exists
-	if err := validateCheckExists(ctx, c, checkID); err != nil {
-		return diag.FromErr(err)
-	}
-
 	alerts, err := makeCheckAlerts(d)
 	if err != nil {
 		return diag.FromErr(err)
@@ -174,11 +156,6 @@ func resourceCheckAlertUpdate(ctx context.Context, d *schema.ResourceData, c *sm
 func resourceCheckAlertDelete(ctx context.Context, d *schema.ResourceData, c *smapi.Client) diag.Diagnostics {
 	checkID, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	// Validate that the check exists
-	if err := validateCheckExists(ctx, c, checkID); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -201,10 +178,6 @@ func makeCheckAlerts(d *schema.ResourceData) ([]model.CheckAlert, error) {
 		name := alertData["name"].(string)
 		period, hasPeriod := alertData["period"].(string)
 
-		if name == AlertNameProbeFailedExecutionsTooHigh && !hasPeriod {
-			return nil, fmt.Errorf("period is required when name is %s", AlertNameProbeFailedExecutionsTooHigh)
-		}
-
 		alert := model.CheckAlert{
 			Name:      name,
 			Threshold: alertData["threshold"].(float64),
@@ -218,9 +191,4 @@ func makeCheckAlerts(d *schema.ResourceData) ([]model.CheckAlert, error) {
 	}
 
 	return alerts, nil
-}
-
-func validateCheckExists(ctx context.Context, c *smapi.Client, checkID int64) error {
-	_, err := c.GetCheck(ctx, checkID)
-	return err
 }

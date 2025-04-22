@@ -11,8 +11,7 @@ description: |-
 
 Manages alerts for a check in Grafana Synthetic Monitoring.
 
-* [Official documentation](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/configure-alerts/configure-per-check-alerts/)
-* [API documentation](https://github.com/grafana/synthetic-monitoring-api-go-client/blob/main/docs/API.md#alerts)
+- [Official documentation](https://grafana.com/docs/grafana-cloud/testing/synthetic-monitoring/configure-alerts/configure-per-check-alerts/)
 
 ## Example Usage
 
@@ -50,11 +49,11 @@ resource "grafana_synthetic_monitoring_check_alerts" "main" {
 
 The following arguments are supported:
 
-* `check_id` - (Required) The ID of the check to manage alerts for.
-* `alerts` - (Required) List of alerts for the check. Each alert has the following fields:
-  * `name` - (Required) Name of the alert. Must be one of: `ProbeFailedExecutionsTooHigh`, `TLSTargetCertificateCloseToExpiring`.
-  * `threshold` - (Required) Threshold value for the alert.
-  * `period` - (Required) Period for the alert threshold. Required and must be one of: `1m`, `2m`, `5m`, `10m`, `15m`, `20m`, `30m`, `1h` for `ProbeFailedExecutionsTooHigh` alerts. For other alerts, set to `""` (empty string).
+- `check_id` - (Required) The ID of the check to manage alerts for.
+- `alerts` - (Required) List of alerts for the check. Each alert has the following fields:
+  - `name` - (Required) Name of the alert.
+  - `threshold` - (Required) Threshold value for the alert.
+  - `period` - (Required) Period for the alert. Must be one of: `5m`, `10m`, `15m`, `20m`, `30m`, `1h` for the alerts that support it. For other alerts, set to `""` (empty string).
 
 ## Import
 
