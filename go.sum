@@ -430,8 +430,8 @@ github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXl
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=
 github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
-github.com/tmccombs/hcl2json v0.6.5 h1:SieU9/Xdsx0kRRtZcms+5CjXaWsl7LKnuSmtKGFGjx4=
-github.com/tmccombs/hcl2json v0.6.5/go.mod h1:ANXQ1E2omHPISSL1R5iRuL2HoYtrKKefPzTI7XUD+IQ=
+github.com/tmccombs/hcl2json v0.6.7 h1:RYKTs4kd/gzRsEiv7J3M2WQ7TYRYZVc+0H0pZdERkxA=
+github.com/tmccombs/hcl2json v0.6.7/go.mod h1:lJgBOOGDpbhjvdG2dLaWsqB4KBzul2HytfDTS3H465o=
 github.com/ugorji/go/codec v1.2.11 h1:BMaWp1Bb6fHwEtbplGBGJ498wD+LKlNSl25MjdZY4dU=
 github.com/ugorji/go/codec v1.2.11/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
 github.com/unknwon/bra v0.0.0-20200517080246-1e3013ecaff8 h1:aVGB3YnaS/JNfOW3tiHIlmNmTDg618va+eT0mVomgyI=
