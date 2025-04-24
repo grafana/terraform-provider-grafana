@@ -86,8 +86,8 @@ func TestSSOSettings_basic_saml(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.certificate_path", "devenv/docker/blocks/auth/saml-enterprise/cert.crt"),
-					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.private_key_path", "devenv/docker/blocks/auth/saml-enterprise/key.pem"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.certificate_path", "/certs/saml.crt"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.private_key_path", "/certs/saml.key"),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.idp_metadata_url", "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.signature_algorithm", "rsa-sha256"),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.metadata_valid_duration", "24h"),
@@ -99,8 +99,8 @@ func TestSSOSettings_basic_saml(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.certificate_path", "devenv/docker/blocks/auth/saml-enterprise/cert.crt"),
-					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.private_key_path", "devenv/docker/blocks/auth/saml-enterprise/key.pem"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.certificate_path", "/certs/saml.crt"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.private_key_path", "/certs/saml.key"),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.idp_metadata_url", "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.signature_algorithm", "rsa-sha512"),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.metadata_valid_duration", "48h"),
@@ -113,8 +113,8 @@ func TestSSOSettings_basic_saml(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "provider_name", provider),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.certificate_path", "devenv/docker/blocks/auth/saml-enterprise/cert.crt"),
-					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.private_key_path", "devenv/docker/blocks/auth/saml-enterprise/key.pem"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.certificate_path", "/certs/saml.crt"),
+					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.private_key_path", "/certs/saml.key"),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.idp_metadata_url", "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.signature_algorithm", "rsa-sha256"),
 					resource.TestCheckResourceAttr(resourceName, "saml_settings.0.metadata_valid_duration", "24h"),
@@ -442,8 +442,8 @@ func testConfigForOAuth2Provider(provider string, prefix string) string {
 const testConfigForSamlProvider = `resource "grafana_sso_settings" "saml_sso_settings" {
   provider_name = "saml"
   saml_settings {
-    certificate_path        = "devenv/docker/blocks/auth/saml-enterprise/cert.crt"
-    private_key_path        = "devenv/docker/blocks/auth/saml-enterprise/key.pem"
+    certificate_path        = "/certs/saml.crt"
+    private_key_path        = "/certs/saml.key"
     idp_metadata_url        = "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"
     signature_algorithm     = "rsa-sha256"
     metadata_valid_duration = "24h"
@@ -454,8 +454,8 @@ const testConfigForSamlProvider = `resource "grafana_sso_settings" "saml_sso_set
 const testConfigForSamlProviderUpdated = `resource "grafana_sso_settings" "saml_sso_settings" {
   provider_name = "saml"
   saml_settings {
-    certificate_path          = "devenv/docker/blocks/auth/saml-enterprise/cert.crt"
-    private_key_path          = "devenv/docker/blocks/auth/saml-enterprise/key.pem"
+    certificate_path          = "/certs/saml.crt"
+    private_key_path          = "/certs/saml.key"
     idp_metadata_url          = "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"
     allow_sign_up             = true
     signature_algorithm       = "rsa-sha512"
@@ -467,8 +467,8 @@ const testConfigForSamlProviderUpdated = `resource "grafana_sso_settings" "saml_
 const testConfigForSAMLProviderWithAzureAD = `resource "grafana_sso_settings" "saml_sso_settings" {
 	provider_name = "saml"
 	saml_settings {
-		certificate_path          = "devenv/docker/blocks/auth/saml-enterprise/cert.crt"
-		private_key_path          = "devenv/docker/blocks/auth/saml-enterprise/key.pem"
+		certificate_path          = "/certs/saml.crt"
+		private_key_path          = "/certs/saml.key"
 		idp_metadata_url          = "https://nexus.microsoftonline-p.com/federationmetadata/saml20/federationmetadata.xml"
 		signature_algorithm       = "rsa-sha256"
 		metadata_valid_duration   = "24h"

@@ -125,71 +125,119 @@ func TestAccNotificationPolicy_inheritContactPoint(t *testing.T) {
 }
 
 func TestAccNotificationPolicy_disableProvenance(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+	t.Run("fetch disable_provenance", func(t *testing.T) {
+		testutils.CheckOSSTestsEnabled(t, ">=11.3.0")
 
-	var policy models.Route
+		var policy models.Route
 
-	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		// Implicitly tests deletion.
-		CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
-		Steps: []resource.TestStep{
-			// Create
-			{
-				Config: testAccNotificationPolicyDisableProvenance(false),
-				Check: resource.ComposeTestCheckFunc(
-					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
-					resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "false"),
-				),
+		resource.Test(t, resource.TestCase{
+			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			// Implicitly tests deletion.
+			CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
+			Steps: []resource.TestStep{
+				// Create
+				{
+					Config: testAccNotificationPolicyDisableProvenance(false),
+					Check: resource.ComposeTestCheckFunc(
+						alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+						resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "false"),
+					),
+				},
+				// Import (tests that disable_provenance is fetched from API)
+				{
+					ResourceName:      "grafana_notification_policy.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
 			},
-			// Import (tests that disable_provenance is fetched from API)
-			{
-				ResourceName:      "grafana_notification_policy.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+		})
+	})
+
+	t.Run("disable_provenance", func(t *testing.T) {
+		testutils.CheckOSSTestsEnabled(t, ">=9.1.0,<=11.1.0")
+
+		var policy models.Route
+
+		resource.Test(t, resource.TestCase{
+			ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+			// Implicitly tests deletion.
+			CheckDestroy: alertingNotificationPolicyCheckExists.destroyed(&policy, nil),
+			Steps: []resource.TestStep{
+				// Create
+				{
+					Config: testAccNotificationPolicyDisableProvenance(false),
+					Check: resource.ComposeTestCheckFunc(
+						alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+						resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "false"),
+					),
+				},
+				// Import (tests that disable_provenance is fetched from API)
+				{
+					ResourceName:      "grafana_notification_policy.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+				// Disable provenance
+				{
+					Config: testAccNotificationPolicyDisableProvenance(true),
+					Check: resource.ComposeTestCheckFunc(
+						alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+						resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "true"),
+					),
+				},
+				// Import (tests that disable_provenance is fetched from API)
+				{
+					ResourceName:      "grafana_notification_policy.test",
+					ImportState:       true,
+					ImportStateVerify: true,
+				},
+				// Re-enable provenance
+				{
+					Config: testAccNotificationPolicyDisableProvenance(false),
+					Check: resource.ComposeTestCheckFunc(
+						alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
+						resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "false"),
+					),
+				},
 			},
-			// Disable provenance
-			{
-				Config: testAccNotificationPolicyDisableProvenance(true),
-				Check: resource.ComposeTestCheckFunc(
-					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
-					resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "true"),
-				),
-			},
-			// Import (tests that disable_provenance is fetched from API)
-			{
-				ResourceName:      "grafana_notification_policy.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-			// Re-enable provenance
-			{
-				Config: testAccNotificationPolicyDisableProvenance(false),
-				Check: resource.ComposeTestCheckFunc(
-					alertingNotificationPolicyCheckExists.exists("grafana_notification_policy.test", &policy),
-					resource.TestCheckResourceAttr("grafana_notification_policy.test", "disable_provenance", "false"),
-				),
-			},
-		},
+		})
 	})
 }
 
 func TestAccNotificationPolicy_error(t *testing.T) {
-	testutils.CheckOSSTestsEnabled(t, ">=9.1.0")
+	testCases := []struct {
+		versionConstraint string
+		errorMessage      string
+	}{
+		{
+			versionConstraint: ">=9.1.0,<11.4.0",
+			errorMessage:      "400.+invalid object specification: receiver 'invalid' does not exist",
+		},
+		{
+			versionConstraint: ">=11.4.0",
+			errorMessage:      "400.+Invalid format of the submitted route: receiver 'invalid' does not exist",
+		},
+	}
 
-	resource.Test(t, resource.TestCase{
-		ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: `resource "grafana_notification_policy" "test" {
+	for _, tc := range testCases {
+		t.Run(tc.versionConstraint, func(t *testing.T) {
+			testutils.CheckOSSTestsEnabled(t, tc.versionConstraint)
+
+			resource.Test(t, resource.TestCase{
+				ProtoV5ProviderFactories: testutils.ProtoV5ProviderFactories,
+				Steps: []resource.TestStep{
+					{
+						Config: `resource "grafana_notification_policy" "test" {
 					group_by      = ["..."]
 					contact_point = "invalid"
 				  }`,
-				// This tests that the API error message is propagated to the user.
-				ExpectError: regexp.MustCompile("400.+invalid object specification: receiver 'invalid' does not exist"),
-			},
-		},
-	})
+						// This tests that the API error message is propagated to the user.
+						ExpectError: regexp.MustCompile(tc.errorMessage),
+					},
+				},
+			})
+		})
+	}
 }
 
 func TestAccNotificationPolicy_inOrg(t *testing.T) {

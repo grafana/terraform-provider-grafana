@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/appplatform"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -313,11 +312,7 @@ func (p *frameworkProvider) DataSources(_ context.Context) []func() datasource.D
 
 // Resources defines the resources implemented in the provider.
 func (p *frameworkProvider) Resources(_ context.Context) []func() resource.Resource {
-	return append(
-		pluginFrameworkResources(),
-		appplatform.Dashboard,
-		appplatform.Playlist,
-	)
+	return pluginFrameworkResources()
 }
 
 // FrameworkProvider returns a terraform-plugin-framework Provider.

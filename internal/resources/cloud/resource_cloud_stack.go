@@ -574,10 +574,16 @@ func waitForStackReadiness(ctx context.Context, timeout time.Duration, stackURL 
 	if joinErr != nil {
 		return diag.FromErr(joinErr)
 	}
+	wakePath, joinErr := url.JoinPath(stackURL, "login")
+	if joinErr != nil {
+		return diag.FromErr(joinErr)
+	}
+	wakeURL := wakePath + "?disableAutoLogin=true"
+
 	err := retry.RetryContext(ctx, timeout, func() *retry.RetryError {
-		// Query the instance URL directly. This makes the stack wake-up if it has been paused.
+		// Query the instance login page directly. This makes the stack wake-up if it has been paused.
 		// The health endpoint is helpful to check that the stack is ready, but it doesn't wake up the stack.
-		stackReq, err := http.NewRequestWithContext(ctx, http.MethodGet, stackURL, nil)
+		stackReq, err := http.NewRequestWithContext(ctx, http.MethodGet, wakeURL, nil)
 		if err != nil {
 			return retry.NonRetryableError(err)
 		}

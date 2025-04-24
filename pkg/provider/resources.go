@@ -4,6 +4,7 @@ package provider
 
 import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
+	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/appplatform"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloud"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/cloudprovider"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/resources/connections"
@@ -76,6 +77,13 @@ func Resources() []*common.Resource {
 	return resources
 }
 
+func AppPlatformResources() []appplatform.NamedResource {
+	return []appplatform.NamedResource{
+		appplatform.Dashboard(),
+		appplatform.Playlist(),
+	}
+}
+
 func ResourcesMap() map[string]*common.Resource {
 	result := make(map[string]*common.Resource)
 	for _, r := range Resources() {
@@ -98,6 +106,7 @@ func legacySDKResources() map[string]*schema.Resource {
 
 func pluginFrameworkResources() []func() resource.Resource {
 	var resources []func() resource.Resource
+
 	for _, r := range Resources() {
 		resourceSchema := r.PluginFrameworkSchema
 		if resourceSchema == nil {
@@ -105,5 +114,10 @@ func pluginFrameworkResources() []func() resource.Resource {
 		}
 		resources = append(resources, func() resource.Resource { return resourceSchema })
 	}
+
+	for _, r := range AppPlatformResources() {
+		resources = append(resources, func() resource.Resource { return r.Resource })
+	}
+
 	return resources
 }
