@@ -19,6 +19,7 @@ var DataSources = []*common.DataSource{
 var Resources = []*common.Resource{
 	makeResourceAWSAccount(),
 	makeResourceAWSCloudWatchScrapeJob(),
+	makeResourceAWSResourceMetadataScrapeJob(),
 	makeResourceAzureCredential(),
 }
 
