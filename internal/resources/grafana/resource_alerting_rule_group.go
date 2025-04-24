@@ -542,12 +542,11 @@ func packAlertRule(r *models.ProvisionedAlertRule) (interface{}, error) {
 		json["record"] = record
 	}
 
-	// FIXME: open api needs to be a reference to the duration
 	if r.KeepFiringFor != 0 {
 		json["keep_firing_for"] = r.KeepFiringFor.String()
 	}
 
-	if r.MissingSeriesEvalsToResolve > 1 {
+	if r.MissingSeriesEvalsToResolve >= 1 {
 		json["missing_series_evals_to_resolve"] = r.MissingSeriesEvalsToResolve
 	}
 
@@ -584,7 +583,13 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		return nil, err
 	}
 
-	missingSeriesEvalsToResolve := int64(json["missing_series_evals_to_resolve"].(int))
+	var missingSeriesEvalsToResolve int64
+	if val, ok := json["missing_series_evals_to_resolve"]; ok && val != nil {
+		intVal := val.(int)
+		if intVal >= 1 {
+			missingSeriesEvalsToResolve = int64(intVal)
+		}
+	}
 
 	// Check for conflicting fields before unpacking the rest of the rule.
 	// This is a workaround due to the lack of support for ConflictsWith in Lists in the SDK.
