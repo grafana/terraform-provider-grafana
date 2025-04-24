@@ -18,6 +18,7 @@ var Resources = addValidationToResources(
 
 var DataSources = addValidationToDataSources(
 	dataSourceProject(),
+	dataSourceProjects(),
 	dataSourceProjectLimits(),
 	dataSourceLoadTest(),
 	dataSourceLoadTests(),
