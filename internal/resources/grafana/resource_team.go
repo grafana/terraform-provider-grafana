@@ -427,7 +427,7 @@ func memberChanges(stateMembers, configMembers map[string]TeamMember) []MemberCh
 func addMemberIdsToChanges(client *goapi.GrafanaHTTPAPI, changes []MemberChange) ([]MemberChange, error) {
 	gUserMap := make(map[string]int64)
 
-	resp, err := client.Org.GetOrgUsersForCurrentOrg()
+	resp, err := client.Org.GetOrgUsersForCurrentOrg(nil)
 	if err != nil {
 		return nil, err
 	}
