@@ -15,7 +15,6 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -120,12 +119,6 @@ This resource requires Grafana 9.1.0 or later.
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Description: "The number of missing series evaluations that must occur before the rule is considered to be resolved.",
-							ValidateDiagFunc: func(i any, path cty.Path) (diags diag.Diagnostics) {
-								if i != nil && i.(int) < 1 {
-									return diag.Errorf("missing_series_evals_to_resolve must be greater than or equal to 1")
-								}
-								return nil
-							},
 						},
 						"no_data_state": {
 							Type:        schema.TypeString,
@@ -542,12 +535,11 @@ func packAlertRule(r *models.ProvisionedAlertRule) (interface{}, error) {
 		json["record"] = record
 	}
 
-	// FIXME: open api needs to be a reference to the duration
 	if r.KeepFiringFor != 0 {
 		json["keep_firing_for"] = r.KeepFiringFor.String()
 	}
 
-	if r.MissingSeriesEvalsToResolve > 1 {
+	if r.MissingSeriesEvalsToResolve >= 1 {
 		json["missing_series_evals_to_resolve"] = r.MissingSeriesEvalsToResolve
 	}
 
@@ -584,7 +576,13 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		return nil, err
 	}
 
-	missingSeriesEvalsToResolve := int64(json["missing_series_evals_to_resolve"].(int))
+	var missingSeriesEvalsToResolve int64
+	if val, ok := json["missing_series_evals_to_resolve"]; ok && val != nil {
+		intVal := val.(int)
+		if intVal >= 1 {
+			missingSeriesEvalsToResolve = int64(intVal)
+		}
+	}
 
 	// Check for conflicting fields before unpacking the rest of the rule.
 	// This is a workaround due to the lack of support for ConflictsWith in Lists in the SDK.
