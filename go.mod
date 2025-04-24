@@ -13,7 +13,7 @@ require (
 	github.com/grafana/fleet-management-api v1.0.0
 	github.com/grafana/grafana-app-sdk v0.35.2-0.20250408075831-c2a87bde0849
 	github.com/grafana/grafana-com-public-clients/go/gcom v0.0.0-20250214150112-a52892176c26
-	github.com/grafana/grafana-openapi-client-go v0.0.0-20241113095943-9cb2bbfeb8a3
+	github.com/grafana/grafana-openapi-client-go v0.0.0-20250424142317-beadd3136e10
 	github.com/grafana/grafana/apps/dashboard v0.0.0-20250424064802-2fbb2d6f5d27
 	github.com/grafana/grafana/apps/playlist v0.0.0-20250424064802-2fbb2d6f5d27
 	github.com/grafana/grafana/pkg/apimachinery v0.0.0-20250424064802-2fbb2d6f5d27
