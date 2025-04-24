@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v1alpha1"
+	"github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v1beta1"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -23,10 +23,10 @@ type DashboardSpecModel struct {
 
 // Dashboard creates a new Grafana Dashboard resource.
 func Dashboard() NamedResource {
-	return NewNamedResource[*v1alpha1.Dashboard, *v1alpha1.DashboardList](
+	return NewNamedResource[*v1beta1.Dashboard, *v1beta1.DashboardList](
 		common.CategoryGrafanaApps,
-		ResourceConfig[*v1alpha1.Dashboard]{
-			Kind: v1alpha1.DashboardKind(),
+		ResourceConfig[*v1beta1.Dashboard]{
+			Kind: v1beta1.DashboardKind(),
 			Schema: ResourceSpecSchema{
 				Description: "Manages Grafana dashboards.",
 				MarkdownDescription: `
@@ -50,7 +50,7 @@ Manages Grafana dashboards via the new Grafana App Platform API. This resource i
 					},
 				},
 			},
-			SpecParser: func(ctx context.Context, spec types.Object, dst *v1alpha1.Dashboard) diag.Diagnostics {
+			SpecParser: func(ctx context.Context, spec types.Object, dst *v1beta1.Dashboard) diag.Diagnostics {
 				var data DashboardSpecModel
 				if diag := spec.As(ctx, &data, basetypes.ObjectAsOptions{
 					UnhandledNullAsEmpty:    true,
@@ -59,7 +59,7 @@ Manages Grafana dashboards via the new Grafana App Platform API. This resource i
 					return diag
 				}
 
-				var res v1alpha1.DashboardSpec
+				var res v1beta1.DashboardSpec
 				if diag := data.JSON.Unmarshal(&res); diag.HasError() {
 					return diag
 				}
@@ -84,7 +84,7 @@ Manages Grafana dashboards via the new Grafana App Platform API. This resource i
 
 				return diag.Diagnostics{}
 			},
-			SpecSaver: func(ctx context.Context, obj *v1alpha1.Dashboard, dst *ResourceModel) diag.Diagnostics {
+			SpecSaver: func(ctx context.Context, obj *v1beta1.Dashboard, dst *ResourceModel) diag.Diagnostics {
 				// HACK: for v0 we need to clean a few fields from the spec,
 				// which are not supposed to be set by the user.
 				delete(obj.Spec.Object, "version")
@@ -145,7 +145,7 @@ Manages Grafana dashboards via the new Grafana App Platform API. This resource i
 		})
 }
 
-func getTagsFromResource(src *v1alpha1.Dashboard) []string {
+func getTagsFromResource(src *v1beta1.Dashboard) []string {
 	tags, ok := src.Spec.Object["tags"]
 	if !ok {
 		return nil
