@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"regexp"
+	"strings"
 
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
@@ -161,4 +163,26 @@ func tagsString(tags []string) string {
 	}
 	fmt.Fprintf(b, "\n\t\t\t")
 	return b.String()
+}
+
+// mapCty maps into a slice a function that converts a type into a cty.Value.
+func mapCty[T any, O any](in []T, converter func(T) O) []O {
+	vals := make([]O, len(in))
+	for i, v := range in {
+		vals[i] = converter(v)
+	}
+	return vals
+}
+
+var (
+	matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
+	matchAllCap   = regexp.MustCompile("([a-z0-9])([A-Z])")
+)
+
+// toSnakeCase converts a string from camelCase or kebab-case to snake_case.
+func toSnakeCase(str string) string {
+	snake := matchFirstCap.ReplaceAllString(str, "${1}_${2}")
+	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
+	snake = strings.ReplaceAll(snake, "-", "_")
+	return strings.ToLower(snake)
 }

@@ -336,14 +336,14 @@ func generateCloudWatchScrapeJobTFResourceModel(ctx context.Context, stackID str
 	}
 	converted.RegionsSubsetOverride = regionsSubsetOverride
 
-	services, diags := convertServicesClientToTFModel(ctx, scrapeJobData.Services)
+	services, diags := convertCWServicesClientToTFModel(ctx, scrapeJobData.Services)
 	conversionDiags.Append(diags...)
 	if conversionDiags.HasError() {
 		return awsCWScrapeJobTFResourceModel{}, conversionDiags
 	}
 	converted.Services = services
 
-	customNamespaces, diags := convertCustomNamespacesClientToTFModel(ctx, scrapeJobData.CustomNamespaces)
+	customNamespaces, diags := convertCWCustomNamespacesClientToTFModel(ctx, scrapeJobData.CustomNamespaces)
 	conversionDiags.Append(diags...)
 	if conversionDiags.HasError() {
 		return awsCWScrapeJobTFResourceModel{}, conversionDiags
@@ -385,14 +385,14 @@ func generateCloudWatchScrapeJobDataSourceTFModel(ctx context.Context, stackID s
 	}
 	converted.Regions = regions
 
-	services, diags := convertServicesClientToTFModel(ctx, scrapeJobData.Services)
+	services, diags := convertCWServicesClientToTFModel(ctx, scrapeJobData.Services)
 	conversionDiags.Append(diags...)
 	if conversionDiags.HasError() {
 		return awsCWScrapeJobTFDataSourceModel{}, conversionDiags
 	}
 	converted.Services = services
 
-	customNamespaces, diags := convertCustomNamespacesClientToTFModel(ctx, scrapeJobData.CustomNamespaces)
+	customNamespaces, diags := convertCWCustomNamespacesClientToTFModel(ctx, scrapeJobData.CustomNamespaces)
 	conversionDiags.Append(diags...)
 	if conversionDiags.HasError() {
 		return awsCWScrapeJobTFDataSourceModel{}, conversionDiags
@@ -412,7 +412,7 @@ func generateCloudWatchScrapeJobDataSourceTFModel(ctx context.Context, stackID s
 	return converted, conversionDiags
 }
 
-func convertServicesClientToTFModel(ctx context.Context, services []cloudproviderapi.AWSCloudWatchService) (types.List, diag.Diagnostics) {
+func convertCWServicesClientToTFModel(ctx context.Context, services []cloudproviderapi.AWSCloudWatchService) (types.List, diag.Diagnostics) {
 	conversionDiags := diag.Diagnostics{}
 	servicesTF := make([]awsCWScrapeJobServiceTFModel, len(services))
 	servicesListObjType := types.ObjectType{AttrTypes: awsCWScrapeJobServiceTFModel{}.attrTypes()}
@@ -478,7 +478,7 @@ func convertServicesClientToTFModel(ctx context.Context, services []cloudprovide
 	return servicesTFList, conversionDiags
 }
 
-func convertCustomNamespacesClientToTFModel(ctx context.Context, customNamespaces []cloudproviderapi.AWSCloudWatchCustomNamespace) (types.List, diag.Diagnostics) {
+func convertCWCustomNamespacesClientToTFModel(ctx context.Context, customNamespaces []cloudproviderapi.AWSCloudWatchCustomNamespace) (types.List, diag.Diagnostics) {
 	conversionDiags := diag.Diagnostics{}
 	customNamespacesTF := make([]awsCWScrapeJobCustomNamespaceTFModel, len(customNamespaces))
 	customNamspacesListObjType := types.ObjectType{AttrTypes: awsCWScrapeJobCustomNamespaceTFModel{}.attrTypes()}
