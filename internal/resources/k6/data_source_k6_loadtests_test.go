@@ -31,20 +31,27 @@ func TestAccDataSourceK6LoadTests_basic(t *testing.T) {
 				Config: testutils.TestAccExample(t, "data-sources/grafana_k6_load_tests/data-source.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					projectCheckExists.exists("grafana_k6_project.load_test_project", &project),
-					// 0
+					// from_project_id.0
 					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.from_project_id", "load_tests.0.id"),
 					resource.TestCheckResourceAttr("data.grafana_k6_load_tests.from_project_id", "load_tests.0.name", "Terraform Test Load Test"),
 					resource.TestCheckResourceAttrWith("data.grafana_k6_load_tests.from_project_id", "load_tests.0.project_id", checkProjectIDMatch),
 					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.from_project_id", "load_tests.0.script"),
 					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.from_project_id", "load_tests.0.created"),
 					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.from_project_id", "load_tests.0.updated"),
-					// 1
+					// from_project_id.1
 					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.from_project_id", "load_tests.1.id"),
 					resource.TestCheckResourceAttr("data.grafana_k6_load_tests.from_project_id", "load_tests.1.name", "Terraform Test Load Test (2)"),
 					resource.TestCheckResourceAttrWith("data.grafana_k6_load_tests.from_project_id", "load_tests.1.project_id", checkProjectIDMatch),
 					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.from_project_id", "load_tests.1.script"),
 					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.from_project_id", "load_tests.1.created"),
 					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.from_project_id", "load_tests.1.updated"),
+					// filter_by_name.0
+					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.filter_by_name", "load_tests.0.id"),
+					resource.TestCheckResourceAttr("data.grafana_k6_load_tests.filter_by_name", "load_tests.0.name", "Terraform Test Load Test (2)"),
+					resource.TestCheckResourceAttrWith("data.grafana_k6_load_tests.filter_by_name", "load_tests.0.project_id", checkProjectIDMatch),
+					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.filter_by_name", "load_tests.0.script"),
+					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.filter_by_name", "load_tests.0.created"),
+					resource.TestCheckResourceAttrSet("data.grafana_k6_load_tests.filter_by_name", "load_tests.0.updated"),
 				),
 			},
 		},

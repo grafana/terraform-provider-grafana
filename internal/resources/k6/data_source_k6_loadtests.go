@@ -2,8 +2,10 @@ package k6
 
 import (
 	"context"
+	"slices"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -37,6 +39,7 @@ func dataSourceLoadTests() *common.DataSource {
 type loadTestsDataSourceModel struct {
 	ID        types.Int32               `tfsdk:"id"`
 	ProjectID types.Int32               `tfsdk:"project_id"`
+	Name      types.String              `tfsdk:"name"`
 	LoadTests []loadTestDataSourceModel `tfsdk:"load_tests"`
 }
 
@@ -63,9 +66,12 @@ func (d *loadTestsDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 				Description: "The identifier of the project the load tests belong to.",
 				Required:    true,
 			},
-			"load_tests": schema.ListAttribute{
+			"name": schema.StringAttribute{
 				Description: "Human-friendly identifier of the load test.",
-				Computed:    true,
+				Optional:    true,
+			},
+			"load_tests": schema.ListAttribute{
+				Computed: true,
 				ElementType: types.ObjectType{
 					AttrTypes: map[string]attr.Type{
 						"id":                   types.Int32Type,
@@ -99,7 +105,7 @@ func (d *loadTestsDataSource) Read(ctx context.Context, req datasource.ReadReque
 	k6Req := d.client.LoadTestsAPI.ProjectsLoadTestsRetrieve(ctx, state.ProjectID.ValueInt32()).
 		XStackId(d.config.StackID)
 
-	lt, _, err := k6Req.Execute()
+	lts, _, err := k6Req.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading k6 load tests",
@@ -110,10 +116,15 @@ func (d *loadTestsDataSource) Read(ctx context.Context, req datasource.ReadReque
 
 	// Process the results and populate the state with the retrieved load tests
 	var loadTestStates []loadTestDataSourceModel
-	sort.Slice(lt.Value, func(i, j int) bool {
-		return lt.Value[i].GetCreated().Before(lt.Value[j].GetCreated())
+	if !state.Name.IsNull() {
+		lts.Value = slices.DeleteFunc(lts.Value, func(lt k6.LoadTestApiModel) bool {
+			return !strings.EqualFold(lt.GetName(), state.Name.ValueString())
+		})
+	}
+	sort.Slice(lts.Value, func(i, j int) bool {
+		return lts.Value[i].GetCreated().Before(lts.Value[j].GetCreated())
 	})
-	for _, lt := range lt.Value {
+	for _, lt := range lts.Value {
 		// Retrieve the load test script content
 		scriptReq := d.client.LoadTestsAPI.LoadTestsScriptRetrieve(ctx, lt.GetId()).
 			XStackId(d.config.StackID)
