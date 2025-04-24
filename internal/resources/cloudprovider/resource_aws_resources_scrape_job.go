@@ -24,8 +24,8 @@ import (
 )
 
 var (
-	resourceAWSResourceMetadataScrapeJobTerraformName = "grafana_cloud_provider_aws_resources_scrape_job"
-	resourceAWSResourceMetadataScrapeJobTerraformID   = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("name"))
+	resourceAWSRMScrapeJobTerraformName = "grafana_cloud_provider_aws_resources_scrape_job"
+	resourceAWSRMScrapeJobTerraformID   = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("name"))
 )
 
 type resourceAWSResourceMetadataScrapeJob struct {
@@ -36,7 +36,7 @@ func makeResourceAWSResourceMetadataScrapeJob() *common.Resource {
 	return common.NewResource(
 		common.CategoryCloudProvider,
 		"grafana_cloud_provider_aws_resources_scrape_job",
-		resourceAWSResourceMetadataScrapeJobTerraformID,
+		resourceAWSRMScrapeJobTerraformID,
 		&resourceAWSResourceMetadataScrapeJob{},
 	)
 }
@@ -56,7 +56,7 @@ func (r *resourceAWSResourceMetadataScrapeJob) Configure(ctx context.Context, re
 }
 
 func (r resourceAWSResourceMetadataScrapeJob) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = resourceAWSResourceMetadataScrapeJobTerraformName
+	resp.TypeName = resourceAWSRMScrapeJobTerraformName
 }
 
 func (r resourceAWSResourceMetadataScrapeJob) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -176,7 +176,7 @@ func (r resourceAWSResourceMetadataScrapeJob) ImportState(ctx context.Context, r
 		return
 	}
 
-	jobTF, diags := generateResourceMetadataScrapeJobTFResourceModel(ctx, stackID, jobResp)
+	jobTF, diags := generateAWSRMScrapeJobTFResourceModel(ctx, stackID, jobResp)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -205,7 +205,7 @@ func (r resourceAWSResourceMetadataScrapeJob) Create(ctx context.Context, req re
 		return
 	}
 
-	jobTF, diags := generateResourceMetadataScrapeJobTFResourceModel(ctx, data.StackID.ValueString(), jobResp)
+	jobTF, diags := generateAWSRMScrapeJobTFResourceModel(ctx, data.StackID.ValueString(), jobResp)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -232,7 +232,7 @@ func (r resourceAWSResourceMetadataScrapeJob) Read(ctx context.Context, req reso
 		return
 	}
 
-	jobTF, diags := generateResourceMetadataScrapeJobTFResourceModel(ctx, data.StackID.ValueString(), jobResp)
+	jobTF, diags := generateAWSRMScrapeJobTFResourceModel(ctx, data.StackID.ValueString(), jobResp)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -294,7 +294,7 @@ func (r resourceAWSResourceMetadataScrapeJob) Update(ctx context.Context, req re
 		return
 	}
 
-	jobTF, diags := generateResourceMetadataScrapeJobTFResourceModel(ctx, planData.StackID.ValueString(), jobResp)
+	jobTF, diags := generateAWSRMScrapeJobTFResourceModel(ctx, planData.StackID.ValueString(), jobResp)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

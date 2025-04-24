@@ -136,11 +136,11 @@ func (tfData awsRMScrapeJobTFResourceModel) toClientModel(ctx context.Context) (
 	return converted, conversionDiags
 }
 
-// generateResourceMetadataScrapeJobTFResourceModel generates a new awsRMScrapeJobTFResourceModel based on the provided cloudproviderapi.AWSResourceMetadataScrapeJobResponse
-func generateResourceMetadataScrapeJobTFResourceModel(ctx context.Context, stackID string, scrapeJobData cloudproviderapi.AWSResourceMetadataScrapeJobResponse) (awsRMScrapeJobTFResourceModel, diag.Diagnostics) {
+// generateAWSResourceMetadataScrapeJobTFResourceModel generates a new awsRMScrapeJobTFResourceModel based on the provided cloudproviderapi.AWSResourceMetadataScrapeJobResponse
+func generateAWSRMScrapeJobTFResourceModel(ctx context.Context, stackID string, scrapeJobData cloudproviderapi.AWSResourceMetadataScrapeJobResponse) (awsRMScrapeJobTFResourceModel, diag.Diagnostics) {
 	conversionDiags := diag.Diagnostics{}
 	converted := awsRMScrapeJobTFResourceModel{
-		ID:                   types.StringValue(resourceAWSResourceMetadataScrapeJobTerraformID.Make(stackID, scrapeJobData.Name)),
+		ID:                   types.StringValue(resourceAWSRMScrapeJobTerraformID.Make(stackID, scrapeJobData.Name)),
 		StackID:              types.StringValue(stackID),
 		Name:                 types.StringValue(scrapeJobData.Name),
 		Enabled:              types.BoolValue(scrapeJobData.Enabled),
@@ -159,7 +159,7 @@ func generateResourceMetadataScrapeJobTFResourceModel(ctx context.Context, stack
 	}
 	converted.RegionsSubsetOverride = regionsSubsetOverride
 
-	services, diags := convertRMServicesClientToTFModel(ctx, scrapeJobData.Services)
+	services, diags := convertAWSRMServicesClientToTFModel(ctx, scrapeJobData.Services)
 	conversionDiags.Append(diags...)
 	if conversionDiags.HasError() {
 		return awsRMScrapeJobTFResourceModel{}, conversionDiags
@@ -179,7 +179,7 @@ func generateResourceMetadataScrapeJobTFResourceModel(ctx context.Context, stack
 	return converted, conversionDiags
 }
 
-func convertRMServicesClientToTFModel(ctx context.Context, services []cloudproviderapi.AWSResourceMetadataService) (types.List, diag.Diagnostics) {
+func convertAWSRMServicesClientToTFModel(ctx context.Context, services []cloudproviderapi.AWSResourceMetadataService) (types.List, diag.Diagnostics) {
 	conversionDiags := diag.Diagnostics{}
 	servicesTF := make([]awsRMScrapeJobServiceTFModel, len(services))
 	servicesListObjType := types.ObjectType{AttrTypes: awsRMScrapeJobServiceTFModel{}.attrTypes()}
