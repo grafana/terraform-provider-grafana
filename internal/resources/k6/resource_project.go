@@ -38,11 +38,12 @@ func resourceProject() *common.Resource {
 
 // projectResourceModel maps the resource schema data.
 type projectResourceModel struct {
-	ID        types.Int32  `tfsdk:"id"`
-	Name      types.String `tfsdk:"name"`
-	IsDefault types.Bool   `tfsdk:"is_default"`
-	Created   types.String `tfsdk:"created"`
-	Updated   types.String `tfsdk:"updated"`
+	ID               types.Int32  `tfsdk:"id"`
+	Name             types.String `tfsdk:"name"`
+	IsDefault        types.Bool   `tfsdk:"is_default"`
+	GrafanaFolderUid types.String `tfsdk:"grafana_folder_uid"`
+	Created          types.String `tfsdk:"created"`
+	Updated          types.String `tfsdk:"updated"`
 }
 
 // projectResource is the resource implementation.
@@ -70,6 +71,10 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			},
 			"is_default": schema.BoolAttribute{
 				Description: "Use this project as default for running tests when no explicit project identifier is provided.",
+				Computed:    true,
+			},
+			"grafana_folder_uid": schema.StringAttribute{
+				Description: "The Grafana folder uid.",
 				Computed:    true,
 			},
 			"created": schema.StringAttribute{
@@ -116,6 +121,11 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 	plan.ID = types.Int32Value(p.GetId())
 	plan.Name = types.StringValue(p.GetName())
 	plan.IsDefault = types.BoolValue(p.GetIsDefault())
+	if p.GrafanaFolderUid.IsSet() {
+		plan.GrafanaFolderUid = types.StringValue(p.GetGrafanaFolderUid())
+	} else {
+		plan.GrafanaFolderUid = types.StringNull()
+	}
 	plan.Created = types.StringValue(p.GetCreated().Format(time.RFC3339Nano))
 	plan.Updated = types.StringValue(p.GetUpdated().Format(time.RFC3339Nano))
 
@@ -218,6 +228,11 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 	plan.ID = types.Int32Value(p.GetId())
 	plan.Name = types.StringValue(p.GetName())
 	plan.IsDefault = types.BoolValue(p.GetIsDefault())
+	if p.GrafanaFolderUid.IsSet() {
+		plan.GrafanaFolderUid = types.StringValue(p.GetGrafanaFolderUid())
+	} else {
+		plan.GrafanaFolderUid = types.StringNull()
+	}
 	plan.Created = types.StringValue(p.GetCreated().Format(time.RFC3339Nano))
 	plan.Updated = types.StringValue(p.GetUpdated().Format(time.RFC3339Nano))
 

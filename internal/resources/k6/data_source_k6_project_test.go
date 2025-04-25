@@ -18,6 +18,7 @@ func TestAccDataSourceK6Project_basic(t *testing.T) {
 				Config: testutils.TestAccExample(t, "data-sources/grafana_k6_project/data-source.tf"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.grafana_k6_project.from_id", "name", "Terraform Test Project"),
+					resource.TestCheckResourceAttrSet("data.grafana_k6_project.from_id", "grafana_folder_uid"),
 					resource.TestCheckResourceAttrSet("data.grafana_k6_project.from_id", "created"),
 					resource.TestCheckResourceAttrSet("data.grafana_k6_project.from_id", "updated"),
 				),

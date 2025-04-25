@@ -66,11 +66,12 @@ func (d *projectsDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				Computed: true,
 				ElementType: types.ObjectType{
 					AttrTypes: map[string]attr.Type{
-						"id":         types.Int32Type,
-						"name":       types.StringType,
-						"is_default": types.BoolType,
-						"created":    types.StringType,
-						"updated":    types.StringType,
+						"id":                 types.Int32Type,
+						"name":               types.StringType,
+						"is_default":         types.BoolType,
+						"grafana_folder_uid": types.StringType,
+						"created":            types.StringType,
+						"updated":            types.StringType,
 					},
 				},
 			},
@@ -112,12 +113,19 @@ func (d *projectsDataSource) Read(ctx context.Context, req datasource.ReadReques
 	})
 	for _, pj := range pjs.Value {
 		// For each project, populate the state
+		var grafanaFolderUid types.String
+		if pj.GrafanaFolderUid.IsSet() {
+			grafanaFolderUid = types.StringValue(pj.GetGrafanaFolderUid())
+		} else {
+			grafanaFolderUid = types.StringNull()
+		}
 		pjState := projectDataSourceModel{
-			ID:        types.Int32Value(pj.GetId()),
-			Name:      types.StringValue(pj.GetName()),
-			IsDefault: types.BoolValue(pj.GetIsDefault()),
-			Created:   types.StringValue(pj.GetCreated().Format(time.RFC3339Nano)),
-			Updated:   types.StringValue(pj.GetUpdated().Format(time.RFC3339Nano)),
+			ID:               types.Int32Value(pj.GetId()),
+			Name:             types.StringValue(pj.GetName()),
+			IsDefault:        types.BoolValue(pj.GetIsDefault()),
+			GrafanaFolderUid: grafanaFolderUid,
+			Created:          types.StringValue(pj.GetCreated().Format(time.RFC3339Nano)),
+			Updated:          types.StringValue(pj.GetUpdated().Format(time.RFC3339Nano)),
 		}
 
 		// Add the project state to the list

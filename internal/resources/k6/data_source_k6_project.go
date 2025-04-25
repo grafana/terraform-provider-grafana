@@ -33,11 +33,12 @@ func dataSourceProject() *common.DataSource {
 
 // projectDataSourceModel maps the data source schema data.
 type projectDataSourceModel struct {
-	ID        types.Int32  `tfsdk:"id"`
-	Name      types.String `tfsdk:"name"`
-	IsDefault types.Bool   `tfsdk:"is_default"`
-	Created   types.String `tfsdk:"created"`
-	Updated   types.String `tfsdk:"updated"`
+	ID               types.Int32  `tfsdk:"id"`
+	Name             types.String `tfsdk:"name"`
+	IsDefault        types.Bool   `tfsdk:"is_default"`
+	GrafanaFolderUid types.String `tfsdk:"grafana_folder_uid"`
+	Created          types.String `tfsdk:"created"`
+	Updated          types.String `tfsdk:"updated"`
 }
 
 // projectDataSource is the data source implementation.
@@ -65,6 +66,10 @@ func (d *projectDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 			},
 			"is_default": schema.BoolAttribute{
 				Description: "Whether this project is the default for running tests when no explicit project identifier is provided.",
+				Computed:    true,
+			},
+			"grafana_folder_uid": schema.StringAttribute{
+				Description: "The Grafana folder uid.",
 				Computed:    true,
 			},
 			"created": schema.StringAttribute{
@@ -103,6 +108,11 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	state.Name = types.StringValue(p.GetName())
 	state.IsDefault = types.BoolValue(p.GetIsDefault())
+	if p.GrafanaFolderUid.IsSet() {
+		state.GrafanaFolderUid = types.StringValue(p.GetGrafanaFolderUid())
+	} else {
+		state.GrafanaFolderUid = types.StringNull()
+	}
 	state.Created = types.StringValue(p.GetCreated().Format(time.RFC3339Nano))
 	state.Updated = types.StringValue(p.GetUpdated().Format(time.RFC3339Nano))
 

@@ -37,13 +37,15 @@ func TestAccProject_basic(t *testing.T) {
 					resource.TestMatchResourceAttr("grafana_k6_project.test_project", "id", defaultIDRegexp),
 					resource.TestCheckResourceAttr("grafana_k6_project.test_project", "name", "Terraform Test Project"),
 					resource.TestMatchResourceAttr("grafana_k6_project.test_project", "is_default", regexp.MustCompile(`^(true|false)$`)),
+					resource.TestCheckResourceAttrSet("grafana_k6_project.test_project", "grafana_folder_uid"),
 					testutils.CheckLister("grafana_k6_project.test_project"),
 				),
 			},
 			{
-				ResourceName:      "grafana_k6_project.test_project",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "grafana_k6_project.test_project",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"grafana_folder_uid"},
 			},
 			// Change the title of a project. This shouldn't recreate the project.
 			{
@@ -54,6 +56,7 @@ func TestAccProject_basic(t *testing.T) {
 					testAccProjectWasntRecreated("grafana_k6_project.test_project", &project),
 					testAccProjectUnchangedAttr("grafana_k6_project.test_project", "id", func() string { return strconv.Itoa(int(project.GetId())) }),
 					resource.TestCheckResourceAttr("grafana_k6_project.test_project", "name", "Terraform Test Project Updated"),
+					testAccProjectUnchangedAttr("grafana_k6_project.test_project", "grafana_folder_uid", func() string { return project.GetGrafanaFolderUid() }),
 					testAccProjectUnchangedAttr("grafana_k6_project.test_project", "created", func() string { return project.GetCreated().Truncate(time.Microsecond).Format(time.RFC3339Nano) }),
 				),
 			},
