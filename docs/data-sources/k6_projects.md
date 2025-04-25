@@ -41,7 +41,7 @@ data "grafana_k6_projects" "from_name" {
 
 ### Read-Only
 
-- `id` (String) Human-friendly identifier of the project. This is the same as name.
+- `id` (String) Human-friendly identifier of the project. This is set to the same as name.
 - `projects` (List of Object) (see [below for nested schema](#nestedatt--projects))
 
 <a id="nestedatt--projects"></a>

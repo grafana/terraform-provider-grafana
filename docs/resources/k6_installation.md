@@ -104,7 +104,7 @@ resource "grafana_k6_project" "my_k6_project" {
 
 - `cloud_access_policy_token` (String, Sensitive) The [Grafana Cloud access policy](https://grafana.com/docs/grafana-cloud/account-management/authentication-and-permissions/access-policies/).
 - `grafana_sa_token` (String, Sensitive) The [service account](https://grafana.com/docs/grafana/latest/administration/service-accounts/) token.
-- `grafana_user` (String) The email address of the user to use for the installation.
+- `grafana_user` (String) The user to use for the installation.
 - `stack_id` (String) The identifier of the stack to install k6 on.
 
 ### Read-Only

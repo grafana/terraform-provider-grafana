@@ -55,7 +55,7 @@ func (d *projectsDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 		Description: "Retrieves all k6 projects with the given name.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Human-friendly identifier of the project. This is the same as name.",
+				Description: "Human-friendly identifier of the project. This is set to the same as name.",
 				Computed:    true,
 			},
 			"name": schema.StringAttribute{
@@ -112,23 +112,15 @@ func (d *projectsDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return pjs.Value[i].GetCreated().Before(pjs.Value[j].GetCreated())
 	})
 	for _, pj := range pjs.Value {
-		// For each project, populate the state
-		var grafanaFolderUID types.String
-		if pj.GrafanaFolderUid.IsSet() {
-			grafanaFolderUID = types.StringValue(pj.GetGrafanaFolderUid())
-		} else {
-			grafanaFolderUID = types.StringNull()
-		}
 		pjState := projectDataSourceModel{
 			ID:               types.Int32Value(pj.GetId()),
 			Name:             types.StringValue(pj.GetName()),
 			IsDefault:        types.BoolValue(pj.GetIsDefault()),
-			GrafanaFolderUID: grafanaFolderUID,
+			GrafanaFolderUID: handleGrafanaFolderUID(pj.GrafanaFolderUid),
 			Created:          types.StringValue(pj.GetCreated().Format(time.RFC3339Nano)),
 			Updated:          types.StringValue(pj.GetUpdated().Format(time.RFC3339Nano)),
 		}
 
-		// Add the project state to the list
 		projectStates = append(projectStates, pjState)
 	}
 

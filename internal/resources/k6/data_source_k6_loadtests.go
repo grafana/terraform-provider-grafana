@@ -59,8 +59,9 @@ func (d *loadTestsDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 		Description: "Retrieves all k6 load tests that belong to a project.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int32Attribute{
-				Description: "The identifier of the project the load tests belong to. This is the same as the project_id.",
-				Computed:    true,
+				Description: "The identifier of the project the load tests belong to. " +
+					"This is set to the same as the project_id.",
+				Computed: true,
 			},
 			"project_id": schema.Int32Attribute{
 				Description: "The identifier of the project the load tests belong to.",
@@ -114,13 +115,15 @@ func (d *loadTestsDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
-	// Process the results and populate the state with the retrieved load tests
-	var loadTestStates []loadTestDataSourceModel
+	// Filter the results by name, if provided
 	if !state.Name.IsNull() {
 		lts.Value = slices.DeleteFunc(lts.Value, func(lt k6.LoadTestApiModel) bool {
 			return !strings.EqualFold(lt.GetName(), state.Name.ValueString())
 		})
 	}
+
+	// Process the results and populate the state with the retrieved load tests
+	var loadTests []loadTestDataSourceModel
 	sort.Slice(lts.Value, func(i, j int) bool {
 		return lts.Value[i].GetCreated().Before(lts.Value[j].GetCreated())
 	})
@@ -138,7 +141,6 @@ func (d *loadTestsDataSource) Read(ctx context.Context, req datasource.ReadReque
 			return
 		}
 
-		// For each load test, populate the state
 		ltState := loadTestDataSourceModel{
 			ID:                types.Int32Value(lt.GetId()),
 			Name:              types.StringValue(lt.GetName()),
@@ -149,11 +151,10 @@ func (d *loadTestsDataSource) Read(ctx context.Context, req datasource.ReadReque
 			Updated:           types.StringValue(lt.GetUpdated().Format(time.RFC3339Nano)),
 		}
 
-		// Add the load test state to the list
-		loadTestStates = append(loadTestStates, ltState)
+		loadTests = append(loadTests, ltState)
 	}
 
-	state.LoadTests = loadTestStates
+	state.LoadTests = loadTests
 
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)

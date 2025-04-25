@@ -77,7 +77,7 @@ data "grafana_k6_load_tests" "filter_by_name" {
 
 ### Read-Only
 
-- `id` (Number) The identifier of the project the load tests belong to. This is the same as the project_id.
+- `id` (Number) The identifier of the project the load tests belong to. This is set to the same as the project_id.
 - `load_tests` (List of Object) (see [below for nested schema](#nestedatt--load_tests))
 
 <a id="nestedatt--load_tests"></a>

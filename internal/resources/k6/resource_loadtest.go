@@ -126,15 +126,7 @@ func (r *loadTestResource) Create(ctx context.Context, req resource.CreateReques
 	plan.ID = types.Int32Value(lt.GetId())
 	plan.Name = types.StringValue(lt.GetName())
 	plan.ProjectID = types.Int32Value(lt.GetProjectId())
-
-	// Handle baseline_test_run_id properly
-	if lt.GetBaselineTestRunId() == 0 && plan.BaselineTestRunID.IsNull() {
-		// If the API returned 0 and the plan had it as null, keep it as null
-		plan.BaselineTestRunID = types.Int32Null()
-	} else {
-		plan.BaselineTestRunID = types.Int32Value(lt.GetBaselineTestRunId())
-	}
-
+	plan.BaselineTestRunID = handleBaselineTestRunID(lt.GetBaselineTestRunId())
 	plan.Created = types.StringValue(lt.GetCreated().Format(time.RFC3339Nano))
 	plan.Updated = types.StringValue(lt.GetUpdated().Format(time.RFC3339Nano))
 
@@ -164,8 +156,8 @@ func (r *loadTestResource) Read(ctx context.Context, req resource.ReadRequest, r
 	lt, _, err := k6Req.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error reading GCk6 load test",
-			"Could not read GCk6 load test id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
+			"Error reading k6 load test",
+			"Could not read k6 load test with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
 		)
 		return
 	}
@@ -177,8 +169,8 @@ func (r *loadTestResource) Read(ctx context.Context, req resource.ReadRequest, r
 	script, _, err := scriptReq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error reading GCk6 load test script",
-			"Could not read GCk6 load test script id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
+			"Error reading k6 load test script",
+			"Could not read k6 load test script with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
 		)
 		return
 	}
@@ -187,15 +179,7 @@ func (r *loadTestResource) Read(ctx context.Context, req resource.ReadRequest, r
 	state.ID = types.Int32Value(lt.GetId())
 	state.Name = types.StringValue(lt.GetName())
 	state.ProjectID = types.Int32Value(lt.GetProjectId())
-
-	// Handle baseline_test_run_id properly
-	if lt.GetBaselineTestRunId() == 0 {
-		// If the API returned 0, set it as null
-		state.BaselineTestRunID = types.Int32Null()
-	} else {
-		state.BaselineTestRunID = types.Int32Value(lt.GetBaselineTestRunId())
-	}
-
+	state.BaselineTestRunID = handleBaselineTestRunID(lt.GetBaselineTestRunId())
 	state.Script = types.StringValue(script)
 	state.Created = types.StringValue(lt.GetCreated().Format(time.RFC3339Nano))
 	state.Updated = types.StringValue(lt.GetUpdated().Format(time.RFC3339Nano))
@@ -244,8 +228,8 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 	_, err := updateReq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error updating GCk6 load test",
-			"Could not update GCk6 load test, unexpected error: "+err.Error(),
+			"Error updating k6 load test",
+			"Could not update k6 load test with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
 		)
 		return
 	}
@@ -259,8 +243,8 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 		_, err = scriptReq.Execute()
 		if err != nil {
 			resp.Diagnostics.AddError(
-				"Error updating GCk6 load test script",
-				"Could not update GCk6 load test script, unexpected error: "+err.Error(),
+				"Error updating k6 load test script",
+				"Could not update k6 load test script with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
 			)
 			return
 		}
@@ -273,8 +257,8 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 	lt, _, err := fetchReq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error reading GCk6 load test",
-			"Could not read GCk6 load test id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
+			"Error reading k6 load test",
+			"Could not read k6 load test with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
 		)
 		return
 	}
@@ -286,8 +270,8 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 	script, _, err := scriptReq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error reading GCk6 load test script",
-			"Could not read GCk6 load test script id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
+			"Error reading k6 load test script",
+			"Could not read k6 load test script with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
 		)
 		return
 	}
@@ -296,15 +280,7 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 	plan.ID = types.Int32Value(lt.GetId())
 	plan.Name = types.StringValue(lt.GetName())
 	plan.ProjectID = types.Int32Value(lt.GetProjectId())
-
-	// Handle baseline_test_run_id properly
-	if lt.GetBaselineTestRunId() == 0 {
-		// If the API returned 0, set it as null
-		plan.BaselineTestRunID = types.Int32Null()
-	} else {
-		plan.BaselineTestRunID = types.Int32Value(lt.GetBaselineTestRunId())
-	}
-
+	plan.BaselineTestRunID = handleBaselineTestRunID(lt.GetBaselineTestRunId())
 	plan.Script = types.StringValue(script)
 	plan.Created = types.StringValue(lt.GetCreated().Format(time.RFC3339Nano))
 	plan.Updated = types.StringValue(lt.GetUpdated().Format(time.RFC3339Nano))
@@ -334,8 +310,8 @@ func (r *loadTestResource) Delete(ctx context.Context, req resource.DeleteReques
 	_, err := deleteReq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error deleting GCk6 load test",
-			"Could not delete GCk6 load test id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
+			"Error deleting k6 load test",
+			"Could not delete k6 load test with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
 		)
 	}
 }
@@ -344,8 +320,8 @@ func (r *loadTestResource) ImportState(ctx context.Context, req resource.ImportS
 	id, err := strconv.ParseInt(req.ID, 10, 32)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error importing GCk6 load test",
-			"Could not parse GCk6 load test id "+req.ID+": "+err.Error(),
+			"Error importing k6 load test",
+			"Could not parse k6 load test id "+req.ID+": "+err.Error(),
 		)
 		return
 	}

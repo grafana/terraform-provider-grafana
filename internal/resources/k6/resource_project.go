@@ -111,8 +111,8 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 	p, _, err := k6Req.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error creating GCk6 project",
-			"Could not create GCk6 project, unexpected error: "+err.Error(),
+			"Error creating k6 project",
+			"Could not create k6 project, unexpected error: "+err.Error(),
 		)
 		return
 	}
@@ -121,11 +121,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 	plan.ID = types.Int32Value(p.GetId())
 	plan.Name = types.StringValue(p.GetName())
 	plan.IsDefault = types.BoolValue(p.GetIsDefault())
-	if p.GrafanaFolderUid.IsSet() {
-		plan.GrafanaFolderUID = types.StringValue(p.GetGrafanaFolderUid())
-	} else {
-		plan.GrafanaFolderUID = types.StringNull()
-	}
+	plan.GrafanaFolderUID = handleGrafanaFolderUID(p.GrafanaFolderUid)
 	plan.Created = types.StringValue(p.GetCreated().Format(time.RFC3339Nano))
 	plan.Updated = types.StringValue(p.GetUpdated().Format(time.RFC3339Nano))
 
@@ -154,8 +150,8 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	p, _, err := k6Req.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error reading GCk6 project",
-			"Could not read GCk6 project id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
+			"Error reading k6 project",
+			"Could not read k6 project with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
 		)
 		return
 	}
@@ -164,6 +160,7 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	state.ID = types.Int32Value(p.GetId())
 	state.Name = types.StringValue(p.GetName())
 	state.IsDefault = types.BoolValue(p.GetIsDefault())
+	state.GrafanaFolderUID = handleGrafanaFolderUID(p.GrafanaFolderUid)
 	state.Created = types.StringValue(p.GetCreated().Format(time.RFC3339Nano))
 	state.Updated = types.StringValue(p.GetUpdated().Format(time.RFC3339Nano))
 
@@ -205,8 +202,8 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 	_, err := updateReq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error updating GCk6 project",
-			"Could not update GCk6 project, unexpected error: "+err.Error(),
+			"Error updating k6 project",
+			"Could not update k6 project with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
 		)
 		return
 	}
@@ -218,8 +215,8 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 	p, _, err := fetchReq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error reading GCk6 project",
-			"Could not read GCk6 project id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
+			"Error reading k6 project",
+			"Could not read k6 project with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
 		)
 		return
 	}
@@ -228,11 +225,7 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 	plan.ID = types.Int32Value(p.GetId())
 	plan.Name = types.StringValue(p.GetName())
 	plan.IsDefault = types.BoolValue(p.GetIsDefault())
-	if p.GrafanaFolderUid.IsSet() {
-		plan.GrafanaFolderUID = types.StringValue(p.GetGrafanaFolderUid())
-	} else {
-		plan.GrafanaFolderUID = types.StringNull()
-	}
+	plan.GrafanaFolderUID = handleGrafanaFolderUID(p.GrafanaFolderUid)
 	plan.Created = types.StringValue(p.GetCreated().Format(time.RFC3339Nano))
 	plan.Updated = types.StringValue(p.GetUpdated().Format(time.RFC3339Nano))
 
@@ -261,8 +254,8 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 	_, err := deleteReq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error deleting GCk6 project",
-			"Could not delete GCk6 project id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
+			"Error deleting k6 project",
+			"Could not delete k6 project with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
 		)
 	}
 }
@@ -271,8 +264,8 @@ func (r *projectResource) ImportState(ctx context.Context, req resource.ImportSt
 	id, err := strconv.ParseInt(req.ID, 10, 32)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error importing GCk6 project",
-			"Could not parse GCk6 project id "+req.ID+": "+err.Error(),
+			"Error importing k6 project",
+			"Could not parse k6 project id "+req.ID+": "+err.Error(),
 		)
 		return
 	}

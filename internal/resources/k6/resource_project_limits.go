@@ -124,8 +124,8 @@ func (r *projectLimitsResource) Create(ctx context.Context, req resource.CreateR
 	_, err := k6Req.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error updating GCk6 project limits",
-			"Could not update GCk6 project limits, unexpected error: "+err.Error(),
+			"Error updating k6 project limits",
+			"Could not update k6 project limits, unexpected error: "+err.Error(),
 		)
 		return
 	}
@@ -158,8 +158,8 @@ func (r *projectLimitsResource) Read(ctx context.Context, req resource.ReadReque
 	limits, _, err := k6Req.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error reading GCk6 project limits",
-			"Could not read GCk6 project limits for project id "+strconv.Itoa(int(state.ProjectID.ValueInt32()))+": "+err.Error(),
+			"Error reading k6 project limits",
+			"Could not read k6 project limits for project with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
 		)
 		return
 	}
@@ -215,8 +215,8 @@ func (r *projectLimitsResource) Update(ctx context.Context, req resource.UpdateR
 	_, err := k6Req.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error updating GCk6 project limits",
-			"Could not update GCk6 project limits, unexpected error: "+err.Error(),
+			"Error updating k6 project limits",
+			"Could not update k6 project limits for project with id "+strconv.Itoa(int(plan.ProjectID.ValueInt32()))+": "+err.Error(),
 		)
 		return
 	}
@@ -249,8 +249,8 @@ func (r *projectLimitsResource) Delete(ctx context.Context, req resource.DeleteR
 	_, err := k6Req.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error resetting GCk6 project limits",
-			"Could not reset GCk6 project limits for project id "+strconv.Itoa(int(state.ProjectID.ValueInt32()))+": "+err.Error(),
+			"Error resetting k6 project limits",
+			"Could not reset k6 project limits for project with id "+strconv.Itoa(int(state.ProjectID.ValueInt32()))+": "+err.Error(),
 		)
 	}
 }
@@ -259,8 +259,8 @@ func (r *projectLimitsResource) ImportState(ctx context.Context, req resource.Im
 	id, err := strconv.ParseInt(req.ID, 10, 32)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error importing GCk6 project limits",
-			"Could not parse GCk6 project id "+req.ID+": "+err.Error(),
+			"Error importing k6 project limits",
+			"Could not parse k6 project id "+req.ID+": "+err.Error(),
 		)
 		return
 	}

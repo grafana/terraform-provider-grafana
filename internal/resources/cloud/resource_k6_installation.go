@@ -63,7 +63,7 @@ Required access policy scopes:
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The email address of the user to use for the installation.",
+				Description: "The user to use for the installation.",
 			},
 			"k6_access_token": {
 				Type:        schema.TypeString,

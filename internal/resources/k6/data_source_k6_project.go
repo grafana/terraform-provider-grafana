@@ -108,14 +108,17 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	state.Name = types.StringValue(p.GetName())
 	state.IsDefault = types.BoolValue(p.GetIsDefault())
-	if p.GrafanaFolderUid.IsSet() {
-		state.GrafanaFolderUID = types.StringValue(p.GetGrafanaFolderUid())
-	} else {
-		state.GrafanaFolderUID = types.StringNull()
-	}
+	state.GrafanaFolderUID = handleGrafanaFolderUID(p.GrafanaFolderUid)
 	state.Created = types.StringValue(p.GetCreated().Format(time.RFC3339Nano))
 	state.Updated = types.StringValue(p.GetUpdated().Format(time.RFC3339Nano))
 
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
+}
+
+func handleGrafanaFolderUID(grafanaFolderUID k6.NullableString) types.String {
+	if !grafanaFolderUID.IsSet() {
+		return types.StringNull()
+	}
+	return types.StringValue(*grafanaFolderUID.Get())
 }

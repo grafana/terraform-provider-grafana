@@ -56,12 +56,12 @@ func (d *projectLimitsDataSource) Schema(_ context.Context, _ datasource.SchemaR
 		Description: "Retrieves a k6 project limits.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int32Attribute{
-				Description: "The identifier of the project limits. This is the same as the project_id.",
-				Optional:    true,
+				Description: "The identifier of the project limits. This is set to the same as the project_id.",
+				Computed:    true,
 			},
 			"project_id": schema.Int32Attribute{
 				Description: "The identifier of the project to get limits for.",
-				Optional:    true,
+				Required:    true,
 			},
 			"vuh_max_per_month": schema.Int32Attribute{
 				Description: "Maximum amount of virtual user hours (VU/h) used per one calendar month.",
@@ -92,23 +92,8 @@ func (d *projectLimitsDataSource) Read(ctx context.Context, req datasource.ReadR
 		return
 	}
 
-	// We rely on project_id first, if set, as it is more human-friendly.
-	var projectID types.Int32
-	switch {
-	case !state.ProjectID.IsNull():
-		projectID = state.ProjectID
-	case !state.ID.IsNull():
-		projectID = state.ID
-	default:
-		resp.Diagnostics.AddError(
-			"Error reading k6 project limits",
-			"Could not read k6 project limits: project_id or id is required",
-		)
-		return
-	}
-
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, d.config.Token)
-	k6Req := d.client.ProjectsAPI.ProjectsLimitsRetrieve(ctx, projectID.ValueInt32()).
+	k6Req := d.client.ProjectsAPI.ProjectsLimitsRetrieve(ctx, state.ProjectID.ValueInt32()).
 		XStackId(d.config.StackID)
 
 	limits, _, err := k6Req.Execute()

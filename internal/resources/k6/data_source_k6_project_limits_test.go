@@ -17,11 +17,6 @@ func TestAccDataSourceK6ProjectLimits_basic(t *testing.T) {
 			{
 				Config: testutils.TestAccExample(t, "data-sources/grafana_k6_project_limits/data-source.tf"),
 				Check: resource.ComposeTestCheckFunc(
-					// id
-					resource.TestCheckResourceAttr("data.grafana_k6_project_limits.from_id", "vuh_max_per_month", "10000"),
-					resource.TestCheckResourceAttr("data.grafana_k6_project_limits.from_id", "vu_max_per_test", "10000"),
-					resource.TestCheckResourceAttr("data.grafana_k6_project_limits.from_id", "vu_browser_max_per_test", "1000"),
-					resource.TestCheckResourceAttr("data.grafana_k6_project_limits.from_id", "duration_max_per_test", "3600"),
 					// project_id
 					resource.TestCheckResourceAttr("data.grafana_k6_project_limits.from_project_id", "vuh_max_per_month", "10000"),
 					resource.TestCheckResourceAttr("data.grafana_k6_project_limits.from_project_id", "vu_max_per_test", "10000"),
