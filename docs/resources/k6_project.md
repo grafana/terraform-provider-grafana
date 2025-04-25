@@ -28,6 +28,7 @@ resource "grafana_k6_project" "test_project" {
 ### Read-Only
 
 - `created` (String) The date when the project was created.
+- `grafana_folder_uid` (String) The Grafana folder uid.
 - `id` (Number) Numeric identifier of the project.
 - `is_default` (Boolean) Use this project as default for running tests when no explicit project identifier is provided.
 - `updated` (String) The date when the project was last updated.

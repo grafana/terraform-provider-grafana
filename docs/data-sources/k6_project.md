@@ -35,6 +35,7 @@ data "grafana_k6_project" "from_id" {
 ### Read-Only
 
 - `created` (String) The date when the project was created.
+- `grafana_folder_uid` (String) The Grafana folder uid.
 - `is_default` (Boolean) Whether this project is the default for running tests when no explicit project identifier is provided.
 - `name` (String) Human-friendly identifier of the project.
 - `updated` (String) The date when the project was last updated.
