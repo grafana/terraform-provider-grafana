@@ -15,7 +15,6 @@ import (
 	goapi "github.com/grafana/grafana-openapi-client-go/client"
 	"github.com/grafana/grafana-openapi-client-go/client/provisioning"
 	"github.com/grafana/grafana-openapi-client-go/models"
-	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -114,17 +113,6 @@ This resource requires Grafana 9.1.0 or later.
 								oldDuration, _ := strfmt.ParseDuration(oldValue)
 								newDuration, _ := strfmt.ParseDuration(newValue)
 								return oldDuration == newDuration
-							},
-						},
-						"missing_series_evals_to_resolve": {
-							Type:        schema.TypeInt,
-							Optional:    true,
-							Description: "The number of missing series evaluations that must occur before the rule is considered to be resolved.",
-							ValidateDiagFunc: func(i any, path cty.Path) (diags diag.Diagnostics) {
-								if i != nil && i.(int) < 1 {
-									return diag.Errorf("missing_series_evals_to_resolve must be greater than or equal to 1")
-								}
-								return nil
 							},
 						},
 						"no_data_state": {
@@ -546,10 +534,6 @@ func packAlertRule(r *models.ProvisionedAlertRule) (interface{}, error) {
 		json["keep_firing_for"] = r.KeepFiringFor.String()
 	}
 
-	if r.MissingSeriesEvalsToResolve >= 1 {
-		json["missing_series_evals_to_resolve"] = r.MissingSeriesEvalsToResolve
-	}
-
 	return json, nil
 }
 
@@ -583,14 +567,6 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		return nil, err
 	}
 
-	var missingSeriesEvalsToResolve int64
-	if val, ok := json["missing_series_evals_to_resolve"]; ok && val != nil {
-		intVal := val.(int)
-		if intVal >= 1 {
-			missingSeriesEvalsToResolve = int64(intVal)
-		}
-	}
-
 	// Check for conflicting fields before unpacking the rest of the rule.
 	// This is a workaround due to the lack of support for ConflictsWith in Lists in the SDK.
 	errState := json["exec_err_state"].(string)
@@ -605,9 +581,6 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 		}
 		if keepFiringForDuration != 0 {
 			return nil, fmt.Errorf(incompatFieldMsgFmt, "keep_firing_for")
-		}
-		if missingSeriesEvalsToResolve != 0 {
-			return nil, fmt.Errorf(incompatFieldMsgFmt, "missing_series_evals_to_resolve")
 		}
 		if noDataState != "" {
 			return nil, fmt.Errorf(incompatFieldMsgFmt, "no_data_state")
@@ -634,23 +607,22 @@ func unpackAlertRule(raw interface{}, groupName string, folderUID string, orgID 
 	}
 
 	rule := models.ProvisionedAlertRule{
-		UID:                         json["uid"].(string),
-		Title:                       common.Ref(json["name"].(string)),
-		FolderUID:                   common.Ref(folderUID),
-		RuleGroup:                   common.Ref(groupName),
-		OrgID:                       common.Ref(orgID),
-		ExecErrState:                common.Ref(errState),
-		NoDataState:                 common.Ref(noDataState),
-		For:                         common.Ref(strfmt.Duration(forDuration)),
-		KeepFiringFor:               strfmt.Duration(keepFiringForDuration),
-		Data:                        data,
-		Condition:                   common.Ref(condition),
-		Labels:                      unpackMap(json["labels"]),
-		Annotations:                 unpackMap(json["annotations"]),
-		IsPaused:                    json["is_paused"].(bool),
-		NotificationSettings:        ns,
-		Record:                      unpackRecord(json["record"]),
-		MissingSeriesEvalsToResolve: missingSeriesEvalsToResolve,
+		UID:                  json["uid"].(string),
+		Title:                common.Ref(json["name"].(string)),
+		FolderUID:            common.Ref(folderUID),
+		RuleGroup:            common.Ref(groupName),
+		OrgID:                common.Ref(orgID),
+		ExecErrState:         common.Ref(errState),
+		NoDataState:          common.Ref(noDataState),
+		For:                  common.Ref(strfmt.Duration(forDuration)),
+		KeepFiringFor:        strfmt.Duration(keepFiringForDuration),
+		Data:                 data,
+		Condition:            common.Ref(condition),
+		Labels:               unpackMap(json["labels"]),
+		Annotations:          unpackMap(json["annotations"]),
+		IsPaused:             json["is_paused"].(bool),
+		NotificationSettings: ns,
+		Record:               unpackRecord(json["record"]),
 	}
 
 	return &rule, nil
