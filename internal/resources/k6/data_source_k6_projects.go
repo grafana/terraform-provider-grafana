@@ -113,17 +113,17 @@ func (d *projectsDataSource) Read(ctx context.Context, req datasource.ReadReques
 	})
 	for _, pj := range pjs.Value {
 		// For each project, populate the state
-		var grafanaFolderUid types.String
+		var grafanaFolderUID types.String
 		if pj.GrafanaFolderUid.IsSet() {
-			grafanaFolderUid = types.StringValue(pj.GetGrafanaFolderUid())
+			grafanaFolderUID = types.StringValue(pj.GetGrafanaFolderUid())
 		} else {
-			grafanaFolderUid = types.StringNull()
+			grafanaFolderUID = types.StringNull()
 		}
 		pjState := projectDataSourceModel{
 			ID:               types.Int32Value(pj.GetId()),
 			Name:             types.StringValue(pj.GetName()),
 			IsDefault:        types.BoolValue(pj.GetIsDefault()),
-			GrafanaFolderUid: grafanaFolderUid,
+			GrafanaFolderUID: grafanaFolderUID,
 			Created:          types.StringValue(pj.GetCreated().Format(time.RFC3339Nano)),
 			Updated:          types.StringValue(pj.GetUpdated().Format(time.RFC3339Nano)),
 		}

@@ -36,7 +36,7 @@ type projectDataSourceModel struct {
 	ID               types.Int32  `tfsdk:"id"`
 	Name             types.String `tfsdk:"name"`
 	IsDefault        types.Bool   `tfsdk:"is_default"`
-	GrafanaFolderUid types.String `tfsdk:"grafana_folder_uid"`
+	GrafanaFolderUID types.String `tfsdk:"grafana_folder_uid"`
 	Created          types.String `tfsdk:"created"`
 	Updated          types.String `tfsdk:"updated"`
 }
@@ -109,9 +109,9 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	state.Name = types.StringValue(p.GetName())
 	state.IsDefault = types.BoolValue(p.GetIsDefault())
 	if p.GrafanaFolderUid.IsSet() {
-		state.GrafanaFolderUid = types.StringValue(p.GetGrafanaFolderUid())
+		state.GrafanaFolderUID = types.StringValue(p.GetGrafanaFolderUid())
 	} else {
-		state.GrafanaFolderUid = types.StringNull()
+		state.GrafanaFolderUID = types.StringNull()
 	}
 	state.Created = types.StringValue(p.GetCreated().Format(time.RFC3339Nano))
 	state.Updated = types.StringValue(p.GetUpdated().Format(time.RFC3339Nano))

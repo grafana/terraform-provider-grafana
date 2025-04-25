@@ -56,7 +56,7 @@ func TestAccProject_basic(t *testing.T) {
 					testAccProjectWasntRecreated("grafana_k6_project.test_project", &project),
 					testAccProjectUnchangedAttr("grafana_k6_project.test_project", "id", func() string { return strconv.Itoa(int(project.GetId())) }),
 					resource.TestCheckResourceAttr("grafana_k6_project.test_project", "name", "Terraform Test Project Updated"),
-					testAccProjectUnchangedAttr("grafana_k6_project.test_project", "grafana_folder_uid", func() string { return project.GetGrafanaFolderUid() }),
+					testAccProjectUnchangedAttr("grafana_k6_project.test_project", "grafana_folder_uid", project.GetGrafanaFolderUid),
 					testAccProjectUnchangedAttr("grafana_k6_project.test_project", "created", func() string { return project.GetCreated().Truncate(time.Microsecond).Format(time.RFC3339Nano) }),
 				),
 			},

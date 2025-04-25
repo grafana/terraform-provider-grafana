@@ -41,7 +41,7 @@ type projectResourceModel struct {
 	ID               types.Int32  `tfsdk:"id"`
 	Name             types.String `tfsdk:"name"`
 	IsDefault        types.Bool   `tfsdk:"is_default"`
-	GrafanaFolderUid types.String `tfsdk:"grafana_folder_uid"`
+	GrafanaFolderUID types.String `tfsdk:"grafana_folder_uid"`
 	Created          types.String `tfsdk:"created"`
 	Updated          types.String `tfsdk:"updated"`
 }
@@ -122,9 +122,9 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 	plan.Name = types.StringValue(p.GetName())
 	plan.IsDefault = types.BoolValue(p.GetIsDefault())
 	if p.GrafanaFolderUid.IsSet() {
-		plan.GrafanaFolderUid = types.StringValue(p.GetGrafanaFolderUid())
+		plan.GrafanaFolderUID = types.StringValue(p.GetGrafanaFolderUid())
 	} else {
-		plan.GrafanaFolderUid = types.StringNull()
+		plan.GrafanaFolderUID = types.StringNull()
 	}
 	plan.Created = types.StringValue(p.GetCreated().Format(time.RFC3339Nano))
 	plan.Updated = types.StringValue(p.GetUpdated().Format(time.RFC3339Nano))
@@ -229,9 +229,9 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 	plan.Name = types.StringValue(p.GetName())
 	plan.IsDefault = types.BoolValue(p.GetIsDefault())
 	if p.GrafanaFolderUid.IsSet() {
-		plan.GrafanaFolderUid = types.StringValue(p.GetGrafanaFolderUid())
+		plan.GrafanaFolderUID = types.StringValue(p.GetGrafanaFolderUid())
 	} else {
-		plan.GrafanaFolderUid = types.StringNull()
+		plan.GrafanaFolderUID = types.StringNull()
 	}
 	plan.Created = types.StringValue(p.GetCreated().Format(time.RFC3339Nano))
 	plan.Updated = types.StringValue(p.GetUpdated().Format(time.RFC3339Nano))
