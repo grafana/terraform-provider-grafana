@@ -22,7 +22,7 @@ resource "grafana_cloud_provider_aws_resources_scrape_job" "test" {
   aws_account_resource_id = grafana_cloud_provider_aws_account.test.resource_id
 
   service {
-    name = "AWS/EC2"
+    name                    = "AWS/EC2"
     scrape_interval_seconds = 300
     resource_discovery_tag_filter {
       key   = "k8s.io/cluster-autoscaler/enabled"

@@ -231,9 +231,9 @@ func AWSResourceMetadataScrapeJobResourceData(stackID string, jobName string, en
 		svcBody.SetAttributeValue("name", cty.StringVal(svc.Name))
 		svcBody.SetAttributeValue("scrape_interval_seconds", cty.NumberIntVal(svc.ScrapeIntervalSeconds))
 		for _, tagFilter := range svc.ResourceDiscoveryTagFilters {
-			svcBody := jobBody.AppendNewBlock("resource_discovery_tag_filter", nil).Body()
-			svcBody.SetAttributeValue("key", cty.StringVal(tagFilter.Key))
-			svcBody.SetAttributeValue("value", cty.StringVal(tagFilter.Value))
+			tagBody := svcBody.AppendNewBlock("resource_discovery_tag_filter", nil).Body()
+			tagBody.SetAttributeValue("key", cty.StringVal(tagFilter.Key))
+			tagBody.SetAttributeValue("value", cty.StringVal(tagFilter.Value))
 		}
 	}
 
