@@ -232,50 +232,50 @@ type AWSResourceMetadataTagFilter struct {
 }
 
 func (c *Client) CreateAWSResourceMetadataScrapeJob(ctx context.Context, stackID string, jobData AWSResourceMetadataScrapeJobRequest) (AWSResourceMetadataScrapeJobResponse, error) {
-	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/cloudwatch", stackID)
+	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/resources", stackID)
 	respData := apiResponseWrapper[AWSResourceMetadataScrapeJobResponse]{}
 	err := c.doAPIRequest(ctx, http.MethodPost, path, &jobData, &respData)
 	if err != nil {
-		return AWSResourceMetadataScrapeJobResponse{}, fmt.Errorf("failed to create AWS CloudWatch scrape job: %w", err)
+		return AWSResourceMetadataScrapeJobResponse{}, fmt.Errorf("failed to create AWS Resource Metadata scrape job: %w", err)
 	}
 	return respData.Data, nil
 }
 
 func (c *Client) GetAWSResourceMetadataScrapeJob(ctx context.Context, stackID string, jobName string) (AWSResourceMetadataScrapeJobResponse, error) {
-	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/cloudwatch/%s", stackID, jobName)
+	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/resources/%s", stackID, jobName)
 	respData := apiResponseWrapper[AWSResourceMetadataScrapeJobResponse]{}
 	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &respData)
 	if err != nil {
-		return AWSResourceMetadataScrapeJobResponse{}, fmt.Errorf("failed to get AWS CloudWatch scrape job: %w", err)
+		return AWSResourceMetadataScrapeJobResponse{}, fmt.Errorf("failed to get AWS Resource Metadata scrape job: %w", err)
 	}
 	return respData.Data, nil
 }
 
 func (c *Client) ListAWSResourceMetadataScrapeJobs(ctx context.Context, stackID string) ([]AWSResourceMetadataScrapeJobResponse, error) {
-	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/cloudwatch", stackID)
+	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/resources", stackID)
 	respData := apiResponseWrapper[[]AWSResourceMetadataScrapeJobResponse]{}
 	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &respData)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get AWS CloudWatch scrape job: %w", err)
+		return nil, fmt.Errorf("failed to get AWS Resource Metadata scrape job: %w", err)
 	}
 	return respData.Data, nil
 }
 
 func (c *Client) UpdateAWSResourceMetadataScrapeJob(ctx context.Context, stackID string, jobName string, jobData AWSResourceMetadataScrapeJobRequest) (AWSResourceMetadataScrapeJobResponse, error) {
-	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/cloudwatch/%s", stackID, jobName)
+	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/resources/%s", stackID, jobName)
 	respData := apiResponseWrapper[AWSResourceMetadataScrapeJobResponse]{}
 	err := c.doAPIRequest(ctx, http.MethodPut, path, &jobData, &respData)
 	if err != nil {
-		return AWSResourceMetadataScrapeJobResponse{}, fmt.Errorf("failed to update AWS CloudWatch scrape job: %w", err)
+		return AWSResourceMetadataScrapeJobResponse{}, fmt.Errorf("failed to update AWS Resource Metadata scrape job: %w", err)
 	}
 	return respData.Data, nil
 }
 
 func (c *Client) DeleteAWSResourceMetadataScrapeJob(ctx context.Context, stackID string, jobName string) error {
-	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/cloudwatch/%s", stackID, jobName)
+	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/resources/%s", stackID, jobName)
 	err := c.doAPIRequest(ctx, http.MethodDelete, path, nil, nil)
 	if err != nil {
-		return fmt.Errorf("failed to delete AWS CloudWatch scrape job: %w", err)
+		return fmt.Errorf("failed to delete AWS Resource Metadata scrape job: %w", err)
 	}
 	return nil
 }
