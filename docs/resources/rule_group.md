@@ -142,6 +142,7 @@ Optional:
 - `exec_err_state` (String) Describes what state to enter when the rule's query is invalid and the rule cannot be executed. Options are OK, Error, KeepLast, and Alerting.  Defaults to Alerting if not set.
 - `for` (String) The amount of time for which the rule must be breached for the rule to be considered to be Firing. Before this time has elapsed, the rule is only considered to be Pending. Defaults to `0`.
 - `is_paused` (Boolean) Sets whether the alert should be paused or not. Defaults to `false`.
+- `keep_firing_for` (String) The amount of time for which the rule will considered to be Recovering after initially Firing. Before this time has elapsed, the rule will continue to fire once it's been triggered.
 - `labels` (Map of String) Key-value pairs to attach to the alert rule that can be used in matching, grouping, and routing. Defaults to `map[]`.
 - `no_data_state` (String) Describes what state to enter when the rule's query returns No Data. Options are OK, NoData, KeepLast, and Alerting. Defaults to NoData if not set.
 - `notification_settings` (Block List, Max: 1) Notification settings for the rule. If specified, it overrides the notification policies. Available since Grafana 10.4, requires feature flag 'alertingSimplifiedRouting' to be enabled. (see [below for nested schema](#nestedblock--rule--notification_settings))

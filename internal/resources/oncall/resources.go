@@ -103,6 +103,7 @@ var DataSources = []*common.DataSource{
 	dataSourceIntegration(),
 	dataSourceUser(),
 	dataSourceUsers(),
+	dataSourceLabel(),
 }
 
 var Resources = []*common.Resource{
