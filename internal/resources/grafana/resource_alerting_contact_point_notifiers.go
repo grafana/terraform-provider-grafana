@@ -623,8 +623,7 @@ func (o lineNotifier) unpack(raw interface{}, name string) *models.EmbeddedConta
 	}
 }
 
-type oncallNotifier struct {
-}
+type oncallNotifier struct{}
 
 var _ notifier = (*oncallNotifier)(nil)
 
@@ -2112,7 +2111,7 @@ func (w webhookNotifier) meta() notifierMeta {
 		field:        "webhook",
 		typeStr:      "webhook",
 		desc:         "A contact point that sends notifications to an arbitrary webhook, using the Prometheus webhook format defined here: https://prometheus.io/docs/alerting/latest/configuration/#webhook_config",
-		secureFields: []string{"basic_auth_password", "authorization_credentials"},
+		secureFields: []string{"basic_auth_password", "authorization_credentials", "tls_config"},
 	}
 }
 
@@ -2165,6 +2164,12 @@ func (w webhookNotifier) schema() *schema.Resource {
 		Optional:    true,
 		Description: "Templated title of the message.",
 	}
+	r.Schema["tls_config"] = &schema.Schema{
+		Type:        schema.TypeMap,
+		Optional:    true,
+		Sensitive:   true,
+		Description: "Allows configuring TLS for the webhook notifier.",
+	}
 	return r
 }
 
@@ -2180,6 +2185,7 @@ func (w webhookNotifier) pack(p *models.EmbeddedContactPoint, data *schema.Resou
 	packNotifierStringField(&settings, &notifier, "authorization_credentials", "authorization_credentials")
 	packNotifierStringField(&settings, &notifier, "message", "message")
 	packNotifierStringField(&settings, &notifier, "title", "title")
+	packTLSConfig(settings, notifier)
 	if v, ok := settings["maxAlerts"]; ok && v != nil {
 		switch typ := v.(type) {
 		case int:
@@ -2216,6 +2222,7 @@ func (w webhookNotifier) unpack(raw interface{}, name string) *models.EmbeddedCo
 	unpackNotifierStringField(&json, &settings, "authorization_credentials", "authorization_credentials")
 	unpackNotifierStringField(&json, &settings, "message", "message")
 	unpackNotifierStringField(&json, &settings, "title", "title")
+	unpackTLSConfig(json, settings)
 	if v, ok := json["max_alerts"]; ok && v != nil {
 		switch typ := v.(type) {
 		case int:
