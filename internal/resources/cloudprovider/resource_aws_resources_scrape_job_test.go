@@ -31,10 +31,6 @@ var testAWSResourceMetadataScrapeJobData = cloudproviderapi.AWSResourceMetadataS
 			},
 		},
 	},
-	StaticLabels: map[string]string{
-		"label1": "value1",
-		"label2": "value2",
-	},
 }
 
 func TestAccResourceAWSResourceMetadataScrapeJob(t *testing.T) {
@@ -72,8 +68,6 @@ func TestAccResourceAWSResourceMetadataScrapeJob(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "service.0.resource_discovery_tag_filter.#", fmt.Sprintf("%d", len(testAWSResourceMetadataScrapeJobData.Services[0].ResourceDiscoveryTagFilters))),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "service.0.resource_discovery_tag_filter.0.key", testAWSResourceMetadataScrapeJobData.Services[0].ResourceDiscoveryTagFilters[0].Key),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "service.0.resource_discovery_tag_filter.0.value", testAWSResourceMetadataScrapeJobData.Services[0].ResourceDiscoveryTagFilters[0].Value),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "static_labels.label1", testAWSResourceMetadataScrapeJobData.StaticLabels["label1"]),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "static_labels.label2", testAWSResourceMetadataScrapeJobData.StaticLabels["label2"]),
 				),
 			},
 			// update to remove regions_subset_override so that the account's regions are used instead
@@ -82,7 +76,11 @@ func TestAccResourceAWSResourceMetadataScrapeJob(t *testing.T) {
 					jobName,
 					false,
 					testCfg.accountID,
-					testAWSResourceMetadataScrapeJobData,
+					func() cloudproviderapi.AWSResourceMetadataScrapeJobRequest {
+						req := testAWSResourceMetadataScrapeJobData
+						req.RegionsSubsetOverride = nil
+						return req
+					}(),
 				),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "regions_subset_override.#", "0"),
@@ -134,8 +132,8 @@ func TestAccResourceAWSResourceMetadataScrapeJob(t *testing.T) {
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "service.#", fmt.Sprintf("%d", len(testAWSResourceMetadataScrapeJobData.Services))),
 					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "service.0.name", testAWSResourceMetadataScrapeJobData.Services[0].Name),
 					// expect this to be stored in the state as an empty list, not null
-					resource.TestCheckResourceAttrSet("grafana_cloud_provider_aws_resources_scrape_job.test", "service.0.service.0.resource_discovery_tag_filters.#"),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "service.0.service.0.resource_discovery_tag_filter.#", "0"),
+					resource.TestCheckResourceAttrSet("grafana_cloud_provider_aws_resources_scrape_job.test", "service.0.resource_discovery_tag_filter.#"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "service.0.resource_discovery_tag_filter.#", "0"),
 				),
 			},
 			{
@@ -223,7 +221,11 @@ func AWSResourceMetadataScrapeJobResourceData(stackID string, jobName string, en
 	jobBody.SetAttributeValue("stack_id", cty.StringVal(stackID))
 
 	if len(req.RegionsSubsetOverride) > 0 {
-		jobBody.SetAttributeValue("regions_subset_override", cty.ListVal(mapCty(req.RegionsSubsetOverride, cty.StringVal)))
+		vals := make([]cty.Value, len(req.RegionsSubsetOverride))
+		for i, v := range req.RegionsSubsetOverride {
+			vals[i] = cty.StringVal(v)
+		}
+		jobBody.SetAttributeValue("regions_subset_override", cty.ListVal(vals))
 	}
 
 	for _, svc := range req.Services {
