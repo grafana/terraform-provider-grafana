@@ -18,7 +18,7 @@ import (
 )
 
 var testAWSResourceMetadataScrapeJobData = cloudproviderapi.AWSResourceMetadataScrapeJobRequest{
-	RegionsSubsetOverride: []string{"us-east-1", "us-east-2", "us-west-1"},
+	RegionsSubsetOverride: []string{"us-east-1", "us-east-2"},
 	Services: []cloudproviderapi.AWSResourceMetadataService{
 		{
 			Name:                  "AWS/EC2",
