@@ -79,20 +79,20 @@ func (r resourceAWSResourceMetadataScrapeJob) Schema(ctx context.Context, req re
 				},
 			},
 			"name": schema.StringAttribute{
-				Description: "The name of the CloudWatch Scrape Job. Part of the Terraform Resource ID.",
+				Description: "The name of the Resource Metadata Scrape Job. Part of the Terraform Resource ID.",
 				Required:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"enabled": schema.BoolAttribute{
-				Description: "Whether the CloudWatch Scrape Job is enabled or not.",
+				Description: "Whether the Resource Metadata Scrape Job is enabled or not.",
 				Optional:    true,
 				Computed:    true,
 				Default:     booldefault.StaticBool(true),
 			},
 			"aws_account_resource_id": schema.StringAttribute{
-				Description: "The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this CloudWatch Scrape Job. This can be provided by the `resource_id` attribute of the `grafana_cloud_provider_aws_account` resource.",
+				Description: "The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this Resource Metadata Scrape Job. This can be provided by the `resource_id` attribute of the `grafana_cloud_provider_aws_account` resource.",
 				Required:    true,
 			},
 			"regions_subset_override": schema.SetAttribute{
@@ -103,7 +103,7 @@ func (r resourceAWSResourceMetadataScrapeJob) Schema(ctx context.Context, req re
 				Default:     setdefault.StaticValue(types.SetValueMust(types.StringType, []attr.Value{})),
 			},
 			"disabled_reason": schema.StringAttribute{
-				Description: "When the CloudWatch Scrape Job is disabled, this will show the reason that it is in that state.",
+				Description: "When the Resource Metadata Scrape Job is disabled, this will show the reason that it is in that state.",
 				Computed:    true,
 			},
 			"static_labels": schema.MapAttribute{
@@ -116,7 +116,7 @@ func (r resourceAWSResourceMetadataScrapeJob) Schema(ctx context.Context, req re
 		},
 		Blocks: map[string]schema.Block{
 			"service": schema.ListNestedBlock{
-				Description: "One or more configuration blocks to configure AWS services for the CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
+				Description: "One or more configuration blocks to configure AWS services for the Resource Metadata Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
 				Validators: []validator.List{
 					listvalidator.SizeAtLeast(1),
 					awsRMScrapeJobNoDuplicateServiceNamesValidator{},
@@ -172,7 +172,7 @@ func (r resourceAWSResourceMetadataScrapeJob) ImportState(ctx context.Context, r
 		jobName,
 	)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get AWS CloudWatch scrape job", err.Error())
+		resp.Diagnostics.AddError("Failed to get AWS Resource Metadata scrape job", err.Error())
 		return
 	}
 
@@ -201,7 +201,7 @@ func (r resourceAWSResourceMetadataScrapeJob) Create(ctx context.Context, req re
 
 	jobResp, err := r.client.CreateAWSResourceMetadataScrapeJob(ctx, data.StackID.ValueString(), jobReq)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to create AWS CloudWatch scrape job", err.Error())
+		resp.Diagnostics.AddError("Failed to create AWS Resource Metadata scrape job", err.Error())
 		return
 	}
 
@@ -228,7 +228,7 @@ func (r resourceAWSResourceMetadataScrapeJob) Read(ctx context.Context, req reso
 		data.Name.ValueString(),
 	)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get AWS CloudWatch scrape job", err.Error())
+		resp.Diagnostics.AddError("Failed to get AWS Resource Metadata scrape job", err.Error())
 		return
 	}
 
@@ -290,7 +290,7 @@ func (r resourceAWSResourceMetadataScrapeJob) Update(ctx context.Context, req re
 
 	jobResp, err := r.client.UpdateAWSResourceMetadataScrapeJob(ctx, planData.StackID.ValueString(), planData.Name.ValueString(), jobReq)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to update AWS CloudWatch scrape job", err.Error())
+		resp.Diagnostics.AddError("Failed to update AWS Resource Metadata scrape job", err.Error())
 		return
 	}
 
@@ -317,7 +317,7 @@ func (r resourceAWSResourceMetadataScrapeJob) Delete(ctx context.Context, req re
 		data.Name.ValueString(),
 	)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to delete AWS CloudWatch scrape job", err.Error())
+		resp.Diagnostics.AddError("Failed to delete AWS Resource Metadata scrape job", err.Error())
 		return
 	}
 

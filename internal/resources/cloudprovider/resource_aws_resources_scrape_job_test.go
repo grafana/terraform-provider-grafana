@@ -214,7 +214,7 @@ func AWSResourceMetadataScrapeJobResourceData(stackID string, jobName string, en
 	req.AWSAccountResourceID = awsAccountResourceID
 
 	hclFile := hclwrite.NewFile()
-	jobRes := hclFile.Body().AppendNewBlock("resource", []string{"grafana_cloud_provider_aws_resources_scrape_job", strings.ToLower(toSnakeCase(req.Name))})
+	jobRes := hclFile.Body().AppendNewBlock("resource", []string{"grafana_cloud_provider_aws_resources_scrape_job", "test"})
 
 	jobBody := jobRes.Body()
 	jobBody.SetAttributeValue("name", cty.StringVal(req.Name))
