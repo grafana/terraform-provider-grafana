@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
-type awsRMScrapeJobTFResourceModel struct {
+type awsResourceMetadataScrapeJobTFResourceModel struct {
 	ID                    types.String `tfsdk:"id"`
 	StackID               types.String `tfsdk:"stack_id"`
 	Name                  types.String `tfsdk:"name"`
@@ -27,48 +27,48 @@ type awsRMScrapeJobTFResourceModel struct {
 	StaticLabels types.Map  `tfsdk:"static_labels"`
 }
 
-type awsRMScrapeJobServiceTFModel struct {
+type awsResourceMetadataScrapeJobServiceTFModel struct {
 	Name                        types.String `tfsdk:"name"`
 	ScrapeIntervalSeconds       types.Int64  `tfsdk:"scrape_interval_seconds"`
 	ResourceDiscoveryTagFilters types.List   `tfsdk:"resource_discovery_tag_filter"`
 }
 
-func (m awsRMScrapeJobServiceTFModel) attrTypes() map[string]attr.Type {
+func (m awsResourceMetadataScrapeJobServiceTFModel) attrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"name":                    types.StringType,
 		"scrape_interval_seconds": types.Int64Type,
 		"resource_discovery_tag_filter": types.ListType{
 			ElemType: types.ObjectType{
-				AttrTypes: awsRMScrapeJobTagFilterTFModel{}.attrTypes(),
+				AttrTypes: awsResourceMetadataScrapeJobTagFilterTFModel{}.attrTypes(),
 			},
 		},
 	}
 }
 
-type awsRMScrapeJobTagFilterTFModel struct {
+type awsResourceMetadataScrapeJobTagFilterTFModel struct {
 	Key   types.String `tfsdk:"key"`
 	Value types.String `tfsdk:"value"`
 }
 
-func (m awsRMScrapeJobTagFilterTFModel) attrTypes() map[string]attr.Type {
+func (m awsResourceMetadataScrapeJobTagFilterTFModel) attrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"key":   types.StringType,
 		"value": types.StringType,
 	}
 }
 
-type awsRMScrapeJobNoDuplicateServiceNamesValidator struct{}
+type awsResourceMetadataScrapeJobNoDuplicateServiceNamesValidator struct{}
 
-func (v awsRMScrapeJobNoDuplicateServiceNamesValidator) Description(ctx context.Context) string {
+func (v awsResourceMetadataScrapeJobNoDuplicateServiceNamesValidator) Description(ctx context.Context) string {
 	return "No duplicate service names are allowed."
 }
 
-func (v awsRMScrapeJobNoDuplicateServiceNamesValidator) MarkdownDescription(ctx context.Context) string {
+func (v awsResourceMetadataScrapeJobNoDuplicateServiceNamesValidator) MarkdownDescription(ctx context.Context) string {
 	return "No duplicate service names are allowed."
 }
 
-func (v awsRMScrapeJobNoDuplicateServiceNamesValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
-	var services []awsRMScrapeJobServiceTFModel
+func (v awsResourceMetadataScrapeJobNoDuplicateServiceNamesValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
+	var services []awsResourceMetadataScrapeJobServiceTFModel
 	diags := req.ConfigValue.ElementsAs(ctx, &services, true)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
@@ -84,8 +84,8 @@ func (v awsRMScrapeJobNoDuplicateServiceNamesValidator) ValidateList(ctx context
 	}
 }
 
-// toClientModel converts a awsRMScrapeJobTFModel instance to a cloudproviderapi.AWSResourceMetadataScrapeJobRequest instance.
-func (tfData awsRMScrapeJobTFResourceModel) toClientModel(ctx context.Context) (cloudproviderapi.AWSResourceMetadataScrapeJobRequest, diag.Diagnostics) {
+// toClientModel converts a awsResourceMetadataScrapeJobTFModel instance to a cloudproviderapi.AWSResourceMetadataScrapeJobRequest instance.
+func (tfData awsResourceMetadataScrapeJobTFResourceModel) toClientModel(ctx context.Context) (cloudproviderapi.AWSResourceMetadataScrapeJobRequest, diag.Diagnostics) {
 	conversionDiags := diag.Diagnostics{}
 	converted := cloudproviderapi.AWSResourceMetadataScrapeJobRequest{
 		Name:                 tfData.Name.ValueString(),
@@ -99,7 +99,7 @@ func (tfData awsRMScrapeJobTFResourceModel) toClientModel(ctx context.Context) (
 		return cloudproviderapi.AWSResourceMetadataScrapeJobRequest{}, conversionDiags
 	}
 
-	var services []awsRMScrapeJobServiceTFModel
+	var services []awsResourceMetadataScrapeJobServiceTFModel
 	diags = tfData.Services.ElementsAs(ctx, &services, false)
 	conversionDiags.Append(diags...)
 	if conversionDiags.HasError() {
@@ -112,7 +112,7 @@ func (tfData awsRMScrapeJobTFResourceModel) toClientModel(ctx context.Context) (
 			ScrapeIntervalSeconds: service.ScrapeIntervalSeconds.ValueInt64(),
 		}
 
-		var tagFilters []awsRMScrapeJobTagFilterTFModel
+		var tagFilters []awsResourceMetadataScrapeJobTagFilterTFModel
 		diags = service.ResourceDiscoveryTagFilters.ElementsAs(ctx, &tagFilters, false)
 		conversionDiags.Append(diags...)
 		if conversionDiags.HasError() {
@@ -136,11 +136,11 @@ func (tfData awsRMScrapeJobTFResourceModel) toClientModel(ctx context.Context) (
 	return converted, conversionDiags
 }
 
-// generateAWSResourceMetadataScrapeJobTFResourceModel generates a new awsRMScrapeJobTFResourceModel based on the provided cloudproviderapi.AWSResourceMetadataScrapeJobResponse
-func generateAWSRMScrapeJobTFResourceModel(ctx context.Context, stackID string, scrapeJobData cloudproviderapi.AWSResourceMetadataScrapeJobResponse) (awsRMScrapeJobTFResourceModel, diag.Diagnostics) {
+// generateAWSResourceMetadataScrapeJobTFResourceModel generates a new awsResourceMetadataScrapeJobTFResourceModel based on the provided cloudproviderapi.AWSResourceMetadataScrapeJobResponse
+func generateAWSResourceMetadataScrapeJobTFResourceModel(ctx context.Context, stackID string, scrapeJobData cloudproviderapi.AWSResourceMetadataScrapeJobResponse) (awsResourceMetadataScrapeJobTFResourceModel, diag.Diagnostics) {
 	conversionDiags := diag.Diagnostics{}
-	converted := awsRMScrapeJobTFResourceModel{
-		ID:                   types.StringValue(resourceAWSRMScrapeJobTerraformID.Make(stackID, scrapeJobData.Name)),
+	converted := awsResourceMetadataScrapeJobTFResourceModel{
+		ID:                   types.StringValue(resourceAWSResourceMetadataScrapeJobTerraformID.Make(stackID, scrapeJobData.Name)),
 		StackID:              types.StringValue(stackID),
 		Name:                 types.StringValue(scrapeJobData.Name),
 		Enabled:              types.BoolValue(scrapeJobData.Enabled),
@@ -153,16 +153,16 @@ func generateAWSRMScrapeJobTFResourceModel(ctx context.Context, stackID string, 
 		regions, diags := types.SetValueFrom(ctx, basetypes.StringType{}, scrapeJobData.Regions)
 		conversionDiags.Append(diags...)
 		if conversionDiags.HasError() {
-			return awsRMScrapeJobTFResourceModel{}, conversionDiags
+			return awsResourceMetadataScrapeJobTFResourceModel{}, conversionDiags
 		}
 		regionsSubsetOverride = regions
 	}
 	converted.RegionsSubsetOverride = regionsSubsetOverride
 
-	services, diags := convertAWSRMServicesClientToTFModel(ctx, scrapeJobData.Services)
+	services, diags := convertAWSResourceMetadataServicesClientToTFModel(ctx, scrapeJobData.Services)
 	conversionDiags.Append(diags...)
 	if conversionDiags.HasError() {
-		return awsRMScrapeJobTFResourceModel{}, conversionDiags
+		return awsResourceMetadataScrapeJobTFResourceModel{}, conversionDiags
 	}
 	converted.Services = services
 
@@ -171,7 +171,7 @@ func generateAWSRMScrapeJobTFResourceModel(ctx context.Context, stackID string, 
 		staticLabelsMap, diags = types.MapValueFrom(ctx, basetypes.StringType{}, scrapeJobData.StaticLabels)
 		conversionDiags.Append(diags...)
 		if conversionDiags.HasError() {
-			return awsRMScrapeJobTFResourceModel{}, conversionDiags
+			return awsResourceMetadataScrapeJobTFResourceModel{}, conversionDiags
 		}
 	}
 	converted.StaticLabels = staticLabelsMap
@@ -179,25 +179,25 @@ func generateAWSRMScrapeJobTFResourceModel(ctx context.Context, stackID string, 
 	return converted, conversionDiags
 }
 
-func convertAWSRMServicesClientToTFModel(ctx context.Context, services []cloudproviderapi.AWSResourceMetadataService) (types.List, diag.Diagnostics) {
+func convertAWSResourceMetadataServicesClientToTFModel(ctx context.Context, services []cloudproviderapi.AWSResourceMetadataService) (types.List, diag.Diagnostics) {
 	conversionDiags := diag.Diagnostics{}
-	servicesTF := make([]awsRMScrapeJobServiceTFModel, len(services))
-	servicesListObjType := types.ObjectType{AttrTypes: awsRMScrapeJobServiceTFModel{}.attrTypes()}
+	servicesTF := make([]awsResourceMetadataScrapeJobServiceTFModel, len(services))
+	servicesListObjType := types.ObjectType{AttrTypes: awsResourceMetadataScrapeJobServiceTFModel{}.attrTypes()}
 
 	for i, service := range services {
-		serviceTF := awsRMScrapeJobServiceTFModel{
+		serviceTF := awsResourceMetadataScrapeJobServiceTFModel{
 			Name:                  types.StringValue(service.Name),
 			ScrapeIntervalSeconds: types.Int64Value(service.ScrapeIntervalSeconds),
 		}
 
-		tagFiltersTF := make([]awsRMScrapeJobTagFilterTFModel, len(service.ResourceDiscoveryTagFilters))
+		tagFiltersTF := make([]awsResourceMetadataScrapeJobTagFilterTFModel, len(service.ResourceDiscoveryTagFilters))
 		for j, tagFilter := range service.ResourceDiscoveryTagFilters {
-			tagFiltersTF[j] = awsRMScrapeJobTagFilterTFModel{
+			tagFiltersTF[j] = awsResourceMetadataScrapeJobTagFilterTFModel{
 				Key:   types.StringValue(tagFilter.Key),
 				Value: types.StringValue(tagFilter.Value),
 			}
 		}
-		tagFiltersTFList, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: awsRMScrapeJobTagFilterTFModel{}.attrTypes()}, tagFiltersTF)
+		tagFiltersTFList, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: awsResourceMetadataScrapeJobTagFilterTFModel{}.attrTypes()}, tagFiltersTF)
 		conversionDiags.Append(diags...)
 		if conversionDiags.HasError() {
 			return types.ListNull(servicesListObjType), conversionDiags

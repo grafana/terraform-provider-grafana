@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
-type awsCWScrapeJobTFResourceModel struct {
+type awsCloudWatchScrapeJobTFResourceModel struct {
 	ID                    types.String `tfsdk:"id"`
 	StackID               types.String `tfsdk:"stack_id"`
 	Name                  types.String `tfsdk:"name"`
@@ -29,7 +29,7 @@ type awsCWScrapeJobTFResourceModel struct {
 	StaticLabels     types.Map  `tfsdk:"static_labels"`
 }
 
-type awsCWScrapeJobTFDataSourceModel struct {
+type awsCloudWatchScrapeJobTFDataSourceModel struct {
 	ID                        types.String `tfsdk:"id"`
 	StackID                   types.String `tfsdk:"stack_id"`
 	Name                      types.String `tfsdk:"name"`
@@ -48,7 +48,7 @@ type awsCWScrapeJobTFDataSourceModel struct {
 	StaticLabels     types.Map  `tfsdk:"static_labels"`
 }
 
-type awsCWScrapeJobServiceTFModel struct {
+type awsCloudWatchScrapeJobServiceTFModel struct {
 	Name                        types.String `tfsdk:"name"`
 	Metrics                     types.List   `tfsdk:"metric"`
 	ScrapeIntervalSeconds       types.Int64  `tfsdk:"scrape_interval_seconds"`
@@ -56,18 +56,18 @@ type awsCWScrapeJobServiceTFModel struct {
 	TagsToAddToMetrics          types.Set    `tfsdk:"tags_to_add_to_metrics"`
 }
 
-func (m awsCWScrapeJobServiceTFModel) attrTypes() map[string]attr.Type {
+func (m awsCloudWatchScrapeJobServiceTFModel) attrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"name": types.StringType,
 		"metric": types.ListType{
 			ElemType: types.ObjectType{
-				AttrTypes: awsCWScrapeJobMetricTFModel{}.attrTypes(),
+				AttrTypes: awsCloudWatchScrapeJobMetricTFModel{}.attrTypes(),
 			},
 		},
 		"scrape_interval_seconds": types.Int64Type,
 		"resource_discovery_tag_filter": types.ListType{
 			ElemType: types.ObjectType{
-				AttrTypes: awsCWScrapeJobTagFilterTFModel{}.attrTypes(),
+				AttrTypes: awsCloudWatchScrapeJobTagFilterTFModel{}.attrTypes(),
 			},
 		},
 		"tags_to_add_to_metrics": types.SetType{
@@ -76,30 +76,30 @@ func (m awsCWScrapeJobServiceTFModel) attrTypes() map[string]attr.Type {
 	}
 }
 
-type awsCWScrapeJobCustomNamespaceTFModel struct {
+type awsCloudWatchScrapeJobCustomNamespaceTFModel struct {
 	Name                  types.String `tfsdk:"name"`
 	Metrics               types.List   `tfsdk:"metric"`
 	ScrapeIntervalSeconds types.Int64  `tfsdk:"scrape_interval_seconds"`
 }
 
-func (m awsCWScrapeJobCustomNamespaceTFModel) attrTypes() map[string]attr.Type {
+func (m awsCloudWatchScrapeJobCustomNamespaceTFModel) attrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"name": types.StringType,
 		"metric": types.ListType{
 			ElemType: types.ObjectType{
-				AttrTypes: awsCWScrapeJobMetricTFModel{}.attrTypes(),
+				AttrTypes: awsCloudWatchScrapeJobMetricTFModel{}.attrTypes(),
 			},
 		},
 		"scrape_interval_seconds": types.Int64Type,
 	}
 }
 
-type awsCWScrapeJobMetricTFModel struct {
+type awsCloudWatchScrapeJobMetricTFModel struct {
 	Name       types.String `tfsdk:"name"`
 	Statistics types.Set    `tfsdk:"statistics"`
 }
 
-func (m awsCWScrapeJobMetricTFModel) attrTypes() map[string]attr.Type {
+func (m awsCloudWatchScrapeJobMetricTFModel) attrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"name": types.StringType,
 		"statistics": types.SetType{
@@ -108,30 +108,30 @@ func (m awsCWScrapeJobMetricTFModel) attrTypes() map[string]attr.Type {
 	}
 }
 
-type awsCWScrapeJobTagFilterTFModel struct {
+type awsCloudWatchScrapeJobTagFilterTFModel struct {
 	Key   types.String `tfsdk:"key"`
 	Value types.String `tfsdk:"value"`
 }
 
-func (m awsCWScrapeJobTagFilterTFModel) attrTypes() map[string]attr.Type {
+func (m awsCloudWatchScrapeJobTagFilterTFModel) attrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"key":   types.StringType,
 		"value": types.StringType,
 	}
 }
 
-type awsCWScrapeJobNoDuplicateServiceNamesValidator struct{}
+type awsCloudWatchScrapeJobNoDuplicateServiceNamesValidator struct{}
 
-func (v awsCWScrapeJobNoDuplicateServiceNamesValidator) Description(ctx context.Context) string {
+func (v awsCloudWatchScrapeJobNoDuplicateServiceNamesValidator) Description(ctx context.Context) string {
 	return "No duplicate service names are allowed."
 }
 
-func (v awsCWScrapeJobNoDuplicateServiceNamesValidator) MarkdownDescription(ctx context.Context) string {
+func (v awsCloudWatchScrapeJobNoDuplicateServiceNamesValidator) MarkdownDescription(ctx context.Context) string {
 	return "No duplicate service names are allowed."
 }
 
-func (v awsCWScrapeJobNoDuplicateServiceNamesValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
-	var services []awsCWScrapeJobServiceTFModel
+func (v awsCloudWatchScrapeJobNoDuplicateServiceNamesValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
+	var services []awsCloudWatchScrapeJobServiceTFModel
 	diags := req.ConfigValue.ElementsAs(ctx, &services, true)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
@@ -147,18 +147,18 @@ func (v awsCWScrapeJobNoDuplicateServiceNamesValidator) ValidateList(ctx context
 	}
 }
 
-type awsCWScrapeJobNoDuplicateCustomNamespaceNamesValidator struct{}
+type awsCloudWatchScrapeJobNoDuplicateCustomNamespaceNamesValidator struct{}
 
-func (v awsCWScrapeJobNoDuplicateCustomNamespaceNamesValidator) Description(ctx context.Context) string {
+func (v awsCloudWatchScrapeJobNoDuplicateCustomNamespaceNamesValidator) Description(ctx context.Context) string {
 	return "No duplicate custom namespace names are allowed."
 }
 
-func (v awsCWScrapeJobNoDuplicateCustomNamespaceNamesValidator) MarkdownDescription(ctx context.Context) string {
+func (v awsCloudWatchScrapeJobNoDuplicateCustomNamespaceNamesValidator) MarkdownDescription(ctx context.Context) string {
 	return "No duplicate custom namespace names are allowed."
 }
 
-func (v awsCWScrapeJobNoDuplicateCustomNamespaceNamesValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
-	var customNamespaces []awsCWScrapeJobCustomNamespaceTFModel
+func (v awsCloudWatchScrapeJobNoDuplicateCustomNamespaceNamesValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
+	var customNamespaces []awsCloudWatchScrapeJobCustomNamespaceTFModel
 	diags := req.ConfigValue.ElementsAs(ctx, &customNamespaces, true)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
@@ -174,19 +174,19 @@ func (v awsCWScrapeJobNoDuplicateCustomNamespaceNamesValidator) ValidateList(ctx
 	}
 }
 
-type awsCWScrapeJobNoDuplicateMetricNamesValidator struct{}
+type awsCloudWatchScrapeJobNoDuplicateMetricNamesValidator struct{}
 
-func (v awsCWScrapeJobNoDuplicateMetricNamesValidator) Description(ctx context.Context) string {
+func (v awsCloudWatchScrapeJobNoDuplicateMetricNamesValidator) Description(ctx context.Context) string {
 	return "Metric names must be unique (case-insensitive) within the same service or custom namespace."
 }
 
-func (v awsCWScrapeJobNoDuplicateMetricNamesValidator) MarkdownDescription(ctx context.Context) string {
+func (v awsCloudWatchScrapeJobNoDuplicateMetricNamesValidator) MarkdownDescription(ctx context.Context) string {
 	return "Metric names must be unique (case-insensitive) within the same service or custom namespace."
 }
 
-func (v awsCWScrapeJobNoDuplicateMetricNamesValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
+func (v awsCloudWatchScrapeJobNoDuplicateMetricNamesValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
 	seen := map[string]struct{}{}
-	elems := make([]awsCWScrapeJobMetricTFModel, len(req.ConfigValue.Elements()))
+	elems := make([]awsCloudWatchScrapeJobMetricTFModel, len(req.ConfigValue.Elements()))
 	diags := req.ConfigValue.ElementsAs(ctx, &elems, true)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
@@ -201,8 +201,8 @@ func (v awsCWScrapeJobNoDuplicateMetricNamesValidator) ValidateList(ctx context.
 	}
 }
 
-// toClientModel converts a awsCWScrapeJobTFModel instance to a cloudproviderapi.AWSCloudWatchScrapeJobRequest instance.
-func (tfData awsCWScrapeJobTFResourceModel) toClientModel(ctx context.Context) (cloudproviderapi.AWSCloudWatchScrapeJobRequest, diag.Diagnostics) {
+// toClientModel converts a awsCloudWatchScrapeJobTFModel instance to a cloudproviderapi.AWSCloudWatchScrapeJobRequest instance.
+func (tfData awsCloudWatchScrapeJobTFResourceModel) toClientModel(ctx context.Context) (cloudproviderapi.AWSCloudWatchScrapeJobRequest, diag.Diagnostics) {
 	conversionDiags := diag.Diagnostics{}
 	converted := cloudproviderapi.AWSCloudWatchScrapeJobRequest{
 		Name:                 tfData.Name.ValueString(),
@@ -217,7 +217,7 @@ func (tfData awsCWScrapeJobTFResourceModel) toClientModel(ctx context.Context) (
 		return cloudproviderapi.AWSCloudWatchScrapeJobRequest{}, conversionDiags
 	}
 
-	var services []awsCWScrapeJobServiceTFModel
+	var services []awsCloudWatchScrapeJobServiceTFModel
 	diags = tfData.Services.ElementsAs(ctx, &services, false)
 	conversionDiags.Append(diags...)
 	if conversionDiags.HasError() {
@@ -236,7 +236,7 @@ func (tfData awsCWScrapeJobTFResourceModel) toClientModel(ctx context.Context) (
 			return cloudproviderapi.AWSCloudWatchScrapeJobRequest{}, conversionDiags
 		}
 
-		var metrics []awsCWScrapeJobMetricTFModel
+		var metrics []awsCloudWatchScrapeJobMetricTFModel
 		diags = service.Metrics.ElementsAs(ctx, &metrics, false)
 		conversionDiags.Append(diags...)
 		if conversionDiags.HasError() {
@@ -255,7 +255,7 @@ func (tfData awsCWScrapeJobTFResourceModel) toClientModel(ctx context.Context) (
 			}
 		}
 
-		var tagFilters []awsCWScrapeJobTagFilterTFModel
+		var tagFilters []awsCloudWatchScrapeJobTagFilterTFModel
 		diags = service.ResourceDiscoveryTagFilters.ElementsAs(ctx, &tagFilters, false)
 		conversionDiags.Append(diags...)
 		if conversionDiags.HasError() {
@@ -270,7 +270,7 @@ func (tfData awsCWScrapeJobTFResourceModel) toClientModel(ctx context.Context) (
 		}
 	}
 
-	var customNamepsaces []awsCWScrapeJobCustomNamespaceTFModel
+	var customNamepsaces []awsCloudWatchScrapeJobCustomNamespaceTFModel
 	diags = tfData.CustomNamespaces.ElementsAs(ctx, &customNamepsaces, false)
 	conversionDiags.Append(diags...)
 	if conversionDiags.HasError() {
@@ -283,7 +283,7 @@ func (tfData awsCWScrapeJobTFResourceModel) toClientModel(ctx context.Context) (
 			ScrapeIntervalSeconds: customNamespace.ScrapeIntervalSeconds.ValueInt64(),
 		}
 
-		var metrics []awsCWScrapeJobMetricTFModel
+		var metrics []awsCloudWatchScrapeJobMetricTFModel
 		diags = customNamespace.Metrics.ElementsAs(ctx, &metrics, false)
 		conversionDiags.Append(diags...)
 		if conversionDiags.HasError() {
@@ -312,10 +312,10 @@ func (tfData awsCWScrapeJobTFResourceModel) toClientModel(ctx context.Context) (
 	return converted, conversionDiags
 }
 
-// generateCloudWatchScrapeJobTFResourceModel generates a new awsCWScrapeJobTFResourceModel based on the provided cloudproviderapi.AWSCloudWatchScrapeJobResponse
-func generateCloudWatchScrapeJobTFResourceModel(ctx context.Context, stackID string, scrapeJobData cloudproviderapi.AWSCloudWatchScrapeJobResponse) (awsCWScrapeJobTFResourceModel, diag.Diagnostics) {
+// generateCloudWatchScrapeJobTFResourceModel generates a new awsCloudWatchScrapeJobTFResourceModel based on the provided cloudproviderapi.AWSCloudWatchScrapeJobResponse
+func generateCloudWatchScrapeJobTFResourceModel(ctx context.Context, stackID string, scrapeJobData cloudproviderapi.AWSCloudWatchScrapeJobResponse) (awsCloudWatchScrapeJobTFResourceModel, diag.Diagnostics) {
 	conversionDiags := diag.Diagnostics{}
-	converted := awsCWScrapeJobTFResourceModel{
+	converted := awsCloudWatchScrapeJobTFResourceModel{
 		ID:                   types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(stackID, scrapeJobData.Name)),
 		StackID:              types.StringValue(stackID),
 		Name:                 types.StringValue(scrapeJobData.Name),
@@ -330,23 +330,23 @@ func generateCloudWatchScrapeJobTFResourceModel(ctx context.Context, stackID str
 		regions, diags := types.SetValueFrom(ctx, basetypes.StringType{}, scrapeJobData.Regions)
 		conversionDiags.Append(diags...)
 		if conversionDiags.HasError() {
-			return awsCWScrapeJobTFResourceModel{}, conversionDiags
+			return awsCloudWatchScrapeJobTFResourceModel{}, conversionDiags
 		}
 		regionsSubsetOverride = regions
 	}
 	converted.RegionsSubsetOverride = regionsSubsetOverride
 
-	services, diags := convertCWServicesClientToTFModel(ctx, scrapeJobData.Services)
+	services, diags := convertAWSCloudWatchServicesClientToTFModel(ctx, scrapeJobData.Services)
 	conversionDiags.Append(diags...)
 	if conversionDiags.HasError() {
-		return awsCWScrapeJobTFResourceModel{}, conversionDiags
+		return awsCloudWatchScrapeJobTFResourceModel{}, conversionDiags
 	}
 	converted.Services = services
 
-	customNamespaces, diags := convertCWCustomNamespacesClientToTFModel(ctx, scrapeJobData.CustomNamespaces)
+	customNamespaces, diags := convertAWSCloudWatchCustomNamespacesClientToTFModel(ctx, scrapeJobData.CustomNamespaces)
 	conversionDiags.Append(diags...)
 	if conversionDiags.HasError() {
-		return awsCWScrapeJobTFResourceModel{}, conversionDiags
+		return awsCloudWatchScrapeJobTFResourceModel{}, conversionDiags
 	}
 	converted.CustomNamespaces = customNamespaces
 
@@ -355,7 +355,7 @@ func generateCloudWatchScrapeJobTFResourceModel(ctx context.Context, stackID str
 		staticLabelsMap, diags = types.MapValueFrom(ctx, basetypes.StringType{}, scrapeJobData.StaticLabels)
 		conversionDiags.Append(diags...)
 		if conversionDiags.HasError() {
-			return awsCWScrapeJobTFResourceModel{}, conversionDiags
+			return awsCloudWatchScrapeJobTFResourceModel{}, conversionDiags
 		}
 	}
 	converted.StaticLabels = staticLabelsMap
@@ -363,10 +363,10 @@ func generateCloudWatchScrapeJobTFResourceModel(ctx context.Context, stackID str
 	return converted, conversionDiags
 }
 
-// generateCloudWatchScrapeJobTFDataSourceModel generates a new awsCWScrapeJobTFDataSourceModel based on the provided cloudproviderapi.AWSCloudWatchScrapeJobResponse
-func generateCloudWatchScrapeJobDataSourceTFModel(ctx context.Context, stackID string, scrapeJobData cloudproviderapi.AWSCloudWatchScrapeJobResponse) (awsCWScrapeJobTFDataSourceModel, diag.Diagnostics) {
+// generateCloudWatchScrapeJobTFDataSourceModel generates a new awsCloudWatchScrapeJobTFDataSourceModel based on the provided cloudproviderapi.AWSCloudWatchScrapeJobResponse
+func generateAWSCloudWatchScrapeJobDataSourceTFModel(ctx context.Context, stackID string, scrapeJobData cloudproviderapi.AWSCloudWatchScrapeJobResponse) (awsCloudWatchScrapeJobTFDataSourceModel, diag.Diagnostics) {
 	conversionDiags := diag.Diagnostics{}
-	converted := awsCWScrapeJobTFDataSourceModel{
+	converted := awsCloudWatchScrapeJobTFDataSourceModel{
 		ID:                        types.StringValue(resourceAWSCloudWatchScrapeJobTerraformID.Make(stackID, scrapeJobData.Name)),
 		StackID:                   types.StringValue(stackID),
 		Name:                      types.StringValue(scrapeJobData.Name),
@@ -381,21 +381,21 @@ func generateCloudWatchScrapeJobDataSourceTFModel(ctx context.Context, stackID s
 	regions, diags := types.SetValueFrom(ctx, basetypes.StringType{}, scrapeJobData.Regions)
 	conversionDiags.Append(diags...)
 	if conversionDiags.HasError() {
-		return awsCWScrapeJobTFDataSourceModel{}, conversionDiags
+		return awsCloudWatchScrapeJobTFDataSourceModel{}, conversionDiags
 	}
 	converted.Regions = regions
 
-	services, diags := convertCWServicesClientToTFModel(ctx, scrapeJobData.Services)
+	services, diags := convertAWSCloudWatchServicesClientToTFModel(ctx, scrapeJobData.Services)
 	conversionDiags.Append(diags...)
 	if conversionDiags.HasError() {
-		return awsCWScrapeJobTFDataSourceModel{}, conversionDiags
+		return awsCloudWatchScrapeJobTFDataSourceModel{}, conversionDiags
 	}
 	converted.Services = services
 
-	customNamespaces, diags := convertCWCustomNamespacesClientToTFModel(ctx, scrapeJobData.CustomNamespaces)
+	customNamespaces, diags := convertAWSCloudWatchCustomNamespacesClientToTFModel(ctx, scrapeJobData.CustomNamespaces)
 	conversionDiags.Append(diags...)
 	if conversionDiags.HasError() {
-		return awsCWScrapeJobTFDataSourceModel{}, conversionDiags
+		return awsCloudWatchScrapeJobTFDataSourceModel{}, conversionDiags
 	}
 	converted.CustomNamespaces = customNamespaces
 
@@ -404,7 +404,7 @@ func generateCloudWatchScrapeJobDataSourceTFModel(ctx context.Context, stackID s
 		staticLabelsMap, diags = types.MapValueFrom(ctx, basetypes.StringType{}, scrapeJobData.StaticLabels)
 		conversionDiags.Append(diags...)
 		if conversionDiags.HasError() {
-			return awsCWScrapeJobTFDataSourceModel{}, conversionDiags
+			return awsCloudWatchScrapeJobTFDataSourceModel{}, conversionDiags
 		}
 	}
 	converted.StaticLabels = staticLabelsMap
@@ -412,20 +412,20 @@ func generateCloudWatchScrapeJobDataSourceTFModel(ctx context.Context, stackID s
 	return converted, conversionDiags
 }
 
-func convertCWServicesClientToTFModel(ctx context.Context, services []cloudproviderapi.AWSCloudWatchService) (types.List, diag.Diagnostics) {
+func convertAWSCloudWatchServicesClientToTFModel(ctx context.Context, services []cloudproviderapi.AWSCloudWatchService) (types.List, diag.Diagnostics) {
 	conversionDiags := diag.Diagnostics{}
-	servicesTF := make([]awsCWScrapeJobServiceTFModel, len(services))
-	servicesListObjType := types.ObjectType{AttrTypes: awsCWScrapeJobServiceTFModel{}.attrTypes()}
+	servicesTF := make([]awsCloudWatchScrapeJobServiceTFModel, len(services))
+	servicesListObjType := types.ObjectType{AttrTypes: awsCloudWatchScrapeJobServiceTFModel{}.attrTypes()}
 
 	for i, service := range services {
-		serviceTF := awsCWScrapeJobServiceTFModel{
+		serviceTF := awsCloudWatchScrapeJobServiceTFModel{
 			Name:                  types.StringValue(service.Name),
 			ScrapeIntervalSeconds: types.Int64Value(service.ScrapeIntervalSeconds),
 		}
 
-		metricsTF := make([]awsCWScrapeJobMetricTFModel, len(service.Metrics))
+		metricsTF := make([]awsCloudWatchScrapeJobMetricTFModel, len(service.Metrics))
 		for j, metric := range service.Metrics {
-			metricsTF[j] = awsCWScrapeJobMetricTFModel{
+			metricsTF[j] = awsCloudWatchScrapeJobMetricTFModel{
 				Name: types.StringValue(metric.Name),
 			}
 			statistics, diags := types.SetValueFrom(ctx, basetypes.StringType{}, services[i].Metrics[j].Statistics)
@@ -435,21 +435,21 @@ func convertCWServicesClientToTFModel(ctx context.Context, services []cloudprovi
 			}
 			metricsTF[j].Statistics = statistics
 		}
-		metricsTFList, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: awsCWScrapeJobMetricTFModel{}.attrTypes()}, metricsTF)
+		metricsTFList, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: awsCloudWatchScrapeJobMetricTFModel{}.attrTypes()}, metricsTF)
 		conversionDiags.Append(diags...)
 		if conversionDiags.HasError() {
 			return types.ListNull(servicesListObjType), conversionDiags
 		}
 		serviceTF.Metrics = metricsTFList
 
-		tagFiltersTF := make([]awsCWScrapeJobTagFilterTFModel, len(service.ResourceDiscoveryTagFilters))
+		tagFiltersTF := make([]awsCloudWatchScrapeJobTagFilterTFModel, len(service.ResourceDiscoveryTagFilters))
 		for j, tagFilter := range service.ResourceDiscoveryTagFilters {
-			tagFiltersTF[j] = awsCWScrapeJobTagFilterTFModel{
+			tagFiltersTF[j] = awsCloudWatchScrapeJobTagFilterTFModel{
 				Key:   types.StringValue(tagFilter.Key),
 				Value: types.StringValue(tagFilter.Value),
 			}
 		}
-		tagFiltersTFList, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: awsCWScrapeJobTagFilterTFModel{}.attrTypes()}, tagFiltersTF)
+		tagFiltersTFList, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: awsCloudWatchScrapeJobTagFilterTFModel{}.attrTypes()}, tagFiltersTF)
 		conversionDiags.Append(diags...)
 		if conversionDiags.HasError() {
 			return types.ListNull(servicesListObjType), conversionDiags
@@ -478,20 +478,20 @@ func convertCWServicesClientToTFModel(ctx context.Context, services []cloudprovi
 	return servicesTFList, conversionDiags
 }
 
-func convertCWCustomNamespacesClientToTFModel(ctx context.Context, customNamespaces []cloudproviderapi.AWSCloudWatchCustomNamespace) (types.List, diag.Diagnostics) {
+func convertAWSCloudWatchCustomNamespacesClientToTFModel(ctx context.Context, customNamespaces []cloudproviderapi.AWSCloudWatchCustomNamespace) (types.List, diag.Diagnostics) {
 	conversionDiags := diag.Diagnostics{}
-	customNamespacesTF := make([]awsCWScrapeJobCustomNamespaceTFModel, len(customNamespaces))
-	customNamspacesListObjType := types.ObjectType{AttrTypes: awsCWScrapeJobCustomNamespaceTFModel{}.attrTypes()}
+	customNamespacesTF := make([]awsCloudWatchScrapeJobCustomNamespaceTFModel, len(customNamespaces))
+	customNamspacesListObjType := types.ObjectType{AttrTypes: awsCloudWatchScrapeJobCustomNamespaceTFModel{}.attrTypes()}
 
 	for i, customNamespace := range customNamespaces {
-		customNamespaceTF := awsCWScrapeJobCustomNamespaceTFModel{
+		customNamespaceTF := awsCloudWatchScrapeJobCustomNamespaceTFModel{
 			Name:                  types.StringValue(customNamespace.Name),
 			ScrapeIntervalSeconds: types.Int64Value(customNamespace.ScrapeIntervalSeconds),
 		}
 
-		metricsTF := make([]awsCWScrapeJobMetricTFModel, len(customNamespace.Metrics))
+		metricsTF := make([]awsCloudWatchScrapeJobMetricTFModel, len(customNamespace.Metrics))
 		for j, metric := range customNamespace.Metrics {
-			metricsTF[j] = awsCWScrapeJobMetricTFModel{
+			metricsTF[j] = awsCloudWatchScrapeJobMetricTFModel{
 				Name: types.StringValue(metric.Name),
 			}
 			statistics, diags := types.SetValueFrom(ctx, basetypes.StringType{}, customNamespaces[i].Metrics[j].Statistics)
@@ -501,7 +501,7 @@ func convertCWCustomNamespacesClientToTFModel(ctx context.Context, customNamespa
 			}
 			metricsTF[j].Statistics = statistics
 		}
-		metricsTFList, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: awsCWScrapeJobMetricTFModel{}.attrTypes()}, metricsTF)
+		metricsTFList, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: awsCloudWatchScrapeJobMetricTFModel{}.attrTypes()}, metricsTF)
 		conversionDiags.Append(diags...)
 		if conversionDiags.HasError() {
 			return types.ListNull(customNamspacesListObjType), conversionDiags

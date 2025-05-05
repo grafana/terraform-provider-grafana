@@ -53,21 +53,21 @@ func TestAccResourceAWSResourceMetadataScrapeJob(t *testing.T) {
 					testAWSResourceMetadataScrapeJobData,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					checkAWSResourceMetadataScrapeJobResourceExists("grafana_cloud_provider_aws_resources_scrape_job.test", testCfg.stackID, &gotJob),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "stack_id", testCfg.stackID),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "name", jobName),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "enabled", "false"),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "disabled_reason", "disabled_by_user"),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "aws_account_resource_id", testCfg.accountID),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "regions_subset_override.#", "2"),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "regions_subset_override.0", testAWSResourceMetadataScrapeJobData.RegionsSubsetOverride[0]),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "regions_subset_override.1", testAWSResourceMetadataScrapeJobData.RegionsSubsetOverride[1]),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "service.#", fmt.Sprintf("%d", len(testAWSResourceMetadataScrapeJobData.Services))),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "service.0.name", testAWSResourceMetadataScrapeJobData.Services[0].Name),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "service.0.scrape_interval_seconds", fmt.Sprintf("%d", testAWSResourceMetadataScrapeJobData.Services[0].ScrapeIntervalSeconds)),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "service.0.resource_discovery_tag_filter.#", fmt.Sprintf("%d", len(testAWSResourceMetadataScrapeJobData.Services[0].ResourceDiscoveryTagFilters))),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "service.0.resource_discovery_tag_filter.0.key", testAWSResourceMetadataScrapeJobData.Services[0].ResourceDiscoveryTagFilters[0].Key),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "service.0.resource_discovery_tag_filter.0.value", testAWSResourceMetadataScrapeJobData.Services[0].ResourceDiscoveryTagFilters[0].Value),
+					checkAWSResourceMetadataScrapeJobResourceExists("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", testCfg.stackID, &gotJob),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "stack_id", testCfg.stackID),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "name", jobName),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "enabled", "false"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "disabled_reason", "disabled_by_user"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "aws_account_resource_id", testCfg.accountID),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "regions_subset_override.#", "2"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "regions_subset_override.0", testAWSResourceMetadataScrapeJobData.RegionsSubsetOverride[0]),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "regions_subset_override.1", testAWSResourceMetadataScrapeJobData.RegionsSubsetOverride[1]),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "service.#", fmt.Sprintf("%d", len(testAWSResourceMetadataScrapeJobData.Services))),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "service.0.name", testAWSResourceMetadataScrapeJobData.Services[0].Name),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "service.0.scrape_interval_seconds", fmt.Sprintf("%d", testAWSResourceMetadataScrapeJobData.Services[0].ScrapeIntervalSeconds)),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "service.0.resource_discovery_tag_filter.#", fmt.Sprintf("%d", len(testAWSResourceMetadataScrapeJobData.Services[0].ResourceDiscoveryTagFilters))),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "service.0.resource_discovery_tag_filter.0.key", testAWSResourceMetadataScrapeJobData.Services[0].ResourceDiscoveryTagFilters[0].Key),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "service.0.resource_discovery_tag_filter.0.value", testAWSResourceMetadataScrapeJobData.Services[0].ResourceDiscoveryTagFilters[0].Value),
 				),
 			},
 			// update to remove regions_subset_override so that the account's regions are used instead
@@ -83,7 +83,7 @@ func TestAccResourceAWSResourceMetadataScrapeJob(t *testing.T) {
 					}(),
 				),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "regions_subset_override.#", "0"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "regions_subset_override.#", "0"),
 				),
 			},
 			// update to enable the job
@@ -95,10 +95,10 @@ func TestAccResourceAWSResourceMetadataScrapeJob(t *testing.T) {
 					testAWSResourceMetadataScrapeJobData,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "stack_id", testCfg.stackID),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "name", jobName),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "enabled", "true"),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "disabled_reason", ""),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "stack_id", testCfg.stackID),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "name", jobName),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "enabled", "true"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "disabled_reason", ""),
 				),
 			},
 			// update to disable the job again
@@ -110,10 +110,10 @@ func TestAccResourceAWSResourceMetadataScrapeJob(t *testing.T) {
 					testAWSResourceMetadataScrapeJobData,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "stack_id", testCfg.stackID),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "name", jobName),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "enabled", "false"),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "disabled_reason", "disabled_by_user"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "stack_id", testCfg.stackID),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "name", jobName),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "enabled", "false"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "disabled_reason", "disabled_by_user"),
 				),
 			},
 			// update to unset optional tags_to_add_for_metrics field in service block
@@ -129,15 +129,15 @@ func TestAccResourceAWSResourceMetadataScrapeJob(t *testing.T) {
 					}(),
 				),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "service.#", fmt.Sprintf("%d", len(testAWSResourceMetadataScrapeJobData.Services))),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "service.0.name", testAWSResourceMetadataScrapeJobData.Services[0].Name),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "service.#", fmt.Sprintf("%d", len(testAWSResourceMetadataScrapeJobData.Services))),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "service.0.name", testAWSResourceMetadataScrapeJobData.Services[0].Name),
 					// expect this to be stored in the state as an empty list, not null
-					resource.TestCheckResourceAttrSet("grafana_cloud_provider_aws_resources_scrape_job.test", "service.0.resource_discovery_tag_filter.#"),
-					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resources_scrape_job.test", "service.0.resource_discovery_tag_filter.#", "0"),
+					resource.TestCheckResourceAttrSet("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "service.0.resource_discovery_tag_filter.#"),
+					resource.TestCheckResourceAttr("grafana_cloud_provider_aws_resource_metadata_scrape_job.test", "service.0.resource_discovery_tag_filter.#", "0"),
 				),
 			},
 			{
-				ResourceName:      "grafana_cloud_provider_aws_resources_scrape_job.test",
+				ResourceName:      "grafana_cloud_provider_aws_resource_metadata_scrape_job.test",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -212,7 +212,7 @@ func AWSResourceMetadataScrapeJobResourceData(stackID string, jobName string, en
 	req.AWSAccountResourceID = awsAccountResourceID
 
 	hclFile := hclwrite.NewFile()
-	jobRes := hclFile.Body().AppendNewBlock("resource", []string{"grafana_cloud_provider_aws_resources_scrape_job", "test"})
+	jobRes := hclFile.Body().AppendNewBlock("resource", []string{"grafana_cloud_provider_aws_resource_metadata_scrape_job", "test"})
 
 	jobBody := jobRes.Body()
 	jobBody.SetAttributeValue("name", cty.StringVal(req.Name))

@@ -16,9 +16,9 @@ resource "grafana_cloud_provider_aws_account" "test" {
   ]
 }
 
-resource "grafana_cloud_provider_aws_resources_scrape_job" "test" {
+resource "grafana_cloud_provider_aws_resource_metadata_scrape_job" "test" {
   stack_id                = data.grafana_cloud_stack.test.id
-  name                    = "my-aws-resources-scrape-job"
+  name                    = "my-aws-resource-metadata-scrape-job"
   aws_account_resource_id = grafana_cloud_provider_aws_account.test.resource_id
 
   service {

@@ -24,8 +24,8 @@ import (
 )
 
 var (
-	resourceAWSRMScrapeJobTerraformName = "grafana_cloud_provider_aws_resources_scrape_job"
-	resourceAWSRMScrapeJobTerraformID   = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("name"))
+	resourceAWSResourceMetadataScrapeJobTerraformName = "grafana_cloud_provider_aws_resource_metadata_scrape_job"
+	resourceAWSResourceMetadataScrapeJobTerraformID   = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("name"))
 )
 
 type resourceAWSResourceMetadataScrapeJob struct {
@@ -35,8 +35,8 @@ type resourceAWSResourceMetadataScrapeJob struct {
 func makeResourceAWSResourceMetadataScrapeJob() *common.Resource {
 	return common.NewResource(
 		common.CategoryCloudProvider,
-		"grafana_cloud_provider_aws_resources_scrape_job",
-		resourceAWSRMScrapeJobTerraformID,
+		"grafana_cloud_provider_aws_resource_metadata_scrape_job",
+		resourceAWSResourceMetadataScrapeJobTerraformID,
 		&resourceAWSResourceMetadataScrapeJob{},
 	)
 }
@@ -56,7 +56,7 @@ func (r *resourceAWSResourceMetadataScrapeJob) Configure(ctx context.Context, re
 }
 
 func (r resourceAWSResourceMetadataScrapeJob) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = resourceAWSRMScrapeJobTerraformName
+	resp.TypeName = resourceAWSResourceMetadataScrapeJobTerraformName
 }
 
 func (r resourceAWSResourceMetadataScrapeJob) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -79,14 +79,14 @@ func (r resourceAWSResourceMetadataScrapeJob) Schema(ctx context.Context, req re
 				},
 			},
 			"name": schema.StringAttribute{
-				Description: "The name of the Resource Metadata Scrape Job. Part of the Terraform Resource ID.",
+				Description: "The name of the AWS Resource Metadata Scrape Job. Part of the Terraform Resource ID.",
 				Required:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"enabled": schema.BoolAttribute{
-				Description: "Whether the Resource Metadata Scrape Job is enabled or not.",
+				Description: "Whether the AWS Resource Metadata Scrape Job is enabled or not.",
 				Optional:    true,
 				Computed:    true,
 				Default:     booldefault.StaticBool(true),
@@ -103,7 +103,7 @@ func (r resourceAWSResourceMetadataScrapeJob) Schema(ctx context.Context, req re
 				Default:     setdefault.StaticValue(types.SetValueMust(types.StringType, []attr.Value{})),
 			},
 			"disabled_reason": schema.StringAttribute{
-				Description: "When the Resource Metadata Scrape Job is disabled, this will show the reason that it is in that state.",
+				Description: "When the AWS Resource Metadata Scrape Job is disabled, this will show the reason that it is in that state.",
 				Computed:    true,
 			},
 			"static_labels": schema.MapAttribute{
@@ -119,7 +119,7 @@ func (r resourceAWSResourceMetadataScrapeJob) Schema(ctx context.Context, req re
 				Description: "One or more configuration blocks to configure AWS services for the Resource Metadata Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
 				Validators: []validator.List{
 					listvalidator.SizeAtLeast(1),
-					awsRMScrapeJobNoDuplicateServiceNamesValidator{},
+					awsResourceMetadataScrapeJobNoDuplicateServiceNamesValidator{},
 				},
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
@@ -176,7 +176,7 @@ func (r resourceAWSResourceMetadataScrapeJob) ImportState(ctx context.Context, r
 		return
 	}
 
-	jobTF, diags := generateAWSRMScrapeJobTFResourceModel(ctx, stackID, jobResp)
+	jobTF, diags := generateAWSResourceMetadataScrapeJobTFResourceModel(ctx, stackID, jobResp)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -186,7 +186,7 @@ func (r resourceAWSResourceMetadataScrapeJob) ImportState(ctx context.Context, r
 }
 
 func (r resourceAWSResourceMetadataScrapeJob) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data awsRMScrapeJobTFResourceModel
+	var data awsResourceMetadataScrapeJobTFResourceModel
 	diags := req.Plan.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -205,7 +205,7 @@ func (r resourceAWSResourceMetadataScrapeJob) Create(ctx context.Context, req re
 		return
 	}
 
-	jobTF, diags := generateAWSRMScrapeJobTFResourceModel(ctx, data.StackID.ValueString(), jobResp)
+	jobTF, diags := generateAWSResourceMetadataScrapeJobTFResourceModel(ctx, data.StackID.ValueString(), jobResp)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -215,7 +215,7 @@ func (r resourceAWSResourceMetadataScrapeJob) Create(ctx context.Context, req re
 }
 
 func (r resourceAWSResourceMetadataScrapeJob) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data awsRMScrapeJobTFResourceModel
+	var data awsResourceMetadataScrapeJobTFResourceModel
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -232,7 +232,7 @@ func (r resourceAWSResourceMetadataScrapeJob) Read(ctx context.Context, req reso
 		return
 	}
 
-	jobTF, diags := generateAWSRMScrapeJobTFResourceModel(ctx, data.StackID.ValueString(), jobResp)
+	jobTF, diags := generateAWSResourceMetadataScrapeJobTFResourceModel(ctx, data.StackID.ValueString(), jobResp)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -243,14 +243,14 @@ func (r resourceAWSResourceMetadataScrapeJob) Read(ctx context.Context, req reso
 
 func (r resourceAWSResourceMetadataScrapeJob) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	// This must be a pointer because ModifyPlan is called even on resource creation, when no state exists yet.
-	var stateData *awsRMScrapeJobTFResourceModel
+	var stateData *awsResourceMetadataScrapeJobTFResourceModel
 	diags := req.State.Get(ctx, &stateData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	var planData *awsRMScrapeJobTFResourceModel
+	var planData *awsResourceMetadataScrapeJobTFResourceModel
 	diags = req.Plan.Get(ctx, &planData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -275,7 +275,7 @@ func (r resourceAWSResourceMetadataScrapeJob) ModifyPlan(ctx context.Context, re
 }
 
 func (r resourceAWSResourceMetadataScrapeJob) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var planData awsRMScrapeJobTFResourceModel
+	var planData awsResourceMetadataScrapeJobTFResourceModel
 	diags := req.Plan.Get(ctx, &planData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -294,7 +294,7 @@ func (r resourceAWSResourceMetadataScrapeJob) Update(ctx context.Context, req re
 		return
 	}
 
-	jobTF, diags := generateAWSRMScrapeJobTFResourceModel(ctx, planData.StackID.ValueString(), jobResp)
+	jobTF, diags := generateAWSResourceMetadataScrapeJobTFResourceModel(ctx, planData.StackID.ValueString(), jobResp)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -304,7 +304,7 @@ func (r resourceAWSResourceMetadataScrapeJob) Update(ctx context.Context, req re
 }
 
 func (r resourceAWSResourceMetadataScrapeJob) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data awsRMScrapeJobTFResourceModel
+	var data awsResourceMetadataScrapeJobTFResourceModel
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
