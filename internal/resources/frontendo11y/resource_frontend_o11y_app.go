@@ -278,6 +278,7 @@ func (r *resourceFrontendO11yApp) Update(ctx context.Context, req resource.Updat
 	}
 
 	appTFState, diags := convertClientModelToTFModel(dataTF.StackID.ValueInt64(), appClientModel)
+	appTFState.CollectorEndpoint = dataTF.CollectorEndpoint
 	resp.Diagnostics.Append(diags...)
 	resp.State.Set(ctx, appTFState)
 }
