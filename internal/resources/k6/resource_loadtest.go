@@ -2,7 +2,10 @@ package k6
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -44,6 +47,7 @@ type loadTestResourceModel struct {
 	ProjectID         types.Int32  `tfsdk:"project_id"`
 	Name              types.String `tfsdk:"name"`
 	Script            types.String `tfsdk:"script"`
+	ScriptFile        types.String `tfsdk:"script_file"`
 	BaselineTestRunID types.Int32  `tfsdk:"baseline_test_run_id"`
 	Created           types.String `tfsdk:"created"`
 	Updated           types.String `tfsdk:"updated"`
@@ -77,8 +81,12 @@ func (r *loadTestResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Required:    true,
 			},
 			"script": schema.StringAttribute{
-				Description: "The k6 test script content. Can be provided inline or via the `file()` function.",
-				Required:    true,
+				Description: "The k6 test script contents. Can be provided inline or via the `file()` function.",
+				Optional:    true,
+			},
+			"script_file": schema.StringAttribute{
+				Description: "The path to the k6 test script file, either a test file or a test archive.",
+				Optional:    true,
 			},
 			"baseline_test_run_id": schema.Int32Attribute{
 				Description: "Identifier of a baseline test run used for results comparison.",
@@ -106,10 +114,16 @@ func (r *loadTestResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
+	script, err := scriptReadCloserFromPlan(plan)
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating k6 load test", err.Error())
+		return
+	}
+
 	ctx = context.WithValue(ctx, k6.ContextAccessToken, r.config.Token)
 	k6Req := r.client.LoadTestsAPI.ProjectsLoadTestsCreate(ctx, plan.ProjectID.ValueInt32()).
 		Name(plan.Name.ValueString()).
-		Script(io.NopCloser(strings.NewReader(plan.Script.ValueString()))).
+		Script(script).
 		XStackId(r.config.StackID)
 
 	// Create new load test
@@ -135,6 +149,28 @@ func (r *loadTestResource) Create(ctx context.Context, req resource.CreateReques
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+}
+
+func scriptReadCloserFromPlan(plan loadTestResourceModel) (io.ReadCloser, error) {
+	// Do some checks around the load test script. Exactly one must be defined.
+	testScriptContents := plan.Script.ValueString()
+	testScriptFilePath := plan.ScriptFile.ValueString()
+	switch {
+	// Script contents only
+	case testScriptContents != "" && testScriptFilePath == "":
+		return io.NopCloser(strings.NewReader(testScriptContents)), nil
+	// File path only
+	case testScriptContents == "" && testScriptFilePath != "":
+		script, err := os.Open(testScriptFilePath)
+		if err == nil {
+			return script, nil
+		}
+		dir, _ := os.Getwd()
+		return nil, fmt.Errorf("%s - could not open the 'script_file': %w", dir, err)
+	// Either none or both
+	default:
+		return nil, errors.New("either 'script' or 'script_file' (only one) must be defined to create a load test")
 	}
 }
 
@@ -180,7 +216,10 @@ func (r *loadTestResource) Read(ctx context.Context, req resource.ReadRequest, r
 	state.Name = types.StringValue(lt.GetName())
 	state.ProjectID = types.Int32Value(lt.GetProjectId())
 	state.BaselineTestRunID = handleBaselineTestRunID(lt.GetBaselineTestRunId())
-	state.Script = types.StringValue(script)
+	if state.ScriptFile.ValueString() == "" {
+		// Only update the script if no 'script_file' is defined
+		state.Script = types.StringValue(script)
+	}
 	state.Created = types.StringValue(lt.GetCreated().Format(time.RFC3339Nano))
 	state.Updated = types.StringValue(lt.GetUpdated().Format(time.RFC3339Nano))
 
@@ -235,9 +274,15 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	// Update the script if it has changed
-	if !plan.Script.Equal(state.Script) {
+	if !plan.Script.Equal(state.Script) || !plan.ScriptFile.Equal(state.ScriptFile) {
+		script, err := scriptReadCloserFromPlan(plan)
+		if err != nil {
+			resp.Diagnostics.AddError("Error updating k6 load test", err.Error())
+			return
+		}
+
 		scriptReq := r.client.LoadTestsAPI.LoadTestsScriptUpdate(ctx, state.ID.ValueInt32()).
-			Body(io.NopCloser(strings.NewReader(plan.Script.ValueString()))).
+			Body(script).
 			XStackId(r.config.StackID)
 
 		_, err = scriptReq.Execute()
@@ -263,25 +308,11 @@ func (r *loadTestResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	// Retrieve the updated script content
-	scriptReq := r.client.LoadTestsAPI.LoadTestsScriptRetrieve(ctx, state.ID.ValueInt32()).
-		XStackId(r.config.StackID)
-
-	script, _, err := scriptReq.Execute()
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error reading k6 load test script",
-			"Could not read k6 load test script with id "+strconv.Itoa(int(state.ID.ValueInt32()))+": "+err.Error(),
-		)
-		return
-	}
-
 	// Overwrite items with refreshed state
 	plan.ID = types.Int32Value(lt.GetId())
 	plan.Name = types.StringValue(lt.GetName())
 	plan.ProjectID = types.Int32Value(lt.GetProjectId())
 	plan.BaselineTestRunID = handleBaselineTestRunID(lt.GetBaselineTestRunId())
-	plan.Script = types.StringValue(script)
 	plan.Created = types.StringValue(lt.GetCreated().Format(time.RFC3339Nano))
 	plan.Updated = types.StringValue(lt.GetUpdated().Format(time.RFC3339Nano))
 

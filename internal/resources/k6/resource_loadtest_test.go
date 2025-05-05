@@ -17,7 +17,7 @@ import (
 )
 
 func TestAccLoadTest_basic(t *testing.T) {
-	testutils.CheckCloudInstanceTestsEnabled(t)
+	//testutils.CheckCloudInstanceTestsEnabled(t)
 
 	var (
 		project  k6.ProjectApiModel
@@ -32,33 +32,44 @@ func TestAccLoadTest_basic(t *testing.T) {
 		),
 		Steps: []resource.TestStep{
 			{
-				Config: testutils.TestAccExample(t, "resources/grafana_k6_load_test/resource.tf"),
+				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_load_test/resource.tf", map[string]string{
+					"${path.module}/archive.tar": "../../../examples/resources/grafana_k6_load_test/archive.tar",
+				}),
 				Check: resource.ComposeTestCheckFunc(
 					projectCheckExists.exists("grafana_k6_project.load_test_project", &project),
-					loadTestCheckExists.exists("grafana_k6_load_test.test_load_test", &loadTest),
-					resource.TestMatchResourceAttr("grafana_k6_load_test.test_load_test", "id", defaultIDRegexp),
-					resource.TestCheckResourceAttr("grafana_k6_load_test.test_load_test", "name", "Terraform Test Load Test"),
-					resource.TestCheckResourceAttr("grafana_k6_load_test.test_load_test", "script", "export default function() {\n  console.log('Hello from k6!');\n}\n"),
-					testutils.CheckLister("grafana_k6_load_test.test_load_test"),
+					// inline
+					loadTestCheckExists.exists("grafana_k6_load_test.test_load_test_inline", &loadTest),
+					resource.TestMatchResourceAttr("grafana_k6_load_test.test_load_test_inline", "id", defaultIDRegexp),
+					resource.TestCheckResourceAttr("grafana_k6_load_test.test_load_test_inline", "name", "Terraform Test Load Test Inline"),
+					resource.TestCheckResourceAttr("grafana_k6_load_test.test_load_test_inline", "script", "export default function() {\n  console.log('Hello from k6!');\n}\n"),
+					// archive
+					loadTestCheckExists.exists("grafana_k6_load_test.test_load_test_archive", &loadTest),
+					resource.TestMatchResourceAttr("grafana_k6_load_test.test_load_test_archive", "id", defaultIDRegexp),
+					resource.TestCheckResourceAttr("grafana_k6_load_test.test_load_test_archive", "name", "Terraform Test Load Test Archive"),
+					resource.TestCheckResourceAttrSet("grafana_k6_load_test.test_load_test_archive", "script_file"),
+					// lister
+					testutils.CheckLister("grafana_k6_load_test.test_load_test_inline"),
+					testutils.CheckLister("grafana_k6_load_test.test_load_test_archive"),
 				),
 			},
 			{
-				ResourceName:      "grafana_k6_load_test.test_load_test",
+				ResourceName:      "grafana_k6_load_test.test_load_test_inline",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
 			// Change the name and script of a load test. This shouldn't recreate the load test.
 			{
 				Config: testutils.TestAccExampleWithReplace(t, "resources/grafana_k6_load_test/resource.tf", map[string]string{
-					"Terraform Test Load Test":      "Terraform Test Load Test Updated",
-					"console.log('Hello from k6!')": "console.log('Hello from updated k6!')",
+					"Terraform Test Load Test Inline": "Terraform Test Load Test Updated",
+					"console.log('Hello from k6!')":   "console.log('Hello from updated k6!')",
+					"${path.module}/archive.tar":      "../../../examples/resources/grafana_k6_load_test/archive.tar",
 				}),
 				Check: resource.ComposeTestCheckFunc(
-					testAccLoadTestWasntRecreated("grafana_k6_load_test.test_load_test", &loadTest),
-					testAccLoadTestUnchangedAttr("grafana_k6_load_test.test_load_test", "id", func() string { return strconv.Itoa(int(loadTest.GetId())) }),
-					resource.TestCheckResourceAttr("grafana_k6_load_test.test_load_test", "name", "Terraform Test Load Test Updated"),
-					resource.TestCheckResourceAttr("grafana_k6_load_test.test_load_test", "script", "export default function() {\n  console.log('Hello from updated k6!');\n}\n"),
-					testAccLoadTestUnchangedAttr("grafana_k6_load_test.test_load_test", "created", func() string { return loadTest.GetCreated().Truncate(time.Microsecond).Format(time.RFC3339Nano) }),
+					testAccLoadTestWasntRecreated("grafana_k6_load_test.test_load_test_inline", &loadTest),
+					testAccLoadTestUnchangedAttr("grafana_k6_load_test.test_load_test_inline", "id", func() string { return strconv.Itoa(int(loadTest.GetId())) }),
+					resource.TestCheckResourceAttr("grafana_k6_load_test.test_load_test_inline", "name", "Terraform Test Load Test Updated"),
+					resource.TestCheckResourceAttr("grafana_k6_load_test.test_load_test_inline", "script", "export default function() {\n  console.log('Hello from updated k6!');\n}\n"),
+					testAccLoadTestUnchangedAttr("grafana_k6_load_test.test_load_test_inline", "created", func() string { return loadTest.GetCreated().Truncate(time.Microsecond).Format(time.RFC3339Nano) }),
 				),
 			},
 		},
