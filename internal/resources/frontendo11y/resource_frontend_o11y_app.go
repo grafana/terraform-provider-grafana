@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -25,6 +27,9 @@ import (
 var (
 	resourceFrontendO11yAppName        = "grafana_frontend_o11y_app"
 	resourceFrontendO11yAppTerraformID = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("name"))
+
+	// Check interface
+	_ resource.ResourceWithImportState = (*resourceFrontendO11yApp)(nil)
 )
 
 type resourceFrontendO11yApp struct {
@@ -135,6 +140,22 @@ func (r *resourceFrontendO11yApp) getStackCluster(ctx context.Context, stackID s
 	return stack.ClusterSlug, nil
 }
 
+func (r *resourceFrontendO11yApp) getStack(ctx context.Context, stackID string) (*gcom.FormattedApiInstance, error) {
+	stack, res, err := r.gcomClient.InstancesAPI.GetInstance(ctx, stackID).Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode >= 500 {
+		return nil, errors.New("server error")
+	}
+
+	if res.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("stack %q not found", stackID)
+	}
+	return stack, nil
+}
+
 func (r *resourceFrontendO11yApp) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var dataTF FrontendO11yAppTFModel
 	diags := req.Plan.Get(ctx, &dataTF)
@@ -161,6 +182,42 @@ func (r *resourceFrontendO11yApp) Create(ctx context.Context, req resource.Creat
 	appTFState, diags := convertClientModelToTFModel(dataTF.StackID.ValueInt64(), appClientModel)
 	resp.Diagnostics.Append(diags...)
 	resp.State.Set(ctx, appTFState)
+}
+
+func (r *resourceFrontendO11yApp) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	reqParts := strings.Split(req.ID, ":")
+	if len(reqParts) != 2 {
+		resp.Diagnostics.AddError("incorrect ID format", "Resource ID should be in the format of 'stackID:appID'")
+		return
+	}
+	stackSlug := reqParts[0]
+	appID := reqParts[1]
+	i64AppID, err := strconv.ParseInt(appID, 10, 64)
+	if err != nil {
+		resp.Diagnostics.AddError("invalid app ID", err.Error())
+		return
+	}
+
+	stack, err := r.getStack(ctx, stackSlug)
+	if err != nil {
+		resp.Diagnostics.AddError("failed to get Grafana Cloud Stack information", err.Error())
+		return
+	}
+	appClientModel, err := r.client.GetApp(
+		ctx,
+		apiURLForCluster(stack.ClusterSlug, r.client.Host()),
+		int64(stack.Id),
+		i64AppID,
+	)
+
+	if err != nil {
+		resp.Diagnostics.AddError("failed to get frontend o11y app", err.Error())
+		return
+	}
+
+	clientTFData, diags := convertClientModelToTFModel(int64(stack.Id), appClientModel)
+	resp.Diagnostics.Append(diags...)
+	resp.State.Set(ctx, clientTFData)
 }
 
 func (r *resourceFrontendO11yApp) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
