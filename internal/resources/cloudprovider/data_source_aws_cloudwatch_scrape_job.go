@@ -25,28 +25,28 @@ var (
 				Required:    true,
 			},
 			"name": schema.StringAttribute{
-				Description: "The name of the CloudWatch Scrape Job. Part of the Terraform Resource ID.",
+				Description: "The name of the AWS CloudWatch Scrape Job. Part of the Terraform Resource ID.",
 				Required:    true,
 			},
 			"enabled": schema.BoolAttribute{
-				Description: "Whether the CloudWatch Scrape Job is enabled or not.",
+				Description: "Whether the AWS CloudWatch Scrape Job is enabled or not.",
 				Computed:    true,
 			},
 			"aws_account_resource_id": schema.StringAttribute{
-				Description: "The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this CloudWatch Scrape Job. This can be provided by the `resource_id` attribute of the `grafana_cloud_provider_aws_account` resource.",
+				Description: "The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this AWS CloudWatch Scrape Job. This can be provided by the `resource_id` attribute of the `grafana_cloud_provider_aws_account` resource.",
 				Computed:    true,
 			},
 			"role_arn": schema.StringAttribute{
-				Description: "The AWS ARN of the IAM role associated with the AWS Account resource that is being used by this CloudWatch Scrape Job.",
+				Description: "The AWS ARN of the IAM role associated with the AWS Account resource that is being used by this AWS CloudWatch Scrape Job.",
 				Computed:    true,
 			},
 			"regions": schema.SetAttribute{
-				Description: "The set of AWS region names that this CloudWatch Scrape Job is configured to scrape.",
+				Description: "The set of AWS region names that this AWS CloudWatch Scrape Job is configured to scrape.",
 				Computed:    true,
 				ElementType: types.StringType,
 			},
 			"regions_subset_override_used": schema.BoolAttribute{
-				Description: "When true, the `regions` attribute will be the set of regions configured in the override. When false, the `regions` attribute will be the set of regions belonging to the AWS Account resource that is associated with this CloudWatch Scrape Job.",
+				Description: "When true, the `regions` attribute will be the set of regions configured in the override. When false, the `regions` attribute will be the set of regions belonging to the AWS Account resource that is associated with this AWS CloudWatch Scrape Job.",
 				Computed:    true,
 			},
 			"export_tags": schema.BoolAttribute{
@@ -54,7 +54,7 @@ var (
 				Computed:    true,
 			},
 			"disabled_reason": schema.StringAttribute{
-				Description: "When the CloudWatch Scrape Job is disabled, this will show the reason that it is in that state.",
+				Description: "When the AWS CloudWatch Scrape Job is disabled, this will show the reason that it is in that state.",
 				Computed:    true,
 			},
 			"static_labels": schema.MapAttribute{
@@ -65,7 +65,7 @@ var (
 		},
 		Blocks: map[string]schema.Block{
 			"service": schema.ListNestedBlock{
-				Description: "One or more configuration blocks to dictate what this CloudWatch Scrape Job should scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
+				Description: "One or more configuration blocks to dictate what this AWS CloudWatch Scrape Job should scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"name": schema.StringAttribute{
@@ -118,7 +118,7 @@ var (
 				},
 			},
 			"custom_namespace": schema.ListNestedBlock{
-				Description: "Zero or more configuration blocks to configure custom namespaces for the CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
+				Description: "Zero or more configuration blocks to configure custom namespaces for the AWS CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"name": schema.StringAttribute{
@@ -189,7 +189,7 @@ func (r *datasourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req datas
 }
 
 func (r *datasourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data awsCWScrapeJobTFDataSourceModel
+	var data awsCloudWatchScrapeJobTFDataSourceModel
 	diags := req.Config.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -202,11 +202,11 @@ func (r *datasourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req datasou
 		data.Name.ValueString(),
 	)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get AWS CloudWatch scrape job", err.Error())
+		resp.Diagnostics.AddError("Failed to get AWS CloudWatch Scrape Job", err.Error())
 		return
 	}
 
-	jobTF, diags := generateCloudWatchScrapeJobDataSourceTFModel(ctx, data.StackID.ValueString(), jobResp)
+	jobTF, diags := generateAWSCloudWatchScrapeJobDataSourceTFModel(ctx, data.StackID.ValueString(), jobResp)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

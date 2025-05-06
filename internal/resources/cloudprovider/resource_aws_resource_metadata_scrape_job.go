@@ -8,7 +8,6 @@ import (
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common"
 	"github.com/grafana/terraform-provider-grafana/v3/internal/common/cloudproviderapi"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -25,24 +24,24 @@ import (
 )
 
 var (
-	resourceAWSCloudWatchScrapeJobTerraformName = "grafana_cloud_provider_aws_cloudwatch_scrape_job"
-	resourceAWSCloudWatchScrapeJobTerraformID   = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("name"))
+	resourceAWSResourceMetadataScrapeJobTerraformName = "grafana_cloud_provider_aws_resource_metadata_scrape_job"
+	resourceAWSResourceMetadataScrapeJobTerraformID   = common.NewResourceID(common.StringIDField("stack_id"), common.StringIDField("name"))
 )
 
-type resourceAWSCloudWatchScrapeJob struct {
+type resourceAWSResourceMetadataScrapeJob struct {
 	client *cloudproviderapi.Client
 }
 
-func makeResourceAWSCloudWatchScrapeJob() *common.Resource {
+func makeResourceAWSResourceMetadataScrapeJob() *common.Resource {
 	return common.NewResource(
 		common.CategoryCloudProvider,
-		"grafana_cloud_provider_aws_cloudwatch_scrape_job",
-		resourceAWSCloudWatchScrapeJobTerraformID,
-		&resourceAWSCloudWatchScrapeJob{},
+		"grafana_cloud_provider_aws_resource_metadata_scrape_job",
+		resourceAWSResourceMetadataScrapeJobTerraformID,
+		&resourceAWSResourceMetadataScrapeJob{},
 	)
 }
 
-func (r *resourceAWSCloudWatchScrapeJob) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *resourceAWSResourceMetadataScrapeJob) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Configure is called multiple times (sometimes when ProviderData is not yet available), we only want to configure once
 	if req.ProviderData == nil || r.client != nil {
 		return
@@ -56,11 +55,11 @@ func (r *resourceAWSCloudWatchScrapeJob) Configure(ctx context.Context, req reso
 	r.client = client
 }
 
-func (r resourceAWSCloudWatchScrapeJob) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = resourceAWSCloudWatchScrapeJobTerraformName
+func (r resourceAWSResourceMetadataScrapeJob) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = resourceAWSResourceMetadataScrapeJobTerraformName
 }
 
-func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r resourceAWSResourceMetadataScrapeJob) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -80,20 +79,20 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 				},
 			},
 			"name": schema.StringAttribute{
-				Description: "The name of the AWS CloudWatch Scrape Job. Part of the Terraform Resource ID.",
+				Description: "The name of the AWS Resource Metadata Scrape Job. Part of the Terraform Resource ID.",
 				Required:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"enabled": schema.BoolAttribute{
-				Description: "Whether the AWS CloudWatch Scrape Job is enabled or not.",
+				Description: "Whether the AWS Resource Metadata Scrape Job is enabled or not.",
 				Optional:    true,
 				Computed:    true,
 				Default:     booldefault.StaticBool(true),
 			},
 			"aws_account_resource_id": schema.StringAttribute{
-				Description: "The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this CloudWatch Scrape Job. This can be provided by the `resource_id` attribute of the `grafana_cloud_provider_aws_account` resource.",
+				Description: "The ID assigned by the Grafana Cloud Provider API to an AWS Account resource that should be associated with this Resource Metadata Scrape Job. This can be provided by the `resource_id` attribute of the `grafana_cloud_provider_aws_account` resource.",
 				Required:    true,
 			},
 			"regions_subset_override": schema.SetAttribute{
@@ -103,14 +102,8 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 				ElementType: types.StringType,
 				Default:     setdefault.StaticValue(types.SetValueMust(types.StringType, []attr.Value{})),
 			},
-			"export_tags": schema.BoolAttribute{
-				Description: "When enabled, AWS resource tags are exported as Prometheus labels to metrics formatted as `aws_<service_name>_info`.",
-				Optional:    true,
-				Computed:    true,
-				Default:     booldefault.StaticBool(true),
-			},
 			"disabled_reason": schema.StringAttribute{
-				Description: "When the AWS CloudWatch Scrape Job is disabled, this will show the reason that it is in that state.",
+				Description: "When the AWS Resource Metadata Scrape Job is disabled, this will show the reason that it is in that state.",
 				Computed:    true,
 			},
 			"static_labels": schema.MapAttribute{
@@ -123,10 +116,10 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 		},
 		Blocks: map[string]schema.Block{
 			"service": schema.ListNestedBlock{
-				Description: "One or more configuration blocks to configure AWS services for the AWS CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
+				Description: "One or more configuration blocks to configure AWS services for the Resource Metadata Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
 				Validators: []validator.List{
 					listvalidator.SizeAtLeast(1),
-					awsCloudWatchScrapeJobNoDuplicateServiceNamesValidator{},
+					awsResourceMetadataScrapeJobNoDuplicateServiceNamesValidator{},
 				},
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
@@ -140,38 +133,8 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 							Computed:    true,
 							Default:     int64default.StaticInt64(300),
 						},
-						"tags_to_add_to_metrics": schema.SetAttribute{
-							Description: "A set of tags to add to all metrics exported by this scrape job, for use in PromQL queries.",
-							Optional:    true,
-							Computed:    true,
-							ElementType: types.StringType,
-							Default:     setdefault.StaticValue(types.SetValueMust(types.StringType, []attr.Value{})),
-						},
 					},
 					Blocks: map[string]schema.Block{
-						"metric": schema.ListNestedBlock{
-							Description: "One or more configuration blocks to configure metrics and their statistics to scrape. Please note that AWS metric names must be supplied, and not their PromQL counterparts. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects.",
-							Validators: []validator.List{
-								listvalidator.SizeAtLeast(1),
-								awsCloudWatchScrapeJobNoDuplicateMetricNamesValidator{},
-							},
-							NestedObject: schema.NestedBlockObject{
-								Attributes: map[string]schema.Attribute{
-									"name": schema.StringAttribute{
-										Description: "The name of the metric to scrape.",
-										Required:    true,
-									},
-									"statistics": schema.SetAttribute{
-										Description: "A set of statistics to scrape.",
-										Required:    true,
-										Validators: []validator.Set{
-											setvalidator.SizeAtLeast(1),
-										},
-										ElementType: types.StringType,
-									},
-								},
-							},
-						},
 						"resource_discovery_tag_filter": schema.ListNestedBlock{
 							Description: "One or more configuration blocks to configure tag filters applied to discovery of resource entities in the associated AWS account. When accessing this as an attribute reference, it is a list of objects.",
 							NestedObject: schema.NestedBlockObject{
@@ -190,56 +153,11 @@ func (r resourceAWSCloudWatchScrapeJob) Schema(ctx context.Context, req resource
 					},
 				},
 			},
-			"custom_namespace": schema.ListNestedBlock{
-				Description: "Zero or more configuration blocks to configure custom namespaces for the AWS CloudWatch Scrape Job to scrape. Each block must have a distinct `name` attribute. When accessing this as an attribute reference, it is a list of objects.",
-				Validators: []validator.List{
-					awsCloudWatchScrapeJobNoDuplicateCustomNamespaceNamesValidator{},
-				},
-				NestedObject: schema.NestedBlockObject{
-					Attributes: map[string]schema.Attribute{
-						"name": schema.StringAttribute{
-							Description: "The name of the custom namespace to scrape.",
-							Required:    true,
-						},
-						"scrape_interval_seconds": schema.Int64Attribute{
-							Description: "The interval in seconds to scrape the custom namespace.",
-							Optional:    true,
-							Computed:    true,
-							Default:     int64default.StaticInt64(300),
-						},
-					},
-					Blocks: map[string]schema.Block{
-						"metric": schema.ListNestedBlock{
-							Description: "One or more configuration blocks to configure metrics and their statistics to scrape. Each block must represent a distinct metric name. When accessing this as an attribute reference, it is a list of objects.",
-							Validators: []validator.List{
-								listvalidator.SizeAtLeast(1),
-								awsCloudWatchScrapeJobNoDuplicateMetricNamesValidator{},
-							},
-							NestedObject: schema.NestedBlockObject{
-								Attributes: map[string]schema.Attribute{
-									"name": schema.StringAttribute{
-										Description: "The name of the metric to scrape.",
-										Required:    true,
-									},
-									"statistics": schema.SetAttribute{
-										Description: "A set of statistics to scrape.",
-										Required:    true,
-										Validators: []validator.Set{
-											setvalidator.SizeAtLeast(1),
-										},
-										ElementType: types.StringType,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
 		},
 	}
 }
 
-func (r resourceAWSCloudWatchScrapeJob) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r resourceAWSResourceMetadataScrapeJob) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	parts := strings.SplitN(req.ID, ":", 2)
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
 		resp.Diagnostics.AddError("Invalid ID", fmt.Sprintf("Invalid ID: %s", req.ID))
@@ -248,17 +166,17 @@ func (r resourceAWSCloudWatchScrapeJob) ImportState(ctx context.Context, req res
 	stackID := parts[0]
 	jobName := parts[1]
 
-	jobResp, err := r.client.GetAWSCloudWatchScrapeJob(
+	jobResp, err := r.client.GetAWSResourceMetadataScrapeJob(
 		ctx,
 		stackID,
 		jobName,
 	)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get AWS CloudWatch scrape job", err.Error())
+		resp.Diagnostics.AddError("Failed to get AWS Resource Metadata scrape job", err.Error())
 		return
 	}
 
-	jobTF, diags := generateCloudWatchScrapeJobTFResourceModel(ctx, stackID, jobResp)
+	jobTF, diags := generateAWSResourceMetadataScrapeJobTFResourceModel(ctx, stackID, jobResp)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -267,8 +185,8 @@ func (r resourceAWSCloudWatchScrapeJob) ImportState(ctx context.Context, req res
 	resp.State.Set(ctx, jobTF)
 }
 
-func (r resourceAWSCloudWatchScrapeJob) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data awsCloudWatchScrapeJobTFResourceModel
+func (r resourceAWSResourceMetadataScrapeJob) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data awsResourceMetadataScrapeJobTFResourceModel
 	diags := req.Plan.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -281,13 +199,13 @@ func (r resourceAWSCloudWatchScrapeJob) Create(ctx context.Context, req resource
 		return
 	}
 
-	jobResp, err := r.client.CreateAWSCloudWatchScrapeJob(ctx, data.StackID.ValueString(), jobReq)
+	jobResp, err := r.client.CreateAWSResourceMetadataScrapeJob(ctx, data.StackID.ValueString(), jobReq)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to create AWS CloudWatch scrape job", err.Error())
+		resp.Diagnostics.AddError("Failed to create AWS Resource Metadata scrape job", err.Error())
 		return
 	}
 
-	jobTF, diags := generateCloudWatchScrapeJobTFResourceModel(ctx, data.StackID.ValueString(), jobResp)
+	jobTF, diags := generateAWSResourceMetadataScrapeJobTFResourceModel(ctx, data.StackID.ValueString(), jobResp)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -296,25 +214,25 @@ func (r resourceAWSCloudWatchScrapeJob) Create(ctx context.Context, req resource
 	resp.State.Set(ctx, &jobTF)
 }
 
-func (r resourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data awsCloudWatchScrapeJobTFResourceModel
+func (r resourceAWSResourceMetadataScrapeJob) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data awsResourceMetadataScrapeJobTFResourceModel
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	jobResp, err := r.client.GetAWSCloudWatchScrapeJob(
+	jobResp, err := r.client.GetAWSResourceMetadataScrapeJob(
 		ctx,
 		data.StackID.ValueString(),
 		data.Name.ValueString(),
 	)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get AWS CloudWatch scrape job", err.Error())
+		resp.Diagnostics.AddError("Failed to get AWS Resource Metadata scrape job", err.Error())
 		return
 	}
 
-	jobTF, diags := generateCloudWatchScrapeJobTFResourceModel(ctx, data.StackID.ValueString(), jobResp)
+	jobTF, diags := generateAWSResourceMetadataScrapeJobTFResourceModel(ctx, data.StackID.ValueString(), jobResp)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -323,16 +241,16 @@ func (r resourceAWSCloudWatchScrapeJob) Read(ctx context.Context, req resource.R
 	resp.State.Set(ctx, jobTF)
 }
 
-func (r resourceAWSCloudWatchScrapeJob) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+func (r resourceAWSResourceMetadataScrapeJob) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	// This must be a pointer because ModifyPlan is called even on resource creation, when no state exists yet.
-	var stateData *awsCloudWatchScrapeJobTFResourceModel
+	var stateData *awsResourceMetadataScrapeJobTFResourceModel
 	diags := req.State.Get(ctx, &stateData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	var planData *awsCloudWatchScrapeJobTFResourceModel
+	var planData *awsResourceMetadataScrapeJobTFResourceModel
 	diags = req.Plan.Get(ctx, &planData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -356,8 +274,8 @@ func (r resourceAWSCloudWatchScrapeJob) ModifyPlan(ctx context.Context, req reso
 	}
 }
 
-func (r resourceAWSCloudWatchScrapeJob) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var planData awsCloudWatchScrapeJobTFResourceModel
+func (r resourceAWSResourceMetadataScrapeJob) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var planData awsResourceMetadataScrapeJobTFResourceModel
 	diags := req.Plan.Get(ctx, &planData)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -370,13 +288,13 @@ func (r resourceAWSCloudWatchScrapeJob) Update(ctx context.Context, req resource
 		return
 	}
 
-	jobResp, err := r.client.UpdateAWSCloudWatchScrapeJob(ctx, planData.StackID.ValueString(), planData.Name.ValueString(), jobReq)
+	jobResp, err := r.client.UpdateAWSResourceMetadataScrapeJob(ctx, planData.StackID.ValueString(), planData.Name.ValueString(), jobReq)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to update AWS CloudWatch scrape job", err.Error())
+		resp.Diagnostics.AddError("Failed to update AWS Resource Metadata scrape job", err.Error())
 		return
 	}
 
-	jobTF, diags := generateCloudWatchScrapeJobTFResourceModel(ctx, planData.StackID.ValueString(), jobResp)
+	jobTF, diags := generateAWSResourceMetadataScrapeJobTFResourceModel(ctx, planData.StackID.ValueString(), jobResp)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -385,21 +303,21 @@ func (r resourceAWSCloudWatchScrapeJob) Update(ctx context.Context, req resource
 	resp.State.Set(ctx, jobTF)
 }
 
-func (r resourceAWSCloudWatchScrapeJob) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data awsCloudWatchScrapeJobTFResourceModel
+func (r resourceAWSResourceMetadataScrapeJob) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data awsResourceMetadataScrapeJobTFResourceModel
 	diags := req.State.Get(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	err := r.client.DeleteAWSCloudWatchScrapeJob(
+	err := r.client.DeleteAWSResourceMetadataScrapeJob(
 		ctx,
 		data.StackID.ValueString(),
 		data.Name.ValueString(),
 	)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to delete AWS CloudWatch scrape job", err.Error())
+		resp.Diagnostics.AddError("Failed to delete AWS Resource Metadata scrape job", err.Error())
 		return
 	}
 

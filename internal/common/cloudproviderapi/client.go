@@ -199,6 +199,87 @@ func (c *Client) DeleteAWSCloudWatchScrapeJob(ctx context.Context, stackID strin
 	return nil
 }
 
+type AWSResourceMetadataScrapeJobRequest struct {
+	Name                  string                       `json:"name"`
+	Enabled               bool                         `json:"enabled"`
+	AWSAccountResourceID  string                       `json:"awsAccountResourceID"`
+	RegionsSubsetOverride []string                     `json:"regionsSubsetOverride"`
+	Services              []AWSResourceMetadataService `json:"services"`
+	StaticLabels          map[string]string            `json:"staticLabels"`
+}
+type AWSResourceMetadataScrapeJobResponse struct {
+	Name                 string                       `json:"name"`
+	Enabled              bool                         `json:"enabled"`
+	AWSAccountResourceID string                       `json:"awsAccountResourceID"`
+	Services             []AWSResourceMetadataService `json:"services"`
+	StaticLabels         map[string]string            `json:"staticLabels"`
+
+	// computed fields beyond the original request
+	RoleARN                   string   `json:"roleARN"`
+	Regions                   []string `json:"regions"`
+	RegionsSubsetOverrideUsed bool     `json:"regionsSubsetOverrideUsed"`
+	DisabledReason            string   `json:"disabledReason"`
+	Provenance                string   `json:"provenance"`
+}
+type AWSResourceMetadataService struct {
+	Name                        string                         `json:"name"`
+	ScrapeIntervalSeconds       int64                          `json:"scrapeIntervalSeconds"`
+	ResourceDiscoveryTagFilters []AWSResourceMetadataTagFilter `json:"resourceDiscoveryTagFilters"`
+}
+type AWSResourceMetadataTagFilter struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+func (c *Client) CreateAWSResourceMetadataScrapeJob(ctx context.Context, stackID string, jobData AWSResourceMetadataScrapeJobRequest) (AWSResourceMetadataScrapeJobResponse, error) {
+	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/resources", stackID)
+	respData := apiResponseWrapper[AWSResourceMetadataScrapeJobResponse]{}
+	err := c.doAPIRequest(ctx, http.MethodPost, path, &jobData, &respData)
+	if err != nil {
+		return AWSResourceMetadataScrapeJobResponse{}, fmt.Errorf("failed to create AWS Resource Metadata scrape job: %w", err)
+	}
+	return respData.Data, nil
+}
+
+func (c *Client) GetAWSResourceMetadataScrapeJob(ctx context.Context, stackID string, jobName string) (AWSResourceMetadataScrapeJobResponse, error) {
+	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/resources/%s", stackID, jobName)
+	respData := apiResponseWrapper[AWSResourceMetadataScrapeJobResponse]{}
+	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &respData)
+	if err != nil {
+		return AWSResourceMetadataScrapeJobResponse{}, fmt.Errorf("failed to get AWS Resource Metadata scrape job: %w", err)
+	}
+	return respData.Data, nil
+}
+
+func (c *Client) ListAWSResourceMetadataScrapeJobs(ctx context.Context, stackID string) ([]AWSResourceMetadataScrapeJobResponse, error) {
+	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/resources", stackID)
+	respData := apiResponseWrapper[[]AWSResourceMetadataScrapeJobResponse]{}
+	err := c.doAPIRequest(ctx, http.MethodGet, path, nil, &respData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get AWS Resource Metadata scrape job: %w", err)
+	}
+	return respData.Data, nil
+}
+
+func (c *Client) UpdateAWSResourceMetadataScrapeJob(ctx context.Context, stackID string, jobName string, jobData AWSResourceMetadataScrapeJobRequest) (AWSResourceMetadataScrapeJobResponse, error) {
+	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/resources/%s", stackID, jobName)
+	respData := apiResponseWrapper[AWSResourceMetadataScrapeJobResponse]{}
+	err := c.doAPIRequest(ctx, http.MethodPut, path, &jobData, &respData)
+	if err != nil {
+		return AWSResourceMetadataScrapeJobResponse{}, fmt.Errorf("failed to update AWS Resource Metadata scrape job: %w", err)
+	}
+	return respData.Data, nil
+}
+
+func (c *Client) DeleteAWSResourceMetadataScrapeJob(ctx context.Context, stackID string, jobName string) error {
+	path := fmt.Sprintf("/api/v2/stacks/%s/aws/jobs/resources/%s", stackID, jobName)
+	err := c.doAPIRequest(ctx, http.MethodDelete, path, nil, nil)
+	if err != nil {
+		return fmt.Errorf("failed to delete AWS Resource Metadata scrape job: %w", err)
+	}
+	return nil
+}
+
 type AzureCredential struct {
 	// ID is the unique identifier for the Azure credential in our systems.
 	ID string `json:"id"`
