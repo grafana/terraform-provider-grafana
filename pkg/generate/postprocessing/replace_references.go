@@ -132,6 +132,7 @@ var knownReferences = []string{
 	"grafana_service_account_permission_item.user=grafana_user.id",
 	"grafana_service_account_token.service_account_id=grafana_service_account.id",
 	"grafana_slo.folder_uid=grafana_folder.uid",
+	"grafana_synthetic_monitoring_check_alerts.check_id=grafana_synthetic_monitoring_check.id",
 	"grafana_synthetic_monitoring_installation.metrics_publisher_key=grafana_cloud_access_policy_token.token",
 	"grafana_synthetic_monitoring_installation.sm_access_token=grafana_synthetic_monitoring_installation.sm_access_token",
 	"grafana_synthetic_monitoring_installation.sm_url=grafana_synthetic_monitoring_installation.stack_sm_api_url",

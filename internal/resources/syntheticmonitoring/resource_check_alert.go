@@ -109,6 +109,8 @@ func resourceCheckAlertRead(ctx context.Context, d *schema.ResourceData, c *smap
 		return diag.FromErr(err)
 	}
 
+	d.Set("check_id", checkID)
+
 	alerts, err := c.GetCheckAlerts(ctx, checkID)
 	if err != nil {
 		return diag.FromErr(err)
