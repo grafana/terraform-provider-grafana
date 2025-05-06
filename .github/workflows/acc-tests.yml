@@ -47,8 +47,10 @@ jobs:
         with:
           repo_secrets: |
             GRAFANA_AUTH=cloud-instance-tests:auth
+            GRAFANA_STACK_ID=cloud-instance-k6-tests:stack-id
             GRAFANA_ONCALL_ACCESS_TOKEN=cloud-instance-tests:oncall-token
             GRAFANA_SM_ACCESS_TOKEN=cloud-instance-tests:sm-token
+            GRAFANA_K6_ACCESS_TOKEN=cloud-instance-k6-tests:k6-token
             GRAFANA_SM_URL=cloud-instance-tests:sm-url
             GRAFANA_URL=cloud-instance-tests:url
             GRAFANA_CLOUD_PROVIDER_URL=cloudprovider-tests:url
