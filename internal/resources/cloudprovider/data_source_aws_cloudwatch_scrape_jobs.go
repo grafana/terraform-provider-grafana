@@ -16,9 +16,9 @@ var (
 )
 
 type datasourceAWSCloudWatchScrapeJobsModel struct {
-	ID         types.String                      `tfsdk:"id"`
-	StackID    types.String                      `tfsdk:"stack_id"`
-	ScrapeJobs []awsCWScrapeJobTFDataSourceModel `tfsdk:"scrape_job"`
+	ID         types.String                              `tfsdk:"id"`
+	StackID    types.String                              `tfsdk:"stack_id"`
+	ScrapeJobs []awsCloudWatchScrapeJobTFDataSourceModel `tfsdk:"scrape_job"`
 }
 
 type datasourceAWSCloudWatchScrapeJobs struct {
@@ -77,7 +77,7 @@ func (r datasourceAWSCloudWatchScrapeJobs) Schema(ctx context.Context, req datas
 							Computed:    true,
 						}
 						attrs["name"] = schema.StringAttribute{
-							Description: "The name of the CloudWatch Scrape Job. Part of the Terraform Resource ID.",
+							Description: "The name of the AWS CloudWatch Scrape Job. Part of the Terraform Resource ID.",
 							Computed:    true,
 						}
 						return attrs
@@ -106,9 +106,9 @@ func (r datasourceAWSCloudWatchScrapeJobs) Read(ctx context.Context, req datasou
 		return
 	}
 
-	scrapeJobs := make([]awsCWScrapeJobTFDataSourceModel, len(jobs))
+	scrapeJobs := make([]awsCloudWatchScrapeJobTFDataSourceModel, len(jobs))
 	for i, jobResp := range jobs {
-		jobTF, diags := generateCloudWatchScrapeJobDataSourceTFModel(ctx, data.StackID.ValueString(), jobResp)
+		jobTF, diags := generateAWSCloudWatchScrapeJobDataSourceTFModel(ctx, data.StackID.ValueString(), jobResp)
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
 			return

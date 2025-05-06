@@ -194,6 +194,19 @@ func Provider(version string) *schema.Provider {
 				Sensitive:   true,
 				Description: "A Grafana Frontend Observability API access token. May alternatively be set via the `GRAFANA_FRONTEND_O11Y_API_ACCESS_TOKEN` environment variable.",
 			},
+
+			"k6_url": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The k6 Cloud API url. May alternatively be set via the `GRAFANA_K6_URL` environment variable.",
+				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
+			},
+			"k6_access_token": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "The k6 Cloud API token. May alternatively be set via the `GRAFANA_K6_ACCESS_TOKEN` environment variable.",
+			},
 		},
 
 		ResourcesMap:   legacySDKResources(),
@@ -271,6 +284,8 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			FleetManagementAuth:        stringValueOrNull(d, "fleet_management_auth"),
 			FleetManagementURL:         stringValueOrNull(d, "fleet_management_url"),
 			FrontendO11yAPIAccessToken: stringValueOrNull(d, "frontend_o11y_api_access_token"),
+			K6URL:                      stringValueOrNull(d, "k6_url"),
+			K6AccessToken:              stringValueOrNull(d, "k6_access_token"),
 			StoreDashboardSha256:       boolValueOrNull(d, "store_dashboard_sha256"),
 			HTTPHeaders:                headers,
 			Retries:                    int64ValueOrNull(d, "retries"),
