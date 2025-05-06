@@ -3,6 +3,7 @@ package grafana
 import (
 	"context"
 	"fmt"
+	"log"
 	"reflect"
 	"strconv"
 	"time"
@@ -422,7 +423,7 @@ func packNotifierStringField(gfSettings, tfSettings *map[string]interface{}, gfK
 func packSecureFields(tfSettings, state map[string]interface{}, secureFields []string) {
 	for _, tfKey := range secureFields {
 		if v, ok := state[tfKey]; ok && v != nil {
-			tfSettings[tfKey] = v.(string)
+			tfSettings[tfKey] = v
 		}
 	}
 }
@@ -444,4 +445,68 @@ func getNotifierConfigFromStateWithUID(data *schema.ResourceData, n notifier, ui
 	}
 
 	return nil
+}
+
+func unpackTLSConfig(tfSettings, gfSettings map[string]interface{}) {
+	tlsConfig, ok := tfSettings["tls_config"].(map[string]any)
+	if !ok || len(tlsConfig) == 0 {
+		return
+	}
+
+	gfTLSConfig := make(map[string]any)
+
+	if is, ok := tlsConfig["insecure_skip_verify"].(string); ok {
+		if insecureSkipVerify, err := strconv.ParseBool(is); err != nil {
+			log.Printf("[WARN] failed to parse 'insecure_skip_verify': %s", err)
+		} else {
+			gfTLSConfig["insecureSkipVerify"] = insecureSkipVerify
+		}
+	}
+
+	if caCertificate, ok := tlsConfig["ca_certificate"].(string); ok {
+		gfTLSConfig["caCertificate"] = caCertificate
+	}
+
+	if clientCertificate, ok := tlsConfig["client_certificate"].(string); ok {
+		gfTLSConfig["clientCertificate"] = clientCertificate
+	}
+
+	if clientKey, ok := tlsConfig["client_key"].(string); ok {
+		gfTLSConfig["clientKey"] = clientKey
+	}
+
+	gfSettings["tlsConfig"] = gfTLSConfig
+}
+
+func packTLSConfig(gfSettings, tfSettings map[string]interface{}) {
+	tlsConfig, ok := gfSettings["tlsConfig"].(map[string]any)
+	if !ok || len(tlsConfig) == 0 {
+		return
+	}
+
+	tfTLSConfig := make(map[string]any)
+
+	if is, ok := tlsConfig["insecureSkipVerify"].(string); ok {
+		if insecureSkipVerify, err := strconv.ParseBool(is); err != nil {
+			log.Printf("[WARN] failed to parse 'insecure_skip_verify': %s", err)
+		} else {
+			tfTLSConfig["insecure_skip_verify"] = insecureSkipVerify
+		}
+	}
+
+	if caCertificate, ok := tlsConfig["caCertificate"].(string); ok {
+		tfTLSConfig["ca_certificate"] = caCertificate
+	}
+
+	if clientCertificate, ok := tlsConfig["clientCertificate"].(string); ok {
+		tfTLSConfig["client_certificate"] = clientCertificate
+	}
+
+	if clientKey, ok := tlsConfig["clientKey"].(string); ok {
+		tfTLSConfig["client_key"] = clientKey
+	}
+
+	delete(gfSettings, "tlsConfig")
+
+	tfSettings["tls_config"] = tfTLSConfig
 }
